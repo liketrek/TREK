@@ -225,6 +225,10 @@ export const budgetUpdateItemRequestSchema = z.object({
   ticket_json: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(),
   receipt_file_ids: z.array(z.number()).optional(),
+  // Link an existing expense to a booking or a place on the same trip (#2084);
+  // null lets go of the link and keeps the expense. Omitted leaves it as is.
+  reservation_id: z.number().int().positive().nullable().optional(),
+  place_id: z.number().int().positive().nullable().optional(),
   fallback_fx: budgetFallbackFxSchema.optional(),
 });
 export type BudgetUpdateItemRequest = z.infer<typeof budgetUpdateItemRequestSchema>;
@@ -259,6 +263,8 @@ export const budgetSettlementSchema = z.object({
   // vs. created_at. Null/absent on rows recorded before this column existed; the
   // ledger falls back to `created_at`'s date for those.
   settled_at: z.string().nullable().optional(),
+  // A free-text note on the payment (#2340). Null when none was written.
+  note: z.string().nullable().optional(),
   created_by_user_id: z.number().nullable().optional(),
   from_username: z.string().optional(),
   from_avatar_url: z.string().nullable().optional(),
@@ -276,6 +282,8 @@ export const budgetCreateSettlementRequestSchema = z.object({
   // The day the transfer happened. Null when the caller sets none; the ledger then
   // uses the day it was recorded, which is where every older payment already sits.
   settled_at: z.string().nullable().optional(),
+  // A free-text note on the payment (#2340); blank stores none.
+  note: z.string().max(500).nullable().optional(),
   // Rates to freeze `currency` with when the server has none of its own.
   fallback_fx: budgetFallbackFxSchema.optional(),
 });
@@ -288,6 +296,8 @@ export const budgetUpdateSettlementRequestSchema = z.object({
   amount: z.number(),
   currency: z.string().nullable().optional(),
   settled_at: z.string().nullable().optional(),
+  // Omitted leaves the note as it is; null or blank clears it (#2340).
+  note: z.string().max(500).nullable().optional(),
   fallback_fx: budgetFallbackFxSchema.optional(),
 });
 export type BudgetUpdateSettlementRequest = z.infer<typeof budgetUpdateSettlementRequestSchema>;

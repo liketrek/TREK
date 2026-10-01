@@ -108,6 +108,19 @@ const svc = new AuthService(
   new AllowedFileTypesService(new DatabaseService(testDb)),
 );
 
+/** A Web Push device row; the password paths only care whose it is. */
+function addPushDevice(userId: number, endpoint: string): void {
+  testDb
+    .prepare(
+      "INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, vapid_public_key) VALUES (?, ?, 'p', 'a', 'k')",
+    )
+    .run(userId, endpoint);
+}
+
+function pushDeviceCount(userId: number): number {
+  return (testDb.prepare('SELECT COUNT(*) c FROM push_subscriptions WHERE user_id = ?').get(userId) as { c: number }).c;
+}
+
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
@@ -494,6 +507,51 @@ describe('changePassword — session invalidation', () => {
     const decoded = jwt.decode(result.token!) as { remember?: boolean; iat: number; exp: number };
     expect(decoded.remember).toBe(true);
     expect(decoded.exp - decoded.iat).toBe(2592000); // remember window survives the change
+  });
+
+  it('AUTH-DB-036e: forgets every push device of the user, and only of that user', () => {
+    const { user, password } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    addPushDevice(user.id, 'https://fcm.googleapis.com/fcm/send/mine-1');
+    addPushDevice(user.id, 'https://web.push.apple.com/mine-2');
+    addPushDevice(other.id, 'https://fcm.googleapis.com/fcm/send/theirs');
+
+    const result = svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' });
+
+    expect(result.success).toBe(true);
+    expect(pushDeviceCount(user.id)).toBe(0);
+    expect(pushDeviceCount(other.id)).toBe(1);
+  });
+
+  it('AUTH-DB-036f: a refused change keeps the push devices', () => {
+    const { user } = createUser(testDb);
+    addPushDevice(user.id, 'https://fcm.googleapis.com/fcm/send/mine');
+
+    const result = svc.changePassword(user.id, user.email, { current_password: 'wrong', new_password: 'New1234!' });
+
+    expect(result.status).toBe(401);
+    expect(pushDeviceCount(user.id)).toBe(1);
+  });
+
+  it('AUTH-DB-036g: drops the push devices in the same transaction as the password change, so a failure changes nothing', () => {
+    const { user, password } = createUser(testDb);
+    tokens.createMcpToken(user.id, 'cli');
+    addPushDevice(user.id, 'https://fcm.googleapis.com/fcm/send/mine');
+    testDb.exec("CREATE TRIGGER boom BEFORE DELETE ON push_subscriptions BEGIN SELECT RAISE(ABORT, 'boom'); END");
+    try {
+      expect(() =>
+        svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }),
+      ).toThrow('boom');
+    } finally {
+      testDb.exec('DROP TRIGGER boom');
+    }
+
+    expect(pvOf(user.id)).toBe(0);
+    expect(mcpCount(user.id)).toBe(1);
+    expect(pushDeviceCount(user.id)).toBe(1);
+    // The new hash rolled back as well, so the old password is still the one that counts.
+    expect(svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }).success)
+      .toBe(true);
   });
 });
 
@@ -916,6 +974,42 @@ describe('resetPassword', () => {
     // token is burned — a second use answers the bespoke 400
     expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh456!' }))
       .toEqual({ error: 'This reset link has already been used', status: 400 });
+  });
+
+  it('AUTH-DB-082b: forgets every push device of the user along with the MCP tokens', () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    tokens.createMcpToken(user.id, 'cli');
+    addPushDevice(user.id, 'https://fcm.googleapis.com/fcm/send/mine');
+    addPushDevice(other.id, 'https://fcm.googleapis.com/fcm/send/theirs');
+    const issued = svc.requestPasswordReset(user.email, null);
+
+    expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
+      .toEqual({ success: true, userId: user.id });
+
+    expect((testDb.prepare('SELECT COUNT(*) c FROM mcp_tokens WHERE user_id = ?').get(user.id) as { c: number }).c).toBe(0);
+    expect(pushDeviceCount(user.id)).toBe(0);
+    expect(pushDeviceCount(other.id)).toBe(1);
+  });
+
+  it('AUTH-DB-082c: drops the push devices in the same transaction that burns the link, so a failure keeps the link', () => {
+    const { user } = createUser(testDb);
+    addPushDevice(user.id, 'https://fcm.googleapis.com/fcm/send/mine');
+    const issued = svc.requestPasswordReset(user.email, null);
+    testDb.exec("CREATE TRIGGER boom BEFORE DELETE ON push_subscriptions BEGIN SELECT RAISE(ABORT, 'boom'); END");
+    try {
+      expect(() => svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).toThrow('boom');
+    } finally {
+      testDb.exec('DROP TRIGGER boom');
+    }
+
+    expect(pushDeviceCount(user.id)).toBe(1);
+    const row = testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as { password_version: number };
+    expect(row.password_version).toBe(0);
+    // Nothing was burned, so the same link still completes the reset.
+    expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
+      .toEqual({ success: true, userId: user.id });
+    expect(pushDeviceCount(user.id)).toBe(0);
   });
 
   it('AUTH-DB-083: bespoke 400s for missing/unknown/expired tokens', () => {

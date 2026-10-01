@@ -53,6 +53,7 @@ export class PublicStatsController {
 
     const travel = this.atlas.getTravelStats(userId);
     const last = this.atlas.lastTrip(userId);
+    const next = this.atlas.nextTrip(userId);
 
     // Counts, not the arrays behind them. A consumer that wants the members asks
     // /api/v1/trips; this endpoint exists for the one that wants a number.
@@ -70,6 +71,14 @@ export class PublicStatsController {
         // The list's head, so `country` and `countries[0]` can never disagree.
         country: last.countries[0] ?? null,
         countries: last.countries,
+      },
+      next_trip: next && {
+        title: next.title,
+        start_date: next.start_date,
+        end_date: next.end_date,
+        days_until: next.days_until,
+        country: next.countries[0] ?? null,
+        countries: next.countries,
       },
     };
   }

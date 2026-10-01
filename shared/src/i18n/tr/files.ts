@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Dosyayı bağla',
   'files.linkEmpty': 'Bağlanacak yer veya rezervasyon yok',
   'files.menu': 'Diğer seçenekler',
-  'files.uploadErrorSize': 'Dosya çok büyük (maks. 50 MB)',
+  'files.uploadErrorSize': 'Dosya çok büyük (maks. {max} MB)',
   'files.title': 'Dosyalar',
   'files.pageTitle': 'Dosyalar ve Belgeler',
   'files.subtitle': '{trip} için {count} dosya',

@@ -667,6 +667,7 @@ describe('useMPlanTimeline', () => {
     expect(result.current.routeModeOptions).toEqual([
       { key: 'driving', label: 'mobileTrip.profileDriving' },
       { key: 'walking', label: 'mobileTrip.profileWalking' },
+      { key: 'cycling', label: 'mobileTrip.profileCycling' },
       { key: 'plugin:ev/eco', label: 'Eco' },
       { key: 'plugin:ev/fast', label: 'Fast' },
     ])

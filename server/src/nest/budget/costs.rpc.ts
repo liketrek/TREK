@@ -65,9 +65,11 @@ export class CostsRpc {
     const parsed = budgetCreateItemRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid cost: ${schemaMessage(parsed.error)}`);
     this.requireCostEdit(tripId, actor);
+    this.refuseForeignLinks(tripId, parsed.data);
     // BudgetService.create freezes the FX rate and resolves members/payers, so the
     // plugin path produces the same row the web app would.
     const item = await this.budget.create(String(tripId), parsed.data);
+    if (item.reservation_id) this.budget.resyncReservationPrice(tripId, item.reservation_id);
     this.realtime.broadcast(tripId, 'budget:created', { item });
     return item;
   }
@@ -81,11 +83,20 @@ export class CostsRpc {
     const parsed = budgetUpdateItemRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid cost: ${schemaMessage(parsed.error)}`);
     this.requireCostEdit(tripId, actor);
+    this.refuseForeignLinks(tripId, parsed.data);
+    const before = parsed.data.reservation_id !== undefined ? this.budget.getBudgetItem(itemId, tripId) : null;
     // update re-freezes the FX rate on a currency change, exactly like create.
     const item = await this.budget.update(String(itemId), String(tripId), parsed.data);
     if (item == null) throw new ForbiddenResource(`no cost ${itemId} on trip ${tripId}`);
+    this.budget.resyncLinkedPrices(tripId, before?.reservation_id, item, parsed.data);
     this.realtime.broadcast(tripId, 'budget:updated', { item });
     return item;
+  }
+
+  /** A booking or place the cost links to has to be on the same trip, as over REST and MCP. */
+  private refuseForeignLinks(tripId: number, data: { reservation_id?: number | null; place_id?: number | null }): void {
+    const refusal = this.budget.linkRefusal(tripId, data);
+    if (refusal) throw new ForbiddenResource(refusal);
   }
 
   @PluginMethod('costs.delete', { permission: 'db:write:costs' })

@@ -8,6 +8,7 @@ import { EMAIL_REGEX, mask_stored_api_key } from './auth.helpers';
 import { splitManagedKeys, MANAGED_LOCKED_PROFILE_KEYS } from '../common/managed';
 import {
   INSTANCE_API_KEY_NAMES,
+  operatorKeyVariables,
   readInstanceApiKey,
   resolveApiKey,
   writeInstanceApiKey,
@@ -270,12 +271,21 @@ export class UserProfileService {
     // first. Showing the admin their own column while every request used another
     // value is the confusion #1939 reported. Their column still answers while no
     // instance value exists — on that install it is what the resolver picks too.
+    //
+    // Ahead of both sits the operator's environment variable. A key set there
+    // comes back as null plus the variable's name in `env_keys`: the stored
+    // value is not what any search uses, and the variable's value is the
+    // operator's, not the panel's to hand out (#1881).
+    const envKeys = operatorKeyVariables();
+    const shown = (name: InstanceApiKeyName, own: unknown) =>
+      envKeys[name] ? null : (readInstanceApiKey(this.db, name) ?? decrypt_api_key(own));
     return {
       settings: {
-        maps_api_key: readInstanceApiKey(this.db, 'maps_api_key') ?? decrypt_api_key(user.maps_api_key),
+        maps_api_key: shown('maps_api_key', user.maps_api_key),
         openweather_api_key: decrypt_api_key(user.openweather_api_key),
-        unsplash_api_key: readInstanceApiKey(this.db, 'unsplash_api_key') ?? decrypt_api_key(user.unsplash_api_key),
-        amap_api_key: readInstanceApiKey(this.db, 'amap_api_key') ?? decrypt_api_key(user.amap_api_key),
+        unsplash_api_key: shown('unsplash_api_key', user.unsplash_api_key),
+        amap_api_key: shown('amap_api_key', user.amap_api_key),
+        env_keys: envKeys,
       },
     };
   }

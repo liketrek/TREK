@@ -134,11 +134,11 @@ export class PackingController {
     // Privacy state before the change, so a public↔private toggle (#858) can route
     // the broadcast correctly instead of leaking a freshly-privatized item.
     const before = this.packing.getItemPrivacy(tripId, id);
-    const { name, checked, category, weight_grams, bag_id, quantity, is_private } = body;
+    const { name, checked, category, weight_grams, bag_id, quantity, packed_quantity, is_private } = body;
     // bodyKeys carries which keys the request actually provided (the presence-
     // sentinel protocol); the parsed body only ever holds known schema keys.
     // checked arrives as boolean or legacy 0/1 — normalize to the 0/1 the SQL binds.
-    const updated = this.packing.updateItem(tripId, id, { name, checked: checked === undefined ? undefined : checked ? 1 : 0, category, weight_grams, bag_id, quantity, is_private }, Object.keys(body), ifMatch, user.id);
+    const updated = this.packing.updateItem(tripId, id, { name, checked: checked === undefined ? undefined : checked ? 1 : 0, category, weight_grams, bag_id, quantity, packed_quantity, is_private }, Object.keys(body), ifMatch, user.id);
     if (!updated) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }

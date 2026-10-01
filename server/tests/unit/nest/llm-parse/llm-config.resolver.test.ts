@@ -64,14 +64,23 @@ describe('resolveLlmConfig', () => {
   });
 
   it('uses instance config when present (and decrypts the key)', () => {
-    setInstanceConfig({ provider: 'anthropic', model: 'claude-opus-4-8', apiKey: 'sk-plain', multimodal: true });
+    setInstanceConfig({ provider: 'anthropic', model: 'claude-opus-4-8', apiKey: 'sk-plain', vision: 'on' });
     expect(resolver.resolve(1)).toEqual({
       provider: 'anthropic',
       model: 'claude-opus-4-8',
       baseUrl: undefined,
       apiKey: 'sk-plain',
-      multimodal: true,
+      vision: 'on',
     });
+  });
+
+  it('reads the instance vision setting as auto when it is missing, unknown, or only the old multimodal flag', () => {
+    for (const extra of [{}, { vision: 'maybe' }, { multimodal: false }, { multimodal: true }]) {
+      setInstanceConfig({ provider: 'local', model: 'qwen3.5:4b', ...extra });
+      expect(resolver.resolve(1)?.vision).toBe('auto');
+    }
+    setInstanceConfig({ provider: 'local', model: 'qwen3.5:4b', vision: 'off' });
+    expect(resolver.resolve(1)?.vision).toBe('off');
   });
 
   it('instance config with a base URL still wins for a plain user (#1772 does not touch it)', () => {
@@ -89,7 +98,7 @@ describe('resolveLlmConfig', () => {
       model: 'claude-sonnet',
       baseUrl: undefined,
       apiKey: 'user-key',
-      multimodal: true,
+      vision: 'on',
     });
     expect(getDecryptedUserSetting).toHaveBeenCalledWith(7, 'llm_api_key');
   });
@@ -114,7 +123,7 @@ describe('resolveLlmConfig', () => {
       model: 'gpt-4o-mini',
       baseUrl: undefined,
       apiKey: 'sk-user',
-      multimodal: false,
+      vision: 'off',
     });
   });
 

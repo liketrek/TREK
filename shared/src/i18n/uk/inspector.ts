@@ -14,6 +14,7 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Очікуване бронювання',
   'inspector.google': 'Google Maps',
   'inspector.navigation': 'Навігація',
+  'inspector.otherMapApp': 'Інший застосунок карт',
   'inspector.openWith': 'Відкрити в',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.website': 'Відкрити сайт',

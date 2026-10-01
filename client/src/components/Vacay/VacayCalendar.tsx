@@ -8,6 +8,7 @@ import { tripsApi } from '../../api/client'
 import VacayMonthCard from './VacayMonthCard'
 import type { VacayEntry } from '../../types'
 import { Building2, MousePointer2 } from 'lucide-react'
+import { companyHolidaySets, leaveFractionFor } from './companyHolidays'
 
 type VacayMode = 'vacation' | 'company'
 type HoverTip = { date: string; top: number; left: number }
@@ -30,7 +31,7 @@ export default function VacayCalendar() {
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
+    ;void (async () => {
       try {
         const data = await tripsApi.list()
         const dates = new Set<string>()
@@ -51,11 +52,8 @@ export default function VacayCalendar() {
     return () => { cancelled = true }
   }, [selectedYear, yearSettings])
 
-  const companyHolidaySet = useMemo(() => {
-    const s = new Set<string>()
-    companyHolidays.forEach(h => s.add(h.date))
-    return s
-  }, [companyHolidays])
+  // Whole company holidays close a day to leave, half ones leave half of it (#2439).
+  const { full: companyHolidaySet, half: companyHalfSet } = useMemo(() => companyHolidaySets(companyHolidays), [companyHolidays])
 
   const entryMap = useMemo(() => {
     const map: Record<string, VacayEntry[]> = {}
@@ -91,7 +89,7 @@ export default function VacayCalendar() {
   const handleCellClick = useCallback(async (dateStr: string) => {
     if (mode === 'company') {
       if (!companyHolidaysEnabled) return
-      await toggleCompanyHoliday(dateStr)
+      await toggleCompanyHoliday(dateStr, halfDay ? 0.5 : 1)
       return
     }
     if (blockWeekends && isWeekend(dateStr, weekendDays)) {
@@ -105,8 +103,9 @@ export default function VacayCalendar() {
       return
     }
     if (companyHolidaysEnabled && companyHolidaySet.has(dateStr)) return
-    await toggleEntry(dateStr, selectedUserId || undefined, halfDay ? 0.5 : 1, compDay ? 'comp' : 'vacation')
-  }, [mode, halfDay, compDay, toggleEntry, toggleCompanyHoliday, companyHolidaySet, blockWeekends, weekendDays, companyHolidaysEnabled, selectedUserId, currentUserId, entryMap])
+    const fraction = companyHolidaysEnabled ? leaveFractionFor(dateStr, companyHalfSet, halfDay ? 0.5 : 1) : (halfDay ? 0.5 : 1)
+    await toggleEntry(dateStr, selectedUserId || undefined, fraction, compDay ? 'comp' : 'vacation')
+  }, [mode, halfDay, compDay, toggleEntry, toggleCompanyHoliday, companyHolidaySet, companyHalfSet, blockWeekends, weekendDays, companyHolidaysEnabled, selectedUserId, currentUserId, entryMap])
 
   // Cells with a half day or a shared overlay report a hover, so the tooltip
   // appears exactly when there's something to explain. Fixed-positioned at the
@@ -146,6 +145,7 @@ export default function VacayCalendar() {
             month={month}
             holidays={holidays}
             companyHolidaySet={companyHolidaySet}
+            companyHalfSet={companyHalfSet}
             companyHolidaysEnabled={companyHolidaysEnabled}
             entryMap={entryMap}
             sharedMap={sharedMap}

@@ -27,7 +27,7 @@ import { StorageService } from '../storage/storage.service';
 import { isClientAbortError } from '../storage/storage.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { MapsSearchDto, MapsAutocompleteDto, MapsResolveUrlDto } from './maps.dto';
+import { MapsSearchDto, MapsNearbyDto, MapsAutocompleteDto, MapsResolveUrlDto } from './maps.dto';
 
 /** Google's session-token shape: URL-safe ASCII, at most 36 characters. The
  *  autocomplete body is validated by the Zod pipe; the details query is not,
@@ -80,6 +80,21 @@ export class MapsController {
     } catch (err: unknown) {
       console.error('Maps search error:', err);
       throw toHttpException(err, 'Search error', 500);
+    }
+  }
+
+  // Places of any kind around a point, nearest first (#976).
+  @Post('nearby')
+  @HttpCode(200)
+  async nearby(
+    @CurrentUser() user: User,
+    @Body() body: MapsNearbyDto,
+    @Query('lang') lang?: string,
+  ): Promise<MapsSearchResult> {
+    try {
+      return await this.maps.nearbyPlaces(user.id, body.lat, body.lng, { radius: body.radius, limit: body.limit, lang });
+    } catch (err: unknown) {
+      throw toHttpException(err, 'Nearby search error', 500);
     }
   }
 

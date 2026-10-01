@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'أوشكنا على الوصول...',
   'trip.mobilePlan': 'الخطة',
   'trip.mobilePlaces': 'الأماكن',
+  'trip.panelWidth': 'عرض اللوحة',
   'trip.toast.placeUpdated': 'تم تحديث المكان',
   'trip.toast.tripUpdated': 'تم تحديث الرحلة',
   'trip.toast.placeAdded': 'تمت إضافة المكان',

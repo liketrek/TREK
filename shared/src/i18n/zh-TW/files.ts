@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': '關聯檔案',
   'files.linkEmpty': '暫無可關聯的地點或預訂',
   'files.menu': '更多選項',
-  'files.uploadErrorSize': '檔案過大（最大 50 MB）',
+  'files.uploadErrorSize': '檔案過大（最大 {max} MB）',
   'files.title': '檔案',
   'files.pageTitle': '檔案與文件',
   'files.subtitle': '{trip} 的 {count} 個檔案',

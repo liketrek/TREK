@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Deshacer: {action}',
   'undo.assignPlace': 'Lugar asignado al día',
   'undo.removeAssignment': 'Lugar eliminado del día',
+  'undo.clearDay': 'Día vaciado',
   'undo.reorder': 'Lugares reordenados',
   'undo.optimize': 'Ruta optimizada',
   'undo.deletePlace': 'Lugar eliminado',

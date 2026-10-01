@@ -24,7 +24,7 @@ vi.mock('dns/promises', () => ({ default: { lookup: vi.fn() }, lookup: vi.fn() }
 
 // ssrfGuard reads env at module load, so the mock must answer before the import.
 const { readEnvMock } = vi.hoisted(() => ({
-  readEnvMock: vi.fn(() => ({ net: { allowInternalNetwork: true }, integrations: { llmTimeoutMs: 900_000 } })),
+  readEnvMock: vi.fn(() => ({ net: { allowInternalNetwork: true, proxy: { noProxy: [] } }, integrations: { llmTimeoutMs: 900_000 } })),
 }));
 vi.mock('../../../src/app-config', () => ({ readEnv: readEnvMock }));
 
@@ -36,7 +36,7 @@ const mockLookup = vi.mocked(dns.lookup);
 beforeEach(() => {
   AgentMock.mockClear();
   readEnvMock.mockClear();
-  readEnvMock.mockReturnValue({ net: { allowInternalNetwork: true }, integrations: { llmTimeoutMs: 900_000 } });
+  readEnvMock.mockReturnValue({ net: { allowInternalNetwork: true, proxy: { noProxy: [] } }, integrations: { llmTimeoutMs: 900_000 } });
   mockLookup.mockResolvedValue({ address: '203.0.113.10', family: 4 });
 });
 
@@ -82,7 +82,7 @@ describe('createPinnedDispatcher — response ceiling', () => {
 
 describe('the ceiling belongs to the model lane only', () => {
   it('safeFetchLlm carries the configured ceiling to the dispatcher', async () => {
-    readEnvMock.mockReturnValue({ net: { allowInternalNetwork: true }, integrations: { llmTimeoutMs: 120_000 } });
+    readEnvMock.mockReturnValue({ net: { allowInternalNetwork: true, proxy: { noProxy: [] } }, integrations: { llmTimeoutMs: 120_000 } });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({ status: 200 })));
 
     await safeFetchLlm('https://api.provider.example/v1/chat/completions');

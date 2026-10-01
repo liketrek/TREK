@@ -1,4 +1,4 @@
-// FE-STORE-BUDGET-001 to FE-STORE-BUDGET-021
+// FE-STORE-BUDGET-001 to FE-STORE-BUDGET-027
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
@@ -284,6 +284,84 @@ describe('budgetSlice', () => {
 
     expect(addToast).toHaveBeenCalledTimes(2);
   });
+
+  // ── Which writes refresh the bookings (#2084) ───────────────────────────────
+  // A booking mirrors the total of its linked expenses, so the reservations are
+  // reloaded after any write to an expense on a booking and whenever a link
+  // moves, and only then.
+
+  function spyReload() {
+    const loadReservations = vi.fn().mockResolvedValue(undefined);
+    seedStore(useTripStore, { loadReservations });
+    return loadReservations;
+  }
+
+  it('FE-STORE-BUDGET-018: linking an expense to a booking reloads the reservations without a new total', async () => {
+    const existing = buildBudgetItem({ id: 50, trip_id: 1 });
+    seedStore(useTripStore, { budgetItems: [existing] });
+    const loadReservations = spyReload();
+    server.use(
+      http.put('/api/trips/1/budget/50', () => HttpResponse.json({ item: { ...existing, reservation_id: 9 } }))
+    );
+    await useTripStore.getState().updateBudgetItem(1, 50, { reservation_id: 9 });
+    expect(loadReservations).toHaveBeenCalledWith(1);
+    expect(useTripStore.getState().budgetItems[0].reservation_id).toBe(9);
+  });
+
+  it('FE-STORE-BUDGET-019: unlinking reloads the reservations although the saved item has no booking any more', async () => {
+    const existing = buildBudgetItem({ id: 51, trip_id: 1, reservation_id: 9 });
+    seedStore(useTripStore, { budgetItems: [existing] });
+    const loadReservations = spyReload();
+    server.use(
+      http.put('/api/trips/1/budget/51', () => HttpResponse.json({ item: { ...existing, reservation_id: null } }))
+    );
+    await useTripStore.getState().updateBudgetItem(1, 51, { reservation_id: null });
+    expect(loadReservations).toHaveBeenCalledWith(1);
+  });
+
+  it('FE-STORE-BUDGET-020: a new total on an expense without a booking, or a place link, leaves the reservations alone', async () => {
+    const existing = buildBudgetItem({ id: 52, trip_id: 1 });
+    seedStore(useTripStore, { budgetItems: [existing] });
+    const loadReservations = spyReload();
+    server.use(
+      http.put('/api/trips/1/budget/52', async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ item: { ...existing, ...body } });
+      })
+    );
+    await useTripStore.getState().updateBudgetItem(1, 52, { total_price: 80 });
+    await useTripStore.getState().updateBudgetItem(1, 52, { place_id: 4 });
+    expect(loadReservations).not.toHaveBeenCalled();
+    expect(useTripStore.getState().budgetItems[0].place_id).toBe(4);
+  });
+
+  it('FE-STORE-BUDGET-021: any edit of an expense on a booking reloads the reservations, not only a new total', async () => {
+    const existing = buildBudgetItem({ id: 53, trip_id: 1, reservation_id: 9 });
+    seedStore(useTripStore, { budgetItems: [existing] });
+    const loadReservations = spyReload();
+    server.use(
+      http.put('/api/trips/1/budget/53', () => HttpResponse.json({ item: { ...existing, currency: 'USD' } }))
+    );
+    await useTripStore.getState().updateBudgetItem(1, 53, { currency: 'USD' });
+    expect(loadReservations).toHaveBeenCalledWith(1);
+  });
+
+  it('FE-STORE-BUDGET-022: an expense created on a booking reloads the reservations', async () => {
+    const loadReservations = spyReload();
+    const created = buildBudgetItem({ id: 54, trip_id: 1, reservation_id: 9 });
+    server.use(http.post('/api/trips/1/budget', () => HttpResponse.json({ item: created })));
+    await useTripStore.getState().addBudgetItem(1, { name: 'Upgrade', reservation_id: 9 });
+    expect(loadReservations).toHaveBeenCalledWith(1);
+    expect(useTripStore.getState().budgetItems).toContainEqual(created);
+  });
+
+  it('FE-STORE-BUDGET-023: an expense created without a booking leaves the reservations alone', async () => {
+    const loadReservations = spyReload();
+    const created = buildBudgetItem({ id: 55, trip_id: 1, place_id: 4 });
+    server.use(http.post('/api/trips/1/budget', () => HttpResponse.json({ item: created })));
+    await useTripStore.getState().addBudgetItem(1, { name: 'Museum', place_id: 4 });
+    expect(loadReservations).not.toHaveBeenCalled();
+  });
 });
 
 // An AUD trip whose server cannot fetch rates while the browser can: a write in another
@@ -312,13 +390,13 @@ describe('budgetSlice: lent rates', () => {
 
   afterEach(clearExchangeRateCache);
 
-  it('FE-STORE-BUDGET-018: addBudgetItem lends the fresh trip-currency rate for a foreign currency', async () => {
+  it('FE-STORE-BUDGET-024: addBudgetItem lends the fresh trip-currency rate for a foreign currency', async () => {
     await useTripStore.getState().addBudgetItem(1, { name: 'Pho', total_price: 8920000, currency: 'VND' });
 
     expect(sent[0]).toMatchObject({ name: 'Pho', currency: 'VND', fallback_fx: { base: 'AUD', rates: { VND: 18241.3 } } });
   });
 
-  it('FE-STORE-BUDGET-019: nothing is lent for the trip currency, another trip or a stale table', async () => {
+  it('FE-STORE-BUDGET-025: nothing is lent for the trip currency, another trip or a stale table', async () => {
     await useTripStore.getState().addBudgetItem(1, { name: 'Tram', currency: 'AUD' });
     // The store only knows the open trip's currency, and a rate has to be quoted against it.
     await useTripStore.getState().addBudgetItem(2, { name: 'Pho', currency: 'VND' });
@@ -330,7 +408,7 @@ describe('budgetSlice: lent rates', () => {
     for (const body of sent) expect(body).not.toHaveProperty('fallback_fx');
   });
 
-  it('FE-STORE-BUDGET-020: updateBudgetItem lends it too, for a change into a foreign currency', async () => {
+  it('FE-STORE-BUDGET-026: updateBudgetItem lends it too, for a change into a foreign currency', async () => {
     seedStore(useTripStore, { budgetItems: [buildBudgetItem({ id: 50, trip_id: 1, currency: 'USD', exchange_rate: 0.66 })] });
 
     await useTripStore.getState().updateBudgetItem(1, 50, { currency: 'VND', total_price: 8920000 });
@@ -338,7 +416,7 @@ describe('budgetSlice: lent rates', () => {
     expect(sent[0]).toEqual({ currency: 'VND', total_price: 8920000, fallback_fx: { base: 'AUD', rates: { VND: 18241.3 } } });
   });
 
-  it('FE-STORE-BUDGET-021: freezeMissingRates sends the lent rates and takes the healed rows in', async () => {
+  it('FE-STORE-BUDGET-027: freezeMissingRates sends the lent rates and takes the healed rows in', async () => {
     const bill = buildBudgetItem({ id: 60, trip_id: 1, currency: 'VND', exchange_rate: 1 });
     const other = buildBudgetItem({ id: 61, trip_id: 1, currency: 'AUD', exchange_rate: 1 });
     seedStore(useTripStore, { budgetItems: [bill, other] });

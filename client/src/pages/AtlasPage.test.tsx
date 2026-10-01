@@ -900,8 +900,8 @@ describe('AtlasPage', () => {
         async () => {
           const popup = screen.queryByText(/mark as visited/i);
           if (popup) {
-            // Click the backdrop (fixed overlay div)
-            const backdrop = document.querySelector('[style*="position: fixed"][style*="inset: 0"]') as HTMLElement | null;
+            // Click the backdrop: the DialogShell overlay around the dialog panel
+            const backdrop = screen.queryByRole('dialog')?.parentElement ?? null;
             if (backdrop) {
               await user.click(backdrop);
               await waitFor(() => {

@@ -63,6 +63,11 @@ const settings: TranslationStrings = {
   'settings.language': 'Idioma',
   'settings.temperature': 'Unitat de temperatura',
   'settings.timeFormat': "Format d'hora",
+  'settings.weekStart': 'La setmana comença el',
+  'settings.weekStartHint': 'Primer dia de la setmana a tots els selectors de data. Vacay té la seva pròpia opció.',
+  'settings.preferredNavApp': 'Obre els llocs a',
+  'settings.preferredNavAppAsk': 'Pregunta cada vegada',
+  'settings.preferredNavAppHint': "Amb una app triada, el botó de navegació l'obre directament en lloc d'oferir totes les apps de mapes.",
   'settings.blurBookingCodes': 'Difumina els codis de reserva',
   'settings.optimizeFromAccommodation': "Optimitza la ruta des de l'allotjament",
   'settings.optimizeFromAccommodationHint':
@@ -265,6 +270,14 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint': "Mostra noms d'estacions / aeroports al mapa. Desactivat, només es mostra la icona.",
   'settings.currentPasswordRequired': 'La contrasenya actual és obligatòria',
   'settings.passwordWeak': 'La contrasenya ha de contenir majúscules, minúscules, números i un caràcter especial',
+  'settings.passwordCommon': "Aquesta contrasenya és massa comuna. Tria'n una d'única.",
+  'settings.passwordRepetitive': 'La contrasenya és massa repetitiva',
+  'settings.passwordRules': 'Requisits de la contrasenya',
+  'settings.passwordRule.length': 'Almenys 8 caràcters',
+  'settings.passwordRule.upper': 'Una majúscula',
+  'settings.passwordRule.lower': 'Una minúscula',
+  'settings.passwordRule.digit': 'Un número',
+  'settings.passwordRule.special': 'Un caràcter especial',
   'settings.notifyVersionAvailable': 'Versió nova disponible',
   'settings.notifyReplicaFailure': "Error de rèplica d'emmagatzematge",
   'settings.notificationPreferences.noChannels':
@@ -294,6 +307,19 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Correu electrònic',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Notificacions push en aquest dispositiu',
+  'settings.webPush.hint':
+    'Mostra les notificacions de TREK en aquest dispositiu fins i tot quan TREK està tancat. Els esdeveniments que arriben segueixen la columna Push.',
+  'settings.webPush.enable': 'Activa en aquest dispositiu',
+  'settings.webPush.disable': 'Desactiva en aquest dispositiu',
+  'settings.webPush.enabled': 'Activat en aquest dispositiu',
+  'settings.webPush.unsupported': 'Aquest navegador no pot rebre notificacions push.',
+  'settings.webPush.insecure': "Push necessita que TREK s'obri per HTTPS.",
+  'settings.webPush.iosInstall': "A l'iPhone i l'iPad, afegeix primer TREK a la pantalla d'inici i obre'l des d'allà.",
+  'settings.webPush.denied':
+    'Les notificacions de TREK estan bloquejades en aquest navegador. Permet-les a la configuració del navegador i torna-ho a provar.',
+  'settings.webPush.failed': "No s'ha pogut activar push en aquest dispositiu.",
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Inicia la sessió més ràpidament i amb protecció contra el phishing utilitzant una passkey: la teva empremta, la teva cara, el teu PIN o una clau de seguretat física. La teva contrasenya continua disponible com a alternativa.',
@@ -364,9 +390,9 @@ const settings: TranslationStrings = {
     "On s'executa el model — un servidor local d'Ollama o un punt final compatible amb OpenAI.",
   'settings.aiParsing.apiKey': "Clau de l'API",
   'settings.aiParsing.apiKeyHint': "S'emmagatzema xifrada. Deixa-ho en blanc per mantenir la clau actual.",
-  'settings.aiParsing.multimodal': 'Enviar documents com a imatges',
+  'settings.aiParsing.multimodal': 'El model llegeix imatges',
   'settings.aiParsing.multimodalHint':
-    'Per a models amb capacitats de visió — envia el PDF original en comptes del text extret.',
+    'Activa-ho per a un model que llegeix imatges, així es pot importar o escanejar una foto.',
   'settings.aiParsing.toast.saved': "Ajustos d'IA desats",
   'settings.aiParsing.toast.saveError': "No s'han pogut desar els ajustos d'IA",
   'settings.tabs.appearance': 'Aparença',
@@ -451,6 +477,12 @@ const settings: TranslationStrings = {
   'settings.general.languageRegion': 'Idioma i regió',
   'settings.general.travelMap': 'Viatge i mapa',
   'settings.general.startup': 'Inici',
+  'settings.dayDateFirst': 'Data primer als títols dels dies',
+  'settings.compactUnplanned': 'Marcadors compactes per als llocs sense planificar',
+  'settings.compactUnplannedHint':
+    'Els llocs que no són a cap dia es mostren com a marcadors petits sense foto, perquè les parades planificades destaquin.',
+  'settings.dayDateFirstHint':
+    'Comença cada dia amb la seva data de calendari i mostra «Dia 1» o el títol propi del dia al costat.',
   'settings.startPage': "Pàgina d'inici",
   'settings.startPageDashboard': 'Tauler',
   'settings.startPageActiveTrip': 'Viatge actiu',
@@ -541,6 +573,7 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.status': 'Resultat',
   'settings.notificationPreferences.notConfigured':
     "Encara no s'ha configurat — configura-ho als ajustos del connector",
+  'settings.notificationPreferences.lockedByAdmin': "Desactivat per l'administrador per a tothom",
   'settings.plugins.actions': 'Accions',
   'settings.plugins.actions.confirm': 'Vols executar aquesta acció?',
   'settings.notificationPreferences.sendTest': 'Envia una prova',
@@ -550,6 +583,10 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.pluginConfigured':
     'Configurat. Gestiona les credencials a la configuració del connector.',
   'settings.currencyTrip': 'Divisa del viatge',
+  'settings.placeLanguage': 'Noms de llocs',
+  'settings.placeLanguageApp': 'Igual que l’app',
+  'settings.placeLanguageHint':
+    'La llengua en què responen la cerca de llocs, els suggeriments i les adreces. Si un lloc no té nom en aquesta llengua, se’n mostra el nom local.',
   'settings.alwaysShowRoutes': 'Mostra sempre les rutes de reserva',
   'settings.alwaysShowRoutesHint':
     'Dibuixa automàticament al mapa la ruta de cada vol, tren i altra reserva — no cal activar-la una per una.',

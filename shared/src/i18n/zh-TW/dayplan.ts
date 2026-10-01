@@ -57,6 +57,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': '地圖與 GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': '匯出當天計劃為 PDF',
+  'dayplan.pdfMine': '我的計劃 PDF',
+  'dayplan.pdfMineSub': '只包含你參與的活動與預訂',
   'dayplan.gpxTooltip': '匯出為 GPX，用於離線地圖和 GPS 裝置',
   'dayplan.gpxAll': '整趟行程',
   'dayplan.gpxPlaces': '僅地點',
@@ -77,8 +79,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': '所有地點已分配',
   'dayplan.mobile.noMatch': '無匹配',
   'dayplan.mobile.createNew': '建立新地點',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': '展開所有天數', // en-fallback
+  'dayplan.collapseAll': '收合所有天數', // en-fallback
   'dayplan.reorderDays': '重新排序日期',
   'dayplan.reorderTitle': '重新排序日期',
   'dayplan.reorderHint': '該日的地點、筆記和預訂都會一併移動。',
@@ -91,6 +93,13 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDay': '刪除這一天',
   'dayplan.deleteDayTitle': '刪除 {day}？',
   'dayplan.deleteDayBody': '這一天會從行程中移除。此操作無法復原。',
+  'dayplan.excludeFromRoute': '從路線中排除',
+  'dayplan.includeInRoute': '重新加入路線',
+  'dayplan.offRoute': '不在路線內',
+  'dayplan.offRouteHint': '仍保留在當天和地圖上，但路線會略過它',
+  'dayplan.clearDay': '清空當天',
+  'dayplan.clearDayTitle': '清空{day}？',
+  'dayplan.clearDayBody': '這一天的所有地點都會被移出。地點仍保留在行程中，當天的筆記與預訂也會保留。',
   'dayplan.deleteDayEmpty': '這一天沒有任何安排。',
   'dayplan.impactPlaces': '已安排的地點：{count}',
   'dayplan.impactPlacesHint': '它們會保留在地點清單中。',

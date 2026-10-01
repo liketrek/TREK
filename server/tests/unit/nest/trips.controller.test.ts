@@ -23,7 +23,7 @@ import type { CalendarService } from '../../../src/nest/calendar/calendar.servic
 import type { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
 import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
 import type { User } from '../../../src/types';
-import { MAX_TRIP_DAYS, activeTripResponseSchema, tripCreateRequestSchema, tripTransferOwnershipRequestSchema } from '@trek/shared';
+import { MAX_TRIP_DAYS, activeTripResponseSchema, tripSearchResponseSchema, tripCreateRequestSchema, tripTransferOwnershipRequestSchema } from '@trek/shared';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 const req = { headers: {} } as Request;
@@ -109,6 +109,20 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
       const res = tc(svc({ activeTrip: vi.fn().mockReturnValue(undefined) } as Partial<TripsService>)).active(user);
       expect(res).toEqual({ trip: null });
       expect(activeTripResponseSchema.safeParse(res).success).toBe(true);
+    });
+  });
+
+  describe('GET /search (#2190)', () => {
+    it('hands the query to the service, capped, and answers the contract shape', () => {
+      const searchPlaces = vi.fn().mockReturnValue([{ trip_id: 4, places: ['Diner'] }]);
+      const ctl = tc(svc({ searchPlaces } as Partial<TripsService>));
+      const res = ctl.search(user, 'diner');
+      expect(res).toEqual({ matches: [{ trip_id: 4, places: ['Diner'] }] });
+      expect(tripSearchResponseSchema.safeParse(res).success).toBe(true);
+      ctl.search(user, 'x'.repeat(300));
+      expect(searchPlaces).toHaveBeenLastCalledWith(1, 'x'.repeat(100));
+      ctl.search(user, undefined);
+      expect(searchPlaces).toHaveBeenLastCalledWith(1, '');
     });
   });
 

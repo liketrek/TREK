@@ -4,7 +4,7 @@ How to update TREK to a newer version without losing data.
 
 ## Before You Update
 
-Back up your data first. Go to Admin Panel → Backups and create a manual backup, or copy your `./data` and `./uploads` directories to a safe location. See [Backups](Backups) for details.
+Back up your data first. Go to Admin Panel → **Backup** and create a manual backup, or copy your `./data` and `./uploads` directories to a safe location. See [Backups](Backups) for details.
 
 ## Image Tags
 

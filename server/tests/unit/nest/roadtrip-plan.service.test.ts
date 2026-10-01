@@ -530,6 +530,28 @@ describe('a booked night at both ends of its days', () => {
     expect(runs).toContainEqual(['driving', [HOTEL.lat, 45.5, 45.6, HOTEL.lat]]);
   });
 
+  it('drops the stop tonight’s booking put first on its check-in day, as the browser does, and keeps it while off (#2546)', async () => {
+    const t = trip();
+    const [d1, d2, d3] = [createDay(db, t.trip.id), createDay(db, t.trip.id), createDay(db, t.trip.id)];
+    const getaway = visit(t.trip.id, d1.id, 'Getaway', GETAWAY);
+    visit(t.trip.id, d1.id, 'Lookout', { lat: -33.73, lng: 150.35 });
+    const wallinga = visit(t.trip.id, d2.id, 'Wallinga', WALLINGA);
+    visit(t.trip.id, d2.id, 'Cave', { lat: -34.2, lng: 150.8 });
+    visit(t.trip.id, d2.id, 'Bakery', { lat: -34.3, lng: 150.7 });
+    const stayA = createDayAccommodation(db, t.trip.id, getaway.place.id, d1.id, d2.id);
+    const stayB = createDayAccommodation(db, t.trip.id, wallinga.place.id, d2.id, d3.id);
+    // The Wallinga stop is the one the booking wrote, seated first without a check-in.
+    db.prepare('UPDATE day_assignments SET accommodation_id = ? WHERE id = ?').run(stayB.id, wallinga.assignment.id);
+
+    const { calculated } = await t.plans.calculate(t.trip.id, t.user.id);
+    expect(shape(calculated.days[1].stops)).toEqual([`morning:${stayA.id}`, 'Cave', 'Bakery', `evening:${stayB.id}`]);
+    expect(calculated.days[1].stops[3].bookend).toMatchObject({ checkingIn: true });
+    expect(lats(t.router)).toContainEqual([GETAWAY.lat, -34.2, -34.3, WALLINGA.lat]);
+
+    const off = await t.plans.calculate(t.trip.id, t.user.id, { roadtrip_hotel_bookends: false });
+    expect(shape(off.calculated.days[1].stops)).toEqual(['Wallinga', 'Cave', 'Bakery']);
+  });
+
   it('drives the stored days while the trip has it off, and a preview can switch it either way', async () => {
     const off = simeon({});
     const stored = await off.plans.calculate(off.trip.id, off.user.id);

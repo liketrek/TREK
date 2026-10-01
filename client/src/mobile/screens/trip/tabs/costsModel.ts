@@ -108,6 +108,8 @@ export interface CostsSettlement {
   // The day the transfer actually happened; editable, unlike created_at (when it
   // was recorded). Null/absent on rows predating this field.
   settled_at?: string | null
+  /** A free-text note on the payment (#2340). */
+  note?: string | null
 }
 
 export interface CostsSettlementResponse {

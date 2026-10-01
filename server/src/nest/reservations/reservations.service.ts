@@ -987,12 +987,12 @@ export class ReservationsService {
 
   /** The accommodation + budget-item + reservation deletes are one logical
    *  cascade — all-or-nothing. */
-  remove(id: string | number, tripId: string | number): { deleted: { id: number; title: string; type: string; accommodation_id: number | null } | undefined; accommodationDeleted: boolean; deletedBudgetItemId: number | null } {
+  remove(id: string | number, tripId: string | number): { deleted: { id: number; title: string; type: string; accommodation_id: number | null } | undefined; accommodationDeleted: boolean; deletedBudgetItemId: number | null; deletedBudgetItemIds: number[] } {
     const removed = this.db.transaction(() => {
       const reservation = this.db.get<{ id: number; title: string; type: string; accommodation_id: number | null }>(
         'SELECT id, title, type, accommodation_id FROM reservations WHERE id = ? AND trip_id = ?', id, tripId
       );
-      if (!reservation) return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, stayMirror: noStayMirror() };
+      if (!reservation) return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [], stayMirror: noStayMirror() };
 
       let accommodationDeleted = false;
       let stayMirror = noStayMirror();
@@ -1015,13 +1015,16 @@ export class ReservationsService {
         }
       }
 
-      const linkedBudget = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);
-      if (linkedBudget) {
-        this.db.run('DELETE FROM budget_items WHERE id = ?', linkedBudget.id);
+      // A booking can carry several expenses (#2084); every one of them goes with it.
+      const deletedBudgetItemIds = this.db
+        .all<{ id: number }>('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id)
+        .map(item => item.id);
+      if (deletedBudgetItemIds.length > 0) {
+        this.db.run(`DELETE FROM budget_items WHERE id IN (${deletedBudgetItemIds.map(() => '?').join(', ')})`, ...deletedBudgetItemIds);
       }
 
       this.db.run('DELETE FROM reservations WHERE id = ?', id);
-      return { deleted: reservation, accommodationDeleted, deletedBudgetItemId: linkedBudget ? linkedBudget.id : null, stayMirror };
+      return { deleted: reservation, accommodationDeleted, deletedBudgetItemId: deletedBudgetItemIds[0] ?? null, deletedBudgetItemIds, stayMirror };
     });
     const { stayMirror, ...answer } = removed;
     this.announceStayMirror(tripId, stayMirror);
@@ -1070,14 +1073,13 @@ export class ReservationsService {
     // but only if it still carries the auto-derived category (so a manual pick in
     // the Costs editor is preserved). Runs regardless of create_budget_entry.
     if (type && currentType && type !== currentType) {
-      const linked = this.db.get<{ id: number; category: string }>('SELECT id, category FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);
-      if (linked) {
-        const oldCat = typeToCostCategory(currentType);
-        const newCat = typeToCostCategory(type);
-        if (oldCat !== newCat && linked.category === oldCat) {
-          const updated = this.budget.updateBudgetItem(linked.id, tripId, { category: newCat });
-          this.realtime.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
-        }
+      const oldCat = typeToCostCategory(currentType);
+      const newCat = typeToCostCategory(type);
+      // Every linked expense (#2084), each only while it still has the derived category.
+      const linked = this.db.all<{ id: number; category: string }>('SELECT id, category FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id);
+      for (const item of oldCat === newCat ? [] : linked.filter(i => i.category === oldCat)) {
+        const updated = this.budget.updateBudgetItem(item.id, tripId, { category: newCat });
+        this.realtime.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
       }
     }
 
@@ -1085,6 +1087,10 @@ export class ReservationsService {
     // expense, so leave any linked item alone. Expenses are managed from the
     // booking's Costs section / the Costs tab, not by re-saving the booking.
     if (!entry) return;
+    // The price field speaks for a single expense. With several linked (#2084)
+    // it has none to mean, so they are managed from the Costs block only.
+    const linkedCount = this.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM budget_items WHERE trip_id = ? AND reservation_id = ?', tripId, id)?.n ?? 0;
+    if (linkedCount > 1) return;
 
     if (!(Number(entry.total_price) > 0)) {
       // Explicit clear (total_price 0/empty) — drop the linked item.

@@ -18,6 +18,8 @@ import path from 'node:path';
 import semver from 'semver';
 import { MCP_TOOLS_MAX, TOOL_DESCRIPTION_MAX, TOOL_TITLE_MAX } from '../mcp-tool-schema';
 import { sanitiseAssistantText } from '../text-sanitize';
+import { poiCategoriesFrom } from '../poi-categories';
+import type { PluginPoiCategory } from '@trek/shared';
 
 /**
  * TREK-side of the plugin registry (#plugins, M5). Fetches the single aggregated
@@ -135,6 +137,12 @@ export interface ManifestPreview {
      * approving the grant rather than meeting it later inside a chat.
      */
     mcpTools?: Array<{ name: string; title?: string; description: string }>;
+    /**
+     * The chips this plugin will add to every user's explore pill, and whose searches
+     * it will then be sent the viewport for (#1781). Shown before the install for the
+     * same reason as the tools above.
+     */
+    poiCategories?: PluginPoiCategory[];
   };
 }
 
@@ -878,6 +886,10 @@ export function previewManifest(raw: unknown): ManifestPreview {
       .map((t) => ({ name: t.name, ...(t.title ? { title: t.title } : {}), description: t.description }));
     if (tools.length) capabilities.mcpTools = tools;
   }
+  // Through the reader the feed uses, so the preview never shows a category the
+  // installed plugin would not get.
+  const poiCategories = poiCategoriesFrom(rawCaps.poiCategories);
+  if (poiCategories.length) capabilities.poiCategories = poiCategories;
 
   return {
     permissions: strings(m.permissions),

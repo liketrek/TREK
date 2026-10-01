@@ -170,6 +170,13 @@ const admin: TranslationStrings = {
   'admin.placesGoogleOnly.subtitle': 'Cada cerca i cada suggeriment van a Google Places. Desactivat, responen primer l\'índex de TREK i OpenStreetMap, i Google només es consulta si no troben res.',
   'admin.placesGoogleOnly.missingKey': 'Cal una clau d\'API de Google Maps. Sense clau, la cerca fa servir l\'índex de TREK i OpenStreetMap, sigui com sigui aquest interruptor.',
   'admin.placesGoogleOnly.otherProvider': 'Necessita Google com a proveïdor de llocs. Amb Amap o OpenStreetMap seleccionats, cap cerca va a Google, digui el que digui aquest interruptor.',
+  'admin.googleQuota.title': 'Límit diari de crides a Google',
+  'admin.googleQuota.subtitle': "Quan s'arriba al límit, TREK deixa de cridar Google fins l'endemà (UTC) i cerca amb OpenStreetMap. Buit vol dir sense límit.",
+  'admin.googleQuota.placeholder': 'Sense límit',
+  'admin.googleQuota.usedToday': 'Avui: {used}',
+  'admin.googleQuota.usedOfLimit': 'Avui: {used} de {limit}',
+  'admin.googleQuota.reached': 'Límit assolit ({used}), Google en pausa fins demà',
+  'admin.googleQuota.saved': 'Límit diari desat',
   'admin.transitProvider.title': 'Proveïdor de transport públic',
   'admin.transitProvider.subtitle': 'Quin servei respon la cerca de transport públic.',
   'admin.transitProvider.transitous': 'Transitous (gratuït)',
@@ -233,6 +240,11 @@ const admin: TranslationStrings = {
     'Llegeix estades i recorreguts enregistrats d’una instància de Dawarich que cada lector connecta pel seu compte',
   'admin.addons.catalog.llm_parsing.name': 'Anàlisi amb IA',
   'admin.addons.catalog.llm_parsing.description': 'Llegeix reserves que l’analitzador integrat no entén, amb un model d’IA que triïs',
+  'admin.addons.llm.vision.auto': 'Automàtic',
+  'admin.addons.llm.vision.on': 'Sí',
+  'admin.addons.llm.vision.off': 'No',
+  'admin.addons.llm.vision.hintLocal': 'Automàtic pregunta al servidor Ollama si aquest model llegeix imatges.',
+  'admin.addons.llm.vision.hintCloud': 'Automàtic vol dir no per a un model al núvol. Tria Sí si aquest model llegeix imatges.',
   'admin.addons.enabled': 'Actiu',
   'admin.addons.disabled': 'Desactivat',
   'admin.addons.type.trip': 'Viatge',
@@ -361,6 +373,9 @@ const admin: TranslationStrings = {
   'admin.group.maintenance': 'Manteniment',
   'admin.notifications.emailPanel.title': 'Correu (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    "Permet als usuaris rebre notificacions als telèfons i ordinadors a través del navegador, fins i tot amb TREK tancat. Cal HTTPS; a l'iPhone i l'iPad, TREK s'ha d'afegir a la pantalla d'inici.",
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint':
     'Les notificacions in-app sempre estan actives i no es poden desactivar globalment.',
@@ -397,6 +412,12 @@ const admin: TranslationStrings = {
     "El Ntfy d'administrador sempre s'activa quan hi ha un tema configurat",
   'admin.notifications.adminNotificationsHint':
     "Configura quins canals entreguen notificacions d'administrador (ex. alertes de versió). El webhook s'activa automàticament si hi ha una URL de webhook d'administrador configurada.",
+  'admin.notificationDefaults.title': 'Valors per defecte dels usuaris',
+  'admin.notificationDefaults.hint': "Com comencen les notificacions de cada usuari. \"Desactivat\" l'usuari encara el pot activar; \"Bloquejat\" el desactiva per a tothom i apareix bloquejat a la seva configuració. S'aplica a qui no ha canviat la cel·la.",
+  'admin.notificationDefaults.on': 'Activat',
+  'admin.notificationDefaults.off': 'Desactivat',
+  'admin.notificationDefaults.blocked': 'Bloquejat',
+  'admin.notificationDefaults.cycle': 'Fes clic per canviar a: {next}',
   'admin.notifications.tripReminders.title': 'Recordatoris de viatge',
   'admin.notifications.tripReminders.hint':
     'Envia una notificació de recordatori abans que comenci un viatge (requereix dies de recordatori configurats al viatge).',
@@ -446,6 +467,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': "Clau API d'Amap (高德地图)",
   'admin.amapKeyHint':
     "Per a la cerca de llocs a la Xina continental, on Google no és accessible i la cobertura d'OpenStreetMap és escassa. Cal una clau «Web 服务» (servei web), no una clau de l'API JS. Se n'obté una a console.amap.com.",
+  'admin.keyFromEnv': 'Definida mitjançant {name}',
   'admin.placesProvider.title': 'Proveïdor de la cerca de llocs',
   'admin.placesProvider.subtitle':
     "L'índex propi de TREK i OpenStreetMap responen cada cerca. Aquí es tria a qui més es consulta quan no troben res: Automàtic prefereix Google si hi ha clau, després Amap.",
@@ -544,6 +566,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:map-layer-provider': 'Dibuixar rutes, corredors i zones al mapa del viatge',
   'admin.plugins.perm.hook:search-provider':
     "Respondre cerques de llocs des d'un índex propi, al costat dels resultats de TREK",
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Afegir categories de llocs pròpies a «Explora llocs al mapa»; triar-ne una envia al connector la zona del mapa que estàs mirant',
   'admin.plugins.perm.hook:route-provider':
     'Oferir perfils de ruta amb què el planificador pot calcular els dies (p. ex. rutes per a cotxe elèctric amb parades de recàrrega)',
   'admin.plugins.perm.hook:day-schedule-provider':
@@ -553,6 +577,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Publica eines d’IA',
   'admin.plugins.mcpToolsTitle': 'Eines d’IA que publica',
   'admin.plugins.mcpToolsHint': 'Un assistent pot executar-les en nom d’un usuari. Cadascuna actua amb els permisos concedits a dalt.',
+  'admin.plugins.poiCategoriesTitle': 'Categories del mapa que afegeix',
   'admin.plugins.perm.mcp:tools':
     "Publicar eines que un assistent d'IA pot executar en nom teu (actua amb els permisos que concedeixes aquí al connector, no amb els seus)",
   'admin.plugins.perm.geolocation:read':
@@ -677,6 +702,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Proporciona esdeveniments de calendari',
   'admin.plugins.cap.placeDetails': 'Enriqueix els llocs',
   'admin.plugins.cap.search': 'Respon cerques',
+  'admin.plugins.cap.poiCategories': 'Afegeix categories al mapa',
   'admin.plugins.cap.warnings': 'Marca problemes',
   'admin.plugins.cap.mapLayers': 'Dibuixa al mapa',
   'admin.plugins.cap.routing': 'Calcula rutes',

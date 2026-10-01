@@ -94,7 +94,7 @@ export default function ImpListStep({ planner, onBack, onDone }: ImpListStepProp
           onKeyDown={e => {
             if (e.key === 'Enter') {
               e.preventDefault()
-              handleImport()
+              void handleImport()
             }
           }}
           placeholder={provider === 'google' ? 'https://maps.app.goo.gl/…' : 'https://naver.me/…'}

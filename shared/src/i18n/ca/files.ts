@@ -62,6 +62,6 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Enllaça un fitxer',
   'files.linkEmpty': 'Encara no hi ha llocs ni reserves per enllaçar',
   'files.menu': 'Més opcions',
-  'files.uploadErrorSize': 'El fitxer és massa gran (màx. 50 MB)',
+  'files.uploadErrorSize': 'El fitxer és massa gran (màx. {max} MB)',
 };
 export default files;

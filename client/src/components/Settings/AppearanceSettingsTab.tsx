@@ -1,10 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Paintbrush, Eye, LayoutDashboard, Sun, Moon, Monitor, RotateCcw } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
+import { DialogSection, fs } from '../shared/DialogShell'
+import { Segmented } from '../shared/dialogParts'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
+import { SETTINGS_BUTTON, SettingRow, SettingRows, StatusPill } from './settingsKit'
 import { applyAppearance } from '../../theme/applyAppearance'
 import { APPEARANCE_SCHEMES, CUSTOM_ACCENT_PRESETS } from '../../theme/schemes'
 import {
@@ -61,17 +64,14 @@ const MOBILE_GROUPS: { id: string; fallback: string; keys: MobileWidgetKey[] }[]
   { id: 'bottomOfPage', fallback: 'Bottom of page', keys: ['currency', 'collections', 'timezones', 'upcomingReservations'] },
 ]
 
-// shared segmented-button style (matches DisplaySettingsTab)
-function segStyle(active: boolean): React.CSSProperties {
-  return {
-    display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
-    padding: '10px 14px', borderRadius: 10, cursor: 'pointer', flex: '1 1 0', minWidth: 0,
-    fontFamily: 'inherit', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 500,
-    border: active ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-    background: active ? 'var(--bg-hover)' : 'var(--bg-card)',
-    color: 'var(--text-primary)', transition: 'all 0.15s',
-  }
-}
+/** A tile of the scheme grid: a colour dot and a name, raised and outlined while chosen. */
+const SWATCH = 'flex min-w-0 items-center gap-2 rounded-[12px] border bg-surface-card px-3 py-2.5 text-left font-medium text-content transition-colors'
+const swatchLook = (active: boolean) => active
+  ? 'border-[color:var(--text-primary)] shadow-sm'
+  : 'border-edge hover:border-content-faint'
+
+/** The round colour sample in a swatch tile. */
+const DOT = 'h-4 w-4 flex-none rounded-full shadow-[inset_0_0_0_1px_var(--border-faint)]'
 
 export default function AppearanceSettingsTab(): React.ReactElement {
   const { settings, updateSetting } = useSettingsStore()
@@ -141,284 +141,242 @@ export default function AppearanceSettingsTab(): React.ReactElement {
   const accentDark = cfg.accent?.dark ?? '#6366f1'
   const customRatio = contrastRatio(isDark ? accentDark : accentLight, '#ffffff')
 
+  // The stored mode, read the way the old boolean values meant it.
+  const cur = settings.dark_mode
+  const mode = cur === true ? 'dark' : cur === false ? 'light' : String(cur ?? '')
+
   return (
     <>
       {/* ── Theme ───────────────────────────────────────────────── */}
       <Section title={tr('settings.appearance.theme', 'Theme')} icon={Paintbrush}>
-        {/* Color mode */}
-        <div>
-          <label className="block text-sm font-medium mb-2 text-content-secondary">
-            {tr('settings.colorMode', 'Color mode')}
-          </label>
-          <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
-            {[
-              { value: 'light', label: tr('settings.light', 'Light'), icon: Sun },
-              { value: 'dark', label: tr('settings.dark', 'Dark'), icon: Moon },
-              { value: 'auto', label: tr('settings.auto', 'Auto'), icon: Monitor },
-            ].map((opt) => {
-              const cur = settings.dark_mode
-              const active =
-                cur === opt.value ||
-                (opt.value === 'light' && cur === false) ||
-                (opt.value === 'dark' && cur === true)
-              return (
-                <button type="button" key={opt.value} onClick={() => setMode(opt.value)} style={segStyle(active)}>
-                  <span className="hidden sm:inline-flex"><opt.icon size={16} /></span>
-                  {opt.value === 'auto' ? (
-                    <>
-                      <span className="hidden sm:inline">{opt.label}</span>
-                      <span className="sm:hidden">Auto</span>
-                    </>
-                  ) : opt.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        <SettingRows>
+          {/* Color mode */}
+          <SettingRow
+            label={tr('settings.colorMode', 'Color mode')}
+            control={
+              <Segmented
+                label={tr('settings.colorMode', 'Color mode')}
+                value={mode}
+                onChange={setMode}
+                options={[
+                  { value: 'light', label: tr('settings.light', 'Light'), icon: <Sun size={14} strokeWidth={2} /> },
+                  { value: 'dark', label: tr('settings.dark', 'Dark'), icon: <Moon size={14} strokeWidth={2} /> },
+                  {
+                    value: 'auto',
+                    icon: <Monitor size={14} strokeWidth={2} />,
+                    label: (
+                      <>
+                        <span className="hidden sm:inline">{tr('settings.auto', 'Auto')}</span>
+                        <span className="sm:hidden">Auto</span>
+                      </>
+                    ),
+                  },
+                ]}
+              />
+            }
+          />
 
-        {/* Color scheme swatches */}
-        <div>
-          <label className="block text-sm font-medium mb-2 text-content-secondary">
-            {tr('settings.appearance.scheme', 'Color scheme')}
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {APPEARANCE_SCHEMES.map((s) => {
-              const active = cfg.schemeId === s.id
-              const dot = isDark ? s.swatch.dark : s.swatch.light
-              return (
-                <button type="button"
-                  key={s.id}
-                  onClick={() => update({ schemeId: s.id })}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-                    borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
-                    border: active ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                    background: active ? 'var(--bg-hover)' : 'var(--bg-card)', color: 'var(--text-primary)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  <span style={{ width: 16, height: 16, borderRadius: '50%', background: dot, flexShrink: 0, boxShadow: 'inset 0 0 0 1px var(--border-faint)' }} />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {tr(`settings.appearance.scheme.${s.id}`, schemeFallback(s.id))}
-                  </span>
-                </button>
-              )
-            })}
-            {/* Custom */}
-            <button type="button"
-              onClick={() => update({ schemeId: 'custom', accent: cfg.accent ?? { light: accentLight, dark: accentDark } })}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10,
-                cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
-                border: cfg.schemeId === 'custom' ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                background: cfg.schemeId === 'custom' ? 'var(--bg-hover)' : 'var(--bg-card)', color: 'var(--text-primary)',
-                transition: 'all 0.15s',
-              }}
-            >
-              <span style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, background: 'conic-gradient(#ef4444,#f59e0b,#22c55e,#3b82f6,#8b5cf6,#ef4444)' }} />
-              {tr('settings.appearance.scheme.custom', 'Custom')}
-            </button>
-          </div>
-        </div>
+          {/* Color scheme swatches */}
+          <SettingRow label={tr('settings.appearance.scheme', 'Color scheme')} stacked>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {APPEARANCE_SCHEMES.map((s) => {
+                const active = cfg.schemeId === s.id
+                const dot = isDark ? s.swatch.dark : s.swatch.light
+                return (
+                  <button type="button" key={s.id} aria-pressed={active}
+                    onClick={() => update({ schemeId: s.id })}
+                    className={`${SWATCH} ${swatchLook(active)}`} style={fs(12.5, 'body')}>
+                    <span className={DOT} style={{ background: dot }} />
+                    <span className="min-w-0 truncate">{tr(`settings.appearance.scheme.${s.id}`, schemeFallback(s.id))}</span>
+                  </button>
+                )
+              })}
+              {/* Custom */}
+              <button type="button" aria-pressed={cfg.schemeId === 'custom'}
+                onClick={() => update({ schemeId: 'custom', accent: cfg.accent ?? { light: accentLight, dark: accentDark } })}
+                className={`${SWATCH} ${swatchLook(cfg.schemeId === 'custom')}`} style={fs(12.5, 'body')}>
+                <span className={DOT} style={{ background: 'conic-gradient(#ef4444,#f59e0b,#22c55e,#3b82f6,#8b5cf6,#ef4444)' }} /> {/* theme-lint-disable: the rainbow that stands for "any colour" */}
+                <span className="min-w-0 truncate">{tr('settings.appearance.scheme.custom', 'Custom')}</span>
+              </button>
+            </div>
+          </SettingRow>
 
-        {/* Custom accent picker */}
-        {cfg.schemeId === 'custom' && (
-          <div>
-            <label className="block text-sm font-medium mb-2 text-content-secondary">
-              {tr('settings.appearance.customAccent', 'Custom accent')}
-            </label>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {CUSTOM_ACCENT_PRESETS.map((c) => (
-                <button type="button"
-                  key={c}
-                  aria-label={c}
-                  onClick={() => update({ accent: { light: c, dark: c } })}
-                  style={{ width: 28, height: 28, borderRadius: '50%', background: c, cursor: 'pointer', border: '2px solid var(--border-primary)' }}
-                />
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-4 items-center">
-              <label className="flex items-center gap-2 text-sm text-content-secondary">
-                {tr('settings.light', 'Light')}
-                <input type="color" value={isHex(accentLight) ? accentLight : '#4f46e5'}
-                  onChange={(e) => update({ accent: { light: e.target.value, dark: accentDark } })}
-                  style={{ width: 36, height: 28, border: 'none', background: 'none', cursor: 'pointer' }} />
-              </label>
-              <label className="flex items-center gap-2 text-sm text-content-secondary">
-                {tr('settings.dark', 'Dark')}
-                <input type="color" value={isHex(accentDark) ? accentDark : '#6366f1'}
-                  onChange={(e) => update({ accent: { light: accentLight, dark: e.target.value } })}
-                  style={{ width: 36, height: 28, border: 'none', background: 'none', cursor: 'pointer' }} />
-              </label>
-              <span
-                className="text-xs font-medium px-2 py-1 rounded-md"
-                style={{ background: customRatio >= 4.5 ? 'var(--success-soft)' : 'var(--warning-soft)', color: customRatio >= 4.5 ? 'var(--success)' : 'var(--warning)' }}
-              >
-                {customRatio >= 4.5
-                  ? `${tr('settings.appearance.contrastOk', 'Good contrast')} (${customRatio.toFixed(1)}:1)`
-                  : `${tr('settings.appearance.contrastLow', 'Low contrast')} (${customRatio.toFixed(1)}:1)`}
-              </span>
-            </div>
-          </div>
-        )}
+          {/* Custom accent picker */}
+          {cfg.schemeId === 'custom' && (
+            <SettingRow label={tr('settings.appearance.customAccent', 'Custom accent')} stacked>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap gap-2">
+                  {CUSTOM_ACCENT_PRESETS.map((c) => {
+                    const picked = accentLight === c && accentDark === c
+                    return (
+                      <button type="button" key={c} aria-label={c}
+                        onClick={() => update({ accent: { light: c, dark: c } })}
+                        className={`h-7 w-7 flex-none rounded-full ring-offset-2 ring-offset-[color:var(--bg-card)] transition-shadow ${picked ? 'ring-2 ring-[color:var(--text-primary)]' : 'shadow-[inset_0_0_0_1px_var(--border-faint)] hover:ring-2 hover:ring-edge'}`}
+                        style={{ background: c }} />
+                    )
+                  })}
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <ColorField label={tr('settings.light', 'Light')} value={isHex(accentLight) ? accentLight : '#4f46e5'}
+                    onChange={(v) => update({ accent: { light: v, dark: accentDark } })} />
+                  <ColorField label={tr('settings.dark', 'Dark')} value={isHex(accentDark) ? accentDark : '#6366f1'}
+                    onChange={(v) => update({ accent: { light: accentLight, dark: v } })} />
+                  <StatusPill tone={customRatio >= 4.5 ? 'success' : 'warning'}>
+                    {customRatio >= 4.5
+                      ? `${tr('settings.appearance.contrastOk', 'Good contrast')} (${customRatio.toFixed(1)}:1)`
+                      : `${tr('settings.appearance.contrastLow', 'Low contrast')} (${customRatio.toFixed(1)}:1)`}
+                  </StatusPill>
+                </div>
+              </div>
+            </SettingRow>
+          )}
+        </SettingRows>
       </Section>
 
       {/* ── Readability ─────────────────────────────────────────── */}
       <Section
         title={tr('settings.appearance.readability', 'Readability')}
         icon={Eye}
-        badge={
-          <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-warning-soft text-warning">
-            {tr('settings.appearance.experimental', 'Experimental')}
-          </span>
-        }
+        badge={<StatusPill tone="warning">{tr('settings.appearance.experimental', 'Experimental')}</StatusPill>}
       >
-        <ToggleRow
-          label={tr('settings.appearance.transparency', 'Transparency')}
-          hint={tr('settings.appearance.transparencyHint', 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.')}
-          on={cfg.transparency}
-          onToggle={() => update({ transparency: !cfg.transparency })}
-        />
-        <ToggleRow
-          label={tr('settings.appearance.reduceMotion', 'Reduce motion')}
-          hint={tr('settings.appearance.reduceMotionHint', 'Minimize animations and transitions.')}
-          on={cfg.reduceMotion}
-          onToggle={() => update({ reduceMotion: !cfg.reduceMotion })}
-        />
-
-        {/* Density */}
-        <div>
-          <label className="block text-sm font-medium mb-2 text-content-secondary">
-            {tr('settings.appearance.density', 'Density')}
-          </label>
-          <div className="flex gap-3">
-            {[
-              { value: 'comfortable', label: tr('settings.appearance.comfortable', 'Comfortable') },
-              { value: 'compact', label: tr('settings.appearance.compact', 'Compact') },
-            ].map((opt) => (
-              <button type="button" key={opt.value} onClick={() => update({ density: opt.value as AppearanceConfig['density'] })} style={segStyle(cfg.density === opt.value)}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-content-faint mt-2">
-            {tr('settings.appearance.densityHint', 'Compact tightens spacing and padding for a denser layout that fits more on screen.')}
-          </p>
-        </div>
-
-        {/* Text size — global, plus an always-visible row per size class with a
-            live sample and an example of what each size affects. */}
-        <div>
-          <label className="block text-sm font-medium mb-2 text-content-secondary">
-            {tr('settings.appearance.textSize', 'Text size')}
-          </label>
-          <SliderRow
-            label={tr('settings.appearance.textSizeAll', 'Everything')}
-            value={cfg.fontScale}
-            onChange={(v) => update({ fontScale: v })}
+        <SettingRows>
+          <ToggleRow
+            label={tr('settings.appearance.transparency', 'Transparency')}
+            hint={tr('settings.appearance.transparencyHint', 'Glassy translucent surfaces. Turn off for solid, higher-contrast backgrounds.')}
+            on={cfg.transparency}
+            onToggle={() => update({ transparency: !cfg.transparency })}
           />
-          <div className="space-y-4 mt-4 pt-4 border-t border-edge-secondary">
-            <SizeRow
-              sampleClass="text-title font-bold"
-              name={tr('settings.appearance.size.large', 'Large')}
-              example={tr('settings.appearance.example.large', 'Headings, big numbers')}
-              sample={tr('settings.appearance.preview.large', 'Large heading')}
-              value={cfg.typeScale.title}
-              onChange={(v) => update({ typeScale: { ...cfg.typeScale, title: v } })}
+          <ToggleRow
+            label={tr('settings.appearance.reduceMotion', 'Reduce motion')}
+            hint={tr('settings.appearance.reduceMotionHint', 'Minimize animations and transitions.')}
+            on={cfg.reduceMotion}
+            onToggle={() => update({ reduceMotion: !cfg.reduceMotion })}
+          />
+
+          {/* Density */}
+          <SettingRow
+            label={tr('settings.appearance.density', 'Density')}
+            hint={tr('settings.appearance.densityHint', 'Compact tightens spacing and padding for a denser layout that fits more on screen.')}
+            control={
+              <Segmented
+                label={tr('settings.appearance.density', 'Density')}
+                value={cfg.density}
+                onChange={(value) => update({ density: value })}
+                options={[
+                  { value: 'comfortable', label: tr('settings.appearance.comfortable', 'Comfortable') },
+                  { value: 'compact', label: tr('settings.appearance.compact', 'Compact') },
+                ]}
+              />
+            }
+          />
+
+          {/* Text size — global, plus an always-visible row per size class with a
+              live sample and an example of what each size affects. */}
+          <SettingRow label={tr('settings.appearance.textSize', 'Text size')} stacked>
+            <SliderRow
+              label={tr('settings.appearance.textSizeAll', 'Everything')}
+              value={cfg.fontScale}
+              onChange={(v) => update({ fontScale: v })}
             />
-            <SizeRow
-              sampleClass="text-subtitle font-semibold"
-              name={tr('settings.appearance.size.medium', 'Medium')}
-              example={tr('settings.appearance.example.medium', 'Sub-headings')}
-              sample={tr('settings.appearance.preview.medium', 'Medium subtitle')}
-              value={cfg.typeScale.subtitle}
-              onChange={(v) => update({ typeScale: { ...cfg.typeScale, subtitle: v } })}
-            />
-            <SizeRow
-              sampleClass="text-body"
-              name={tr('settings.appearance.size.normal', 'Normal')}
-              example={tr('settings.appearance.example.normal', 'Place names, descriptions')}
-              sample={tr('settings.appearance.preview.normal', 'Normal body text')}
-              value={cfg.typeScale.body}
-              onChange={(v) => update({ typeScale: { ...cfg.typeScale, body: v } })}
-            />
-            <SizeRow
-              sampleClass="text-caption"
-              name={tr('settings.appearance.size.small', 'Small')}
-              example={tr('settings.appearance.example.small', 'Addresses, labels')}
-              sample={tr('settings.appearance.preview.small', 'Small caption / address')}
-              value={cfg.typeScale.caption}
-              onChange={(v) => update({ typeScale: { ...cfg.typeScale, caption: v } })}
-            />
-          </div>
-        </div>
+            <div className="mt-4 flex flex-col gap-3 rounded-[12px] border border-edge-faint bg-surface-secondary p-3">
+              <SizeRow
+                sampleClass="text-title font-bold"
+                name={tr('settings.appearance.size.large', 'Large')}
+                example={tr('settings.appearance.example.large', 'Headings, big numbers')}
+                sample={tr('settings.appearance.preview.large', 'Large heading')}
+                value={cfg.typeScale.title}
+                onChange={(v) => update({ typeScale: { ...cfg.typeScale, title: v } })}
+              />
+              <SizeRow
+                sampleClass="text-subtitle font-semibold"
+                name={tr('settings.appearance.size.medium', 'Medium')}
+                example={tr('settings.appearance.example.medium', 'Sub-headings')}
+                sample={tr('settings.appearance.preview.medium', 'Medium subtitle')}
+                value={cfg.typeScale.subtitle}
+                onChange={(v) => update({ typeScale: { ...cfg.typeScale, subtitle: v } })}
+              />
+              <SizeRow
+                sampleClass="text-body"
+                name={tr('settings.appearance.size.normal', 'Normal')}
+                example={tr('settings.appearance.example.normal', 'Place names, descriptions')}
+                sample={tr('settings.appearance.preview.normal', 'Normal body text')}
+                value={cfg.typeScale.body}
+                onChange={(v) => update({ typeScale: { ...cfg.typeScale, body: v } })}
+              />
+              <SizeRow
+                sampleClass="text-caption"
+                name={tr('settings.appearance.size.small', 'Small')}
+                example={tr('settings.appearance.example.small', 'Addresses, labels')}
+                sample={tr('settings.appearance.preview.small', 'Small caption / address')}
+                value={cfg.typeScale.caption}
+                onChange={(v) => update({ typeScale: { ...cfg.typeScale, caption: v } })}
+              />
+            </div>
+          </SettingRow>
+        </SettingRows>
       </Section>
 
       {/* ── Dashboard widgets ───────────────────────────────────── */}
-      <Section title={tr('settings.appearance.dashboardWidgets', 'Dashboard widgets')} icon={LayoutDashboard}>
-        <p className="text-xs text-content-faint -mt-1">
-          {tr('settings.appearance.dashboardWidgetsHint', 'Choose which widgets appear on the dashboard — independently for desktop and mobile.')}
-        </p>
-
-        <div className="text-sm font-semibold text-content">{tr('settings.appearance.desktop', 'Desktop')}</div>
-        {DESKTOP_GROUPS.map((g) => {
-          const masterOn = g.master ? cfg.dashboard.desktop[g.master] : true
-          return (
-            <div key={g.id} className="rounded-lg border border-edge-secondary px-3 py-2">
-              {g.master ? (
+      <Section
+        title={tr('settings.appearance.dashboardWidgets', 'Dashboard widgets')}
+        icon={LayoutDashboard}
+        hint={tr('settings.appearance.dashboardWidgetsHint', 'Choose which widgets appear on the dashboard — independently for desktop and mobile.')}
+      >
+        <DialogSection label={tr('settings.appearance.desktop', 'Desktop')}>
+          <div className="flex flex-col gap-3">
+            {DESKTOP_GROUPS.map((g) => {
+              const masterOn = g.master ? cfg.dashboard.desktop[g.master] : true
+              const rows = g.keys.map((k) => (
                 <ToggleRow
-                  label={tr(`settings.appearance.widget.${g.master}`, WIDGET_LABELS[g.master])}
-                  hint={tr('settings.appearance.sidebarHint', 'The whole right column. Turn off and the dashboard centers.')}
-                  on={masterOn}
-                  onToggle={() => setWidget('desktop', g.master as string, !masterOn)}
+                  key={k}
+                  label={tr(`settings.appearance.widget.${k}`, WIDGET_LABELS[k])}
+                  on={cfg.dashboard.desktop[k]}
+                  onToggle={() => setWidget('desktop', k, !cfg.dashboard.desktop[k])}
                 />
-              ) : (
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-content-faint mb-1">
-                  {tr(`settings.appearance.group.${g.id}`, g.fallback)}
-                </div>
-              )}
-              <div
-                className={g.master ? 'mt-1 pl-3 border-l-2 border-edge-secondary' : ''}
-                style={g.master && !masterOn ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
-              >
+              ))
+              if (!g.master) {
+                return <WidgetGroup key={g.id} caption={tr(`settings.appearance.group.${g.id}`, g.fallback)}>{rows}</WidgetGroup>
+              }
+              return (
+                <SettingRows key={g.id}>
+                  <SettingRow
+                    label={tr(`settings.appearance.widget.${g.master}`, WIDGET_LABELS[g.master])}
+                    hint={tr('settings.appearance.sidebarHint', 'The whole right column. Turn off and the dashboard centers.')}
+                    control={<ToggleSwitch on={masterOn} onToggle={() => setWidget('desktop', g.master as string, !masterOn)}
+                      label={tr(`settings.appearance.widget.${g.master}`, WIDGET_LABELS[g.master])} />}
+                  >
+                    {/* Its widgets only matter while the column is shown: dimmed, not hidden, while it is off. */}
+                    <SettingRows className={`bg-surface-secondary transition-opacity ${masterOn ? '' : 'pointer-events-none opacity-40'}`}>
+                      {rows}
+                    </SettingRows>
+                  </SettingRow>
+                </SettingRows>
+              )
+            })}
+          </div>
+        </DialogSection>
+
+        <DialogSection label={tr('settings.appearance.mobile', 'Mobile')}>
+          <div className="flex flex-col gap-3">
+            {MOBILE_GROUPS.map((g) => (
+              <WidgetGroup key={g.id} caption={tr(`settings.appearance.group.${g.id}`, g.fallback)}>
                 {g.keys.map((k) => (
                   <ToggleRow
                     key={k}
                     label={tr(`settings.appearance.widget.${k}`, WIDGET_LABELS[k])}
-                    on={cfg.dashboard.desktop[k]}
-                    onToggle={() => setWidget('desktop', k, !cfg.dashboard.desktop[k])}
+                    on={cfg.dashboard.mobile[k]}
+                    onToggle={() => setWidget('mobile', k, !cfg.dashboard.mobile[k])}
                   />
                 ))}
-              </div>
-            </div>
-          )
-        })}
-
-        <div className="text-sm font-semibold text-content mt-3">{tr('settings.appearance.mobile', 'Mobile')}</div>
-        {MOBILE_GROUPS.map((g) => (
-          <div key={g.id} className="rounded-lg border border-edge-secondary px-3 py-2">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-content-faint mb-1">
-              {tr(`settings.appearance.group.${g.id}`, g.fallback)}
-            </div>
-            {g.keys.map((k) => (
-              <ToggleRow
-                key={k}
-                label={tr(`settings.appearance.widget.${k}`, WIDGET_LABELS[k])}
-                on={cfg.dashboard.mobile[k]}
-                onToggle={() => setWidget('mobile', k, !cfg.dashboard.mobile[k])}
-              />
+              </WidgetGroup>
             ))}
           </div>
-        ))}
+        </DialogSection>
       </Section>
 
-      <div className="flex justify-end mb-6">
-        <button type="button"
-          onClick={resetAll}
-          className="flex items-center gap-2 text-sm font-medium text-content-muted hover:text-content"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 4px' }}
-        >
-          <RotateCcw size={15} />
+      <div className="mb-6 flex justify-end">
+        <button type="button" onClick={resetAll} className={SETTINGS_BUTTON} style={fs(13, 'body')}>
+          <RotateCcw size={14} strokeWidth={2} />
           {tr('settings.appearance.reset', 'Reset to defaults')}
         </button>
       </div>
@@ -440,23 +398,43 @@ function schemeFallback(id: string): string {
 }
 
 function ToggleRow({ label, hint, on, onToggle }: { label: string; hint?: string; on: boolean; onToggle: () => void }) {
+  return <SettingRow label={label} hint={hint} control={<ToggleSwitch on={on} onToggle={onToggle} label={label} />} />
+}
+
+/** Where a set of widgets sits on the dashboard: a caption over its box of switches. */
+function WidgetGroup({ caption, children }: { caption: string; children: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-1.5">
-      <div>
-        <div className="text-sm font-medium text-content-secondary">{label}</div>
-        {hint && <div className="text-xs text-content-faint mt-0.5">{hint}</div>}
-      </div>
-      <ToggleSwitch on={on} onToggle={onToggle} label={label} />
+    <div>
+      <div className="mb-1.5 px-0.5 font-medium text-content-muted" style={fs(12, 'body')}>{caption}</div>
+      <SettingRows>{children}</SettingRows>
     </div>
   )
+}
+
+/** A colour input with its name, in the box look of the fields. */
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="inline-flex items-center gap-2 rounded-[10px] border border-edge bg-surface-input py-1 pl-3 pr-1 font-medium text-content-secondary" style={fs(12.5, 'body')}>
+      {label}
+      <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
+        className="h-7 w-9 cursor-pointer rounded-[7px] border-0 bg-transparent p-0" />
+    </label>
+  )
+}
+
+const fill = (value: number) => ({ '--fill': `${((value - APPEARANCE_SCALE_MIN) / (APPEARANCE_SCALE_MAX - APPEARANCE_SCALE_MIN)) * 100}%` } as React.CSSProperties)
+
+/** A percentage in the corner of a slider. */
+function Percent({ value }: { value: number }) {
+  return <span className="flex-none font-geist font-semibold tabular-nums text-content-muted" style={fs(11.5)}>{Math.round(value * 100)}%</span>
 }
 
 function SliderRow({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium text-content-secondary">{label}</span>
-        <span className="text-xs text-content-muted tabular-nums">{Math.round(value * 100)}%</span>
+      <div className="mb-1.5 flex items-center justify-between gap-3">
+        <span className="font-medium text-content-secondary" style={fs(12.5, 'body')}>{label}</span>
+        <Percent value={value} />
       </div>
       <input
         type="range"
@@ -466,7 +444,7 @@ function SliderRow({ label, value, onChange }: { label: string; value: number; o
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="trek-range"
-        style={{ '--fill': `${((value - APPEARANCE_SCALE_MIN) / (APPEARANCE_SCALE_MAX - APPEARANCE_SCALE_MIN)) * 100}%` } as React.CSSProperties}
+        style={fill(value)}
       />
     </div>
   )
@@ -475,14 +453,14 @@ function SliderRow({ label, value, onChange }: { label: string; value: number; o
 function SizeRow({ sampleClass, name, example, sample, value, onChange }: { sampleClass: string; name: string; example: string; sample: string; value: number; onChange: (v: number) => void }) {
   return (
     <div>
-      <div className="flex items-end justify-between gap-3 mb-1.5">
+      <div className="mb-1.5 flex items-end justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className={`${sampleClass} text-content leading-tight truncate`}>{sample}</div>
-          <div className="text-xs text-content-faint mt-0.5">
+          <div className={`${sampleClass} truncate leading-tight text-content`}>{sample}</div>
+          <div className="mt-0.5 truncate text-content-faint" style={fs(11.5)}>
             <span className="font-medium text-content-muted">{name}</span> · {example}
           </div>
         </div>
-        <span className="text-xs text-content-muted tabular-nums shrink-0">{Math.round(value * 100)}%</span>
+        <Percent value={value} />
       </div>
       <input
         type="range"
@@ -492,7 +470,7 @@ function SizeRow({ sampleClass, name, example, sample, value, onChange }: { samp
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="trek-range"
-        style={{ '--fill': `${((value - APPEARANCE_SCALE_MIN) / (APPEARANCE_SCALE_MAX - APPEARANCE_SCALE_MIN)) * 100}%` } as React.CSSProperties}
+        style={fill(value)}
       />
     </div>
   )

@@ -14,11 +14,18 @@ const shared: TranslationStrings = {
   'shared.tabChat': 'Chat',
   'shared.days': 'days',
   'shared.places': 'places',
+  'shared.unplanned': 'Not planned yet',
   'shared.other': 'Other',
   'shared.totalBudget': 'Total Costs',
   'shared.messages': 'messages',
   'shared.sharedVia': 'Shared via',
   'shared.confirmed': 'Confirmed',
   'shared.pending': 'Pending',
+  'shared.footerTagline': 'The travel planner you host yourself. Open source.',
+  'shared.emptyBookings': 'No bookings shared yet',
+  'shared.emptyPacking': 'The packing list is still empty',
+  'shared.emptyCosts': 'No expenses yet',
+  'shared.emptyChat': 'No messages yet',
+  'shared.wholeTrip': 'Whole trip',
 };
 export default shared;

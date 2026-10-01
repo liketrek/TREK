@@ -1,4 +1,4 @@
-// FE-PLANNER-PSHOOK-001 to FE-PLANNER-PSHOOK-052
+// FE-PLANNER-PSHOOK-001 to FE-PLANNER-PSHOOK-059
 import { http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
 import { render, screen, fireEvent, act, waitFor } from '../../../tests/helpers/render';
@@ -712,5 +712,72 @@ describe('usePlacesSidebar context menu', () => {
       address: 'Rue A',
       source_place_id: 3,
     });
+  });
+});
+
+// ── The filter panel's figures and the row's "…" ──────────────────────────────
+
+describe('usePlacesSidebar filter panel', () => {
+  it('FE-PLANNER-PSHOOK-053: filterCounts counts each choice under search and categories, not the rating floor', () => {
+    const planned = buildPlace({ id: 1, name: 'Alpha Planned', category_id: 4, rating_avg: 1 });
+    const loose = buildPlace({ id: 2, name: 'Alpha Loose', category_id: 4, route_geometry: '[[1,2],[3,4]]' });
+    const other = buildPlace({ id: 3, name: 'Beta', category_id: null });
+    const assignments = { '9': [buildAssignment({ place: planned, day_id: 9 })] };
+    render(<Host {...makeProps({ places: [planned, loose, other], assignments })} />);
+    expect(S.filterCounts).toEqual({ all: 3, unplanned: 2, planned: 1, tracks: 1 });
+
+    act(() => { S.setSearch('alpha'); });
+    act(() => { S.setRatingFilter(5); });
+    expect(S.filterCounts).toEqual({ all: 2, unplanned: 1, planned: 1, tracks: 1 });
+
+    act(() => { S.setCategoryFilters(new Set(['uncategorized'])); });
+    expect(S.filterCounts).toEqual({ all: 0, unplanned: 0, planned: 0, tracks: 0 });
+  });
+
+  it('FE-PLANNER-PSHOOK-054: while a day is open "planned" counts that day only', () => {
+    const today = buildPlace({ id: 1, name: 'Today' });
+    const later = buildPlace({ id: 2, name: 'Later' });
+    const assignments = {
+      '1': [buildAssignment({ place: today, day_id: 1 })],
+      '2': [buildAssignment({ place: later, day_id: 2 })],
+    };
+    render(<Host {...makeProps({ places: [today, later], assignments, days: [buildDay({ id: 1 }), buildDay({ id: 2 })], selectedDayId: 1 })} />);
+    expect(S.filterCounts.planned).toBe(1);
+    expect(S.filterCounts.unplanned).toBe(0);
+  });
+
+  it('FE-PLANNER-PSHOOK-056: pickFilter changes the choice and starts a fresh selection', () => {
+    render(<Host {...makeProps({ places: [buildPlace({ id: 1 }), buildPlace({ id: 2 })] })} />);
+    act(() => { S.setSelectedIds(new Set([1, 2])); });
+    act(() => { S.pickFilter('planned'); });
+    expect(useTripStore.getState().placesFilter).toBe('planned');
+    expect(S.selectedIds.size).toBe(0);
+  });
+
+});
+
+describe('usePlacesSidebar row menu entries', () => {
+  it('FE-PLANNER-PSHOOK-058: placeMenuItems lists what the right-click shows, with "+ Day" for the given day', () => {
+    enableCollections();
+    const onAssignToDay = vi.fn((_placeId: number, _dayId: number) => {});
+    const place = buildPlace({ id: 3, name: 'Cafe', website: 'https://cafe.example', google_place_id: 'ChIJ1' });
+    render(<Host {...makeProps({ places: [place], onAssignToDay })} />);
+
+    const withDay = S.placeMenuItems(place, 4);
+    expect(withDay.map(e => e.divider ? '---' : e.label)).toEqual(['Edit', '+ Day', 'Open Website', 'Google Maps', 'Save to Collection', '---', 'Delete']);
+    withDay[1].onClick?.();
+    expect(onAssignToDay).toHaveBeenCalledWith(3, 4);
+
+    // No day, no "+ Day".
+    expect(S.placeMenuItems(place, null).some(e => e.label === '+ Day')).toBe(false);
+  });
+
+  it('FE-PLANNER-PSHOOK-059: a read-only member gets no edit or delete entries from placeMenuItems', () => {
+    seedStore(usePermissionsStore, { permissions: { place_edit: 'admin' } });
+    const place = buildPlace({ id: 3, name: 'Cafe', website: null, lat: null, lng: null, google_place_id: null });
+    render(<Host {...makeProps({ places: [place] })} />);
+    const labels = S.placeMenuItems(place, null).filter(e => !e.divider).map(e => e.label);
+    expect(labels).not.toContain('Edit');
+    expect(labels).not.toContain('Delete');
   });
 });

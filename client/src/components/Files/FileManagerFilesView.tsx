@@ -16,12 +16,7 @@ export function FilesView(S: FileManagerState) {
       {/* Upload zone */}
       {can('file_upload', trip) && <div
         {...getRootProps()}
-        style={{
-          margin: '16px 28px 0', border: '2px dashed', borderRadius: 14, padding: '20px 16px',
-          textAlign: 'center', cursor: 'pointer', transition: 'all 0.15s',
-          borderColor: isDragActive ? 'var(--text-secondary)' : 'var(--border-primary)',
-          background: isDragActive ? 'var(--bg-secondary)' : 'var(--bg-card)',
-        }}
+        className={`mx-7 mt-4 cursor-pointer rounded-2xl border-2 border-dashed px-4 py-5 text-center transition-colors max-md:mx-4 ${isDragActive ? 'border-content-muted bg-surface-tertiary' : 'border-edge bg-surface-secondary hover:border-content-faint'}`}
       >
         <input {...getInputProps()} />
         <Upload size={24} style={{ margin: '0 auto 8px', color: isDragActive ? 'var(--text-secondary)' : 'var(--text-faint)', display: 'block' }} />
@@ -35,8 +30,9 @@ export function FilesView(S: FileManagerState) {
             <p style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>{t('files.dropzone')}</p>
             <p style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 3 }}>{t('files.dropzoneHint')}</p>
             <p style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 6, opacity: 0.7 }}>
-              {(allowedFileTypes || 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv').toUpperCase().split(',').join(', ')} · Max 50 MB
+              {(allowedFileTypes || 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv').toUpperCase().split(',').join(', ')}
             </p>
+            <span className="mt-1.5 inline-block rounded-full bg-surface-card px-2 py-[2px] font-geist font-semibold text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))' }}>Max 50 MB</span>
           </>
         )}
       </div>}

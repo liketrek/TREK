@@ -15,6 +15,31 @@ export function readEnv(): AppEnv {
 }
 
 /**
+ * Variables whose value never goes into the boot report, even when it is the
+ * malformed one: the report lands in container logs, and a key that is merely
+ * mistyped is still a real key. The name and the problem are enough to fix it.
+ */
+export const SECRET_ENV_KEYS: ReadonlySet<string> = new Set([
+  'ENCRYPTION_KEY',
+  'OIDC_CLIENT_SECRET',
+  'SMTP_PASS',
+  'VAPID_PRIVATE_KEY',
+  'UNSPLASH_ACCESS_KEY',
+  'ADMIN_PASSWORD',
+  'PLACES_API_KEY',
+  'AMAP_API_KEY',
+  'AMAP_API_SECRET',
+  'MAPBOX_ACCESS_TOKEN',
+  'CARTO_API_KEY',
+  'DEMO_ADMIN_PASS',
+]);
+
+/** How a variable's value appears in the boot report. */
+function reportedValue(key: string, value: string | undefined): string {
+  return SECRET_ENV_KEYS.has(key) ? '***' : JSON.stringify(value);
+}
+
+/**
  * Fail-fast startup validation: a variable that is PRESENT but malformed aborts
  * boot with an aggregated report; unset/blank variables always pass (their
  * documented defaults apply). Called once from the production entrypoint (see
@@ -28,7 +53,7 @@ export function validateEnvAtBoot(raw: RawEnv = process.env as RawEnv): void {
     ? []
     : result.error.issues.map((issue) => {
         const key = String(issue.path[0]);
-        return `  - ${key}=${JSON.stringify(raw[key])}: ${issue.message}`;
+        return `  - ${key}=${reportedValue(key, raw[key])}: ${issue.message}`;
       });
   lines.push(...managedPreconditions(raw));
   if (lines.length === 0) return;

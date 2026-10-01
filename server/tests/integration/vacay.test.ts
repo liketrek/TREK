@@ -438,6 +438,19 @@ describe('Vacay company holidays', () => {
     expect(res.status).toBe(200);
   });
 
+  it('VACAY-032b — POST /entries/company-holiday takes a half day and refuses any other size (#2439)', async () => {
+    const { user } = createUser(testDb);
+    await request(app).get('/api/addons/vacay/plan').set('Cookie', authCookie(user.id));
+    await request(app).post('/api/addons/vacay/years').set('Cookie', authCookie(user.id)).send({ year: 2025 });
+    const half = await request(app).post('/api/addons/vacay/entries/company-holiday').set('Cookie', authCookie(user.id))
+      .send({ date: '2025-12-24', fraction: 0.5 });
+    expect(half.status).toBe(200);
+    expect(half.body).toMatchObject({ action: 'added', fraction: 0.5 });
+    const odd = await request(app).post('/api/addons/vacay/entries/company-holiday').set('Cookie', authCookie(user.id))
+      .send({ date: '2025-12-24', fraction: 0.25 });
+    expect(odd.status).toBe(400);
+  });
+
   it('VACAY-033 — POST /entries/toggle with target_user_id not in plan returns 403', async () => {
     const { user: owner } = createUser(testDb);
     const { user: outsider } = createUser(testDb);

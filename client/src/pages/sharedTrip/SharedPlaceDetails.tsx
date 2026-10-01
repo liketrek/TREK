@@ -1,5 +1,8 @@
 import { Clock, ExternalLink, FileText, Globe, MapPin, Phone } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { fs } from '../../components/shared/DialogShell'
+import { Tooltip } from '../../components/shared/Tooltip'
+import { WhiteBadge } from '../../components/Planner/planParts'
 import { getGoogleMapsUrlForPlace } from '../../components/Planner/placeGoogleMaps'
 import { formatDurationMinutes, isHttpUrl } from './sharedTripModel'
 
@@ -18,6 +21,9 @@ import { formatDurationMinutes, isHttpUrl } from './sharedTripModel'
  * link leaves the page, in a new tab, with no opener. The server has already
  * decided what a public viewer may see; this only renders what arrived.
  */
+/** A way off the page: a white pill like the planner's facts, quiet until hovered. */
+export const LINK_PILL = 'inline-flex flex-none items-center gap-1 whitespace-nowrap rounded-full bg-surface-card px-2 py-[2px] font-geist font-medium text-content-secondary shadow-sm transition-colors hover:text-content'
+
 export interface SharedPlaceLike {
   name: string
   address?: string | null
@@ -46,58 +52,53 @@ export function SharedPlaceDetails({ place, assignmentNotes }: { place: SharedPl
   const hasLinks = !!(website || phone || mapsUrl)
 
   return (
-    <div className="shared-place-details" style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+    <div className="shared-place-details mt-1 flex min-w-0 flex-col gap-1">
       {place.address && (
-        <div className="text-[#6b7280]" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', display: 'flex', alignItems: 'flex-start', gap: 4 }}> {/* theme-lint-disable — public page, no user theme */}
-          <MapPin size={10} style={{ flexShrink: 0, marginTop: 2 }} />
-          <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{place.address}</span>
+        <div className="flex items-start gap-1 text-content-faint" style={fs(11)}>
+          <MapPin size={11} strokeWidth={2} className="mt-px flex-none" />
+          <span className="min-w-0 [overflow-wrap:anywhere]">{place.address}</span>
         </div>
       )}
       {place.description && (
-        <div className="text-[#4b5563]" style={{ fontSize: 'calc(11px * var(--fs-scale-body, 1))', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}> {/* theme-lint-disable — public page, no user theme */}
-          {place.description}
-        </div>
+        <div className="whitespace-pre-wrap text-content-secondary [overflow-wrap:anywhere]" style={fs(12, 'body')}>{place.description}</div>
       )}
-      {dayNote && (
-        <div className="text-[#374151]" style={{ fontSize: 'calc(11px * var(--fs-scale-body, 1))', display: 'flex', alignItems: 'flex-start', gap: 4, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }} title={t('places.assignmentNotes')}> {/* theme-lint-disable — public page, no user theme */}
-          <FileText size={10} style={{ flexShrink: 0, marginTop: 2 }} />
-          <span>{dayNote}</span>
-        </div>
-      )}
-      {placeNote && (
-        <div className="text-[#6b7280]" style={{ fontSize: 'calc(11px * var(--fs-scale-body, 1))', display: 'flex', alignItems: 'flex-start', gap: 4, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }} title={t('places.formNotes')}> {/* theme-lint-disable — public page, no user theme */}
-          <FileText size={10} style={{ flexShrink: 0, marginTop: 2 }} />
-          <span>{placeNote}</span>
-        </div>
-      )}
+      {dayNote && <NoteLine label={t('places.assignmentNotes')} text={dayNote} strong />}
+      {placeNote && <NoteLine label={t('places.formNotes')} text={placeNote} />}
       {(duration || hasLinks) && (
-        <div className="text-[#6b7280]" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 10px', marginTop: 1 }}> {/* theme-lint-disable — public page, no user theme */}
-          {duration && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-              <Clock size={10} />
-              {duration}
-            </span>
-          )}
+        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+          {duration && <WhiteBadge icon={<Clock size={10} strokeWidth={2.2} className="flex-none text-content-faint" />}>{duration}</WhiteBadge>}
           {mapsUrl && (
-            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[#2563eb]" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}> {/* theme-lint-disable — public page, no user theme */}
-              <ExternalLink size={10} />
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className={LINK_PILL} style={fs(10.5)}>
+              <ExternalLink size={10} strokeWidth={2.2} className="flex-none" />
               {t('planner.openGoogleMaps')}
             </a>
           )}
           {website && (
-            <a href={website} target="_blank" rel="noopener noreferrer" className="text-[#2563eb]" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}> {/* theme-lint-disable — public page, no user theme */}
-              <Globe size={10} />
+            <a href={website} target="_blank" rel="noopener noreferrer" className={LINK_PILL} style={fs(10.5)}>
+              <Globe size={10} strokeWidth={2.2} className="flex-none" />
               {t('places.formWebsite')}
             </a>
           )}
           {phone && (
-            <a href={`tel:${phone.replace(/[^+\d]/g, '')}`} className="text-[#2563eb]" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}> {/* theme-lint-disable — public page, no user theme */}
-              <Phone size={10} />
+            <a href={`tel:${phone.replace(/[^+\d]/g, '')}`} className={LINK_PILL} style={fs(10.5)}>
+              <Phone size={10} strokeWidth={2.2} className="flex-none" />
               {phone}
             </a>
           )}
         </div>
       )}
     </div>
+  )
+}
+
+/** A note on the stop, the day's own a shade stronger than the place's, named in its tooltip. */
+function NoteLine({ label, text, strong = false }: { label: string; text: string; strong?: boolean }) {
+  return (
+    <Tooltip label={label} placement="top">
+      <div className={`flex items-start gap-1.5 rounded-lg bg-surface-secondary px-2 py-1.5 ${strong ? 'text-content-secondary' : 'text-content-muted'}`} style={fs(11.5, 'body')}>
+        <FileText size={11} strokeWidth={2} className="mt-0.5 flex-none text-content-faint" aria-label={label} />
+        <span className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{text}</span>
+      </div>
+    </Tooltip>
   )
 }

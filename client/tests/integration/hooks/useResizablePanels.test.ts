@@ -162,6 +162,48 @@ describe('useResizablePanels', () => {
     expect(result.current.rightWidth).toBe(initialRight);
   });
 
+  it('FE-HOOK-PANELS-011b: a finger drags the left panel on a tablet, and lifting it ends the drag (#1012)', () => {
+    const { result } = renderHook(() => useResizablePanels());
+
+    act(() => {
+      result.current.startResizeLeft();
+    });
+    act(() => {
+      fireEvent.touchMove(document, { touches: [{ clientX: 410 }] });
+    });
+    expect(result.current.leftWidth).toBe(400);
+    expect(localStorage.getItem('sidebarLeftWidth')).toBe('400');
+
+    act(() => {
+      fireEvent.touchEnd(document);
+    });
+    act(() => {
+      fireEvent.touchMove(document, { touches: [{ clientX: 300 }] });
+    });
+    expect(result.current.leftWidth).toBe(400);
+    expect(document.body.style.cursor).toBe('');
+  });
+
+  it('FE-HOOK-PANELS-011c: the keyboard nudges a panel within its bounds (#1012)', () => {
+    const { result } = renderHook(() => useResizablePanels());
+    const start = result.current.leftWidth;
+
+    act(() => {
+      result.current.nudgeLeft(16);
+    });
+    expect(result.current.leftWidth).toBe(start + 16);
+
+    act(() => {
+      result.current.nudgeLeft(-10_000);
+    });
+    expect(result.current.leftWidth).toBe(result.current.resizeMin);
+
+    act(() => {
+      result.current.nudgeRight(10_000);
+    });
+    expect(result.current.rightWidth).toBe(result.current.resizeMax);
+  });
+
   it('FE-HOOK-PANELS-012: body userSelect set to none during resize, cleared on mouseup', () => {
     const { result } = renderHook(() => useResizablePanels());
 

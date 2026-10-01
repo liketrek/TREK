@@ -7,6 +7,7 @@ import CollabNotes from './CollabNotes'
 import CollabPolls from './CollabPolls'
 import WhatsNextWidget from './WhatsNextWidget'
 import CollabLinks from './CollabLinks'
+import CollabPanelHead from './CollabPanelHead'
 
 function useIsDesktop(breakpoint = 1024) {
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= breakpoint)
@@ -18,7 +19,7 @@ function useIsDesktop(breakpoint = 1024) {
   return isDesktop
 }
 
-const cardClass = 'flex flex-col bg-surface-card rounded-2xl border border-edge-faint overflow-hidden min-h-0'
+const cardClass = 'flex flex-col bg-surface-secondary rounded-2xl border border-edge-faint overflow-hidden min-h-0'
 
 interface TripMember {
   id: number
@@ -91,8 +92,17 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
       {p === 'whatsnext' && <WhatsNextWidget tripMembers={tripMembers} />}
     </>
   )
+  // The chat carries the same head band as the panels beside it.
+  const chatPanel = (
+    <>
+      <CollabPanelHead icon={MessageCircle} title={t('collab.tabs.chat') || 'Chat'} />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <CollabChat tripId={tripId} currentUser={user} />
+      </div>
+    </>
+  )
   const panelRow = (ids: string[]) => (
-    <div style={{ flex: 1, display: 'flex', gap: 12, minHeight: 0 }}>
+    <div style={{ flex: 1, display: 'flex', gap: 16, minHeight: 0 }}>
       {ids.map(p => <div key={p} className={cardClass} style={{ flex: 1, minWidth: 0 }}>{renderPanel(p)}</div>)}
     </div>
   )
@@ -105,9 +115,9 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
     if (chatOn && rightPanels.length === 0) {
       // Only chat
       return (
-        <div style={{ height: '100%', display: 'flex', gap: 12, padding: 12, overflow: 'hidden', minHeight: 0 }}>
+        <div className="flex h-full min-h-0 gap-4 overflow-hidden px-7 py-6">
           <div className={cardClass} style={{ flex: 1 }}>
-            <CollabChat tripId={tripId} currentUser={user} />
+            {chatPanel}
           </div>
         </div>
       )
@@ -116,11 +126,11 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
     if (chatOn) {
       // Chat left (380px) + right panels
       return (
-        <div style={{ height: '100%', display: 'flex', gap: 12, padding: 12, overflow: 'hidden', minHeight: 0 }}>
+        <div className="flex h-full min-h-0 gap-4 overflow-hidden px-7 py-6">
           <div className={cardClass} style={{ flex: '0 0 380px' }}>
-            <CollabChat tripId={tripId} currentUser={user} />
+            {chatPanel}
           </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden', minHeight: 0 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden', minHeight: 0 }}>
             {rightPanels.length <= 2 && panelRow(rightPanels)}
             {rightPanels.length >= 3 && (() => {
               // Two rows, split by kind rather than by a pair being present:
@@ -142,7 +152,7 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
     // Chat off — remaining panels share full width
     const panels = rightPanels
     return (
-      <div style={{ height: '100%', display: 'flex', gap: 12, padding: 12, overflow: 'hidden', minHeight: 0 }}>
+      <div className="flex h-full min-h-0 gap-4 overflow-hidden px-7 py-6">
         {panels.map(p => (
           <div key={p} className={cardClass} style={{ flex: 1 }}>{renderPanel(p)}</div>
         ))}

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { AlertCircle, ArrowRight, Check, Loader2, Plus } from 'lucide-react'
-import Modal from '../../shared/Modal'
+import { useEffect, useId, useMemo, useState } from 'react'
+import { AlertCircle, ArrowRight, Check, FolderSync, Loader2, Plus } from 'lucide-react'
+import { DialogHeader, DialogShell, DialogTile, NEUTRAL_TINT } from '../../shared/DialogShell'
 import { useTranslation } from '../../../i18n/TranslationContext'
 import { DOCUMENT_PROVIDER_ICONS } from '../../shared/DocumentProviderIcons'
 import { StateBadge } from './DocSyncBits'
@@ -62,21 +62,26 @@ export default function DocSyncPanel({
   }, [sync.links])
 
   const attention = ATTENTION_STATES.reduce((n, k) => n + (sync.itemCounts[k] ?? 0), 0)
+  const labelId = useId()
 
   return (
     <>
-      <Modal
-        isOpen
+      <DialogShell
         onClose={onClose}
-        size="4xl"
-        title={
-          <span className="flex flex-col">
-            <span>{t('docsync.title')}</span>
-            {tripTitle && (
-              <span className="mt-0.5 truncate text-caption font-normal text-content-muted">{tripTitle}</span>
-            )}
-          </span>
-        }
+        labelledBy={labelId}
+        width="wide"
+        // A connect or scope question opened from here takes Escape for itself.
+        blocked={!!connecting || !!scopeFor || !!reconnecting}
+        header={(
+          <DialogHeader
+            tile={<DialogTile><FolderSync size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+            tint={NEUTRAL_TINT}
+            labelId={labelId}
+            onClose={onClose}
+            title={t('docsync.title')}
+            sub={tripTitle || undefined}
+          />
+        )}
       >
         {sync.loading ? (
           <div className="grid place-items-center py-20">
@@ -127,7 +132,7 @@ export default function DocSyncPanel({
             </div>
           </div>
         )}
-      </Modal>
+      </DialogShell>
 
       {connecting && (
         <DocSyncConnectModal

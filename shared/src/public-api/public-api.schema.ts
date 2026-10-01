@@ -309,6 +309,19 @@ export const publicApiLastTripSchema = z.object({
 export type PublicApiLastTrip = z.infer<typeof publicApiLastTripSchema>;
 
 /**
+ * The trip the traveller goes on next, for a widget that counts down to it (#2542).
+ *
+ * "Next" means not started yet, so a trip under way is still `last_trip` and the
+ * two never name the same trip. A user with nothing ahead gets `null`.
+ */
+export const publicApiNextTripSchema = publicApiLastTripSchema.extend({
+  start_date: z.string(),
+  /** Whole days from today until the start date; 1 means it starts tomorrow. */
+  days_until: z.number().int().positive(),
+});
+export type PublicApiNextTrip = z.infer<typeof publicApiNextTripSchema>;
+
+/**
  * Aggregate counts for a dashboard widget (#1367) — Homepage's `customapi` and
  * anything else that renders a handful of numbers and cannot aggregate a list
  * itself.
@@ -337,5 +350,6 @@ export const publicApiStatsSchema = z.object({
   /** Flown distance, summed over non-cancelled flight bookings. Kilometres. */
   total_distance_km: z.number(),
   last_trip: publicApiLastTripSchema.nullable(),
+  next_trip: publicApiNextTripSchema.nullable(),
 });
 export type PublicApiStats = z.infer<typeof publicApiStatsSchema>;

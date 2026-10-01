@@ -1,12 +1,12 @@
-import { createPortal } from 'react-dom'
-import { useState, useEffect, type HTMLAttributes } from 'react'
-import { UserPlus, Check, Loader2, Clock, X } from 'lucide-react'
+import { useState, useEffect, useId, type HTMLAttributes } from 'react'
+import { UserPlus, Check, Loader2, Clock, Palette } from 'lucide-react'
 import { useVacayStore } from '../../store/vacayStore'
 import { useAuthStore } from '../../store/authStore'
 import { useTranslation } from '../../i18n'
 import { getApiErrorMessage } from '../../types'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import apiClient from '../../api/client'
 import VacayBadge from './VacayBadge'
 
@@ -32,6 +32,8 @@ export default function VacayPersons() {
   const [availableUsers, setAvailableUsers] = useState([])
   const [selectedInviteUser, setSelectedInviteUser] = useState(null)
   const [inviting, setInviting] = useState(false)
+  const inviteLabelId = useId()
+  const colorLabelId = useId()
 
   const loadAvailable = async () => {
     try {
@@ -61,13 +63,17 @@ export default function VacayPersons() {
     setColorEditUserId(null)
   }
 
-  const editingUserColor = users.find(u => u.id === colorEditUserId)?.color || '#6366f1'
+  const closeInvite = () => setShowInvite(false)
+  const closeColorPicker = () => { setShowColorPicker(false); setColorEditUserId(null) }
+
+  const editingUser = users.find(u => u.id === colorEditUserId)
+  const editingUserColor = editingUser?.color || '#6366f1' // theme-lint-disable: a person's own colour, the default one when unset
 
   return (
     <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
       <div className="flex items-center justify-between mb-2">
         <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--vg-ink3)' }}>{t('vacay.persons')}</span>
-        <button type="button" onClick={() => { setShowInvite(true); loadAvailable() }}
+        <button type="button" onClick={() => { setShowInvite(true); void loadAvailable() }}
           className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
           style={{ color: 'var(--vg-ink3)' }}>
           <UserPlus size={15} />
@@ -134,72 +140,77 @@ export default function VacayPersons() {
         ))}
       </div>
 
-      {/* Invite Modal — Portal to body to avoid z-index issues */}
-      {showInvite && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
-          role="presentation"
-          onClick={e => { if (e.target === e.currentTarget) setShowInvite(false) }}>
-          <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm bg-surface-card">
-            <div className="flex items-center justify-between p-5 border-b border-edge-secondary">
-              <h2 className="text-base font-semibold text-content">{t('vacay.inviteUser')}</h2>
-              <button type="button" onClick={() => setShowInvite(false)} className="p-1.5 rounded-lg transition-colors text-content-faint">
-                <X size={16} />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <p className="text-xs text-content-muted">{t('vacay.inviteHint')}</p>
-              {availableUsers.length === 0 ? (
-                <p className="text-xs text-center py-4 text-content-faint">{t('vacay.noUsersAvailable')}</p>
-              ) : (
-                <CustomSelect
-                  value={selectedInviteUser}
-                  onChange={setSelectedInviteUser}
-                  options={availableUsers.map(u => ({ value: u.id, label: `${u.username} (${u.email})` }))}
-                  placeholder={t('vacay.selectUser')}
-                  searchable
-                />
-              )}
-              <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={() => setShowInvite(false)} className="px-4 py-2 text-sm rounded-lg text-content-muted border border-edge">
-                  {t('common.cancel')}
-                </button>
-                <button type="button" onClick={handleInvite} disabled={!selectedInviteUser || inviting}
-                  className="px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-40 bg-content text-surface-card">
-                  {inviting && <Loader2 size={13} className="animate-spin" />}
-                  {t('vacay.sendInvite')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <DialogShell
+        open={showInvite}
+        onClose={closeInvite}
+        labelledBy={inviteLabelId}
+        width="narrow"
+        header={(
+          <DialogHeader
+            tile={<DialogTile><UserPlus size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+            tint={NEUTRAL_TINT}
+            labelId={inviteLabelId}
+            onClose={closeInvite}
+            title={t('vacay.inviteUser')}
+            sub={t('vacay.inviteHint')}
+            subWraps
+          />
+        )}
+        footer={(
+          <DialogFooter>
+            <FooterSpacer />
+            <DialogButton onClick={closeInvite}>{t('common.cancel')}</DialogButton>
+            <DialogButton variant="primary" onClick={handleInvite} disabled={!selectedInviteUser || inviting}
+              icon={inviting ? <Loader2 size={14} className="animate-spin" /> : undefined}>
+              {t('vacay.sendInvite')}
+            </DialogButton>
+          </DialogFooter>
+        )}
+      >
+        {availableUsers.length === 0 ? (
+          <p className="m-0 rounded-[12px] bg-surface-secondary px-4 py-5 text-center text-content-faint" style={fs(12.5, 'body')}>
+            {t('vacay.noUsersAvailable')}
+          </p>
+        ) : (
+          <CustomSelect
+            value={selectedInviteUser}
+            onChange={setSelectedInviteUser}
+            options={availableUsers.map(u => ({ value: u.id, label: `${u.username} (${u.email})` }))}
+            placeholder={t('vacay.selectUser')}
+            searchable
+          />
+        )}
+      </DialogShell>
 
-      {/* Color Picker Modal — Portal to body */}
-      {showColorPicker && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
-          role="presentation"
-          onClick={e => { if (e.target !== e.currentTarget) return; setShowColorPicker(false); setColorEditUserId(null) }}>
-          <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-xs bg-surface-card">
-            <div className="flex items-center justify-between p-5 border-b border-edge-secondary">
-              <h2 className="text-base font-semibold text-content">{t('vacay.changeColor')}</h2>
-              <button type="button" onClick={() => { setShowColorPicker(false); setColorEditUserId(null) }} className="p-1.5 rounded-lg transition-colors text-content-faint">
-                <X size={16} />
-              </button>
-            </div>
-            <div className="p-5">
-              <div className="flex flex-wrap gap-2 justify-center">
-                {PRESET_COLORS.map(c => (
-                  <button type="button" key={c} onClick={() => handleColorChange(c)}
-                    className={`w-8 h-8 rounded-full transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] ${editingUserColor === c ? 'ring-2 ring-offset-2 scale-110' : 'hover:scale-110'}`}
-                    style={{ backgroundColor: c }} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* A pick saves at once and closes, so there is nothing for a footer to confirm. */}
+      <DialogShell
+        open={showColorPicker}
+        onClose={closeColorPicker}
+        labelledBy={colorLabelId}
+        width="narrow"
+        header={(
+          <DialogHeader
+            tile={<DialogTile><Palette size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+            tint={NEUTRAL_TINT}
+            labelId={colorLabelId}
+            onClose={closeColorPicker}
+            title={t('vacay.changeColor')}
+            sub={editingUser?.username}
+          />
+        )}
+      >
+        <div role="group" aria-label={t('vacay.color')}
+          className="grid grid-cols-5 justify-items-center gap-3 rounded-[14px] border border-edge-faint bg-surface-secondary p-4">
+          {PRESET_COLORS.map(c => {
+            const on = editingUserColor === c
+            return (
+              <button type="button" key={c} onClick={() => handleColorChange(c)} aria-pressed={on}
+                className={`h-10 w-10 rounded-full transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] ${on ? 'scale-110' : 'hover:scale-110'}`}
+                style={{ backgroundColor: c, outline: on ? '2px solid var(--text-primary)' : '2px solid transparent', outlineOffset: 2 }} />
+            )
+          })}
+        </div>
+      </DialogShell>
     </div>
   )
 }

@@ -351,7 +351,9 @@ export class JourneyDomainService {
       cover_gradient: string;
       cover_image: string;
       status: string;
+      status_override: string | null;
       show_trip_tracks: boolean | number;
+      photo_location: boolean | number;
       show_verdict: boolean | number;
       show_mood: boolean | number;
       show_weather: boolean | number;
@@ -362,25 +364,30 @@ export class JourneyDomainService {
     if (!this.isOwner(journeyId, userId)) return null;
 
     const ALLOWED_STATUSES = ['draft', 'active', 'completed', 'archived'];
+    // null hands the state back to the trip dates (#762).
+    const ALLOWED_OVERRIDES: (string | null)[] = [null, 'draft', 'live', 'completed'];
     const allowed = [
       'title',
       'subtitle',
       'cover_gradient',
       'cover_image',
       'status',
+      'status_override',
       'show_trip_tracks',
+      'photo_location',
       'show_verdict',
       'show_mood',
       'show_weather',
     ];
     // Stored as INTEGER, and better-sqlite3 refuses to bind a JS boolean, so the
     // flags on this table are coerced rather than passed through.
-    const BOOLEAN_FIELDS = new Set(['show_trip_tracks', 'show_verdict', 'show_mood', 'show_weather']);
+    const BOOLEAN_FIELDS = new Set(['show_trip_tracks', 'show_verdict', 'show_mood', 'show_weather', 'photo_location']);
     const fields: string[] = [];
     const values: unknown[] = [];
     for (const [key, val] of Object.entries(data)) {
       if (val !== undefined && allowed.includes(key)) {
         if (key === 'status' && !ALLOWED_STATUSES.includes(val as string)) continue;
+        if (key === 'status_override' && !ALLOWED_OVERRIDES.includes(val as string | null)) continue;
         fields.push(`${key} = ?`);
         values.push(BOOLEAN_FIELDS.has(key) ? (val ? 1 : 0) : val);
       }
@@ -392,6 +399,50 @@ export class JourneyDomainService {
     values.push(journeyId);
     this.db.prepare(`UPDATE journeys SET ${fields.join(', ')} WHERE id = ?`).run(...values);
     return this.db.prepare('SELECT * FROM journeys WHERE id = ?').get(journeyId) as Journey;
+  }
+
+  /**
+   * Entries without a place that just received a geotagged photo, on journeys
+   * that asked for it (#1003): each takes the position of its first such photo.
+   * An entry that already has coordinates is never moved. Answers what changed,
+   * so the caller can name the places and tell the journeys.
+   */
+  placeEntriesFromPhotos(trekPhotoIds: number[]): { entryId: number; journeyId: number; lat: number; lng: number }[] {
+    if (!trekPhotoIds.length) return [];
+    const marks = trekPhotoIds.map(() => '?').join(',');
+    const rows = this.db.prepare(`
+      SELECT je.id AS entryId, je.journey_id AS journeyId, tp.lat, tp.lng
+      FROM trek_photos tp
+      JOIN journey_photos gp ON gp.photo_id = tp.id
+      JOIN journey_entry_photos jep ON jep.journey_photo_id = gp.id
+      JOIN journey_entries je ON je.id = jep.entry_id
+      JOIN journeys j ON j.id = je.journey_id
+      WHERE tp.id IN (${marks})
+        AND tp.lat IS NOT NULL AND tp.lng IS NOT NULL
+        AND je.location_lat IS NULL AND je.location_lng IS NULL
+        AND je.type != 'skeleton'
+        AND j.photo_location = 1
+      ORDER BY je.id, jep.sort_order, jep.journey_photo_id
+    `).all(...trekPhotoIds) as { entryId: number; journeyId: number; lat: number; lng: number }[];
+    const placed: { entryId: number; journeyId: number; lat: number; lng: number }[] = [];
+    const seen = new Set<number>();
+    const now = this.ts();
+    const update = this.db.prepare(
+      'UPDATE journey_entries SET location_lat = ?, location_lng = ?, country_code = ?, updated_at = ? WHERE id = ? AND location_lat IS NULL AND location_lng IS NULL',
+    );
+    for (const row of rows) {
+      if (seen.has(row.entryId)) continue;
+      seen.add(row.entryId);
+      if (update.run(row.lat, row.lng, this.countryFor(row.lat, row.lng), now, row.entryId).changes > 0) placed.push(row);
+    }
+    return placed;
+  }
+
+  /** The place name for an entry placed from a photo, only while it still has none. */
+  nameEntryLocation(entryId: number, name: string): void {
+    this.db.prepare(
+      "UPDATE journey_entries SET location_name = ? WHERE id = ? AND (location_name IS NULL OR location_name = '')",
+    ).run(name, entryId);
   }
 
   updateJourneyPreferences(journeyId: number, userId: number, data: { hide_skeletons?: boolean }) {
@@ -1291,6 +1342,7 @@ export class JourneyDomainService {
       pros_cons?: { pros: string[]; cons: string[] };
       visibility?: string;
       sort_order?: number;
+      is_draft?: boolean;
     },
     sid?: string,
   ): JourneyEntryWire | null {
@@ -1309,8 +1361,8 @@ export class JourneyDomainService {
     const res = this.db
       .prepare(
         `
-      INSERT INTO journey_entries (journey_id, author_id, type, title, story, entry_date, entry_time, location_name, location_lat, location_lng, country_code, mood, weather, tags, pros_cons, visibility, sort_order, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO journey_entries (journey_id, author_id, type, title, story, entry_date, entry_time, location_name, location_lat, location_lng, country_code, mood, weather, tags, pros_cons, visibility, sort_order, is_draft, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       )
       .run(
@@ -1331,6 +1383,7 @@ export class JourneyDomainService {
         prosConsJson,
         data.visibility || 'private',
         (maxOrder?.m ?? -1) + 1,
+        data.is_draft ? 1 : 0,
         now,
         now,
       );
@@ -1364,6 +1417,7 @@ export class JourneyDomainService {
       sort_order: number;
       stats_excluded: boolean;
       dismissed: boolean;
+      is_draft: boolean;
     }>,
     sid?: string,
   ): JourneyEntryWire | null {
@@ -1394,6 +1448,7 @@ export class JourneyDomainService {
       'sort_order',
       'stats_excluded',
       'dismissed',
+      'is_draft',
     ]);
 
     for (const [key, val] of Object.entries(data)) {
@@ -1405,7 +1460,7 @@ export class JourneyDomainService {
       } else if (key === 'pros_cons') {
         fields.push('pros_cons = ?');
         values.push(val && typeof val === 'object' ? JSON.stringify(val) : val);
-      } else if (key === 'stats_excluded' || key === 'dismissed') {
+      } else if (key === 'stats_excluded' || key === 'dismissed' || key === 'is_draft') {
         // INTEGER columns, and better-sqlite3 refuses to bind a boolean.
         fields.push(`${key} = ?`);
         values.push(val ? 1 : 0);
@@ -1474,6 +1529,30 @@ export class JourneyDomainService {
     return true;
   }
 
+  /**
+   * The photos of one entry in a new order (#824), in one transaction. The list has
+   * to be exactly the entry's photos, each once, so a stale or foreign id cannot
+   * slip in. The order is kept on this entry's own links: a photo that also sits on
+   * another entry keeps its place there.
+   */
+  reorderEntryPhotos(entryId: number, userId: number, orderedIds: number[], sid?: string): boolean {
+    const entry = this.db.prepare('SELECT id, journey_id FROM journey_entries WHERE id = ?').get(entryId) as { id: number; journey_id: number } | undefined;
+    if (!entry || !this.canEdit(entry.journey_id, userId)) return false;
+    const held = (this.db.prepare('SELECT journey_photo_id FROM journey_entry_photos WHERE entry_id = ?').all(entryId) as { journey_photo_id: number }[])
+      .map(r => r.journey_photo_id);
+    const asked = new Set(orderedIds);
+    if (asked.size !== orderedIds.length || held.length !== orderedIds.length || held.some(id => !asked.has(id))) return false;
+
+    const update = this.db.prepare('UPDATE journey_entry_photos SET sort_order = ? WHERE entry_id = ? AND journey_photo_id = ?');
+    this.db.connection.transaction(() => {
+      orderedIds.forEach((id, index) => update.run(index, entryId, id));
+      this.db.prepare('UPDATE journey_entries SET updated_at = ? WHERE id = ?').run(this.ts(), entryId);
+    })();
+    const updated = decodeEntryRow(this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry);
+    this.broadcastJourneyEvent(entry.journey_id, 'journey:entry:updated', { entry: updated }, sid);
+    return true;
+  }
+
   deleteEntry(entryId: number, userId: number, sid?: string): boolean {
     const entry = this.db.prepare('SELECT * FROM journey_entries WHERE id = ?').get(entryId) as JourneyEntry | undefined;
     if (!entry) return false;
@@ -1499,6 +1578,19 @@ export class JourneyDomainService {
   }
 
   // ── Photos ───────────────────────────────────────────────────────────────
+
+  /**
+   * The journey an entry belongs to, or null when there is no such entry.
+   *
+   * No access check: it answers for a caller that has already added photos to
+   * the entry, and only decides which journey hears about their capture times.
+   */
+  journeyIdOfEntry(entryId: number): number | null {
+    const row = this.db.prepare('SELECT journey_id FROM journey_entries WHERE id = ?').get(entryId) as
+      | { journey_id: number }
+      | undefined;
+    return row?.journey_id ?? null;
+  }
 
   // Promote a skeleton suggestion to a concrete entry. Called whenever the user
   // adds content (photo upload, provider photo, gallery link) — a suggestion

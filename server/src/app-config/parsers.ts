@@ -209,3 +209,46 @@ export function parseLinkLocalAllowList(raw: string | undefined): { ips: string[
   }
   return { ips, invalid };
 }
+
+// ── Web Push key material ──────────────────────────────────────────────────
+
+const BASE64URL = /^[A-Za-z0-9_-]+={0,2}$/;
+
+/**
+ * Strict base64url decode, null for anything that is not base64url. Web Push
+ * keys arrive in this alphabet from the browser and from the VAPID_* variables.
+ * Buffer.from(value, 'base64url') alone skips characters it does not know, so a
+ * mangled key would decode to fewer bytes instead of being refused, and the size
+ * checks below would then report the wrong problem.
+ */
+export function decodeBase64Url(value: string): Buffer | null {
+  const trimmed = value.trim();
+  if (!BASE64URL.test(trimmed)) return null;
+  return Buffer.from(trimmed, 'base64url');
+}
+
+/** An uncompressed P-256 point: 65 bytes, the first one 0x04 (VAPID public key, subscription p256dh). */
+export function isUncompressedP256Key(value: string): boolean {
+  const bytes = decodeBase64Url(value);
+  return bytes?.length === 65 && bytes[0] === 0x04;
+}
+
+/** A P-256 private scalar as the Web Push tools print it: 32 bytes. */
+export function isP256PrivateKey(value: string): boolean {
+  return decodeBase64Url(value)?.length === 32;
+}
+
+/**
+ * The VAPID `sub` claim (RFC 8292 section 2.1): a mailto: address or an https:
+ * URL. Apple refuses anything else, and so does this check, so a subject that
+ * boots is one every push service accepts.
+ */
+export function isVapidSubject(value: string): boolean {
+  const trimmed = value.trim();
+  if (/^mailto:[^\s@]+@[^\s@]+$/i.test(trimmed)) return true;
+  try {
+    return new URL(trimmed).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}

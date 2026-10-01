@@ -57,6 +57,9 @@ const journey: TranslationStrings = {
   'journey.title': 'Journey', // en-fallback
   'journey.subtitle': 'Track your travels as they happen', // en-fallback
   'journey.new': 'New Journey', // en-fallback
+  'journey.lightbox.zoomIn': 'تكبير',
+  'journey.lightbox.zoomOut': 'تصغير',
+  'journey.lightbox.zoomReset': 'العودة إلى الصورة كاملة',
   'journey.create': 'Create', // en-fallback
   'journey.titlePlaceholder': 'Where are you going?', // en-fallback
   'journey.empty': 'No journeys yet', // en-fallback
@@ -127,6 +130,8 @@ const journey: TranslationStrings = {
   'journey.detail.addEntry': 'Add Entry', // en-fallback
   'journey.detail.jumpToTop': 'العودة إلى الأعلى',
   'journey.detail.jumpToLast': 'الانتقال إلى آخر مدخل',
+  'journey.detail.dayJump': 'الانتقال إلى يوم',
+  'journey.detail.dayJumpCount': 'الأيام: {count}',
   'journey.detail.newEntry': 'New Entry', // en-fallback
   'journey.detail.editEntry': 'Edit Entry', // en-fallback
   'journey.detail.noEntries': 'No entries yet', // en-fallback
@@ -219,6 +224,13 @@ const journey: TranslationStrings = {
   'journey.settings.tracks': 'مسارات GPX',
   'journey.settings.showTripTracks': 'إظهار جميع مسارات GPX للرحلات',
   'journey.settings.showTripTracksHint': 'يرسم على الخريطة المسارات المسجَّلة من الرحلات المرتبطة.',
+  'journey.settings.status': 'الحالة',
+  'journey.settings.statusAuto': 'تلقائي',
+  'journey.settings.statusAutoHint': 'يتبع تواريخ الرحلات المرتبطة. بدون رحلة تبقى الرحلة مسودة.',
+  'journey.settings.statusManualHint': 'مضبوطة يدويًا. لن تغيرها تواريخ الرحلة حتى تعود إلى الوضع التلقائي.',
+  'journey.settings.photosSection': 'الصور',
+  'journey.settings.photoLocation': 'تحديد موقع الإدخالات من صورها',
+  'journey.settings.photoLocationHint': 'يأخذ الإدخال الذي بلا مكان موقع أول صورة له تحمل GPS. لا تُنقل الأماكن التي حددتها بنفسك أبدًا.',
   'journey.settings.delete': 'Delete', // en-fallback
   'journey.settings.deleteJourney': 'Delete Journey', // en-fallback
   'journey.settings.deleteMessage': 'Delete "{title}"? All entries and photos will be lost.', // en-fallback
@@ -431,6 +443,17 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'قائمة',
   'journey.studio.kind.icon': 'أيقونة',
   'journey.studio.duplicate': 'تكرار',
+  'journey.studio.copyToPage': 'نسخ للصق في أي صفحة (Ctrl+C)',
+  'journey.studio.paste': 'لصق (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'انسخ شيئًا أولًا، ثم الصقه في أي صفحة',
+  'journey.studio.myLayouts': 'تخطيطاتي',
+  'journey.studio.myLayoutsEmpty': 'احتفظ بصفحة رتّبتها، ورتّب صفحات أخرى بالطريقة نفسها. تبقى صورها ونصوصها كما هي.',
+  'journey.studio.saveLayout': 'حفظ هذه الصفحة كتخطيط',
+  'journey.studio.saveLayoutHint': 'يحتفظ بالترتيب دون الصور، لكل محرري هذا الكتاب',
+  'journey.studio.saveLayoutFull': 'يحتفظ هذا الكتاب بما يصل إلى 24 تخطيطًا. احذف واحدًا لحفظ آخر.',
+  'journey.studio.deleteLayout': 'حذف التخطيط',
+  'journey.studio.layoutName': 'تخطيط',
+  'journey.studio.builtInLayouts': 'مدمجة',
   'journey.studio.style': 'النمط',
   'journey.studio.shows': 'المعروض',
   'journey.studio.size': 'الحجم',
@@ -604,6 +627,8 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'لا توجد صور في هذا الإدخال بعد.',
   'journey.studio.noLoosePhotos': 'كل صورة هنا تنتمي إلى إدخال.',
   'journey.studio.uploadPhotos': 'رفع الصور',
+  'journey.studio.fromProvider': 'من {name}',
+  'journey.studio.fromProviderHint': 'اختر صورًا من {name} وأضفها حيث يذهب الرفع',
   'journey.studio.uploadHint': 'أفلت الصور هنا أو انقر لاختيارها',
   'journey.studio.uploadToEntry': 'ستُضاف الصور الجديدة إلى هذا الإدخال',
   'journey.studio.uploadToGallery': 'ستُضاف الصور الجديدة إلى المعرض',
@@ -623,6 +648,11 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'تبقى المحطة في اليوميات لكنها لا تُحتسب ضمن المسافة أو الدول أو الخريطة في Studio.',
   'journey.entry.offRoute': 'خارج المسار',
+  'journey.entry.draft': 'مسودة',
+  'journey.editor.draft': 'مسودة',
+  'journey.editor.draftHint': 'لا يرى هذا المدخل سواك وسوى المساهمين الآخرين. تستبعده اليوميات المشتركة حتى توقف هذا الخيار.',
+  'journey.editor.tripSuggestionHint': 'يقع هذا اليوم ضمن هذه الرحلة. اربطه لتنضم أماكنها إلى هذه اليوميات.',
+  'journey.editor.tripSuggestionLater': 'ليس الآن',
   'journey.suggestions.dismiss': 'تجاهل هذا الاقتراح',
   'journey.suggestions.dismissed': 'تم تجاهل الاقتراح',
   'journey.suggestions.restore': 'استعادة الاقتراحات المتجاهَلة',

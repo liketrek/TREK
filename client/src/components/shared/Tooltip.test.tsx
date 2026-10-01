@@ -1,4 +1,4 @@
-// FE-W4TIP-001 to FE-W4TIP-013
+// FE-W4TIP-001 to FE-W4TIP-014
 import { createRef, useRef } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '../../../tests/helpers/render'
@@ -48,15 +48,26 @@ describe('Tooltip', () => {
     expect(screen.queryByRole('tooltip')).toBeNull()
   })
 
-  it('FE-W4TIP-004: focus opens and blur closes the tooltip', () => {
+  it('FE-W4TIP-004: keyboard focus opens and blur closes the tooltip', () => {
     render(<Tooltip label="Delete"><button>x</button></Tooltip>)
     const trigger = screen.getByRole('button')
+    vi.spyOn(trigger, 'matches').mockImplementation(sel => sel === ':focus-visible')
 
     fireEvent.focus(trigger)
     act(() => { vi.advanceTimersByTime(300) })
     expect(screen.getByRole('tooltip')).toBeInTheDocument()
 
     fireEvent.blur(trigger)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+
+  it('FE-W4TIP-014: focus handed back without the keyboard (a dialog closing) opens nothing', () => {
+    render(<Tooltip label="Export"><button>x</button></Tooltip>)
+    const trigger = screen.getByRole('button')
+    vi.spyOn(trigger, 'matches').mockReturnValue(false)
+
+    fireEvent.focus(trigger)
+    act(() => { vi.advanceTimersByTime(300) })
     expect(screen.queryByRole('tooltip')).toBeNull()
   })
 

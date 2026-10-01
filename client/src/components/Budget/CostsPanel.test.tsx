@@ -1,5 +1,5 @@
 // FE-COMP-COSTS: settlements surfaced inline in the Costs ledger (issue #1241)
-// FE-W5COSTS-001 to FE-W5COSTS-035: the rest of the Costs panel
+// FE-W5COSTS-001 to FE-W5COSTS-096: the rest of the Costs panel
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
@@ -23,7 +23,7 @@ const tripMembers = [
 ]
 
 /** Bob's buttons in the expense form — his final-budget row in the sidebar answers to his name too. */
-const bobInForm = () => screen.getAllByRole('button', { name: /bob/i }).filter(b => !b.hasAttribute('aria-expanded'))
+const bobInForm = () => screen.getAllByRole('checkbox', { name: /bob/i })
 
 beforeEach(() => {
   resetAllStores()
@@ -52,7 +52,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     await screen.findByText('Dinner')
     await screen.findByText('Payment')
     // The payment row exposes an inline undo (no need to open a separate History modal).
-    expect(screen.getByTitle('Undo')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument()
   })
 
   it('records a manual payment via the Add payment button', async () => {
@@ -70,7 +70,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0.00'), '25')
+    await user.type(await screen.findByPlaceholderText('0,00'), '25')
     // The footer submit is the second "Add payment" control once the modal is open.
     const addButtons = screen.getAllByRole('button', { name: 'Add payment' })
     const submit = addButtons[addButtons.length - 1]
@@ -242,7 +242,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await screen.findByText('Lunch')
-    await user.click(screen.getAllByTitle('Edit')[0])
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0])
     await user.click(await screen.findByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(patched).toBeTruthy())
@@ -278,6 +278,43 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(within(hotelRow).queryByText(/you lent|you borrowed/)).toBeNull()
   })
 
+  it('lists who an expense is split between, with each part, in the row (#1763)', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
+    const custom = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }),
+      total_price: 90,
+      payers: [{ user_id: 1, amount: 90, username: 'alice' }],
+      members: [{ user_id: 1, username: 'alice', paid: 1, amount: 60 }, { user_id: 2, username: 'bob', paid: 0, amount: 30 }],
+    }
+    const crowd = {
+      ...buildBudgetItem({ trip_id: 1, category: 'activity', name: 'Boat' }),
+      total_price: 80,
+      payers: [{ user_id: 1, amount: 80, username: 'alice' }],
+      members: Array.from({ length: 8 }, (_, i) => ({ user_id: i + 1, username: `p${i + 1}`, paid: 0 })),
+    }
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [custom, crowd] })),
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
+    )
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+
+    const dinnerRow = (await screen.findByText('Dinner')).closest('.exp-row') as HTMLElement
+    const chips = within(dinnerRow).getAllByTestId('split-chip')
+    expect(chips).toHaveLength(2)
+    expect(chips[0]).toHaveTextContent('60')
+    expect(chips[1]).toHaveTextContent('30')
+    // alice marked her part as paid; bob has not.
+    expect(within(chips[0]).getByLabelText('paid')).toBeInTheDocument()
+    expect(within(chips[1]).queryByLabelText('paid')).toBeNull()
+
+    // Eight people fold into five chips and a "+3".
+    const boatRow = (await screen.findByText('Boat')).closest('.exp-row') as HTMLElement
+    expect(within(boatRow).getAllByTestId('split-chip')).toHaveLength(5)
+    expect(within(boatRow).getByText('+3')).toBeInTheDocument()
+    expect(within(boatRow).getAllByTestId('split-chip')[0]).toHaveTextContent('10')
+  })
+
   it('sums only unfinished expenses in the Outstanding amount card', async () => {
     // Display in the trip's own currency so FX conversion is an identity — keeps the asserted sum deterministic.
     seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
@@ -296,7 +333,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(foot).toHaveTextContent('2 expenses need a payer') // the two payer-less, non-zero expenses
     // Sum is 90 + 30 = 120 — the paid (60) and zero-total items are excluded.
     // Sum is 90 + 30 = 120 — the paid (60) and zero-total items are excluded.
-    const card = screen.getByText('Outstanding amount').closest('div[style*="border-radius: 22"]')
+    const card = screen.getByRole('region', { name: 'Outstanding amount' })
     expect(card).toHaveTextContent('120') // 120,00 € (locale separator), i.e. 90 + 30
   })
 
@@ -317,7 +354,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     // "Your share" is the first of the two bold figures in the Total spend card's
     // footer; the second is "You paid". 60 from the paid expense only — the 40
     // nobody has paid for is not a share, though it still counts as spend.
-    const card = screen.getByText('Total trip spend').closest('div[style*="border-radius: 22"]')!
+    const card = screen.getByRole('region', { name: 'Total trip spend' })!
     const figures = [...card.querySelectorAll('b')].map(b => b.textContent ?? '')
     expect(figures[0]).toContain('60')
     expect(figures[0]).not.toContain('100')
@@ -344,10 +381,9 @@ describe('CostsPanel — settlements in the ledger', () => {
 
     // Deselect everyone so the cost carries no split, and mark it as unpaid: a picked
     // payer now always goes out (#1766), so "nobody paid" must be said explicitly.
-    await user.click(screen.getByRole('button', { name: 'Y You' }))
-    await user.click(screen.getByRole('button', { name: 'B bob' }))
-    await user.click(screen.getByRole('button', { name: 'You' })) // open the Who-paid select
-    pickOption('No one paid yet')
+    await user.click(screen.getByRole('checkbox', { name: 'You' }))
+    await user.click(screen.getByRole('checkbox', { name: 'bob' }))
+    await user.click(screen.getByRole('radio', { name: 'No one paid yet' }))
 
     const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
     const submit = addBtns[addBtns.length - 1] // footer submit
@@ -381,8 +417,8 @@ describe('CostsPanel — settlements in the ledger', () => {
 
     // A personal expense: alice (the default "You" payer) fronted it, but nobody shares
     // the split. The web used to drop the payer once no participants remained.
-    await user.click(screen.getByRole('button', { name: 'Y You' }))
-    await user.click(screen.getByRole('button', { name: 'B bob' }))
+    await user.click(screen.getByRole('checkbox', { name: 'You' }))
+    await user.click(screen.getByRole('checkbox', { name: 'bob' }))
 
     const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
     const submit = addBtns[addBtns.length - 1] // footer submit
@@ -417,10 +453,10 @@ describe('CostsPanel — settlements in the ledger', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await screen.findByText('Hotel')
-    await user.click(screen.getByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
 
     // Nobody paid this expense — reopening it must not silently reselect "You".
-    expect(await screen.findByRole('button', { name: 'No one paid yet' })).toBeInTheDocument()
+    expect(await screen.findByRole('radio', { name: 'No one paid yet' })).toBeChecked()
 
     // …and saving an untouched edit must not assign the current user as payer.
     await user.click(screen.getByRole('button', { name: 'Save' }))
@@ -439,7 +475,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    expect(await screen.findByRole('button', { name: 'You' })).toBeInTheDocument()
+    expect(await screen.findByRole('radio', { name: 'You' })).toBeChecked()
   })
 
   // ── Multi-payer (#1426 regression) ─────────────────────────────────────────
@@ -543,7 +579,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await screen.findByText('Dinner')
-    await user.click(screen.getByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
 
     // Loading used to be payers.find(...), which silently dropped the second payer.
     // Seeded with two decimals since #2175, localized for EUR.
@@ -572,7 +608,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await screen.findByText('Dinner; tapas')
-    await user.click(screen.getByTitle('Export CSV'))
+    await user.click(screen.getByRole('button', { name: 'Export CSV' }))
 
     expect(exported).toBeTruthy()
     const text = await exported!.text()
@@ -624,8 +660,8 @@ describe('CostsPanel — settlements in the ledger', () => {
     expect(screen.getByDisplayValue('100,00')).toBeDisabled()
 
     expect(screen.getByText('Individual shares')).toBeInTheDocument()
-    expect(screen.getByText(/75\.00/)).toBeInTheDocument()
-    expect(screen.getByText(/25\.00/)).toBeInTheDocument()
+    expect(screen.getByText(/75,00/)).toBeInTheDocument()
+    expect(screen.getByText(/25,00/)).toBeInTheDocument()
 
     const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
     await user.click(addBtns[addBtns.length - 1])
@@ -655,7 +691,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await screen.findByText('Sushi')
-    const card = screen.getByText('Total trip spend').closest('div[style*="border-radius: 22"]')
+    const card = screen.getByRole('region', { name: 'Total trip spend' })
     // Yen, unconverted and with JPY's zero decimals — not a euro/dollar default.
     expect(card).toHaveTextContent('￥3,000')
   })
@@ -680,7 +716,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0.00'), '25')
+    await user.type(await screen.findByPlaceholderText('0,00'), '25')
     const addButtons = screen.getAllByRole('button', { name: 'Add payment' })
     await user.click(addButtons[addButtons.length - 1])
 
@@ -703,7 +739,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0.00'), '25')
+    await user.type(await screen.findByPlaceholderText('0,00'), '25')
     // Bob paid me back in dollars — the server freezes the USD rate on write.
     await user.click(screen.getByText(/^EUR/))
     await user.click(await screen.findByText(/^USD/))
@@ -732,7 +768,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await screen.findByText('Payment')
-    await user.click(screen.getByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
 
     // The stored USD amount comes back as-is (padded to two decimals, #2175),
     // not silently reread as euros.
@@ -831,7 +867,7 @@ describe('CostsPanel — overview', () => {
     mount([], { balances: [{ user_id: 1, username: 'alice', avatar_url: null, balance: 0 }] })
 
     // Both travellers appear; neither has a signed amount.
-    const balances = (await screen.findByText('Balances')).parentElement as HTMLElement
+    const balances = (await screen.findByRole('region', { name: 'Balances' })) as HTMLElement
     expect(within(balances).getAllByText('0,00 €')).toHaveLength(2)
   })
 
@@ -868,7 +904,7 @@ describe('CostsPanel — overview', () => {
       ],
     })
 
-    const card = (await screen.findByText('Final budget')).parentElement as HTMLElement
+    const card = (await screen.findByRole('region', { name: 'Final budget' })) as HTMLElement
     await waitFor(() => expect(within(card).getAllByText('61,00 €')).toHaveLength(2))
     // The main view stays one figure per person until someone asks for more.
     expect(within(card).queryByText('Expenses paid')).toBeNull()
@@ -880,7 +916,7 @@ describe('CostsPanel — overview', () => {
     // 100 USD is never converted again here. What was entered labels the row (#2525).
     expect(within(card).getAllByText('+92,00 €')).toHaveLength(2)
     expect(within(card).queryByText(/100,00/)).toBeNull()
-    expect(within(card).getByText('· $100.00')).toBeInTheDocument()
+    expect(within(card).getByText('$100.00')).toBeInTheDocument()
     // Received and still pending both lower her cost, each line with its one row.
     expect(within(card).getAllByText('−15,00 €')).toHaveLength(2)
     expect(within(card).getAllByText('−16,00 €')).toHaveLength(2)
@@ -902,7 +938,7 @@ describe('CostsPanel — overview', () => {
     mount([dinner(), taxi()])
 
     await screen.findByText('Dinner')
-    const breakdown = screen.getByText('By category').parentElement as HTMLElement
+    const breakdown = screen.getByRole('region', { name: 'By category' }) as HTMLElement
     const labels = within(breakdown).getAllByText(/Food & drink|Transport/).map(el => el.textContent)
     // Bars are ordered by spend, so the 90 € food row comes before the 30 € taxi.
     expect(labels).toEqual(['Food & drink', 'Transport'])
@@ -924,7 +960,7 @@ describe('CostsPanel — overview', () => {
     mount([expense({ id: 110, name: 'Mystery', category: 'other', total_price: 90 })])
 
     await screen.findByText('Mystery')
-    const card = screen.getByText('Total trip spend').closest('div[style*="border-radius: 22"]')
+    const card = screen.getByRole('region', { name: 'Total trip spend' })
     expect(card).toHaveTextContent('90.00 XX')
   })
 })
@@ -1001,10 +1037,10 @@ describe('CostsPanel — settle up', () => {
     }))
     mount([], { settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00' }] })
 
-    fireEvent.click(await screen.findByTitle('Undo'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(deleted).toBe(1))
 
-    fireEvent.click(screen.getByTitle('Undo'))
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
     delete window.__addToast
   })
@@ -1057,7 +1093,7 @@ describe('CostsPanel — settle up', () => {
     mount([], { flows: [{ from: { user_id: 1, username: 'alice' }, to: { user_id: 2, username: 'bob' }, amount: 20 }] })
 
     await screen.findByText('You owe')
-    const card = screen.getByText('You owe').closest('div[style*="border-radius: 22"]') as HTMLElement
+    const card = screen.getByRole('region', { name: 'You owe' }) as HTMLElement
     expect(within(card).getByText('To')).toBeInTheDocument()
     expect(within(card).getByText('bob')).toBeInTheDocument()
     expect(screen.getByText('Nothing owed to you')).toBeInTheDocument()
@@ -1073,6 +1109,7 @@ describe('CostsPanel — filtering the ledger', () => {
     mount([dinner(), taxi()], { settlements: [payment] })
 
     await screen.findByText('Taxi')
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
     fireEvent.click(screen.getByRole('button', { name: 'Paid by me' }))
 
     expect(screen.getByText('Dinner')).toBeInTheDocument()
@@ -1085,6 +1122,7 @@ describe('CostsPanel — filtering the ledger', () => {
     mount([dinner(), taxi()], { settlements: [payment] })
 
     await screen.findByText('Taxi')
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
     fireEvent.click(screen.getByRole('button', { name: "I'm owed" }))
 
     expect(screen.getByText('Dinner')).toBeInTheDocument()
@@ -1096,8 +1134,8 @@ describe('CostsPanel — filtering the ledger', () => {
     mount([dinner(), taxi()], { settlements: [payment] })
 
     await screen.findByText('Taxi')
-    fireEvent.click(screen.getByRole('button', { name: /All categories/ }))
-    pickOption('Transport')
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Transport' }))
 
     expect(screen.getByText('Taxi')).toBeInTheDocument()
     expect(screen.queryByText('Dinner')).not.toBeInTheDocument()
@@ -1108,8 +1146,8 @@ describe('CostsPanel — filtering the ledger', () => {
     mount([dinner(), taxi()], { settlements: [payment] })
 
     await screen.findByText('Taxi')
-    fireEvent.click(screen.getByRole('button', { name: /All days/ }))
-    pickOption('Sun, Jun 15')
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Sun, Jun 15' }))
 
     expect(screen.getByText('Sunday, June 15')).toBeInTheDocument()
     expect(screen.getByText('1 expenses')).toBeInTheDocument()
@@ -1126,8 +1164,8 @@ describe('CostsPanel — filtering the ledger', () => {
     mount([dinner(), taxi()], { settlements: [{ ...payment, settled_at: '2025-06-15' }] })
 
     await screen.findByText('Taxi')
-    fireEvent.click(screen.getByRole('button', { name: /All days/ }))
-    pickOption('Sun, Jun 15')
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Sun, Jun 15' }))
 
     expect(screen.getByText('Dinner')).toBeInTheDocument()
     expect(screen.queryByText('Taxi')).not.toBeInTheDocument()
@@ -1214,7 +1252,7 @@ describe('CostsPanel — expense rows', () => {
     mount([dinner()])
 
     await screen.findByText('Dinner')
-    fireEvent.click(screen.getByTitle('Delete'))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
     // The optimistic removal is rolled back by the store.
@@ -1237,8 +1275,8 @@ describe('CostsPanel — expense rows', () => {
     expect(screen.queryByRole('button', { name: 'Settle up' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add payment' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Settle' })).not.toBeInTheDocument()
-    expect(screen.queryByTitle('Delete')).not.toBeInTheDocument()
-    expect(screen.queryByTitle('Undo')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
   })
 })
 
@@ -1274,7 +1312,7 @@ describe('CostsPanel — mobile layout', () => {
     expect(screen.getByText("You're owed")).toBeInTheDocument()
     expect(screen.getByText('Outstanding amount')).toBeInTheDocument()
     // The unfinished expense is flagged with a badge on its icon instead of a pill.
-    expect(screen.getByTitle('Total only — not settled yet')).toHaveTextContent('!')
+    expect(screen.getByRole('img', { name: 'Total only: not settled yet' })).toHaveTextContent('!')
     expect(screen.queryByText('Unfinished')).not.toBeInTheDocument()
   })
 
@@ -1315,8 +1353,8 @@ describe('CostsPanel — payment modal', () => {
     }))
     mount([], { settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00' }] })
 
-    await user.click(await screen.findByTitle('Edit'))
-    const amount = await screen.findByPlaceholderText('0.00')
+    await user.click(await screen.findByRole('button', { name: 'Edit' }))
+    const amount = await screen.findByPlaceholderText('0,00')
     await user.clear(amount)
     await user.type(amount, '12,50')
     await user.click(screen.getByRole('button', { name: 'Save' }))
@@ -1330,7 +1368,7 @@ describe('CostsPanel — payment modal', () => {
     mount([])
 
     await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0.00'), '10')
+    await user.type(await screen.findByPlaceholderText('0,00'), '10')
 
     // Default is You → bob; pointing "to" back at me makes it a no-op transfer.
     await user.click(screen.getByRole('button', { name: 'bob' }))
@@ -1348,7 +1386,7 @@ describe('CostsPanel — payment modal', () => {
     mount([])
 
     await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0.00'), '10')
+    await user.type(await screen.findByPlaceholderText('0,00'), '10')
     const submits = screen.getAllByRole('button', { name: 'Add payment' })
     await user.click(submits[submits.length - 1])
 
@@ -1370,7 +1408,7 @@ describe('CostsPanel — payment modal', () => {
 
     try {
       await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-      await user.type(await screen.findByPlaceholderText('0.00'), '10')
+      await user.type(await screen.findByPlaceholderText('0,00'), '10')
       const submits = screen.getAllByRole('button', { name: 'Add payment' })
       await user.click(submits[submits.length - 1])
 
@@ -1390,7 +1428,7 @@ describe('CostsPanel — payment modal', () => {
     }))
     mount([], { settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, settled_at: '2025-06-10', created_at: '2025-06-16 10:00:00' }] })
 
-    await user.click(await screen.findByTitle('Edit'))
+    await user.click(await screen.findByRole('button', { name: 'Edit' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(put).toBeTruthy())
@@ -1403,7 +1441,7 @@ describe('CostsPanel — payment modal', () => {
     const user = userEvent.setup()
     mount([], { settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, settled_at: '2025-06-10', created_at: '2025-06-16 10:00:00' }] })
 
-    await user.click(await screen.findByTitle('Edit'))
+    await user.click(await screen.findByRole('button', { name: 'Edit' }))
     const save = screen.getByRole('button', { name: 'Save' })
     expect(save).toBeEnabled()
 
@@ -1439,7 +1477,7 @@ describe('CostsPanel — expense modal', () => {
     mount([expense({ id: 150, name: 'Market run', category: 'groceries', total_price: 30, note, payers: [{ user_id: 1, amount: 30 }], members: [{ user_id: 1, username: 'alice', amount: 15 }, { user_id: 2, username: 'bob', amount: 15 }] })])
 
     await screen.findByText('Market run')
-    await user.click(screen.getByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
 
     expect(await screen.findByDisplayValue('Apples')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Cake')).toBeInTheDocument()
@@ -1461,7 +1499,7 @@ describe('CostsPanel — expense modal', () => {
     mount([expense({ id: 151, name: 'Market run', category: 'groceries', total_price: 30, note: 'TICKETJSON:{oops', payers: [{ user_id: 1, amount: 30 }], members: [{ user_id: 1, username: 'alice' }] })])
 
     await screen.findByText('Market run')
-    await user.click(screen.getByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
 
     expect(await screen.findByRole('button', { name: /Add item/i })).toBeInTheDocument()
     expect(screen.queryByPlaceholderText('Item name')).not.toBeInTheDocument()
@@ -1482,7 +1520,7 @@ describe('CostsPanel — expense modal', () => {
     })])
 
     await screen.findByText('Dinner')
-    await user.click(screen.getByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
 
     // Custom shares reopen padded to two decimals (#2175), localized for EUR.
     expect((await screen.findByDisplayValue('70,00')).tagName).toBe('INPUT')
@@ -1496,7 +1534,7 @@ describe('CostsPanel — expense modal', () => {
 
     // Bringing him back in via the excluded-state hint restores an empty field,
     // pre-filled as a placeholder with what is still missing from the total.
-    await user.click(screen.getByRole('button', { name: 'Tap to include' }))
+    await user.click(bobInForm()[0])
     await user.type(screen.getByPlaceholderText('30,00'), '30')
 
     expect(screen.getByText('Split matches total')).toBeInTheDocument()
@@ -1526,6 +1564,7 @@ describe('CostsPanel — expense modal', () => {
     expect(screen.getByText('50,00 €')).toBeInTheDocument()
 
     // A different category than the default is carried into the payload.
+    await user.click(screen.getByRole('button', { name: /^Category:/ }))
     await user.click(screen.getByRole('button', { name: 'Sightseeing' }))
     const submits = screen.getAllByRole('button', { name: 'Add expense' })
     await user.click(submits[submits.length - 1])
@@ -1550,7 +1589,7 @@ describe('CostsPanel — expense modal', () => {
     await user.click(screen.getAllByTestId('payer-toggle')[1])
     // Dropping Bob again leaves Alice absorbing the whole amount.
     await user.click(screen.getAllByTestId('payer-toggle')[1])
-    expect(screen.getByRole('button', { name: 'Tap to include' })).toBeInTheDocument()
+    expect(screen.getAllByTestId('payer-toggle')[1]).toHaveAttribute('aria-checked', 'false')
     await user.click(screen.getByRole('button', { name: 'One person paid' }))
 
     const submits = screen.getAllByRole('button', { name: 'Add expense' })
@@ -1572,8 +1611,7 @@ describe('CostsPanel — expense modal', () => {
 
     await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Hotel')
     await user.type(screen.getAllByPlaceholderText('0,00')[0], '120')
-    await user.click(screen.getByRole('button', { name: 'You' }))
-    pickOption('No one paid yet')
+    await user.click(screen.getByRole('radio', { name: 'No one paid yet' }))
 
     const submits = screen.getAllByRole('button', { name: 'Add expense' })
     await user.click(submits[submits.length - 1])
@@ -1623,6 +1661,33 @@ describe('CostsPanel — expense modal', () => {
     await waitFor(() => expect(posted).toBeTruthy())
     expect(posted).toMatchObject({ name: 'Hotel Astoria', category: 'accommodation', total_price: 240, reservation_id: 12 })
     expect(onSaved).toHaveBeenCalled()
+  })
+
+  it('FE-W5COSTS-096: offers Scan receipt beside Add expense only when the AI model reads images', async () => {
+    server.use(http.get('/api/llm/capabilities', () => HttpResponse.json({ images: true })))
+    const { unmount } = render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Scan receipt' }))[0])
+    expect(screen.getByRole('dialog', { name: 'Scan a receipt' })).toBeInTheDocument()
+    unmount()
+
+    server.use(http.get('/api/llm/capabilities', () => HttpResponse.json({ images: false })))
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+    await screen.findAllByRole('button', { name: 'Add expense' })
+    expect(screen.queryByRole('button', { name: 'Scan receipt' })).not.toBeInTheDocument()
+  })
+
+  it('FE-W5COSTS-095: a scanned receipt opens in its own currency and day, with its photo waiting to be attached', () => {
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    render(
+      <ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} editing={null}
+        prefill={{ name: 'Sushi Dai', amount: 4200, currency: 'JPY', date: '2026-09-20', lines: [{ name: 'Omakase', price: 4200 }], receiptFiles: [photo] }}
+        onClose={() => {}} onSaved={() => {}} />
+    )
+
+    expect(screen.getByDisplayValue('Sushi Dai')).toBeInTheDocument()
+    // Yen has no minor unit, so the amount is not padded.
+    expect(screen.getByDisplayValue('4200')).toBeInTheDocument()
+    expect(screen.getByText('bill.jpg')).toBeInTheDocument()
   })
 
   // The mobile sheet already dates a new expense by the traveller's own clock;
@@ -1696,7 +1761,7 @@ describe('CostsPanel — remaining paths', () => {
     ])
 
     await screen.findByText('Tip')
-    fireEvent.click(screen.getByTitle('Export CSV'))
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
 
     const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n')
     expect(lines[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Note')
@@ -1722,7 +1787,7 @@ describe('CostsPanel — remaining paths', () => {
     ])
 
     await screen.findByText('-5 refund')
-    fireEvent.click(screen.getByTitle('Export CSV'))
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
 
     const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n')
     expect(lines[1]).toBe('06/15/2025;"\'=HYPERLINK(""http://evil"",""click"")";Food & drink;12.00;EUR;12.00;\'@SUM(A1:A9)')
@@ -1736,7 +1801,7 @@ describe('CostsPanel — remaining paths', () => {
     mount([dinner()])
 
     await screen.findByText('Dinner')
-    fireEvent.click(screen.getByTitle('Delete'))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => expect(deleted).toBe(true))
     expect(screen.queryByText('Dinner')).not.toBeInTheDocument()
@@ -1763,7 +1828,7 @@ describe('CostsPanel — remaining paths', () => {
     })])
 
     await screen.findByText('Dinner')
-    const card = screen.getByText('Total trip spend').closest('div[style*="border-radius: 22"]') as HTMLElement
+    const card = screen.getByRole('region', { name: 'Total trip spend' }) as HTMLElement
     // Not the 50/50 an equal split would have produced.
     expect(within(card).getByText('80 €')).toBeInTheDocument()
     expect(within(card).getByText('0 €')).toBeInTheDocument()
@@ -1777,7 +1842,7 @@ describe('CostsPanel — remaining paths', () => {
     })])
 
     await screen.findByText('Bob solo')
-    const card = screen.getByText('Total trip spend').closest('div[style*="border-radius: 22"]') as HTMLElement
+    const card = screen.getByRole('region', { name: 'Total trip spend' }) as HTMLElement
     expect(within(card).getAllByText('0 €')).toHaveLength(2)
   })
 
@@ -1787,7 +1852,7 @@ describe('CostsPanel — remaining paths', () => {
     mount([expense({ id: 220, name: 'Dinner', category: 'food', total_price: 90, currency: null })])
 
     await screen.findByText('Dinner')
-    const card = screen.getByText('Total trip spend').closest('div[style*="border-radius: 22"]')
+    const card = screen.getByRole('region', { name: 'Total trip spend' })
     expect(card).toHaveTextContent('90,00 €')
   })
 
@@ -1807,7 +1872,7 @@ describe('CostsPanel — remaining paths', () => {
     )
     render(<CostsPanel tripId={1} tripMembers={[...tripMembers, { id: 3, username: 'cara', avatar_url: null }]} />)
 
-    await user.click(await screen.findByTitle('Edit'))
+    await user.click(await screen.findByRole('button', { name: 'Edit' }))
     // No symbol is known, so the code itself prefixes the amount and labels the option.
     await screen.findByPlaceholderText('0.00')
     expect(screen.getAllByText('XBT').length).toBeGreaterThanOrEqual(2)
@@ -1825,7 +1890,7 @@ describe('CostsPanel — remaining paths', () => {
     mount([expense({ id: 240, name: 'Mining rig', category: 'other', total_price: 2, currency: 'XBT', payers: [{ user_id: 1, amount: 2 }], members: [{ user_id: 1, username: 'alice' }] })])
 
     await screen.findByText('Mining rig')
-    await user.click(screen.getByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
 
     // XBT is unknown to the locale map → dot separator, two decimals (#2175).
     expect(await screen.findByDisplayValue('2.00')).toBeInTheDocument()
@@ -1841,7 +1906,7 @@ describe('CostsPanel — remaining paths', () => {
     render(<CostsPanel tripId={1} tripMembers={[{ id: 1, username: 'alice', avatar_url: null }]} />)
 
     await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0.00'), '10')
+    await user.type(await screen.findByPlaceholderText('0,00'), '10')
 
     // From and To both resolve to me, so the transfer stays unsavable.
     const submits = screen.getAllByRole('button', { name: 'Add payment' })
@@ -1870,7 +1935,7 @@ describe('CostsPanel — remaining paths', () => {
     // Excluding Bob leaves the include hint; tapping it puts him back on the bill.
     await user.click(screen.getAllByTestId('payer-toggle')[1])
     await user.click(screen.getAllByTestId('payer-toggle')[1])
-    await user.click(screen.getByRole('button', { name: 'Tap to include' }))
+    await user.click(screen.getAllByTestId('payer-toggle')[1])
     expect(screen.getAllByTestId('payer-amount')).toHaveLength(2)
 
     // Three decimals are not a valid money amount, so the field ignores them.
@@ -1895,13 +1960,13 @@ describe('CostsPanel — remaining paths', () => {
     expect(price.value).toBe('10,99')
 
     // Toggling a participant off and on again leaves the shares unchanged.
-    const bob = screen.getAllByRole('button', { name: /bob/i })[0]
+    const bob = screen.getAllByRole('checkbox', { name: /bob/i })[0]
     await user.click(bob)
     await user.click(bob)
     // 10.99 across two people leaves the odd cent with the lower user id.
     expect(screen.getByText('Individual shares')).toBeInTheDocument()
-    expect(screen.getByText('€5.50')).toBeInTheDocument()
-    expect(screen.getByText('€5.49')).toBeInTheDocument()
+    expect(screen.getByText('5,50 €')).toBeInTheDocument()
+    expect(screen.getByText('5,49 €')).toBeInTheDocument()
   })
 })
 
@@ -1924,12 +1989,40 @@ describe('CostsPanel — split modes and guests', () => {
     await user.click(screen.getByRole('button', { name: 'Custom' }))
     expect(screen.getByText(/Sum of splits/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Equally' }))
-    expect(screen.getByText('Split 2 ways · €45.00 each')).toBeInTheDocument()
+    expect(screen.getByText('45,00 € per person')).toBeInTheDocument()
 
     const submits = screen.getAllByRole('button', { name: 'Add expense' })
     await user.click(submits[submits.length - 1])
     await waitFor(() => expect(posted).toBeTruthy())
     expect(posted!.members).toEqual([{ user_id: 1, amount: null }, { user_id: 2, amount: null }])
+  })
+
+  it('FE-W5COSTS-1709: a custom split typed in percent saves the matching amounts', async () => {
+    const user = userEvent.setup()
+    let posted: Record<string, unknown> | null = null
+    server.use(http.post('/api/trips/1/budget', async ({ request }) => {
+      posted = await request.json() as Record<string, unknown>
+      return HttpResponse.json({ item: dinner() })
+    }))
+    mount([])
+
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
+    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Bag storage')
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '30')
+    await user.click(screen.getByRole('button', { name: 'Custom' }))
+    await user.click(screen.getByRole('button', { name: '%' }))
+
+    const [alice, bob] = screen.getAllByRole('textbox', { name: / %$/ })
+    await user.type(alice, '60')
+    expect(screen.getByText('60 % of 100 % assigned')).toBeInTheDocument()
+    await user.type(bob, '40')
+    expect(screen.getByText('Split matches total')).toBeInTheDocument()
+    expect(screen.getByText('18,00 €')).toBeInTheDocument()
+
+    const submits = screen.getAllByRole('button', { name: 'Add expense' })
+    await user.click(submits[submits.length - 1])
+    await waitFor(() => expect(posted).toBeTruthy())
+    expect(posted!.members).toEqual([{ user_id: 1, amount: 18 }, { user_id: 2, amount: 12 }])
   })
 
   it('FE-W5COSTS-057: multi-payer on a payer-less expense seeds and collapses back to me', async () => {
@@ -1945,7 +2038,7 @@ describe('CostsPanel — split modes and guests', () => {
     })])
 
     await screen.findByText('Hotel')
-    await user.click(screen.getByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
 
     // Nobody paid, so switching to multi-payer seeds me as the only payer.
     await user.click(await screen.findByRole('button', { name: 'Multiple people paid' }))
@@ -2022,7 +2115,7 @@ describe('CostsPanel — mobile extras', () => {
     await waitFor(() => expect(document.querySelector('.costs-summary')).toBeNull())
     fireEvent.click(screen.getByRole('button', { name: 'Add payment' }))
 
-    expect(await screen.findByPlaceholderText('0.00')).toBeInTheDocument()
+    expect(await screen.findByPlaceholderText('0,00')).toBeInTheDocument()
   })
 
   it('FE-W5COSTS-062: the mobile search box keeps the caret across keystrokes', async () => {
@@ -2066,11 +2159,11 @@ describe('CostsPanel — decimal padding on edit (#2175)', () => {
     ])
 
     await screen.findByText('Coffee')
-    await user.click(screen.getAllByTitle('Edit')[0])
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0])
     expect(await screen.findByDisplayValue('4,90')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
-    await user.click(screen.getAllByTitle('Edit')[1])
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[1])
     expect(await screen.findByDisplayValue('5,00')).toBeInTheDocument()
   })
 
@@ -2150,10 +2243,10 @@ describe('CostsPanel — negative amounts (#2176)', () => {
     // Not "Unfinished": the refund has its recipient recorded.
     expect(within(row).queryByText('Unfinished')).toBeNull()
 
-    await user.click(screen.getByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
     // The negative payer reopens selected instead of resetting to "Nobody",
     // and the total is seeded signed and padded.
-    expect(await screen.findByRole('button', { name: 'You' })).toBeInTheDocument()
+    expect(await screen.findByRole('radio', { name: 'You' })).toBeChecked()
     expect(screen.getByDisplayValue('-100,00')).toBeInTheDocument()
 
     // Saving untouched must not silently drop the negative payer.
@@ -2178,7 +2271,7 @@ describe('CostsPanel — negative amounts (#2176)', () => {
     ])
 
     await screen.findByText('Dinner')
-    const breakdown = screen.getByText('By category').parentElement as HTMLElement
+    const breakdown = screen.getByRole('region', { name: 'By category' }) as HTMLElement
     // Food nets 90 − 30 = 60; the fully refunded tour keeps a row of its own.
     expect(within(breakdown).getByText('60 €')).toBeInTheDocument()
     expect(within(breakdown).getByText(/[-−]20\s*€/)).toBeInTheDocument()
@@ -2194,10 +2287,10 @@ describe('CostsPanel — negative amounts (#2176)', () => {
       })} />)
 
     // -70 of -100: 30 still to hand out, not 30 too much.
-    expect(await screen.findByText('Sum of splits: €-70.00 of €-100.00 (under by €30.00)')).toBeInTheDocument()
+    expect(await screen.findByText('Sum of splits: -70,00 € of -100,00 € (under by 30,00 €)')).toBeInTheDocument()
 
     await user.type(screen.getByPlaceholderText('-30,00'), '-40')
-    expect(screen.getByText('Sum of splits: €-110.00 of €-100.00 (over by €10.00)')).toBeInTheDocument()
+    expect(screen.getByText('Sum of splits: -110,00 € of -100,00 € (over by 10,00 €)')).toBeInTheDocument()
   })
 
   it('FE-W5COSTS-073: the total can be turned into a refund without a minus key', async () => {
@@ -2279,19 +2372,20 @@ describe('CostsPanel — expense modal in another language', () => {
     await user.click(screen.getByRole('button', { name: 'Individuell' }))
 
     // Nothing entered yet, so the whole 90 is still unaccounted for.
-    expect(screen.getByText('Summe der Anteile: €0.00 von €90.00 (es fehlen €90.00)')).toBeInTheDocument()
+    expect(screen.getByText('Summe der Anteile: 0,00 € von 90,00 € (es fehlen 90,00 €)')).toBeInTheDocument()
 
     const shares = screen.getAllByPlaceholderText('45,00')
     await user.type(shares[0], '90')
     expect(screen.getByText('Aufteilung passt zur Summe')).toBeInTheDocument()
 
     await user.type(shares[1], '10')
-    expect(screen.getByText('Summe der Anteile: €100.00 von €90.00 (€10.00 zu viel)')).toBeInTheDocument()
+    expect(screen.getByText('Summe der Anteile: 100,00 € von 90,00 € (10,00 € zu viel)')).toBeInTheDocument()
 
     // Back to the equal split: a member taken out of it is marked, not dropped.
     await user.click(screen.getByRole('button', { name: 'Gleichmäßig' }))
-    await user.click(screen.getByRole('button', { name: /bob/i }))
-    expect(screen.getByText('Nicht dabei')).toBeInTheDocument()
+    // Taken out, the box is simply unticked; no English word leaks into the German dialog.
+    await user.click(screen.getByRole('checkbox', { name: /bob/i }))
+    expect(screen.getByRole('checkbox', { name: /bob/i })).not.toBeChecked()
     expect(screen.queryByText('Excluded')).not.toBeInTheDocument()
   })
 })
@@ -2363,7 +2457,7 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     try {
       mount([hotel()])
       await screen.findByText('Aparthotel Silver')
-      fireEvent.click(screen.getByTitle('Export CSV'))
+      fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
       await waitFor(() => expect(exported).toBeTruthy())
       const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n')
       expect(lines[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Amount (USD);Note')
@@ -2434,8 +2528,10 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
 
     await screen.findByText('Aparthotel Silver')
     expect(screen.getByText(/\$400\.88 → 342,63\s€$/)).toBeInTheDocument()
-    expect(screen.getByText('$395.77')).toBeInTheDocument()
-    expect(screen.getByText('$30.00')).toBeInTheDocument()
+    // The hotel's split chips can carry the same figure, so look past them to the payment.
+    const outsideChips = (text: string) => screen.queryAllByText(text).filter(el => !el.closest('[data-testid="split-chip"]'))
+    expect(outsideChips('$395.77')).toHaveLength(1)
+    expect(outsideChips('$30.00')).toHaveLength(1)
     expect(screen.queryByText('$34.65')).toBeNull()
   })
 
@@ -2444,7 +2540,7 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     mount([hotel()])
 
     await screen.findByText('Aparthotel Silver')
-    await user.click(screen.getByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
     expect(await screen.findByDisplayValue('801.76')).toBeInTheDocument()
     // Same currency as the list, so the dialog said nothing, and 801.76 there beside
     // $791.57 in the list looked like two different expenses.
@@ -2453,7 +2549,7 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     expect(within(hint).getByText(/^685,26\s€$/)).toBeInTheDocument()
     expect(within(hint).getByText('$791.55')).toBeInTheDocument()
     // Each share next to what it counts as, the figure the row's "you lent" is made of.
-    expect(screen.getByText(/Split 2 ways · \$400\.88 → \$395\.77 each/)).toBeInTheDocument()
+    expect(screen.getByText(/\$400\.88 → \$395\.77 per person/)).toBeInTheDocument()
   })
 
   it('FE-W5COSTS-086: the final budget names the bill by what was entered beside its booked figure', async () => {
@@ -2472,11 +2568,11 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
       ],
     })
 
-    const card = (await screen.findByText('Final budget')).parentElement as HTMLElement
+    const card = (await screen.findByRole('region', { name: 'Final budget' })) as HTMLElement
     await user.click(await within(card).findByRole('button', { name: /You/ }))
     expect(within(card).getAllByText('+$791.55')).toHaveLength(2)
     expect(within(card).getByText('Aparthotel Silver')).toBeInTheDocument()
-    expect(within(card).getByText('· $801.76')).toBeInTheDocument()
+    expect(within(card).getByText('$801.76')).toBeInTheDocument()
   })
 
   it('FE-W5COSTS-089: the final budget lists a bill that reads as typed without a second amount', async () => {
@@ -2495,10 +2591,10 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
       ],
     })
 
-    const card = (await screen.findByText('Final budget')).parentElement as HTMLElement
+    const card = (await screen.findByRole('region', { name: 'Final budget' })) as HTMLElement
     await user.click(await within(card).findByRole('button', { name: /You/ }))
     expect(within(card).getAllByText('+$801.76')).toHaveLength(2)
-    expect(within(card).queryByText('· $801.76')).toBeNull()
+    expect(within(card).queryByText('$801.76')).toBeNull()
   })
 
   it('FE-W5COSTS-083: an expense saved without a currency opens in the trip currency, not the display one', async () => {
@@ -2514,7 +2610,7 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     // The list reads the missing currency as the trip's own.
     expect(screen.getByText(/100,00\s€ → \$115\.51/)).toBeInTheDocument()
 
-    await user.click(screen.getByTitle('Edit'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
     expect(await screen.findByDisplayValue('100,00')).toBeInTheDocument()
     // Seeding the display currency here would label 100 euro as 100 dollars, and a
     // plain save would then store it that way.
@@ -2648,7 +2744,7 @@ describe('CostsPanel: a bill the server cannot convert', () => {
     mount([])
 
     await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0.00'), '25')
+    await user.type(await screen.findByPlaceholderText('0,00'), '25')
     const submits = screen.getAllByRole('button', { name: 'Add payment' })
     await user.click(submits[submits.length - 1])
 

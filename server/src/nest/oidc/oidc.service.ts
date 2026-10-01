@@ -607,6 +607,20 @@ export class OidcService implements OnModuleDestroy {
   // Find or create user by OIDC sub / email
   // -------------------------------------------------------------------------
 
+  /**
+   * The claim a new account's username comes from (#1677). OIDC_USERNAME_CLAIM
+   * names one, typically `preferred_username` for providers whose `name` is the
+   * full "Jane Doe"; when it is unset, or the provider leaves that claim empty,
+   * the old order applies. Only read when an account is created: a username the
+   * user has changed since is never overwritten on a later login.
+   */
+  private usernameSource(userInfo: OidcUserInfo): string | undefined {
+    const claimKey = readEnv().oidc.usernameClaim;
+    const claimed = claimKey ? userInfo[claimKey] : undefined;
+    if (typeof claimed === 'string' && claimed.trim()) return claimed.trim();
+    return userInfo.name || userInfo.preferred_username;
+  }
+
   findOrCreateUser(
     userInfo: OidcUserInfo,
     config: OidcConfig,
@@ -617,7 +631,7 @@ export class OidcService implements OnModuleDestroy {
     // `oidc_error=' + result.error` pass-through if reached here.
     if (!userInfo.email) return { error: 'no_email' };
     const email = userInfo.email.trim().toLowerCase();
-    const name = userInfo.name || userInfo.preferred_username || email.split('@')[0];
+    const name = this.usernameSource(userInfo) || email.split('@')[0];
     const sub = userInfo.sub;
     const picture = safeOidcPicture(userInfo.picture);
 

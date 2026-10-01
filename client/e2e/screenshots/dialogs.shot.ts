@@ -1,6 +1,4 @@
-import { test, clearNotices, expect } from './shot'
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
+import { test, clearNotices, expect, seed } from './shot'
 
 /**
  * Modals and dialogs.
@@ -11,9 +9,6 @@ import path from 'node:path'
  * silently produce a screenshot of the page behind it.
  */
 
-const seed = JSON.parse(
-  readFileSync(path.join(process.cwd(), 'e2e', '.tmp', 'seed.json'), 'utf8'),
-) as { tripId: number }
 
 /**
  * The shared Modal (client/src/components/shared/Modal.tsx) sets neither

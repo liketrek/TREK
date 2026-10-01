@@ -1,5 +1,6 @@
 import { ADDON_IDS } from '../../addons';
 import { AddonsService } from '../addons/addons.service';
+import { asLlmVision } from '@trek/shared';
 import { decryptLlmApiKey, LLM_PROVIDERS, type LlmProvider, type ResolvedLlmConfig } from './llm-config';
 import { DatabaseService } from '../database/database.service';
 import { SettingsService } from '../settings/settings.service';
@@ -53,7 +54,7 @@ export class LlmConfigResolver {
       model,
       baseUrl: typeof cfg.baseUrl === 'string' && cfg.baseUrl.trim() ? cfg.baseUrl.trim() : undefined,
       apiKey: decryptLlmApiKey(cfg.apiKey),
-      multimodal: cfg.multimodal === true,
+      vision: asLlmVision(cfg.vision),
     };
   }
 
@@ -88,7 +89,9 @@ export class LlmConfigResolver {
       model,
       baseUrl,
       apiKey,
-      multimodal: settings.llm_multimodal === true,
+      // The personal switch has only ever been on or off, and was saved as the
+      // person set it, so it is read as exactly that.
+      vision: settings.llm_multimodal === true ? 'on' : 'off',
     };
   }
 }

@@ -1,6 +1,6 @@
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, errorResult, ok, type McpContext } from '../../nest-mcp';
 import { z } from 'zod';
-import { POI_CATEGORY_KEYS, MAX_POI_CATEGORIES } from './maps.helpers';
+import { POI_BBOX_TOOL_INPUT, POI_CATEGORY_KEYS, MAX_POI_CATEGORIES } from './maps.helpers';
 import { MapsService } from './maps.service';
 
 /**
@@ -82,6 +82,31 @@ export class MapsMcp {
     return ok(result);
   }
 
+  /** The MCP side of POST /api/maps/nearby (#976), with the same caps. */
+  @Tool({
+    name: 'search_nearby_places',
+    description: 'List named places of any kind around a coordinate, nearest first, each with its distance in metres (`distance_m`). No category and no name needed: use it for "what is at this spot", e.g. where a photo was taken. Answers from the TREK place index first, from Google Places only when the instance has a key and the index found nothing, and from OpenStreetMap otherwise; `source` says which. Prefer search_pois for one kind of place across a whole area, and search_place when the user named the place.',
+    inputSchema: {
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+      radius: z.number().int().min(50).max(5000).optional().describe('Search radius in metres, 500 when left out'),
+      limit: z.number().int().min(1).max(20).optional().describe('How many places, 20 when left out'),
+      lang: z.string().max(35).optional().describe('Language for the place names, e.g. "de" or "ja"'),
+    },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'geo', mode: 'read' },
+  })
+  async searchNearbyPlaces(
+    { lat, lng, radius, limit, lang }: { lat: number; lng: number; radius?: number; limit?: number; lang?: string },
+    ctx: McpContext,
+  ) {
+    try {
+      return ok(await this.maps.nearbyPlaces(ctx.userId, lat, lng, { radius, limit, lang }));
+    } catch {
+      return errorResult('Nearby search failed.');
+    }
+  }
+
   /**
    * The MCP side of GET /api/maps/pois, the "explore" pill on the trip map. Not
    * part of the 1:1 move above: the route had no tool at all, which left the
@@ -95,12 +120,7 @@ export class MapsMcp {
         z.enum(POI_CATEGORY_KEYS),
         z.array(z.enum(POI_CATEGORY_KEYS)).min(1).max(MAX_POI_CATEGORIES),
       ]).describe('Which kind of place to look for. Pass several to cover them in one query rather than one request per kind'),
-      bbox: z.strictObject({
-        south: z.number().min(-90).max(90).describe('Southern edge, latitude'),
-        west: z.number().min(-180).max(180).describe('Western edge, longitude'),
-        north: z.number().min(-90).max(90).describe('Northern edge, latitude'),
-        east: z.number().min(-180).max(180).describe('Eastern edge, longitude'),
-      }).describe('The rectangle to search. Anything wider than 0.5 degrees is narrowed to a centred window so the query stays fast; the answer reports that as `clamped`'),
+      bbox: POI_BBOX_TOOL_INPUT,
       lang: z.string().max(35).optional().describe('Language for the POI names, e.g. "de" or "ja". Falls back to the OSM international name and then the local one'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,

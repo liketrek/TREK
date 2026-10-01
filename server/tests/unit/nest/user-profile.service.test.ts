@@ -157,6 +157,30 @@ describe('getSettings', () => {
     // getSettings returns the stored key to the admin.
     expect(profile.getSettings(user.id).settings?.unsplash_api_key).toBe('unsplash-secret-key');
   });
+
+  it('AUTH-DB-010c: a key set in the environment comes back as its variable name, not a value (#1881)', () => {
+    const prev = process.env.PLACES_API_KEY;
+    process.env.PLACES_API_KEY = 'google-from-env';
+    try {
+      const { user } = createAdmin(testDb);
+      profile.updateApiKeys(user.id, { maps_api_key: 'stored-but-overridden', unsplash_api_key: 'stored-unsplash' });
+      const settings = profile.getSettings(user.id).settings;
+      // Neither the stored value nobody searches with nor the operator's own.
+      expect(settings?.maps_api_key).toBeNull();
+      expect(settings?.env_keys).toEqual({ maps_api_key: 'PLACES_API_KEY' });
+      expect(JSON.stringify(settings)).not.toContain('google-from-env');
+      // A key without a variable reads as before.
+      expect(settings?.unsplash_api_key).toBe('stored-unsplash');
+    } finally {
+      if (prev === undefined) delete process.env.PLACES_API_KEY;
+      else process.env.PLACES_API_KEY = prev;
+    }
+  });
+
+  it('AUTH-DB-010d: without a variable env_keys is empty', () => {
+    const { user } = createAdmin(testDb);
+    expect(profile.getSettings(user.id).settings?.env_keys).toEqual({});
+  });
 });
 
 // ---------------------------------------------------------------------------

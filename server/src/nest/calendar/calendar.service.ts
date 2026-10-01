@@ -534,10 +534,66 @@ export class CalendarService {
       if (start && end && start.date !== end.date) windowSplit.set(r.id, { start, end });
     }
 
+    // A flight or train with connections, as one event per leg (#2389), so each
+    // segment shows its own departure and arrival and the layover between them is
+    // visible in the calendar. Only when every leg has a dated departure clock:
+    // anything less keeps the single event, which is then the only carrier of the
+    // times there are. Each leg takes its zones from the stop endpoints when the
+    // booking has one per airport or station, and floats otherwise.
+    const dayDate = new Map<number, string>();
+    for (const d of days) if (isDate(d.date)) dayDate.set(Number(d.id), d.date);
+    interface LegTimes { from: string | null; to: string | null; label: string | null; confirmation: string | null; dep: { date: string; time: string; zone: string | null }; arr: { date: string; time: string; zone: string | null } | null }
+    const legsOf = (r: any): LegTimes[] | null => {
+      if (r.type !== 'flight' && r.type !== 'train' && r.type !== 'cruise') return null;
+      const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
+      const legs = Array.isArray(meta.legs) ? meta.legs : [];
+      if (legs.length < 2) return null;
+      const eps = endpointsMap.get(r.id);
+      const ordered = eps && eps.length === legs.length + 1 ? [...eps].sort((a, b) => a.sequence - b.sequence) : null;
+      const zoneAt = (i: number): string | null => {
+        const ep = ordered?.[i];
+        return ep ? ep.timezone || resolveTimeZone(ep.lat, ep.lng) : null;
+      };
+      const out: LegTimes[] = [];
+      for (let i = 0; i < legs.length; i++) {
+        const leg = legs[i] ?? {};
+        const depDate = dayDate.get(Number(leg.dep_day_id));
+        if (!depDate || !isTime(leg.dep_time)) return null;
+        const arrDate = dayDate.get(Number(leg.arr_day_id ?? leg.dep_day_id));
+        const label = [leg.airline, leg.flight_number ?? leg.train_number].filter(Boolean).join(' ') || null;
+        out.push({
+          from: leg.from ?? ordered?.[i]?.code ?? ordered?.[i]?.name ?? null,
+          to: leg.to ?? ordered?.[i + 1]?.code ?? ordered?.[i + 1]?.name ?? null,
+          label,
+          confirmation: leg.confirmation_number ?? null,
+          dep: { date: depDate, time: leg.dep_time, zone: zoneAt(i) },
+          arr: arrDate && isTime(leg.arr_time) ? { date: arrDate, time: leg.arr_time, zone: zoneAt(i + 1) } : null,
+        });
+      }
+      return out;
+    };
+
     // Reservations as events
     for (const r of reservations) {
       // The two hand-over events below stand in for this booking entirely.
       if (windowSplit.has(r.id)) continue;
+      const legs = legsOf(r);
+      if (legs) {
+        const desc = describeReservation(r);
+        legs.forEach((leg, i) => {
+          const route = [leg.from, leg.to].filter(Boolean).join(' → ');
+          let ev = `BEGIN:VEVENT\r\nUID:${uid(r.id, `res-leg${i + 1}`)}\r\nDTSTAMP:${now}\r\n`;
+          ev += dtLine('DTSTART', leg.dep.time, leg.dep.zone, `${leg.dep.date}T00:00`);
+          if (leg.arr) ev += dtLine('DTEND', leg.arr.time, leg.arr.zone ?? leg.dep.zone, `${leg.arr.date}T00:00`);
+          ev += `SUMMARY:${esc([r.title, route].filter(Boolean).join(': '))}\r\n`;
+          const legLines = [leg.label, leg.confirmation ? `Confirmation: ${leg.confirmation}` : null, `Leg ${i + 1} of ${legs.length}`].filter(Boolean).join('\n');
+          ev += `DESCRIPTION:${esc([legLines, desc].filter(Boolean).join('\n'))}\r\n`;
+          if (leg.from) ev += `LOCATION:${esc(leg.from)}\r\n`;
+          ev += `END:VEVENT\r\n`;
+          events.push(ev);
+        });
+        continue;
+      }
       const timeLines = buildReservationTimeLines(r);
       if (!timeLines) continue;
 

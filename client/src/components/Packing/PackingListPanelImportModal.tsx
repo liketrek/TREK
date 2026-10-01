@@ -1,70 +1,62 @@
-import { createPortal } from 'react-dom'
-import { FileDown } from 'lucide-react'
+import { useId } from 'react'
+import { Download, FileDown } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
+import { PACKING_IMPORT_ACCEPT } from './packingListPanel.constants'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 
+/** Pasting a list or loading a file: one item per line, numbered as it is typed. */
 export function BulkImportModal(S: PackingState) {
   const { setShowImportModal, t, importText, setImportText, csvInputRef, handleCsvFile, handleBulkImport, parseImportLines } = S
-  return createPortal(
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 1000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(3px)',
-    }} role="presentation" onClick={e => { if (e.target === e.currentTarget) setShowImportModal(false) }}>
-      <div style={{
-        width: 420, maxHeight: '80vh', background: 'var(--bg-card)', borderRadius: 16,
-        boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
-        display: 'flex', flexDirection: 'column', gap: 14,
-      }}>
-        <div style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{t('packing.importTitle')}</div>
-        <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('packing.importHint')}</div>
-        <div style={{ display: 'flex', border: '1px solid var(--border-primary)', borderRadius: 10, overflow: 'hidden', background: 'var(--bg-input)' }}>
-          <div style={{
-            padding: '10px 0', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'monospace', lineHeight: 1.5,
-            color: 'var(--text-faint)', textAlign: 'right', userSelect: 'none',
-            background: 'var(--bg-hover)', borderRight: '1px solid var(--border-faint)',
-            minWidth: 32, flexShrink: 0,
-          }}>
-            {(importText || ' ').split('\n').map((_, i) => (
-              <div key={i} style={{ padding: '0 6px' }}>{i + 1}</div>
-            ))}
-          </div>
-          <textarea
-            value={importText}
-            onChange={e => setImportText(e.target.value)}
-            rows={10}
-            placeholder={t('packing.importPlaceholder')}
-            style={{
-              flex: 1, border: 'none', padding: '10px 12px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'monospace',
-              outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)',
-              background: 'transparent', resize: 'vertical', lineHeight: 1.5,
-            }}
-          />
+  const labelId = useId()
+  const close = () => setShowImportModal(false)
+  const text = fs(13, 'body')
+
+  return (
+    <DialogShell
+      onClose={close}
+      labelledBy={labelId}
+      header={(
+        <DialogHeader
+          tile={<DialogTile><Download size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={close}
+          title={t('packing.importTitle')}
+        />
+      )}
+      footer={(
+        <DialogFooter>
+          <input ref={csvInputRef} type="file" accept={PACKING_IMPORT_ACCEPT} className="hidden" onChange={handleCsvFile} />
+          <DialogButton icon={<FileDown size={14} strokeWidth={2} />} onClick={() => csvInputRef.current?.click()}>{t('packing.importCsv')}</DialogButton>
+          <FooterSpacer />
+          <DialogButton onClick={close}>{t('common.cancel')}</DialogButton>
+          <DialogButton variant="primary" onClick={handleBulkImport} disabled={!importText.trim()}>
+            {t('packing.importAction', { count: parseImportLines(importText).length })}
+          </DialogButton>
+        </DialogFooter>
+      )}
+    >
+      <p className="m-0 leading-normal text-content-muted" style={fs(12.5, 'body')}>
+        {t('packing.importHint')}
+        <br />
+        {t('packing.importHintMarkdown')}
+      </p>
+      <div className="flex overflow-hidden rounded-[10px] border border-edge bg-surface-input focus-within:ring-2 focus-within:ring-[color:var(--text-primary)]">
+        <div aria-hidden className="min-w-8 flex-none select-none border-r border-edge-faint bg-surface-tertiary py-2.5 text-right font-mono leading-normal text-content-faint" style={text}>
+          {(importText || ' ').split('\n').map((_, i) => (
+            <div key={i} className="px-1.5">{i + 1}</div>
+          ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <input ref={csvInputRef} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={handleCsvFile} />
-            <button type="button" onClick={() => csvInputRef.current?.click()} style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px',
-              border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-              fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              <FileDown size={11} /> {t('packing.importCsv')}
-            </button>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={() => setShowImportModal(false)} style={{
-              fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'none', border: '1px solid var(--border-primary)',
-              borderRadius: 8, padding: '6px 14px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit',
-            }}>{t('common.cancel')}</button>
-            <button type="button" onClick={handleBulkImport} disabled={!importText.trim()} style={{
-              fontSize: 'calc(12px * var(--fs-scale-body, 1))', background: 'var(--accent)', color: 'var(--accent-text)',
-              border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600,
-              fontFamily: 'inherit', opacity: importText.trim() ? 1 : 0.5,
-            }}>{t('packing.importAction', { count: parseImportLines(importText).length })}</button>
-          </div>
-        </div>
+        <textarea
+          value={importText}
+          onChange={e => setImportText(e.target.value)}
+          rows={10}
+          placeholder={t('packing.importPlaceholder')}
+          aria-label={t('packing.importTitle')}
+          className="min-w-0 flex-1 resize-y border-0 bg-transparent px-3 py-2.5 font-mono leading-normal text-content outline-none placeholder:text-content-faint dark:bg-transparent"
+          style={text}
+        />
       </div>
-    </div>,
-    document.body
+    </DialogShell>
   )
 }

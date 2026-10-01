@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import { BookOpen, FileText, Printer, Scissors, X } from 'lucide-react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { BookOpen, FileText, Printer, Scissors } from 'lucide-react'
+import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import type { BookDocument } from '@trek/shared'
 import { BookSheetsView } from './BookSheetsView'
 import { sheetBox, sheetsFor, type SheetMode } from './bookSheets'
@@ -38,6 +39,7 @@ export function StudioExport({
   /** Set once the user has asked for it — this is what triggers the render. */
   const [building, setBuilding] = useState(false)
   const stage = useRef<HTMLDivElement>(null)
+  const labelId = useId()
 
   const sheets = sheetsFor(doc, mode)
 
@@ -76,78 +78,71 @@ export function StudioExport({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [building])
 
+  // Studio closes itself on Escape. While this dialog is open the key is its own,
+  // so it is taken in the capture phase before the editor's handler sees it.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      onClose()
+    }
+    document.addEventListener('keydown', onKey, true)
+    return () => document.removeEventListener('keydown', onKey, true)
+  }, [onClose])
+
   return (
-    <div className="st-ex" role="dialog" aria-modal="true" aria-label={t('journey.studio.export')}>
-      <div className="st-ex-card">
-        <div className="st-ex-head">
-          <span>{t('journey.studio.export')}</span>
-          <button type="button" className="st-ex-x" onClick={onClose} aria-label={t('common.close')}>
-            <X size={15} />
-          </button>
-        </div>
-
-        <div className="st-ex-body">
-          <Choice<SheetMode>
-            label={t('journey.studio.exportLayout')}
-            options={[
-              {
-                id: 'pages',
-                icon: FileText,
-                name: t('journey.studio.exportPages'),
-                hint: t('journey.studio.exportPagesHint'),
-              },
-              {
-                id: 'spreads',
-                icon: BookOpen,
-                name: t('journey.studio.exportSpreads'),
-                hint: t('journey.studio.exportSpreadsHint'),
-              },
-            ]}
-            value={mode}
-            onPick={setMode}
+    <>
+      <DialogShell
+        onClose={onClose}
+        labelledBy={labelId}
+        width="narrow"
+        header={(
+          <DialogHeader
+            tile={<DialogTile><Printer size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+            tint={NEUTRAL_TINT}
+            labelId={labelId}
+            onClose={onClose}
+            title={t('journey.studio.export')}
           />
-
-          <div className="st-ex-field">
-            <span className="st-ex-label">{t('journey.studio.exportFinishing')}</span>
-            <button type="button"
-              className={`st-ex-opt ${marks ? 'is-on' : ''}`}
-              onClick={() => setMarks(!marks)}
-              aria-pressed={marks}
-            >
-              <Scissors size={15} />
-              <span className="st-ex-text">
-                <span className="st-ex-name">{t('journey.studio.exportMarks')}</span>
-                <span className="st-ex-hint">
-                  {t('journey.studio.exportMarksHint', { bleed: doc.page.bleed })}
-                </span>
-              </span>
-            </button>
+        )}
+        footer={(
+          <DialogFooter>
+            <FooterSpacer />
+            <DialogButton onClick={onClose}>{t('common.cancel')}</DialogButton>
+            <DialogButton variant="primary" onClick={() => setBuilding(true)} disabled={building} icon={<Printer size={14} strokeWidth={2} />}>
+              {t('journey.studio.exportOpen')}
+            </DialogButton>
+          </DialogFooter>
+        )}
+      >
+        <DialogSection label={t('journey.studio.exportLayout')}>
+          <div className="flex flex-col gap-2">
+            <Option icon={FileText} name={t('journey.studio.exportPages')} hint={t('journey.studio.exportPagesHint')} on={mode === 'pages'} onClick={() => setMode('pages')} />
+            <Option icon={BookOpen} name={t('journey.studio.exportSpreads')} hint={t('journey.studio.exportSpreadsHint')} on={mode === 'spreads'} onClick={() => setMode('spreads')} />
           </div>
+        </DialogSection>
 
-          <p className="st-ex-note">
-            {t('journey.studio.exportNote', {
-              sheets: sheets.length,
-              width: round1(box.width),
-              height: round1(box.height),
-            })}
-          </p>
-        </div>
+        <DialogSection label={t('journey.studio.exportFinishing')}>
+          <Option icon={Scissors} name={t('journey.studio.exportMarks')} hint={t('journey.studio.exportMarksHint', { bleed: doc.page.bleed })} on={marks} onClick={() => setMarks(!marks)} />
+        </DialogSection>
 
-        <div className="st-ex-foot">
-          <button type="button" className="st-ex-btn" onClick={onClose}>{t('common.cancel')}</button>
-          <button type="button" className="st-ex-btn is-primary" onClick={() => setBuilding(true)} disabled={building}>
-            <Printer size={14} />
-            <span>{t('journey.studio.exportOpen')}</span>
-          </button>
-        </div>
-      </div>
+        <p className="m-0 text-content-muted" style={fs(12, 'body')}>
+          {t('journey.studio.exportNote', {
+            sheets: sheets.length,
+            width: round1(box.width),
+            height: round1(box.height),
+          })}
+        </p>
+      </DialogShell>
 
       {/*
         The sheets, rendered where nobody can see them.
         Off screen rather than `display: none`: a hidden subtree lays nothing
         out, and these are measured in millimetres by the same CSS that will
-        print them — a book built from an unlaid-out tree is a book of empty
-        boxes. `aria-hidden` keeps the whole thing out of the reading order.
+        print them, a book built from an unlaid-out tree is a book of empty
+        boxes. They stay inside Studio's tree, where that CSS applies, while the
+        dialog itself is portalled over it. `aria-hidden` keeps them out of the
+        reading order.
       */}
       {building && (
         <div
@@ -158,37 +153,32 @@ export function StudioExport({
           <BookSheetsView doc={doc} mode={mode} marks={marks} />
         </div>
       )}
-    </div>
+    </>
   )
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10
 
-function Choice<T extends string>({
-  label, options, value, onPick,
-}: {
-  label: string
-  options: { id: T; icon: typeof FileText; name: string; hint: string }[]
-  value: T
-  onPick: (id: T) => void
+/** One choice of the dialog: an icon, its name and what it means, pressed while it holds. */
+function Option({ icon: Icon, name, hint, on, onClick }: {
+  icon: typeof FileText
+  name: string
+  hint: string
+  on: boolean
+  onClick: () => void
 }) {
   return (
-    <div className="st-ex-field">
-      <span className="st-ex-label">{label}</span>
-      {options.map(opt => (
-        <button type="button"
-          key={opt.id}
-          className={`st-ex-opt ${value === opt.id ? 'is-on' : ''}`}
-          onClick={() => onPick(opt.id)}
-          aria-pressed={value === opt.id}
-        >
-          <opt.icon size={15} />
-          <span className="st-ex-text">
-            <span className="st-ex-name">{opt.name}</span>
-            <span className="st-ex-hint">{opt.hint}</span>
-          </span>
-        </button>
-      ))}
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      className={`flex w-full items-start gap-3 rounded-[12px] border px-3 py-2.5 text-left transition-colors ${on ? 'border-[color:var(--text-primary)] bg-surface-card shadow-sm' : 'border-edge-faint bg-surface-card hover:bg-surface-hover'}`}
+    >
+      <Icon size={16} strokeWidth={1.9} className={`mt-0.5 flex-none ${on ? 'text-content' : 'text-content-muted'}`} />
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-content" style={fs(13, 'body')}>{name}</span>
+        <span className="block text-content-muted" style={fs(11.5)}>{hint}</span>
+      </span>
+    </button>
   )
 }

@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Пов’язати файл',
   'files.linkEmpty': 'Поки немає місць чи бронювань для зв’язування',
   'files.menu': 'Більше опцій',
-  'files.uploadErrorSize': 'Файл завеликий (макс. 50 МБ)',
+  'files.uploadErrorSize': 'Файл завеликий (макс. {max} МБ)',
   'files.title': 'Файли',
   'files.pageTitle': 'Файли та документи',
   'files.subtitle': '{count} файлів для {trip}',

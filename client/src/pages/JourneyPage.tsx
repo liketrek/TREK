@@ -1,13 +1,17 @@
+import { useId, type Dispatch, type SetStateAction } from 'react'
 import PageShell from '../components/Layout/PageShell'
 import { localIsoDate } from '../utils/localDate'
 import { useTranslation, TransHtml } from '../i18n'
 import {
   Plus, Search, Sparkles, Calendar, MapPin,
-  Check, X, ChevronRight,
+  Check, X, ChevronRight, BookOpen,
 } from 'lucide-react'
 import type { Journey } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
 import { useJourney } from './journey/useJourney'
+import HelpAnchor from '../components/Help/HelpAnchor'
+import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../components/shared/DialogShell'
+import { EditorField, INPUT } from '../components/shared/dialogParts'
 
 const GRADIENTS = [
   'linear-gradient(135deg, #0F172A 0%, #6366F1 45%, #EC4899 100%)',
@@ -25,7 +29,12 @@ function pickGradient(id: number): string {
 export default function JourneyPage() {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
   // chunk of its own instead of a dead limb in this one.
-  return <JourneyPageDesktop />
+  return (
+    <>
+      <HelpAnchor id="journey" />
+      <JourneyPageDesktop />
+    </>
+  )
 }
 
 function JourneyPageDesktop() {
@@ -240,129 +249,167 @@ function JourneyPageDesktop() {
           </div>
         </div>
 
-      {/* Create Modal */}
       {showCreate && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-5" style={{ background: 'rgba(9,9,11,0.6)', backdropFilter: 'blur(6px)' }}>
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[640px] w-full max-h-[90vh] flex flex-col overflow-hidden" style={{ paddingBottom: 'var(--bottom-nav-h)' }}>
-
-            {/* Header */}
-            <div className="px-7 pt-6 pb-5 border-b border-zinc-200 dark:border-zinc-700">
-              <h2 className="text-[18px] font-bold tracking-[-0.01em] text-zinc-900 dark:text-white">{t("journey.frontpage.createJourney")}</h2>
-              <p className="text-[13px] text-zinc-500 mt-1">{t('journey.frontpage.createNewSub')}</p>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto px-7 py-5">
-              <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2.5">{t('journey.frontpage.journeyName')}</label>
-              <input
-                value={newTitle}
-                onChange={e => setNewTitle(e.target.value)}
-                placeholder={t('journey.frontpage.namePlaceholder')}
-                className="w-full px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:border-zinc-900 dark:focus:border-zinc-400 focus:outline-none mb-5"
-              />
-
-              <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2.5">{t('journey.settings.subtitle')}</label>
-              <input
-                value={newSubtitle}
-                onChange={e => setNewSubtitle(e.target.value)}
-                placeholder={t('journey.settings.subtitlePlaceholder')}
-                className="w-full px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:border-zinc-900 dark:focus:border-zinc-400 focus:outline-none mb-5"
-              />
-
-              <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2.5">{t('journey.frontpage.selectTrips')}</label>
-              <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto">
-                {availableTrips.map(trip => {
-                  const selected = selectedTripIds.has(trip.id)
-                  const status = trip.end_date && trip.end_date < localIsoDate()
-                    ? 'completed'
-                    : trip.start_date && trip.start_date <= localIsoDate()
-                      ? 'active'
-                      : 'upcoming'
-                  const statusColors: Record<string, string> = {
-                    completed: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-                    active: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-                    upcoming: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-                  }
-
-                  const toggleTrip = () => {
-                    setSelectedTripIds(prev => {
-                      const next = new Set(prev)
-                      if (next.has(trip.id)) next.delete(trip.id)
-                      else next.add(trip.id)
-                      return next
-                    })
-                  }
-
-                  return (
-                    <div
-                      key={trip.id}
-                      role="checkbox"
-                      aria-checked={selected}
-                      tabIndex={0}
-                      onClick={toggleTrip}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTrip() }
-                      }}
-                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-[border-color,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] ${
-                        selected
-                          ? 'border-zinc-900 dark:border-zinc-400 bg-zinc-50 dark:bg-zinc-800'
-                          : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
-                      }`}
-                    >
-                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${
-                        selected
-                          ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white'
-                          : 'border-zinc-300 dark:border-zinc-600'
-                      }`}>
-                        {selected && <Check size={12} className="text-white dark:text-zinc-900" />}
-                      </div>
-                      <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden" style={{ background: pickGradient(trip.id) }}>
-                        {trip.cover_image && (
-                          <img src={trip.cover_image} className="w-full h-full object-cover" alt="" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[14px] font-semibold text-zinc-900 dark:text-white">{trip.title}</div>
-                        <div className="text-[12px] text-zinc-500 flex items-center gap-2.5 mt-0.5">
-                          <span className="flex items-center gap-1"><Calendar size={11} /> {trip.start_date ? Math.ceil((new Date(trip.end_date || trip.start_date).getTime() - new Date(trip.start_date).getTime()) / 86400000) + 1 : '?'}<span className="hidden md:inline"> {t('journey.stats.days').toLowerCase()}</span></span>
-                          <span className="flex items-center gap-1"><MapPin size={11} /> {trip.place_count || 0}<span className="hidden md:inline"> {t("journey.frontpage.places")}</span></span>
-                        </div>
-                      </div>
-                      <span className={`text-[10px] font-medium uppercase tracking-[0.05em] px-2 py-0.5 rounded-full ${statusColors[status]}`}>
-                        {t(`journey.status.${status}`)}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-7 py-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
-              <div className="text-[12px] text-zinc-500">
-                <strong className="text-zinc-900 dark:text-white">{selectedTripIds.size}</strong> <span className="hidden md:inline">{t('journey.frontpage.tripsSelected')}</span><span className="md:hidden">{t('journey.frontpage.trips')}</span>
-                {selectedTripIds.size > 0 && <> · <strong className="text-zinc-900 dark:text-white">{totalPlaces}</strong> <span className="hidden md:inline">{t('journey.frontpage.placesImported')}</span><span className="md:hidden">{t('journey.frontpage.places')}</span></>}
-              </div>
-              <div className="flex items-center gap-2">
-                <button type="button"
-                  onClick={() => setShowCreate(false)}
-                  className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button type="button"
-                  onClick={handleCreate}
-                  disabled={!newTitle.trim()}
-                  className="px-3.5 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <span className="md:hidden">{t('journey.create')}</span><span className="hidden md:inline">{t('journey.frontpage.createJourney')}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CreateJourneyDialog
+          title={newTitle}
+          onTitleChange={setNewTitle}
+          subtitle={newSubtitle}
+          onSubtitleChange={setNewSubtitle}
+          trips={availableTrips}
+          selectedTripIds={selectedTripIds}
+          onSelectedTripIdsChange={setSelectedTripIds}
+          totalPlaces={totalPlaces}
+          onClose={() => setShowCreate(false)}
+          onCreate={handleCreate}
+        />
       )}
     </PageShell>
+  )
+}
+
+interface AvailableTrip {
+  id: number
+  title: string
+  start_date?: string | null
+  end_date?: string | null
+  place_count?: number | null
+  cover_image?: string | null
+}
+
+type TripStatus = 'completed' | 'active' | 'upcoming'
+
+const TRIP_STATUS_LOOK: Record<TripStatus, string> = {
+  completed: 'bg-success-soft text-success',
+  active: 'bg-info-soft text-info',
+  upcoming: 'bg-warning-soft text-warning',
+}
+
+/**
+ * A new journey: its name typed into the head band, an optional subtitle and
+ * the trips it starts from. Everything it edits lives in useJourney; the
+ * dialog is its own component so the id it labels itself with stays out of
+ * the page body.
+ */
+function CreateJourneyDialog({ title, onTitleChange, subtitle, onSubtitleChange, trips, selectedTripIds, onSelectedTripIdsChange, totalPlaces, onClose, onCreate }: {
+  title: string
+  onTitleChange: (value: string) => void
+  subtitle: string
+  onSubtitleChange: (value: string) => void
+  trips: AvailableTrip[]
+  selectedTripIds: Set<number>
+  onSelectedTripIdsChange: Dispatch<SetStateAction<Set<number>>>
+  totalPlaces: number
+  onClose: () => void
+  onCreate: () => void | Promise<void>
+}) {
+  const { t } = useTranslation()
+  const labelId = useId()
+  const today = localIsoDate()
+
+  const toggleTrip = (id: number) => {
+    onSelectedTripIdsChange(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const header = (
+    <DialogHeader
+      tile={<DialogTile><BookOpen size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+      tint={NEUTRAL_TINT}
+      labelId={labelId}
+      onClose={onClose}
+      eyebrow={t('journey.frontpage.createJourney')}
+      titleInput={{
+        value: title,
+        onChange: onTitleChange,
+        label: t('journey.frontpage.journeyName'),
+        placeholder: t('journey.frontpage.namePlaceholder'),
+        autoFocus: true,
+        onKeyDown: e => { if (e.key === 'Enter' && title.trim()) void onCreate() },
+      }}
+      sub={t('journey.frontpage.createNewSub')}
+      subWraps
+    />
+  )
+
+  const footer = (
+    <DialogFooter>
+      <span className="flex min-w-0 items-center gap-3 text-content-muted" style={fs(12.5, 'body')}>
+        <span><strong className="font-semibold text-content">{selectedTripIds.size}</strong> {t('journey.frontpage.tripsSelected')}</span>
+        {selectedTripIds.size > 0 && (
+          <span><strong className="font-semibold text-content">{totalPlaces}</strong> <span>{t('journey.frontpage.placesImported')}</span></span>
+        )}
+      </span>
+      <FooterSpacer />
+      <DialogButton onClick={onClose}>{t('common.cancel')}</DialogButton>
+      <DialogButton variant="primary" onClick={() => void onCreate()} disabled={!title.trim()}>
+        {t('journey.frontpage.createJourney')}
+      </DialogButton>
+    </DialogFooter>
+  )
+
+  return (
+    // Pinned at the top: the trips arrive after the dialog opens and grow the body.
+    <DialogShell onClose={onClose} labelledBy={labelId} width="detail" align="top" header={header} footer={footer}>
+      <EditorField label={t('journey.settings.subtitle')} htmlFor={`${labelId}-subtitle`}>
+        <input
+          id={`${labelId}-subtitle`}
+          value={subtitle}
+          onChange={e => onSubtitleChange(e.target.value)}
+          placeholder={t('journey.settings.subtitlePlaceholder')}
+          className={INPUT}
+        />
+      </EditorField>
+
+      {trips.length > 0 && (
+        <DialogSection label={t('journey.frontpage.selectTrips')}>
+          <div className="flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5">
+            {trips.map(trip => {
+              const selected = selectedTripIds.has(trip.id)
+              let status: TripStatus = 'upcoming'
+              if (trip.end_date && trip.end_date < today) status = 'completed'
+              else if (trip.start_date && trip.start_date <= today) status = 'active'
+              const days = trip.start_date
+                ? Math.ceil((new Date(trip.end_date || trip.start_date).getTime() - new Date(trip.start_date).getTime()) / 86400000) + 1
+                : '?'
+              return (
+                <div
+                  key={trip.id}
+                  role="checkbox"
+                  aria-checked={selected}
+                  tabIndex={0}
+                  onClick={() => toggleTrip(trip.id)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTrip(trip.id) }
+                  }}
+                  className={`flex min-h-[56px] cursor-pointer items-center gap-3 rounded-[10px] px-2.5 py-2 outline-none focus-visible:ring-2 focus-visible:ring-accent ${selected ? 'bg-surface-card shadow-sm' : 'hover:bg-surface-card'}`}
+                >
+                  <span className={`grid h-4 w-4 flex-none place-items-center rounded-[5px] ${selected ? 'bg-accent text-accent-text' : 'border-[1.5px] border-edge'}`}>
+                    {selected && <Check size={11} strokeWidth={3} />}
+                  </span>
+                  <span className="h-10 w-10 flex-none overflow-hidden rounded-[10px]" style={{ background: pickGradient(trip.id) }}>
+                    {trip.cover_image && <img src={trip.cover_image} className="h-full w-full object-cover" alt="" />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-content" style={fs(13.5, 'body')}>{trip.title}</div>
+                    <div className="mt-0.5 flex items-center gap-2.5 text-content-faint" style={fs(11.5)}>
+                      <span className="flex items-center gap-1"><Calendar size={11} /> {days} {t('journey.stats.days').toLowerCase()}</span>
+                      <span className="flex items-center gap-1"><MapPin size={11} /> {trip.place_count || 0} {t('journey.frontpage.places')}</span>
+                    </div>
+                  </div>
+                  <span className={`flex-none rounded-full px-2 py-[2px] font-semibold ${TRIP_STATUS_LOOK[status]}`} style={fs(10.5)}>
+                    {t(`journey.status.${status}`)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </DialogSection>
+      )}
+    </DialogShell>
   )
 }
 
@@ -372,7 +419,7 @@ function JourneyCard({ journey, onClick }: { journey: Journey & { entry_count?: 
   const entryCount = j.entry_count ?? 0
   const photoCount = j.photo_count ?? 0
   const placeCount = j.place_count ?? 0
-  const lifecycle = computeJourneyLifecycle(j.status, j.trip_date_min, j.trip_date_max)
+  const lifecycle = computeJourneyLifecycle(j.status, j.trip_date_min, j.trip_date_max, j.status_override)
 
   return (
     <button

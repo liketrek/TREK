@@ -431,6 +431,8 @@ describe('MJourneyEntrySheet full editor', () => {
       tags: ['food', 'city'],
       pros_cons: { pros: ['Gelato'], cons: ['Crowds'] },
       type: undefined,
+      is_draft: false,
+      stats_excluded: undefined,
     }, undefined);
   });
 
@@ -678,46 +680,43 @@ describe('MJourneyEntrySheet full editor', () => {
   });
 
   it('FE-MOB-JENTRY-020: promoting a photo to first persists the new sort order', async () => {
-    const patched: Array<{ id: string; body: unknown }> = [];
-    server.use(http.patch('/api/journeys/photos/:id', async ({ params, request }) => {
-      patched.push({ id: String(params.id), body: await request.json() });
-      return HttpResponse.json({ ok: true });
+    const sent: Array<{ id: string; body: unknown }> = [];
+    server.use(http.put('/api/journeys/entries/:id/photos/reorder', async ({ params, request }) => {
+      sent.push({ id: String(params.id), body: await request.json() });
+      return HttpResponse.json({ success: true });
     }));
     const user = userEvent.setup();
     mountSheet(buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] }));
 
     await user.click(screen.getByRole('button', { name: '1st' }));
 
-    await waitFor(() => expect(patched).toHaveLength(2));
-    expect(patched).toEqual([
-      { id: '101', body: { sort_order: 0 } },
-      { id: '100', body: { sort_order: 1 } },
-    ]);
+    // The whole order goes out in one request, not one PATCH per photo.
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toEqual({ id: '5', body: { orderedIds: [101, 100] } });
     const order = Array.from(document.querySelectorAll('.h-16 img')).map(i => i.getAttribute('src'));
     expect(order[0]).toBe('/api/photos/101/thumbnail');
   });
 
-  it('FE-MOB-JENTRY-049: promoting a photo under StrictMode still patches each photo once', async () => {
-    const patched: Array<{ id: string; body: unknown }> = [];
-    server.use(http.patch('/api/journeys/photos/:id', async ({ params, request }) => {
-      patched.push({ id: String(params.id), body: await request.json() });
-      return HttpResponse.json({ ok: true });
+  it('FE-MOB-JENTRY-049: promoting a photo under StrictMode still sends the order once', async () => {
+    const sent: unknown[] = [];
+    server.use(http.put('/api/journeys/entries/:id/photos/reorder', async ({ request }) => {
+      sent.push(await request.json());
+      return HttpResponse.json({ success: true });
     }));
     const user = userEvent.setup();
     mountSheet(buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] }), { strict: true });
 
     await user.click(screen.getByRole('button', { name: '1st' }));
 
-    await waitFor(() => expect(patched.length).toBeGreaterThanOrEqual(2));
-    // Let a doubled batch land before counting, otherwise the extra PATCHes slip in
-    // after the assertion.
+    await waitFor(() => expect(sent.length).toBeGreaterThanOrEqual(1));
+    // Let a doubled request land before counting, otherwise it slips in after the assertion.
     await act(async () => { await new Promise(r => setTimeout(r, 20)); });
-    expect(patched.map(p => p.id)).toEqual(['101', '100']);
+    expect(sent).toEqual([{ orderedIds: [101, 100] }]);
   });
 
   it('FE-MOB-JENTRY-050: a refused reorder snaps the strip back and says so', async () => {
     let attempts = 0;
-    server.use(http.patch('/api/journeys/photos/:id', () => {
+    server.use(http.put('/api/journeys/entries/:id/photos/reorder', () => {
       attempts += 1;
       return HttpResponse.json({ error: 'sort rejected' }, { status: 500 });
     }));
@@ -726,8 +725,8 @@ describe('MJourneyEntrySheet full editor', () => {
 
     await user.click(screen.getByRole('button', { name: '1st' }));
 
-    await waitFor(() => expect(attempts).toBe(2));
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('sort rejected', 'error', undefined));
+    expect(attempts).toBe(1);
     const order = Array.from(document.querySelectorAll('.h-16 img')).map(i => i.getAttribute('src'));
     expect(order).toEqual(['/api/photos/100/thumbnail', '/api/photos/101/thumbnail']);
   });
@@ -828,23 +827,25 @@ describe('MJourneyEntrySheet full editor', () => {
     expect(screen.queryByText('All photos already added')).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-JENTRY-037: a partly accepted order keeps what the server took', async () => {
+  it('FE-MOB-JENTRY-037: the server takes the whole order or none of it, so a refusal never leaves a half order', async () => {
     const patched: number[] = [];
-    server.use(http.patch('/api/journeys/photos/:id', ({ params }) => {
-      const id = Number(params.id);
-      patched.push(id);
-      if (id === 100) return new HttpResponse(null, { status: 500 });
-      return HttpResponse.json({ ok: true });
-    }));
+    server.use(
+      http.patch('/api/journeys/photos/:id', ({ params }) => {
+        patched.push(Number(params.id));
+        return HttpResponse.json({ ok: true });
+      }),
+      http.put('/api/journeys/entries/:id/photos/reorder', () => new HttpResponse(null, { status: 409 })),
+    );
     const user = userEvent.setup();
     mountSheet(buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] }));
 
     await user.click(screen.getByRole('button', { name: '1st' }));
 
-    await waitFor(() => expect(patched).toEqual([101, 100]));
-    // 101 is first on the server now; snapping the strip back would hide that.
+    await waitFor(() => expect(toastSpy).toHaveBeenCalled());
+    // No per-photo writes any more, and the strip shows the order the server kept.
+    expect(patched).toEqual([]);
     const order = Array.from(document.querySelectorAll('.h-16 img')).map(i => i.getAttribute('src'));
-    expect(order).toEqual(['/api/photos/101/thumbnail', '/api/photos/100/thumbnail']);
+    expect(order).toEqual(['/api/photos/100/thumbnail', '/api/photos/101/thumbnail']);
   });
 
   it('FE-MOB-JENTRY-024: shows no suggestions when the location search fails', async () => {

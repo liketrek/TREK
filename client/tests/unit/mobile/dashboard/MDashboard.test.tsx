@@ -25,6 +25,10 @@ vi.mock('../../../../src/components/Plugins/TripCardBadges', () => ({
   useTripCardBadges: () => (tripId: number) => mocks.badges[tripId] ?? [],
 }));
 
+// This screen only ever renders on a phone. Shared dialogs it opens (the calendar
+// subscription) draw their phone look there and their desktop look above 768px.
+vi.mock('../../../../src/mobile/useIsPhone', () => ({ useIsPhone: () => true }));
+
 // Local-calendar date string — NOT toISOString(), which is the UTC date and
 // disagrees with the badge logic's wall-clock classification between local
 // midnight and the UTC rollover (these tests flaked in exactly that window).

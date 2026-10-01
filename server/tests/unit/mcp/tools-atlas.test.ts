@@ -138,6 +138,20 @@ describe('Tool: unmark_country_visited', () => {
 // ---------------------------------------------------------------------------
 
 describe('Tool: create_bucket_list_item', () => {
+  it('stores a wished-for region and refuses one outside its country (#1901)', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const ok = parseToolResult(await h.client.callTool({
+        name: 'create_bucket_list_item', arguments: { name: 'Bayern', country_code: 'DE', region_code: 'DE-BY' },
+      })) as any;
+      expect(ok.item.region_code).toBe('DE-BY');
+      const bad = await h.client.callTool({
+        name: 'create_bucket_list_item', arguments: { name: 'Berlin', country_code: 'FR', region_code: 'DE-BE' },
+      });
+      expect(bad.isError).toBe(true);
+    });
+  });
+
   it('creates a bucket list item with all fields', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {

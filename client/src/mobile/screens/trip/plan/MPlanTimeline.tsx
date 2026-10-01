@@ -1,13 +1,10 @@
 import { useRef, useState, type MouseEvent } from 'react'
-import {
-  ArrowRight, BedDouble, CalendarDays, CalendarRange, ChevronRight, Compass, LogIn, LogOut,
-  MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2,
-  Car, Footprints, Zap, RotateCcw, TramFront,
-} from 'lucide-react'
+import { ArrowRight, BedDouble, CalendarDays, CalendarRange, ChevronRight, Compass, LogIn, LogOut, MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2, RotateCcw, TramFront } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useContextMenu, ContextMenu } from '../../../../components/shared/ContextMenu'
 import MarkdownText from '../../../../components/shared/MarkdownText'
 import { fmtTransitDuration } from '../../../../components/Planner/transitDisplay'
+import { routeModeIcon } from '../../../../components/Planner/routeModes'
 import { formatTime } from '../../../../utils/formatters'
 import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline'
 import { cityPillsForDay, weatherIconFor } from './planTimelineModel'
@@ -46,12 +43,11 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const canEditPlaces = can('place_edit', trip)
   // Per-segment travel mode (#1281): tap a connector → pick the leg's mode.
   const legMenu = useContextMenu()
-  const modeIcon = (key: string) => (key === 'walking' ? Footprints : key.startsWith('plugin:') ? Zap : Car)
   const openLegMenu = (e: MouseEvent, assignmentId: number, seg: RouteSegment) => {
     // Public transit sits under the road profiles, as on the desktop (#2398).
     const transitLeg = tl.transitLegFor(seg)
     legMenu.open(e, [
-      ...tl.routeModeOptions.map(o => ({ label: o.label, icon: modeIcon(o.key), onClick: () => tl.setLegMode(assignmentId, o.key) })),
+      ...tl.routeModeOptions.map(o => ({ label: o.label, icon: routeModeIcon(o.key), onClick: () => tl.setLegMode(assignmentId, o.key) })),
       ...(transitLeg ? [{ label: t('transit.title'), icon: TramFront, onClick: () => tl.planTransitLeg(transitLeg) }] : []),
       { divider: true },
       { label: t('dayplan.transportMode.useDefault'), icon: RotateCcw, onClick: () => tl.setLegMode(assignmentId, null) },

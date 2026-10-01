@@ -478,6 +478,16 @@ describe('Tool: toggle_company_holiday', () => {
     });
   });
 
+  it('makes a half company holiday like the REST route (#2439)', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({
+        name: 'toggle_company_holiday', arguments: { date: '2025-12-24', half: true },
+      })) as any;
+      expect(data).toMatchObject({ action: 'added', fraction: 0.5 });
+    });
+  });
+
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });

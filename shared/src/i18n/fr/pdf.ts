@@ -7,6 +7,7 @@ const pdf: TranslationStrings = {
   'pdf.preview': 'Aperçu PDF',
   'pdf.saveAsPdf': 'Enregistrer en PDF',
   'pdf.pageBreakPerDay': 'Saut de page par jour',
+  'pdf.transportNotes': 'Notes de transport',
   'pdf.mapTitle': 'Aperçu de l\'itinéraire',
   'pdf.distanceLabel': 'Distance',
   'pdf.mapCredit': 'Contours des pays : geoBoundaries (CC BY 4.0)',

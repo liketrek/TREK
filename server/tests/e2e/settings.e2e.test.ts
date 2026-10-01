@@ -232,4 +232,22 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
         .toEqual({ value: 'openai' });
     });
   });
+
+  describe('week_start (#2029)', () => {
+    it('an admin default reaches a user who never picked a first weekday', async () => {
+      const put = await request(server).put('/api/admin/default-user-settings').set('Cookie', sessionCookie(2))
+        .send({ week_start: 'sunday' });
+      expect(put.status).toBe(200);
+      const res = await request(server).get('/api/settings').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+      expect(res.body.settings.week_start).toBe('sunday');
+    });
+
+    it('PUT /api/admin/default-user-settings 400 for a weekday the pickers do not offer', async () => {
+      const res = await request(server).put('/api/admin/default-user-settings').set('Cookie', sessionCookie(2))
+        .send({ week_start: 'friday' });
+      expect(res.status).toBe(400);
+      expect(db.prepare("SELECT value FROM app_settings WHERE key = 'default_user_setting_week_start'").get()).toBeUndefined();
+    });
+  });
 });

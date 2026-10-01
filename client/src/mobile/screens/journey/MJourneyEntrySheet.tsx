@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { localIsoDate } from '../../../utils/localDate'
-import { Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle, ChevronUp, ChevronDown, EyeOff, Play } from 'lucide-react'
+import { Briefcase, Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle, ChevronUp, ChevronDown, EyeOff, Play } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
@@ -20,6 +20,9 @@ import { photoUrl, posterlessVideo, geoOnceErrorKey, isValidGeoPoint } from '../
 import JournalBody from '../../../components/Journey/JournalBody'
 import { ProviderPicker, type ProviderPhotoGroup } from '../../../components/Journey/JourneyDetailPageProviderPicker'
 import { journeyWeatherCategory, MOBILE_MOODS, MOBILE_WEATHERS } from './mobileJourneyMeta'
+import { useJourneyTripSuggestion } from '../../../components/Journey/useJourneyTripSuggestion'
+import { useEntryPhotoOrder } from '../../../components/Journey/useEntryPhotoOrder'
+import { usePlaceLanguage } from '../../../hooks/usePlaceLanguage'
 
 const PRO_COLOR = '#2FA37A'
 const CON_COLOR = '#D6273B'
@@ -87,6 +90,7 @@ export default function MJourneyEntrySheet({
   onClose, onSave, onUploadPhotos, onAddProviderPhotos, onDelete, onDone,
 }: MJourneyEntrySheetProps) {
   const { t, language } = useTranslation()
+  const placeLang = usePlaceLanguage()
   const toast = useToast()
   // Which verdict row to hand the caret after the next render — see addVerdictRow.
   const verdictFocusRef = useRef<string | null>(null)
@@ -105,11 +109,16 @@ export default function MJourneyEntrySheet({
   const [mood, setMood] = useState(entry.mood || '')
   const [weather, setWeather] = useState(entry.weather || '')
   const [statsExcluded, setStatsExcluded] = useState(entry.stats_excluded ?? false)
+  // The trip this day belongs to, when the journey does not follow it yet (#2265).
+  const tripSuggestion = useJourneyTripSuggestion(entry.journey_id, trips.map(tr => tr.trip_id), entryDate, !readOnly)
+  const [isDraft, setIsDraft] = useState(entry.is_draft ?? false)
   const [pros, setPros] = useState<string[]>(entry.pros_cons?.pros ?? [])
   const [cons, setCons] = useState<string[]>(entry.pros_cons?.cons ?? [])
   const [tags, setTags] = useState<string[]>(entry.tags ?? [])
   const [tagInput, setTagInput] = useState('')
   const [photos, setPhotos] = useState<(JourneyPhoto | GalleryPhoto)[]>(entry.photos || [])
+  // Sends a photo to the front in one request, the same way the desktop editor does (#824).
+  const photoOrder = useEntryPhotoOrder(entry.id, photos, setPhotos)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [pendingLinkIds, setPendingLinkIds] = useState<number[]>([])
   const [pendingProviderGroups, setPendingProviderGroups] = useState<PendingProviderGroup[]>([])
@@ -151,7 +160,7 @@ export default function MJourneyEntrySheet({
     if (!addonsLoaded) return
     if (photoProviders.length === 0) { setProviders([]); return }
     let active = true
-    ;(async () => {
+    ;void (async () => {
       const connected: { id: string; name: string }[] = []
       for (const provider of photoProviders) {
         try {
@@ -195,7 +204,7 @@ export default function MJourneyEntrySheet({
         setLocationLng(pos.lng)
 
         const [placeResult, weatherResult] = await Promise.allSettled([
-          mapsApi.reverse(pos.lat, pos.lng, language),
+          mapsApi.reverse(pos.lat, pos.lng, placeLang),
           weatherApi.getCurrent(pos.lat, pos.lng, language),
         ])
         if (!active) return
@@ -213,7 +222,7 @@ export default function MJourneyEntrySheet({
       })
 
     return () => { active = false }
-  }, [quickCapture, readOnly, entry.location_lat, entry.location_lng, entry.entry_date, t, language])
+  }, [quickCapture, readOnly, entry.location_lat, entry.location_lng, entry.entry_date, t, language, placeLang])
 
   const isDirty =
     title !== (entry.title || '') ||
@@ -224,6 +233,7 @@ export default function MJourneyEntrySheet({
     mood !== (entry.mood || '') ||
     weather !== (entry.weather || '') ||
     statsExcluded !== (entry.stats_excluded ?? false) ||
+    isDraft !== (entry.is_draft ?? false) ||
     pros.filter(p => p.trim()).join('\n') !== (entry.pros_cons?.pros ?? []).join('\n') ||
     cons.filter(c => c.trim()).join('\n') !== (entry.pros_cons?.cons ?? []).join('\n') ||
     tags.join('\n') !== (entry.tags ?? []).join('\n') ||
@@ -271,6 +281,7 @@ export default function MJourneyEntrySheet({
         location_lat: locationLat,
         location_lng: locationLng,
         stats_excluded: offersStatsToggle ? statsExcluded : undefined,
+        is_draft: isDraft,
         mood: mood || null,
         weather: weather || null,
         tags: tags.filter(tag => tag.trim()),
@@ -339,7 +350,7 @@ export default function MJourneyEntrySheet({
     }
     locationTimerRef.current = setTimeout(async () => {
       try {
-        const res = await mapsApi.search(query)
+        const res = await mapsApi.search(query, placeLang)
         setLocationResults((res.places || []).slice(0, 6).map((p: { name: string; address?: string; lat: number | string; lng: number | string }) => ({
           name: p.name, address: p.address, lat: Number(p.lat), lng: Number(p.lng),
         })))
@@ -366,7 +377,7 @@ export default function MJourneyEntrySheet({
       setLocationResults([])
       setShowLocationResults(false)
       try {
-        const data = await mapsApi.reverse(pos.lat, pos.lng, language)
+        const data = await mapsApi.reverse(pos.lat, pos.lng, placeLang)
         const name = data.name || data.address
         // Only replace the coordinate fallback — don't clobber a search
         // result the user may have picked while the reverse call was in flight.
@@ -634,25 +645,7 @@ export default function MJourneyEntrySheet({
                 {!readOnly && idx > 0 && photos.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => {
-                      // The PATCHes stay outside the updater — StrictMode invokes it
-                      // twice in dev and would send the whole batch a second time.
-                      const prevOrder = photos
-                      const next = [...photos]
-                      const [moved] = next.splice(idx, 1)
-                      next.unshift(moved)
-                      setPhotos(next)
-                      // Same as the desktop editor: the order is shared with the other
-                      // members, the share view and the PDF, so a run the server refused
-                      // outright goes back instead of passing for saved.
-                      void (async () => {
-                        const results = await Promise.allSettled(next.map((ph, i) => journeyApi.updatePhoto(ph.id, { sort_order: i })))
-                        const rejected = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[]
-                        if (rejected.length === 0) return
-                        toast.error(getApiErrorMessage(rejected[0].reason, t('common.error')))
-                        if (rejected.length === results.length) setPhotos(prevOrder)
-                      })()
-                    }}
+                    onClick={() => photoOrder.makeFirst(idx)}
                     className="absolute bottom-[3px] left-[3px] rounded-full bg-black/60 px-[6px] py-[1px] font-geist text-[0.5rem] font-bold text-white"
                   >
                     {t('journey.editor.photoFirst')}
@@ -828,6 +821,20 @@ export default function MJourneyEntrySheet({
           </div>
         </div>
 
+        {tripSuggestion.trip && (
+          <div className={`mt-3 flex items-center gap-3 px-3 py-[10px] ${fieldShell}`}>
+            <Briefcase size={15} strokeWidth={2} className="flex-none text-m-muted" />
+            <div className="min-w-0 flex-1">
+              <div className="text-[0.75rem] font-semibold text-m-ink [overflow-wrap:anywhere]">{tripSuggestion.trip.title}</div>
+              <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">{t('journey.editor.tripSuggestionHint')}</div>
+            </div>
+            <button type="button" onClick={() => void tripSuggestion.link()} disabled={tripSuggestion.linking}
+              className="flex-none rounded-full bg-m-act px-3 py-[6px] text-[0.6875rem] font-bold text-m-actfg disabled:opacity-50">
+              {t('journey.trips.linkTrip')}
+            </button>
+          </div>
+        )}
+
         {/* Location */}
         <div className="relative mt-3">
           <div className={`${eyebrow} mb-[5px]`}>{t('journey.editor.location')}</div>
@@ -896,6 +903,15 @@ export default function MJourneyEntrySheet({
             <MToggle checked={statsExcluded} onChange={setStatsExcluded} disabled={readOnly} ariaLabel={t('journey.editor.statsExcluded')} />
           </div>
         )}
+
+        {/* Kept among the contributors until it is ready (#696). */}
+        <div className={`mt-3 flex items-center gap-3 px-3 py-[10px] ${fieldShell}`}>
+          <div className="min-w-0 flex-1">
+            <div className="text-[0.75rem] font-semibold text-m-ink">{t('journey.editor.draft')}</div>
+            <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">{t('journey.editor.draftHint')}</div>
+          </div>
+          <MToggle checked={isDraft} onChange={setIsDraft} disabled={readOnly} ariaLabel={t('journey.editor.draft')} />
+        </div>
 
         {/* Mood */}
         {showMood && !captureOnly && <>

@@ -8,6 +8,7 @@ import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.servic
 import { publicReservationSql, publicStaySql } from '../reservations/reservation-visibility';
 import { SettingsService } from '../settings/settings.service';
 import type { User } from '../../types';
+import { travelOnly, withoutImages } from './share-view.helpers';
 
 type Trip = TripAccess;
 
@@ -34,6 +35,8 @@ export interface SharePermissions {
   share_packing?: boolean;
   share_budget?: boolean;
   share_collab?: boolean;
+  share_travel_only?: boolean;
+  share_hide_images?: boolean;
 }
 
 export interface ShareTokenInfo {
@@ -44,6 +47,8 @@ export interface ShareTokenInfo {
   share_packing: boolean;
   share_budget: boolean;
   share_collab: boolean;
+  share_travel_only: boolean;
+  share_hide_images: boolean;
 }
 
 /**
@@ -181,23 +186,26 @@ export class ShareService {
       share_packing = false,
       share_budget = false,
       share_collab = false,
+      share_travel_only = false,
+      share_hide_images = false,
     } = permissions;
+    const flags = [share_map, share_bookings, share_packing, share_budget, share_collab, share_travel_only, share_hide_images].map(f => (f ? 1 : 0));
 
     const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
     return this.dbs.transaction(() => {
       const existing = this.dbs.get<{ token: string }>('SELECT token FROM share_tokens WHERE trip_id = ?', tripId);
       if (existing) {
         this.dbs.run(
-          'UPDATE share_tokens SET share_map = ?, share_bookings = ?, share_packing = ?, share_budget = ?, share_collab = ?, expires_at = ? WHERE trip_id = ?',
-          share_map ? 1 : 0, share_bookings ? 1 : 0, share_packing ? 1 : 0, share_budget ? 1 : 0, share_collab ? 1 : 0, expiresAt, tripId,
+          'UPDATE share_tokens SET share_map = ?, share_bookings = ?, share_packing = ?, share_budget = ?, share_collab = ?, share_travel_only = ?, share_hide_images = ?, expires_at = ? WHERE trip_id = ?',
+          ...flags, expiresAt, tripId,
         );
         return { token: existing.token, created: false };
       }
 
       const token = crypto.randomBytes(24).toString('base64url');
       this.dbs.run(
-        'INSERT INTO share_tokens (trip_id, token, created_by, share_map, share_bookings, share_packing, share_budget, share_collab, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        tripId, token, userId, share_map ? 1 : 0, share_bookings ? 1 : 0, share_packing ? 1 : 0, share_budget ? 1 : 0, share_collab ? 1 : 0, expiresAt,
+        'INSERT INTO share_tokens (trip_id, token, created_by, share_map, share_bookings, share_packing, share_budget, share_collab, share_travel_only, share_hide_images, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        tripId, token, userId, ...flags, expiresAt,
       );
       return { token, created: true };
     });
@@ -217,6 +225,8 @@ export class ShareService {
       share_packing: !!row.share_packing,
       share_budget: !!row.share_budget,
       share_collab: !!row.share_collab,
+      share_travel_only: !!row.share_travel_only,
+      share_hide_images: !!row.share_hide_images,
     };
   }
 
@@ -280,6 +290,8 @@ export class ShareService {
       share_packing: !!shareRow.share_packing,
       share_budget: !!shareRow.share_budget,
       share_collab: !!shareRow.share_collab,
+      share_travel_only: !!shareRow.share_travel_only,
+      share_hide_images: !!shareRow.share_hide_images,
     };
 
     // Itinerary — days with assignments/notes, and the place pool
@@ -449,10 +461,20 @@ export class ShareService {
     const ownerCartoKey = ownerSettings['carto_api_key'];
     const cartoApiKey = typeof ownerCartoKey === 'string' ? ownerCartoKey.trim() : '';
 
+    // The owner's narrowing options (#1712) apply last, over what the flags
+    // above already let through.
+    let view = { assignments, dayNotes, places, reservations };
+    if (permissions.share_travel_only) {
+      const stayPlaceIds = new Set(this.dbs.all<{ place_id: number }>(
+        `SELECT DISTINCT a.place_id FROM day_accommodations a WHERE a.trip_id = ? AND ${publicStaySql('a')}`, tripId,
+      ).map(r => r.place_id));
+      view = travelOnly(view, stayPlaceIds);
+    }
+    if (permissions.share_hide_images) view = withoutImages(view);
+
     return {
       trip, baseCurrency, cartoApiKey, categories, permissions,
-      days, assignments, dayNotes, places,
-      reservations, accommodations,
+      days, ...view, accommodations,
       packing, budget,
       collab: collabMessages,
     };
@@ -468,11 +490,13 @@ export class ShareService {
    * mirroring the authenticated bytes endpoint.
    */
   async getSharedPlacePhotoKey(token: string, placeId: string): Promise<string | null> {
-    const shareRow = this.dbs.get<{ trip_id: string; share_map: number }>(
-      "SELECT trip_id, share_map FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))",
+    const shareRow = this.dbs.get<{ trip_id: string; share_map: number; share_hide_images?: number }>(
+      "SELECT trip_id, share_map, share_hide_images FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))",
       token,
     );
     if (!shareRow) return null;
+    // A link that leaves the photos out (#1712) does not serve them either.
+    if (shareRow.share_hide_images) return null;
     // Place photos belong to the map/itinerary section — withhold them when the
     // owner disabled the map, matching getSharedTripData which no longer returns
     // the places (and thus their ids) in that case.

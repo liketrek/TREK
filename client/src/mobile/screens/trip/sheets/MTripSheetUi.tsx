@@ -62,10 +62,17 @@ interface StatBoxProps {
   label: ReactNode
   blurred?: boolean
   onClick?: () => void
+  /** Colours the label, so a check-in or check-out time carries its own state. */
+  labelTone?: 'confirmed' | 'danger'
+}
+
+const LABEL_TONE: Record<NonNullable<StatBoxProps['labelTone']>, string> = {
+  confirmed: 'font-bold uppercase tracking-[.05em] text-[color:var(--m-st-confirmed)]',
+  danger: 'font-bold uppercase tracking-[.05em] text-[color:var(--m-st-danger)]',
 }
 
 /** Small stat box (check-in / times / code): value 700 tabular over a faint Geist label. */
-export function StatBox({ value, label, blurred = false, onClick }: StatBoxProps) {
+export function StatBox({ value, label, blurred = false, onClick, labelTone }: StatBoxProps) {
   const box = 'min-w-0 flex-1 rounded-[10px] bg-[color:var(--m-ic)] px-[9px] py-[7px] text-center'
   const inner = (
     <>
@@ -74,7 +81,7 @@ export function StatBox({ value, label, blurred = false, onClick }: StatBoxProps
       >
         {value}
       </div>
-      <div className="truncate font-geist text-[0.5625rem] text-m-faint">{label}</div>
+      <div className={`truncate font-geist text-[0.5625rem] ${labelTone ? LABEL_TONE[labelTone] : 'text-m-faint'}`}>{label}</div>
     </>
   )
   // A tappable stat is a real button — value and label give it its name. Without

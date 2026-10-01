@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'Майже на місці...',
   'trip.mobilePlan': 'План',
   'trip.mobilePlaces': 'Місця',
+  'trip.panelWidth': 'Ширина панелі',
   'trip.toast.placeUpdated': 'Місце оновлено',
   'trip.toast.tripUpdated': 'Подорож оновлено',
   'trip.toast.placeAdded': 'Місце додано',

@@ -1,10 +1,26 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type ChangeEvent } from 'react'
 import { backupApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
-import { Download, Trash2, Plus, RefreshCw, RotateCcw, Upload, Clock, Check, HardDrive, AlertTriangle } from 'lucide-react'
+import { Download, Trash2, Plus, RefreshCw, RotateCcw, Upload, Clock, Check, HardDrive, Loader2 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import CustomSelect from '../shared/CustomSelect'
+import ConfirmDialog from '../shared/ConfirmDialog'
+import EmptyState from '../shared/EmptyState'
+import { Tooltip } from '../shared/Tooltip'
+import { fs } from '../shared/DialogShell'
+import { Segmented } from '../shared/dialogParts'
+import ToggleSwitch from '../Settings/ToggleSwitch'
+import {
+  ChoiceChips,
+  SETTINGS_BUTTON,
+  SETTINGS_BUTTON_PRIMARY,
+  SETTINGS_ICON_BUTTON,
+  SettingRow,
+  SettingRows,
+  SettingsCard,
+  StatusPill,
+} from '../Settings/settingsKit'
 import { getApiErrorMessage } from '../../types'
 
 const INTERVAL_OPTIONS = [
@@ -37,20 +53,36 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
 const DAYS_OF_MONTH = Array.from({ length: 28 }, (_, i) => i + 1)
 
+/** The compact buttons of a backup row: white on a hairline, a size under the card's own. */
+const ROW_BUTTON = 'inline-flex items-center gap-1.5 rounded-[10px] bg-surface-card px-2.5 py-1.5 font-medium text-content shadow-sm ring-1 ring-edge-faint hover:bg-surface-secondary disabled:cursor-default disabled:opacity-50'
+
+interface BackupItem {
+  filename: string
+  created_at?: string | null
+  size?: number | null
+}
+
+interface RestoreTarget {
+  type: 'file' | 'upload'
+  filename: string
+  file?: File
+}
+
 export default function BackupPanel() {
-  const [backups, setBackups] = useState([])
+  const [backups, setBackups] = useState<BackupItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
-  const [restoringFile, setRestoringFile] = useState(null)
+  const [restoringFile, setRestoringFile] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [autoSettings, setAutoSettings] = useState({ enabled: false, interval: 'daily', keep_days: 7, hour: 2, day_of_week: 0, day_of_month: 1 })
   const [autoSettingsSaving, setAutoSettingsSaving] = useState(false)
   const [autoSettingsDirty, setAutoSettingsDirty] = useState(false)
   const [serverTimezone, setServerTimezone] = useState('')
-  const [restoreConfirm, setRestoreConfirm] = useState(null) // { type: 'file'|'upload', filename, file? }
-  const fileInputRef = useRef(null)
+  const [restoreConfirm, setRestoreConfirm] = useState<RestoreTarget | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
-  const { t, language, locale } = useTranslation()
+  const { t, locale } = useTranslation()
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
 
   const loadBackups = async () => {
@@ -73,7 +105,7 @@ export default function BackupPanel() {
     } catch {}
   }
 
-  useEffect(() => { loadBackups(); loadAutoSettings() }, [])
+  useEffect(() => { void loadBackups(); void loadAutoSettings() }, [])
 
   const handleCreate = async () => {
     setIsCreating(true)
@@ -88,12 +120,12 @@ export default function BackupPanel() {
     }
   }
 
-  const handleRestore = (filename) => {
+  const handleRestore = (filename: string) => {
     setRestoreConfirm({ type: 'file', filename })
   }
 
-  const handleUploadRestore = (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0]
+  const handleUploadRestore = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
     setRestoreConfirm({ type: 'upload', filename: file.name, file })
@@ -127,8 +159,15 @@ export default function BackupPanel() {
     }
   }
 
-  const handleDelete = async (filename) => {
-    if (!confirm(t('backup.confirm.delete', { name: filename }))) return
+  // The question is asked in the planner's confirm dialog; the delete itself runs once it is answered.
+  const handleDelete = (filename: string) => {
+    setDeleteTarget(filename)
+  }
+
+  const executeDelete = async () => {
+    const filename = deleteTarget
+    setDeleteTarget(null)
+    if (!filename) return
     try {
       await backupApi.delete(filename)
       toast.success(t('backup.toast.deleted'))
@@ -138,7 +177,7 @@ export default function BackupPanel() {
     }
   }
 
-  const handleAutoSettingsChange = (key, value) => {
+  const handleAutoSettingsChange = (key: string, value: unknown) => {
     setAutoSettings(prev => ({ ...prev, [key]: value }))
     setAutoSettingsDirty(true)
   }
@@ -157,13 +196,13 @@ export default function BackupPanel() {
     }
   }
 
-  const formatSize = (bytes) => {
+  const formatSize = (bytes: number | null | undefined) => {
     if (!bytes) return '-'
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`
   }
 
-  const formatDate = (dateStr) => {
+  const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return '-'
     try {
       const opts: Intl.DateTimeFormatOptions = {
@@ -175,352 +214,315 @@ export default function BackupPanel() {
     } catch { return dateStr }
   }
 
-  const isAuto = (filename) => filename.startsWith('auto-backup-')
+  const isAuto = (filename: string) => filename.startsWith('auto-backup-')
 
-  return (
-    <div className="flex flex-col gap-6">
+  const headerActions = (
+    <>
+      <Tooltip label={t('backup.refresh')}>
+        <button type="button"
+          onClick={loadBackups}
+          disabled={isLoading}
+          aria-label={t('backup.refresh')}
+          className={SETTINGS_ICON_BUTTON}
+        >
+          <RefreshCw size={14} strokeWidth={2} className={isLoading ? 'animate-spin' : ''} />
+        </button>
+      </Tooltip>
 
-      {/* Manual Backups */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <HardDrive className="w-5 h-5 text-gray-400" />
-            <div>
-              <h2 className="font-semibold text-content">{t('backup.title')}</h2>
-              <p className="text-xs mt-1 text-content-muted">{t('backup.subtitle')}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button type="button"
-              onClick={loadBackups}
-              disabled={isLoading}
-              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-              title={t('backup.refresh')}
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
+      {/* Upload & Restore */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".zip"
+        className="hidden"
+        onChange={handleUploadRestore}
+      />
+      <button type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isUploading}
+        className={SETTINGS_BUTTON}
+        style={fs(12.5, 'body')}
+        title={isUploading ? t('backup.uploading') : t('backup.upload')}
+      >
+        {isUploading
+          ? <Loader2 size={14} strokeWidth={2.2} className="animate-spin" />
+          : <Upload size={14} strokeWidth={2.2} />}
+        <span>{isUploading ? t('backup.uploading') : t('backup.upload')}</span>
+      </button>
 
-            {/* Upload & Restore */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".zip"
-              className="hidden"
-              onChange={handleUploadRestore}
-            />
-            <button type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className="flex items-center gap-2 border border-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-60"
-              title={isUploading ? t('backup.uploading') : t('backup.upload')}
-            >
-              {isUploading ? (
-                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Upload className="w-4 h-4" />
-              )}
-              <span className="hidden sm:inline">{isUploading ? t('backup.uploading') : t('backup.upload')}</span>
-            </button>
+      <button type="button"
+        onClick={handleCreate}
+        disabled={isCreating}
+        className={SETTINGS_BUTTON_PRIMARY}
+        style={fs(12.5, 'body')}
+        title={isCreating ? t('backup.creating') : t('backup.create')}
+      >
+        {isCreating
+          ? <Loader2 size={14} strokeWidth={2.2} className="animate-spin" />
+          : <Plus size={14} strokeWidth={2.2} />}
+        <span>{isCreating ? t('backup.creating') : t('backup.create')}</span>
+      </button>
+    </>
+  )
 
-            <button type="button"
-              onClick={handleCreate}
-              disabled={isCreating}
-              className="flex items-center gap-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-3 sm:px-4 py-2 rounded-lg hover:bg-slate-900 text-sm font-medium disabled:opacity-60"
-              title={isCreating ? t('backup.creating') : t('backup.create')}
-            >
-              {isCreating ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4" />
-              )}
-              <span className="hidden sm:inline">{isCreating ? t('backup.creating') : t('backup.create')}</span>
-            </button>
-          </div>
-        </div>
-
-        {isLoading && backups.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-gray-400">
-            <div className="w-6 h-6 border-2 border-gray-300 border-t-slate-700 rounded-full animate-spin mr-2" />
-            {t('common.loading')}
-          </div>
-        ) : backups.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <HardDrive className="w-10 h-10 mb-3 mx-auto opacity-40" />
-            <p className="text-sm">{t('backup.empty')}</p>
-            <button type="button" onClick={handleCreate} className="mt-4 text-slate-700 text-sm hover:underline">
-              {t('backup.createFirst')}
-            </button>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {backups.map(backup => (
-              <div key={backup.filename} className="flex items-center gap-4 py-3">
-                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  {isAuto(backup.filename)
-                    ? <RefreshCw className="w-4 h-4 text-blue-500" />
-                    : <HardDrive className="w-4 h-4 text-gray-500" />
-                  }
+  let backupList
+  if (isLoading && backups.length === 0) {
+    backupList = (
+      <div className="flex items-center justify-center gap-2 py-10 text-content-faint" style={fs(12.5, 'body')}>
+        <Loader2 size={16} strokeWidth={2} className="animate-spin" />
+        {t('common.loading')}
+      </div>
+    )
+  } else if (backups.length === 0) {
+    backupList = (
+      <EmptyState
+        title={t('backup.empty')}
+        size={84}
+        compact
+        surface="var(--bg-secondary)"
+        className="!py-6"
+        action={
+          <button type="button" onClick={handleCreate} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+            <Plus size={14} strokeWidth={2.2} />
+            {t('backup.createFirst')}
+          </button>
+        }
+      />
+    )
+  } else {
+    backupList = (
+      <SettingRows>
+        {backups.map(backup => {
+          const auto = isAuto(backup.filename)
+          const restoring = restoringFile === backup.filename
+          return (
+            <div key={backup.filename} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3">
+              <span className="grid h-9 w-9 flex-none place-items-center rounded-[10px] bg-surface-tertiary text-content-muted">
+                {auto
+                  ? <RefreshCw size={15} strokeWidth={2} />
+                  : <HardDrive size={15} strokeWidth={2} />}
+              </span>
+              <div className="min-w-0 flex-1 basis-48">
+                <div className="flex min-w-0 items-center gap-2">
+                  <p className="m-0 truncate font-geist font-semibold text-content" style={fs(13, 'body')}>{backup.filename}</p>
+                  {auto && <StatusPill>Auto</StatusPill>}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm text-gray-900 truncate">{backup.filename}</p>
-                    {isAuto(backup.filename) && (
-                      <span className="text-xs bg-blue-50 text-blue-600 border border-blue-100 rounded-full px-2 py-0.5 whitespace-nowrap">Auto</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-gray-400">{formatDate(backup.created_at)}</span>
-                    <span className="text-xs text-gray-400">{formatSize(backup.size)}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button type="button"
-                    onClick={() => backupApi.download(backup.filename).catch(() => toast.error(t('backup.toast.downloadError')))}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    {t('backup.download')}
-                  </button>
-                  <button type="button"
-                    onClick={() => handleRestore(backup.filename)}
-                    disabled={restoringFile === backup.filename}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-50 disabled:opacity-60"
-                  >
-                    {restoringFile === backup.filename
-                      ? <div className="w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-                      : <RotateCcw className="w-3.5 h-3.5" />
-                    }
-                    {t('backup.restore')}
-                  </button>
-                  <button type="button"
-                    onClick={() => handleDelete(backup.filename)}
-                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <div className="mt-0.5 flex items-center gap-1.5 font-geist tabular-nums text-content-faint" style={fs(11.5)}>
+                  <span>{formatDate(backup.created_at)}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{formatSize(backup.size)}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <div className="flex flex-none items-center gap-1.5">
+                <button type="button"
+                  onClick={() => backupApi.download(backup.filename).catch(() => toast.error(t('backup.toast.downloadError')))}
+                  className={ROW_BUTTON}
+                  style={fs(12, 'body')}
+                >
+                  <Download size={13} strokeWidth={2.2} />
+                  {t('backup.download')}
+                </button>
+                <button type="button"
+                  onClick={() => handleRestore(backup.filename)}
+                  disabled={restoring}
+                  className={ROW_BUTTON}
+                  style={fs(12, 'body')}
+                >
+                  {restoring
+                    ? <Loader2 size={13} strokeWidth={2.2} className="animate-spin text-warning" />
+                    : <RotateCcw size={13} strokeWidth={2.2} className="text-warning" />}
+                  {t('backup.restore')}
+                </button>
+                <Tooltip label={t('common.delete')}>
+                  <button type="button"
+                    onClick={() => handleDelete(backup.filename)}
+                    aria-label={t('common.delete')}
+                    className={`${SETTINGS_ICON_BUTTON} hover:!text-danger`}
+                  >
+                    <Trash2 size={14} strokeWidth={2} />
+                  </button>
+                </Tooltip>
+              </div>
+            </div>
+          )
+        })}
+      </SettingRows>
+    )
+  }
+
+  const hourOptions = HOURS.map(h => {
+    let label: string
+    if (is12h) {
+      const period = h >= 12 ? 'PM' : 'AM'
+      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+      label = `${h12}:00 ${period}`
+    } else {
+      label = `${String(h).padStart(2, '0')}:00`
+    }
+    return { value: String(h), label }
+  })
+
+  return (
+    <div className="flex flex-col">
+
+      {/* Manual Backups */}
+      <SettingsCard
+        icon={HardDrive}
+        title={t('backup.title')}
+        hint={t('backup.subtitle')}
+        action={headerActions}
+      >
+        {backupList}
+      </SettingsCard>
 
       {/* Auto-Backup Settings */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Clock className="w-5 h-5 text-gray-400" />
-          <div>
-            <h2 className="font-semibold text-content">{t('backup.auto.title')}</h2>
-            <p className="text-xs mt-1 text-content-muted">{t('backup.auto.subtitle')}</p>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-5">
-          {/* Enable toggle */}
-          <label className="flex items-center justify-between gap-4 cursor-pointer">
-            <div className="min-w-0 text-sm font-medium text-gray-900">
-              {t('backup.auto.enable')}
-              <p className="text-xs font-normal text-gray-500 mt-0.5">{t('backup.auto.enableHint')}</p>
-            </div>
-            <button type="button"
-              onClick={() => handleAutoSettingsChange('enabled', !autoSettings.enabled)}
-              className="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors"
-              style={{ background: autoSettings.enabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
-            >
-              <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-                style={{ transform: autoSettings.enabled ? 'translateX(20px)' : 'translateX(0)' }} />
-            </button>
+      <SettingsCard icon={Clock} title={t('backup.auto.title')} hint={t('backup.auto.subtitle')}>
+        <SettingRows>
+          {/* The whole row is the switch's label, so a click on the text flips it too. */}
+          <label className="flex cursor-pointer items-center gap-4 px-3.5 py-3">
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium text-content" style={fs(13, 'body')}>{t('backup.auto.enable')}</span>
+              <span className="mt-0.5 block leading-snug text-content-faint" style={fs(11.5)}>{t('backup.auto.enableHint')}</span>
+            </span>
+            <ToggleSwitch
+              on={!!autoSettings.enabled}
+              onToggle={() => handleAutoSettingsChange('enabled', !autoSettings.enabled)}
+              label={t('backup.auto.enable')}
+            />
           </label>
 
           {autoSettings.enabled && (
             <>
-              {/* Interval */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.interval')}</label>
-                <div className="flex flex-wrap gap-2">
-                  {INTERVAL_OPTIONS.map(opt => (
-                    <button type="button"
-                      key={opt.value}
-                      onClick={() => handleAutoSettingsChange('interval', opt.value)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                        autoSettings.interval === opt.value
-                          ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-700'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      {t(opt.labelKey)}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <SettingRow
+                label={t('backup.auto.interval')}
+                control={
+                  <Segmented<string>
+                    label={t('backup.auto.interval')}
+                    value={autoSettings.interval}
+                    onChange={v => handleAutoSettingsChange('interval', v)}
+                    options={INTERVAL_OPTIONS.map(opt => ({ value: opt.value, label: t(opt.labelKey) }))}
+                  />
+                }
+              />
 
               {/* Hour picker (for daily, weekly, monthly) */}
               {autoSettings.interval !== 'hourly' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.hour')}</label>
-                  <CustomSelect
-                    value={String(autoSettings.hour)}
-                    onChange={v => handleAutoSettingsChange('hour', Number.parseInt(String(v), 10))}
-                    size="sm"
-                    options={HOURS.map(h => {
-                      let label: string
-                      if (is12h) {
-                        const period = h >= 12 ? 'PM' : 'AM'
-                        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-                        label = `${h12}:00 ${period}`
-                      } else {
-                        label = `${String(h).padStart(2, '0')}:00`
-                      }
-                      return { value: String(h), label }
-                    })}
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    {t('backup.auto.hourHint', { format: is12h ? '12h' : '24h' })}{serverTimezone ? ` (Timezone: ${serverTimezone})` : ''}
-                  </p>
-                </div>
+                <SettingRow
+                  label={t('backup.auto.hour')}
+                  hint={<>{t('backup.auto.hourHint', { format: is12h ? '12h' : '24h' })}{serverTimezone ? ` (Timezone: ${serverTimezone})` : ''}</>}
+                  control={
+                    <div className="w-40">
+                      <CustomSelect
+                        value={String(autoSettings.hour)}
+                        onChange={v => handleAutoSettingsChange('hour', Number.parseInt(String(v), 10))}
+                        size="sm"
+                        options={hourOptions}
+                      />
+                    </div>
+                  }
+                />
               )}
 
               {/* Day of week (for weekly) */}
               {autoSettings.interval === 'weekly' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.dayOfWeek')}</label>
-                  <div className="flex flex-wrap gap-2">
-                    {DAYS_OF_WEEK.map(opt => (
-                      <button type="button"
-                        key={opt.value}
-                        onClick={() => handleAutoSettingsChange('day_of_week', opt.value)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                          autoSettings.day_of_week === opt.value
-                            ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-700'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        {t(opt.labelKey)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <SettingRow
+                  stacked
+                  label={t('backup.auto.dayOfWeek')}
+                  control={
+                    <ChoiceChips<string>
+                      label={t('backup.auto.dayOfWeek')}
+                      value={String(autoSettings.day_of_week)}
+                      onChange={v => handleAutoSettingsChange('day_of_week', Number(v))}
+                      options={DAYS_OF_WEEK.map(opt => ({ value: String(opt.value), label: t(opt.labelKey) }))}
+                    />
+                  }
+                />
               )}
 
               {/* Day of month (for monthly) */}
               {autoSettings.interval === 'monthly' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.dayOfMonth')}</label>
-                  <CustomSelect
-                    value={String(autoSettings.day_of_month)}
-                    onChange={v => handleAutoSettingsChange('day_of_month', Number.parseInt(String(v), 10))}
-                    size="sm"
-                    options={DAYS_OF_MONTH.map(d => ({ value: String(d), label: String(d) }))}
-                  />
-                  <p className="text-xs text-gray-400 mt-1">{t('backup.auto.dayOfMonthHint')}</p>
-                </div>
+                <SettingRow
+                  label={t('backup.auto.dayOfMonth')}
+                  hint={t('backup.auto.dayOfMonthHint')}
+                  control={
+                    <div className="w-28">
+                      <CustomSelect
+                        value={String(autoSettings.day_of_month)}
+                        onChange={v => handleAutoSettingsChange('day_of_month', Number.parseInt(String(v), 10))}
+                        size="sm"
+                        options={DAYS_OF_MONTH.map(d => ({ value: String(d), label: String(d) }))}
+                      />
+                    </div>
+                  }
+                />
               )}
 
               {/* Keep duration */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t('backup.auto.keepLabel')}</label>
-                <div className="flex flex-wrap gap-2">
-                  {KEEP_OPTIONS.map(opt => (
-                    <button type="button"
-                      key={opt.value}
-                      onClick={() => handleAutoSettingsChange('keep_days', opt.value)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                        autoSettings.keep_days === opt.value
-                          ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-700'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      {t(opt.labelKey)}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <SettingRow
+                stacked
+                label={t('backup.auto.keepLabel')}
+                control={
+                  <ChoiceChips<string>
+                    label={t('backup.auto.keepLabel')}
+                    value={String(autoSettings.keep_days)}
+                    onChange={v => handleAutoSettingsChange('keep_days', Number(v))}
+                    options={KEEP_OPTIONS.map(opt => ({ value: String(opt.value), label: t(opt.labelKey) }))}
+                  />
+                }
+              />
             </>
           )}
+        </SettingRows>
 
-          {/* Save button */}
-          <div className="flex justify-end pt-2 border-t border-gray-100">
-            <button type="button"
-              onClick={handleSaveAutoSettings}
-              disabled={autoSettingsSaving || !autoSettingsDirty}
-              className="flex items-center gap-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-2 rounded-lg hover:bg-slate-900 text-sm font-medium disabled:opacity-50 transition-colors"
-            >
-              {autoSettingsSaving
-                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : <Check className="w-4 h-4" />
-              }
-              {autoSettingsSaving ? t('common.saving') : t('common.save')}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Restore Warning Modal */}
-      {restoreConfirm && (
-        <div
-          // Dismiss-on-backdrop is a mouse shortcut for the Cancel button below;
-          // the backdrop itself carries no semantics of its own.
-          role="presentation"
-          className="bg-[rgba(0,0,0,0.5)]"
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-          onClick={() => setRestoreConfirm(null)}
-        >
-          <div
-            role="presentation"
-            onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 440, borderRadius: 16, overflow: 'hidden' }}
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+        {/* Save button */}
+        <div className="flex justify-end">
+          <button type="button"
+            onClick={handleSaveAutoSettings}
+            disabled={autoSettingsSaving || !autoSettingsDirty}
+            className={SETTINGS_BUTTON_PRIMARY}
+            style={fs(13, 'body')}
           >
-            {/* Red header */}
-            <div style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="bg-[rgba(255,255,255,0.2)]" style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <AlertTriangle size={20} className="text-white" />
-              </div>
-              <div>
-                <h3 className="text-white" style={{ margin: 0, fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700 }}>
-                  {t('backup.restoreConfirmTitle')}
-                </h3>
-                <p className="text-[rgba(255,255,255,0.8)]" style={{ margin: '2px 0 0', fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>
-                  {restoreConfirm.filename}
-                </p>
-              </div>
-            </div>
-
-            {/* Body */}
-            <div style={{ padding: '20px 24px' }}>
-              <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', lineHeight: 1.6, margin: 0 }}>
-                {t('backup.restoreWarning')}
-              </p>
-
-              <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: 1.5 }}
-                className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
-              >
-                {t('backup.restoreTip')}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div style={{ padding: '0 24px 20px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button type="button"
-                onClick={() => setRestoreConfirm(null)}
-                className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                {t('common.cancel')}
-              </button>
-              <button type="button"
-                onClick={executeRestore}
-                className="bg-[#dc2626] text-white"
-                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#b91c1c'}
-                onMouseLeave={e => e.currentTarget.style.background = '#dc2626'}
-              >
-                {t('backup.restoreConfirm')}
-              </button>
-            </div>
-          </div>
+            {autoSettingsSaving
+              ? <Loader2 size={14} strokeWidth={2.2} className="animate-spin" />
+              : <Check size={14} strokeWidth={2.2} />}
+            {autoSettingsSaving ? t('common.saving') : t('common.save')}
+          </button>
         </div>
-      )}
+      </SettingsCard>
+
+      {/* Restore warning */}
+      <ConfirmDialog
+        isOpen={restoreConfirm !== null}
+        onClose={() => setRestoreConfirm(null)}
+        onConfirm={executeRestore}
+        title={t('backup.restoreConfirmTitle')}
+        message={t('backup.restoreWarning')}
+        confirmLabel={t('backup.restoreConfirm')}
+        danger
+      >
+        {restoreConfirm && (
+          <>
+            <div className="flex min-w-0 items-center gap-2.5 rounded-[12px] border border-edge-faint bg-surface-secondary px-3 py-2.5">
+              <HardDrive size={15} strokeWidth={2} className="flex-none text-content-muted" />
+              <span className="min-w-0 truncate font-geist font-semibold text-content" style={fs(12.5, 'body')}>{restoreConfirm.filename}</span>
+            </div>
+            <p className="m-0 rounded-[12px] bg-warning-soft px-3 py-2.5 leading-normal text-warning" style={fs(12, 'body')}>
+              {t('backup.restoreTip')}
+            </p>
+          </>
+        )}
+      </ConfirmDialog>
+
+      {/* Delete question */}
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={executeDelete}
+        title={t('common.delete')}
+        message={deleteTarget ? t('backup.confirm.delete', { name: deleteTarget }) : ''}
+        confirmLabel={t('common.delete')}
+        danger
+      />
     </div>
   )
 }

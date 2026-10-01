@@ -57,6 +57,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Térképek és GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Napi terv exportálása PDF-be',
+  'dayplan.pdfMine': 'Saját tervem PDF-ként',
+  'dayplan.pdfMineSub': 'Csak azok a programok és foglalások, amelyekben részt vesz',
   'dayplan.gpxTooltip': 'Exportálás GPX-ként offline térképekhez és GPS-eszközökhöz',
   'dayplan.gpxAll': 'A teljes utazás',
   'dayplan.gpxPlaces': 'Csak a helyek',
@@ -78,8 +80,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Minden helyszín kiosztva',
   'dayplan.mobile.noMatch': 'Nincs találat',
   'dayplan.mobile.createNew': 'Új helyszín létrehozása',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Minden nap kibontása', // en-fallback
+  'dayplan.collapseAll': 'Minden nap összecsukása', // en-fallback
   'dayplan.reorderDays': 'Napok átrendezése',
   'dayplan.reorderTitle': 'Napok átrendezése',
   'dayplan.reorderHint': 'A nap helyei, jegyzetei és foglalásai együtt mozognak vele.',
@@ -92,6 +94,14 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDay': 'Nap törlése',
   'dayplan.deleteDayTitle': '{day} törlése?',
   'dayplan.deleteDayBody': 'A nap kikerül az utazásból. Ez nem vonható vissza.',
+  'dayplan.excludeFromRoute': 'Kihagyás az útvonalból',
+  'dayplan.includeInRoute': 'Visszavétel az útvonalba',
+  'dayplan.offRoute': 'Útvonalon kívül',
+  'dayplan.offRouteHint': 'A napon és a térképen marad, de az útvonal kihagyja',
+  'dayplan.clearDay': 'Nap kiürítése',
+  'dayplan.clearDayTitle': '{day} kiürítése?',
+  'dayplan.clearDayBody':
+    'Minden hely lekerül erről a napról. A helyek az utazásban maradnak, a nap pedig megtartja a jegyzeteit és foglalásait.',
   'dayplan.deleteDayEmpty': 'Erre a napra nincs semmi tervezve.',
   'dayplan.impactPlaces': 'Tervezett helyek: {count}',
   'dayplan.impactPlacesHint': 'A helyek listájában maradnak.',

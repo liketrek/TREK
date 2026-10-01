@@ -1,8 +1,12 @@
-import React from 'react'
+import React, { useId, useState, type ReactNode } from 'react'
 import CustomSelect from '../../components/shared/CustomSelect'
-import { Shield, Trash2, Edit2, UserPlus, Link2, Copy, Plus } from 'lucide-react'
-import Modal from '../../components/shared/Modal'
+import { Shield, Trash2, Edit2, UserPlus, Link2, Copy, Plus, Users } from 'lucide-react'
 import PermissionsPanel from '../../components/Admin/PermissionsPanel'
+import { Tooltip } from '../../components/shared/Tooltip'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../../components/shared/DialogShell'
+import { EditorField, Segmented } from '../../components/shared/dialogParts'
+import { SettingsCard, SettingRows, SettingsHint, StatusPill, SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, SETTINGS_ICON_BUTTON } from '../../components/Settings/settingsKit'
 import type { TranslationFn } from '../../types'
 import type { useAdmin } from './useAdmin'
 
@@ -10,6 +14,21 @@ interface AdminUsersTabProps {
   admin: ReturnType<typeof useAdmin>
   t: TranslationFn
   locale: string
+}
+
+const TH = 'px-3.5 py-2.5 font-geist font-bold uppercase tracking-[.08em] text-content-faint'
+const TD = 'px-3.5 py-3 align-middle'
+
+/** An icon action of a row, named by its tooltip and its aria-label. */
+function RowIconButton({ label, onClick, disabled, danger, children }: { label: string; onClick: () => void; disabled?: boolean; danger?: boolean; children: ReactNode }) {
+  return (
+    <Tooltip label={label} disabled={disabled}>
+      <button type="button" onClick={onClick} disabled={disabled} aria-label={label}
+        className={`${SETTINGS_ICON_BUTTON} ${danger ? 'hover:!text-danger' : ''} disabled:!opacity-30 disabled:cursor-not-allowed`}>
+        {children}
+      </button>
+    </Tooltip>
+  )
 }
 
 // "Users" admin tab: user table, invite links, permissions panel + the
@@ -23,227 +42,230 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
     copyInviteLink, handleCreateInvite, handleDeleteInvite,
     handleEditUser, handleDeleteUser,
   } = admin
+  const inviteLabelId = useId()
+  // The row whose delete waits for the admin's answer in the confirm dialog.
+  const [userToDelete, setUserToDelete] = useState<(typeof users)[number] | null>(null)
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-slate-900">{t('admin.tabs.users')}</h2>
-            <p className="text-xs text-slate-400 mt-1">{users.length} {t('admin.stats.users')}</p>
-          </div>
-          <button type="button"
-            onClick={() => setShowCreateUser(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-700 transition-colors"
-          >
-            <UserPlus className="w-4 h-4" />
+      <SettingsCard
+        icon={Users}
+        title={t('admin.tabs.users')}
+        hint={<>{users.length} {t('admin.stats.users')}</>}
+        action={
+          <button type="button" onClick={() => setShowCreateUser(true)} className={SETTINGS_BUTTON_PRIMARY} style={fs(12.5, 'body')}>
+            <UserPlus size={14} strokeWidth={2.1} />
             {t('admin.createUser')}
           </button>
-        </div>
-
+        }
+      >
         {isLoading ? (
-          <div className="p-8 text-center">
-            <div className="w-8 h-8 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin mx-auto"></div>
+          <div className="grid place-items-center py-10">
+            <div className="h-7 w-7 animate-spin rounded-full border-2 border-edge border-t-[color:var(--text-primary)]" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto rounded-[12px] border border-edge-faint bg-surface-card">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="text-left text-xs font-medium text-slate-500 uppercase tracking-wider border-b border-slate-100 bg-slate-50">
-                  <th className="px-5 py-3">{t('admin.table.user')}</th>
-                  <th className="px-5 py-3">{t('admin.table.email')}</th>
-                  <th className="px-5 py-3">{t('admin.table.role')}</th>
-                  <th className="px-5 py-3">{t('admin.table.created')}</th>
-                  <th className="px-5 py-3">{t('admin.table.lastLogin')}</th>
-                  <th className="px-5 py-3 text-right">{t('admin.table.actions')}</th>
+                <tr className="border-b border-edge-faint text-left" style={fs(9.5)}>
+                  <th className={TH}>{t('admin.table.user')}</th>
+                  <th className={TH}>{t('admin.table.email')}</th>
+                  <th className={TH}>{t('admin.table.role')}</th>
+                  <th className={TH}>{t('admin.table.created')}</th>
+                  <th className={TH}>{t('admin.table.lastLogin')}</th>
+                  <th className={`${TH} text-right`}>{t('admin.table.actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 trek-stagger">
-                {users.map(u => (
-                  <tr key={u.id} className={`hover:bg-slate-50 transition-colors ${u.id === currentUser?.id ? 'bg-slate-50/60' : ''}`}>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="relative">
-                          {u.avatar_url ? (
-                            <img src={u.avatar_url} alt={u.username} className="w-8 h-8 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm font-medium text-slate-700">
-                              {u.username.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-card ${u.online ? 'bg-[#22c55e]' : 'bg-[#94a3b8]'}`} />
+              <tbody className="trek-stagger divide-y divide-edge-faint">
+                {users.map(u => {
+                  const isMe = u.id === currentUser?.id
+                  return (
+                    <tr key={u.id} className={`transition-colors hover:bg-surface-secondary ${isMe ? 'bg-surface-secondary' : ''}`}>
+                      <td className={TD}>
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <div className="relative flex-none">
+                            {u.avatar_url ? (
+                              <img src={u.avatar_url} alt={u.username} className="h-8 w-8 rounded-full object-cover" />
+                            ) : (
+                              <div className="grid h-8 w-8 place-items-center rounded-full bg-surface-tertiary font-semibold text-content-secondary" style={fs(13, 'body')}>
+                                {u.username.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface-card ${u.online ? 'bg-success' : 'bg-content-faint'}`} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="m-0 truncate font-semibold text-content" style={fs(13, 'body')}>{u.username}</p>
+                            {isMe && (
+                              <span className="text-content-faint" style={fs(11.5)}>{t('admin.you')}</span>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-900">{u.username}</p>
-                          {u.id === currentUser?.id && (
-                            <span className="text-xs text-slate-500">{t('admin.you')}</span>
-                          )}
+                      </td>
+                      <td className={`${TD} text-content-secondary`} style={fs(12.5, 'body')}>
+                        <div className="max-w-[260px] truncate">{u.email}</div>
+                      </td>
+                      <td className={TD}>
+                        {u.role === 'admin'
+                          ? <StatusPill tone="accent" icon={<Shield size={10} strokeWidth={2.4} />}>{t('settings.roleAdmin')}</StatusPill>
+                          : <StatusPill>{t('settings.roleUser')}</StatusPill>}
+                      </td>
+                      <td className={`${TD} whitespace-nowrap font-geist tabular-nums text-content-muted`} style={fs(12)}>
+                        {new Date(u.created_at).toLocaleDateString(locale)}
+                      </td>
+                      <td className={`${TD} whitespace-nowrap font-geist tabular-nums text-content-muted`} style={fs(12)}>
+                        {u.last_login ? new Date(u.last_login).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12 }) : '—'}
+                      </td>
+                      <td className={TD}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <RowIconButton label={t('admin.editUser')} onClick={() => handleEditUser(u)}>
+                            <Edit2 size={14} strokeWidth={2} />
+                          </RowIconButton>
+                          <RowIconButton label={t('admin.deleteUserTitle')} onClick={() => setUserToDelete(u)} disabled={isMe} danger>
+                            <Trash2 size={14} strokeWidth={2} />
+                          </RowIconButton>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-sm text-slate-600">{u.email}</td>
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                        u.role === 'admin'
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {u.role === 'admin' && <Shield className="w-3 h-3" />}
-                        {u.role === 'admin' ? t('settings.roleAdmin') : t('settings.roleUser')}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-sm text-slate-500">
-                      {new Date(u.created_at).toLocaleDateString(locale)}
-                    </td>
-                    <td className="px-5 py-3 text-sm text-slate-500">
-                      {u.last_login ? new Date(u.last_login).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12 }) : '—'}
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2 justify-end">
-                        <button type="button"
-                          onClick={() => handleEditUser(u)}
-                          className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-                          title={t('admin.editUser')}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button type="button"
-                          onClick={() => handleDeleteUser(u)}
-                          disabled={u.id === currentUser?.id}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                          title={t('admin.deleteUserTitle')}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </SettingsCard>
 
       {/* Invite Links (inside users tab) */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mt-6">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-slate-900">{t('admin.invite.title')}</h2>
-            <p className="text-xs text-slate-400 mt-1">{t('admin.invite.subtitle')}</p>
-          </div>
-          <button type="button"
-            onClick={() => setShowCreateInvite(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
+      <SettingsCard
+        icon={Link2}
+        title={t('admin.invite.title')}
+        hint={t('admin.invite.subtitle')}
+        action={
+          <button type="button" onClick={() => setShowCreateInvite(true)} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+            <Plus size={14} strokeWidth={2.2} />
             {t('admin.invite.create')}
           </button>
-        </div>
-
+        }
+      >
         {invites.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-400">{t('admin.invite.empty')}</div>
+          <SettingsHint className="py-4 text-center">{t('admin.invite.empty')}</SettingsHint>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <SettingRows>
             {invites.map(inv => {
               const isExpired = inv.expires_at && new Date(inv.expires_at) < new Date()
               const isUsedUp = inv.max_uses > 0 && inv.used_count >= inv.max_uses
               const isActive = !isExpired && !isUsedUp
               return (
-                <div key={inv.id} className="px-5 py-3 flex items-center gap-4">
-                  <Link2 className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-content' : 'text-[#d1d5db]'}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs font-mono text-slate-600 truncate">{inv.token.slice(0, 12)}...</code>
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                        isActive ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-400'
-                      }`}>
+                <div key={inv.id} className={`flex items-center gap-3 px-3.5 py-3 ${isActive ? '' : 'opacity-70'}`}>
+                  <span className={`grid h-8 w-8 flex-none place-items-center rounded-[10px] bg-surface-tertiary ${isActive ? 'text-content-secondary' : 'text-content-faint'}`}>
+                    <Link2 size={14} strokeWidth={2} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <code className="min-w-0 truncate font-geist font-semibold text-content" style={fs(12.5, 'body')}>{inv.token.slice(0, 12)}...</code>
+                      <StatusPill tone={isActive ? 'success' : 'neutral'}>
                         {isUsedUp ? t('admin.invite.usedUp') : isExpired ? t('admin.invite.expired') : t('admin.invite.active')}
-                      </span>
+                      </StatusPill>
                     </div>
-                    <div className="text-xs text-slate-400 mt-0.5">
+                    <div className="mt-0.5 truncate text-content-faint" style={fs(11.5)}>
                       {inv.used_count}/{inv.max_uses === 0 ? '∞' : inv.max_uses} {t('admin.invite.uses')}
                       {inv.expires_at && ` · ${t('admin.invite.expiresAt')} ${new Date(inv.expires_at).toLocaleDateString(locale)}`}
                       {inv.trip_title && ` · ${t('admin.invite.boundTo', { trip: inv.trip_title })}`}
                       {` · ${t('admin.invite.createdBy')} ${inv.created_by_name}`}
                     </div>
                   </div>
-                  {isActive && (
-                    <button type="button" onClick={() => copyInviteLink(inv.token)} title={t('admin.invite.copyLink')}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors">
-                      <Copy className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                  <button type="button" onClick={() => handleDeleteInvite(inv.id)} title={t('common.delete')}
-                    className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex flex-none items-center gap-1.5">
+                    {isActive && (
+                      <RowIconButton label={t('admin.invite.copyLink')} onClick={() => copyInviteLink(inv.token)}>
+                        <Copy size={14} strokeWidth={2} />
+                      </RowIconButton>
+                    )}
+                    <RowIconButton label={t('common.delete')} onClick={() => handleDeleteInvite(inv.id)} danger>
+                      <Trash2 size={14} strokeWidth={2} />
+                    </RowIconButton>
+                  </div>
                 </div>
               )
             })}
-          </div>
+          </SettingRows>
         )}
-      </div>
+      </SettingsCard>
 
-      <div className="mt-6"><PermissionsPanel /></div>
+      <PermissionsPanel />
 
       {/* Create Invite Modal */}
-      <Modal isOpen={showCreateInvite} onClose={() => setShowCreateInvite(false)} title={t('admin.invite.create')} size="sm">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{t('admin.invite.maxUses')}</label>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5, 0].map(n => (
-                <button key={n} type="button" onClick={() => setInviteForm(f => ({ ...f, max_uses: n }))}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${
-                    inviteForm.max_uses === n ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                  }`}>
-                  {n === 0 ? '∞' : `${n}×`}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{t('admin.invite.expiry')}</label>
-            <div className="flex gap-2">
-              {[
-                { value: 1, label: '1d' },
-                { value: 3, label: '3d' },
-                { value: 7, label: '7d' },
-                { value: 14, label: '14d' },
-                { value: '', label: '∞' },
-              ].map(opt => (
-                <button key={String(opt.value)} type="button" onClick={() => setInviteForm(f => ({ ...f, expires_in_days: opt.value as number | '' }))}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${
-                    inviteForm.expires_in_days === opt.value ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                  }`}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {inviteTrips.length > 0 && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{t('admin.invite.tripLabel')}</label>
-              <CustomSelect
-                value={inviteForm.trip_id}
-                onChange={v => setInviteForm(f => ({ ...f, trip_id: v === '' ? '' : Number(v) }))}
-                options={[
-                  { value: '', label: t('admin.invite.tripNone') },
-                  ...inviteTrips.map(tr => ({ value: tr.id, label: tr.title })),
-                ]}
-                searchable={inviteTrips.length > 8}
-                placeholder={t('admin.invite.tripNone')}
-              />
-              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{t('admin.invite.tripHint')}</p>
-            </div>
-          )}
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-            <button type="button" onClick={() => setShowCreateInvite(false)} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700">{t('common.cancel')}</button>
-            <button type="button" onClick={handleCreateInvite} className="px-4 py-2 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-700">{t('admin.invite.createAndCopy')}</button>
-          </div>
-        </div>
-      </Modal>
+      <DialogShell
+        open={showCreateInvite}
+        onClose={() => setShowCreateInvite(false)}
+        labelledBy={inviteLabelId}
+        width="narrow"
+        header={
+          <DialogHeader
+            tile={<DialogTile><Link2 size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+            tint={NEUTRAL_TINT}
+            labelId={inviteLabelId}
+            onClose={() => setShowCreateInvite(false)}
+            title={t('admin.invite.create')}
+          />
+        }
+        footer={
+          <DialogFooter>
+            <FooterSpacer />
+            <DialogButton onClick={() => setShowCreateInvite(false)}>{t('common.cancel')}</DialogButton>
+            <DialogButton variant="primary" onClick={handleCreateInvite} icon={<Copy size={14} strokeWidth={2.1} />}>
+              {t('admin.invite.createAndCopy')}
+            </DialogButton>
+          </DialogFooter>
+        }
+      >
+        <EditorField label={t('admin.invite.maxUses')}>
+          <Segmented
+            label={t('admin.invite.maxUses')}
+            fill
+            value={String(inviteForm.max_uses)}
+            onChange={v => setInviteForm(f => ({ ...f, max_uses: Number(v) }))}
+            options={[1, 2, 3, 4, 5, 0].map(n => ({ value: String(n), label: n === 0 ? '∞' : `${n}×` }))}
+          />
+        </EditorField>
+        <EditorField label={t('admin.invite.expiry')}>
+          <Segmented
+            label={t('admin.invite.expiry')}
+            fill
+            value={inviteForm.expires_in_days === '' ? 'never' : String(inviteForm.expires_in_days)}
+            onChange={v => setInviteForm(f => ({ ...f, expires_in_days: v === 'never' ? '' : Number(v) }))}
+            options={[
+              { value: '1', label: '1d' },
+              { value: '3', label: '3d' },
+              { value: '7', label: '7d' },
+              { value: '14', label: '14d' },
+              { value: 'never', label: '∞' },
+            ]}
+          />
+        </EditorField>
+        {inviteTrips.length > 0 && (
+          <EditorField label={t('admin.invite.tripLabel')} hint={t('admin.invite.tripHint')}>
+            <CustomSelect
+              value={inviteForm.trip_id}
+              onChange={v => setInviteForm(f => ({ ...f, trip_id: v === '' ? '' : Number(v) }))}
+              options={[
+                { value: '', label: t('admin.invite.tripNone') },
+                ...inviteTrips.map(tr => ({ value: tr.id, label: tr.title })),
+              ]}
+              searchable={inviteTrips.length > 8}
+              placeholder={t('admin.invite.tripNone')}
+            />
+          </EditorField>
+        )}
+      </DialogShell>
+
+      <ConfirmDialog
+        isOpen={userToDelete !== null}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={() => { if (userToDelete) void handleDeleteUser(userToDelete, { confirmed: true }) }}
+        title={t('admin.deleteUserTitle')}
+        message={userToDelete ? t('admin.deleteUser', { name: userToDelete.username }) : ''}
+        confirmLabel={t('common.delete')}
+        danger
+      />
     </>
   )
 }

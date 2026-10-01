@@ -496,6 +496,29 @@ describe('getPublicJourney', () => {
     expect(result!.entries[0].title).toBe('Visible Entry');
   });
 
+  it('JOURNEY-SHARE-018b: leaves drafts and the photos only they hold off the public page (#696)', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const published = createJourneyEntry(testDb, journey.id, user.id, { title: 'Published', entry_date: '2026-01-10' });
+    const draft = createJourneyEntry(testDb, journey.id, user.id, { title: 'Draft', entry_date: '2026-01-11' });
+    testDb.prepare('UPDATE journey_entries SET is_draft = 1 WHERE id = ?').run(draft.id);
+    const shownPhoto = insertJourneyPhoto(published.id, { ownerId: user.id });
+    const draftPhoto = insertJourneyPhoto(draft.id, { ownerId: user.id });
+    // A photo on both a draft and a published entry is published.
+    const sharedPhoto = insertJourneyPhoto(draft.id, { ownerId: user.id, filePath: '/photos/both.jpg' });
+    const sharedRow = testDb.prepare('SELECT id FROM journey_photos WHERE photo_id = ?').get(sharedPhoto) as { id: number };
+    testDb.prepare('INSERT INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at) VALUES (?, ?, 1, 0)').run(published.id, sharedRow.id);
+    const { token } = svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: true, share_gallery: true });
+
+    const result = svc.getPublicJourney(token)!;
+    expect(result.entries.map((e: any) => e.title)).toEqual(['Published']);
+    expect(result.stats.entries).toBe(1);
+    const galleryIds = (result as any).gallery.map((p: any) => p.photo_id).sort();
+    expect(galleryIds).toEqual([shownPhoto, sharedPhoto].sort());
+    expect(svc.validateShareTokenForPhoto(token, draftPhoto)).toBeNull();
+    expect(svc.validateShareTokenForPhoto(token, shownPhoto)).not.toBeNull();
+  });
+
   it('JOURNEY-SHARE-019: enriches entries with parsed tags and photos', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);

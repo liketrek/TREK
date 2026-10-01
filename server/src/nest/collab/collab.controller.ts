@@ -35,10 +35,11 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { BLOCKED_EXTENSIONS } from '../files/files.constants';
+import { BLOCKED_EXTENSIONS, MAX_FILE_SIZE } from '../files/files.constants';
 import { SpoolCleanupInterceptor } from '../common/spool-cleanup.interceptor';
 
-export const MAX_NOTE_FILE_SIZE = 50 * 1024 * 1024;
+// Note attachments follow the same limit as the file manager (#1364).
+export const MAX_NOTE_FILE_SIZE = MAX_FILE_SIZE;
 const MAX_CHAT_IMAGES = 4;
 const CHAT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
 const CHAT_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);

@@ -6,5 +6,6 @@ const transport: TranslationStrings = {
   'transport.modalTitle.edit': 'Modifica trasporto',
   'transport.title': 'Trasporti',
   'transport.addManual': 'Trasporto',
+  'transport.empty': 'Ancora nessun trasporto',
 };
 export default transport;

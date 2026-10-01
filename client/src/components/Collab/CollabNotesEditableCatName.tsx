@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
+import { Tooltip } from '../shared/Tooltip'
 
 interface EditableCatNameProps {
   name: string
   onRename: (newName: string) => void
+  /** The tooltip on the name, e.g. "Rename". */
+  renameLabel?: string
 }
 
-export function EditableCatName({ name, onRename }: EditableCatNameProps) {
+export function EditableCatName({ name, onRename, renameLabel = 'Click to rename' }: EditableCatNameProps) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(name)
   const inputRef = useRef(null)
@@ -20,15 +23,23 @@ export function EditableCatName({ name, onRename }: EditableCatNameProps) {
 
   if (editing) {
     return <input ref={inputRef} value={value} onChange={e => setValue(e.target.value)}
-      onBlur={save} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setValue(name); setEditing(false) } }}
-      style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '2px 8px', background: 'var(--bg-input)', fontFamily: 'inherit', outline: 'none' }} />
+      onBlur={save}
+      onKeyDown={e => {
+        if (e.key === 'Enter') save()
+        // Escape only drops the rename; the dialog around it stays open.
+        if (e.key === 'Escape') { e.preventDefault(); setValue(name); setEditing(false) }
+      }}
+      className="min-w-0 flex-1 rounded-[8px] border border-edge bg-surface-input px-2 py-0.5 font-semibold text-content outline-none focus:ring-2 focus:ring-[color:var(--text-primary)]"
+      style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }} />
   }
 
   return (
-    <button type="button" onClick={() => { setValue(name); setEditing(true) }}
-      style={{ flex: 1, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', padding: '2px 0', background: 'none', border: 'none', textAlign: 'left', fontFamily: 'inherit' }}
-      title="Click to rename">
-      {name}
-    </button>
+    <Tooltip label={renameLabel}>
+      <button type="button" onClick={() => { setValue(name); setEditing(true) }}
+        className="min-w-0 flex-1 truncate py-0.5 text-left font-semibold text-content hover:underline hover:decoration-edge"
+        style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>
+        {name}
+      </button>
+    </Tooltip>
   )
 }

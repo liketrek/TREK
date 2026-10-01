@@ -42,7 +42,7 @@ import { createUser, createTrip, createReservation } from '../../helpers/factori
 import { getCountryFromCoords, getCountryFromAddress, isPointInCountryBox, reverseGeocodeCountry, getRegionGeo, getCountryGeo } from '../../../src/nest/atlas/atlas-geo';
 import { cacheKeyFor, getCached, setCached } from '../../../src/nest/geo/nominatim.client';
 import { DatabaseService } from '../../../src/nest/database/database.service';
-import { AtlasService, BucketItemExistsError } from '../../../src/nest/atlas/atlas.service';
+import { AtlasService, BucketItemExistsError, bucketRegionCode } from '../../../src/nest/atlas/atlas.service';
 
 // Direct construction over the shared test connection — no TestingModule (repo
 // convention for DI-native service unit tests).
@@ -1340,6 +1340,17 @@ describe('atlas quirk fixes', () => {
     expect(unmarked.marked_source).toBeNull();
   });
 
+  it('ATLAS-SVC-031b: keeps a wished-for region of the same country, drops any other (#1901)', () => {
+    const { user } = createUser(testDb);
+    const bavaria = atlas.createBucketItem(user.id, { name: 'Bayern', country_code: 'DE', region_code: 'de-by' }) as { region_code: string | null };
+    expect(bavaria.region_code).toBe('DE-BY');
+    const foreign = atlas.createBucketItem(user.id, { name: 'Berlin', country_code: 'FR', region_code: 'DE-BE' }) as { region_code: string | null };
+    expect(foreign.region_code).toBeNull();
+    const noCountry = atlas.createBucketItem(user.id, { name: 'Somewhere', region_code: 'DE-HH' }) as { region_code: string | null };
+    expect(noCountry.region_code).toBeNull();
+    expect(bucketRegionCode('DE-BY; DROP', 'DE')).toBeNull();
+  });
+
   it('ATLAS-SVC-032: updateBucketItem persists lat/lng of exactly 0 (equator/prime meridian)', () => {
     const { user } = createUser(testDb);
     const item = atlas.createBucketItem(user.id, { name: 'Null Island', lat: 10, lng: 10 }) as { id: number };
@@ -1943,5 +1954,61 @@ describe('lastTrip', () => {
     createTrip(testDb, user.id, { title: 'Second', start_date: PAST_START, end_date: PAST_END });
     // The id is the tie-break, so the answer cannot depend on storage order.
     expect(atlas.lastTrip(user.id)?.title).toBe('Second');
+  });
+});
+
+// ── nextTrip (#2542, feeds GET /api/v1/stats) ───────────────────────────────
+
+describe('nextTrip', () => {
+  it('ATLAS-NEXT-001: returns null when nothing is ahead', () => {
+    const { user } = createUser(testDb);
+    expect(atlas.nextTrip(user.id)).toBeNull();
+    createTrip(testDb, user.id, { title: 'Been there', start_date: PAST_START, end_date: PAST_END });
+    expect(atlas.nextTrip(user.id)).toBeNull();
+  });
+
+  it('ATLAS-NEXT-002: picks the nearest trip that has not started, with the days until it', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Later', start_date: isoOffsetDays(90), end_date: isoOffsetDays(95) });
+    const soon = createTrip(testDb, user.id, { title: 'Soon', start_date: FUTURE_START, end_date: FUTURE_END });
+    const stamp = testDb.prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)');
+    stamp.run(insertPlaceWithCoords(testDb, soon.id, 'Lisboa', 38.72, -9.14).id, 'pt', 'PT-11', 'Lisboa');
+
+    expect(atlas.nextTrip(user.id)).toEqual({
+      title: 'Soon',
+      start_date: FUTURE_START,
+      end_date: FUTURE_END,
+      days_until: 30,
+      countries: ['PT'],
+    });
+  });
+
+  it('ATLAS-NEXT-003: a trip under way is the last trip, not the next one', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Now', start_date: isoOffsetDays(-2), end_date: isoOffsetDays(3) });
+    expect(atlas.nextTrip(user.id)).toBeNull();
+    expect(atlas.lastTrip(user.id)?.title).toBe('Now');
+  });
+
+  it('ATLAS-NEXT-004: a trip starting tomorrow is one day away', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Tomorrow', start_date: isoOffsetDays(1) });
+    expect(atlas.nextTrip(user.id)).toMatchObject({ title: 'Tomorrow', days_until: 1, end_date: null });
+  });
+
+  it('ATLAS-NEXT-005: a trip without a start date has nothing to count down to', () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Someday', end_date: FUTURE_END });
+    expect(atlas.nextTrip(user.id)).toBeNull();
+  });
+
+  it('ATLAS-NEXT-006: a shared trip counts for the member, and equal starts resolve by id', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const first = createTrip(testDb, owner.id, { title: 'First', start_date: FUTURE_START, end_date: FUTURE_END });
+    const second = createTrip(testDb, owner.id, { title: 'Second', start_date: FUTURE_START, end_date: FUTURE_END });
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(first.id, member.id);
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(second.id, member.id);
+    expect(atlas.nextTrip(member.id)?.title).toBe('First');
   });
 });

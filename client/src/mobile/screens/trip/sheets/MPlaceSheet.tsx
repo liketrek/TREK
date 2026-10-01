@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import DawarichIcon from '../../../../components/shared/DawarichIcon'
 import {
   Bookmark, Camera, ChevronRight, ExternalLink, Loader2, Map as MapIcon, Navigation, Paperclip,
-  Pencil, Phone, Plus, Route, Trash2, Upload, X,
+  Pencil, Phone, Plus, Route, RouteOff, Trash2, Upload, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -22,9 +22,9 @@ import { avatarSrc } from '../../../../utils/avatarSrc'
 import { safeHttpUrl } from '../../../../utils/safeUrl'
 import { openFile } from '../../../../utils/fileDownload'
 import { filesForPlace } from '../../../../utils/placeFiles'
-import { getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
+import { navigationTargetLabel, getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
 import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
-import { getAssignmentReservations } from '../../../../utils/dayMerge'
+import { getPlaceBookings } from '../../../../utils/dayMerge'
 import type { Assignment, Day, Reservation, TripMember } from '../../../../types'
 import { ActionCircle, Eyebrow, INNER_CLS } from './MTripSheetUi'
 
@@ -92,8 +92,9 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   // The bookings attached to that assignment. The desktop inspector shows this
   // strip; the phone sheet never did, so a booking reached from a map marker was
   // just as unreachable here, only invisibly so (#2012). All of them, because a
-  // stop can carry a parking pass next to its tickets (#2201).
-  const linkedReservations = getAssignmentReservations(planner.reservations, assignmentInDay?.id)
+  // stop can carry a parking pass next to its tickets (#2201). A hotel also lists
+  // the stay booked for it, the way back to its booking (#2363).
+  const linkedReservations = getPlaceBookings(planner.reservations, assignmentInDay?.id, place?.id)
   // A ferry or a flight has its own form — the reservation modal cannot hold one.
   // Resolved up front so a user without the matching right gets no button at all,
   // rather than one that does nothing (#2012).
@@ -145,12 +146,12 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   const removeParticipant = (userId: number) => {
     let next = allJoined ? members.filter(m => m.id !== userId).map(m => m.id) : participantIds.filter(id => id !== userId)
     if (next.length === members.length) next = []
-    setParticipants(next)
+    void setParticipants(next)
   }
 
   const addParticipant = (userId: number) => {
     const next = [...participantIds, userId]
-    setParticipants(next.length === members.length ? [] : next)
+    void setParticipants(next.length === members.length ? [] : next)
     setParticipantPickerOpen(false)
   }
 
@@ -402,6 +403,18 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   className={`flex items-center gap-1 rounded-full py-1 pl-[10px] text-[0.75rem] font-semibold ${INNER_CLS} ${canEditDays ? 'pr-1' : 'pr-[10px]'}`}
                 >
                   {day.title || t('planner.dayN', { n: (day.day_number ?? planner.days.indexOf(day) + 1) || '?' })}
+                  {canEditDays && place.lat != null && place.lng != null && (
+                    // In or out of that day's route (#2532); the icon says which it is.
+                    <button
+                      type="button"
+                      onClick={() => { planner.tripActions.setAssignmentRouteExcluded(planner.tripId, day.id, assignment.id, !assignment.route_excluded).catch((err: unknown) => planner.toast.error(err instanceof Error ? err.message : t('common.unknownError'))) }}
+                      aria-label={assignment.route_excluded ? t('dayplan.includeInRoute') : t('dayplan.excludeFromRoute')}
+                      aria-pressed={!!assignment.route_excluded}
+                      className={`flex h-[18px] w-[18px] items-center justify-center rounded-full ${assignment.route_excluded ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-muted'}`}
+                    >
+                      <RouteOff size={10} strokeWidth={2.4} />
+                    </button>
+                  )}
                   {canEditDays && (
                     <button
                       type="button"
@@ -609,7 +622,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   <ActionCircle
                     ref={navBtnRef}
                     onClick={openDirections}
-                    label={navTargets.length === 1 ? navTargets[0].label : t('inspector.navigation')}
+                    label={navTargets.length === 1 ? navigationTargetLabel(navTargets[0], t) : t('inspector.navigation')}
                   >
                     <Navigation size={15} strokeWidth={2} />
                   </ActionCircle>

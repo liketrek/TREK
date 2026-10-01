@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Tautkan file',
   'files.linkEmpty': 'Belum ada tempat atau reservasi untuk ditautkan',
   'files.menu': 'Opsi lainnya',
-  'files.uploadErrorSize': 'File terlalu besar (maks. 50 MB)',
+  'files.uploadErrorSize': 'File terlalu besar (maks. {max} MB)',
   'files.title': 'File',
   'files.pageTitle': 'File & Dokumen',
   'files.subtitle': '{count} file untuk {trip}',

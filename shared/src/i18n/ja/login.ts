@@ -28,6 +28,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': '{name}でサインイン',
   'login.oidcOnly': 'パスワード認証は無効です。SSOプロバイダーでサインインしてください。',
   'login.oidcLoggedOut': 'ログアウトしました。SSOプロバイダーで再度サインインしてください。',
+  'login.oidcRedirecting': '{name} に移動しています…',
+  'login.oidcRedirectSlow': 'まだこの画面ですか？{name} に進む',
   'login.demoHint': 'デモを試す — 登録不要',
   'login.mfaTitle': '二要素認証',
   'login.mfaSubtitle': '認証アプリの6桁コードを入力してください。',

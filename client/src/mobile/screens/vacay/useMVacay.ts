@@ -10,6 +10,7 @@ import { isWeekend } from '../../../components/Vacay/holidays'
 import { currentPeriodYear, inGridWindow, windowMonths } from '../../../vacay/yearWindow'
 import { FALLBACK_PERSON_COLOR, localDateStr, type DayVisualContext } from './vacayDayModel'
 import { getApiErrorMessage, type Trip } from '../../../types'
+import { companyHolidaySets, leaveFractionFor } from '../../../components/Vacay/companyHolidays'
 
 export type MVacayView = 'grid' | 'edit'
 export type MVacayMode = 'vacation' | 'company'
@@ -63,7 +64,7 @@ export function useMVacay() {
   // Trip-overlap dots: collect every day of the year covered by an own trip.
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
+    ;void (async () => {
       try {
         const data = await tripsApi.list()
         const dates = new Set<string>()
@@ -94,7 +95,8 @@ export function useMVacay() {
     [plan?.weekend_days],
   )
 
-  const companyHolidaySet = useMemo(() => new Set(companyHolidays.map(h => h.date)), [companyHolidays])
+  // Whole company holidays close a day to leave, half ones leave half of it (#2439).
+  const { full: companyHolidaySet, half: companyHalfSet } = useMemo(() => companyHolidaySets(companyHolidays), [companyHolidays])
 
   const entryMap = useMemo(() => {
     const map: DayVisualContext['entryMap'] = {}
@@ -125,8 +127,8 @@ export function useMVacay() {
   }, [sharedCalendars])
 
   const dayCtx = useMemo<DayVisualContext>(() => ({
-    todayStr, entryMap, companyHolidaySet, companyHolidaysEnabled, holidays, weekendDays, sharedMap,
-  }), [todayStr, entryMap, companyHolidaySet, companyHolidaysEnabled, holidays, weekendDays, sharedMap])
+    todayStr, entryMap, companyHolidaySet, companyHalfSet, companyHolidaysEnabled, holidays, weekendDays, sharedMap,
+  }), [todayStr, entryMap, companyHolidaySet, companyHalfSet, companyHolidaysEnabled, holidays, weekendDays, sharedMap])
 
   // The twelve months the window spans, in display order — Jan–Dec for a calendar
   // year, Jul–Jun for a fiscal one starting in July (#737).
@@ -193,7 +195,7 @@ export function useMVacay() {
     }
     if (mode === 'company') {
       if (!companyHolidaysEnabled) return
-      await toggleCompanyHoliday(dateStr)
+      await toggleCompanyHoliday(dateStr, halfDay ? 0.5 : 1)
       return
     }
     if (blockWeekends && isWeekend(dateStr, weekendDays)) {
@@ -207,8 +209,9 @@ export function useMVacay() {
       return
     }
     if (companyHolidaysEnabled && companyHolidaySet.has(dateStr)) return
-    await toggleEntry(dateStr, selectedUserId || undefined, halfDay ? 0.5 : 1, compDay ? 'comp' : 'vacation')
-  }, [view, months, openMonthSlot, mode, halfDay, compDay, companyHolidaysEnabled, blockWeekends, weekendDays, companyHolidaySet, toggleEntry, toggleCompanyHoliday, selectedUserId, currentUser?.id, entryMap])
+    const fraction = companyHolidaysEnabled ? leaveFractionFor(dateStr, companyHalfSet, halfDay ? 0.5 : 1) : (halfDay ? 0.5 : 1)
+    await toggleEntry(dateStr, selectedUserId || undefined, fraction, compDay ? 'comp' : 'vacation')
+  }, [view, months, openMonthSlot, mode, halfDay, compDay, companyHolidaysEnabled, blockWeekends, weekendDays, companyHolidaySet, companyHalfSet, toggleEntry, toggleCompanyHoliday, selectedUserId, currentUser?.id, entryMap])
 
   // Entitlement stepper: never below what is already used this year
   // (carried-over days cover the difference when used > entitlement).

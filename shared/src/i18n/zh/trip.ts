@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': '就快到啦...',
   'trip.mobilePlan': '计划',
   'trip.mobilePlaces': '地点',
+  'trip.panelWidth': '面板宽度',
   'trip.toast.placeUpdated': '地点已更新',
   'trip.toast.tripUpdated': '行程已更新',
   'trip.toast.placeAdded': '地点已添加',

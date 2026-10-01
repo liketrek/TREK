@@ -7,6 +7,7 @@ import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 import { randomBytes, createHash } from 'crypto';
 import type { Request, Response } from 'express';
+import { WEB_PUSH_CHANNEL_ID } from '@trek/shared';
 import { readEnv } from '../../app-config';
 import { JWT_SECRET, SESSION_DURATION_SECONDS, SESSION_DURATION_REMEMBER_SECONDS } from '../../config';
 import { DatabaseService } from '../database/database.service';
@@ -285,6 +286,7 @@ export class AuthService {
     const notifChannelsRaw = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'notification_channels'")?.value || notifChannel;
     const activeChannels = notifChannelsRaw === 'none' ? [] : notifChannelsRaw.split(',').map((c: string) => c.trim()).filter(Boolean);
     const hasWebhookEnabled = activeChannels.includes('webhook');
+    const hasPushEnabled = activeChannels.includes(WEB_PUSH_CHANNEL_ID);
     const tripRemindersEnabled = tripReminderSetting !== 'false';
     const placesPhotosSetting = this.db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'places_photos_enabled'")?.value;
     const placesPhotosEnabled = placesPhotosSetting !== 'false';
@@ -332,6 +334,8 @@ export class AuthService {
       // server's acceptance can never drift (the historical inline copy here
       // dropped pkpass, pkpasses, md and markdown).
       allowed_file_types: this.allowedFileTypes.get(),
+      // FILE_UPLOAD_LIMIT_MB, so the pickers refuse a file before the upload starts (#1364).
+      max_upload_mb: readEnv().files.uploadLimitMb,
       // Whether the configuration belongs to whoever operates this install
       // rather than to its admin. The client uses it to stop offering settings
       // the server would refuse anyway — it is an honesty flag for the UI, never
@@ -343,7 +347,7 @@ export class AuthService {
       timezone: readEnv().app.tz || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       notification_channel: notifChannel,
       notification_channels: activeChannels,
-      available_channels: { email: hasSmtpHost, webhook: hasWebhookEnabled, inapp: true },
+      available_channels: { email: hasSmtpHost, webhook: hasWebhookEnabled, push: hasPushEnabled, inapp: true },
       trip_reminders_enabled: tripRemindersEnabled,
       places_photos_enabled: placesPhotosEnabled,
       places_autocomplete_enabled: placesAutocompleteEnabled,
@@ -596,6 +600,11 @@ export class AuthService {
       try {
         this.db.run("UPDATE oauth_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = ? AND revoked_at IS NULL", userId);
       } catch { /* oauth_tokens table may not exist in very old installs */ }
+      // Push devices keep receiving notifications without any session, so they
+      // go too. The device the change was made on registers again right away:
+      // the client reloads the user after the change, and that re-syncs its
+      // subscription. Other devices do so after their next sign-in.
+      this.db.run('DELETE FROM push_subscriptions WHERE user_id = ?', userId);
     });
 
     try { revokeUserSessions?.(userId); } catch { /* best-effort */ }
@@ -1056,6 +1065,9 @@ export class AuthService {
           user.id
         );
       } catch { /* oauth_tokens table may not exist in very old installs */ }
+      // Push devices are a delivery channel that outlives every session, so an
+      // intruder's browser would keep reading this account's notifications.
+      this.db.run('DELETE FROM push_subscriptions WHERE user_id = ?', user.id);
     });
 
     // Kick off any MCP/WS session cleanup — same hook the account-delete path uses.

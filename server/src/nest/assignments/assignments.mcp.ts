@@ -108,6 +108,30 @@ export class AssignmentsMcp {
   }
 
   @Tool({
+    name: 'clear_day_assignments',
+    description: 'Remove every place from one day in a single step. The day itself, its notes and its bookings stay; the places stay in the trip and can be planned again. Returns the removed assignment ids.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      dayId: z.number().int().positive(),
+    },
+    annotations: TOOL_ANNOTATIONS_DELETE,
+    access: { group: 'places', mode: 'write' },
+  })
+  async clearDayAssignments(
+    { tripId, dayId }: { tripId: number; dayId: number },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!this.assignments.dayExists(dayId, tripId)) return errorResult('Day not found.');
+    const removedIds = this.assignments.clearDay(dayId);
+    for (const assignmentId of removedIds) this.guards.safeBroadcast(tripId, 'assignment:deleted', { assignmentId, dayId });
+    if (removedIds.length > 0) this.assignments.reconcile(tripId);
+    return ok({ success: true, removedIds });
+  }
+
+  @Tool({
     name: 'update_assignment_time',
     description: 'Set the start and/or end time for a place assignment on a day (e.g. "09:00", "11:30"). Pass null to clear a time.',
     inputSchema: {
@@ -195,6 +219,30 @@ export class AssignmentsMcp {
     const assignment = direction === 'incoming'
       ? this.assignments.setIncomingLegTransportMode(assignmentId, transport_mode ?? null)
       : this.assignments.setLegTransportMode(assignmentId, transport_mode ?? null);
+    this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
+    return ok({ assignment });
+  }
+
+  @Tool({
+    name: 'set_assignment_route_excluded',
+    description: 'Keep a place on its day but leave it out of that day route, or put it back. An excluded stop still shows in the day plan and on the map, and the route runs from the stop before it straight to the one after. Use it for a place only visited on foot from somewhere nearby, or one that is just a point of interest.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      assignmentId: z.number().int().positive(),
+      excluded: z.boolean().describe('true leaves the stop out of the route, false routes it again'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'places', mode: 'write' },
+  })
+  async setAssignmentRouteExcluded(
+    { tripId, assignmentId, excluded }: { tripId: number; assignmentId: number; excluded: boolean },
+    ctx: McpContext,
+  ) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.assignments.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (!this.guards.hasTripPermission('day_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!this.assignments.getAssignmentForTrip(assignmentId, tripId)) return errorResult('Assignment not found.');
+    const assignment = this.assignments.setRouteExcluded(assignmentId, excluded);
     this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
     return ok({ assignment });
   }

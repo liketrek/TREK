@@ -184,23 +184,13 @@ vi.mock('../components/Trips/TripMembersModal', () => ({
   },
 }));
 
-// The road-trip rail and the booking dialog it brings along (#2428). Both capture their
-// props so a case can drive the rail's handlers and read what the page did with them.
+// The road-trip rail. It captures its props so a case can drive its handlers.
 type RoadtripSidebarStubProps = { onOpenBooking?: (reservationId: number) => void; canEditBookings?: boolean };
 const capturedRoadtripSidebarProps: { current: RoadtripSidebarStubProps } = { current: {} };
 vi.mock('../components/Roadtrip/RoadtripSidebar', () => ({
   default: (props: RoadtripSidebarStubProps) => {
     capturedRoadtripSidebarProps.current = props;
     return React.createElement('div', { 'data-testid': 'roadtrip-sidebar' });
-  },
-}));
-
-type TransportDetailStubProps = { transportDetail?: { id: number } | null };
-const capturedTransportDetailModalProps: { current: TransportDetailStubProps } = { current: {} };
-vi.mock('../components/Planner/DayPlanSidebarTransportDetailModal', () => ({
-  DayPlanSidebarTransportDetailModal: (props: TransportDetailStubProps) => {
-    capturedTransportDetailModalProps.current = props;
-    return null;
   },
 }));
 
@@ -294,7 +284,6 @@ beforeEach(() => {
   capturedFileManagerProps.current = {};
   capturedPlaceInspectorProps.current = {};
   capturedRoadtripSidebarProps.current = {};
-  capturedTransportDetailModalProps.current = {};
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
 });
 
@@ -1835,8 +1824,9 @@ describe('TripPlannerPage', () => {
       sessionStorage.setItem('trip-roadtrip-42', '1');
     };
 
-    it('a flight opens the transport detail view the rail brings along, a table opens its editor', async () => {
+    it('a flight and a table both open the booking detail, and its Edit opens their editors', async () => {
       enterRoadtrip();
+      server.use(http.get('/api/view-contributions/:view/:tripId', () => HttpResponse.json({ contributions: [] })));
       vi.useFakeTimers();
       seedTripStore({ id: 42 });
       const flight = buildReservation({ id: 70, trip_id: 42, type: 'flight', title: 'LH 2020' });
@@ -1858,24 +1848,27 @@ describe('TripPlannerPage', () => {
       // every table and ticket becomes a button that no-ops.
       expect(capturedRoadtripSidebarProps.current.canEditBookings).toBe(true);
 
-      // A terminal row, a ride pill and a map endpoint all set the booking to show, and
-      // under Days the day panel owns the dialog that shows it. Here it has to be the
-      // rail's own copy, or nothing shows.
+      // A terminal row, a ride pill or a booking chip shows the booking first, as the
+      // day plan does; the editor is behind its Edit.
       act(() => { capturedRoadtripSidebarProps.current.onOpenBooking?.(70); });
-      await waitFor(() => {
-        expect(capturedTransportDetailModalProps.current.transportDetail).toMatchObject({ id: 70 });
-      });
+      expect(await screen.findByRole('dialog', { name: 'LH 2020' })).toBeInTheDocument();
       expect(capturedReservationModalProps.current.isOpen).toBe(false);
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'LH 2020' })).not.toBeInTheDocument());
 
       act(() => { capturedRoadtripSidebarProps.current.onOpenBooking?.(11); });
+      expect(await screen.findByRole('dialog', { name: 'Tisch Bullerei' })).toBeInTheDocument();
+      expect(capturedReservationModalProps.current.isOpen).toBe(false);
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
       await waitFor(() => {
         expect(capturedReservationModalProps.current.isOpen).toBe(true);
       });
       expect(capturedReservationModalProps.current.reservation).toMatchObject({ id: 11 });
+      expect(screen.queryByRole('dialog', { name: 'Tisch Bullerei' })).not.toBeInTheDocument();
 
       // A booking the trip does not hold opens nothing.
       act(() => { capturedRoadtripSidebarProps.current.onOpenBooking?.(999); });
-      expect(capturedTransportDetailModalProps.current.transportDetail).toMatchObject({ id: 70 });
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });
 });

@@ -118,7 +118,7 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, isShiftedYear, onSave,
     setEditing(false)
     const days = Number.parseInt(String(localDays))
     if (!Number.isNaN(days) && days >= 0 && days <= 365 && days !== s.vacation_days) {
-      onSave(selectedYear, days, s.user_id)
+      void onSave(selectedYear, days, s.user_id)
     }
   }
 

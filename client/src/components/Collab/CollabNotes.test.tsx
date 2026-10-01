@@ -197,7 +197,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Remove Me');
-    await user.click(screen.getByTitle('Delete'));
+    await noteAction(user, 'Delete');
     // Deleting now asks for confirmation first — the note stays until confirmed.
     expect(screen.getByText('Delete note?')).toBeInTheDocument();
     expect(screen.getByText('Remove Me')).toBeInTheDocument();
@@ -221,8 +221,9 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Pinned Note');
-    // Unpin button is visible for pinned notes
-    expect(screen.getByTitle('Unpin')).toBeInTheDocument();
+    // A pinned note offers Unpin in its menu
+    await userEvent.setup().click(screen.getByRole('button', { name: 'More options' }));
+    expect(screen.getByRole('button', { name: 'Unpin' })).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-015: clicking edit button opens the edit modal', async () => {
@@ -240,7 +241,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Editable Note');
-    await user.click(screen.getByTitle('Edit'));
+    await noteAction(user, 'Edit');
     expect(await screen.findByDisplayValue('Editable Note')).toBeInTheDocument();
   });
 
@@ -327,7 +328,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('My Note');
-    await user.click(screen.getByTitle('Edit'));
+    await noteAction(user, 'Edit');
     await screen.findByDisplayValue('My Note');
     expect(screen.getByDisplayValue('Some content')).toBeInTheDocument();
   });
@@ -354,7 +355,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Old Title');
-    await user.click(screen.getByTitle('Edit'));
+    await noteAction(user, 'Edit');
     const titleInput = await screen.findByDisplayValue('Old Title');
     await user.clear(titleInput);
     await user.type(titleInput, 'New Title');
@@ -387,18 +388,7 @@ describe('CollabNotes', () => {
     await user.click(screen.getByText('New Note'));
     await screen.findByPlaceholderText('Note title');
     // Click the X button in the modal header
-    const closeBtn = screen.getByRole('button', { name: '' });
-    // There may be multiple, find the one in the modal (closest to the title input)
-    const titleInput = screen.getByPlaceholderText('Note title');
-    // The X button is the sibling button in the modal header
-    const modal = titleInput.closest('form');
-    const xBtn = modal?.parentElement?.querySelector('button[type="button"]') as HTMLElement | null;
-    if (xBtn) {
-      await user.click(xBtn);
-    } else {
-      // Fallback: click backdrop (the outer div)
-      await user.keyboard('{Escape}');
-    }
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByPlaceholderText('Note title')).not.toBeInTheDocument());
   });
 
@@ -406,16 +396,16 @@ describe('CollabNotes', () => {
     const user = userEvent.setup();
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('No notes yet');
-    await user.click(screen.getByTitle('Manage Categories'));
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
     // The modal header renders "Category Settings" or similar
-    expect(await screen.findByText('Manage Categories', { selector: 'h3' })).toBeInTheDocument();
+    expect(await screen.findByText('Manage Categories', { selector: 'h2' })).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-025: CategorySettingsModal shows no categories message when empty', async () => {
     const user = userEvent.setup();
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('No notes yet');
-    await user.click(screen.getByTitle('Manage Categories'));
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
     expect(await screen.findByText('No categories yet')).toBeInTheDocument();
   });
 
@@ -423,7 +413,7 @@ describe('CollabNotes', () => {
     const user = userEvent.setup();
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('No notes yet');
-    await user.click(screen.getByTitle('Manage Categories'));
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
     await screen.findByText('No categories yet');
     const newCatInput = screen.getByPlaceholderText('New category...');
     await user.type(newCatInput, 'Transport');
@@ -438,14 +428,10 @@ describe('CollabNotes', () => {
     const user = userEvent.setup();
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('No notes yet');
-    await user.click(screen.getByTitle('Manage Categories'));
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
     await screen.findByText('No categories yet');
     // Click the X button in the modal header
-    const modal = screen.getByText('No categories yet').closest('div');
-    const categoryModal = modal?.closest('[style*="position: fixed"]') as HTMLElement | null;
-    if (categoryModal) {
-      await user.click(categoryModal);
-    }
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByText('No categories yet')).not.toBeInTheDocument());
   });
 
@@ -498,8 +484,7 @@ describe('CollabNotes', () => {
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Expandable Note');
     // Expand button (Maximize2 icon) appears when note has content
-    // The translation key 'collab.notes.expand' falls back to the raw key since it's not in en.ts
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await noteAction(user, 'Expand');
     // View modal shows the note title
     await waitFor(() => {
       const titles = screen.getAllByText('Expandable Note');
@@ -522,7 +507,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('View Modal Note');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await noteAction(user, 'Expand');
     // Modal is open — there are multiple instances of the title
     await waitFor(() => expect(screen.getAllByText('View Modal Note').length).toBeGreaterThan(1));
     // The view modal renders a pencil button to switch to edit mode
@@ -578,9 +563,9 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Cat Note');
-    await user.click(screen.getByTitle('Manage Categories'));
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
     // Food category appears in the settings modal
-    await screen.findByText('Manage Categories', { selector: 'h3' });
+    await screen.findByText('Manage Categories', { selector: 'h2' });
     // The category "Food" is listed in the modal
     const modalFoodEntries = screen.getAllByText('Food');
     expect(modalFoodEntries.length).toBeGreaterThan(0);
@@ -630,7 +615,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Pin Me');
-    await user.click(screen.getByTitle('Pin'));
+    await noteAction(user, 'Pin');
     await waitFor(() => expect(patchCalled).toBe(true));
   });
 
@@ -700,10 +685,8 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Website Note');
-    // Website thumbnail shows domain name (example.com) — the domain label
-    await waitFor(() => {
-      expect(screen.getByText('Link')).toBeInTheDocument();
-    });
+    // The link sits in the title row as a chip with its host
+    expect(screen.getByRole('link', { name: /example\.com/ })).toHaveAttribute('href', 'https://example.com');
   });
 
   it('FE-COMP-NOTES-038: CategorySettingsModal Save button calls saveCategoryColors', async () => {
@@ -726,8 +709,8 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Cat Save Note');
-    await user.click(screen.getByTitle('Manage Categories'));
-    await screen.findByText('Manage Categories', { selector: 'h3' });
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
+    await screen.findByText('Manage Categories', { selector: 'h2' });
     // Change color: click first color swatch for "Travel" category
     const colorSwatches = screen.getAllByRole('button').filter(b => b.style.background && b.style.background.startsWith('#'));
     if (colorSwatches.length > 0) {
@@ -736,7 +719,7 @@ describe('CollabNotes', () => {
     // Click Save button
     await user.click(screen.getByRole('button', { name: /^Save$/i }));
     // Modal should close
-    await waitFor(() => expect(screen.queryByText('Manage Categories', { selector: 'h3' })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('Manage Categories', { selector: 'h2' })).not.toBeInTheDocument());
   });
 
   it('FE-COMP-NOTES-039: NoteFormModal website field accepts URL input', async () => {
@@ -779,13 +762,13 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Color Note');
-    await user.click(screen.getByTitle('Manage Categories'));
-    await screen.findByText('Manage Categories', { selector: 'h3' });
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
+    await screen.findByText('Manage Categories', { selector: 'h2' });
     // "Food" appears in the modal; there are color swatches beside it
     // Find color swatch buttons (they have specific background colors from NOTE_COLORS)
     const saveBtn = screen.getByRole('button', { name: /^Save$/i });
     await user.click(saveBtn);
-    await waitFor(() => expect(screen.queryByText('Manage Categories', { selector: 'h3' })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('Manage Categories', { selector: 'h2' })).not.toBeInTheDocument());
   });
 
   it('FE-COMP-NOTES-041: note with image attachment shows thumbnail', async () => {
@@ -857,10 +840,10 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Rename Cat Note');
-    await user.click(screen.getByTitle('Manage Categories'));
-    await screen.findByText('Manage Categories', { selector: 'h3' });
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
+    await screen.findByText('Manage Categories', { selector: 'h2' });
     // Find the "Transport" category name span and click to edit
-    const categoryNameSpan = screen.getAllByText('Transport').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename');
+    const categoryNameSpan = within(screen.getByRole('dialog')).getByRole('button', { name: 'Transport' });
     if (categoryNameSpan) {
       await user.click(categoryNameSpan);
       // Now an input with value "Transport" should appear
@@ -891,25 +874,17 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Remove Cat Note');
-    await user.click(screen.getByTitle('Manage Categories'));
-    await screen.findByText('Manage Categories', { selector: 'h3' });
-    // Find the Trash2 SVG delete button in the modal — buttons containing lucide-trash-2 SVGs
-    const trashButtons = [...document.querySelectorAll('button')].filter(
-      b => b.querySelector('svg.lucide-trash-2')
-    );
-    if (trashButtons.length > 0) {
-      // First trash button in the modal is for the 'Removable' category
-      await user.click(trashButtons[0] as HTMLElement);
-      // Removable category disappears from the modal
-      await waitFor(() => {
-        const fixedEls = document.querySelectorAll('[style*="position: fixed"]');
-        let found = false;
-        fixedEls.forEach(el => { if (el.textContent?.includes('Removable') && !el.textContent?.includes('Remove Cat Note')) found = true; });
-        expect(found).toBe(false);
-      });
-    } else {
-      expect(screen.getByText('Manage Categories', { selector: 'h3' })).toBeInTheDocument();
-    }
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
+    await screen.findByText('Manage Categories', { selector: 'h2' });
+    // A category no note uses leaves the list with its row's delete button;
+    // 'Removable' stays, a note still carries it.
+    const dialog = screen.getByRole('dialog');
+    await user.type(within(dialog).getByPlaceholderText('New category...'), 'Temp');
+    await user.keyboard('{Enter}');
+    const tempRow = within(dialog).getByRole('button', { name: 'Temp' }).parentElement!;
+    await user.click(within(tempRow).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(within(dialog).queryByRole('button', { name: 'Temp' })).not.toBeInTheDocument());
+    expect(within(dialog).getByRole('button', { name: 'Removable' })).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-045: expand note view modal displays full content with markdown', async () => {
@@ -927,7 +902,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Full Content Note');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await noteAction(user, 'Expand');
     // View modal shows the full content
     await waitFor(() => {
       const titles = screen.getAllByText('Full Content Note');
@@ -952,7 +927,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Tagged Note');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await noteAction(user, 'Expand');
     // View modal header shows the category name
     await waitFor(() => {
       const foodEls = screen.getAllByText('Food');
@@ -978,11 +953,11 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Rename Flow Note');
-    await user.click(screen.getByTitle('Manage Categories'));
-    await screen.findByText('Manage Categories', { selector: 'h3' });
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
+    await screen.findByText('Manage Categories', { selector: 'h2' });
 
     // Find and click the "OldCat" category name span to enter edit mode
-    const oldCatSpan = screen.getAllByText('OldCat').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename');
+    const oldCatSpan = within(screen.getByRole('dialog')).getByRole('button', { name: 'OldCat' });
     if (oldCatSpan) {
       await user.click(oldCatSpan);
       const editInput = screen.getByDisplayValue('OldCat');
@@ -992,10 +967,10 @@ describe('CollabNotes', () => {
       await screen.findByText('NewCat');
       // Click Save — this triggers handleSave which calls onRenameCategory
       await user.click(screen.getByRole('button', { name: /^Save$/i }));
-      await waitFor(() => expect(screen.queryByText('Manage Categories', { selector: 'h3' })).not.toBeInTheDocument());
+      await waitFor(() => expect(screen.queryByText('Manage Categories', { selector: 'h2' })).not.toBeInTheDocument());
     } else {
       // If EditableCatName not found (unlikely), just close modal
-      expect(screen.getByText('Manage Categories', { selector: 'h3' })).toBeInTheDocument();
+      expect(screen.getByText('Manage Categories', { selector: 'h2' })).toBeInTheDocument();
     }
   });
 
@@ -1053,7 +1028,7 @@ describe('CollabNotes', () => {
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Attachment Note');
     // Open edit modal
-    await user.click(screen.getByTitle('Edit'));
+    await noteAction(user, 'Edit');
     await screen.findByDisplayValue('Attachment Note');
     // removable.pdf appears in the existing attachments list in the modal
     await screen.findByText('removable.pdf');
@@ -1086,8 +1061,8 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('OG Image Note');
-    // WebsiteThumbnail loads OG data — image is attempted, 'Link' label visible
-    await waitFor(() => expect(screen.getByText('Link')).toBeInTheDocument());
+    // The title row links the site by its host
+    expect(screen.getByRole('link', { name: /trek-app\.example\.com/ })).toHaveAttribute('href', 'https://trek-app.example.com');
   });
 
   it('FE-COMP-NOTES-051: view modal with PDF attachment renders attachment section code', async () => {
@@ -1108,7 +1083,7 @@ describe('CollabNotes', () => {
     await screen.findByText('Attached View Note');
     // PDF badge is present in NoteCard
     expect(screen.getByText('PDF')).toBeInTheDocument();
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await noteAction(user, 'Expand');
     // View modal opens — title appears multiple times
     await waitFor(() => expect(screen.getAllByText('Attached View Note').length).toBeGreaterThan(1));
     // PDF badge appears in both card and view modal
@@ -1132,7 +1107,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Image View Note');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await noteAction(user, 'Expand');
     // View modal opens
     await waitFor(() => expect(screen.getAllByText('Image View Note').length).toBeGreaterThan(1));
     // The view modal code for image attachments executed (AuthedImg renders initially null, then img after async)
@@ -1154,12 +1129,10 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Transition Note');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await noteAction(user, 'Expand');
     await waitFor(() => expect(screen.getAllByText('Transition Note').length).toBeGreaterThan(1));
-    // Click the Pencil button in the view modal (second-to-last button)
-    const allButtons = screen.getAllByRole('button');
-    const pencilBtn = allButtons[allButtons.length - 2]; // Pencil is before X
-    await user.click(pencilBtn);
+    // The view modal's footer switches to the edit modal
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Edit' }));
     // Edit modal opens — title input should be pre-filled
     await screen.findByDisplayValue('Transition Note');
   });
@@ -1222,10 +1195,10 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Escape Cat Note');
-    await user.click(screen.getByTitle('Manage Categories'));
-    await screen.findByText('Manage Categories', { selector: 'h3' });
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
+    await screen.findByText('Manage Categories', { selector: 'h2' });
     // Click on the category name to start editing
-    const catNameSpan = screen.getAllByText('EscapeMe').find(el => el.title === 'Click to rename');
+    const catNameSpan = within(screen.getByRole('dialog')).getByRole('button', { name: 'EscapeMe' });
     if (catNameSpan) {
       await user.click(catNameSpan);
       const editInput = screen.getByDisplayValue('EscapeMe');
@@ -1255,8 +1228,9 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Alice Note');
-    // The author username tooltip text is in the DOM (from data-tip div)
-    expect(screen.getByText('alice')).toBeInTheDocument();
+    // The author's avatar names them in its tooltip
+    fireEvent.mouseEnter(screen.getByRole('img', { name: 'alice' }));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('alice');
   });
 
   it('FE-COMP-NOTES-023: notes are sorted with pinned notes first', async () => {
@@ -1329,6 +1303,12 @@ function wsHandler(): (msg: Record<string, unknown>) => void {
   return (addListener as ReturnType<typeof vi.fn>).mock.calls[0][0];
 }
 
+/** A note's actions sit behind its "More options" button; this opens the first card's menu and picks one. */
+async function noteAction(user: ReturnType<typeof userEvent.setup>, name: string): Promise<void> {
+  await user.click(screen.getAllByRole('button', { name: 'More options' })[0]);
+  await user.click(await screen.findByRole('button', { name }));
+}
+
 function openedNoteBody(): Promise<HTMLElement> {
   return waitFor(() => {
     const md = document.querySelector('.collab-note-md-full');
@@ -1368,9 +1348,8 @@ describe('CollabNotes details', () => {
     serveNotes({ notes: [buildNote({ category: 'Ideas', color: null })] });
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('A note');
-    // The card chip is a span, the filter pill above the grid is a button
-    const chip = screen.getAllByText('Ideas').find(el => el.tagName === 'SPAN')!;
-    expect(chip.style.color).toBe('rgb(99, 102, 241)');
+    // The card chip's dot carries the category colour
+    expect(screen.getByTestId('note-category-dot').style.background).toBe('rgb(99, 102, 241)');
   });
 
   it('FE-W5CNT-003: without a trip id nothing is fetched and the panel stays in its loading state', () => {
@@ -1535,8 +1514,7 @@ describe('CollabNotes details', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Pin me');
-    const pinBtn = screen.getAllByTitle('Pin')[0];
-    await user.click(pinBtn);
+    await noteAction(user, 'Pin');
     await screen.findByText('Pinned now');
     expect(screen.getByText('Leave me')).toBeInTheDocument();
   });
@@ -1547,9 +1525,10 @@ describe('CollabNotes details', () => {
     server.use(http.put('/api/trips/1/collab/notes/1', () => HttpResponse.json(null)));
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Unchanged');
-    await user.click(screen.getByTitle('Pin'));
+    await noteAction(user, 'Pin');
     await waitFor(() => expect(screen.getByText('Unchanged')).toBeInTheDocument());
-    expect(screen.getByTitle('Pin')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'More options' }));
+    expect(screen.getByRole('button', { name: 'Pin' })).toBeInTheDocument();
   });
 
   it('FE-W5CNT-017: a failing edit reports an error and keeps the edit modal open', async () => {
@@ -1560,7 +1539,7 @@ describe('CollabNotes details', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Edit me');
-    await user.click(screen.getByTitle('Edit'));
+    await noteAction(user, 'Edit');
     const titleInput = await screen.findByDisplayValue('Edit me');
     await user.type(titleInput, ' v2');
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -1580,10 +1559,9 @@ describe('CollabNotes details', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Sushi');
-    await user.click(screen.getByTitle('Manage Categories'));
-    const label = (await screen.findAllByText('Food')).find(el => el.title === 'Click to rename')!;
-    const swatches = label.parentElement!.querySelectorAll('button');
-    await user.click(swatches[3]);
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
+    const label = await within(await screen.findByRole('dialog')).findByRole('button', { name: 'Food' });
+    await user.click(within(label.parentElement!).getByRole('button', { name: 'Emerald' }));
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(bodies).toEqual([{ color: '#10b981' }]));
   });
@@ -1606,7 +1584,7 @@ describe('CollabNotes details', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Edit me');
-    await user.click(screen.getByTitle('Edit'));
+    await noteAction(user, 'Edit');
     await screen.findByDisplayValue('Edit me');
     pasteFile('attachment.png');
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -1629,7 +1607,7 @@ describe('CollabNotes details', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Edit me');
-    await user.click(screen.getByTitle('Edit'));
+    await noteAction(user, 'Edit');
     await screen.findByDisplayValue('Edit me');
     pasteFile('nope.png');
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -1651,7 +1629,7 @@ describe('CollabNotes details', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Has file');
-    await user.click(screen.getByTitle('Edit'));
+    await noteAction(user, 'Edit');
     const chip = (await screen.findByText('plan.pdf')).closest('div')!;
     await user.click(chip.querySelector('button')!);
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
@@ -1708,30 +1686,20 @@ describe('CollabNotes details', () => {
     }
   });
 
-  it('FE-W5CNT-025: the expanded note closes on a backdrop click and its buttons highlight on hover', async () => {
+  it('FE-W5CNT-025: the expanded note closes on a backdrop click and offers edit and close', async () => {
     const user = userEvent.setup();
     serveNotes({ notes: [buildNote({ id: 5, title: 'Long note', content: 'Full body', category: 'Food', color: '#ef4444' })] });
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Long note');
-    await user.click(screen.getByTitle('collab.notes.expand'));
-    const modal = await waitFor(() => {
-      const md = document.querySelector('.collab-note-md-full')
-      if (!md) throw new Error('view modal not open yet')
-      return md.closest('div[style*="position: fixed"]') as HTMLElement
-    });
+    await noteAction(user, 'Expand');
+    await openedNoteBody();
+    const modal = screen.getByRole('dialog');
     expect(within(modal).getByText('Full body')).toBeInTheDocument();
+    expect(within(modal).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(within(modal).getByRole('button', { name: 'Close' })).toBeInTheDocument();
 
-    const [editBtn, closeBtn] = Array.from(modal.querySelectorAll('button'));
-    fireEvent.mouseEnter(editBtn);
-    expect(editBtn.style.color).toBe('var(--text-primary)');
-    fireEvent.mouseLeave(editBtn);
-    expect(editBtn.style.color).toBe('var(--text-faint)');
-    fireEvent.mouseEnter(closeBtn);
-    expect(closeBtn.style.color).toBe('var(--text-primary)');
-    fireEvent.mouseLeave(closeBtn);
-    expect(closeBtn.style.color).toBe('var(--text-faint)');
-
-    fireEvent.click(modal);
+    // Only a press that starts and ends on the backdrop closes it.
+    await user.click(modal.parentElement!);
     await waitFor(() => expect(document.querySelector('.collab-note-md-full')).toBeNull());
   });
 
@@ -1751,23 +1719,15 @@ describe('CollabNotes details', () => {
     });
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Trip docs');
-    await user.click(screen.getByTitle('collab.notes.expand'));
-    const modal = await waitFor(() => {
-      const md = document.querySelector('.collab-note-md-full')
-      if (!md) throw new Error('view modal not open yet')
-      return md.closest('div[style*="position: fixed"]') as HTMLElement
-    });
+    await noteAction(user, 'Expand');
+    await openedNoteBody();
+    const modal = screen.getByRole('dialog');
 
     // Unknown mime type and missing name fall back to a "?" tile
     expect(within(modal).getByText('?')).toBeInTheDocument();
 
-    const zipTile = within(modal).getByTitle('itinerary.zip');
-    expect(zipTile.style.background).toBe('var(--bg-secondary)');
-    expect(within(modal).getByText('ZIP')).toBeInTheDocument();
-    fireEvent.mouseEnter(zipTile);
-    expect(zipTile.style.transform).toBe('scale(1.06)');
-    fireEvent.mouseLeave(zipTile);
-    expect(zipTile.style.transform).toBe('scale(1)');
+    const zipTile = within(modal).getByRole('button', { name: 'itinerary.zip' });
+    expect(zipTile).toHaveTextContent('ZIP');
     fireEvent.click(zipTile);
     // FilePreviewPortal shows a download action for non-image files
     expect(await screen.findByText('Download itinerary.zip')).toBeInTheDocument();
@@ -1778,12 +1738,8 @@ describe('CollabNotes details', () => {
       return img;
     });
     // The clickable thumbnail is a real button wrapped around the image, so the
-    // hover transform lands on that button.
-    const imageTile = image.closest('button') as HTMLElement;
-    fireEvent.mouseEnter(imageTile);
-    expect(imageTile.style.transform).toBe('scale(1.06)');
-    fireEvent.mouseLeave(imageTile);
-    expect(imageTile.style.transform).toBe('scale(1)');
+    // keyboard reaches it too.
+    expect(image.closest('button')).not.toBeNull();
     fireEvent.click(image);
     await waitFor(() => expect(screen.queryByText('Download itinerary.zip')).not.toBeInTheDocument());
   });
@@ -1852,9 +1808,9 @@ describe('CollabNotes details', () => {
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('First note');
 
-    await user.click(screen.getByTitle('Manage Categories'));
-    await screen.findByText('Manage Categories', { selector: 'h3' });
-    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename')!;
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
+    await screen.findByText('Manage Categories', { selector: 'h2' });
+    const oldCat = within(screen.getByRole('dialog')).getByRole('button', { name: 'OldCat' });
     await user.click(oldCat);
     const editInput = screen.getByDisplayValue('OldCat');
     await user.clear(editInput);
@@ -1866,10 +1822,9 @@ describe('CollabNotes details', () => {
     // half a rename is not a saved rename.
     await waitFor(() => expect(puts).toEqual(['1', '2']));
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
-    expect(screen.getByText('Manage Categories', { selector: 'h3' })).toBeInTheDocument();
+    expect(screen.getByText('Manage Categories', { selector: 'h2' })).toBeInTheDocument();
     // Re-read: the note the server refused is still shown under its old category.
-    const header = screen.getByText('Manage Categories', { selector: 'h3' }).parentElement!;
-    await user.click(within(header).getByRole('button'));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.getAllByText('NewCat').length).toBeGreaterThan(0));
     expect(screen.getAllByText('OldCat').length).toBeGreaterThan(0);
   });
@@ -1883,7 +1838,7 @@ describe('CollabNotes details', () => {
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Stubborn note');
 
-    await user.click(screen.getByTitle('Delete'));
+    await noteAction(user, 'Delete');
     const dialog = (await screen.findByText('Delete note?')).closest('div.trek-modal-enter') as HTMLElement;
     await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
@@ -1904,10 +1859,10 @@ describe('CollabNotes details', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('First note');
-    await user.click(screen.getByTitle('Manage Categories'));
-    await screen.findByText('Manage Categories', { selector: 'h3' });
+    await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
+    await screen.findByText('Manage Categories', { selector: 'h2' });
 
-    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename')!;
+    const oldCat = within(screen.getByRole('dialog')).getByRole('button', { name: 'OldCat' });
     await user.click(oldCat);
     const editInput = screen.getByDisplayValue('OldCat');
     await user.clear(editInput);
@@ -1918,7 +1873,7 @@ describe('CollabNotes details', () => {
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
     // Nothing was renamed, so the modal must not act like it was saved…
-    expect(screen.getByText('Manage Categories', { selector: 'h3' })).toBeInTheDocument();
+    expect(screen.getByText('Manage Categories', { selector: 'h2' })).toBeInTheDocument();
     // …and both rejected writes are one message, not one each.
     expect(addToast).toHaveBeenCalledTimes(1);
   });
@@ -1928,7 +1883,7 @@ describe('CollabNotes details', () => {
     serveNotes({ notes: [buildNote({ id: 7, title: 'Hotel', content: 'Zimmernummer <TBD> bestaetigen' })] });
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Hotel');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await noteAction(user, 'Expand');
     const full = await openedNoteBody();
     // Notes written before markdown rendering existed keep reading the way they
     // were typed (#2177).
@@ -1940,7 +1895,7 @@ describe('CollabNotes details', () => {
     serveNotes({ notes: [buildNote({ id: 8, title: 'Booking', content: 'Hotel gebucht[^1]\n\n[^1]: Bestaetigung ABC123' })] });
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Booking');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await noteAction(user, 'Expand');
     const full = await openedNoteBody();
 
     const ref = within(full).getByRole('link', { name: '1' });
@@ -1956,12 +1911,12 @@ describe('CollabNotes details', () => {
     server.use(http.get('/api/trips/1/collab/link-preview', () => HttpResponse.json({ title: 'Hotel', image: null })));
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Hotel');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await noteAction(user, 'Expand');
     const full = await openedNoteBody();
 
     // A member without collab_edit never opens the edit modal, so this is the
     // only place the link is readable for them (#2222).
-    const link = within(full).getByRole('link');
+    const link = within(full.closest('[role="dialog"]') as HTMLElement).getByRole('link');
     expect(link).toHaveAttribute('href', 'https://www.hotel.test');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(link).toHaveTextContent('hotel.test');
@@ -1972,7 +1927,7 @@ describe('CollabNotes details', () => {
     serveNotes({ notes: [buildNote({ id: 10, title: 'Hotel', website: 'javascript:alert(1)' })] });
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Hotel');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await noteAction(user, 'Expand');
     const full = await openedNoteBody();
 
     expect(within(full).queryAllByRole('link')).toHaveLength(0);

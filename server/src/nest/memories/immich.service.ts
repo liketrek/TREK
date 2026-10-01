@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
 import type { Response } from 'express';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { checkSsrf, safeFetch, type SafeFetchOptions } from '../../utils/ssrfGuard';
@@ -13,7 +14,7 @@ import { describeFetchFailure, fail, handleServiceResult, isWithinLocalDayRange,
 const ALBUM_PAGE_SIZE = 1000;
 const ALBUM_MAX_PAGES = 20;
 /**
- * How many upstream pages one search may read while filling one answered page.
+ * How many upstream pages one search may spend on rows the day filter drops.
  *
  * The day filter runs after the fetch, so the number of raw pages an answered
  * page costs depends on how much of the padding days sits in front of it. This
@@ -21,8 +22,29 @@ const ALBUM_MAX_PAGES = 20;
  * would otherwise keep a single request fetching, so the scan stops here and
  * answers `hasMore: false` rather than spinning or handing back the same
  * partial page for every page the caller asks for.
+ *
+ * It is an allowance on top of the pages the answered ones need, not a ceiling
+ * on the scan. Every call restarts at raw page 1, so page N reads at least N-1
+ * raw pages before it reaches its own, and a flat budget of 20 ended every
+ * date-filtered search at 20 answered pages: 1,000 photos at the picker's old
+ * page size, with no word to the user (#1587).
  */
 const SEARCH_MAX_RAW_PAGES = 20;
+/**
+ * The hard stop behind that allowance: no single search reads more raw pages
+ * than this, whatever page it asks for. `page` comes from the caller unbounded,
+ * and a purely relative budget would walk 100,000 raw pages to answer page
+ * 100,000.
+ *
+ * Sized for the journey picker, which never asks a date-bounded search for a
+ * page past PROVIDER_SELECT_ALL_MAX_PAGES + 1 (251), whether "Select all" loads
+ * it, a second press does, or it is scrolled into view: photos 50,001 to 50,200
+ * at its 200 a page. Page N may read N - 1 + SEARCH_MAX_RAW_PAGES raw pages, so
+ * page 251 needs 250 + 20 = 270, and that is the ceiling. A deeper page, which
+ * only another caller such as the MCP tool asks for, gets a smaller allowance,
+ * and one past the ceiling can only come back empty with `hasMore: false`.
+ */
+const SEARCH_ABSOLUTE_MAX_RAW_PAGES = PROVIDER_SELECT_ALL_MAX_PAGES + SEARCH_MAX_RAW_PAGES;
 /** A mirrored journey upload is one photo; a server that sits on it this long is not coming back. */
 const UPLOAD_TIMEOUT_MS = 60_000;
 
@@ -331,7 +353,10 @@ export class ImmichService {
     const narrowed = Boolean(from || to);
     const skip = narrowed ? (page - 1) * size : 0;
     const wanted = skip + size;
-    const maxRawPages = narrowed ? SEARCH_MAX_RAW_PAGES : 1;
+    // The pages before this one, read even when every row on them is kept, plus
+    // the allowance for rows the filter drops. Page 1 keeps its budget of 20, and
+    // no page reads past the absolute ceiling.
+    const maxRawPages = narrowed ? Math.min(page - 1 + SEARCH_MAX_RAW_PAGES, SEARCH_ABSOLUTE_MAX_RAW_PAGES) : 1;
 
     const kept: any[] = [];
     let rawPage = narrowed ? 1 : page;

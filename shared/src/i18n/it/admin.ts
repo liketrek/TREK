@@ -136,6 +136,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Chiave API Amap (高德地图)',
   'admin.amapKeyHint':
     'Per la ricerca di luoghi nella Cina continentale, dove Google non è raggiungibile e OpenStreetMap ha pochi dati. Serve una chiave di tipo «Web 服务» (servizio web), non una chiave API JS. Si ottiene su console.amap.com.',
+  'admin.keyFromEnv': 'Impostata tramite {name}',
   'admin.placesProvider.title': 'Provider per la ricerca di luoghi',
   'admin.placesProvider.subtitle': "L'indice di TREK e OpenStreetMap rispondono a ogni ricerca. Qui si sceglie chi altro viene interrogato quando non trovano nulla: Automatico preferisce Google se esiste una chiave, poi Amap.",
   'admin.placesProvider.auto': 'Automatico',
@@ -179,6 +180,13 @@ const admin: TranslationStrings = {
   'admin.placesGoogleOnly.subtitle': 'Ogni ricerca e ogni suggerimento vanno a Google Places. Spento, rispondono prima l\'indice di TREK e OpenStreetMap, e Google viene interrogato solo se non trovano nulla.',
   'admin.placesGoogleOnly.missingKey': 'Richiede una chiave API di Google Maps. Senza, la ricerca usa l\'indice di TREK e OpenStreetMap, comunque sia impostato questo interruttore.',
   'admin.placesGoogleOnly.otherProvider': 'Richiede Google come provider dei luoghi. Con Amap o OpenStreetMap selezionati, nessuna ricerca va a Google, qualunque sia la posizione di questo interruttore.',
+  'admin.googleQuota.title': 'Limite giornaliero di chiamate a Google',
+  'admin.googleQuota.subtitle': 'Una volta raggiunto, TREK smette di chiamare Google fino al giorno dopo (UTC) e cerca con OpenStreetMap. Vuoto significa nessun limite.',
+  'admin.googleQuota.placeholder': 'Nessun limite',
+  'admin.googleQuota.usedToday': 'Oggi: {used}',
+  'admin.googleQuota.usedOfLimit': 'Oggi: {used} di {limit}',
+  'admin.googleQuota.reached': 'Limite raggiunto ({used}), Google in pausa fino a domani',
+  'admin.googleQuota.saved': 'Limite giornaliero salvato',
   'admin.transitProvider.title': 'Provider del trasporto pubblico',
   'admin.transitProvider.subtitle': 'Quale servizio risponde alla ricerca di trasporto pubblico.',
   'admin.transitProvider.transitous': 'Transitous (gratuito)',
@@ -385,6 +393,8 @@ const admin: TranslationStrings = {
     'Fornire dettagli aggiuntivi (recensioni, valutazioni, link) a un luogo',
   'admin.plugins.perm.hook:search-provider':
     'Rispondere alle ricerche di luoghi dal proprio indice, accanto ai risultati di TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    "Aggiungere categorie di luoghi proprie a «Esplora luoghi sulla mappa»; sceglierne una invia al plugin l'area della mappa che stai guardando",
   'admin.plugins.perm.hook:trip-warning-provider':
     'Segnala avvisi di validazione su un viaggio (mostrati nel pianificatore)',
   'admin.plugins.perm.hook:table-contributor':
@@ -401,6 +411,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Pubblica strumenti IA',
   'admin.plugins.mcpToolsTitle': 'Strumenti IA pubblicati',
   'admin.plugins.mcpToolsHint': 'Un assistente può eseguirli per conto di un utente. Ognuno agisce con i permessi concessi sopra.',
+  'admin.plugins.poiCategoriesTitle': 'Categorie della mappa che aggiunge',
   'admin.plugins.perm.mcp:tools':
     'Pubblicare strumenti che un assistente IA può eseguire per tuo conto (agisce con i permessi che concedi qui al plugin, non con i propri)',
   'admin.plugins.perm.geolocation:read':
@@ -543,6 +554,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Fornisce eventi calendario',
   'admin.plugins.cap.placeDetails': 'Arricchisce luoghi',
   'admin.plugins.cap.search': 'Risponde alle ricerche',
+  'admin.plugins.cap.poiCategories': 'Aggiunge categorie alla mappa',
   'admin.plugins.cap.warnings': 'Segnala problemi',
   'admin.plugins.cap.mapLayers': 'Disegna sulla mappa',
   'admin.plugins.cap.routing': 'Offre routing',
@@ -620,6 +632,11 @@ const admin: TranslationStrings = {
     'Legge le soste e i percorsi registrati da un’istanza Dawarich che ogni utente collega da sé',
   'admin.addons.catalog.llm_parsing.name': 'Analisi con IA',
   'admin.addons.catalog.llm_parsing.description': 'Legge le prenotazioni che l’analizzatore integrato non riesce a interpretare, con un modello di IA a tua scelta',
+  'admin.addons.llm.vision.auto': 'Automatico',
+  'admin.addons.llm.vision.on': 'Sì',
+  'admin.addons.llm.vision.off': 'No',
+  'admin.addons.llm.vision.hintLocal': 'Automatico chiede al server Ollama se questo modello legge le immagini.',
+  'admin.addons.llm.vision.hintCloud': 'Automatico significa no per un modello cloud. Scegli Sì se questo modello legge le immagini.',
   'admin.addons.enabled': 'Abilitato',
   'admin.addons.disabled': 'Disabilitato',
   'admin.addons.type.trip': 'Viaggio',
@@ -722,6 +739,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': 'Permessi',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Consente agli utenti di ricevere notifiche su telefoni e computer tramite il browser, anche quando TREK è chiuso. Richiede HTTPS; su iPhone e iPad TREK deve essere aggiunto alla schermata Home.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint':
     'Le notifiche in-app sono sempre attive e non possono essere disabilitate globalmente.',
@@ -757,6 +777,12 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Il Ntfy admin si attiva sempre quando un argomento è configurato',
   'admin.notifications.adminNotificationsHint':
     'Configura quali canali consegnano le notifiche admin (es. avvisi di versione). Il webhook si attiva automaticamente se è impostato un URL webhook admin.',
+  'admin.notificationDefaults.title': 'Impostazioni predefinite per gli utenti',
+  'admin.notificationDefaults.hint': "Come partono le notifiche di ogni utente. \"Disattivato\" l'utente può ancora attivarlo; \"Bloccato\" lo spegne per tutti e appare bloccato nelle loro impostazioni. Vale per chi non ha cambiato la cella.",
+  'admin.notificationDefaults.on': 'Attivo',
+  'admin.notificationDefaults.off': 'Disattivato',
+  'admin.notificationDefaults.blocked': 'Bloccato',
+  'admin.notificationDefaults.cycle': 'Clic per: {next}',
   'admin.notifications.tripReminders.title': 'Promemoria viaggio',
   'admin.notifications.tripReminders.hint':
     "Invia una notifica promemoria prima dell'inizio di un viaggio (richiede giorni di promemoria impostati sul viaggio).",

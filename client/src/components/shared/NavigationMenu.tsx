@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Navigation } from 'lucide-react'
 import type { NavigationTarget } from '../Planner/placeNavigation'
-import { openNavigationTarget } from '../Planner/placeNavigation'
+import { navigationTargetLabel, openNavigationTarget } from '../Planner/placeNavigation'
+import { useTranslation } from '../../i18n'
 
 interface NavigationMenuProps {
   targets: NavigationTarget[]
@@ -27,6 +28,7 @@ const EDGE = 8
  * than the space to its right is pulled back inside.
  */
 export function NavigationMenu({ targets, anchor, onClose, title }: NavigationMenuProps) {
+  const { t } = useTranslation()
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
 
@@ -126,7 +128,7 @@ export function NavigationMenu({ targets, anchor, onClose, title }: NavigationMe
           onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
         >
           <Navigation size={13} style={{ flexShrink: 0, color: 'var(--text-faint)' }} />
-          <span>{target.label}</span>
+          <span>{navigationTargetLabel(target, t)}</span>
         </button>
       ))}
     </div>,

@@ -10,7 +10,7 @@ export const packingRepo = {
     return onlineThenCache(
       async () => {
         const result = await packingApi.list(tripId)
-        upsertPackingItems(result.items)
+        void upsertPackingItems(result.items)
         return result
       },
       async () => ({

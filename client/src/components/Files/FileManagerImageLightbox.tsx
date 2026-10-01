@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { ExternalLink, Download, X, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import type { TripFile } from '../../types'
@@ -6,6 +7,10 @@ import { getAuthUrl } from '../../api/authUrl'
 import { openFile as openFileUrl } from '../../utils/fileDownload'
 import { triggerDownload, isVideo } from './FileManager.helpers'
 import VideoPlayer from '../Journey/VideoPlayerLazy'
+import { Tooltip } from '../shared/Tooltip'
+
+/** The round buttons on the dark backdrop, the same as the note preview's. */
+const LIGHTBOX_BTN = 'grid h-9 w-9 place-items-center rounded-full bg-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.85)] hover:bg-[rgba(255,255,255,0.22)]' // theme-lint-disable: the lightbox is dark in every scheme
 
 // Image lightbox with gallery navigation
 interface ImageLightboxProps {
@@ -66,7 +71,10 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
     </button>
   ) : null
 
-  return (
+  // A portal, as the two document previews are. Rendered in place, the overlay
+  // sits inside the trip page's stacking context, below the navbar's z-[200],
+  // which then covered the header and its buttons.
+  return createPortal(
     <div
       // Backdrop only — Escape and the header's close button do the same job for
       // the keyboard. Closing on the backdrop's own clicks (rather than letting
@@ -90,21 +98,25 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
           <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.4)' }}>{index + 1} / {files.length}</span>
         </span>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button type="button"
-            onClick={() => openFileUrl(file.url, file.original_name).catch(() => {})}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}
-            title={t('files.openTab')}>
-            <ExternalLink size={16} />
-          </button>
-          <button type="button"
-            onClick={() => triggerDownload(file.url, file.original_name)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}
-            title={t('files.download') || 'Download'}>
-            <Download size={16} />
-          </button>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}>
-            <X size={18} />
-          </button>
+          <Tooltip label={t('files.openTab')}>
+            <button type="button"
+              onClick={() => openFileUrl(file.url, file.original_name).catch(() => {})}
+              aria-label={t('files.openTab')} className={LIGHTBOX_BTN}>
+              <ExternalLink size={16} />
+            </button>
+          </Tooltip>
+          <Tooltip label={t('files.download') || 'Download'}>
+            <button type="button"
+              onClick={() => triggerDownload(file.url, file.original_name)}
+              aria-label={t('files.download') || 'Download'} className={LIGHTBOX_BTN}>
+              <Download size={16} />
+            </button>
+          </Tooltip>
+          <Tooltip label={t('common.close')}>
+            <button type="button" onClick={onClose} aria-label={t('common.close')} className={LIGHTBOX_BTN}>
+              <X size={18} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -130,7 +142,8 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
           ))}
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -155,7 +168,7 @@ function ThumbImg({ file, active, onClick }: { file: TripFile & { url: string };
   useEffect(() => {
     if (!visible || fileIsVideo) return
     let current = true
-    getAuthUrl(file.url, 'download').then(u => { if (current) setSrc(u) })
+    void getAuthUrl(file.url, 'download').then(u => { if (current) setSrc(u) })
     return () => { current = false }
   }, [file.url, fileIsVideo, visible])
 

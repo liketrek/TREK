@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'Snart framme...',
   'trip.mobilePlan': 'Plan',
   'trip.mobilePlaces': 'Platser',
+  'trip.panelWidth': 'Panelens bredd',
   'trip.toast.placeUpdated': 'Plats uppdaterad',
   'trip.toast.tripUpdated': 'Resan uppdaterad',
   'trip.toast.placeAdded': 'Plats tillagd',

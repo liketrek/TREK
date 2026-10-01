@@ -1,12 +1,15 @@
-import { useState, type ReactNode } from 'react'
-import { CalendarDays, CalendarPlus, ChevronRight, Download, FileText, Loader2, MapPin, Route as RouteIcon } from 'lucide-react'
+import { useId, useState } from 'react'
+import { CalendarDays, CalendarPlus, ChevronRight, Download, FileText, Loader2, MapPin, Route as RouteIcon, UserRound } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import Modal from '../shared/Modal'
+import { DialogHeader, DialogSection, DialogShell, DialogTile, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { IcsSubscribeModal } from './IcsSubscribeModal'
+import { SoftPill } from './planParts'
 import { useToast } from '../shared/Toast'
 import type { Trip, Day, Place, Category, AssignmentsMap, Reservation, DayNote } from '../../types'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
+import { useAuthStore } from '../../store/authStore'
+import { hasPersonalPlan } from '../PDF/pdfScope'
 
 /**
  * What a GPX download can carry. Worded by what someone wants on their device
@@ -31,7 +34,7 @@ interface TripExportModalProps {
   assignments: AssignmentsMap
   reservations: Reservation[]
   dayNotes: Record<string, DayNote[]>
-  t: (key: string, params?: Record<string, any>) => string
+  t: (key: string, params?: Record<string, string | number>) => string
   locale: string
   toast: ReturnType<typeof useToast>
   /**
@@ -65,6 +68,7 @@ export function TripExportModal({
   // The export gets the store's assignments and applies the day plan's own filter to
   // them, so it needs the same switch the plan reads.
   const showServiceStops = useRoadtripSettings(s => s.roadtrip_service_stops_in_days !== false, tripId)
+  const titleId = useId()
   const fileBase = trip?.title || 'trip'
 
   // Shared tail of every download: Firefox and Safari cancel the download when
@@ -79,9 +83,13 @@ export function TripExportModal({
     setTimeout(() => { URL.revokeObjectURL(url); a.remove() }, 100)
   }
 
-  const exportPdf = async () => {
+  const myId = useAuthStore(s => s.user?.id)
+  // "My plan" (#2168) only once somebody has been given a part of the trip.
+  const offerMine = myId != null && hasPersonalPlan(assignments, reservations)
+
+  const exportPdf = async (mine = false) => {
     if (busy) return
-    setBusy('pdf')
+    setBusy(mine ? 'pdf:mine' : 'pdf')
     const flatNotes = Object.entries(dayNotes).flatMap(([dayId, notes]) =>
       notes.map(n => ({ ...n, day_id: Number(dayId) })),
     )
@@ -91,7 +99,7 @@ export function TripExportModal({
       // exported. A missing chunk lands in the catch and shows the same error
       // the export already had.
       const { downloadTripPDF } = await import('../PDF/TripPDF')
-      await downloadTripPDF({ trip, days, places, assignments, categories, dayNotes: flatNotes, reservations, t, locale, timeFormat, distanceUnit, showServiceStops })
+      await downloadTripPDF({ trip, days, places, assignments, categories, dayNotes: flatNotes, reservations, t, locale, timeFormat, distanceUnit, showServiceStops, onlyUserId: mine ? myId : undefined })
       onClose()
     } catch (e) {
       console.error('PDF error:', e)
@@ -134,71 +142,88 @@ export function TripExportModal({
     }
   }
 
+  const header = (
+    <DialogHeader
+      tile={<DialogTile><Download size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+      tint={NEUTRAL_TINT}
+      labelId={titleId}
+      onClose={onClose}
+      title={t('dayplan.export')}
+      sub={t('dayplan.exportIntro')}
+      subWraps
+    />
+  )
+
   return (
     <>
-      <Modal
-        isOpen={isOpen}
-        onClose={onClose}
-        size="lg"
-        title={
-          <span className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-accent-subtle text-accent-on">
-              <Download size={16} strokeWidth={2} />
-            </span>
-            {t('dayplan.export')}
-          </span>
-        }
-      >
-        <p className="-mt-1 mb-5 text-caption text-content-muted">{t('dayplan.exportIntro')}</p>
-
-        <Section label={t('dayplan.exportDocument')}>
-          <ExportRow
-            icon={FileText}
-            title={t('dayplan.pdf')}
-            sub={t('dayplan.pdfTooltip')}
-            busy={busy === 'pdf'}
-            disabled={busy != null}
-            onClick={exportPdf}
-          />
-        </Section>
-
-        <Section label={t('dayplan.exportCalendar')}>
-          <ExportRow
-            icon={CalendarDays}
-            title={t('mobileTrip.icsDownload')}
-            sub={`${fileBase}.ics`}
-            busy={busy === 'ics'}
-            disabled={busy != null}
-            onClick={downloadIcs}
-          />
-          {canManageShare && (
+      {/* While the subscription dialog sits on top, Escape and the backdrop are
+          its own: one key press closes only the dialog in front. */}
+      <DialogShell open={isOpen} onClose={onClose} labelledBy={titleId} width="narrow" blocked={subscribeOpen} header={header}>
+        <DialogSection label={t('dayplan.exportDocument')}>
+          <div className="flex flex-col gap-1.5">
             <ExportRow
-              icon={CalendarPlus}
-              title={t('mobileTrip.icsSubscribe')}
-              sub={t('mobileTrip.icsSubscribeSub')}
+              icon={FileText}
+              title={t('dayplan.pdf')}
+              sub={t('dayplan.pdfTooltip')}
+              busy={busy === 'pdf'}
               disabled={busy != null}
-              onClick={() => setSubscribeOpen(true)}
+              onClick={() => exportPdf()}
             />
-          )}
-        </Section>
+            {offerMine && (
+              <ExportRow
+                icon={UserRound}
+                title={t('dayplan.pdfMine')}
+                sub={t('dayplan.pdfMineSub')}
+                busy={busy === 'pdf:mine'}
+                disabled={busy != null}
+                onClick={() => exportPdf(true)}
+              />
+            )}
+          </div>
+        </DialogSection>
 
-        {/* GPX — the counterpart to the GPX import in the places sidebar. The
-            format name carries more than a translated heading would, so it is
-            spelled out beside the plain-language one. */}
-        <Section label={`${t('dayplan.exportMaps')} · GPX`}>
-          {GPX_SCOPES.map(scope => (
+        <DialogSection label={t('dayplan.exportCalendar')}>
+          <div className="flex flex-col gap-1.5">
             <ExportRow
-              key={scope.key}
-              icon={scope.icon}
-              title={t(scope.labelKey)}
-              busy={busy === `gpx:${scope.key}`}
+              icon={CalendarDays}
+              title={t('mobileTrip.icsDownload')}
+              sub={`${fileBase}.ics`}
+              busy={busy === 'ics'}
               disabled={busy != null}
-              onClick={() => downloadGpx(scope.key, scope.query)}
+              onClick={downloadIcs}
             />
-          ))}
-        </Section>
-      </Modal>
+            {canManageShare && (
+              <ExportRow
+                icon={CalendarPlus}
+                title={t('mobileTrip.icsSubscribe')}
+                sub={t('mobileTrip.icsSubscribeSub')}
+                disabled={busy != null}
+                onClick={() => setSubscribeOpen(true)}
+              />
+            )}
+          </div>
+        </DialogSection>
 
+        {/* GPX: the counterpart to the GPX import in the places sidebar. The
+            format name carries more than a translated heading would, so it
+            stands beside the plain-language one as a pill of its own. */}
+        <DialogSection label={<span className="inline-flex items-center gap-1.5">{t('dayplan.exportMaps')}<SoftPill caps>GPX</SoftPill></span>}>
+          <div className="flex flex-col gap-1.5">
+            {GPX_SCOPES.map(scope => (
+              <ExportRow
+                key={scope.key}
+                icon={scope.icon}
+                title={t(scope.labelKey)}
+                busy={busy === `gpx:${scope.key}`}
+                disabled={busy != null}
+                onClick={() => downloadGpx(scope.key, scope.query)}
+              />
+            ))}
+          </div>
+        </DialogSection>
+      </DialogShell>
+
+      {/* Mounted after the export dialog, so its backdrop stacks above it. */}
       {subscribeOpen && canManageShare && (
         <IcsSubscribeModal
           endpoint={`/api/trips/${tripId}/feed`}
@@ -211,17 +236,7 @@ export function TripExportModal({
   )
 }
 
-function Section({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <section className="mb-4 last:mb-0">
-      <h3 className="mb-1.5 px-1 text-caption font-bold uppercase tracking-[0.07em] text-content-faint">{label}</h3>
-      <div className="divide-y divide-edge-faint overflow-hidden rounded-xl border border-edge-faint bg-surface">
-        {children}
-      </div>
-    </section>
-  )
-}
-
+/** One export as a card: its icon tile (a spinner while it works), what it makes, and the chevron. */
 function ExportRow({ icon: Icon, title, sub, busy = false, disabled = false, onClick }: {
   icon: LucideIcon
   title: string
@@ -235,20 +250,16 @@ function ExportRow({ icon: Icon, title, sub, busy = false, disabled = false, onC
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface-hover disabled:cursor-default disabled:opacity-50"
+      className="group flex w-full items-center gap-3 rounded-[14px] border border-edge-faint bg-surface-card px-3 py-2.5 text-left transition-colors enabled:hover:bg-surface-hover disabled:cursor-default disabled:opacity-50"
     >
-      <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[10px] bg-surface-tertiary text-content-secondary transition-colors group-enabled:group-hover:bg-accent-subtle group-enabled:group-hover:text-accent-on">
+      <span className="grid h-9 w-9 flex-none place-items-center rounded-[10px] bg-surface-tertiary text-content-secondary transition-colors group-enabled:group-hover:bg-surface-card group-enabled:group-hover:text-content">
         {busy ? <Loader2 size={16} strokeWidth={2} className="animate-spin" /> : <Icon size={16} strokeWidth={1.9} />}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-body font-semibold text-content">{title}</span>
-        {sub && <span className="block truncate text-caption text-content-muted">{sub}</span>}
+        <span className="block truncate font-semibold text-content" style={fs(13.5, 'body')}>{title}</span>
+        {sub && <span className="block truncate text-content-muted" style={fs(11.5)}>{sub}</span>}
       </span>
-      <ChevronRight
-        size={15}
-        strokeWidth={2}
-        className="flex-none text-content-faint transition-transform group-enabled:group-hover:translate-x-0.5"
-      />
+      <ChevronRight size={15} strokeWidth={2} className="flex-none text-content-faint transition-transform group-enabled:group-hover:translate-x-0.5" />
     </button>
   )
 }

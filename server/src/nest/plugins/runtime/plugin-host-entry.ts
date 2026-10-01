@@ -79,6 +79,30 @@ function installSdkInjection(requirePlugin: NodeJS.Require): void {
   };
 }
 
+/**
+ * The function names one hook object carries, inherited ones included: a hook written
+ * as a class instance keeps its methods on the prototype, and the dispatch below finds
+ * them there, so this has to as well.
+ *
+ * Read off the property descriptors, so no getter of the plugin's runs here, and any
+ * failure (a revoked Proxy, say) reports no functions rather than failing the load: a
+ * plugin that loaded before this report existed must still load.
+ */
+function functionsOf(impl: unknown): string[] {
+  if (!impl || typeof impl !== 'object') return [];
+  const names = new Set<string>();
+  try {
+    for (let o: object | null = impl; o && o !== Object.prototype; o = Object.getPrototypeOf(o) as object | null) {
+      for (const key of Object.getOwnPropertyNames(o)) {
+        if (key !== 'constructor' && typeof Object.getOwnPropertyDescriptor(o, key)?.value === 'function') names.add(key);
+      }
+    }
+  } catch {
+    return [];
+  }
+  return [...names];
+}
+
 // True once the plugin has loaded successfully. A subsequent async throw is then a
 // runtime crash (supervisor restarts with backoff), not a load failure — so we don't
 // send 'load-error' after activation, which the supervisor treats as a terminal disable.
@@ -104,7 +128,11 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     // the manifest.
     const routes = (def.routes ?? []).map((r, i) => ({ i, method: r.method, path: r.path, auth: r.auth !== false }));
     const jobs = (def.jobs ?? []).map((j) => ({ id: j.id, schedule: j.schedule }));
-    const hooks = Object.keys((def.hooks ?? {}) as Record<string, unknown>);
+    const hookImpls = (def.hooks ?? {}) as Record<string, unknown>;
+    const hooks = Object.keys(hookImpls);
+    // Which functions each hook answers to, so the host can leave a plugin out of an
+    // optional one (searchProvider.suggest) instead of calling it into an error.
+    const hookFns = Object.fromEntries(hooks.map((h) => [h, functionsOf(hookImpls[h])]));
     const events = (def.events ?? []).map((e) => e.on);
     // Inter-plugin surface: the callable exports this plugin implements, and the
     // other-plugin events it subscribes to (so the host can route fan-out).
@@ -114,7 +142,7 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     // synchronous: the host never asks the child what tools it has, it
     // intersects this with the signed manifest.
     const mcpTools = (def.hooks?.mcpToolProvider?.tools ?? []).filter((t) => typeof t === 'string');
-    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, events, exports: exportNames, subscriptions, mcpTools } });
+    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, hookFns, events, exports: exportNames, subscriptions, mcpTools } });
     activated = true; // past load: a later async throw is a runtime CRASH, not a load failure
     // An immediate first heartbeat confirms liveness without waiting a full interval.
     send({ k: 'evt', topic: 'heartbeat', data: { rss: process.memoryUsage().rss } });

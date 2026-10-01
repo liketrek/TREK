@@ -261,3 +261,41 @@ describe('the upload cell', () => {
     await waitFor(() => expect(onUpload).toHaveBeenCalledWith([file], null, expect.any(Function)))
   })
 })
+
+describe('photos from a provider (#2271)', () => {
+  it('offers one cell per connected provider, asks with the filtered entry, and shows what landed', async () => {
+    const onBrowseProvider = vi.fn(async () => [14])
+    render(
+      <StudioSidebar
+        page={page} pxPerMm={96 / 25.4} bookView={false} source={source} stats={null} path={[]}
+        t={(k: string) => k} locale="en-US" canEdit onUpload={nothing} onToggleStop={async () => true}
+        providers={[{ id: 'immich', name: 'Immich' }]} onBrowseProvider={onBrowseProvider}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('journey.studio.content'))
+    fireEvent.click(screen.getByTitle('journey.studio.fromProviderHint'))
+    expect(onBrowseProvider).toHaveBeenCalledWith('immich', null)
+    await waitFor(() => expect(shown()).toEqual([14]))
+  })
+
+  it('a closed picker changes nothing, and a viewer gets no provider cell', async () => {
+    const onBrowseProvider = vi.fn(async () => [] as number[])
+    const { unmount } = render(
+      <StudioSidebar
+        page={page} pxPerMm={96 / 25.4} bookView={false} source={source} stats={null} path={[]}
+        t={(k: string) => k} locale="en-US" canEdit onUpload={nothing} onToggleStop={async () => true}
+        providers={[{ id: 'immich', name: 'Immich' }]} onBrowseProvider={onBrowseProvider}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('journey.studio.content'))
+    const before = shown()
+    fireEvent.click(screen.getByTitle('journey.studio.fromProviderHint'))
+    await waitFor(() => expect(onBrowseProvider).toHaveBeenCalled())
+    expect(shown()).toEqual(before)
+    unmount()
+
+    openContent(source, { canEdit: false })
+    expect(screen.queryByTitle('journey.studio.fromProviderHint')).toBeNull()
+  })
+})
+

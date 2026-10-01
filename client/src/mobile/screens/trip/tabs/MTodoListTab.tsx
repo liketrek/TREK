@@ -14,6 +14,7 @@ import {
   sortTodoRows, todoCategories, todoCategoryOpenCount, todoCounts, type TodoSmartFilter,
 } from './listsModel'
 import MTaskSheet from './MTaskSheet'
+import MarkdownText from '../../../../components/shared/MarkdownText'
 
 const BUILTIN_FILTERS: TodoSmartFilter[] = ['all', 'my', 'overdue', 'done']
 
@@ -219,7 +220,7 @@ function TaskCard({ item, members, today, onToggle, onOpen }: {
             {item.name}
           </div>
           {item.description && (
-            <div className="mt-[1px] truncate font-geist text-[0.625rem] text-m-faint">{item.description}</div>
+            <MarkdownText clamp className="mt-[1px] font-geist text-[0.625rem] text-m-faint">{item.description}</MarkdownText>
           )}
           {(item.priority > 0 || item.due_date || assignee) && (
             <div className="mt-[5px] flex flex-wrap items-center gap-[5px]">

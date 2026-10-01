@@ -1,13 +1,11 @@
 import archiver from 'archiver';
-import unzipper from 'unzipper';
 import path from 'path';
 import { pipeline } from 'node:stream/promises';
 import { readEnv } from '../../app-config';
 import fs from 'fs';
-import type Database from 'better-sqlite3';
-import { openDatabase } from '../../db/connection';
 import { db, closeDb, reinitialize } from '../../db/database';
 import { VALID_INTERVALS } from './auto-backup.settings';
+import { checkBackupDatabase, extractBackupArchive } from './backup-archive';
 import { invalidatePermissionsCache } from '../permissions/permissions-cache';
 import { pluginsCodeRoot, pluginsDataRoot } from '../plugins/paths';
 import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../plugins/plugin-backup';
@@ -24,16 +22,9 @@ const dataDir = path.join(__dirname, '../../../data');
 
 // Compressed upload cap for restore archives. Defaults to 500 MB, raisable via
 // BACKUP_UPLOAD_LIMIT_MB for instances whose backups (uploads/ included) grow
-// past that. Malformed values abort boot (app-config fail-fast validation);
-// frozen at import on purpose (legacy timing).
-const backupEnv = readEnv().backup;
-export const MAX_BACKUP_UPLOAD_SIZE = backupEnv.uploadLimitMb * 1024 * 1024; // compressed
-// Upper bound on the TOTAL decompressed size of a restore archive (the upload
-// limit only caps the compressed bytes). Default 5 GB, raisable via
-// BACKUP_MAX_DECOMPRESSED_MB for an instance whose own backups (now including the
-// plugin trees) legitimately grow past it — otherwise its own backups become
-// unrestorable.
-export const MAX_BACKUP_DECOMPRESSED_SIZE = backupEnv.maxDecompressedMb * 1024 * 1024;
+// past that. Upper bound on the TOTAL decompressed size: default 5 GB, raisable
+// via BACKUP_MAX_DECOMPRESSED_MB. Both live beside the archive reader now.
+export { MAX_BACKUP_UPLOAD_SIZE, MAX_BACKUP_DECOMPRESSED_SIZE } from './backup-archive';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -350,7 +341,7 @@ const isBackupCategory = (dir: string): dir is (typeof BACKUP_UPLOAD_CATEGORIES)
  * with a warning (2026-08-17 decision): new archives never contain them, and
  * the category mapping stays structural in both directions.
  */
-async function rehydrateUploads(storage: StorageService, extractedUploads: string): Promise<void> {
+export async function rehydrateUploads(storage: StorageService, extractedUploads: string): Promise<void> {
   const walk = (dir: string): string[] =>
     fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
       const p = path.join(dir, e.name);
@@ -380,88 +371,15 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
   const extractDir = path.join(dataDir, `restore-${Date.now()}`);
   let reinitFailed: unknown = null;
   try {
-    // Fast reject on the central-directory's declared size, then extract entry-by-entry
-    // enforcing the ACTUAL decompressed bytes. The declared uncompressedSize is
-    // attacker-declarable — a zip bomb can under-report it and expand past the cap during
-    // extraction — so the real guard counts bytes as they are written and aborts once the
-    // running total crosses the cap. Each entry's resolved path is also confined to
-    // extractDir (a `../` entry that escaped the root — zip-slip — is refused).
-    const directory = await unzipper.Open.file(zipPath);
-    const claimedSize = directory.files.reduce((sum, f) => sum + (f.uncompressedSize || 0), 0);
-    if (claimedSize > MAX_BACKUP_DECOMPRESSED_SIZE) {
-      return { success: false, error: 'Backup exceeds the maximum decompressed size.', status: 400 };
-    }
+    const refused = await extractBackupArchive(zipPath, extractDir);
+    if (refused) return { success: false, ...refused };
 
-    fs.mkdirSync(extractDir, { recursive: true });
-    let decompressedBytes = 0;
-    for (const entry of directory.files) {
-      if (entry.type === 'Directory') continue;
-      const dest = path.join(extractDir, entry.path);
-      const rel = path.relative(extractDir, dest);
-      if (rel.startsWith('..') || path.isAbsolute(rel)) {
-        fs.rmSync(extractDir, { recursive: true, force: true });
-        return { success: false, error: 'Invalid backup: an entry path escapes the archive root.', status: 400 };
-      }
-      fs.mkdirSync(path.dirname(dest), { recursive: true });
-      try {
-        await new Promise<void>((resolve, reject) => {
-          const source = entry.stream();
-          const out = fs.createWriteStream(dest);
-          source.on('data', (chunk: Buffer) => {
-            decompressedBytes += chunk.length;
-            if (decompressedBytes > MAX_BACKUP_DECOMPRESSED_SIZE) {
-              source.destroy();
-              out.destroy();
-              reject(new Error('DECOMPRESSED_CAP_EXCEEDED'));
-            }
-          });
-          source.on('error', reject);
-          out.on('error', reject);
-          out.on('finish', resolve);
-          source.pipe(out);
-        });
-      } catch (err) {
-        fs.rmSync(extractDir, { recursive: true, force: true });
-        if (err instanceof Error && err.message === 'DECOMPRESSED_CAP_EXCEEDED') {
-          return { success: false, error: 'Backup exceeds the maximum decompressed size.', status: 400 };
-        }
-        throw err;
-      }
+    const unreadable = checkBackupDatabase(extractDir);
+    if (unreadable) {
+      fs.rmSync(extractDir, { recursive: true, force: true });
+      return { success: false, ...unreadable };
     }
-
     const extractedDb = path.join(extractDir, 'travel.db');
-    if (!fs.existsSync(extractedDb)) {
-      fs.rmSync(extractDir, { recursive: true, force: true });
-      return { success: false, error: 'Invalid backup: travel.db not found', status: 400 };
-    }
-
-    let uploadedDb: InstanceType<typeof Database> | null = null;
-    try {
-      uploadedDb = openDatabase(extractedDb, { readonly: true });
-
-      const integrityResult = uploadedDb.prepare('PRAGMA integrity_check').get() as { integrity_check: string };
-      if (integrityResult.integrity_check !== 'ok') {
-        fs.rmSync(extractDir, { recursive: true, force: true });
-        return { success: false, error: `Uploaded database failed integrity check: ${integrityResult.integrity_check}`, status: 400 };
-      }
-
-      const requiredTables = ['users', 'trips', 'trip_members', 'places', 'days'];
-      const existingTables = uploadedDb
-        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
-        .all() as { name: string }[];
-      const tableNames = new Set(existingTables.map(t => t.name));
-      for (const table of requiredTables) {
-        if (!tableNames.has(table)) {
-          fs.rmSync(extractDir, { recursive: true, force: true });
-          return { success: false, error: `Uploaded database is missing required table: ${table}. This does not appear to be a TREK backup.`, status: 400 };
-        }
-      }
-    } catch (err) {
-      fs.rmSync(extractDir, { recursive: true, force: true });
-      return { success: false, error: 'Uploaded file is not a valid SQLite database', status: 400 };
-    } finally {
-      uploadedDb?.close();
-    }
 
     closeDb();
 

@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Ångra: {action}',
   'undo.assignPlace': 'Plats tilldelad dagen',
   'undo.removeAssignment': 'Plats har tagits bort från dagen',
+  'undo.clearDay': 'Dagen tömd',
   'undo.reorder': 'Platserna har ordnats om',
   'undo.optimize': 'Rutt optimerad',
   'undo.deletePlace': 'Plats borttagen',

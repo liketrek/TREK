@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Bestand koppelen',
   'files.linkEmpty': 'Nog geen plaatsen of boekingen om te koppelen',
   'files.menu': 'Meer opties',
-  'files.uploadErrorSize': 'Bestand is te groot (max. 50 MB)',
+  'files.uploadErrorSize': 'Bestand is te groot (max. {max} MB)',
   'files.title': 'Bestanden',
   'files.pageTitle': 'Bestanden en documenten',
   'files.subtitle': '{count} bestanden voor {trip}',

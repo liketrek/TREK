@@ -1,4 +1,5 @@
-import { BedDouble, Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, StickyNote, Ticket, X, Zap } from 'lucide-react'
+import { BedDouble, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, StickyNote, Ticket, X, Zap } from 'lucide-react'
+import { routeModeIcon } from '../../../../components/Planner/routeModes'
 import type { ReactNode, MouseEvent, CSSProperties } from 'react'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
@@ -451,7 +452,7 @@ export function TransitRow({ res, transit, dayId, open, chrome, reorder, drag, o
 /** The connector line of a routed leg — the leg's own mode (#1281) picks icon and duration. */
 function TravelLine({ seg }: { seg: RouteSegment }) {
   const mode = seg.mode
-  const Icon = mode === 'walking' ? Footprints : mode?.startsWith('plugin:') ? Zap : Car
+  const Icon = routeModeIcon(mode)
   const durationText = seg.durationText ?? (mode === 'walking' ? seg.walkingText : seg.drivingText)
   return (
     <>

@@ -173,7 +173,7 @@ function writeToDexie(
   payload: Record<string, unknown>,
   state: TripStoreState,
 ): void {
-  ;(async () => {
+  ;void (async () => {
     try {
       await DEXIE_WRITERS[type as TrekWsTripEventName]?.(payload, state)
     } catch {

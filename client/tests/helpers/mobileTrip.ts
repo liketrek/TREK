@@ -21,7 +21,7 @@ export function buildTripActions(): Record<string, ReturnType<typeof vi.fn>> {
     'deleteDay', 'deletePlacesMany', 'deleteReservation', 'deleteTodoItem', 'insertDay', 'loadBudgetItems',
     'loadFiles', 'loadReservations', 'loadTrip', 'moveAssignment', 'moveDayNote', 'ratePlace',
     'refreshDays', 'removeAssignment', 'removePackingContributor', 'reorderAssignments',
-    'reorderDays', 'setAssignments', 'setPackingItemSharing', 'setSelectedDay',
+    'reorderDays', 'setAssignments', 'setPackedCount', 'setPackingItemSharing', 'setSelectedDay',
     'toggleBudgetMemberPaid', 'togglePackingItem', 'toggleReservationStatus', 'toggleTodoItem',
     'updateDayNote', 'updateDayTitle', 'updatePackingItem', 'updatePlace', 'updatePlacesMany',
     'updateReservation', 'updateTodoItem', 'updateTrip', 'uploadPlaceImage',

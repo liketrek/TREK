@@ -64,9 +64,39 @@ describe('DayAssignmentsController (parity with the legacy day-assignments route
     expect(new DayAssignmentsController(s).remove(user, '5', '3', '9', 'sock')).toEqual({ success: true });
     expect(reconcile).toHaveBeenCalledWith('5', 'sock');
   });
+
+  it('DELETE / (clear day) 404 day, else empties the day and announces every removal (#2470)', () => {
+    expect(thrown(() => new DayAssignmentsController(svc({ dayExists: vi.fn().mockReturnValue(false) } as Partial<AssignmentsService>)).clear(user, '5', '3'))).toEqual({ status: 404, body: { error: 'Day not found' } });
+    const clearDay = vi.fn().mockReturnValue([7, 8]); const broadcast = vi.fn(); const reconcile = vi.fn();
+    const s = svc({ clearDay, broadcast, reconcile } as Partial<AssignmentsService>);
+    expect(new DayAssignmentsController(s).clear(user, '5', '3', 'sock')).toEqual({ success: true, removedIds: [7, 8] });
+    expect(clearDay).toHaveBeenCalledWith('3');
+    expect(broadcast).toHaveBeenCalledWith('5', 'assignment:deleted', { assignmentId: 7, dayId: 3 }, 'sock');
+    expect(broadcast).toHaveBeenCalledWith('5', 'assignment:deleted', { assignmentId: 8, dayId: 3 }, 'sock');
+    expect(reconcile).toHaveBeenCalledWith('5', 'sock');
+  });
+
+  it('DELETE / on an already empty day succeeds without a journey reconcile', () => {
+    const reconcile = vi.fn(); const broadcast = vi.fn();
+    const s = svc({ clearDay: vi.fn().mockReturnValue([]), reconcile, broadcast } as Partial<AssignmentsService>);
+    expect(new DayAssignmentsController(s).clear(user, '5', '3')).toEqual({ success: true, removedIds: [] });
+    expect(broadcast).not.toHaveBeenCalled();
+    expect(reconcile).not.toHaveBeenCalled();
+  });
 });
 
 describe('AssignmentOpsController (parity with the per-assignment op routes)', () => {
+  it('PUT /:id/route takes a stop out of the route and back, scoped to the trip (#2532)', () => {
+    const setRouteExcluded = vi.fn().mockReturnValue({ id: 9, route_excluded: true })
+    const s = svc({ getAssignmentForTrip: vi.fn().mockReturnValue({ id: 9 }), setRouteExcluded } as Partial<AssignmentsService>)
+    const controller = new AssignmentOpsController(s)
+    expect(controller.route(user, '5', '9', { excluded: true }, 'sock')).toEqual({ assignment: { id: 9, route_excluded: true } })
+    expect(setRouteExcluded).toHaveBeenCalledWith('9', true)
+    expect(s.broadcast).toHaveBeenCalledWith('5', 'assignment:updated', { assignment: { id: 9, route_excluded: true } }, 'sock')
+    vi.mocked(s.getAssignmentForTrip).mockReturnValue(undefined)
+    expect(thrown(() => controller.route(user, '5', '9', { excluded: false }))).toEqual({ status: 404, body: { error: 'Assignment not found' } })
+  });
+
   it('scopes explicit day ends to the trip and broadcasts the saved visit', () => {
     const setEndDay = vi.fn().mockReturnValue({ id: 9, end_day: true });
     const s = svc({ getAssignmentForTrip: vi.fn().mockReturnValue({ id: 9 }), setEndDay });

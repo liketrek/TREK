@@ -14,6 +14,7 @@ import DawarichIcon from '../../../components/shared/DawarichIcon'
 import DawarichAtlasDialog from '../../../components/Dawarich/DawarichAtlasDialog'
 import { useAddonStore } from '../../../store/addonStore'
 import { countryStatus } from '../../../pages/atlas/atlasModel'
+import AtlasCountryPlaces from '../../../components/Atlas/AtlasCountryPlaces'
 
 const removeBtnCls = 'mt-4 w-full rounded-full bg-[rgba(214,39,59,.12)] py-[11px] text-center text-[0.8125rem] font-bold text-[color:var(--m-st-danger)]' // theme-lint-disable — fixed status-danger tint
 
@@ -191,8 +192,12 @@ export default function MAtlas() {
               />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[1.0625rem] font-extrabold text-m-ink">{resolveName(selectedCountry)}</div>
-                <div className="mt-[2px] font-geist text-[0.6875rem] text-m-muted">
-                  {countryDetail.places.length} {t('atlas.places')} · {countryDetail.trips.length} {t('atlas.trips')}
+                <div className="mt-[4px] flex flex-wrap gap-1">
+                  {[[countryDetail.places.length, t('atlas.places')], [countryDetail.trips.length, t('atlas.trips')]].map(([n, label]) => (
+                    <span key={label} className="rounded-full bg-[color:var(--m-ic)] px-2 py-[1px] font-geist text-[0.625rem] font-bold tabular-nums text-m-muted">
+                      {n} {label}
+                    </span>
+                  ))}
                 </div>
               </div>
               <MIconBtn variant="neutral" size={34} onClick={() => setDetailOpen(false)} ariaLabel={t('common.close')}>
@@ -206,6 +211,12 @@ export default function MAtlas() {
                     {trip.title}
                   </MChip>
                 ))}
+              </div>
+            )}
+            {/* Every place counted for the country, by trip (#2174). */}
+            {countryDetail.places.length > 0 && (
+              <div className="mt-4 max-h-[46vh] overflow-y-auto">
+                <AtlasCountryPlaces variant="mobile" detail={countryDetail} onOpenTrip={id => navigate(`/trips/${id}`)} />
               </div>
             )}
             {countryDetail.manually_marked && (

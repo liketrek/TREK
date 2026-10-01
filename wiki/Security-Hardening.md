@@ -39,6 +39,8 @@ TREK enforces a minimum password policy on all registrations and password change
 - Common passwords and fully-repetitive strings are rejected
 - Passwords are hashed with bcrypt (cost factor 12)
 
+Every form that sets a password (registration, including through an invite link, the new password asked for on first login, the password reset, a password change in **Settings > Account**, and the admin's **Create User** and **Edit User** dialogs) lists these rules as a checklist under the field and ticks each one off while you type, using the server's own policy.
+
 No configuration is required; this policy is always active.
 
 ## Rate Limiting

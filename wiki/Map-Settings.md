@@ -10,6 +10,8 @@ The Map tab controls which map engine and tile source TREK uses in the Trip Plan
 
 Open the user menu in the top navigation bar, select **Settings**, then the **Map** tab. Unlike the General tab, changes here are not saved as you make them — click **Save Map** when you are done.
 
+Some map display options are not on this tab but on the **General** tab under **Travel & map**, and save as you change them: **Booking route labels**, **Always show booking routes**, **Compact markers for unplanned places** and **Explore places on the map**. See [Display-Settings](Display-Settings).
+
 ## Map provider
 
 Choose the rendering engine:
@@ -37,6 +39,8 @@ When Leaflet is selected, pick a preset or enter a custom tile URL.
 | CartoDB Light (needs a key) | `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png` |
 | CartoDB Dark (needs a key) | `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png` |
 | Stadia Smooth | `https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png` |
+| 高德地图 (Amap) | `https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}` |
+| 高德卫星 (Amap Satellite) | `https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}` |
 
 **OpenFreeMap Positron is the default** and is what every map falls back to when the field is empty. It needs no key,
 no account and has no request limit, and it is a MapLibre *style* rather than an XYZ template — TREK renders it with
@@ -162,5 +166,6 @@ The small map preview on this settings page is the exception: it stays on a fixe
 ## See also
 
 - [Map-Features](Map-Features)
+- [Display-Settings](Display-Settings)
 - [Admin-Panel-Overview](Admin-Panel-Overview)
 - [User-Settings](User-Settings)

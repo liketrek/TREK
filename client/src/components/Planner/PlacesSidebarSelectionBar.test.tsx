@@ -1,4 +1,4 @@
-// FE-PLANNER-SELBAR-001 to FE-PLANNER-SELBAR-014
+// FE-PLANNER-SELBAR-001 to FE-PLANNER-SELBAR-015
 import userEvent from '@testing-library/user-event';
 import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import { buildPlace } from '../../../tests/helpers/factories';
@@ -19,6 +19,8 @@ interface BarProps {
   setCategoryPickerOpen?: (open: boolean) => void;
   setSaveToListOpen?: (open: boolean) => void;
   onBulkDeletePlaces?: (ids: number[]) => void;
+  markSelectionVisited?: () => Promise<void>;
+  markVisitedBusy?: boolean;
 }
 
 // The bar reads a handful of fields off the sidebar state; the rest of the hook
@@ -36,6 +38,8 @@ function Bar(overrides: BarProps) {
     setCategoryPickerOpen: () => {},
     setSaveToListOpen: () => {},
     onBulkDeletePlaces: undefined,
+    markSelectionVisited: async () => {},
+    markVisitedBusy: false,
     ...overrides,
   };
   return <PlacesSelectionBar {...(state as unknown as SidebarState)} />;
@@ -44,7 +48,7 @@ function Bar(overrides: BarProps) {
 describe('PlacesSelectionBar', () => {
   it('FE-PLANNER-SELBAR-001: reports how many places are selected', () => {
     render(<Bar selectedIds={new Set([1, 2])} />);
-    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: '2 selected' })).toHaveTextContent('2');
   });
 
   it('FE-PLANNER-SELBAR-002: offers "Select all" while the selection is partial', () => {
@@ -167,24 +171,44 @@ describe('PlacesSelectionBar', () => {
     expect(onBulkDeletePlaces).not.toHaveBeenCalled();
   });
 
-  it('FE-PLANNER-SELBAR-013: hovering an enabled button highlights it and leaving resets it', () => {
+  it('FE-PLANNER-SELBAR-013: hovering an action shows its name as a tooltip, and leaving hides it', async () => {
+    const user = userEvent.setup();
     render(<Bar selectedIds={new Set([1])} collectionsEnabled />);
 
-    for (const name of ['Select all', 'Change category', 'Save to Collection', 'Delete selected']) {
+    for (const name of ['Select all', 'Change category', 'Save to Collection', 'Mark visited in your lists', 'Delete selected']) {
       const btn = screen.getByRole('button', { name });
-      fireEvent.mouseEnter(btn);
-      fireEvent.mouseLeave(btn);
-      expect(btn.style.background).toBe('transparent');
+      expect(btn).toBeEnabled();
+      await user.hover(btn);
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(name);
+      await user.unhover(btn);
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     }
   });
 
-  it('FE-PLANNER-SELBAR-014: hovering a disabled button leaves it unstyled', () => {
-    render(<Bar selectedIds={new Set()} collectionsEnabled />);
+  it('FE-PLANNER-SELBAR-014: without a selection every action but "Select all" is inert', () => {
+    const onBulkDeletePlaces = vi.fn((_ids: number[]) => {});
+    const markSelectionVisited = vi.fn(async () => {});
+    render(<Bar selectedIds={new Set()} collectionsEnabled onBulkDeletePlaces={onBulkDeletePlaces} markSelectionVisited={markSelectionVisited} />);
 
-    for (const name of ['Change category', 'Save to Collection', 'Delete selected']) {
+    expect(screen.getByRole('button', { name: 'Select all' })).toBeEnabled();
+    for (const name of ['Change category', 'Save to Collection', 'Mark visited in your lists', 'Delete selected']) {
       const btn = screen.getByRole('button', { name });
-      fireEvent.mouseEnter(btn);
-      expect(btn.style.background).toBe('');
+      expect(btn).toBeDisabled();
+      fireEvent.click(btn);
     }
+    expect(onBulkDeletePlaces).not.toHaveBeenCalled();
+    expect(markSelectionVisited).not.toHaveBeenCalled();
+  });
+
+  it('FE-PLANNER-SELBAR-015: "mark visited" runs for the selection and is locked while it runs', async () => {
+    const user = userEvent.setup();
+    const markSelectionVisited = vi.fn(async () => {});
+    const { rerender } = render(<Bar selectedIds={new Set([1, 2])} collectionsEnabled markSelectionVisited={markSelectionVisited} />);
+
+    await user.click(screen.getByRole('button', { name: 'Mark visited in your lists' }));
+    expect(markSelectionVisited).toHaveBeenCalledTimes(1);
+
+    rerender(<Bar selectedIds={new Set([1, 2])} collectionsEnabled markSelectionVisited={markSelectionVisited} markVisitedBusy />);
+    expect(screen.getByRole('button', { name: 'Mark visited in your lists' })).toBeDisabled();
   });
 });

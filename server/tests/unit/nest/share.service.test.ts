@@ -53,6 +53,7 @@ import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import {
   createUser, createTrip, addTripMember, createDay, createPlace, createDayAssignment,
+  createDayAccommodation, createDayNote, createReservation,
 } from '../../helpers/factories';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
@@ -202,6 +203,8 @@ describe('get and remove', () => {
       share_packing: true,
       share_budget: false,
       share_collab: false,
+      share_travel_only: false,
+      share_hide_images: false,
     });
   });
 
@@ -254,6 +257,7 @@ describe('getSharedTripData', () => {
     );
     expect(data.permissions).toEqual({
       share_map: true, share_bookings: true, share_packing: true, share_budget: true, share_collab: true,
+      share_travel_only: false, share_hide_images: false,
     });
     expect(data.days).toHaveLength(1);
     const entries = data.assignments[day.id];
@@ -350,6 +354,40 @@ describe('getSharedTripData', () => {
     expect(data.packing).toEqual([]);
     expect(data.budget).toEqual([]);
     expect(data.collab).toEqual([]);
+  });
+
+  it('SHARE-SVC-019b: travel and stays only keeps transport, hotels and the stay stops (#1712)', () => {
+    const { trip, token } = seedSharedTrip({ share_travel_only: true });
+    const day = createDay(testDb, trip.id);
+    const museum = createPlace(testDb, trip.id, { name: 'Museum' });
+    const hotel = createPlace(testDb, trip.id, { name: 'Hotel' });
+    const stay = createDayAccommodation(testDb, trip.id, hotel.id, day.id, day.id);
+    createDayAssignment(testDb, day.id, museum.id);
+    const stayStop = createDayAssignment(testDb, day.id, hotel.id);
+    testDb.prepare('UPDATE day_assignments SET accommodation_id = ? WHERE id = ?').run(stay.id, stayStop.id);
+    createDayNote(testDb, day.id, trip.id);
+    for (const type of ['flight', 'hotel', 'restaurant', 'tour']) createReservation(testDb, trip.id, { type, title: type });
+
+    const data = svc.getSharedTripData(token)!;
+    expect(data.permissions.share_travel_only).toBe(true);
+    expect(data.assignments[day.id].map((a: any) => a.place.name)).toEqual(['Hotel']);
+    expect(data.dayNotes).toEqual({});
+    expect(data.places.map((p: any) => p.name)).toEqual(['Hotel']);
+    expect(data.reservations.map((r: any) => r.type).sort()).toEqual(['flight', 'hotel']);
+  });
+
+  it('SHARE-SVC-019c: without photos drops every place image and refuses the photo route (#1712)', async () => {
+    const { trip, token } = seedSharedTrip({ share_hide_images: true });
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Louvre' });
+    testDb.prepare("UPDATE places SET image_url = '/api/maps/place-photo/abc/bytes' WHERE id = ?").run(place.id);
+    createDayAssignment(testDb, day.id, place.id);
+
+    const data = svc.getSharedTripData(token)!;
+    expect(data.places[0].image_url).toBeNull();
+    expect(data.assignments[day.id][0].place.image_url).toBeNull();
+    serveKey.mockReturnValue('photos-google/abc');
+    await expect(svc.getSharedPlacePhotoKey(token, 'abc')).resolves.toBeNull();
   });
 
   it('SHARE-SVC-020: baseCurrency falls back trip currency → EUR, with the owner default_currency winning (#1361)', () => {

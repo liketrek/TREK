@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 // Pure constants + helpers + types for the todo list. No React, no side effects.
 
 export const KAT_COLORS = [
@@ -22,3 +24,19 @@ export function katColor(kat: string, allCategories: string[]) {
 export type FilterType = 'all' | 'my' | 'overdue' | 'done' | string
 
 export interface Member { id: number; username: string; avatar: string | null; is_guest?: boolean }
+
+/** A task's editable fields as its form holds them: empty strings where the task has nothing. */
+export interface TaskFieldValues {
+  desc: string
+  priority: number
+  category: string
+  dueDate: string
+  assignedUserId: number | null
+}
+
+/** The label and field look of the task form, shared by the detail pane and the new-task dialog. */
+export const taskLabelClass = 'mb-1.5 block text-caption font-semibold text-content-muted'
+export const taskInputStyle: CSSProperties = {
+  width: '100%', fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '9px 11px', border: '1px solid var(--border-primary)',
+  borderRadius: 10, background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none',
+}

@@ -306,6 +306,34 @@ export class TripsService {
     `).get({ userId, today }) as ActiveTrip & { relevance: number } | undefined;
   }
 
+  /**
+   * The user's trips, archived ones included, with places whose name or address
+   * contains `query` (#2190). Up to three names per trip; a query under two
+   * characters matches nothing, it would match every place there is.
+   */
+  searchPlaces(userId: number, query: string): { trip_id: number; places: string[] }[] {
+    const q = query.trim();
+    if (q.length < 2) return [];
+    const like = `%${q.replace(/[\\%_]/g, ch => `\\${ch}`)}%`;
+    const rows = this.db.prepare(`
+      SELECT p.trip_id, p.name
+      FROM places p
+      JOIN trips t ON t.id = p.trip_id
+      LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = :userId
+      WHERE (t.user_id = :userId OR m.user_id IS NOT NULL)
+        AND (p.name LIKE :like ESCAPE '\\' OR p.address LIKE :like ESCAPE '\\')
+      ORDER BY p.trip_id, p.name
+      LIMIT 500
+    `).all({ userId, like }) as { trip_id: number; name: string }[];
+    const byTrip = new Map<number, string[]>();
+    for (const row of rows) {
+      const names = byTrip.get(row.trip_id) ?? [];
+      if (names.length < 3 && !names.includes(row.name)) names.push(row.name);
+      byTrip.set(row.trip_id, names);
+    }
+    return [...byTrip].map(([trip_id, places]) => ({ trip_id, places }));
+  }
+
   getRaw(tripId: string | number): Trip | undefined {
     return this.db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Trip | undefined;
   }

@@ -473,6 +473,31 @@ describe('downloadTripPDF', () => {
     expect(srcdoc).not.toMatch(/5 ?230/)
   })
 
+  it('FE-COMP-TRIPPDF-016g: with Costs on, the day and cover totals are the expenses, not the place prices (#2551)', async () => {
+    const args = {
+      ...richArgs,
+      trip: { ...richArgs.trip, currency: 'USD' },
+      costsEnabled: true,
+      budgetItems: [
+        { id: 1, trip_id: 10, category: 'activities', name: 'Tickets', total_price: 42, currency: null, place_id: 100 },
+        { id: 2, trip_id: 10, category: 'other', name: 'Insurance', total_price: 8, currency: null },
+      ],
+    }
+    await downloadTripPDF(args)
+    const srcdoc = getIframe()!.srcdoc
+    // The day carries the ticket linked to its place, the cover the whole trip.
+    expect(srcdoc).toContain('$42.00')
+    expect(srcdoc).toContain('$50.00')
+
+    document.getElementById('pdf-preview-overlay')?.remove()
+    // Every expense deleted: nothing is left to add up, whatever price the place carries.
+    await downloadTripPDF({ ...args, budgetItems: [] })
+    const after = getIframe()!.srcdoc
+    expect(after).not.toContain('$42.00')
+    expect(after).not.toContain('$50.00')
+    expect(after).toContain('$15.00') // the place's own price chip stays on its card
+  })
+
   it('FE-COMP-TRIPPDF-016f: an all-same-currency trip makes no FX request', async () => {
     let fxCalled = false
     server.use(http.get('https://api.frankfurter.dev/v2/rates', () => {
@@ -1336,5 +1361,55 @@ describe('a printed day follows the plan (#1978)', () => {
     const seen = expected.map(name => html.indexOf(name))
     for (const at of seen) expect(at).toBeGreaterThan(-1)
     expect(seen).toEqual([...seen].sort((a, b) => a - b))
+  })
+})
+
+// ── Transport notes (#1571) ─────────────────────────────────────────────────
+
+describe('downloadTripPDF — transport notes', () => {
+  const withNote = { ...transportReservation, notes: 'Seat 14A\nCheck in online the day before' }
+
+  beforeEach(() => {
+    localStorage.removeItem('trek_pdf_transport_notes')
+  })
+
+  const notesToggle = () => document.querySelector<HTMLButtonElement>('#pdf-transport-notes-toggle')
+
+  it('FE-PDF-TNOTES-001: prints the note of a transport, escaped, and offers the switch', async () => {
+    await downloadTripPDF({ ...richArgs, reservations: [{ ...withNote, notes: 'Gate <b>B12</b>' }] })
+    const html = getIframe()!.srcdoc
+
+    expect(html).toContain('<div class="note-time transport-note">Gate &lt;b&gt;B12&lt;/b&gt;</div>')
+    expect(html).not.toContain('pdf-no-transport-notes"')
+    expect(notesToggle()!.getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('FE-PDF-TNOTES-002: without any transport note there is nothing to switch', async () => {
+    await downloadTripPDF(richArgs)
+
+    expect(getIframe()!.srcdoc).not.toContain('class="note-time transport-note"')
+    expect(notesToggle()).toBeNull()
+    // The page break switch is still there on its own.
+    expect(document.querySelector('#pdf-daybreak-toggle')).not.toBeNull()
+  })
+
+  it('FE-PDF-TNOTES-003: turning the notes off hides them at once and is remembered', async () => {
+    await downloadTripPDF({ ...richArgs, reservations: [withNote] })
+    notesToggle()!.click()
+
+    expect(notesToggle()!.getAttribute('aria-checked')).toBe('false')
+    expect(localStorage.getItem('trek_pdf_transport_notes')).toBe('0')
+    const body = getIframe()!.contentDocument?.body
+    if (body) expect(body.classList.contains('pdf-no-transport-notes')).toBe(true)
+  })
+
+  it('FE-PDF-TNOTES-004: the remembered choice comes back, next to the flowing layout', async () => {
+    localStorage.setItem('trek_pdf_transport_notes', '0')
+    localStorage.setItem('trek_pdf_page_break_per_day', '0')
+    await downloadTripPDF({ ...richArgs, reservations: [withNote] })
+
+    expect(getIframe()!.srcdoc).toContain('<body class="pdf-flow pdf-no-transport-notes">')
+    expect(notesToggle()!.getAttribute('aria-checked')).toBe('false')
+    localStorage.removeItem('trek_pdf_page_break_per_day')
   })
 })

@@ -77,7 +77,7 @@ export default function MAdminGitHubPanel({ isPrerelease = false }: { isPrerelea
 
   useEffect(() => {
     setLoading(true)
-    loadFrom(1, false).finally(() => setLoading(false))
+    void loadFrom(1, false).finally(() => setLoading(false))
   }, [])
 
   const handleLoadMore = async () => {

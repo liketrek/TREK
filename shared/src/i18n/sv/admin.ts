@@ -19,6 +19,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfyFailed': 'Test ntfy misslyckades',
   'admin.notifications.emailPanel.title': 'E-post (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Låter användare ta emot meddelanden på sina telefoner och datorer via webbläsaren, även när TREK är stängt. Kräver HTTPS; på iPhone och iPad måste TREK läggas till på hemskärmen.',
   'admin.notifications.inappPanel.title': 'I-App',
   'admin.notifications.inappPanel.hint': 'Meddelanden i appen är alltid aktiva och kan inte inaktiveras generellt.',
   'admin.notifications.adminWebhookPanel.title': 'Webhook för administratörer',
@@ -47,6 +50,12 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Admin ntfy utlöses alltid när ett ämne konfigureras',
   'admin.notifications.adminNotificationsHint':
     'Ställ in vilka kanaler som ska skicka meddelanden som endast är avsedda för administratörer (t.ex. versionsvarningar).',
+  'admin.notificationDefaults.title': 'Standardval för användare',
+  'admin.notificationDefaults.hint': 'Så börjar varje användares aviseringar. "Av" kan användaren själv slå på; "Blockerad" stänger av för alla och visas låst i deras inställningar. Gäller alla som inte själva ändrat rutan.',
+  'admin.notificationDefaults.on': 'På',
+  'admin.notificationDefaults.off': 'Av',
+  'admin.notificationDefaults.blocked': 'Blockerad',
+  'admin.notificationDefaults.cycle': 'Klicka för: {next}',
   'admin.notifications.tripReminders.title': 'Påminnelser inför resan',
   'admin.notifications.tripReminders.hint':
     'Skicka en påminnelse innan resan börjar (kräver att påminnelsedagar har angetts för resan).',
@@ -179,6 +188,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap (高德地图) API-nyckel',
   'admin.amapKeyHint':
     'För platssökning i Fastlandskina, där Google inte går att nå och OpenStreetMap har tunn täckning. Kräver en "Web 服务"-nyckel (webbtjänst), inte en JS API-nyckel. Skaffa en på console.amap.com.',
+  'admin.keyFromEnv': 'Satt via {name}',
   'admin.placesProvider.title': 'Leverantör för platssökning',
   'admin.placesProvider.subtitle':
     'TREK:s egen indexering och OpenStreetMap svarar på varje sökning. Här väljs vem som frågas därutöver när de inte hittar något: Automatiskt föredrar Google om en nyckel finns, sedan Amap.',
@@ -225,6 +235,13 @@ const admin: TranslationStrings = {
   'admin.placesGoogleOnly.subtitle': 'Varje sökning och varje förslag går till Google Places. Av svarar TREK:s eget index och OpenStreetMap först, och Google tillfrågas bara när de inte hittar något.',
   'admin.placesGoogleOnly.missingKey': 'Kräver en Google Maps API-nyckel. Utan nyckel söker TREK via sitt eget index och OpenStreetMap, oavsett hur den här brytaren står.',
   'admin.placesGoogleOnly.otherProvider': 'Kräver Google som platsleverantör. Med Amap eller OpenStreetMap valt går ingen sökning till Google, oavsett hur den här väljaren står.',
+  'admin.googleQuota.title': 'Daglig gräns för Google-anrop',
+  'admin.googleQuota.subtitle': 'När gränsen nås slutar TREK anropa Google till nästa dag (UTC) och söker med OpenStreetMap i stället. Tomt betyder ingen gräns.',
+  'admin.googleQuota.placeholder': 'Ingen gräns',
+  'admin.googleQuota.usedToday': 'Idag: {used}',
+  'admin.googleQuota.usedOfLimit': 'Idag: {used} av {limit}',
+  'admin.googleQuota.reached': 'Gränsen nådd ({used}), Google pausad till i morgon',
+  'admin.googleQuota.saved': 'Daglig gräns sparad',
   'admin.transitProvider.title': 'Kollektivtrafikleverantör',
   'admin.transitProvider.subtitle': 'Vilken tjänst som besvarar sökningar i kollektivtrafiken.',
   'admin.transitProvider.transitous': 'Transitous (gratis)',
@@ -446,6 +463,8 @@ const admin: TranslationStrings = {
     'Bidra med extra detaljer (recensioner, betyg, länkar) till en plats',
   'admin.plugins.perm.hook:search-provider':
     'Besvara platssökningar från ett eget index, vid sidan av TREK:s egna resultat',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Lägga till egna platskategorier i ”Utforska platser på kartan”; väljer du en får tillägget det kartområde du tittar på',
   'admin.plugins.perm.hook:trip-warning-provider': 'Visa valideringsvarningar på en resa (visas i planeraren)',
   'admin.plugins.perm.hook:table-contributor':
     'Lägga till kolumner och åtgärder i rese­vyer (bokningar, platser, dagar)',
@@ -460,6 +479,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Publicerar AI-verktyg',
   'admin.plugins.mcpToolsTitle': 'Publicerade AI-verktyg',
   'admin.plugins.mcpToolsHint': 'En assistent kan köra dem åt en användare. Varje verktyg agerar med de rättigheter som getts ovan.',
+  'admin.plugins.poiCategoriesTitle': 'Kartkategorier som tillägget lägger till',
   'admin.plugins.perm.mcp:tools':
     'Publicera verktyg som en AI-assistent kan köra åt dig (det agerar med de rättigheter du ger tillägget här, inte med assistentens egna)',
   'admin.plugins.perm.geolocation:read':
@@ -603,6 +623,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Tillhandahåller kalenderhändelser',
   'admin.plugins.cap.placeDetails': 'Berikar platser',
   'admin.plugins.cap.search': 'Besvarar sökningar',
+  'admin.plugins.cap.poiCategories': 'Lägger till kartkategorier',
   'admin.plugins.cap.warnings': 'Flaggar problem',
   'admin.plugins.cap.mapLayers': 'Ritar på kartan',
   'admin.plugins.cap.routing': 'Erbjuder ruttplanering',
@@ -679,6 +700,11 @@ const admin: TranslationStrings = {
     'Läs vistelser och inspelade rutter från en Dawarich-instans som varje läsare ansluter själv',
   'admin.addons.catalog.llm_parsing.name': 'AI-tolkning',
   'admin.addons.catalog.llm_parsing.description': 'Läser bokningar som den inbyggda tolken inte klarar, med en AI-modell du väljer',
+  'admin.addons.llm.vision.auto': 'Automatiskt',
+  'admin.addons.llm.vision.on': 'Ja',
+  'admin.addons.llm.vision.off': 'Nej',
+  'admin.addons.llm.vision.hintLocal': 'Automatiskt frågar Ollama-servern om modellen läser bilder.',
+  'admin.addons.llm.vision.hintCloud': 'Automatiskt betyder nej för en molnmodell. Välj Ja om modellen läser bilder.',
   'admin.addons.enabled': 'Aktiverad',
   'admin.addons.disabled': 'Inaktiverad',
   'admin.addons.type.trip': 'Resa',

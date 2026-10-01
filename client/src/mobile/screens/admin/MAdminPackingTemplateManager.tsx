@@ -84,7 +84,7 @@ export default function MAdminPackingTemplateManager() {
   const toast = useToast()
   const { t } = useTranslation()
 
-  useEffect(() => { loadTemplates() }, [])
+  useEffect(() => { void loadTemplates() }, [])
 
   const loadTemplates = async () => {
     setIsLoading(true)
@@ -216,7 +216,7 @@ export default function MAdminPackingTemplateManager() {
               autoFocus
               value={createName}
               onChange={e => setCreateName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleCreateTemplate(); if (e.key === 'Escape') setShowCreate(false) }}
+              onKeyDown={e => { if (e.key === 'Enter') void handleCreateTemplate(); if (e.key === 'Escape') setShowCreate(false) }}
               placeholder={t('admin.packingTemplates.namePlaceholder')}
             />
           </div>
@@ -254,7 +254,7 @@ export default function MAdminPackingTemplateManager() {
                       value={editTemplateName}
                       onChange={e => setEditTemplateName(e.target.value)}
                       onBlur={() => handleRenameTemplate(tmpl.id)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleRenameTemplate(tmpl.id); if (e.key === 'Escape') setEditingTemplate(null) }}
+                      onKeyDown={e => { if (e.key === 'Enter') void handleRenameTemplate(tmpl.id); if (e.key === 'Escape') setEditingTemplate(null) }}
                     />
                   </div>
                 ) : (
@@ -292,7 +292,7 @@ export default function MAdminPackingTemplateManager() {
                                 value={editCatName}
                                 onChange={e => setEditCatName(e.target.value)}
                                 onBlur={() => handleRenameCategory(cat.id)}
-                                onKeyDown={e => { if (e.key === 'Enter') handleRenameCategory(cat.id); if (e.key === 'Escape') setEditingCatId(null) }}
+                                onKeyDown={e => { if (e.key === 'Enter') void handleRenameCategory(cat.id); if (e.key === 'Escape') setEditingCatId(null) }}
                               />
                             </div>
                           ) : (
@@ -329,7 +329,7 @@ export default function MAdminPackingTemplateManager() {
                                         autoFocus
                                         value={editItemName}
                                         onChange={e => setEditItemName(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') handleRenameItem(item.id); if (e.key === 'Escape') setEditingItemId(null) }}
+                                        onKeyDown={e => { if (e.key === 'Enter') void handleRenameItem(item.id); if (e.key === 'Escape') setEditingItemId(null) }}
                                       />
                                     </div>
                                     <PkIconBtn size={28} variant="accent" ariaLabel={t('common.save')} onClick={() => handleRenameItem(item.id)}><Check size={13} /></PkIconBtn>
@@ -361,7 +361,7 @@ export default function MAdminPackingTemplateManager() {
                                   ref={addItemRef}
                                   value={newItemName}
                                   onChange={e => setNewItemName(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter' && newItemName.trim()) handleAddItem(cat.id); if (e.key === 'Escape') { setAddingItemToCatId(null); setNewItemName('') } }}
+                                  onKeyDown={e => { if (e.key === 'Enter' && newItemName.trim()) void handleAddItem(cat.id); if (e.key === 'Escape') { setAddingItemToCatId(null); setNewItemName('') } }}
                                   placeholder={t('admin.packingTemplates.itemName')}
                                   className={inlineFieldCls}
                                 />
@@ -383,7 +383,7 @@ export default function MAdminPackingTemplateManager() {
                           autoFocus
                           value={newCatName}
                           onChange={e => setNewCatName(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') handleAddCategory(); if (e.key === 'Escape') { setAddingCategory(false); setNewCatName('') } }}
+                          onKeyDown={e => { if (e.key === 'Enter') void handleAddCategory(); if (e.key === 'Escape') { setAddingCategory(false); setNewCatName('') } }}
                           placeholder={t('admin.packingTemplates.categoryName')}
                         />
                       </div>

@@ -99,7 +99,7 @@ export class BudgetController {
       tripId,
       {
         from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount,
-        currency: body.currency, settled_at: body.settled_at, fallback_fx: body.fallback_fx,
+        currency: body.currency, settled_at: body.settled_at, note: body.note, fallback_fx: body.fallback_fx,
       },
       user.id,
     );
@@ -127,6 +127,7 @@ export class BudgetController {
       amount: body.amount,
       currency: body.currency,
       settled_at: body.settled_at,
+      note: body.note,
       fallback_fx: body.fallback_fx,
     });
     if (!settlement) {
@@ -186,7 +187,11 @@ export class BudgetController {
     @Body() body: BudgetCreateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
+    const refusal = this.budget.linkRefusal(tripId, body);
+    if (refusal) throw new HttpException({ error: refusal }, 400);
     const item = await this.budget.create(tripId, body);
+    // A booking mirrors the total of its expenses (#2084); a new one adds to it.
+    if (item.reservation_id) this.budget.resyncReservationPrice(tripId, item.reservation_id, socketId);
     this.budget.broadcast(tripId, 'budget:created', { item }, socketId);
     return { item };
   }
@@ -226,13 +231,15 @@ export class BudgetController {
     @Body() body: BudgetUpdateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
+    const refusal = this.budget.linkRefusal(tripId, body);
+    if (refusal) throw new HttpException({ error: refusal }, 400);
+    // The booking an expense leaves also needs its price worked out again.
+    const before = body.reservation_id !== undefined ? this.budget.getBudgetItem(id, tripId) : null;
     const updated = await this.budget.update(id, tripId, body);
     if (!updated) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }
-    if (updated.reservation_id && body.total_price !== undefined) {
-      this.budget.syncReservationPrice(tripId, updated.reservation_id, updated.total_price, socketId);
-    }
+    this.budget.resyncLinkedPrices(tripId, before?.reservation_id, updated, body, socketId);
     this.budget.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
     return { item: updated };
   }
@@ -267,6 +274,8 @@ export class BudgetController {
     if (!item) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }
+    // The payers derive the total, which the linked booking mirrors.
+    if (item.reservation_id) this.budget.resyncReservationPrice(tripId, item.reservation_id, socketId);
     this.budget.broadcast(tripId, 'budget:updated', { item }, socketId);
     return { item };
   }

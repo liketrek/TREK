@@ -1,4 +1,4 @@
-// FE-JRN-LISTWIRE-001 to FE-JRN-LISTWIRE-014
+// FE-JRN-LISTWIRE-001 to FE-JRN-LISTWIRE-015
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { localIsoDate } from '../utils/localDate';
 import { render, screen, fireEvent } from '../../tests/helpers/render';
@@ -205,5 +205,25 @@ describe('JourneyPage wiring', () => {
     const createButtons = screen.getAllByRole('button', { name: /Create Journey/ });
     fireEvent.click(createButtons[createButtons.length - 1]);
     expect(hook.handleCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-JRN-LISTWIRE-015: Enter in the name creates only once there is a name, and the keyboard toggles a trip', () => {
+    const availableTrips = [{ id: 7, title: 'Keyboard trip', start_date: null, end_date: null, place_count: 2 }];
+    const { hook, rerender } = setup({ showCreate: true, newTitle: '', availableTrips });
+
+    fireEvent.keyDown(screen.getByPlaceholderText('e.g. Southeast Asia 2026'), { key: 'Enter' });
+    expect(hook.handleCreate).not.toHaveBeenCalled();
+
+    const row = screen.getByRole('checkbox', { name: /Keyboard trip/ });
+    fireEvent.keyDown(row, { key: ' ' });
+    fireEvent.keyDown(row, { key: 'Enter' });
+    fireEvent.keyDown(row, { key: 'a' });
+    expect(hook.setSelectedTripIds).toHaveBeenCalledTimes(2);
+
+    const named = buildHook({ showCreate: true, newTitle: 'Japan', availableTrips });
+    mocks.journey = named;
+    rerender(<JourneyPage />);
+    fireEvent.keyDown(screen.getByPlaceholderText('e.g. Southeast Asia 2026'), { key: 'Enter' });
+    expect(named.handleCreate).toHaveBeenCalledTimes(1);
   });
 });

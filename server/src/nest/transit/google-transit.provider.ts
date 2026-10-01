@@ -3,6 +3,7 @@ import { readEnv } from '../../app-config';
 import { DatabaseService } from '../database/database.service';
 import { toApiLang } from '../maps/maps.helpers';
 import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
+import { GoogleQuotaService } from '../google-quota/google-quota.service';
 import { readTransitProvider } from './transit-provider';
 import {
   decodePolyline,
@@ -234,9 +235,14 @@ function stopFrom(stop: GoogleStop | undefined, fallback: GoogleLatLng | undefin
 
 @Injectable()
 export class GoogleTransitProvider {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly googleQuota: GoogleQuotaService,
+  ) {}
 
   private resolveKey(userId: number): { key: string | null; source: ApiKeySource | null } {
+    // Past the admin's daily ceiling (#1582) the key is spent until tomorrow.
+    if (this.googleQuota.exhausted()) return { key: null, source: null };
     return resolveApiKey(this.database, 'maps_api_key', userId, readEnv().maps.placesApiKey);
   }
 
@@ -253,6 +259,7 @@ export class GoogleTransitProvider {
 
   private async call(endpoint: string, label: string, apiKey: string, body: unknown, fieldMask: string): Promise<unknown> {
     console.debug(`[Google API] ${label} → ${endpoint}`);
+    this.googleQuota.record();
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: {

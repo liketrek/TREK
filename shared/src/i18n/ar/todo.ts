@@ -11,6 +11,7 @@ const todo: TranslationStrings = {
   'todo.uncategorized': 'بلا قائمة',
   'todo.namePlaceholder': 'اسم المهمة',
   'todo.descriptionPlaceholder': 'وصف (اختياري)',
+  'todo.editDescription': 'انقر للتعديل، الروابط تُفتح مباشرة',
   'todo.unassigned': 'غير مُسنَد',
   'todo.noCategory': 'بلا قائمة',
   'todo.hasDescription': 'له وصف',

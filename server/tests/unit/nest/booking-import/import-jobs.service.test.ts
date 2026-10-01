@@ -7,8 +7,8 @@ import { ImportJobsService } from '../../../../src/nest/booking-import/import-jo
 import { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
 
 type Preview = ReturnType<typeof vi.fn>;
-function makeService(preview: Preview) {
-  return new ImportJobsService({ preview } as never, new RealtimeService());
+function makeService(preview: Preview, readReceipt: Preview = vi.fn()) {
+  return new ImportJobsService({ preview } as never, new RealtimeService(), { readReceipt } as never);
 }
 const files = (n: number) => Array.from({ length: n }, (_, i) => ({ originalname: `f${i}.pdf` })) as never;
 const eventsFor = (jobId: string) => broadcastToUser.mock.calls.map((c) => c[1]).filter((p) => p.jobId === jobId);
@@ -99,5 +99,32 @@ describe('ImportJobsService', () => {
     const svc = makeService(vi.fn(async () => ({ items: [] })));
     const id = svc.start('7', files(1), 'no-ai', 42);
     expect(svc.get(id, 99)).toBeUndefined();
+  });
+});
+
+describe('ImportJobsService.startReceipt', () => {
+  it('reads the receipt off-request and pushes the read as the result', async () => {
+    const result = { receipt: { merchant: 'Shop', date: null, total: 4, currency: 'EUR', items: [] }, warnings: [] };
+    const readReceipt = vi.fn(async () => result);
+    const svc = makeService(vi.fn(), readReceipt);
+    const id = svc.startReceipt('7', { originalname: 'r.jpg', buffer: Buffer.from('x') } as never, 42);
+
+    await vi.waitFor(() => expect(svc.get(id, 42)?.status).toBe('done'));
+    expect(svc.get(id, 42)).toMatchObject({ result, done: 1, total: 1 });
+    expect(readReceipt).toHaveBeenCalledWith({ buffer: Buffer.from('x'), originalName: 'r.jpg' }, 42);
+    expect(eventsFor(id).find((p) => p.type === 'import:done')).toMatchObject({ result, tripId: '7' });
+  });
+
+  it('queues behind the same user\'s booking parse rather than running beside it', async () => {
+    let release!: () => void;
+    const preview = vi.fn(() => new Promise((resolve) => { release = () => resolve({ items: [] }); }));
+    const readReceipt = vi.fn(async () => ({ receipt: null, warnings: [] }));
+    const svc = makeService(preview, readReceipt);
+    svc.start('7', files(1), 'force-ai', 42);
+    const id = svc.startReceipt('7', { originalname: 'r.jpg', buffer: Buffer.from('x') } as never, 42);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(readReceipt).not.toHaveBeenCalled();
+    release();
+    await vi.waitFor(() => expect(svc.get(id, 42)?.status).toBe('done'));
   });
 });

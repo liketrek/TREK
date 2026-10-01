@@ -6,6 +6,7 @@ import { JourneyBookService } from './journey-book.service';
 import { AddonsModule } from '../addons/addons.module';
 import { MemoriesModule } from '../memories/memories.module';
 import { JourneyDomainModule } from './journey-domain.module';
+import { JourneyPhotoCaptureModule } from './journey-photo-capture.module';
 import { JourneyMcp } from './journey.mcp';
 import { AuthModule } from '../auth/auth.module';
 import { MulterModule } from '@nestjs/platform-express';
@@ -33,7 +34,7 @@ import { journeyImageFileFilter, journeyUploadFilename } from './journey.control
         }),
     }),
     StorageModule,
-    AuthModule, AddonsModule, MemoriesModule, JourneyDomainModule],
+    AuthModule, AddonsModule, MemoriesModule, JourneyDomainModule, JourneyPhotoCaptureModule],
   controllers: [JourneyController, JourneyPublicController],
   providers: [JourneyService, JourneyBookService, JourneyMcp],
 })

@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react'
+import React, { useId, useMemo, useState } from 'react'
 import { Gauge, Hourglass, CircleDashed, Star } from 'lucide-react'
 import type { DawarichAccept, DawarichSuggestion, DawarichSuggestionTarget } from '@trek/shared'
 import { DAWARICH_BUCKET_MATCH_MIN_MINUTES, DAWARICH_BUCKET_MATCH_RADIUS_M } from '@trek/shared'
 import { useTranslation } from '../../i18n'
-import Modal from '../shared/Modal'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, FooterSpacer, NEUTRAL_TINT } from '../shared/DialogShell'
 import MSheet from '../../mobile/components/MSheet'
 import { FormSheetFooter, FormSheetHeader } from '../../mobile/screens/trip/sheets/PlSheetChrome'
 import { useIsPhone } from '../../mobile/useIsPhone'
@@ -65,6 +65,7 @@ export default function DawarichAcceptDialog({
 }: DawarichAcceptDialogProps): React.ReactElement | null {
   const { t, locale } = useTranslation()
   const phone = useIsPhone()
+  const labelId = useId()
 
   const [name, setName] = useState('')
   const [notes, setNotes] = useState('')
@@ -350,33 +351,34 @@ export default function DawarichAcceptDialog({
   }
 
   return (
-    <Modal
-      isOpen
+    <DialogShell
       onClose={onCancel}
-      size="lg"
-      title={title}
-      footer={
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 rounded-lg text-body border border-edge text-content-secondary"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            onClick={confirm}
-            disabled={busy || missingTarget}
-            className="px-4 py-2 rounded-lg text-body font-medium bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50"
-          >
+      labelledBy={labelId}
+      width="detail"
+      header={(
+        <DialogHeader
+          // The mark fills its tile, rounded like the phone's: a small logo in a
+          // grey square reads as a placeholder.
+          tile={<span className="flex h-[46px] w-[46px] flex-none overflow-hidden rounded-[14px] shadow-sm"><DawarichIcon size={46} /></span>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={onCancel}
+          eyebrow={t('dawarich.title')}
+          title={title}
+        />
+      )}
+      footer={(
+        <DialogFooter>
+          <FooterSpacer />
+          <DialogButton onClick={onCancel}>{t('common.cancel')}</DialogButton>
+          <DialogButton variant="primary" onClick={confirm} disabled={busy || missingTarget}>
             {t(`dawarich.accept.confirm.${target}`)}
-          </button>
-        </div>
-      }
+          </DialogButton>
+        </DialogFooter>
+      )}
     >
       {fields}
-    </Modal>
+    </DialogShell>
   )
 }
 

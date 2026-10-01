@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { FolderPlus, Loader2, Search } from 'lucide-react'
-import Modal from '../../shared/Modal'
+import { DialogHeader, DialogShell, DialogTile, NEUTRAL_TINT } from '../../shared/DialogShell'
 import { useTranslation } from '../../../i18n/TranslationContext'
 import type { DocSyncConnection, DocSyncScope, useDocSync } from './useDocSync'
 
@@ -31,6 +31,7 @@ export default function DocSyncScopeModal({
   onBound: () => void
 }) {
   const { t } = useTranslation()
+  const labelId = useId()
   const [scopes, setScopes] = useState<DocSyncScope[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -92,7 +93,20 @@ export default function DocSyncScopeModal({
   }
 
   return (
-    <Modal isOpen onClose={onClose} size="md" title={t('docsync.scope.title', { provider: providerName })}>
+    <DialogShell
+      onClose={onClose}
+      labelledBy={labelId}
+      width="narrow"
+      header={(
+        <DialogHeader
+          tile={<DialogTile><FolderPlus size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={onClose}
+          title={t('docsync.scope.title', { provider: providerName })}
+        />
+      )}
+    >
       <div className="space-y-4">
         <p className="text-caption text-content-muted">{t('docsync.scope.intro')}</p>
 
@@ -176,6 +190,6 @@ export default function DocSyncScopeModal({
           )}
         </div>
       </div>
-    </Modal>
+    </DialogShell>
   )
 }

@@ -1,12 +1,13 @@
 import { WsAdapter } from '@nestjs/platform-ws';
 import type { INestApplicationContext } from '@nestjs/common';
-import type { Server as HttpServer } from 'node:http';
+import type { IncomingMessage, Server as HttpServer } from 'node:http';
 import type { MessageMappingProperties } from '@nestjs/websockets';
 import { WebSocketServer } from 'ws';
 import type { Observable } from 'rxjs';
 import { readEnv } from '../../app-config';
 import { setServer, type TrekWebSocket } from './ws-state';
 import { logError } from '../audit/audit-log.logger';
+import { isSameHostOrigin } from '../common/same-origin';
 
 // Per-connection message rate limiting. It lives in the adapter, not in the
 // gateway's handlers, because the original counted EVERY inbound frame before
@@ -122,10 +123,12 @@ export class TrekWsAdapter extends WsAdapter {
       ...(allowedOrigins
         ? {
             verifyClient: (
-              { origin }: { origin: string },
+              { origin, req }: { origin: string; req: IncomingMessage },
               cb: (ok: boolean, code?: number, msg?: string) => void,
             ) => {
-              if (!origin || allowedOrigins.includes(origin)) cb(true);
+              // Same rule as the REST CORS check (#2543): the instance's own host
+              // is never cross-origin, whatever ALLOWED_ORIGINS lists.
+              if (!origin || allowedOrigins.includes(origin) || isSameHostOrigin(origin, req?.headers.host)) cb(true);
               else cb(false, 403, 'Origin not allowed');
             },
           }

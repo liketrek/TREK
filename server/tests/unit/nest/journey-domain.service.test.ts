@@ -291,6 +291,57 @@ describe('getJourneyFull', () => {
   });
 });
 
+describe('placeEntriesFromPhotos (#1003)', () => {
+  /** A geotagged (or not) photo on an entry, wired the way the upload wires it. */
+  function photoOnEntry(journeyId: number, entryId: number, ownerId: number, coords: [number, number] | null, sort = 0) {
+    const tp = testDb.prepare("INSERT INTO trek_photos (provider, owner_id, file_path, lat, lng) VALUES ('local', ?, 'journey/x.jpg', ?, ?)")
+      .run(ownerId, coords?.[0] ?? null, coords?.[1] ?? null).lastInsertRowid as number;
+    const gp = testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, shared, sort_order, created_at) VALUES (?, ?, 1, 0, ?)')
+      .run(journeyId, tp, Date.now()).lastInsertRowid as number;
+    testDb.prepare('INSERT INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at) VALUES (?, ?, ?, ?)').run(entryId, gp, sort, Date.now());
+    return tp;
+  }
+
+  it('JOURNEY-SVC-1003-1: with the setting on, a placeless entry takes the position of its first geotagged photo, once', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    testDb.prepare('UPDATE journeys SET photo_location = 1 WHERE id = ?').run(journey.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id);
+    const blank = photoOnEntry(journey.id, entry.id, user.id, null, 0);
+    const first = photoOnEntry(journey.id, entry.id, user.id, [48.137, 11.575], 1);
+    const second = photoOnEntry(journey.id, entry.id, user.id, [40.4, -3.7], 2);
+
+    expect(svc.placeEntriesFromPhotos([blank, first, second])).toEqual([{ entryId: entry.id, journeyId: journey.id, lat: 48.137, lng: 11.575 }]);
+    const row = testDb.prepare('SELECT location_lat, location_lng, country_code FROM journey_entries WHERE id = ?').get(entry.id) as any;
+    expect(row).toMatchObject({ location_lat: 48.137, location_lng: 11.575 });
+
+    // Placed now: a later photo does not move it, and a name only lands while there is none.
+    expect(svc.placeEntriesFromPhotos([second])).toEqual([]);
+    svc.nameEntryLocation(entry.id, 'Marienplatz');
+    svc.nameEntryLocation(entry.id, 'Somewhere else');
+    expect((testDb.prepare('SELECT location_name FROM journey_entries WHERE id = ?').get(entry.id) as any).location_name).toBe('Marienplatz');
+  });
+
+  it('JOURNEY-SVC-1003-2: off by default, and it leaves entries with a place alone', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id);
+    const photo = photoOnEntry(journey.id, entry.id, user.id, [1, 2]);
+    expect(svc.placeEntriesFromPhotos([photo])).toEqual([]);
+
+    testDb.prepare('UPDATE journeys SET photo_location = 1 WHERE id = ?').run(journey.id);
+    testDb.prepare('UPDATE journey_entries SET location_lat = 5, location_lng = 6 WHERE id = ?').run(entry.id);
+    expect(svc.placeEntriesFromPhotos([photo])).toEqual([]);
+    expect(svc.placeEntriesFromPhotos([])).toEqual([]);
+  });
+
+  it('JOURNEY-SVC-1003-3: the owner turns it on through updateJourney', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    expect((svc.updateJourney(journey.id, user.id, { photo_location: true }) as any).photo_location).toBe(1);
+  });
+});
+
 describe('updateJourney', () => {
   it('JOURNEY-SVC-018: owner can update title and subtitle', () => {
     const { user } = createUser(testDb);
@@ -335,6 +386,15 @@ describe('updateJourney', () => {
 
     expect(result).not.toBeNull();
     expect(result!.title).toBe('Same');
+  });
+
+  it('JOURNEY-SVC-762: the owner sets the shown state by hand, null hands it back, anything else is ignored', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    expect(svc.updateJourney(journey.id, user.id, { status_override: 'live' })!.status_override).toBe('live');
+    expect(svc.updateJourney(journey.id, user.id, { status_override: 'upcoming' })!.status_override).toBe('live');
+    expect(svc.updateJourney(journey.id, user.id, { status_override: null })!.status_override).toBeNull();
   });
 
   it('JOURNEY-SVC-021b: accepts archived status', () => {
@@ -692,6 +752,16 @@ describe('updateEntry', () => {
    * be the boolean on the way out as well as the integer on the way in, and
    * the broadcast has to say the same thing the answer does.
    */
+  it('creates and toggles a draft, answering the flag as a boolean (#696)', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const created = svc.createEntry(journey.id, user.id, { entry_date: '2026-03-01', title: 'Rough', is_draft: true });
+    expect(created!.is_draft).toBe(true);
+    const published = svc.updateEntry(created!.id, user.id, { is_draft: false });
+    expect(published!.is_draft).toBe(false);
+    expect((testDb.prepare('SELECT is_draft FROM journey_entries WHERE id = ?').get(created!.id) as { is_draft: number }).is_draft).toBe(0);
+  });
+
   it('switches a stop off and back on, and answers with the flag as a boolean', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
@@ -1666,6 +1736,45 @@ function insertEntry(journeyId: number, authorId: number, opts: { entry_date: st
   `).run(journeyId, authorId, opts.entry_date, opts.entry_time ?? null, opts.sort_order ?? 0, now, now);
   return { id: Number(res.lastInsertRowid) };
 }
+
+describe('reorderEntryPhotos (#824)', () => {
+  function photoOn(journeyId: number, entryIds: number[], order = 0): number {
+    const trek = testDb.prepare("INSERT INTO trek_photos (provider, file_path, created_at) VALUES ('local', '/p.jpg', ?)").run(Date.now()).lastInsertRowid;
+    const gp = Number(testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, sort_order, created_at) VALUES (?, ?, 0, ?)').run(journeyId, trek, Date.now()).lastInsertRowid);
+    for (const entryId of entryIds) testDb.prepare('INSERT INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at) VALUES (?, ?, ?, ?)').run(entryId, gp, order, Date.now());
+    return gp;
+  }
+  const orderOf = (entryId: number) =>
+    (testDb.prepare('SELECT journey_photo_id FROM journey_entry_photos WHERE entry_id = ? ORDER BY sort_order').all(entryId) as { journey_photo_id: number }[]).map(r => r.journey_photo_id);
+
+  it('JOURNEY-SVC-089b: orders the photos of one entry and leaves the same photo elsewhere alone', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const a = insertEntry(journey.id, user.id, { entry_date: '2026-08-01' });
+    const b = insertEntry(journey.id, user.id, { entry_date: '2026-08-02' });
+    const p1 = photoOn(journey.id, [a.id, b.id], 0);
+    const p2 = photoOn(journey.id, [a.id], 1);
+    const p3 = photoOn(journey.id, [a.id], 2);
+    expect(svc.reorderEntryPhotos(a.id, user.id, [p3, p1, p2])).toBe(true);
+    expect(orderOf(a.id)).toEqual([p3, p1, p2]);
+    expect(testDb.prepare('SELECT sort_order FROM journey_entry_photos WHERE entry_id = ? AND journey_photo_id = ?').get(b.id, p1)).toEqual({ sort_order: 0 });
+  });
+
+  it('JOURNEY-SVC-089c: refuses a list that is not exactly the photos of the entry, and a stranger', () => {
+    const { user } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const a = insertEntry(journey.id, user.id, { entry_date: '2026-08-01' });
+    const p1 = photoOn(journey.id, [a.id]);
+    const p2 = photoOn(journey.id, [a.id]);
+    const other = photoOn(journey.id, []);
+    expect(svc.reorderEntryPhotos(a.id, user.id, [p1])).toBe(false);
+    expect(svc.reorderEntryPhotos(a.id, user.id, [p1, other])).toBe(false);
+    expect(svc.reorderEntryPhotos(a.id, user.id, [p1, p1])).toBe(false);
+    expect(svc.reorderEntryPhotos(a.id, stranger.id, [p2, p1])).toBe(false);
+    expect(svc.reorderEntryPhotos(999999, user.id, [p2, p1])).toBe(false);
+  });
+});
 
 describe('reorderEntries', () => {
   it('JOURNEY-SVC-089: reorder persists and listEntries returns requested order regardless of entry_time', () => {
@@ -2719,5 +2828,18 @@ describe('entry field switches', () => {
     addJourneyContributor(testDb, journey.id, editor.id, 'editor');
 
     expect(svc.updateJourney(journey.id, editor.id, { show_mood: false })).toBeNull();
+  });
+});
+
+describe('journeyIdOfEntry', () => {
+  it('JOURNEY-SVC-ENTRY-JOURNEY-001: names the journey an entry sits in, and null for an entry that does not exist', () => {
+    // The capture refresh (#1587) only knows the entry the photos went to and has
+    // to tell the journey they belong to.
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id);
+
+    expect(svc.journeyIdOfEntry(entry.id)).toBe(journey.id);
+    expect(svc.journeyIdOfEntry(999999)).toBeNull();
   });
 });

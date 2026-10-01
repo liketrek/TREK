@@ -1,8 +1,10 @@
 import React from 'react'
+import { fs } from '../../components/shared/DialogShell'
+import { StatusPill } from '../../components/Settings/settingsKit'
 
 interface ProviderBlockProps {
   title: string
-  /** Optional label sitting on the top border, like the one on the TREK block. */
+  /** Optional pill beside the title, like the one on the TREK block. */
   badge?: string
   /**
    * `accent` marks the recommended path, `muted` a neutral one, `caution` a
@@ -17,32 +19,19 @@ interface ProviderBlockProps {
 /**
  * One provider inside the API card, in the same shape as the TREK block above
  * it, so the page reads as a list of comparable options rather than one
- * highlighted thing and some loose fields underneath.
+ * highlighted thing and some loose fields underneath. A white box on the
+ * card's grey body, its name in a head row, like a bag in the packing sidebar.
  */
 export default function ProviderBlock({
   title, badge, tone = 'muted', children,
 }: ProviderBlockProps): React.ReactElement {
   return (
-    <div className="relative">
-      {badge && (
-        <span
-          className={`pointer-events-none absolute -top-2 z-10 select-none rounded-md px-2 py-0.5
-                      text-[10px] font-medium uppercase tracking-[0.14em] shadow-sm
-                      ltr:left-4 rtl:right-4 ${
-            tone === 'caution'
-              ? 'bg-warning-soft text-warning border border-warning/30'
-              : 'bg-surface-tertiary text-content-faint border border-edge-secondary'
-          }`}
-        >
-          {badge}
-        </span>
-      )}
-      <div className="overflow-hidden rounded-xl border border-edge bg-surface-secondary/30">
-        <div className="px-5 pt-6 pb-5">
-          <p className="text-sm font-medium text-content-secondary">{title}</p>
-          <div className="mt-3 space-y-4">{children}</div>
-        </div>
+    <section className="overflow-hidden rounded-[14px] border border-edge-faint bg-surface-card">
+      <div className="flex min-w-0 items-center gap-2 border-b border-edge-faint px-3.5 py-2.5">
+        <h3 className="m-0 min-w-0 flex-1 truncate font-semibold text-content" style={fs(13, 'body')}>{title}</h3>
+        {badge && <StatusPill tone={tone === 'caution' ? 'warning' : 'neutral'}>{badge}</StatusPill>}
       </div>
-    </div>
+      <div className="flex flex-col gap-3 p-3.5">{children}</div>
+    </section>
   )
 }

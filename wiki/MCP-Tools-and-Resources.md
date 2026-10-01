@@ -47,7 +47,7 @@ Requires `trips:read` or `trips:write` scope.
 | `copy_trip` | Duplicate a trip (days, places, itinerary, packing, budget, reservations). Packing items reset to unchecked. |
 | `export_trip_ics` | Export the trip itinerary and reservations as iCalendar (`.ics`) text. |
 | `get_share_link` | Get the current public share link for a trip and its permission flags. Requires `trips:share`. |
-| `create_share_link` | Create or update the public share link with configurable visibility flags. Requires `trips:share`. |
+| `create_share_link` | Create or update the public share link with configurable visibility flags, including the travel-only and without-photos options. Requires `trips:share`. |
 | `delete_share_link` | Revoke the public share link for a trip. Requires `trips:share`. |
 
 ### Places
@@ -57,8 +57,8 @@ Requires `places:read` or `places:write` scope.
 | Tool | Description |
 |---|---|
 | `list_places` | List places in a trip, optionally filtered by assignment status, category, tag, or search query. |
-| `create_place` | Add a place with name, coordinates, address, category, notes, website, phone, and optional `google_place_id` / `osm_id`. An optional `stop_type` (`fuel`, `charging`, `rest_area`, `campsite`, `restaurant`, `sights` or `hotel`) marks it as a service stop on a drive rather than a destination, so it is left out of the day's stop count; see [Road-Trip](Road-Trip). Leave it unset for an ordinary place. |
-| `update_place` | Update any field of an existing place including transport mode, timing, price and `stop_type`. Pass `stop_type: null` to turn a service stop back into an ordinary place. |
+| `create_place` | Add a place with name, coordinates, address, category, notes, website, phone, email, and optional `google_place_id` / `osm_id` / `amap_poi_id`. `opening_hours` takes the place's own hours, seven days starting on Monday (`closed`, `open`, `close` as `HH:MM`), shown instead of looked-up hours; `null` clears them. An optional `stop_type` (`fuel`, `charging`, `rest_area`, `campsite`, `restaurant`, `sights` or `hotel`) marks it as a service stop on a drive rather than a destination, so it is left out of the day's stop count; see [Road-Trip](Road-Trip). Leave it unset for an ordinary place. |
+| `update_place` | Update any field of an existing place including phone, email, opening hours, transport mode, timing, price and `stop_type`. Pass `stop_type: null` to turn a service stop back into an ordinary place. |
 | `rate_place` | Set or clear your own 1–5 star rating on a place. Every trip member rates independently and the place shows the average. Pass `null` to clear the vote. |
 | `bulk_update_places` | Update many places at once, applying the same field values (e.g. category, price, transport mode, `stop_type`) to every listed place in a single call. `stop_type: null` turns the listed service stops back into ordinary places. |
 | `delete_place` | Remove a place from a trip. Also removes all day assignments, the expenses linked to the place and any night booked at it, together with that night's reservation and the reservation's expense. Cannot be undone, so an assistant should warn before deleting a hotel that holds a booking. |
@@ -84,6 +84,9 @@ Requires `trips:read` or `trips:write` scope.
 | `set_day_default_transport_mode` | Set the whole-day default travel mode. Per-leg modes still override it. Pass `null` to clear. |
 | `assign_place_to_day` | Pin a place to a specific day in the itinerary. Requires `places:write`. |
 | `unassign_place` | Remove a place assignment from a day. Requires `places:write`. |
+| `clear_day_assignments` | Remove every place from one day at once. The day, its notes and its bookings stay. Requires `places:write`. |
+| `set_assignment_route_excluded` | Keep a place on its day but out of the day's route, or route it again. Requires `places:write`. |
+| `set_place_image_from_file` | Use a picture already attached in the trip as a place image (the file is copied). Requires `places:write`. |
 | `reorder_day_assignments` | Reorder places within a day by providing assignment IDs in order. Requires `places:write`. |
 | `update_assignment_time` | Set start/end times for a place assignment (e.g. `"09:00"` – `"11:30"`). Pass `null` to clear. Requires `places:write`. |
 | `move_assignment` | Move a place assignment to a different day. Requires `places:write`. |
@@ -118,7 +121,7 @@ Requires `reservations:write` scope.
 
 | Tool | Description |
 |---|---|
-| `create_transport` | Create a transport booking in any of the nine types the transport form offers (`flight`, `train`, `bus`, `car`, `taxi`, `bicycle`, `cruise`, `ferry`, `transport_other`), with optional multi-stop endpoints, departure/arrival times, and confirmation details. Scheduled public transit goes through `create_transit_journey` instead. |
+| `create_transport` | Create a transport booking in any of the ten types the transport form offers (`flight`, `train`, `bus`, `car`, `taxi`, `bicycle`, `cruise`, `ferry`, `cable_car`, `transport_other`), with optional multi-stop endpoints, departure/arrival times, and confirmation details. Scheduled public transit goes through `create_transit_journey` instead. |
 | `update_transport` | Update an existing transport booking. Pass `endpoints[]` to replace all stops. |
 | `delete_transport` | Delete a transport booking from a trip. |
 
@@ -153,14 +156,14 @@ Requires `budget:read` or `budget:write` scope. The Budget addon must be enabled
 | Tool | Description |
 |---|---|
 | `create_budget_item` | Add an expense with name, category, and price. |
-| `update_budget_item` | Update an expense's details, split (persons/days), or notes. |
+| `update_budget_item` | Update an expense's details, split (persons/days), or notes. `reservation_id` / `place_id` link it to a booking or place of the same trip; `null` unlinks it. |
 | `delete_budget_item` | Remove a budget item. |
 | `set_budget_item_members` | Set which members are splitting a budget item (replaces current list). |
 | `toggle_budget_member_paid` | Mark or unmark a member as having paid their share. |
 | `get_settlement_summary` | Each member's net balance, the suggested payments to settle shared expenses, and each member's final budget (`finalBudgets`: expenses paid, net reimbursements, pending reimbursements, final cost, each figure with the rows it is made of under `sources`). `currency` says what the amounts are in: the `base` asked for when the server can quote it, otherwise the trip's base currency. An expense or payment in a foreign currency with no frozen rate, while the server has no live rate for it either, is left out of every figure and listed under `unconverted` (`item_ids`, `settlement_ids`, `currencies`). Call this before recording a settlement. |
 | `list_settlements` | List the recorded settle-up payments for a trip — who paid whom, how much, and when. |
-| `create_settlement` | Record a settle-up payment: one member paid another the given amount, with the payment's currency and the day it happened. |
-| `update_settlement` | Update a recorded settle-up payment (payer, recipient, amount, currency and the day it happened). |
+| `create_settlement` | Record a settle-up payment: one member paid another the given amount, with the payment's currency, the day it happened and an optional note. |
+| `update_settlement` | Update a recorded settle-up payment (payer, recipient, amount, currency, the day it happened and its note). |
 | `delete_settlement` | Delete a recorded settle-up payment. This is the undo for `create_settlement` and restores the affected balances. |
 | `freeze_budget_rates` | Pin today's server exchange rate on every expense and settle-up payment in a foreign currency that has no rate frozen yet, the rows under `unconverted` included. Rows with a frozen rate, in the trip currency or without a currency are never touched, and no rate is taken from the caller. Returns the rows it froze (`items`, `settlements`) and the currencies the server could not quote (`unresolved`). Needs the budget edit permission; an error when the trip currency changed meanwhile, with nothing written. |
 
@@ -183,6 +186,9 @@ Requires `places:read` or `places:write` scope.
 | `reverse_geocode` | `geo:read` | Get a human-readable address for given coordinates. |
 | `resolve_maps_url` | `geo:read` | Resolve a Google Maps or Amap (高德地图) share URL to coordinates and place name. |
 | `search_pois` | `geo:read` | List places of one or more categories inside a map rectangle, the MCP side of the category buttons on the trip map. Answers from TREK's place index where it can and from OpenStreetMap (Overpass) otherwise, names the source of each result, and never calls Google. |
+| `search_nearby_places` | `geo:read` | List named places of any kind around a coordinate, nearest first, each with its distance in metres. Takes `lat`, `lng`, an optional `radius` (50 to 5000 m, default 500), `limit` (up to 20) and `lang`. Answers from TREK's place index first, from Google Places only when the instance has a key and the index found nothing, and from OpenStreetMap otherwise. Answers are cached for 30 minutes. |
+| `list_plugin_poi_categories` | `geo:read` | List the extra categories installed plugins add to the category buttons on the trip map (trailheads, EV chargers, step-free places, drinking water, campsites and the like), each with the `pluginId` and category `id` that `search_plugin_pois` takes and its label in the requested `lang`. Empty when no plugin adds categories, which is the normal case. |
+| `search_plugin_pois` | `geo:read` | List the places of one plugin category inside a map rectangle, the MCP side of a plugin's category button. Takes `pluginId`, `category`, a `bbox` (narrowed to a centred 0.5 degree window when larger, reported as `clamped`) and an optional `lang`. Results have the `search_pois` shape plus the answering `pluginId`, a `rating` where the plugin has one and up to six `details` rows (label and value) only that plugin knows. An unknown category or a failing plugin is an error result. Never calls Google. |
 | `search_airports` | `geo:read` | Search for airports by name, city, or IATA code. Returns IATA code, name, city, country, timezone. |
 | `get_airport` | `geo:read` | Look up an airport by IATA code (e.g. `"ZRH"`, `"CDG"`). |
 | `get_weather` | `weather:read` | Get a weather forecast for a location and date. |
@@ -208,6 +214,7 @@ Requires `files:read` or `files:write`. Reading what is inside a document needs 
 |---|---|
 | `list_trip_files` | List a trip's documents: name, type, size, uploader, description, what they are linked to, starred and trash state. Pass `trash` to list the trash instead. |
 | `read_trip_file` | Read one document's contents. Text comes back as text, anything else base64, with an `encoding` field saying which. Files over 10 MB are refused; use the download link in the app. |
+| `upload_trip_file` | Add a document to a trip, base64-encoded, up to 10 MB (or the instance's upload limit if lower). The name needs an extension the file manager accepts. Optionally attach it to a booking or place right away. Needs the file upload right. |
 | `update_trip_file` | Set a file's description and the booking, place or expense (`budget_item_id`, a receipt) it belongs to. Pass null to detach. |
 | `link_trip_file` | Link a file to one more booking, place, day assignment or expense (`budget_item_id`, a receipt). |
 | `unlink_trip_file` | Remove one link. The file stays. |
@@ -219,7 +226,7 @@ Requires `settings:read` or `settings:write`.
 
 | Tool | Description |
 |---|---|
-| `get_display_settings` | Read the user's units, time format, language, default currency and start page. Read this before rendering a temperature, a distance or a clock time. |
+| `get_display_settings` | Read the user's units, time format, first day of the week, language, the language of place names in search, default currency, start page, the trip tab a trip opens on, the colour mode (light, dark or auto) and a few map and planner switches such as blurred booking codes. Read this before rendering a temperature, a distance or a clock time. |
 | `update_display_settings` | Change one or more of those preferences. Only display preferences: API keys, map tokens and LLM settings are refused, whatever is passed. |
 
 ### Calendar feeds
@@ -274,6 +281,7 @@ Photo bytes are never returned: those are image URLs the app renders.
 | Tool | Description |
 |---|---|
 | `list_help_topics` | List the bundled help pages. Answers "how do I do X in TREK?" without guessing. |
+| `search_help` | Full-text search across the bundled help pages, the same search the in-app help uses. Returns the best-matching pages with the section heading and a snippet; follow up with `get_help_page`. |
 | `get_help_page` | Read one help page. |
 | `list_addons` | Which addons and collaboration features this instance has enabled. Worth calling when a tool you expected is not in the list: an addon that is off removes its tools exactly the way a missing scope does. |
 | `get_trip_warnings` | Warnings plugins have raised about a trip. A plugin raising one is telling the user something is wrong, so it is worth reading before reviewing an itinerary. |

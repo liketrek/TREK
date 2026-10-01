@@ -2,7 +2,9 @@
 
 ## Do I need a Google Maps API key?
 
-No. Place search runs on TREK's own place index, the [TREK Places API](TREK-Places-API), asked together with OpenStreetMap, with no API key, no quota and no account. A Google Maps key only answers where both come up empty, and adds ratings and photos for the places Google finds, which no open dataset has. An admin can add one in **Admin → Settings → API Keys**, see [Places and Search](Places-and-Search#with-a-google-maps-api-key). A key saved there applies instance-wide to every member; there is no per-user field for it in the UI.
+No. Place search runs on TREK's own place index, the [TREK Places API](TREK-Places-API), asked together with OpenStreetMap, with no API key, no quota and no account. A Google Maps key only answers where both come up empty, and adds ratings and photos for the places Google finds, which no open dataset has. An admin can add one in **Admin → Settings → API Keys**, see [Places and Search](Places-and-Search#with-a-google-maps-api-key). A key saved there applies instance-wide to every member; there is no per-user field for it in the UI. A key can also come from the `PLACES_API_KEY` environment variable, which then wins over the field, see [Environment-Variables](Environment-Variables#place-search-google-places).
+
+To keep the Google bill in check, the same card has **Daily limit for Google calls**: once today's calls reach it, TREK stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Today's count sits next to the field. Leave it empty for no limit.
 
 ## Can I use TREK offline?
 

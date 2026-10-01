@@ -1,19 +1,21 @@
 import React from 'react'
-import { Save, Plug, RefreshCw, Unplug } from 'lucide-react'
+import { Loader2, Save, Plug, RefreshCw, Unplug } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useDawarichConnection } from '../../hooks/useDawarichConnection'
 import DawarichIcon from '../shared/DawarichIcon'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
+import { SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill } from './settingsKit'
+import { EditorField, GRID_2, INPUT } from '../shared/dialogParts'
+import { fs } from '../shared/DialogShell'
 
 /**
  * Settings → Integrations → Dawarich.
  *
  * All of the behaviour is in `useDawarichConnection`, shared with the phone
  * twin; this file is markup. The layout follows the AirTrail and LLM sections
- * so the three read as one shelf, but the classes are the semantic tokens
- * rather than the raw `slate-*` those two still carry — a new surface has to
- * follow the user's accent and colour scheme.
+ * so the three read as one shelf: fields side by side, the switches as rows,
+ * the actions under them and the connection state as a pill in the band.
  *
  * The status block below the fields is the part that earns its space: a
  * connection to somebody else's server fails in ways they can act on — a wrong
@@ -25,28 +27,30 @@ export default function DawarichConnectionSection(): React.ReactElement {
   const S = useDawarichConnection()
 
   return (
-    <Section title={t('dawarich.title')} icon={DawarichIcon}>
-      <div className="space-y-3">
-        <p className="text-caption text-content-secondary">{t('dawarich.intro')}</p>
+    <Section
+      title={t('dawarich.title')}
+      icon={DawarichIcon}
+      badge={
+        <StatusPill tone={S.connected ? 'success' : 'neutral'} icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>
+          {S.connected ? t('dawarich.connected') : t('dawarich.notConnected')}
+        </StatusPill>
+      }
+    >
+      <SettingsHint>{t('dawarich.intro')}</SettingsHint>
 
-        <div>
-          <label htmlFor="dawarich-url" className="block text-caption font-medium mb-1.5 text-content-secondary">
-            {t('dawarich.url')}
-          </label>
+      <div className={GRID_2}>
+        <EditorField label={t('dawarich.url')} htmlFor="dawarich-url">
           <input
             id="dawarich-url"
             type="url"
             value={S.url}
             onChange={e => S.setUrl(e.target.value)}
             placeholder="https://dawarich.example.com"
-            className="w-full px-3 py-2.5 border rounded-lg text-body focus:outline-none focus:ring-2 ring-accent border-edge bg-surface-input text-content"
+            className={INPUT}
           />
-        </div>
+        </EditorField>
 
-        <div>
-          <label htmlFor="dawarich-key" className="block text-caption font-medium mb-1.5 text-content-secondary">
-            {t('dawarich.apiKey')}
-          </label>
+        <EditorField label={t('dawarich.apiKey')} htmlFor="dawarich-key" hint={t('dawarich.apiKeyHint')}>
           <input
             id="dawarich-key"
             type="password"
@@ -54,82 +58,72 @@ export default function DawarichConnectionSection(): React.ReactElement {
             onChange={e => S.setApiKey(e.target.value)}
             autoComplete="off"
             placeholder={S.connected && !S.apiKey ? '••••••••' : t('dawarich.apiKeyPlaceholder')}
-            className="w-full px-3 py-2.5 border rounded-lg text-body focus:outline-none focus:ring-2 ring-accent border-edge bg-surface-input text-content"
+            className={INPUT}
           />
-          <p className="mt-1 text-caption text-content-muted">{t('dawarich.apiKeyHint')}</p>
-        </div>
-
-        <div>
-          <div className="flex items-center gap-3">
-            <ToggleSwitch on={S.syncEnabled} onToggle={S.toggleSync} label={t('dawarich.syncEnabled')} />
-            <span className="text-body font-medium text-content-secondary">{t('dawarich.syncEnabled')}</span>
-          </div>
-          <p className="mt-1 text-caption text-content-muted">{t('dawarich.syncEnabledHint')}</p>
-        </div>
-
-        <div>
-          <div className="flex items-center gap-3">
-            <ToggleSwitch on={S.allowInsecureTls} onToggle={S.toggleInsecureTls} label={t('dawarich.allowInsecureTls')} />
-            <span className="text-body font-medium text-content-secondary">{t('dawarich.allowInsecureTls')}</span>
-          </div>
-          <p className="mt-1 text-caption text-content-muted">{t('dawarich.allowInsecureTlsHint')}</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={S.save}
-            disabled={S.saving || S.loading || !S.canSave}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-body font-medium bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" /> {t('common.save')}
-          </button>
-
-          <button
-            type="button"
-            onClick={S.test}
-            disabled={S.testing || S.loading || !S.url.trim()}
-            className="flex items-center gap-2 px-4 py-2 border rounded-lg text-body border-edge text-content-secondary hover:bg-surface-hover disabled:opacity-50"
-          >
-            {S.testing
-              ? <span className="w-4 h-4 border-2 rounded-full animate-spin border-edge border-t-transparent" />
-              : <Plug className="w-4 h-4" />}
-            {t('dawarich.test.button')}
-          </button>
-
-          {S.connected && (
-            <button
-              type="button"
-              onClick={S.syncNow}
-              disabled={S.syncing}
-              className="flex items-center gap-2 px-4 py-2 border rounded-lg text-body border-edge text-content-secondary hover:bg-surface-hover disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${S.syncing ? 'animate-spin' : ''}`} />
-              {t('dawarich.syncNow')}
-            </button>
-          )}
-
-          <span className="basis-full sm:basis-auto text-caption font-medium flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${S.connected ? 'bg-success' : 'bg-surface-tertiary'}`} />
-            <span className={S.connected ? 'text-success' : 'text-content-muted'}>
-              {S.connected ? t('dawarich.connected') : t('dawarich.notConnected')}
-            </span>
-          </span>
-
-          {S.connected && (
-            <button
-              type="button"
-              onClick={S.disconnect}
-              disabled={S.saving}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-caption text-danger hover:bg-danger-soft disabled:opacity-50"
-            >
-              <Unplug className="w-3.5 h-3.5" /> {t('dawarich.disconnect')}
-            </button>
-          )}
-        </div>
-
-        <DawarichConnectionStatus state={S} locale={locale} />
+        </EditorField>
       </div>
+
+      <SettingRows>
+        <SettingRow
+          label={t('dawarich.syncEnabled')}
+          hint={t('dawarich.syncEnabledHint')}
+          control={<ToggleSwitch on={S.syncEnabled} onToggle={S.toggleSync} label={t('dawarich.syncEnabled')} />}
+        />
+        <SettingRow
+          label={t('dawarich.allowInsecureTls')}
+          hint={t('dawarich.allowInsecureTlsHint')}
+          control={<ToggleSwitch on={S.allowInsecureTls} onToggle={S.toggleInsecureTls} label={t('dawarich.allowInsecureTls')} />}
+        />
+      </SettingRows>
+
+      <div className="flex flex-wrap items-center gap-2" style={fs(13, 'body')}>
+        <button
+          type="button"
+          onClick={S.save}
+          disabled={S.saving || S.loading || !S.canSave}
+          className={SETTINGS_BUTTON_PRIMARY}
+        >
+          <Save size={14} strokeWidth={2.2} /> {t('common.save')}
+        </button>
+
+        <button
+          type="button"
+          onClick={S.test}
+          disabled={S.testing || S.loading || !S.url.trim()}
+          className={SETTINGS_BUTTON}
+        >
+          {S.testing
+            ? <Loader2 size={14} strokeWidth={2.2} className="animate-spin" />
+            : <Plug size={14} strokeWidth={2.2} />}
+          {t('dawarich.test.button')}
+        </button>
+
+        {S.connected && (
+          <button
+            type="button"
+            onClick={S.syncNow}
+            disabled={S.syncing}
+            className={SETTINGS_BUTTON}
+          >
+            <RefreshCw size={14} strokeWidth={2.2} className={S.syncing ? 'animate-spin' : ''} />
+            {t('dawarich.syncNow')}
+          </button>
+        )}
+
+        {/* The way out sits apart from the everyday actions, on the far right. */}
+        {S.connected && (
+          <button
+            type="button"
+            onClick={S.disconnect}
+            disabled={S.saving}
+            className={`${SETTINGS_BUTTON_DANGER} ml-auto`}
+          >
+            <Unplug size={14} strokeWidth={2.2} /> {t('dawarich.disconnect')}
+          </button>
+        )}
+      </div>
+
+      <DawarichConnectionStatus state={S} locale={locale} />
     </Section>
   )
 }
@@ -161,11 +155,11 @@ function DawarichConnectionStatus({
   }
 
   return (
-    <div className="rounded-lg border p-3 space-y-1.5 border-edge bg-surface-secondary">
-      {state.probeMessage && <p className="text-caption text-content">{state.probeMessage}</p>}
+    <div className="flex flex-col gap-1 rounded-[12px] border border-edge-faint bg-surface-card px-3.5 py-3" style={fs(12, 'body')}>
+      {state.probeMessage && <p className="m-0 font-medium text-content">{state.probeMessage}</p>}
 
       {state.connected && (
-        <p className="text-caption text-content-secondary">
+        <p className="m-0 text-content-secondary">
           {state.lastSyncAt
             ? t('dawarich.lastSync', { when: new Date(state.lastSyncAt).toLocaleString(locale) })
             : t('dawarich.neverSynced')}
@@ -174,17 +168,17 @@ function DawarichConnectionStatus({
       )}
 
       {state.lastSyncError && (
-        <p className="text-caption text-danger">{state.lastSyncError}</p>
+        <p className="m-0 text-danger">{state.lastSyncError}</p>
       )}
 
       {state.capabilities?.serverVersion && (
-        <p className="text-caption text-content-muted">
+        <p className="m-0 font-geist tabular-nums text-content-muted">
           {t('dawarich.serverVersion', { version: state.capabilities.serverVersion })}
         </p>
       )}
 
       {missing.length > 0 && (
-        <p className="text-caption text-content-muted">
+        <p className="m-0 text-content-muted">
           {t('dawarich.capability.missing', { features: missing.join(', ') })}
         </p>
       )}

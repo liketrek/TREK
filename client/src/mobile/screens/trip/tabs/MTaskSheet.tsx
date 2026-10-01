@@ -3,6 +3,7 @@ import { Check, Flag, Plus, User } from 'lucide-react'
 import type { TodoCreateItemRequest, TodoUpdateItemRequest } from '@trek/shared'
 import MSheet from '../../../components/MSheet'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
+import MarkdownEditable from '../../../../components/shared/MarkdownEditable'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import type { TodoItem, TripMember } from '../../../../types'
@@ -133,12 +134,21 @@ export default function MTaskSheet({ planner, open, itemId, categories, members,
         />
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('todo.detail.description')}</Eyebrow>
-        <textarea
+        <MarkdownEditable
           value={description}
-          onChange={e => setDescription(e.target.value)}
-          rows={3}
-          placeholder={t('todo.descriptionPlaceholder')}
-          className={FIELD_AREA_CLS}
+          canEdit
+          editLabel={t('todo.editDescription')}
+          className="rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] font-geist text-[0.78125rem] leading-[1.5] text-m-ink [overflow-wrap:break-word]"
+          renderEditor={editor => (
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={3}
+              {...editor}
+              placeholder={t('todo.descriptionPlaceholder')}
+              className={FIELD_AREA_CLS}
+            />
+          )}
         />
 
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('todo.detail.priority')}</Eyebrow>

@@ -301,6 +301,19 @@ describe('Tool: update_packing_item', () => {
     });
   });
 
+  it('counts packed pieces like the REST route does (#2296)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Shirts' });
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'update_packing_item', arguments: { tripId: trip.id, itemId: item.id, quantity: 4 } });
+      const partial = parseToolResult(await h.client.callTool({ name: 'update_packing_item', arguments: { tripId: trip.id, itemId: item.id, packed_quantity: 3 } })) as any;
+      expect(partial.item).toMatchObject({ packed_quantity: 3, checked: 0 });
+      const full = parseToolResult(await h.client.callTool({ name: 'update_packing_item', arguments: { tripId: trip.id, itemId: item.id, packed_quantity: 4 } })) as any;
+      expect(full.item).toMatchObject({ packed_quantity: null, checked: 1 });
+    });
+  });
+
   it('broadcasts packing:updated event', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

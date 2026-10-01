@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Bike, Bus, Car, CarTaxiFront, Check, ChevronDown, ChevronUp, Plane, Plus, Route, Sailboat, Ship, Train, TrainFront, TramFront, Trash2, X } from 'lucide-react'
+import { Bike, Bus, Car, CarTaxiFront, Check, ChevronDown, ChevronUp, Plane, Plus, Route, Sailboat, CableCar, Ship, Train, TrainFront, TramFront, Trash2, X } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
 import { formatDate, resolveDayId, splitReservationDateTime } from '../../../../utils/formatters'
-import { orderedEndpoints, parseReservationMetadata, stripAirportCode } from '../../../../utils/flightLegs'
+import { orderedEndpoints, parseReservationMetadata, stripAirportCode, usesStationRoute } from '../../../../utils/flightLegs'
 import { typeToCostCategory } from '@trek/shared'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
@@ -15,7 +15,8 @@ import { toLocationPicks } from '../../../../components/Planner/locationPicks'
 import { importedPriceEntry } from '../../../../components/Planner/importedPrice'
 import TransitSearchPanel from '../../../../components/Planner/TransitSearchPanel'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
-import PlFileAttach from './PlFileAttach'
+import MBookingFilesCosts from './MBookingFilesCosts'
+import { uploadBookingFiles } from './uploadBookingFiles'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants'
 import { useTripStore } from '../../../../store/tripStore'
@@ -29,7 +30,7 @@ export interface MTransportFormSheetProps {
   onOpenExpense: (req: BookingExpenseRequest) => void
 }
 
-const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'] as const
+const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other'] as const
 type TransportType = typeof TRANSPORT_TYPES[number]
 
 const TYPE_OPTIONS = [
@@ -41,6 +42,7 @@ const TYPE_OPTIONS = [
   { value: 'bicycle', labelKey: 'reservations.type.bicycle', Icon: Bike },
   { value: 'cruise', labelKey: 'reservations.type.cruise', Icon: Ship },
   { value: 'ferry', labelKey: 'reservations.type.ferry', Icon: Sailboat },
+  { value: 'cable_car', labelKey: 'reservations.type.cable_car', Icon: CableCar },
   { value: 'transport_other', labelKey: 'reservations.type.transport_other', Icon: Route },
 ]
 
@@ -146,7 +148,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
     transportPrefill, transitPrefill, setTransitPrefill,
     importReviewActive, advanceImportReview,
     handleSaveTransport, handleDeleteReservation,
-    canUploadFiles, tripActions,
+    canUploadFiles,
   } = planner
   const { locale } = useTranslation()
   const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
@@ -157,6 +159,8 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
   const locationPicks = useMemo(() => toLocationPicks(places), [places])
 
   const [form, setForm] = useState({ ...EMPTY })
+  // Trains and cruises share the station list (#1807), as on desktop.
+  const stationRoute = usesStationRoute(form.type)
   const [automated, setAutomated] = useState(false)
   const [fromPick, setFromPick] = useState<EndpointPick>({})
   const [toPick, setToPick] = useState<EndpointPick>({})
@@ -260,7 +264,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         setWaypoints(wps)
         setFromPick({})
         setToPick({})
-      } else if (type === 'train') {
+      } else if (usesStationRoute(type)) {
         const orderedEps = orderedEndpoints(src)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const metaLegs: any[] = Array.isArray(meta.legs) ? meta.legs : []
@@ -415,7 +419,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
       const flightWps = form.type === 'flight' ? waypoints.filter(w => w.airport) : []
       const firstWp = flightWps[0]
       const lastWp = flightWps[flightWps.length - 1]
-      const trainWps = form.type === 'train' ? trainWaypoints : []
+      const trainWps = stationRoute ? trainWaypoints : []
       const trainStations = trainWps.filter(w => w.location)
       // The day/time anchors have to be the rows that actually become endpoints
       // (same as the flight path); only a train without a single picked station
@@ -459,7 +463,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
           })
         }
         if (firstWp?.seat) metadata.seat = firstWp.seat
-      } else if (form.type === 'train') {
+      } else if (stationRoute) {
         if (firstTrainWp?.train_number) metadata.train_number = firstTrainWp.train_number
         if (firstTrainWp?.platform) metadata.platform = firstTrainWp.platform
         if (firstTrainWp?.seat) metadata.seat = firstTrainWp.seat
@@ -510,7 +514,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
           const time = isLast ? w.arrTime : w.depTime
           endpoints.push(endpointFromAirport(w.airport!, role, i, dayDate(dId), time || null))
         })
-      } else if (form.type === 'train') {
+      } else if (stationRoute) {
         trainStations.forEach((w, i) => {
           const isFirst = i === 0
           const isLast = i === trainStations.length - 1
@@ -551,16 +555,16 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         title: form.title,
         type: form.type,
         status: form.status,
-        day_id: form.type === 'flight' ? flightDepDay : form.type === 'train' ? trainDepDay : (form.start_day_id ? Number(form.start_day_id) : null),
-        end_day_id: form.type === 'flight' ? flightArrDay : form.type === 'train' ? trainArrDay : (form.end_day_id ? Number(form.end_day_id) : null),
+        day_id: form.type === 'flight' ? flightDepDay : stationRoute ? trainDepDay : (form.start_day_id ? Number(form.start_day_id) : null),
+        end_day_id: form.type === 'flight' ? flightArrDay : stationRoute ? trainArrDay : (form.end_day_id ? Number(form.end_day_id) : null),
         reservation_time: form.type === 'flight'
           ? buildTime(days.find(d => d.id === flightDepDay), firstWp?.depTime || '')
-          : form.type === 'train'
+          : stationRoute
             ? buildTime(days.find(d => d.id === trainDepDay), firstTrainWp?.depTime || '')
             : buildTime(startDay, form.departure_time),
         reservation_end_time: form.type === 'flight'
           ? buildTime(days.find(d => d.id === flightArrDay), lastWp?.arrTime || '')
-          : form.type === 'train'
+          : stationRoute
             ? buildTime(days.find(d => d.id === trainArrDay) ?? days.find(d => d.id === trainDepDay), lastTrainWp?.arrTime || '')
             : buildTime(endDay ?? startDay, form.arrival_time),
         location: null,
@@ -586,15 +590,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         const changed = original.length !== next.length || next.some(id => !original.includes(id))
         if (changed) await setReservationTravelers(tripId, savedId, next)
       }
-      if (!res?.id && saved?.id && pendingFiles.length > 0 && canUploadFiles) {
-        for (const file of pendingFiles) {
-          const fd = new FormData()
-          fd.append('file', file)
-          fd.append('reservation_id', String(saved.id))
-          fd.append('description', form.title)
-          await tripActions.addFile(tripId, fd)
-        }
-      }
+      await uploadBookingFiles(planner, saved?.id, pendingFiles, form.title)
       if (withExpense && saved?.id) {
         onOpenExpense({ prefill: { reservationId: saved.id, name: form.title, category: typeToCostCategory(form.type) } })
       }
@@ -829,7 +825,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                   })}
                 </div>
               </>
-            ) : form.type === 'train' ? (
+            ) : stationRoute ? (
               <>
                 <Eyebrow className="mb-[6px] mt-3 uppercase">{t('reservations.layover.route')}</Eyebrow>
                 <div className="flex flex-col gap-[6px]">
@@ -837,7 +833,10 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                     const isFirst = i === 0
                     const isLast = i === trainWaypoints.length - 1
                     const updateWp = (patch: Partial<StationWaypointForm>) => setTrainWaypoints(prev => prev.map((w, j) => (j === i ? { ...w, ...patch } : w)))
-                    const roleLabel = isFirst ? t('reservations.meta.from') : isLast ? t('reservations.meta.to') : t('reservations.layover.stop')
+                    const cruise = form.type === 'cruise'
+                    const roleLabel = isFirst ? t(cruise ? 'reservations.cruise.embark' : 'reservations.meta.from')
+                      : isLast ? t(cruise ? 'reservations.cruise.disembark' : 'reservations.meta.to')
+                        : t(cruise ? 'reservations.cruise.port' : 'reservations.layover.stop')
                     return (
                       <div key={i} className="flex flex-col gap-[6px]">
                         <div className="rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[11px]">
@@ -876,7 +875,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                                   <CustomTimePicker value={wp.depTime} onChange={v => updateWp({ depTime: v })} />
                                 </div>
                               </div>
-                              <div className="mt-2 flex gap-2">
+                              {!cruise && <div className="mt-2 flex gap-2">
                                 <div className="min-w-0 flex-[1.2]">
                                   <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.trainNumber')}</Eyebrow>
                                   <input type="text" value={wp.train_number} onChange={e => updateWp({ train_number: e.target.value })} placeholder="ICE 123" className={FIELD_CLS} />
@@ -889,8 +888,8 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                                   <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.seat')}</Eyebrow>
                                   <input type="text" value={wp.seat} onChange={e => updateWp({ seat: e.target.value })} placeholder="42A" className={FIELD_CLS} />
                                 </div>
-                              </div>
-                              {writesTrainLegs && (
+                              </div>}
+                              {writesTrainLegs && !cruise && (
                                 <div className="mt-2">
                                   <Eyebrow className="mb-[5px] uppercase">{t('reservations.confirmationCode')}</Eyebrow>
                                   <BookingCodeInput
@@ -910,7 +909,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                             onClick={() => setTrainWaypoints(prev => [...prev.slice(0, i + 1), emptyStationWaypoint(prev[i]?.depDayId || ''), ...prev.slice(i + 1)])}
                             className="flex w-full items-center justify-center gap-[5px] rounded-full border-[1.5px] border-dashed border-[color:var(--m-rowbr)] py-2 font-geist text-[0.6875rem] font-semibold text-m-muted"
                           >
-                            <Plus size={12} strokeWidth={2.2} /> {t('reservations.layover.addStop')}
+                            <Plus size={12} strokeWidth={2.2} /> {t(cruise ? 'reservations.cruise.addPort' : 'reservations.layover.addStop')}
                           </button>
                         )}
                       </div>
@@ -1084,33 +1083,18 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
               </div>
             )}
 
-            {/* FILES */}
-            {canUploadFiles && (
-              <PlFileAttach
-                planner={planner}
-                files={pendingFiles}
-                onAdd={files => setPendingFiles(prev => [...prev, ...files])}
-                onRemove={idx => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
-                hideHint
-              />
-            )}
-
-            {/* COSTS */}
-            {isBudgetEnabled && (
-              <>
-                <Eyebrow className="mb-[6px] mt-3 uppercase">{t('reservations.costsLabel')}</Eyebrow>
-                <button
-                  type="button"
-                  onClick={() => { expenseIntentRef.current = true; handleSubmit() }}
-                  disabled={!form.title.trim() || isSaving}
-                  className="flex w-full items-center justify-center gap-[6px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-[11px] text-[0.78125rem] font-semibold text-m-ink disabled:opacity-40"
-                >
-                  <Plus size={13} strokeWidth={2.2} />
-                  {t('reservations.createExpense')}
-                </button>
-                <div className="mt-[5px] font-geist text-[0.625rem] text-m-faint">{t('reservations.createExpenseHint')}</div>
-              </>
-            )}
+            {/* FILES + COSTS */}
+            <MBookingFilesCosts
+              planner={planner}
+              reservationId={res?.id}
+              pendingFiles={pendingFiles}
+              setPendingFiles={setPendingFiles}
+              canUploadFiles={canUploadFiles}
+              showCosts={isBudgetEnabled}
+              createDisabled={!form.title.trim() || isSaving}
+              onCreate={() => { expenseIntentRef.current = true; void handleSubmit() }}
+              onEdit={item => onOpenExpense({ editItem: item })}
+            />
           </>
         )}
       </div>

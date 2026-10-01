@@ -1,3 +1,4 @@
+import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
 import { GeoOnceError } from '../../hooks/useGeolocation';
 import type { JourneyEntry } from '../../store/journeyStore';
 import { localIsoDate } from '../../utils/localDate';
@@ -251,6 +252,110 @@ export function sortProviderPhotos<T extends ProviderPhotoAsset>(photos: T[], lo
       return a.distance - b.distance || a.index - b.index;
     })
     .map((item) => item.photo);
+}
+
+/**
+ * How many photos the picker asks a provider for per page (#1587).
+ *
+ * The search routes accept up to 200. Every date-filtered Immich page restarts
+ * its scan at the first raw page on the server, so a smaller page makes loading
+ * a whole trip cost quadratically more round trips; 200 is a quarter of what 50
+ * cost, and still a grid the browser lays out without a stall.
+ */
+export const PROVIDER_SEARCH_PAGE_SIZE = 200;
+
+/**
+ * The deepest page the picker asks a date-bounded search for (#1587): its first
+ * page and the PROVIDER_SELECT_ALL_MAX_PAGES after it, photos 50,001 to 50,200.
+ *
+ * Absolute, however the page would be reached: by "Select all", by pressing it
+ * again after it stopped here, or by scrolling. Every such page restarts the
+ * server's Immich scan at its first raw page, and the server stops that scan at
+ * a ceiling sized for exactly this page. One past it could come back empty with
+ * `hasMore: false`, and the picker would drop the "+" and call a cut-off search
+ * complete. Stopping here keeps the "+".
+ */
+export const PROVIDER_SEARCH_LAST_PAGE = PROVIDER_SELECT_ALL_MAX_PAGES + 1;
+
+export interface ProviderPhotoPage<T> {
+  assets?: T[];
+  hasMore?: boolean;
+}
+
+/**
+ * Load the pages of a provider search that are still missing, one after the
+ * other, until the provider says there are no more (#1587).
+ *
+ * "Select all" used to mean the pages already scrolled into view, so a trip of
+ * a thousand photos selected fifty. Sequential on purpose: whether there is a
+ * next page is only known once this one has answered. `onPage` hands each page
+ * over as it lands so the grid can grow while the button is busy.
+ *
+ * Stops quietly once `signal` is aborted, which is how closing the picker or
+ * switching its tab cancels the run: the caller then discards what came back.
+ *
+ * `lastPage` is the deepest page asked for, whichever page the run starts at, so
+ * a provider that keeps answering `hasMore` cannot hold the button busy for
+ * ever. Running into it leaves `hasMore` true, so the count keeps its "+", and a
+ * run that starts past it asks for nothing.
+ */
+export async function fetchRemainingProviderPages<T>(
+  fetchPage: (page: number) => Promise<ProviderPhotoPage<T>>,
+  firstPage: number,
+  signal: AbortSignal,
+  onPage: (assets: T[], page: number, hasMore: boolean) => void,
+  lastPage: number = PROVIDER_SEARCH_LAST_PAGE,
+): Promise<{ assets: T[]; hasMore: boolean }> {
+  const assets: T[] = [];
+  let hasMore = true;
+  for (let page = firstPage; hasMore && page <= lastPage; page++) {
+    if (signal.aborted) break;
+    const data = await fetchPage(page);
+    if (signal.aborted) break;
+    const pageAssets = data.assets ?? [];
+    hasMore = !!data.hasMore;
+    assets.push(...pageAssets);
+    onPage(pageAssets, page, hasMore);
+  }
+  return { assets, hasMore };
+}
+
+/** A capture time as milliseconds, or null when it is missing or unreadable. */
+function captureMillis(value?: string | null): number | null {
+  if (!value) return null;
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/**
+ * Items in the order their photos were taken, oldest first (#1587).
+ *
+ * An entry keeps its photos in the order they were added, and the picker used
+ * to add them in grid order, newest first, so a bulk import landed backwards.
+ * The key is the photographer's wall clock (`localTakenAt`) where the provider
+ * has it, the capture instant otherwise. Ties and photos without either keep
+ * the order they came in, the undated ones after the rest.
+ *
+ * Only the order of the ids sent changes. The capture time itself is still
+ * fetched by the server (#1614), never taken from here.
+ */
+export function sortByCaptureTimeAsc<T extends { takenAt?: string | null; localTakenAt?: string | null }>(
+  items: T[],
+): T[] {
+  return items
+    .map((item, index) => ({
+      item,
+      index,
+      key: captureMillis(item.localTakenAt) ?? captureMillis(item.takenAt),
+      instant: captureMillis(item.takenAt),
+    }))
+    .sort((a, b) => {
+      if (a.key === null && b.key === null) return a.index - b.index;
+      if (a.key === null) return 1;
+      if (b.key === null) return -1;
+      return a.key - b.key || (a.instant ?? 0) - (b.instant ?? 0) || a.index - b.index;
+    })
+    .map((entry) => entry.item);
 }
 
 /**

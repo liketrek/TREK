@@ -99,7 +99,8 @@ describe('LocationSelect', () => {
     await screen.findByText('Gare du Nord');
 
     expect(body.query).toBe('Gare du Nord');
-    expect(lang).toBe('en-US');
+    // The place name language, which follows the app's language when none is picked (#1799).
+    expect(lang).toBe('en');
   });
 
   it('FE-PLANNER-LOCSEL-008: a hit whose address equals its name shows no duplicate subtitle', async () => {

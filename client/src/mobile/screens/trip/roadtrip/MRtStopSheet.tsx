@@ -15,7 +15,7 @@ import { formatDurationShort } from '../../../../components/Roadtrip/roadtripMod
 import { roadtripRows, stageOf, type StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
 import { readStay, shownStay } from '../../../../components/Roadtrip/stayReading'
 import { STOP_KIND_BY_KEY } from '../../../../components/Roadtrip/stopKinds'
-import { getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
+import { navigationTargetLabel, getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
 import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
 import { formatDistance } from '../../../../utils/units'
 import { Eyebrow, displayTime } from '../sheets/MTripSheetUi'
@@ -411,7 +411,7 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
               tileRef={navBtnRef}
               icon={<Navigation size={16} strokeWidth={2} />}
               label={t('inspector.navigation')}
-              value={navTargets.length === 1 ? navTargets[0].label : undefined}
+              value={navTargets.length === 1 ? navigationTargetLabel(navTargets[0], t) : undefined}
               onClick={openDirections}
             />
           )}

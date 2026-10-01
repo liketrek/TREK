@@ -21,6 +21,8 @@ export function formatAssignmentWithPlace(a: AssignmentRow, tags: Partial<Tag>[]
     end_day: a.end_day === 1,
     leg_transport_mode: a.leg_transport_mode ?? null,
     incoming_leg_transport_mode: a.incoming_leg_transport_mode ?? null,
+    // Kept on the day but not driven to (#2532).
+    route_excluded: a.route_excluded === 1,
     // Which booking put this stop here, if a booking did. The day list has nothing
     // else to tell it from a place the traveller added, and it must not draw the
     // hotel a second time under the overnight block that already names it.

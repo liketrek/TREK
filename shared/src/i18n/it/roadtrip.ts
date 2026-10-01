@@ -160,7 +160,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anyPower': 'Qualsiasi potenza',
   'roadtrip.poi.free': 'Gratuito',
   'roadtrip.poi.wholeDay': 'Tutta la giornata',
-  'roadtrip.poi.midLeg': 'A meta strada, {from} verso {to}',
+  'roadtrip.poi.midLeg': 'A metà strada, {from} verso {to}',
   'roadtrip.track.title': 'Il giorno {number} segue una traccia',
   'roadtrip.track.hint': 'Fai seguire a questo giorno una traccia importata',
   'roadtrip.track.badge': 'Traccia',

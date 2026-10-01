@@ -54,6 +54,16 @@ export const journeyReorderEntriesRequestSchema = z.looseObject({
 });
 export type JourneyReorderEntriesRequest = z.infer<typeof journeyReorderEntriesRequestSchema>;
 
+/**
+ * The photos of one entry in their new order (#824): every journey photo id the
+ * entry holds, each once. Strict, unlike the legacy reorder above: nothing older
+ * relies on a looser shape here.
+ */
+export const journeyReorderEntryPhotosRequestSchema = z.object({
+  orderedIds: z.array(z.number().int().positive()).min(1).max(500),
+});
+export type JourneyReorderEntryPhotosRequest = z.infer<typeof journeyReorderEntryPhotosRequestSchema>;
+
 export const journeyContributorRequestSchema = z.looseObject({
   // Handler answers 'user_id required'; role is cast, never validated.
   user_id: z.unknown().optional(),

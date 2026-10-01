@@ -17,9 +17,11 @@ export {
   deriveWebauthn,
   deriveIntegrations,
   deriveBackup,
+  deriveFiles,
   deriveDb,
   derivePaths,
   deriveNet,
+  derivePush,
 } from './derive';
 export * from './parsers';
 export { envSchema } from './env.schema';

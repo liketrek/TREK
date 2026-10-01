@@ -67,6 +67,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Mapy i GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Eksportuj plan dnia jako PDF',
+  'dayplan.pdfMine': 'Mój plan jako PDF',
+  'dayplan.pdfMineSub': 'Tylko aktywności i rezerwacje, w których bierzesz udział',
   'dayplan.gpxTooltip': 'Eksportuj jako GPX do map offline i urządzeń GPS',
   'dayplan.gpxAll': 'Cała podróż',
   'dayplan.gpxPlaces': 'Tylko miejsca',
@@ -79,8 +81,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Wszystkie miejsca przypisane',
   'dayplan.mobile.noMatch': 'Brak wyników',
   'dayplan.mobile.createNew': 'Utwórz nowe miejsce',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Rozwiń wszystkie dni', // en-fallback
+  'dayplan.collapseAll': 'Zwiń wszystkie dni', // en-fallback
   'dayplan.reorderDays': 'Zmień kolejność dni',
   'dayplan.reorderTitle': 'Zmień kolejność dni',
   'dayplan.reorderHint': 'Miejsca, notatki i rezerwacje danego dnia przenoszą się razem z nim.',
@@ -93,6 +95,14 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDay': 'Usuń dzień',
   'dayplan.deleteDayTitle': 'Usunąć {day}?',
   'dayplan.deleteDayBody': 'Dzień zostanie usunięty z podróży. Tej operacji nie można cofnąć.',
+  'dayplan.excludeFromRoute': 'Pomiń w trasie',
+  'dayplan.includeInRoute': 'Przywróć do trasy',
+  'dayplan.offRoute': 'Poza trasą',
+  'dayplan.offRouteHint': 'Zostaje w dniu i na mapie, ale trasa je pomija',
+  'dayplan.clearDay': 'Wyczyść dzień',
+  'dayplan.clearDayTitle': 'Wyczyścić {day}?',
+  'dayplan.clearDayBody':
+    'Wszystkie miejsca zostaną usunięte z tego dnia. Miejsca pozostaną w podróży, a dzień zachowa swoje notatki i rezerwacje.',
   'dayplan.deleteDayEmpty': 'Na ten dzień nic nie zaplanowano.',
   'dayplan.impactPlaces': 'Zaplanowane miejsca: {count}',
   'dayplan.impactPlacesHint': 'Pozostają na liście miejsc.',

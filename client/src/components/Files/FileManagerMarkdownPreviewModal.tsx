@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { ExternalLink, Download, X } from 'lucide-react'
+import { useEffect, useId, useState } from 'react'
+import { ExternalLink, Download, FileText } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -8,6 +7,7 @@ import rehypeSanitize from 'rehype-sanitize'
 import { openFile as openFileUrl } from '../../utils/fileDownload'
 import type { FileManagerState } from './useFileManager'
 import { triggerDownload } from './FileManager.helpers'
+import { DialogHeader, DialogShell, DialogTile, NEUTRAL_TINT, PILL } from '../shared/DialogShell'
 
 /**
  * Inline preview for uploaded Markdown files (#1345). Fetches the file's text via
@@ -19,6 +19,9 @@ export function MarkdownPreviewModal(S: FileManagerState) {
   const { previewFile, setPreviewFile, previewFileUrl, toast, t } = S
   const [text, setText] = useState('')
   const [err, setErr] = useState(false)
+  const labelId = useId()
+  const close = () => setPreviewFile(null)
+  const openInTab = () => openFileUrl(previewFile.url, previewFile.original_name).catch(() => toast.error(t('files.openError')))
 
   useEffect(() => {
     if (!previewFileUrl) return
@@ -32,43 +35,35 @@ export function MarkdownPreviewModal(S: FileManagerState) {
     return () => { cancelled = true }
   }, [previewFileUrl])
 
-  return createPortal(
-    <div
-      role="presentation"
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-      onClick={() => setPreviewFile(null)}
+  return (
+    <DialogShell
+      onClose={close}
+      labelledBy={labelId}
+      width="editor"
+      bodyClassName="collab-note-md min-h-0 flex-1 overflow-y-auto px-7 py-6 leading-relaxed text-content [word-break:break-word]"
+      header={(
+        <DialogHeader
+          tile={<DialogTile><FileText size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={close}
+          title={previewFile.original_name}
+          pills={(
+            <>
+              <button type="button" onClick={openInTab} className={`${PILL} hover:opacity-80`}>
+                <ExternalLink size={13} strokeWidth={2.2} /> {t('files.openTab')}
+              </button>
+              <button type="button" onClick={() => triggerDownload(previewFile.url, previewFile.original_name)} className={`${PILL} hover:opacity-80`}>
+                <Download size={13} strokeWidth={2.2} /> {t('files.download') || 'Download'}
+              </button>
+            </>
+          )}
+        />
+      )}
     >
-      <div
-        role="presentation"
-        style={{ width: '100%', maxWidth: 820, height: '94vh', background: 'var(--bg-card)', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid var(--border-primary)', flexShrink: 0 }}>
-          <span style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{previewFile.original_name}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <button type="button"
-              onClick={() => openFileUrl(previewFile.url, previewFile.original_name).catch(() => toast.error(t('files.openError')))}
-              style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>
-              <ExternalLink size={13} /> {t('files.openTab')}
-            </button>
-            <button type="button"
-              onClick={() => triggerDownload(previewFile.url, previewFile.original_name)}
-              style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>
-              <Download size={13} /> {t('files.download') || 'Download'}
-            </button>
-            <button type="button" onClick={() => setPreviewFile(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 4, borderRadius: 6 }}>
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-        <div className="collab-note-md" style={{ flex: 1, overflowY: 'auto', padding: '20px 28px', color: 'var(--text-primary)', lineHeight: 1.6, wordBreak: 'break-word' }}>
-          {err
-            ? <p style={{ color: 'var(--text-muted)' }}>{t('files.openError')}</p>
-            : <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeSanitize]}>{text}</Markdown>}
-        </div>
-      </div>
-    </div>,
-    document.body
+      {err
+        ? <p className="text-content-muted">{t('files.openError')}</p>
+        : <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeSanitize]}>{text}</Markdown>}
+    </DialogShell>
   )
 }

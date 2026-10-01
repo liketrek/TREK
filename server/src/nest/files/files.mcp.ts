@@ -10,8 +10,20 @@ import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { AuthService } from '../auth/auth.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { FilesService, FileContentError, FILE_CONTENT_MAX } from './files.service';
+import { AllowedFileTypesService } from './allowed-file-types.service';
+import { MAX_FILE_SIZE, isUploadTypeAllowed } from './files.constants';
+import { contentTypeFor } from '../storage/content-type';
 
 const CONTENT_MAX_MB = Math.round(FILE_CONTENT_MAX / (1024 * 1024));
+
+/**
+ * The upload tool's cap: the same 10 MB a read hands back, or the operator's
+ * upload limit when that is lower. The bytes travel base64 inside one JSON-RPC
+ * message, so the multipart route's 500 MB video allowance has no place here.
+ */
+const UPLOAD_MAX = Math.min(FILE_CONTENT_MAX, MAX_FILE_SIZE);
+const UPLOAD_MAX_MB = Math.max(1, Math.floor(UPLOAD_MAX / (1024 * 1024)));
+const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
 
 /**
  * Bytes worth handing over as text. Everything else goes back base64: a model
@@ -42,9 +54,10 @@ function contentRefusal(err: FileContentError): string {
  * two listing tools carry no file_* right because the routes they mirror carry
  * none either; trip access is the whole gate there.
  *
- * There is no upload tool on purpose. MCP has no file transport, and an upload
- * faked through base64 would be a second, unpoliced ingestion path beside the
- * multipart route with its extension filter and per-type size caps.
+ * upload_trip_file (#1566) takes the bytes base64-encoded, since MCP has no file
+ * transport. It is policed like the multipart route: the same extension rules
+ * through isUploadTypeAllowed, the file_upload right, the demo block and the
+ * same-trip check on what it attaches to, plus a tighter size cap.
  */
 @McpController()
 export class FilesMcp {
@@ -52,6 +65,7 @@ export class FilesMcp {
     private readonly files: FilesService,
     private readonly auth: AuthService,
     private readonly guards: McpToolGuardsService,
+    private readonly allowedTypes: AllowedFileTypesService,
   ) {}
 
   @Tool({
@@ -101,6 +115,51 @@ export class FilesMcp {
       if (err instanceof FileContentError) return errorResult(contentRefusal(err));
       throw err;
     }
+  }
+
+  @Tool({
+    name: 'upload_trip_file',
+    description: `Add a document to a trip, e.g. a booking confirmation PDF or a ticket, and optionally attach it to a booking or a place in the same call. Pass the bytes base64-encoded in content, up to ${UPLOAD_MAX_MB} MB decoded. The file name has to carry an extension the trip's file manager accepts; the type is derived from it. Returns the new file, whose ID works with read_trip_file and link_trip_file.`,
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      filename: z.string().trim().min(1).max(255).describe('File name including its extension, e.g. "hotel-confirmation.pdf"'),
+      content: z.string().min(1).max(Math.ceil(UPLOAD_MAX / 3) * 4).describe('The file bytes, base64-encoded'),
+      description: z.string().max(1000).optional().describe('Free-text description'),
+      reservation_id: z.number().int().positive().optional().describe('Booking on the same trip to attach the file to'),
+      place_id: z.number().int().positive().optional().describe('Place on the same trip to attach the file to'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'files', mode: 'write' },
+  })
+  async uploadTripFile(
+    { tripId, filename, content, description, reservation_id, place_id }: {
+      tripId: number; filename: string; content: string; description?: string; reservation_id?: number; place_id?: number;
+    },
+    ctx: McpContext,
+  ) {
+    if (!this.files.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.guards.hasTripPermission('file_upload', tripId, ctx.userId)) return permissionDenied();
+    // A path someone pasted in is not a name; keep only the last segment.
+    const originalname = filename.split(/[\\/]/).pop()!.trim();
+    const mimetype = contentTypeFor(originalname);
+    if (!originalname || !isUploadTypeAllowed(originalname, mimetype, this.allowedTypes.get())) {
+      return errorResult('This file type is not allowed on this TREK instance.');
+    }
+    const clean = content.replace(/\s+/g, '');
+    if (!BASE64.test(clean)) return errorResult('content is not valid base64.');
+    const bytes = Buffer.from(clean, 'base64');
+    if (bytes.length === 0) return errorResult('The file is empty.');
+    if (bytes.length > UPLOAD_MAX) return errorResult(`File is too large (over ${UPLOAD_MAX_MB} MB). Ask the user to upload it in TREK instead.`);
+    const foreign = this.files.findForeignLinkTarget(tripId, { reservation_id, place_id });
+    if (foreign) return errorResult(`Linked item does not belong to this trip (${foreign}).`);
+    const file = await this.files.createFileFromBytes(tripId, { originalname, mimetype, bytes }, ctx.userId, {
+      reservation_id: reservation_id ?? null,
+      place_id: place_id ?? null,
+      description: description ?? null,
+    });
+    this.guards.safeBroadcast(tripId, 'file:created', { file });
+    return ok({ file });
   }
 
   @Tool({

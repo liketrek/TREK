@@ -128,6 +128,12 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
       expect(createBucketItem).toHaveBeenCalledWith(8, { name: 'Tokyo', lat: 35, lng: 139, country_code: undefined, notes: undefined, target_date: undefined });
     });
 
+    it('forwards a wished-for region, as the MCP tool does (#1901)', () => {
+      const createBucketItem = vi.fn().mockReturnValue({ id: 2 });
+      makeController({ createBucketItem }).createBucketItem(user, { name: 'Bayern', country_code: 'DE', region_code: 'DE-BY' });
+      expect(createBucketItem).toHaveBeenCalledWith(8, expect.objectContaining({ country_code: 'DE', region_code: 'DE-BY' }));
+    });
+
     it('404 on update of a missing item', () => {
       const updateBucketItem = vi.fn().mockReturnValue(null);
       return thrown(() => makeController({ updateBucketItem }).updateBucketItem(user, '9', { name: 'X' })).then((r) =>

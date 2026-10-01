@@ -20,6 +20,7 @@ vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KE
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 const BOX = { minLat: 54, minLng: 12, maxLat: 54.2, maxLng: 12.3 };
 
@@ -52,7 +53,7 @@ function make(enabled = true) {
   if (enabled) delete process.env.TREK_PLACES_ENABLED;
   else process.env.TREK_PLACES_ENABLED = 'false';
   const database = { get: vi.fn(() => undefined) } as unknown as DatabaseService;
-  return new MapsService(database, {} as PlacePhotoCacheService);
+  return new MapsService(database, {} as PlacePhotoCacheService, noGoogleQuota);
 }
 
 beforeEach(() => {

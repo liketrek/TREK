@@ -34,7 +34,7 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
     place_id INTEGER NOT NULL, order_index INTEGER NOT NULL DEFAULT 0, notes TEXT,
     assignment_time TEXT, assignment_end_time TEXT, leg_transport_mode TEXT,
-    accommodation_id INTEGER,
+    accommodation_id INTEGER, route_excluded INTEGER NOT NULL DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now')));`);
   // The auto-sort reads a booked night's hour off its booking, so the table has to be
   // here even though nothing in this file books one.
@@ -153,6 +153,40 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
     expect(res.body).toEqual({ success: true });
     expect(db.prepare('SELECT id FROM day_assignments WHERE id = ?').get(id)).toBeUndefined();
     expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
+  });
+
+  it('200 clear day removes every place of the day and keeps the day (#2470)', async () => {
+    reconcileTripSkeletons.mockClear();
+    const first = seedAssignment(3, 2, 0);
+    const second = seedAssignment(3, 2, 1);
+    const elsewhere = seedAssignment(4, 2, 0);
+    const res = await request(server).delete('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect([...res.body.removedIds].sort()).toEqual([first, second].sort());
+    expect(db.prepare('SELECT COUNT(*) AS n FROM day_assignments WHERE day_id = 3').get()).toEqual({ n: 0 });
+    expect(db.prepare('SELECT id FROM day_assignments WHERE id = ?').get(elsewhere)).toEqual({ id: elsewhere });
+    expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
+  });
+
+  it('403 clear day without day_edit, 404 for a foreign day', async () => {
+    seedAssignment();
+    checkPermission.mockReturnValue(false);
+    expect((await request(server).delete('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1))).status).toBe(403);
+    checkPermission.mockReturnValue(true);
+    const miss = await request(server).delete('/api/trips/5/days/999/assignments').set('Cookie', sessionCookie(1));
+    expect(miss.status).toBe(404);
+    expect(miss.body).toEqual({ error: 'Day not found' });
+  });
+
+  it('200 route exclude roundtrip, 400 without a boolean (#2532)', async () => {
+    const id = seedAssignment();
+    const res = await request(server).put(`/api/trips/5/assignments/${id}/route`).set('Cookie', sessionCookie(1)).send({ excluded: true });
+    expect(res.status).toBe(200);
+    expect(res.body.assignment).toMatchObject({ id, route_excluded: true });
+    const list = await request(server).get('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1));
+    expect(list.body.assignments[0].route_excluded).toBe(true);
+    expect((await request(server).put(`/api/trips/5/assignments/${id}/route`).set('Cookie', sessionCookie(1)).send({ excluded: 'yes' })).status).toBe(400);
   });
 
   it('200 move assignment reconciles journey skeletons', async () => {

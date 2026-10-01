@@ -57,6 +57,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Cartes et GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Exporter le plan du jour en PDF',
+  'dayplan.pdfMine': 'Mon plan en PDF',
+  'dayplan.pdfMineSub': 'Uniquement les activités et réservations auxquelles vous participez',
   'dayplan.gpxTooltip': 'Exporter en GPX pour les cartes hors ligne et les GPS',
   'dayplan.gpxAll': 'Tout le voyage',
   'dayplan.gpxPlaces': 'Lieux uniquement',
@@ -78,8 +80,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Tous les lieux attribués',
   'dayplan.mobile.noMatch': 'Aucun résultat',
   'dayplan.mobile.createNew': 'Créer un nouveau lieu',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Déplier tous les jours', // en-fallback
+  'dayplan.collapseAll': 'Replier tous les jours', // en-fallback
   'dayplan.reorderDays': 'Réorganiser les jours',
   'dayplan.reorderTitle': 'Réorganiser les jours',
   'dayplan.reorderHint': "Les lieux, notes et réservations d'un jour le suivent.",
@@ -92,6 +94,14 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDay': 'Supprimer le jour',
   'dayplan.deleteDayTitle': 'Supprimer {day} ?',
   'dayplan.deleteDayBody': 'Le jour est retiré du voyage. Cette action est irréversible.',
+  'dayplan.excludeFromRoute': 'Retirer de l’itinéraire',
+  'dayplan.includeInRoute': 'Remettre dans l’itinéraire',
+  'dayplan.offRoute': 'Hors itinéraire',
+  'dayplan.offRouteHint': 'Reste dans le jour et sur la carte, mais l’itinéraire le contourne',
+  'dayplan.clearDay': 'Vider le jour',
+  'dayplan.clearDayTitle': 'Vider {day} ?',
+  'dayplan.clearDayBody':
+    'Tous les lieux sont retirés de ce jour. Ils restent dans le voyage, et le jour conserve ses notes et réservations.',
   'dayplan.deleteDayEmpty': "Rien n'est prévu ce jour-là.",
   'dayplan.impactPlaces': 'Lieux prévus : {count}',
   'dayplan.impactPlacesHint': 'Ils restent dans la liste des lieux.',

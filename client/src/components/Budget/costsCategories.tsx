@@ -42,7 +42,7 @@ export const COST_CATEGORY_LIST: CostCategoryMeta[] = COST_CATEGORIES.map(k => C
 const LEGACY_CATEGORY_MAP: Record<string, CostCategory> = {
   flight: 'flights', flights: 'flights', plane: 'flights', flug: 'flights',
   train: 'transport', bus: 'transport', car: 'transport', 'car rental': 'transport',
-  ferry: 'transport', boat: 'transport', taxi: 'transport', transfer: 'transport',
+  ferry: 'transport', boat: 'transport', taxi: 'transport', transfer: 'transport', cable_car: 'transport',
   transport: 'transport', transportation: 'transport',
   hotel: 'accommodation', accommodation: 'accommodation', lodging: 'accommodation', hostel: 'accommodation',
   restaurant: 'food', food: 'food', dining: 'food', meal: 'food', meals: 'food',

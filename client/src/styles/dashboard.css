@@ -429,6 +429,24 @@
 .dark .trek-dash .seg { background: var(--bg-2); }
 .trek-dash .seg button { padding: 7px 14px; font-size: 13px; border-radius: 8px; color: var(--ink-2); font-weight: 500; transition: background .12s, color .12s; }
 .trek-dash .seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--sh-xs); }
+/* While a search spans every trip the filter does not apply: quieted, still usable. */
+.trek-dash .seg.is-muted { opacity: .5; }
+.trek-dash .seg.is-muted button.on { box-shadow: none; }
+
+/* trip search (#2190): the segment's height and ground, widening on focus */
+.trek-dash .dash-search { display: flex; align-items: center; gap: 7px; height: 38px; width: 190px; padding: 0 8px 0 11px; border-radius: 11px; background: oklch(0.94 0.008 70); color: var(--ink-3); transition: width .2s ease, background .12s, box-shadow .12s; }
+.dark .trek-dash .dash-search { background: var(--bg-2); }
+.trek-dash .dash-search:focus-within,
+.trek-dash .dash-search.on { width: 260px; background: var(--surface); box-shadow: var(--sh-xs), 0 0 0 1px var(--line); color: var(--ink-2); }
+.trek-dash .dash-search input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; font: inherit; font-size: 13px; color: var(--ink); }
+.trek-dash .dash-search input::placeholder { color: var(--ink-3); }
+.trek-dash .dash-search input::-webkit-search-cancel-button { display: none; }
+.trek-dash .dash-search-clear { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: var(--ink-3); flex: none; }
+.trek-dash .dash-search-clear:hover { background: var(--bg-2); color: var(--ink); }
+.trek-dash .trip-match { display: flex; align-items: center; justify-content: center; gap: 5px; margin: -6px 0 12px; font-size: 12px; color: var(--ink-2); min-width: 0; }
+.trek-dash .trip-match span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trek-dash .trip-match svg { flex: none; color: var(--ink-3); }
+.trek-dash .trips.list-view .trip-match { margin: 0; justify-content: flex-start; max-width: 220px; }
 
 /* ----------------- trips grid ----------------- */
 .trek-dash .trips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 56px; transition: all 0.3s ease; }

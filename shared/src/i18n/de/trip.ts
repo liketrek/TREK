@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'Fast am Ziel...',
   'trip.mobilePlan': 'Planung',
   'trip.mobilePlaces': 'Orte',
+  'trip.panelWidth': 'Breite des Bereichs',
   'trip.toast.placeUpdated': 'Ort aktualisiert',
   'trip.toast.tripUpdated': 'Reise aktualisiert',
   'trip.toast.placeAdded': 'Ort hinzugefügt',

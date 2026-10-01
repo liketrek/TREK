@@ -14,6 +14,7 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Reserva pendent',
   'inspector.google': 'Obre a Google Maps',
   'inspector.navigation': 'Navegació',
+  'inspector.otherMapApp': 'Una altra app de mapes',
   'inspector.openWith': 'Obre amb',
   'inspector.website': 'Obre el lloc web',
   'inspector.addRes': 'Reserva',

@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'Σχεδόν φτάσαμε...',
   'trip.mobilePlan': 'Πλάνο',
   'trip.mobilePlaces': 'Μέρη',
+  'trip.panelWidth': 'Πλάτος πλαισίου',
   'trip.toast.placeUpdated': 'Το μέρος ενημερώθηκε',
   'trip.toast.tripUpdated': 'Το ταξίδι ενημερώθηκε',
   'trip.toast.placeAdded': 'Το μέρος προστέθηκε',

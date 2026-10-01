@@ -14,6 +14,7 @@ const trip: TranslationStrings = {
   'trip.loading': 'Utazás betöltése...',
   'trip.mobilePlan': 'Tervezés',
   'trip.mobilePlaces': 'Helyek',
+  'trip.panelWidth': 'Panel szélessége',
   'trip.toast.placeUpdated': 'Hely frissítve',
   'trip.toast.tripUpdated': 'Utazás frissítve',
   'trip.toast.placeAdded': 'Hely hozzáadva',

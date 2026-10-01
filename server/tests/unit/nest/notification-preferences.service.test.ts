@@ -43,10 +43,16 @@ import { registerBuiltinChannels } from '../../../src/nest/notifications/channel
 import { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';
 import { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
 import { __resetChannelsForTest } from '../../../src/nest/notifications/channel-registry';
+import { makeWebPushService } from '../../helpers/notifications';
 
 const dbs = new DatabaseService(testDb);
 const mailer = new MailerService(dbs);
-registerBuiltinChannels({ mailer, webhook: new WebhookService(dbs), ntfy: new NtfyService(dbs) });
+registerBuiltinChannels({
+  mailer,
+  webhook: new WebhookService(dbs),
+  ntfy: new NtfyService(dbs),
+  push: makeWebPushService(dbs),
+});
 const svc = new NotificationPreferencesService(dbs, mailer);
 
 // Legacy free-function names bound to the service, so the moved cases read as before.
@@ -349,5 +355,58 @@ describe('isWebhookConfigured', () => {
   it('NPREF-027 — returns true when webhook is in active channels', () => {
     setNotificationChannels(testDb, 'webhook');
     expect(isWebhookConfigured()).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Instance defaults (#1536)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('instance defaults', () => {
+  it('NPREF-028 — "off" as the default turns a cell off for everyone who never touched it', () => {
+    const { user } = createUser(testDb);
+    svc.setInstanceDefaults({ trip_invite: { email: 'off' } });
+    expect(isEnabledForEvent(user.id, 'trip_invite', 'email')).toBe(false);
+    expect(getPreferencesMatrix(user.id, 'user').preferences.trip_invite?.email).toBe(false);
+    // Other cells keep the old default.
+    expect(isEnabledForEvent(user.id, 'trip_invite', 'inapp')).toBe(true);
+  });
+
+  it('NPREF-029 — a user may still turn an "off" default on, and that choice is kept', () => {
+    const { user } = createUser(testDb);
+    svc.setInstanceDefaults({ trip_invite: { email: 'off' } });
+    setPreferences(user.id, { trip_invite: { email: true } });
+    expect(isEnabledForEvent(user.id, 'trip_invite', 'email')).toBe(true);
+    // Switching back to the default leaves no row behind.
+    setPreferences(user.id, { trip_invite: { email: false } });
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM notification_channel_preferences WHERE user_id = ?').get(user.id)).toEqual({ n: 0 });
+  });
+
+  it('NPREF-030 — a blocked cell is off, locked in the matrix, and a user cannot turn it on', () => {
+    const { user } = createUser(testDb);
+    svc.setInstanceDefaults({ booking_change: { email: 'blocked' } });
+    setPreferences(user.id, { booking_change: { email: true } });
+    expect(isEnabledForEvent(user.id, 'booking_change', 'email')).toBe(false);
+    const matrix = getPreferencesMatrix(user.id, 'user');
+    expect(matrix.preferences.booking_change?.email).toBe(false);
+    expect(matrix.locked?.booking_change).toEqual(['email']);
+  });
+
+  it('NPREF-031 — admin-scoped events and unknown cells are never touched by defaults', () => {
+    const { user: admin } = createAdmin(testDb);
+    svc.setInstanceDefaults({ version_available: { inapp: 'blocked' }, trip_invite: { carrier_pigeon: 'off' } } as never);
+    expect(isEnabledForEvent(admin.id, 'version_available', 'inapp')).toBe(true);
+    expect(testDb.prepare("SELECT COUNT(*) AS n FROM app_settings WHERE key LIKE 'notif_default_%'").get()).toEqual({ n: 0 });
+  });
+
+  it('NPREF-032 — the defaults matrix lists user events only, "on" stores nothing', () => {
+    const { user: admin } = createAdmin(testDb);
+    svc.setInstanceDefaults({ trip_invite: { email: 'off' } });
+    const before = svc.getInstanceDefaults(admin.id);
+    expect(before.event_types).not.toContain('version_available');
+    expect(before.defaults.trip_invite?.email).toBe('off');
+    expect(before.defaults.trip_invite?.inapp).toBe('on');
+    svc.setInstanceDefaults({ trip_invite: { email: 'on' } });
+    expect(testDb.prepare("SELECT COUNT(*) AS n FROM app_settings WHERE key LIKE 'notif_default_%'").get()).toEqual({ n: 0 });
   });
 });

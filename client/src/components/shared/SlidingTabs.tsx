@@ -61,7 +61,7 @@ export function SlidingTabs<T extends string>({
     // Re-measure once web fonts settle — on a reload the first measure runs against
     // fallback-font metrics, so the (bold) active label reflows and the pill drifts.
     let cancelled = false
-    document.fonts?.ready?.then(() => {
+    void document.fonts?.ready?.then(() => {
       if (!cancelled) measure()
     })
 

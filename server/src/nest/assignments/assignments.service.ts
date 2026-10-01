@@ -202,6 +202,19 @@ export class AssignmentsService {
     this.dbs.run('DELETE FROM day_assignments WHERE id = ?', id);
   }
 
+  /**
+   * Empties a day: every place comes off it in one transaction, while the day, its
+   * notes and its bookings stay (#2470). Returns the removed ids so each can be
+   * announced the way a single unassign is.
+   */
+  clearDay(dayId: string | number): number[] {
+    return this.dbs.transaction(() => {
+      const ids = this.dbs.all<{ id: number }>('SELECT id FROM day_assignments WHERE day_id = ?', dayId).map(r => r.id);
+      this.dbs.run('DELETE FROM day_assignments WHERE day_id = ?', dayId);
+      return ids;
+    });
+  }
+
   reorderAssignments(dayId: string | number, orderedIds: number[]): void {
     const update = this.dbs.prepare('UPDATE day_assignments SET order_index = ? WHERE id = ? AND day_id = ?');
     this.dbs.transaction(() => {
@@ -408,6 +421,15 @@ export class AssignmentsService {
    */
   setIncomingLegTransportMode(id: string | number, mode: string | null) {
     this.dbs.run('UPDATE day_assignments SET incoming_leg_transport_mode = ? WHERE id = ?', mode ?? null, id);
+    return this.getAssignmentWithPlace(Number(id));
+  }
+
+  /**
+   * Keep a stop on the day but out of its route (#2532): it stays in the list and on
+   * the map, and the route runs from the stop before it straight to the one after.
+   */
+  setRouteExcluded(id: string | number, excluded: boolean) {
+    this.dbs.run('UPDATE day_assignments SET route_excluded = ? WHERE id = ?', excluded ? 1 : 0, id);
     return this.getAssignmentWithPlace(Number(id));
   }
 

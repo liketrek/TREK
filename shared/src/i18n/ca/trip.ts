@@ -15,6 +15,7 @@ const trip: TranslationStrings = {
   'trip.loadingPhotos': 'Carregant les fotos del lloc...',
   'trip.mobilePlan': 'Planificació',
   'trip.mobilePlaces': 'Llocs',
+  'trip.panelWidth': 'Amplada del tauler',
   'trip.toast.placeUpdated': 'Lloc actualitzat',
   'trip.toast.placeAdded': 'Lloc afegit',
   'trip.toast.placeDeleted': 'Lloc eliminat',

@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { Search, Bookmark, ArrowRight, Loader2, Plus } from 'lucide-react'
-import Modal from '../shared/Modal'
+import React, { useEffect, useId, useMemo, useState } from 'react'
+import { Search, Bookmark, ArrowRight, Loader2 } from 'lucide-react'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
+import { INPUT } from '../shared/dialogParts'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { collectionsApi } from '../../api/collections'
@@ -24,6 +25,7 @@ interface SaveTripPlacesToListModalProps {
 export default function SaveTripPlacesToListModal({ isOpen, tripId, placeIds, onClose, onDone }: SaveTripPlacesToListModalProps): React.ReactElement | null {
   const { t } = useTranslation()
   const toast = useToast()
+  const labelId = useId()
   const [lists, setLists] = useState<Collection[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -68,51 +70,68 @@ export default function SaveTripPlacesToListModal({ isOpen, tripId, placeIds, on
   }
 
   return (
-    <Modal isOpen onClose={onClose} title={t('collections.saveNToList', { count: placeIds.length })} size="sm">
-      <div className="flex flex-col gap-3">
-        {lists.length > 5 && (
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-content-faint" />
-            <input
-              autoFocus
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={t('collections.searchLists')}
-              className="w-full pl-8 pr-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[13px] outline-none focus:border-accent"
-            />
-          </div>
-        )}
-        {loading ? (
-          <div className="flex items-center justify-center py-10 text-content-faint"><Loader2 size={20} className="animate-spin" /></div>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-[13px] text-content-faint py-8">{t('collections.noOwnLists')}</p>
-        ) : (
-          <div className="flex flex-col gap-1 max-h-[50vh] overflow-y-auto -mx-1 px-1">
-            {filtered.map(list => {
-              const busy = busyId === list.id
-              return (
-                <button
-                  key={list.id}
-                  type="button"
-                  onClick={() => pick(list)}
-                  disabled={busyId != null}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-edge bg-surface-card text-left hover:bg-surface-hover transition-colors disabled:opacity-60"
-                >
-                  <span className="w-9 h-9 min-w-[36px] rounded-lg flex items-center justify-center shrink-0 text-white" style={{ background: list.color || '#6366f1' }}>
-                    <Bookmark size={15} />
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-[13px] font-semibold text-content truncate">{list.name}</span>
-                    <span className="block text-[11.5px] text-content-faint">{t('collections.placeCount', { count: list.place_count ?? 0 })}</span>
-                  </span>
-                  {busy ? <Loader2 size={15} className="animate-spin text-content-faint shrink-0" /> : <ArrowRight size={15} className="text-content-faint shrink-0" />}
-                </button>
-              )
-            })}
-          </div>
-        )}
-        <p className="text-[11.5px] text-content-faint inline-flex items-center gap-1.5"><Plus size={12} /> {t('collections.saveToListHint')}</p>
-      </div>
-    </Modal>
+    <DialogShell
+      onClose={onClose}
+      labelledBy={labelId}
+      width="narrow"
+      align="top"
+      header={(
+        <DialogHeader
+          tile={<DialogTile><Bookmark size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={onClose}
+          title={t('collections.saveNToList', { count: placeIds.length })}
+          sub={t('collections.saveToListHint')}
+        />
+      )}
+      footer={(
+        <DialogFooter>
+          <FooterSpacer />
+          <DialogButton onClick={onClose}>{t('common.cancel')}</DialogButton>
+        </DialogFooter>
+      )}
+    >
+      {lists.length > 5 && (
+        <div className="relative">
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-content-faint" aria-hidden="true" />
+          <input
+            autoFocus
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={t('collections.searchLists')}
+            aria-label={t('collections.searchLists')}
+            className={`${INPUT} pl-8`}
+          />
+        </div>
+      )}
+      {loading ? (
+        <div className="flex items-center justify-center py-8 text-content-faint"><Loader2 size={20} className="animate-spin" /></div>
+      ) : filtered.length === 0 ? (
+        <p className="m-0 rounded-[12px] bg-surface-secondary px-4 py-6 text-center text-content-faint" style={fs(12.5, 'body')}>{t('collections.noOwnLists')}</p>
+      ) : (
+        <div className="flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5">
+          {filtered.map(list => {
+            const busy = busyId === list.id
+            return (
+              <button
+                key={list.id}
+                type="button"
+                onClick={() => pick(list)}
+                disabled={busyId != null}
+                className="flex min-h-[48px] items-center gap-3 rounded-[10px] px-3 py-2 text-left hover:bg-surface-card disabled:opacity-60"
+              >
+                <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: list.color || '#6366f1' }} /* theme-lint-disable: the list's own colour, and the default a list without one is drawn in (ListsRail) */ />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold text-content" style={fs(13, 'body')}>{list.name}</span>
+                  <span className="block text-content-faint" style={fs(11.5)}>{t('collections.placeCount', { count: list.place_count ?? 0 })}</span>
+                </span>
+                {busy ? <Loader2 size={15} className="flex-none animate-spin text-content-faint" /> : <ArrowRight size={15} className="flex-none text-content-faint" />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </DialogShell>
   )
 }

@@ -14,7 +14,9 @@ import { clearAppearanceSnapshot } from '../theme/applyAppearance'
 import { clearAllPluginSessions } from './pluginStore'
 import { forgetStartDestination } from '../utils/startDestination'
 import { forgetServerLanguage } from './settingsStore'
+import { forgetResumeRoute } from '../utils/resumeRoute'
 import { markSignedOut, clearSignedOut } from '../utils/signedOut'
+import { forgetPushDeviceOnLogout, resyncPushSubscription } from '../push/webPush'
 
 interface AuthResponse {
   user: User
@@ -64,6 +66,8 @@ interface AuthState {
   placesAutocompleteEnabled: boolean
   placesDetailsEnabled: boolean
   placesEnrichEnabled: boolean
+  /** FILE_UPLOAD_LIMIT_MB from the server (#1364); 50 until the config arrives. */
+  maxUploadMb: number
   /** Server records which search result was picked (admin switch, default off). */
   placeShadowEnabled: boolean
 
@@ -93,6 +97,7 @@ interface AuthState {
   setPlacesAutocompleteEnabled: (val: boolean) => void
   setPlacesDetailsEnabled: (val: boolean) => void
   setPlacesEnrichEnabled: (val: boolean) => void
+  setMaxUploadMb: (val: number) => void
   setPlaceShadowEnabled: (val: boolean) => void
   demoLogin: () => Promise<AuthResponse>
 }
@@ -119,6 +124,9 @@ async function onAuthSuccess(userId: number): Promise<void> {
   // an SPA session, so a second login in the same tab would leave the mutation
   // queue without a flush trigger. Re-registering is a no-op while they are up.
   registerSyncTriggers()
+  // Tell the server again which push subscription this device holds, in the
+  // background: sign-in must not wait on it, and it never rejects.
+  void resyncPushSubscription()
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -145,6 +153,7 @@ export const useAuthStore = create<AuthState>()(
   placesAutocompleteEnabled: true,
   placesDetailsEnabled: true,
   placesEnrichEnabled: true,
+  maxUploadMb: 50,
   // Fail-closed: an old server sends no flag and nothing is logged.
   placeShadowEnabled: false,
 
@@ -259,11 +268,17 @@ export const useAuthStore = create<AuthState>()(
     // browser language is one TREK ships, so otherwise the next user here stays
     // in the previous account's language, launch after launch.
     forgetServerLanguage()
+    forgetResumeRoute()
     // And work-offline, for the same reason with sharper teeth: the switch lives
     // in localStorage, step 6 below deletes the offline database it reads from,
     // and the next account would come up believing it is offline over a working
     // connection, with nothing cached to answer from.
     setForcedOffline(false)
+    // Forget this device's push subscription, on the server and in the browser,
+    // or the next account on a shared device keeps receiving this one's
+    // notifications. It has to happen here: the DELETE needs the session cookie
+    // that step 4 clears. Best effort and bounded, so logout never hangs on it.
+    await forgetPushDeviceOnLogout()
     // 4. Tell server to clear the httpOnly cookie (best-effort).
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {})
     // 5. Clear service worker caches containing sensitive data.
@@ -416,6 +431,7 @@ export const useAuthStore = create<AuthState>()(
   setPlacesAutocompleteEnabled: (val: boolean) => set({ placesAutocompleteEnabled: val }),
   setPlacesDetailsEnabled: (val: boolean) => set({ placesDetailsEnabled: val }),
   setPlacesEnrichEnabled: (val: boolean) => set({ placesEnrichEnabled: val }),
+  setMaxUploadMb: (val: number) => set({ maxUploadMb: val }),
   setPlaceShadowEnabled: (val: boolean) => set({ placeShadowEnabled: val }),
 
   demoLogin: async () => {

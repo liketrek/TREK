@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react'
+import React, { useEffect, useId, useMemo, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import { Bookmark, BookmarkCheck, Check, CheckCircle2, Loader2, Plus } from 'lucide-react'
-import Modal from '../shared/Modal'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, PILL, fs } from '../shared/DialogShell'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { collectionsApi } from '../../api/collections'
@@ -25,6 +25,7 @@ export default function SaveToCollectionModal(): React.ReactElement | null {
   const { t } = useTranslation()
   const toast = useToast()
   const navigate = useNavigate()
+  const labelId = useId()
 
   const [lists, setLists] = useState<Collection[]>([])
   const [membership, setMembership] = useState<CollectionMembership | null>(null)
@@ -58,7 +59,7 @@ export default function SaveToCollectionModal(): React.ReactElement | null {
     let cancelled = false
     setLoading(true)
     setMembership(null)
-    Promise.all([collectionsApi.list().catch(() => ({ collections: [], incomingInvites: [] })), membershipQuery ? collectionsApi.membership(membershipQuery).catch(() => ({ saved: false, lists: [] as CollectionMembership['lists'] })) : Promise.resolve({ saved: false, lists: [] as CollectionMembership['lists'] })])
+    void Promise.all([collectionsApi.list().catch(() => ({ collections: [], incomingInvites: [] })), membershipQuery ? collectionsApi.membership(membershipQuery).catch(() => ({ saved: false, lists: [] as CollectionMembership['lists'] })) : Promise.resolve({ saved: false, lists: [] as CollectionMembership['lists'] })])
       .then(([listRes, m]) => {
         if (cancelled) return
         setLists(listRes.collections)
@@ -147,106 +148,89 @@ export default function SaveToCollectionModal(): React.ReactElement | null {
     }
   }
 
+  const openCollections = () => { close(); navigate('/collections') }
+
   return (
-    <Modal
-      isOpen
+    <DialogShell
       onClose={close}
-      title={t('collections.pickList')}
-      size="sm"
-      footer={
-        <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => { close(); navigate('/collections') }}
-            className="text-[13px] font-medium text-accent hover:underline"
-          >
-            {t('collections.viewInCollection')}
-          </button>
-          <button
-            type="button"
-            onClick={close}
-            className="px-3 py-1.5 rounded-lg border border-edge text-content-secondary text-[13px] hover:bg-surface-hover"
-          >
-            {t('common.close')}
-          </button>
-        </div>
-      }
-    >
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <p className="flex-1 min-w-0 text-[13px] font-semibold text-content truncate">{target.name}</p>
-          {/* One tap for "I have been here", however many lists hold it (#1469). */}
-          {unvisited.length > 0 && (
-            <button
-              type="button"
-              onClick={handleVisitedEverywhere}
-              disabled={busyId != null}
-              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-edge bg-surface-card text-[11px] font-semibold text-content-secondary hover:bg-surface-hover disabled:opacity-60"
-            >
-              {busyId === -1
-                ? <Loader2 size={12} className="animate-spin" />
-                : <CheckCircle2 size={12} strokeWidth={2.2} />}
+      labelledBy={labelId}
+      width="narrow"
+      header={(
+        <DialogHeader
+          tile={<DialogTile><Bookmark size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={close}
+          eyebrow={t('collections.pickList')}
+          title={target.name}
+          // One tap for "I have been here", however many lists hold it (#1469).
+          pills={unvisited.length > 0 ? (
+            <button type="button" onClick={handleVisitedEverywhere} disabled={busyId != null}
+              className={`${PILL} hover:opacity-80 disabled:opacity-60`}>
+              {busyId === -1 ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} strokeWidth={2.2} />}
               {unvisited.length > 1 ? t('collections.markVisitedAll') : t('collections.markVisited')}
             </button>
-          )}
+          ) : undefined}
+        />
+      )}
+      footer={lists.length > 0 ? (
+        <DialogFooter>
+          <DialogButton onClick={openCollections} icon={<Bookmark size={14} strokeWidth={2.2} />}>{t('collections.viewInCollection')}</DialogButton>
+          <FooterSpacer />
+        </DialogFooter>
+      ) : undefined}
+    >
+      {loading ? (
+        <div className="flex items-center justify-center py-8 text-content-faint">
+          <Loader2 size={20} className="animate-spin" />
         </div>
-        {loading ? (
-          <div className="flex items-center justify-center py-8 text-content-faint">
-            <Loader2 size={20} className="animate-spin" />
+      ) : lists.length === 0 ? (
+        <div className="flex flex-col items-center px-4 py-6 text-center">
+          <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-surface-secondary text-content-faint">
+            <Bookmark size={20} />
           </div>
-        ) : lists.length === 0 ? (
-          <div className="flex flex-col items-center text-center py-8 px-4">
-            <div className="w-11 h-11 rounded-2xl bg-surface-secondary flex items-center justify-center mb-3 text-content-faint">
-              <Bookmark size={20} />
-            </div>
-            <p className="text-[13px] text-content-faint mb-3">{t('collections.noListsYet')}</p>
-            <button
-              type="button"
-              onClick={() => { close(); navigate('/collections') }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-accent-text text-[13px] font-semibold"
-            >
-              <Plus size={14} /> {t('collections.newList')}
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-1 max-h-[50vh] overflow-y-auto -mx-1 px-1">
-            {lists.map(list => {
-              const entry = savedByCollection.get(list.id)
-              const saved = !!entry
-              const busy = busyId === list.id
-              return (
-                <button
-                  key={list.id}
-                  type="button"
-                  onClick={() => handleToggle(list)}
-                  disabled={busyId != null}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-colors disabled:opacity-60 ${saved ? 'border-accent bg-accent-subtle' : 'border-edge bg-surface-card hover:bg-surface-hover'}`}
-                >
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: list.color || 'var(--accent)' }} />
-                  <span className="flex-1 min-w-0 text-[13px] font-medium text-content truncate">{list.name}</span>
-                  {list.is_owner === false && (
-                    <span className="text-[10px] uppercase font-semibold text-content-faint">{t('collections.shared')}</span>
-                  )}
-                  {/* Per-list status, so one place can be an idea in one list and
-                      visited in another. A role=button span, safe to nest here. */}
-                  {entry && (
-                    <StatusBadge
-                      status={entry.status}
-                      showLabel={false}
-                      size={12}
-                      onChange={entry.can_edit ? next => { void handleStatus(entry, next) } : undefined}
-                      t={t}
-                    />
-                  )}
-                  <span className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${saved ? 'bg-accent text-accent-text' : 'border border-edge text-transparent'}`}>
-                    {busy ? <Loader2 size={13} className="animate-spin text-content-faint" /> : saved ? <BookmarkCheck size={13} /> : <Check size={13} />}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    </Modal>
+          <p className="m-0 mb-4 text-content-faint" style={fs(13, 'body')}>{t('collections.noListsYet')}</p>
+          <DialogButton variant="primary" onClick={openCollections} icon={<Plus size={14} strokeWidth={2.2} />}>{t('collections.newList')}</DialogButton>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5">
+          {lists.map(list => {
+            const entry = savedByCollection.get(list.id)
+            const saved = !!entry
+            const busy = busyId === list.id
+            return (
+              <button
+                key={list.id}
+                type="button"
+                aria-pressed={saved}
+                onClick={() => handleToggle(list)}
+                disabled={busyId != null}
+                className={`flex min-h-[46px] items-center gap-3 rounded-[10px] px-3 py-2 text-left disabled:opacity-60 ${saved ? 'bg-surface-card shadow-sm' : 'hover:bg-surface-card'}`}
+              >
+                <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: list.color || 'var(--accent)' }} />
+                <span className="min-w-0 flex-1 truncate font-semibold text-content" style={fs(13, 'body')}>{list.name}</span>
+                {list.is_owner === false && (
+                  <span className="flex-none rounded-full bg-surface-tertiary px-2 py-[2px] font-semibold text-content-muted" style={fs(10.5)}>{t('collections.shared')}</span>
+                )}
+                {/* Per-list status, so one place can be an idea in one list and
+                    visited in another. A role=button span, safe to nest here. */}
+                {entry && (
+                  <StatusBadge
+                    status={entry.status}
+                    showLabel={false}
+                    size={12}
+                    onChange={entry.can_edit ? next => { void handleStatus(entry, next) } : undefined}
+                    t={t}
+                  />
+                )}
+                <span className={`grid h-6 w-6 flex-none place-items-center rounded-[8px] ${saved ? 'bg-accent text-accent-text' : 'border border-edge bg-surface-card text-transparent'}`}>
+                  {busy ? <Loader2 size={13} className="animate-spin text-content-faint" /> : saved ? <BookmarkCheck size={13} /> : <Check size={13} />}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </DialogShell>
   )
 }

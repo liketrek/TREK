@@ -155,7 +155,7 @@ export class PackingMcp {
 
   @Tool({
     name: 'update_packing_item',
-    description: 'Change a packing item: rename it, recategorise it, move it into a bag, set how many are needed, record its weight, or flip it between the common list and your own. Ticking it off is toggle_packing_item; choosing who a private item is shared with is set_packing_item_sharing.',
+    description: 'Change a packing item: rename it, recategorise it, move it into a bag, set how many are needed, count how many are already packed, record its weight, or flip it between the common list and your own. Ticking it off is toggle_packing_item; choosing who a private item is shared with is set_packing_item_sharing.',
     inputSchema: {
       tripId: z.number().int().positive(),
       itemId: z.number().int().positive(),
@@ -163,6 +163,7 @@ export class PackingMcp {
       category: z.string().max(100).optional(),
       bag_id: packingUpdateItemRequestSchema.shape.bag_id.describe('Bag to pack the item into (ids come from list_packing_bags); null takes it out of its bag'),
       quantity: packingUpdateItemRequestSchema.shape.quantity.describe('How many to pack, clamped to 1-999'),
+      packed_quantity: packingUpdateItemRequestSchema.shape.packed_quantity.describe('How many of the quantity are already packed; reaching the quantity ticks the item off, 0 or null clears the count'),
       weight_grams: packingUpdateItemRequestSchema.shape.weight_grams.describe('Weight in grams, which feeds the bag fill bar; null clears it'),
       is_private: packingUpdateItemRequestSchema.shape.is_private.describe('true takes the item off the common list and onto the caller\'s own'),
     },
@@ -171,13 +172,13 @@ export class PackingMcp {
     access: { group: 'packing', mode: 'write' },
   })
   async updatePackingItem(
-    { tripId, itemId, name, category, bag_id, quantity, weight_grams, is_private }: { tripId: number; itemId: number; name?: string; category?: string; bag_id?: number | null; quantity?: number; weight_grams?: number | null; is_private?: boolean },
+    { tripId, itemId, name, category, bag_id, quantity, packed_quantity, weight_grams, is_private }: { tripId: number; itemId: number; name?: string; category?: string; bag_id?: number | null; quantity?: number; packed_quantity?: number | null; weight_grams?: number | null; is_private?: boolean },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.packing.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const fields = { name, category, bag_id, quantity, weight_grams, is_private };
+    const fields = { name, category, bag_id, quantity, packed_quantity, weight_grams, is_private };
     // The service reads presence from bodyKeys, so a field has to be named there
     // for an explicit null to clear it rather than read as "leave it alone".
     const bodyKeys = Object.keys(fields).filter(k => fields[k as keyof typeof fields] !== undefined);

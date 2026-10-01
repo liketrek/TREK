@@ -1,4 +1,5 @@
 import path from 'path';
+import { readEnv } from '../../app-config';
 
 /**
  * File-domain constants and pure helpers, split out of FilesService because
@@ -9,7 +10,9 @@ import path from 'path';
  * files.bridge.ts.
  */
 
-export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+// FILE_UPLOAD_LIMIT_MB, 50 MB by default (#1364). Read once at load, like the
+// backup cap: the multer configs that use it are built before the container.
+export const MAX_FILE_SIZE = readEnv().files.uploadLimitMb * 1024 * 1024;
 export const DEFAULT_ALLOWED_EXTENSIONS = 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv,pkpass,pkpasses,md,markdown';
 
 // Video support (#823). Gallery/media uploads accept these in addition to images,
@@ -44,3 +47,17 @@ export const BLOCKED_EXTENSIONS = [
 // the extra '..' keeps the same absolute <server>/uploads/files under both the
 // src (vitest) and dist (runtime) layouts.
 export const filesDir = path.join(__dirname, '../../../uploads/files');
+
+/**
+ * Whether a trip-file upload named `originalname` passes the extension rules:
+ * never a blocked extension or an SVG, otherwise on the operator's list (or `*`),
+ * and video regardless of that list (#823). Shared by the multipart filter and
+ * the MCP upload tool so the two ingestion paths cannot drift apart.
+ */
+export function isUploadTypeAllowed(originalname: string, mimetype: string, allowedList: string): boolean {
+  const ext = path.extname(originalname).toLowerCase();
+  if (BLOCKED_EXTENSIONS.includes(ext) || mimetype.includes('svg')) return false;
+  const allowed = allowedList.split(',').map((e) => e.trim().toLowerCase());
+  const fileExt = ext.replace('.', '');
+  return allowed.includes(fileExt) || isVideoExtension(fileExt) || allowed.includes('*');
+}

@@ -1,5 +1,5 @@
 import dns from 'node:dns/promises';
-import { Agent } from 'undici';
+import { Agent, ProxyAgent, type Dispatcher } from 'undici';
 import { readEnv } from '../app-config';
 import { embeddedTransitionIpv4, expandIpv6 } from './ipv6';
 
@@ -9,6 +9,8 @@ const ALLOW_INTERNAL_NETWORK = readEnv().net.allowInternalNetwork;
 // host gateway being the reason (#2400). The parser never lets a cloud metadata
 // address in, so the rest of 169.254.0.0/16 stays blocked. Frozen the same way.
 const ALLOWED_LINK_LOCAL = new Set(readEnv().net.allowLinkLocalIps);
+// HTTP_PROXY / HTTPS_PROXY / NO_PROXY (#1754). Frozen like the two above.
+const PROXY = readEnv().net.proxy;
 
 export interface SsrfResult {
   allowed: boolean;
@@ -291,7 +293,7 @@ export async function safeFetchAdminConfigured(
       throw new SsrfBlockedError('Requests to link-local / cloud-metadata addresses are not allowed');
     }
 
-    const dispatcher = createPinnedDispatcher(usableIps, true, responseTimeoutMs);
+    const dispatcher = createOutboundDispatcher(currentUrl, usableIps, true, responseTimeoutMs);
     const response = await fetch(currentUrl, { ...hopInit, redirect: 'manual', dispatcher } as any);
 
     // Only a 3xx WITH a Location header is a redirect we follow; anything else
@@ -485,7 +487,7 @@ export async function safeFetchFollow(
       throw new SsrfBlockedError(ssrf.error ?? 'Request blocked by SSRF guard');
     }
 
-    const dispatcher = createPinnedDispatcher(ssrf.resolvedIps ?? [ssrf.resolvedIp!], rejectUnauthorized);
+    const dispatcher = createOutboundDispatcher(currentUrl, ssrf.resolvedIps ?? [ssrf.resolvedIp!], rejectUnauthorized);
     const response = await fetch(currentUrl, {
       ...hopInit,
       redirect: 'manual',
@@ -518,6 +520,55 @@ export async function safeFetchFollow(
     hopInit = nextHopInit(hopInit, currentUrl, nextUrl, status, options?.keepCredentialsOnRedirect);
     currentUrl = nextUrl;
   }
+}
+
+/**
+ * The proxy a guarded request to this URL goes through, or null (#1754).
+ *
+ * The guarded fetches below use their own dispatcher, so they never saw the
+ * environment proxy Node applies to everything else, and on a server that can
+ * only reach the internet through a proxy every place photo, link preview and
+ * webhook simply failed. NO_PROXY works the way curl and Node read it: `*`
+ * matches every host, an entry matches the host itself and its subdomains
+ * (a leading dot is optional), and `host:port` narrows it to one port.
+ */
+export function proxyFor(rawUrl: string, proxy = PROXY): string | null {
+  let url: URL;
+  try { url = new URL(rawUrl); } catch { return null; }
+  const target = url.protocol === 'https:' ? proxy.https ?? proxy.http : proxy.http;
+  if (!target) return null;
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const port = url.port || (url.protocol === 'https:' ? '443' : '80');
+  const bypass = proxy.noProxy.some((entry) => {
+    if (entry === '*') return true;
+    const [name, entryPort] = entry.replace(/(?:^\[)|(?:\](?=:|$))/g, '').split(/:(?=\d+$)/);
+    if (entryPort && entryPort !== port) return false;
+    const bare = name.replace(/^\*?\./, '');
+    return host === bare || host.endsWith(`.${bare}`);
+  });
+  return bypass ? null : target;
+}
+
+/**
+ * The dispatcher one guarded hop goes out through. Without a proxy it is the
+ * pinned agent below. With one, the proxy makes the connection, so the address
+ * cannot be pinned on our side: the guard has already refused a private or
+ * loopback target before this point, and the proxy the operator chose is the
+ * network boundary from there on.
+ */
+export function createOutboundDispatcher(
+  url: string,
+  resolved: string | readonly string[],
+  rejectUnauthorized = true,
+  responseTimeoutMs?: number,
+): Dispatcher {
+  const proxy = proxyFor(url);
+  if (!proxy) return createPinnedDispatcher(resolved, rejectUnauthorized, responseTimeoutMs);
+  return new ProxyAgent({
+    uri: proxy,
+    requestTls: { rejectUnauthorized },
+    ...(responseTimeoutMs ? { headersTimeout: responseTimeoutMs, bodyTimeout: responseTimeoutMs } : {}),
+  });
 }
 
 /**

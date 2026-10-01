@@ -39,6 +39,12 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'يُرسل Ntfy للمسؤول دائمًا عند تهيئة موضوع',
   'admin.notifications.adminNotificationsHint':
     'حدد القنوات التي تُسلّم إشعارات المسؤول (مثل تنبيهات الإصدارات). يُرسل الـ Webhook تلقائيًا عند تعيين رابط URL لـ Webhook المسؤول.',
+  'admin.notificationDefaults.title': 'الإعدادات الافتراضية للمستخدمين',
+  'admin.notificationDefaults.hint': 'ما تبدأ به إشعارات كل مستخدم. «إيقاف» يمكن للمستخدم تشغيله بنفسه، و«محظور» يوقفه للجميع ويظهر مقفلًا في إعداداتهم. يسري على كل من لم يغيّر الخانة بنفسه.',
+  'admin.notificationDefaults.on': 'تشغيل',
+  'admin.notificationDefaults.off': 'إيقاف',
+  'admin.notificationDefaults.blocked': 'محظور',
+  'admin.notificationDefaults.cycle': 'انقر للتبديل إلى: {next}',
   'admin.notifications.tripReminders.title': 'تذكيرات الرحلات',
   'admin.notifications.tripReminders.hint': 'إرسال تذكير قبل بدء الرحلة (يتطلب تعيين أيام التذكير على الرحلة).',
   'admin.notifications.tripReminders.enabled': 'تم تفعيل تذكيرات الرحلات',
@@ -157,6 +163,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'مفتاح واجهة برمجة تطبيقات Amap (高德地图)',
   'admin.amapKeyHint':
     'للبحث عن الأماكن في البر الرئيسي للصين، حيث لا يمكن الوصول إلى Google وتكون بيانات OpenStreetMap شحيحة. يتطلب مفتاحًا من نوع «Web 服务» (خدمة ويب)، وليس مفتاح JS API. يمكن الحصول عليه من console.amap.com.',
+  'admin.keyFromEnv': 'مُعيَّن عبر {name}',
   'admin.placesProvider.title': 'مزوّد البحث عن الأماكن',
   'admin.placesProvider.subtitle':
     'يجيب فهرس TREK الخاص وOpenStreetMap عن كل بحث. هنا يُختار من يُسأل أيضاً عندما لا يجدان شيئاً: «تلقائي» يفضّل Google عند وجود مفتاح، ثم Amap.',
@@ -199,6 +206,13 @@ const admin: TranslationStrings = {
   'admin.placesGoogleOnly.subtitle': 'كل بحث وكل اقتراح يذهب إلى Google Places. عند الإيقاف يجيب فهرس TREK وOpenStreetMap أولًا، ولا يُسأل Google إلا إذا لم يجدا شيئًا.',
   'admin.placesGoogleOnly.missingKey': 'يتطلب مفتاح Google Maps API. من دونه يعمل البحث عبر فهرس TREK وOpenStreetMap مهما كان وضع هذا المفتاح.',
   'admin.placesGoogleOnly.otherProvider': 'يتطلب Google كمزود للأماكن. عند اختيار Amap أو OpenStreetMap لا يذهب أي بحث إلى Google مهما كان وضع هذا المفتاح.',
+  'admin.googleQuota.title': 'الحد اليومي لطلبات Google',
+  'admin.googleQuota.subtitle': 'عند بلوغه يتوقف TREK عن طلب Google حتى اليوم التالي (UTC) ويبحث عبر OpenStreetMap بدلًا منه. اتركه فارغًا لعدم وجود حد.',
+  'admin.googleQuota.placeholder': 'بلا حد',
+  'admin.googleQuota.usedToday': 'اليوم: {used}',
+  'admin.googleQuota.usedOfLimit': 'اليوم: {used} من {limit}',
+  'admin.googleQuota.reached': 'تم بلوغ الحد ({used})، Google متوقف حتى الغد',
+  'admin.googleQuota.saved': 'تم حفظ الحد اليومي',
   'admin.transitProvider.title': 'مزود النقل العام',
   'admin.transitProvider.subtitle': 'الخدمة التي تجيب على بحث النقل العام.',
   'admin.transitProvider.transitous': 'Transitous (مجاني)',
@@ -395,6 +409,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'توفير الأحداث للتقويم',
   'admin.plugins.perm.hook:place-detail-provider': 'المساهمة بتفاصيل إضافية (مراجعات، تقييمات، روابط) لمكان ما',
   'admin.plugins.perm.hook:search-provider': 'الإجابة على عمليات البحث عن الأماكن من فهرس خاص به، إلى جانب نتائج TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'إضافة فئات أماكن خاصة بها إلى «استكشاف الأماكن على الخريطة»؛ وعند اختيار إحداها تتلقى الإضافة منطقة الخريطة التي تعرضها',
   'admin.plugins.perm.hook:trip-warning-provider': 'إظهار تحذيرات التحقق على الرحلة (تظهر في المخطط)',
   'admin.plugins.perm.hook:table-contributor': 'إضافة أعمدة وإجراءات إلى عروض الرحلة (الحجوزات، الأماكن، الأيام)',
   'admin.plugins.perm.hook:map-marker-provider': 'إضافة علامات إلى خريطة الرحلة (مثل عرض الحجوزات أو نقاط الاهتمام)',
@@ -407,6 +423,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'ينشر أدوات ذكاء اصطناعي',
   'admin.plugins.mcpToolsTitle': 'أدوات الذكاء الاصطناعي المنشورة',
   'admin.plugins.mcpToolsHint': 'يمكن لمساعد ذكي تشغيلها نيابة عن المستخدم. وتعمل كل أداة بالصلاحيات الممنوحة أعلاه.',
+  'admin.plugins.poiCategoriesTitle': 'فئات الخريطة التي يضيفها',
   'admin.plugins.perm.mcp:tools':
     'نشر أدوات يمكن لمساعد ذكاء اصطناعي تشغيلها نيابة عنك (يعمل بالصلاحيات التي تمنحها للإضافة هنا، وليس بصلاحياته هو)',
   'admin.plugins.perm.geolocation:read':
@@ -547,6 +564,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'يوفّر أحداث التقويم',
   'admin.plugins.cap.placeDetails': 'يُثري الأماكن',
   'admin.plugins.cap.search': 'يجيب على عمليات البحث',
+  'admin.plugins.cap.poiCategories': 'يضيف فئات إلى الخريطة',
   'admin.plugins.cap.warnings': 'يرصد المشكلات',
   'admin.plugins.cap.mapLayers': 'يرسم على الخريطة',
   'admin.plugins.cap.routing': 'يوفّر التوجيه',
@@ -621,6 +639,11 @@ const admin: TranslationStrings = {
     'قراءة الزيارات والمسارات المسجَّلة من خادم Dawarich يربطه كل قارئ بنفسه',
   'admin.addons.catalog.llm_parsing.name': 'التحليل بالذكاء الاصطناعي',
   'admin.addons.catalog.llm_parsing.description': 'يقرأ الحجوزات التي يعجز المحلل المدمج عن فهمها، بنموذج ذكاء اصطناعي تختاره',
+  'admin.addons.llm.vision.auto': 'تلقائي',
+  'admin.addons.llm.vision.on': 'نعم',
+  'admin.addons.llm.vision.off': 'لا',
+  'admin.addons.llm.vision.hintLocal': 'يسأل الخيار «تلقائي» خادم Ollama عمّا إذا كان هذا النموذج يقرأ الصور.',
+  'admin.addons.llm.vision.hintCloud': 'يعني «تلقائي» «لا» للنموذج السحابي. اختر «نعم» إذا كان هذا النموذج يقرأ الصور.',
   'admin.addons.enabled': 'مفعّل',
   'admin.addons.disabled': 'معطّل',
   'admin.addons.type.trip': 'رحلة',
@@ -719,6 +742,9 @@ const admin: TranslationStrings = {
   'admin.notifications.ntfy': 'Ntfy', // en-fallback
   'admin.notifications.emailPanel.title': 'Email (SMTP)', // en-fallback
   'admin.notifications.webhookPanel.title': 'Webhook', // en-fallback
+  'admin.notifications.webPushPanel.title': 'إشعارات الويب الفورية',
+  'admin.notifications.webPushPanel.hint':
+    'تتيح للمستخدمين تلقي الإشعارات على هواتفهم وحواسيبهم عبر المتصفح، حتى عندما يكون TREK مغلقًا. يتطلب HTTPS؛ وعلى iPhone وiPad يجب إضافة TREK إلى الشاشة الرئيسية.',
   'admin.notifications.inappPanel.title': 'In-App', // en-fallback
   'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh', // en-fallback
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts', // en-fallback

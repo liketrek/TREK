@@ -103,6 +103,9 @@ export type VacayYearSettingsRequest = z.infer<typeof vacayYearSettingsRequestSc
 export const vacayCompanyHolidayRequestSchema = z.object({
   date: z.string(),
   note: z.string().optional(),
+  // A half company holiday (#2439): 0.5 leaves the other half of the day open for a
+  // half vacation day. Omitted is a whole day, as before.
+  fraction: z.union([z.literal(0.5), z.literal(1)]).optional(),
 });
 export type VacayCompanyHolidayRequest = z.infer<typeof vacayCompanyHolidayRequestSchema>;
 

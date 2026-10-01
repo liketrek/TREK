@@ -1,10 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
-import { UserPlus, UserMinus, Loader2, Clock, Crown, LogOut } from 'lucide-react'
+import { UserPlus, UserMinus, UserX, Loader2, Clock, Crown, LogOut, Share2 } from 'lucide-react'
 import type { CollectionMember, CollectionRole } from '@trek/shared'
-import Modal from '../shared/Modal'
+import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
+import ConfirmDialog from '../shared/ConfirmDialog'
 import CustomSelect from '../shared/CustomSelect'
+import { Tooltip } from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
+import { TripMemberAvatar } from '../Trips/TripMemberAvatar'
 import { useCollectionStore } from '../../store/collectionStore'
 import { useAuthStore } from '../../store/authStore'
 import { collectionsApi } from '../../api/collections'
@@ -25,16 +28,22 @@ interface ShareCollectionModalProps {
 
 const ROLE_ORDER: CollectionRole[] = ['viewer', 'editor', 'admin']
 
-function MemberAvatar({ member }: { member: CollectionMember }): React.ReactElement {
-  const initial = (member.username || '?').charAt(0).toUpperCase()
+// The trip share dialog's roster, so a shared list and a shared trip read alike.
+const COUNT = 'rounded-full bg-surface-tertiary px-2 py-[2px] font-geist font-bold text-content-muted'
+const ROWS = 'flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5'
+const ROW = 'flex min-h-[48px] items-center gap-3 rounded-[10px] px-2.5 py-1.5 hover:bg-surface-card'
+const BADGE = 'inline-flex flex-none items-center gap-1 rounded-full px-2 py-[2px] font-semibold'
+const DANGER_BUTTON = 'inline-flex items-center gap-1.5 rounded-[10px] bg-surface-card px-3.5 py-2 font-medium text-danger shadow-sm ring-1 ring-edge-faint hover:bg-danger-soft disabled:cursor-default disabled:opacity-50'
+
+/** A round icon button of a row, named by its tooltip; faint until the pointer is on it. */
+function RowAction({ label, onClick, disabled, children }: { label: string; onClick: () => void; disabled?: boolean; children: ReactNode }) {
   return (
-    <span className="w-8 h-8 rounded-full shrink-0 overflow-hidden flex items-center justify-center bg-surface-secondary text-content-secondary text-[12px] font-semibold">
-      {member.avatar ? (
-        <img src={avatarSrc(member.avatar)!} alt="" className="w-full h-full object-cover" />
-      ) : (
-        initial
-      )}
-    </span>
+    <Tooltip label={label}>
+      <button type="button" onClick={onClick} disabled={disabled} aria-label={label}
+        className="grid h-8 w-8 flex-none place-items-center rounded-[9px] text-content-faint hover:bg-surface-secondary hover:text-danger disabled:opacity-40">
+        {children}
+      </button>
+    </Tooltip>
   )
 }
 
@@ -56,6 +65,7 @@ export default function ShareCollectionModal({
   t,
 }: ShareCollectionModalProps): React.ReactElement | null {
   const toast = useToast()
+  const labelId = useId()
   const currentUserId = useAuthStore(s => s.user?.id)
   const invite = useCollectionStore(s => s.invite)
   const cancelInvite = useCollectionStore(s => s.cancelInvite)
@@ -162,168 +172,140 @@ export default function ShareCollectionModal({
     }
   }
 
-  return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      title={t('collections.share.titleNamed', { name: collectionName })}
-      size="xl"
-    >
-      <div className="flex flex-col gap-5">
-        {/* Member roster */}
-        <div>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-content-faint mb-2.5 flex items-center gap-2">
-            {t('collections.share.members')}
-            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-surface-secondary text-content-secondary text-[10px] font-bold tabular-nums">{sortedMembers.length}</span>
-          </h3>
-          <div className="flex flex-col gap-1.5">
-            {sortedMembers.map(member => {
-              const isSelf = member.user_id === currentUserId
-              const pending = member.status === 'pending'
-              return (
-                <div
-                  key={member.user_id}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border border-edge bg-surface-secondary/50 ${pending ? 'opacity-90' : ''}`}
-                >
-                  <MemberAvatar member={member} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] font-semibold text-content truncate flex items-center gap-1.5">
-                      {member.username}
-                      {isSelf && <span className="text-content-faint font-normal text-[12px]">({t('collections.share.you')})</span>}
-                    </p>
-                    {member.email && !pending && (
-                      <p className="text-[11.5px] text-content-faint truncate">{member.email}</p>
-                    )}
-                  </div>
-                  {member.is_owner ? (
-                    <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-amber-500/12 text-amber-600 dark:text-amber-400 shrink-0">
-                      <Crown size={11} /> {t('collections.share.owner')}
-                    </span>
-                  ) : pending ? (
-                    <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-amber-500/12 text-amber-600 dark:text-amber-400 shrink-0">
-                      <Clock size={11} /> {t('collections.share.pending')}
-                    </span>
-                  ) : isOwner ? (
-                    <div className="w-[118px] shrink-0">
-                      <CustomSelect
-                        size="sm"
-                        value={member.role ?? 'editor'}
-                        onChange={v => handleSetRole(member.user_id, v as CollectionRole)}
-                        options={ROLE_ORDER.map(r => ({ value: r, label: t(`collections.role.${r}`) }))}
-                        disabled={settingRoleId === member.user_id}
-                      />
-                    </div>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-surface-secondary text-content-secondary shrink-0">
-                      {t(`collections.role.${member.role ?? 'editor'}`)}
-                    </span>
-                  )}
-                  {isOwner && pending && (
-                    <button
-                      type="button"
-                      onClick={() => handleCancel(member.user_id)}
-                      disabled={cancellingId === member.user_id}
-                      className="shrink-0 text-[11px] font-medium px-2 py-1 rounded-md text-content-faint hover:text-danger hover:bg-danger-soft transition-colors disabled:opacity-50"
-                    >
-                      {cancellingId === member.user_id ? <Loader2 size={12} className="animate-spin" /> : t('collections.share.cancel')}
-                    </button>
-                  )}
-                  {isOwner && !member.is_owner && member.status === 'accepted' && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(member.user_id)}
-                      disabled={removingId === member.user_id}
-                      title={t('collections.share.remove')}
-                      aria-label={t('collections.share.remove')}
-                      className="shrink-0 p-1 rounded-md text-content-faint hover:text-danger hover:bg-danger-soft transition-colors disabled:opacity-50"
-                    >
-                      {removingId === member.user_id ? <Loader2 size={12} className="animate-spin" /> : <UserMinus size={13} />}
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
+  const roleOptions = ROLE_ORDER.map(r => ({ value: r, label: t(`collections.role.${r}`) }))
 
-        {isOwner ? (
-          /* Owner: invite UI */
-          <div className="pt-1 border-t border-edge-secondary">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-content-faint mt-4 mb-2">
-              {t('collections.share.invite')}
-            </h3>
-            <p className="text-[12px] text-content-muted mb-3">{t('collections.share.inviteHint')}</p>
+  return (
+    <>
+      <DialogShell
+        onClose={onClose}
+        labelledBy={labelId}
+        width="detail"
+        // While the leave question is up, Escape and the backdrop answer it, not this dialog.
+        blocked={confirmLeave}
+        header={(
+          <DialogHeader
+            tile={<DialogTile><Share2 size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+            tint={NEUTRAL_TINT}
+            labelId={labelId}
+            onClose={onClose}
+            eyebrow={t('collections.share.title')}
+            title={collectionName}
+          />
+        )}
+        // A member's way out sits where an editor keeps its delete: bottom left.
+        footer={isOwner ? undefined : (
+          <DialogFooter>
+            <button type="button" onClick={() => setConfirmLeave(true)} disabled={leaving} className={DANGER_BUTTON} style={fs(13, 'body')}>
+              {leaving ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} strokeWidth={2.2} />}
+              {t('collections.share.leave')}
+            </button>
+            <FooterSpacer />
+          </DialogFooter>
+        )}
+      >
+        {isOwner && (
+          <DialogSection label={t('collections.share.invite')}>
+            <p className="m-0 mb-2.5 leading-normal text-content-faint" style={fs(11.5)}>{t('collections.share.inviteHint')}</p>
             {availableUsers.length === 0 ? (
-              <p className="text-[12px] text-content-faint text-center py-3">{t('collections.share.noUsers')}</p>
+              <p className="m-0 rounded-[12px] border border-dashed border-edge px-3 py-3 text-center text-content-faint" style={fs(12, 'body')}>
+                {t('collections.share.noUsers')}
+              </p>
             ) : (
-              <div className="flex items-stretch gap-2">
-                <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
                   <CustomSelect
                     value={selectedUserId}
                     onChange={v => setSelectedUserId(v === '' ? '' : Number(v))}
                     options={availableUsers.map(u => ({ value: u.id, label: u.username }))}
                     placeholder={t('collections.share.inviteUser')}
                     searchable
-                  />
-                </div>
-                <div className="w-[128px] shrink-0">
-                  <CustomSelect
                     size="sm"
-                    value={inviteRole}
-                    onChange={v => setInviteRole(v as CollectionRole)}
-                    options={ROLE_ORDER.map(r => ({ value: r, label: t(`collections.role.${r}`) }))}
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleInvite}
-                  disabled={selectedUserId === '' || inviting}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent text-accent-text text-[13px] font-semibold hover:bg-accent-hover transition-colors disabled:opacity-50"
-                >
-                  {inviting ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
-                  <span className="hidden sm:inline">{t('collections.share.sendInvite')}</span>
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Member: read-only roster + leave */
-          <div className="pt-1 border-t border-edge-secondary">
-            <p className="text-[12px] text-content-muted mt-4 mb-3">{t('collections.share.memberHint')}</p>
-            {confirmLeave ? (
-              <div className="flex flex-col gap-2.5">
-                <p className="text-[13px] text-content-secondary">{t('collections.share.leaveConfirm')}</p>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setConfirmLeave(false)}
-                    className="px-3 py-1.5 rounded-lg border border-edge text-content-secondary text-[13px] hover:bg-surface-hover transition-colors"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleLeave}
-                    disabled={leaving}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-danger text-white text-[13px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-                  >
-                    {leaving ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />}
-                    {t('collections.share.leave')}
-                  </button>
+                <div className="w-[128px] flex-none">
+                  <CustomSelect size="sm" value={inviteRole} onChange={v => setInviteRole(v as CollectionRole)} options={roleOptions} />
                 </div>
+                <DialogButton
+                  variant="primary"
+                  onClick={() => void handleInvite()}
+                  disabled={selectedUserId === '' || inviting}
+                  icon={inviting ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} strokeWidth={2.2} />}
+                >
+                  {t('collections.share.sendInvite')}
+                </DialogButton>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirmLeave(true)}
-                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-edge text-danger text-[13px] font-medium hover:bg-danger-soft transition-colors"
-              >
-                <LogOut size={14} /> {t('collections.share.leave')}
-              </button>
             )}
-          </div>
+          </DialogSection>
         )}
-      </div>
-    </Modal>
+
+        <DialogSection label={(
+          <span className="inline-flex items-center gap-2">
+            {t('collections.share.members')}
+            <span className={COUNT} style={fs(10)}>{sortedMembers.length}</span>
+          </span>
+        )}>
+          <div className={ROWS}>
+            {sortedMembers.map(member => {
+              const isSelf = member.user_id === currentUserId
+              const pending = member.status === 'pending'
+              let standing: ReactNode
+              if (member.is_owner) {
+                standing = <span className={`${BADGE} bg-warning-soft text-warning`} style={fs(10.5)}><Crown size={10} strokeWidth={2.4} />{t('collections.share.owner')}</span>
+              } else if (pending) {
+                standing = <span className={`${BADGE} bg-warning-soft text-warning`} style={fs(10.5)}><Clock size={10} strokeWidth={2.4} />{t('collections.share.pending')}</span>
+              } else if (isOwner) {
+                standing = (
+                  <div className="w-[118px] flex-none">
+                    <CustomSelect
+                      size="sm"
+                      value={member.role ?? 'editor'}
+                      onChange={v => handleSetRole(member.user_id, v as CollectionRole)}
+                      options={roleOptions}
+                      disabled={settingRoleId === member.user_id}
+                    />
+                  </div>
+                )
+              } else {
+                standing = <span className={`${BADGE} bg-surface-tertiary text-content-muted`} style={fs(10.5)}>{t(`collections.role.${member.role ?? 'editor'}`)}</span>
+              }
+              return (
+                <div key={member.user_id} className={ROW}>
+                  <TripMemberAvatar username={member.username} avatarUrl={avatarSrc(member.avatar)} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-content" style={fs(13, 'body')}>
+                      {member.username}
+                      {isSelf && <span className="ml-1 font-normal text-content-faint">({t('collections.share.you')})</span>}
+                    </div>
+                    {member.email && !pending && (
+                      <div className="truncate text-content-faint" style={fs(11.5)}>{member.email}</div>
+                    )}
+                  </div>
+                  {standing}
+                  {isOwner && pending && (
+                    <RowAction label={t('collections.share.cancel')} onClick={() => handleCancel(member.user_id)} disabled={cancellingId === member.user_id}>
+                      {cancellingId === member.user_id ? <Loader2 size={14} className="animate-spin" /> : <UserX size={15} />}
+                    </RowAction>
+                  )}
+                  {isOwner && !member.is_owner && member.status === 'accepted' && (
+                    <RowAction label={t('collections.share.remove')} onClick={() => handleRemove(member.user_id)} disabled={removingId === member.user_id}>
+                      {removingId === member.user_id ? <Loader2 size={14} className="animate-spin" /> : <UserMinus size={15} />}
+                    </RowAction>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          {!isOwner && <p className="m-0 mt-2.5 leading-normal text-content-faint" style={fs(11.5)}>{t('collections.share.memberHint')}</p>}
+        </DialogSection>
+      </DialogShell>
+      <ConfirmDialog
+        isOpen={confirmLeave}
+        onClose={() => setConfirmLeave(false)}
+        onConfirm={() => void handleLeave()}
+        title={t('collections.share.leave')}
+        message={t('collections.share.leaveConfirm')}
+        confirmLabel={t('collections.share.leave')}
+      />
+    </>
   )
 }

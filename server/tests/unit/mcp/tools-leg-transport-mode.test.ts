@@ -63,6 +63,37 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 // set_leg_transport_mode
 // ---------------------------------------------------------------------------
 
+describe('Tool: set_assignment_route_excluded (#2532)', () => {
+  it('takes a stop out of the route and puts it back, broadcasting each change', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+    await withHarness(user.id, async (h) => {
+      const out = parseToolResult(await h.client.callTool({ name: 'set_assignment_route_excluded', arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: true } })) as any;
+      expect(out.assignment.route_excluded).toBe(true);
+      expect(testDb.prepare('SELECT route_excluded FROM day_assignments WHERE id = ?').get(assignment.id)).toEqual({ route_excluded: 1 });
+      const back = parseToolResult(await h.client.callTool({ name: 'set_assignment_route_excluded', arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: false } })) as any;
+      expect(back.assignment.route_excluded).toBe(false);
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'assignment:updated', expect.any(Object));
+    });
+  });
+
+  it('rejects an assignment of another trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const day = createDay(testDb, other.id);
+    const place = createPlace(testDb, other.id);
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'set_assignment_route_excluded', arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: true } });
+      expect(result.isError).toBe(true);
+    });
+  });
+});
+
 describe('Tool: set_leg_transport_mode', () => {
   it('sets the outgoing leg mode (default direction)', async () => {
     const { user } = createUser(testDb);

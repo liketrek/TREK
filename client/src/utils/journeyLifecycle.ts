@@ -2,12 +2,17 @@ import { localIsoDate } from './localDate'
 
 export type JourneyLifecycle = 'archived' | 'live' | 'upcoming' | 'completed' | 'draft'
 
+export type JourneyStatusOverride = 'draft' | 'live' | 'completed'
+
 export function computeJourneyLifecycle(
   status: string,
   tripDateMin: string | null | undefined,
   tripDateMax: string | null | undefined,
+  /** The owner's own pick (#762); wins over the dates, never over archived. */
+  override?: string | null,
 ): JourneyLifecycle {
   if (status === 'archived') return 'archived'
+  if (override === 'draft' || override === 'live' || override === 'completed') return override
 
   if (tripDateMin && tripDateMax) {
     const today = localIsoDate()

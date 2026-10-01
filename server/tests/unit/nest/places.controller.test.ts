@@ -97,6 +97,24 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     });
   });
 
+  describe('file import enrichment (#2536)', () => {
+    const file = { buffer: Buffer.from('gpx'), originalname: 'r.gpx' } as Express.Multer.File;
+    it('hands the imported places to the Google pass only when asked', async () => {
+      const enrichImportedFilePlaces = vi.fn();
+      const s = svc({
+        importGpx: vi.fn().mockReturnValue({ places: [{ id: 1 }], count: 1, skipped: 0 }),
+        importMapFile: vi.fn().mockResolvedValue({ places: [{ id: 2 }], count: 1, summary: { totalPlacemarks: 1 } }),
+        broadcast: vi.fn(), enrichImportedFilePlaces,
+      } as Partial<PlacesService>);
+      const c = new PlacesController(s, new RuntimeEnvService(), storageStub);
+      c.importGpx(user, '5', file, {});
+      expect(enrichImportedFilePlaces).not.toHaveBeenCalled();
+      c.importGpx(user, '5', file, { enrich: 'true' });
+      await c.importMap(user, '5', file, { enrich: 'true' });
+      expect(enrichImportedFilePlaces.mock.calls).toEqual([['5', user.id, [{ id: 1 }]], ['5', user.id, [{ id: 2 }]]]);
+    });
+  });
+
   describe('POST /import/map', () => {
     const file = { buffer: Buffer.from('<kml/>'), originalname: 'm.kml' } as Express.Multer.File;
     it('400 without a file', async () => {
@@ -547,3 +565,23 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     });
   });
 });
+
+describe('PUT /:id/image/from-file (#1242)', () => {
+  it('maps every refusal to its status and broadcasts a success', async () => {
+    const make = (result: unknown, extra: Partial<PlacesService> = {}) =>
+      new PlacesController(svc({ setImageFromFile: vi.fn().mockResolvedValue(result), ...extra } as Partial<PlacesService>), new RuntimeEnvService(), storageStub);
+    expect(await thrownAsync(() => make('not_found').imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({ status: 404, body: { error: 'File not found' } });
+    expect(await thrownAsync(() => make('not_image').imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({ status: 400, body: { error: 'Only jpg, png, gif, webp images allowed' } });
+    expect(await thrownAsync(() => make('too_large').imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({ status: 400, body: { error: 'Image too large' } });
+    expect(await thrownAsync(() => make(null).imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({ status: 404, body: { error: 'Place not found' } });
+    const broadcast = vi.fn(); const onUpdated = vi.fn()
+    expect(await make({ id: 9 }, { broadcast, onUpdated } as Partial<PlacesService>).imageFromFile(user, '5', '9', { file_id: 3 }, 'sock')).toEqual({ place: { id: 9 } })
+    expect(broadcast).toHaveBeenCalledWith('5', 'place:updated', { place: { id: 9 } }, 'sock')
+    expect(onUpdated).toHaveBeenCalledWith(9)
+  });
+
+  it('403 without place_edit', async () => {
+    expect(await thrownAsync(() => new PlacesController(svc({ canEdit: vi.fn().mockReturnValue(false) }), new RuntimeEnvService(), storageStub).imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({ status: 403, body: { error: 'No permission' } });
+  });
+});
+

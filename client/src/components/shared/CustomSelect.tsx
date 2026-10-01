@@ -34,6 +34,8 @@ interface CustomSelectProps {
    * offer a list of identical prefixes.
    */
   menuFit?: 'anchor' | 'content'
+  /** The trigger's id, so a label outside can point at it. */
+  id?: string
 }
 
 /**
@@ -77,6 +79,7 @@ export default function CustomSelect({
   size = 'md',
   disabled = false,
   menuFit = 'anchor',
+  id,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -138,6 +141,7 @@ export default function CustomSelect({
     <div ref={ref} style={{ position: 'relative', ...style }}>
       {/* Trigger */}
       <button
+        id={id}
         type="button"
         disabled={disabled}
         onClick={() => { if (!disabled) { setOpen(o => !o); setSearch('') } }}

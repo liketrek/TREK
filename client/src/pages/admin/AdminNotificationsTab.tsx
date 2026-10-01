@@ -1,45 +1,66 @@
-import React from 'react'
+import React, { useId } from 'react'
 import { authApi, notificationsApi } from '../../api/client'
-import { Save } from 'lucide-react'
+import { Bell, BellRing, CalendarClock, Mail, Save, Send, Smartphone, Webhook } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { TranslationFn } from '../../types'
 import type { useAdmin } from './useAdmin'
 import AdminNotificationsPanel from './AdminNotificationsPanel'
+import AdminNotificationDefaultsPanel from './AdminNotificationDefaultsPanel'
+import { SWITCH_ONLY_CHANNELS, useNotificationChannels } from '../../components/Admin/useNotificationChannels'
+import ToggleSwitch from '../../components/Settings/ToggleSwitch'
+import {
+  SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsCard,
+} from '../../components/Settings/settingsKit'
+import { EditorField, GRID_2, INPUT } from '../../components/shared/dialogParts'
+import { fs } from '../../components/shared/DialogShell'
 
 interface AdminNotificationsTabProps {
   admin: ReturnType<typeof useAdmin>
   t: TranslationFn
 }
 
-// "Notifications" admin tab: email/webhook/ntfy channel toggles, SMTP credentials,
-// trip reminders, admin webhook + ntfy targets, and the per-event preference matrix.
-// Derives channel state from smtpValues exactly as the original inline IIFE did.
+/** The glyph on each switch-only channel's card; anything else is the push channel. */
+const CHANNEL_ICONS: Record<string, LucideIcon> = { webhook: Webhook, ntfy: BellRing }
+
+/** A stored secret comes back from the server as this mask. */
+const MASK = '••••••••'
+
+/** The save and test buttons under a card's fields, on a hairline of their own. */
+function CardActions({ children }: { children: React.ReactNode }): React.ReactElement {
+  return <div className="flex flex-wrap items-center gap-2 border-t border-edge-faint pt-4" style={fs(13, 'body')}>{children}</div>
+}
+
+/**
+ * In-app delivery cannot be switched off, so its card shows the switch in the
+ * on position, greyed and out of reach: the look of a ToggleSwitch, not a button.
+ */
+function LockedSwitch(): React.ReactElement {
+  return (
+    <span aria-hidden="true" className="relative inline-block h-6 w-11 flex-none cursor-not-allowed rounded-full bg-accent opacity-50">
+      <span className="absolute left-[22px] top-0.5 h-5 w-5 rounded-full bg-accent-text shadow-sm" />
+    </span>
+  )
+}
+
+const SMTP_FIELDS: { key: string; label: string; placeholder: string; type?: string }[] = [
+  { key: 'smtp_host', label: 'SMTP Host', placeholder: 'mail.example.com' },
+  { key: 'smtp_port', label: 'SMTP Port', placeholder: '587' },
+  { key: 'smtp_user', label: 'SMTP User', placeholder: 'trek@example.com' },
+  { key: 'smtp_pass', label: 'SMTP Password', placeholder: MASK, type: 'password' },
+  { key: 'smtp_from', label: 'From Address', placeholder: 'trek@example.com' },
+]
+
+// "Notifications" admin tab: email/webhook/ntfy/web push channel toggles, SMTP
+// credentials, trip reminders, admin webhook + ntfy targets, and the per-event
+// preference matrix. The channel switches come from useNotificationChannels,
+// which the phone section shares.
 export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTabProps): React.ReactElement {
   const { toast, smtpValues, setSmtpValues, smtpLoaded, setTripRemindersEnabled, managed } = admin
+  const ids = useId()
 
-  // Derive active channels from smtpValues.notification_channels (plural)
-  // with fallback to notification_channel (singular) for existing installs
-  const rawChannels = smtpValues.notification_channels ?? smtpValues.notification_channel ?? 'none'
-  const activeChans = rawChannels === 'none' ? [] : rawChannels.split(',').map((c: string) => c.trim())
-  const emailActive = activeChans.includes('email')
-  const webhookActive = activeChans.includes('webhook')
-  const ntfyActive = activeChans.includes('ntfy')
+  const channels = useNotificationChannels(admin, t)
+  const emailActive = channels.isActive('email')
   const tripRemindersActive = smtpValues.notify_trip_reminder !== 'false'
-
-  const setChannels = async (email: boolean, webhook: boolean, ntfy: boolean) => {
-    // Preserve any id this toggle doesn't know about instead of rebuilding the CSV from
-    // just these three booleans — that used to silently DROP anything else stored here.
-    const others = activeChans.filter((c: string) => c !== 'email' && c !== 'webhook' && c !== 'ntfy')
-    const chans = [email && 'email', webhook && 'webhook', ntfy && 'ntfy', ...others].filter(Boolean).join(',') || 'none'
-    setSmtpValues(prev => ({ ...prev, notification_channels: chans }))
-    try {
-      await authApi.updateAppSettings({ notification_channels: chans })
-    } catch {
-      // Revert state on failure
-      const reverted = [emailActive && 'email', webhookActive && 'webhook', ntfyActive && 'ntfy', ...others].filter(Boolean).join(',') || 'none'
-      setSmtpValues(prev => ({ ...prev, notification_channels: reverted }))
-      toast.error(t('common.error'))
-    }
-  }
 
   const smtpConfigured = !!(smtpValues.smtp_host?.trim())
   const saveNotifications = async () => {
@@ -56,6 +77,22 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
     } catch { toast.error(t('common.error')) }
   }
 
+  const smtpField = (field: typeof SMTP_FIELDS[number]) => (
+    <EditorField key={field.key} label={field.label} htmlFor={`${ids}-${field.key}`}>
+      {/* A stored password comes back masked. Showing the mask as the VALUE meant
+          typing a new one appended it to eight bullet characters and saved that,
+          so the same treatment as the webhook URL below: mask as placeholder. */}
+      <input
+        id={`${ids}-${field.key}`}
+        type={field.type || 'text'}
+        value={smtpValues[field.key] === MASK ? '' : smtpValues[field.key] || ''}
+        onChange={e => setSmtpValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+        placeholder={field.placeholder}
+        className={INPUT}
+      />
+    </EditorField>
+  )
+
   return (<>
     {/* Two columns from xl up, the same shape as the Settings tab. Most of these
         cards are a title with a switch on the far right, so on a wide screen the
@@ -64,271 +101,210 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
         pairs cards row by row and leaves a hole under the shorter one, and the SMTP
         card is taller than all the toggle rows together. Grouped by audience, not by
         height — the channels a user can receive on the left, everything the operator
-        sends or receives themselves on the right. The three channel switches stay
+        sends or receives themselves on the right. The channel switches stay
         together because they all write the same notification_channels list.
         On a managed install the two admin-target cards are gone and the right column
-        is the matrix alone — still a column, so the grid keeps working. */}
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-start">
-      <div className="space-y-6">
-      {/* The relay is the operator's: their host, their credential, their sending
-          reputation. An instance that could point it elsewhere would send under a
-          domain it does not own. */}
-      {!managed && (<>
-      {/* Email Panel */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-slate-900">{t('admin.notifications.emailPanel.title')}</h2>
-            <p className="text-xs text-slate-400 mt-1">{t('admin.smtp.hint')}</p>
-          </div>
-          <button type="button"
-            onClick={() => setChannels(!emailActive, webhookActive, ntfyActive)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${emailActive ? 'bg-content' : 'bg-edge'}`}
+        is the matrix alone — still a column, so the grid keeps working. Each card
+        brings its own bottom margin, so the columns only need the gap between them. */}
+    <div className="grid grid-cols-1 gap-x-5 xl:grid-cols-2 xl:items-start">
+      <div className="min-w-0">
+        {/* The relay is the operator's: their host, their credential, their sending
+            reputation. An instance that could point it elsewhere would send under a
+            domain it does not own. */}
+        {!managed && (
+          <SettingsCard
+            icon={Mail}
+            title={t('admin.notifications.emailPanel.title')}
+            hint={t('admin.smtp.hint')}
+            action={<ToggleSwitch on={emailActive} label={t('admin.notifications.emailPanel.title')} onToggle={() => channels.toggle('email')} />}
           >
-            <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-              style={{ transform: emailActive ? 'translateX(20px)' : 'translateX(0)' }} />
-          </button>
-        </div>
-        <div className={`p-6 space-y-3 ${!emailActive ? 'opacity-50 pointer-events-none' : ''}`}>
-          {smtpLoaded && [
-            { key: 'smtp_host', label: 'SMTP Host', placeholder: 'mail.example.com' },
-            { key: 'smtp_port', label: 'SMTP Port', placeholder: '587' },
-            { key: 'smtp_user', label: 'SMTP User', placeholder: 'trek@example.com' },
-            { key: 'smtp_pass', label: 'SMTP Password', placeholder: '••••••••', type: 'password' },
-            { key: 'smtp_from', label: 'From Address', placeholder: 'trek@example.com' },
-          ].map(field => (
-            <div key={field.key}>
-              <label className="block text-xs font-medium text-slate-500 mb-1">{field.label}</label>
-              {/* A stored password comes back masked. Showing the mask as the VALUE meant
-                  typing a new one appended it to eight bullet characters and saved that,
-                  so the same treatment as the webhook URL below: mask as placeholder. */}
-              <input
-                type={field.type || 'text'}
-                value={smtpValues[field.key] === '••••••••' ? '' : smtpValues[field.key] || ''}
-                onChange={e => setSmtpValues(prev => ({ ...prev, [field.key]: e.target.value }))}
-                placeholder={field.placeholder}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-              />
+            {/* Greyed and out of reach while the channel is off, never hidden. */}
+            <div data-testid="smtp-fields" className={`flex flex-col gap-4 transition-opacity ${!emailActive ? 'opacity-50 pointer-events-none' : ''}`}>
+              {smtpLoaded && (<>
+                <div className={GRID_2}>
+                  {smtpField(SMTP_FIELDS[0])}
+                  {smtpField(SMTP_FIELDS[1])}
+                </div>
+                <div className={GRID_2}>
+                  {smtpField(SMTP_FIELDS[2])}
+                  {smtpField(SMTP_FIELDS[3])}
+                </div>
+                {smtpField(SMTP_FIELDS[4])}
+              </>)}
+              <SettingRows>
+                <SettingRow
+                  label="Skip TLS certificate check"
+                  hint="Enable for self-signed certificates on local mail servers"
+                  control={
+                    <ToggleSwitch
+                      on={smtpValues.smtp_skip_tls_verify === 'true'}
+                      label="Skip TLS certificate check"
+                      onToggle={() => {
+                        const newVal = smtpValues.smtp_skip_tls_verify === 'true' ? 'false' : 'true'
+                        setSmtpValues(prev => ({ ...prev, smtp_skip_tls_verify: newVal }))
+                      }}
+                    />
+                  }
+                />
+              </SettingRows>
             </div>
-          ))}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
-            <div>
-              <span className="text-xs font-medium text-slate-500">Skip TLS certificate check</span>
-              <p className="text-[10px] text-slate-400 mt-0.5">Enable for self-signed certificates on local mail servers</p>
-            </div>
-            <button type="button" onClick={() => {
-              const newVal = smtpValues.smtp_skip_tls_verify === 'true' ? 'false' : 'true'
-              setSmtpValues(prev => ({ ...prev, smtp_skip_tls_verify: newVal }))
-            }}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${smtpValues.smtp_skip_tls_verify === 'true' ? 'bg-content' : 'bg-edge'}`}>
-              <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-                style={{ transform: smtpValues.smtp_skip_tls_verify === 'true' ? 'translateX(20px)' : 'translateX(0)' }} />
-            </button>
-          </div>
-        </div>
-        <div className="px-6 pb-4 flex items-center gap-2 border-t border-slate-100 pt-4">
-          <button type="button" onClick={saveNotifications}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
-            <Save className="w-4 h-4" />{t('common.save')}
-          </button>
-          <button type="button"
-            onClick={async () => {
-              const smtpKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify']
-              const payload: Record<string, string> = {}
-              for (const k of smtpKeys) { if (smtpValues[k] !== undefined) payload[k] = smtpValues[k] }
-              await authApi.updateAppSettings(payload).catch(() => {})
-              try {
-                const result = await notificationsApi.testSmtp()
-                if (result.success) toast.success(t('admin.smtp.testSuccess'))
-                else toast.error(result.error || t('admin.smtp.testFailed'))
-              } catch { toast.error(t('admin.smtp.testFailed')) }
-            }}
-            disabled={!smtpConfigured}
-            className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors disabled:opacity-40"
-          >
-            {t('admin.smtp.testButton')}
-          </button>
-        </div>
+            <CardActions>
+              <button type="button" onClick={saveNotifications} className={SETTINGS_BUTTON_PRIMARY}>
+                <Save size={14} strokeWidth={2.2} />{t('common.save')}
+              </button>
+              <button type="button"
+                onClick={async () => {
+                  const smtpKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify']
+                  const payload: Record<string, string> = {}
+                  for (const k of smtpKeys) { if (smtpValues[k] !== undefined) payload[k] = smtpValues[k] }
+                  await authApi.updateAppSettings(payload).catch(() => {})
+                  try {
+                    const result = await notificationsApi.testSmtp()
+                    if (result.success) toast.success(t('admin.smtp.testSuccess'))
+                    else toast.error(result.error || t('admin.smtp.testFailed'))
+                  } catch { toast.error(t('admin.smtp.testFailed')) }
+                }}
+                disabled={!smtpConfigured}
+                className={SETTINGS_BUTTON}
+              >
+                <Send size={14} strokeWidth={2.2} />{t('admin.smtp.testButton')}
+              </button>
+            </CardActions>
+          </SettingsCard>
+        )}
+
+        {/* Webhook, Ntfy and Web Push: a title, a hint and the switch each. Nothing
+            to set below them, so the card is its head band alone. */}
+        {SWITCH_ONLY_CHANNELS.map(ch => (
+          <SettingsCard
+            key={ch.id}
+            icon={CHANNEL_ICONS[ch.id] ?? Smartphone}
+            title={t(ch.titleKey)}
+            hint={t(ch.hintKey)}
+            action={<ToggleSwitch on={channels.isActive(ch.id)} label={t(ch.titleKey)} onToggle={() => channels.toggle(ch.id)} />}
+          />
+        ))}
+
+        {/* In-App Panel */}
+        <SettingsCard
+          icon={Bell}
+          title={t('admin.notifications.inappPanel.title')}
+          hint={t('admin.notifications.inappPanel.hint')}
+          action={<LockedSwitch />}
+        />
+
+        {/* Trip Reminders Toggle */}
+        <SettingsCard
+          icon={CalendarClock}
+          title={t('admin.notifications.tripReminders.title')}
+          hint={t('admin.notifications.tripReminders.hint')}
+          action={
+            <ToggleSwitch
+              on={tripRemindersActive}
+              label={t('admin.notifications.tripReminders.title')}
+              onToggle={async () => {
+                const next = !tripRemindersActive
+                setSmtpValues(prev => ({ ...prev, notify_trip_reminder: next ? 'true' : 'false' }))
+                try {
+                  await authApi.updateAppSettings({ notify_trip_reminder: next ? 'true' : 'false' })
+                  toast.success(next ? t('admin.notifications.tripReminders.enabled') : t('admin.notifications.tripReminders.disabled'))
+                  authApi.getAppConfig().then((c: { trip_reminders_enabled?: boolean }) => {
+                    if (c?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(c.trip_reminders_enabled)
+                  }).catch(() => {})
+                } catch {
+                  setSmtpValues(prev => ({ ...prev, notify_trip_reminder: tripRemindersActive ? 'true' : 'false' }))
+                  toast.error(t('common.error'))
+                }
+              }}
+            />
+          }
+        />
       </div>
 
-      </>)}
-      {/* Webhook Panel */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-slate-900">{t('admin.notifications.webhookPanel.title')}</h2>
-            <p className="text-xs text-slate-400 mt-1">{t('admin.webhook.hint')}</p>
-          </div>
-          <button type="button"
-            onClick={() => setChannels(emailActive, !webhookActive, ntfyActive)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${webhookActive ? 'bg-content' : 'bg-edge'}`}
-          >
-            <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-              style={{ transform: webhookActive ? 'translateX(20px)' : 'translateX(0)' }} />
-          </button>
-        </div>
-      </div>
-
-      {/* Ntfy Panel */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-slate-900">{t('admin.notifications.ntfy')}</h2>
-            <p className="text-xs text-slate-400 mt-1">{t('admin.ntfy.hint') || 'Allow users to configure their own ntfy topics for push notifications.'}</p>
-          </div>
-          <button type="button"
-            onClick={() => setChannels(emailActive, webhookActive, !ntfyActive)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${ntfyActive ? 'bg-content' : 'bg-edge'}`}
-          >
-            <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-              style={{ transform: ntfyActive ? 'translateX(20px)' : 'translateX(0)' }} />
-          </button>
-        </div>
-      </div>
-
-      {/* In-App Panel */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-slate-900">{t('admin.notifications.inappPanel.title')}</h2>
-            <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.inappPanel.hint')}</p>
-          </div>
-          <div className="relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0 bg-content"
-            style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-            <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-              style={{ transform: 'translateX(20px)' }} />
-          </div>
-        </div>
-      </div>
-
-      {/* Trip Reminders Toggle */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-slate-900">{t('admin.notifications.tripReminders.title')}</h2>
-            <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.tripReminders.hint')}</p>
-          </div>
-          <button type="button"
-            onClick={async () => {
-              const next = !tripRemindersActive
-              setSmtpValues(prev => ({ ...prev, notify_trip_reminder: next ? 'true' : 'false' }))
-              try {
-                await authApi.updateAppSettings({ notify_trip_reminder: next ? 'true' : 'false' })
-                toast.success(next ? t('admin.notifications.tripReminders.enabled') : t('admin.notifications.tripReminders.disabled'))
-                authApi.getAppConfig().then((c: { trip_reminders_enabled?: boolean }) => {
-                  if (c?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(c.trip_reminders_enabled)
-                }).catch(() => {})
-              } catch {
-                setSmtpValues(prev => ({ ...prev, notify_trip_reminder: tripRemindersActive ? 'true' : 'false' }))
-                toast.error(t('common.error'))
-              }
-            }}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${tripRemindersActive ? 'bg-content' : 'bg-edge'}`}
-          >
-            <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
-              style={{ transform: tripRemindersActive ? 'translateX(20px)' : 'translateX(0)' }} />
-          </button>
-        </div>
-      </div>
-      </div>
-
-      <div className="space-y-6">
-      {/* Admin alerts are about running the instance (version notices, and what else
-          lands there later). On a managed install those go to whoever runs it. */}
-      {!managed && (<>
-      {/* Admin Webhook Panel */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-900">{t('admin.notifications.adminWebhookPanel.title')}</h2>
-          <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.adminWebhookPanel.hint')}</p>
-        </div>
-        <div className="p-6 space-y-3">
-          {smtpLoaded && (
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">{t('admin.notifications.adminWebhookPanel.title')}</label>
-              <input
-                type="text"
-                value={smtpValues.admin_webhook_url === '••••••••' ? '' : smtpValues.admin_webhook_url || ''}
-                onChange={e => setSmtpValues(prev => ({ ...prev, admin_webhook_url: e.target.value }))}
-                placeholder={smtpValues.admin_webhook_url === '••••••••' ? '••••••••' : 'https://discord.com/api/webhooks/...'}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-              />
-            </div>
-          )}
-        </div>
-        <div className="px-6 pb-4 flex items-center gap-2 border-t border-slate-100 pt-4">
-          <button type="button"
-            onClick={async () => {
-              try {
-                await authApi.updateAppSettings({ admin_webhook_url: smtpValues.admin_webhook_url || '' })
-                toast.success(t('admin.notifications.adminWebhookPanel.saved'))
-              } catch { toast.error(t('common.error')) }
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
-            <Save className="w-4 h-4" />{t('common.save')}
-          </button>
-          <button type="button"
-            onClick={async () => {
-              // A masked value means the URL only lives on the server — send no url and let
-              // the server test the stored one instead of pre-saving the mask.
-              const url = smtpValues.admin_webhook_url === '••••••••' ? undefined : smtpValues.admin_webhook_url
-              try {
-                if (url) await authApi.updateAppSettings({ admin_webhook_url: url }).catch(() => {})
-                const result = await notificationsApi.testWebhook(url)
-                if (result.success) toast.success(t('admin.notifications.adminWebhookPanel.testSuccess'))
-                else toast.error(result.error || t('admin.notifications.adminWebhookPanel.testFailed'))
-              } catch { toast.error(t('admin.notifications.adminWebhookPanel.testFailed')) }
-            }}
-            disabled={!smtpValues.admin_webhook_url?.trim()}
-            className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors disabled:opacity-40"
-          >
-            {t('admin.notifications.testWebhook')}
-          </button>
-        </div>
-      </div>
-
-      {/* Admin Ntfy Panel — same audience as the webhook above, and inside the
-          same wrapper. */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-900">{t('admin.notifications.adminNtfyPanel.title')}</h2>
-          <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.adminNtfyPanel.hint')}</p>
-        </div>
-        <div className="p-6 space-y-3">
-          {smtpLoaded && (
-            <>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('admin.notifications.adminNtfyPanel.serverLabel')}</label>
+      <div className="min-w-0">
+        {/* Admin alerts are about running the instance (version notices, and what else
+            lands there later). On a managed install those go to whoever runs it. */}
+        {!managed && (<>
+          {/* Admin Webhook Panel */}
+          <SettingsCard icon={Webhook} title={t('admin.notifications.adminWebhookPanel.title')} hint={t('admin.notifications.adminWebhookPanel.hint')}>
+            {smtpLoaded && (
+              <EditorField label={t('admin.notifications.adminWebhookPanel.title')} htmlFor={`${ids}-admin-webhook`}>
                 <input
+                  id={`${ids}-admin-webhook`}
+                  type="text"
+                  value={smtpValues.admin_webhook_url === MASK ? '' : smtpValues.admin_webhook_url || ''}
+                  onChange={e => setSmtpValues(prev => ({ ...prev, admin_webhook_url: e.target.value }))}
+                  placeholder={smtpValues.admin_webhook_url === MASK ? MASK : 'https://discord.com/api/webhooks/...'}
+                  className={INPUT}
+                />
+              </EditorField>
+            )}
+            <CardActions>
+              <button type="button"
+                onClick={async () => {
+                  try {
+                    await authApi.updateAppSettings({ admin_webhook_url: smtpValues.admin_webhook_url || '' })
+                    toast.success(t('admin.notifications.adminWebhookPanel.saved'))
+                  } catch { toast.error(t('common.error')) }
+                }}
+                className={SETTINGS_BUTTON_PRIMARY}>
+                <Save size={14} strokeWidth={2.2} />{t('common.save')}
+              </button>
+              <button type="button"
+                onClick={async () => {
+                  // A masked value means the URL only lives on the server — send no url and let
+                  // the server test the stored one instead of pre-saving the mask.
+                  const url = smtpValues.admin_webhook_url === MASK ? undefined : smtpValues.admin_webhook_url
+                  try {
+                    if (url) await authApi.updateAppSettings({ admin_webhook_url: url }).catch(() => {})
+                    const result = await notificationsApi.testWebhook(url)
+                    if (result.success) toast.success(t('admin.notifications.adminWebhookPanel.testSuccess'))
+                    else toast.error(result.error || t('admin.notifications.adminWebhookPanel.testFailed'))
+                  } catch { toast.error(t('admin.notifications.adminWebhookPanel.testFailed')) }
+                }}
+                disabled={!smtpValues.admin_webhook_url?.trim()}
+                className={SETTINGS_BUTTON}
+              >
+                <Send size={14} strokeWidth={2.2} />{t('admin.notifications.testWebhook')}
+              </button>
+            </CardActions>
+          </SettingsCard>
+
+          {/* Admin Ntfy Panel — same audience as the webhook above, and inside the
+              same wrapper. */}
+          <SettingsCard icon={BellRing} title={t('admin.notifications.adminNtfyPanel.title')} hint={t('admin.notifications.adminNtfyPanel.hint')}>
+            {smtpLoaded && (<>
+              <EditorField label={t('admin.notifications.adminNtfyPanel.serverLabel')} htmlFor={`${ids}-ntfy-server`} hint={t('admin.notifications.adminNtfyPanel.serverHint')}>
+                <input
+                  id={`${ids}-ntfy-server`}
                   type="text"
                   value={smtpValues.admin_ntfy_server || ''}
                   onChange={e => setSmtpValues(prev => ({ ...prev, admin_ntfy_server: e.target.value }))}
                   placeholder={t('admin.notifications.adminNtfyPanel.serverPlaceholder')}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+                  className={INPUT}
                 />
-                <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.adminNtfyPanel.serverHint')}</p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('admin.notifications.adminNtfyPanel.topicLabel')}</label>
+              </EditorField>
+              <EditorField label={t('admin.notifications.adminNtfyPanel.topicLabel')} htmlFor={`${ids}-ntfy-topic`}>
                 <input
+                  id={`${ids}-ntfy-topic`}
                   type="text"
                   value={smtpValues.admin_ntfy_topic || ''}
                   onChange={e => setSmtpValues(prev => ({ ...prev, admin_ntfy_topic: e.target.value }))}
                   placeholder={t('admin.notifications.adminNtfyPanel.topicPlaceholder')}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+                  className={INPUT}
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('admin.notifications.adminNtfyPanel.tokenLabel')}</label>
+              </EditorField>
+              <EditorField label={t('admin.notifications.adminNtfyPanel.tokenLabel')} htmlFor={`${ids}-ntfy-token`}>
                 <div className="flex gap-2">
                   <input
+                    id={`${ids}-ntfy-token`}
                     type="password"
-                    value={smtpValues.admin_ntfy_token === '••••••••' ? '' : smtpValues.admin_ntfy_token || ''}
+                    value={smtpValues.admin_ntfy_token === MASK ? '' : smtpValues.admin_ntfy_token || ''}
                     onChange={e => setSmtpValues(prev => ({ ...prev, admin_ntfy_token: e.target.value }))}
-                    placeholder={smtpValues.admin_ntfy_token === '••••••••' ? '••••••••' : ''}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+                    placeholder={smtpValues.admin_ntfy_token === MASK ? MASK : ''}
+                    className={INPUT}
                   />
-                  {smtpValues.admin_ntfy_token === '••••••••' && (
+                  {smtpValues.admin_ntfy_token === MASK && (
                     <button type="button"
                       onClick={async () => {
                         try {
@@ -337,63 +313,66 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
                           toast.success(t('admin.notifications.adminNtfyPanel.tokenCleared'))
                         } catch { toast.error(t('common.error')) }
                       }}
-                      className="px-3 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
+                      className={`${SETTINGS_BUTTON_DANGER} flex-none`}
+                      style={fs(13, 'body')}
                     >
                       {t('common.clear')}
                     </button>
                   )}
                 </div>
-              </div>
-            </>
-          )}
-        </div>
-        <div className="px-6 pb-4 flex items-center gap-2 border-t border-slate-100 pt-4">
-          <button type="button"
-            onClick={async () => {
-              try {
-                await authApi.updateAppSettings({
-                  admin_ntfy_server: smtpValues.admin_ntfy_server || '',
-                  admin_ntfy_topic: smtpValues.admin_ntfy_topic || '',
-                  ...(smtpValues.admin_ntfy_token && smtpValues.admin_ntfy_token !== '••••••••'
-                    ? { admin_ntfy_token: smtpValues.admin_ntfy_token }
-                    : {}),
-                })
-                toast.success(t('admin.notifications.adminNtfyPanel.saved'))
-              } catch { toast.error(t('common.error')) }
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
-            <Save className="w-4 h-4" />{t('common.save')}
-          </button>
-          <button type="button"
-            onClick={async () => {
-              const topic = smtpValues.admin_ntfy_topic?.trim()
-              if (!topic) return
-              try {
-                const token = smtpValues.admin_ntfy_token && smtpValues.admin_ntfy_token !== '••••••••'
-                  ? smtpValues.admin_ntfy_token : null
-                const result = await notificationsApi.testNtfy({
-                  topic,
-                  server: smtpValues.admin_ntfy_server || null,
-                  token,
-                })
-                if (result.success) toast.success(t('admin.notifications.adminNtfyPanel.testSuccess'))
-                else toast.error(result.error || t('admin.notifications.adminNtfyPanel.testFailed'))
-              } catch { toast.error(t('admin.notifications.adminNtfyPanel.testFailed')) }
-            }}
-            disabled={!smtpValues.admin_ntfy_topic?.trim()}
-            className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors disabled:opacity-40"
-          >
-            {t('admin.notifications.adminNtfyPanel.test')}
-          </button>
-        </div>
-      </div>
-      </>)}
+              </EditorField>
+            </>)}
+            <CardActions>
+              <button type="button"
+                onClick={async () => {
+                  try {
+                    await authApi.updateAppSettings({
+                      admin_ntfy_server: smtpValues.admin_ntfy_server || '',
+                      admin_ntfy_topic: smtpValues.admin_ntfy_topic || '',
+                      ...(smtpValues.admin_ntfy_token && smtpValues.admin_ntfy_token !== MASK
+                        ? { admin_ntfy_token: smtpValues.admin_ntfy_token }
+                        : {}),
+                    })
+                    toast.success(t('admin.notifications.adminNtfyPanel.saved'))
+                  } catch { toast.error(t('common.error')) }
+                }}
+                className={SETTINGS_BUTTON_PRIMARY}>
+                <Save size={14} strokeWidth={2.2} />{t('common.save')}
+              </button>
+              <button type="button"
+                onClick={async () => {
+                  const topic = smtpValues.admin_ntfy_topic?.trim()
+                  if (!topic) return
+                  try {
+                    const token = smtpValues.admin_ntfy_token && smtpValues.admin_ntfy_token !== MASK
+                      ? smtpValues.admin_ntfy_token : null
+                    const result = await notificationsApi.testNtfy({
+                      topic,
+                      server: smtpValues.admin_ntfy_server || null,
+                      token,
+                    })
+                    if (result.success) toast.success(t('admin.notifications.adminNtfyPanel.testSuccess'))
+                    else toast.error(result.error || t('admin.notifications.adminNtfyPanel.testFailed'))
+                  } catch { toast.error(t('admin.notifications.adminNtfyPanel.testFailed')) }
+                }}
+                disabled={!smtpValues.admin_ntfy_topic?.trim()}
+                className={SETTINGS_BUTTON}
+              >
+                <Send size={14} strokeWidth={2.2} />{t('admin.notifications.adminNtfyPanel.test')}
+              </button>
+            </CardActions>
+          </SettingsCard>
+        </>)}
 
-      {/* The matrix decides which of those channels each admin-only event goes out
-          over, so it belongs under the targets it routes to rather than across the
-          full width below both columns. */}
-      <AdminNotificationsPanel t={t} toast={toast} />
+        {/* The matrix decides which of those channels each admin-only event goes out
+            over, so it belongs under the targets it routes to rather than across the
+            full width below both columns. */}
+        <AdminNotificationsPanel t={t} toast={toast} />
       </div>
     </div>
+
+    {/* What users' own notifications start as, across the full width: one row per
+        user event, one column per channel users can pick (#1536). */}
+    <AdminNotificationDefaultsPanel />
   </>)
 }

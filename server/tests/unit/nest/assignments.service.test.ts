@@ -249,6 +249,26 @@ describe('deleteAssignment / reorderAssignments', () => {
   });
 });
 
+describe('clearDay (#2470)', () => {
+  it('ASG-SVC-013b: removes every place of the day, leaves other days alone, returns the ids', () => {
+    const { trip, day, place } = fixture();
+    const otherDay = createDay(testDb, trip.id);
+    const a1 = createDayAssignment(testDb, day.id, place.id);
+    const a2 = createDayAssignment(testDb, day.id, place.id);
+    const kept = createDayAssignment(testDb, otherDay.id, place.id);
+
+    expect(svc.clearDay(day.id).sort()).toEqual([a1.id, a2.id].sort());
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM day_assignments WHERE day_id = ?').get(day.id)).toEqual({ n: 0 });
+    expect(testDb.prepare('SELECT id FROM day_assignments WHERE id = ?').get(kept.id)).toEqual({ id: kept.id });
+    expect(testDb.prepare('SELECT id FROM days WHERE id = ?').get(day.id)).toEqual({ id: day.id });
+  });
+
+  it('ASG-SVC-013c: an empty day clears to an empty list', () => {
+    const { day } = fixture();
+    expect(svc.clearDay(day.id)).toEqual([]);
+  });
+});
+
 // ── getAssignmentForTrip / moveAssignment ─────────────────────────────────────
 
 describe('getAssignmentForTrip', () => {
@@ -664,6 +684,16 @@ describe('setLegTransportMode', () => {
     const a = createDayAssignment(testDb, day.id, place.id);
     expect(svc.setLegTransportMode(a.id, 'cycling')!.leg_transport_mode).toBe('cycling');
     expect(svc.setLegTransportMode(a.id, null)!.leg_transport_mode).toBeNull();
+  });
+});
+
+describe('setRouteExcluded (#2532)', () => {
+  it('ASG-SVC-025b: keeps the stop but flags it out of the route, and back', () => {
+    const { day, place } = fixture();
+    const a = createDayAssignment(testDb, day.id, place.id);
+    expect(svc.getAssignmentWithPlace(a.id)!.route_excluded).toBe(false);
+    expect(svc.setRouteExcluded(a.id, true)!.route_excluded).toBe(true);
+    expect(svc.setRouteExcluded(a.id, false)!.route_excluded).toBe(false);
   });
 });
 

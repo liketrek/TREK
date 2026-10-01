@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Liên kết tập tin',
   'files.linkEmpty': 'Chưa có địa điểm hoặc đặt chỗ nào để liên kết',
   'files.menu': 'Tùy chọn khác',
-  'files.uploadErrorSize': 'Tệp quá lớn (tối đa 50 MB)',
+  'files.uploadErrorSize': 'Tệp quá lớn (tối đa {max} MB)',
   'files.uploadErrorType': 'Loại tập tin này không được hỗ trợ',
   'files.title': 'Tập tin',
   'files.pageTitle': 'Tập tin & Tài liệu',

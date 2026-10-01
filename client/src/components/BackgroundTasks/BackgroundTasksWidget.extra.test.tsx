@@ -1,4 +1,4 @@
-// FE-W4BGT-001 to FE-W4BGT-024
+// FE-W4BGT-001 to FE-W4BGT-029
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, act, waitFor } from '@testing-library/react'
 import { render, fireEvent } from '../../../tests/helpers/render'
@@ -302,5 +302,54 @@ describe('BackgroundTasksWidget: the mark on a finished job (#2477)', () => {
     // The theme's own success colour, so it follows light and dark.
     expect(baseElement.querySelector('svg.lucide-check-circle2')).toHaveAttribute('stroke', 'var(--success)')
     expect(baseElement.querySelector('svg.lucide-alert-triangle')).toBeNull()
+  })
+})
+
+describe('BackgroundTasksWidget — a receipt scanned from Costs', () => {
+  const RECEIPT = { merchant: 'Café', date: '2026-09-20', total: 12.5, currency: 'EUR', items: [] }
+
+  it('FE-W4BGT-025: says it is reading the receipt while the job runs', () => {
+    useBackgroundTasksStore.setState({ tasks: [task({ status: 'running', kind: 'costs', label: 'bill.jpg', items: undefined })] })
+    render(<BackgroundTasksWidget />)
+    expect(screen.getByText('Reading the receipt…')).toBeInTheDocument()
+  })
+
+  it('FE-W4BGT-026: import:done with a read receipt offers to review the expense, which opens the trip', () => {
+    useBackgroundTasksStore.setState({ tasks: [task({ status: 'running', kind: 'costs', label: 'bill.jpg', items: undefined })] })
+    render(<BackgroundTasksWidget />)
+    const handler = vi.mocked(addListener).mock.calls[0][0] as WsHandler
+
+    act(() => { handler({ type: 'import:done', jobId: 'j1', tripId: 't1', result: { receipt: RECEIPT, warnings: [] } }) })
+    expect(useBackgroundTasksStore.getState().tasks[0].receipt).toEqual(RECEIPT)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review expense' }))
+    expect(useBackgroundTasksStore.getState().tasks[0].reviewRequested).toBe(true)
+    expect(navigate).toHaveBeenCalledWith('/trips/t1')
+  })
+
+  it('FE-W4BGT-027: a photo nothing could be read from says so, with its warning and no AI retry', async () => {
+    vi.mocked(healthApi.features).mockResolvedValue({ bookingImport: true, aiParsing: true })
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    useBackgroundTasksStore.setState({ tasks: [task({ kind: 'costs', receipt: null, warnings: ['bill.jpg: no receipt could be read'], sourceFiles: [photo] })] })
+    render(<BackgroundTasksWidget />)
+    expect(screen.getByText('No receipt could be read from this photo.')).toBeInTheDocument()
+    expect(screen.getByText('bill.jpg: no receipt could be read')).toBeInTheDocument()
+    await waitFor(() => expect(healthApi.features).toHaveBeenCalled())
+    expect(screen.queryByRole('button', { name: 'Try AI parsing' })).not.toBeInTheDocument()
+  })
+
+  it('FE-W4BGT-028: the reload reconcile reads a receipt job\'s status too', async () => {
+    vi.mocked(reservationsApi.importJobStatus).mockResolvedValue({ status: 'done', done: 1, total: 1, result: { receipt: RECEIPT, warnings: [] } as never })
+    useBackgroundTasksStore.setState({ tasks: [task({ kind: 'costs', items: undefined })] })
+    render(<BackgroundTasksWidget />)
+    expect(await screen.findByRole('button', { name: 'Review expense' })).toBeInTheDocument()
+  })
+
+  it('FE-W4BGT-029: a receipt restored from a reload says it is reading the receipt until its status is back', () => {
+    // The status request stays pending (beforeEach), so the card shows the restored state.
+    useBackgroundTasksStore.setState({ tasks: [task({ kind: 'costs', label: 'bill.jpg', items: undefined })] })
+    render(<BackgroundTasksWidget />)
+    expect(screen.getByText('Reading the receipt…')).toBeInTheDocument()
+    expect(screen.queryByText('Parsing files…')).not.toBeInTheDocument()
   })
 })

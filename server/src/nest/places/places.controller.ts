@@ -41,6 +41,7 @@ import {
   PlaceImportListDto,
   PlaceImportMapDto,
   PlaceRatingDto,
+  PlaceImageFromFileDto,
   PlaceUpdateDto,
 } from './places.dto';
 
@@ -193,6 +194,7 @@ export class PlacesController {
     for (const place of result.places) {
       this.places.broadcast(tripId, 'place:created', { place }, socketId);
     }
+    if (parseBool(body.enrich, false)) this.places.enrichImportedFilePlaces(tripId, user.id, result.places);
     return { places: result.places, count: result.count, skipped: result.skipped };
   }
 
@@ -251,6 +253,7 @@ export class PlacesController {
       for (const place of result.places) {
         this.places.broadcast(tripId, 'place:created', { place }, socketId);
       }
+      if (parseBool(body.enrich, false)) this.places.enrichImportedFilePlaces(tripId, user.id, result.places);
       return result;
     } catch (err: unknown) {
       if (err instanceof HttpException) throw err;
@@ -416,6 +419,29 @@ export class PlacesController {
     this.places.broadcast(tripId, 'place:updated', { place }, socketId);
     this.places.onUpdated(place.id);
     return { place };
+  }
+
+  @Put(':id/image/from-file')
+  async imageFromFile(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Body() body: PlaceImageFromFileDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const trip = this.requireTrip(tripId, user);
+    this.requireEdit(trip, user);
+    if (isDemoWriteBlocked(this.env, user.email)) {
+      throw new HttpException(DEMO_WRITE_ERROR, 403);
+    }
+    const result = await this.places.setImageFromFile(tripId, id, body.file_id);
+    if (result === 'not_found') throw new HttpException({ error: 'File not found' }, 404);
+    if (result === 'not_image') throw new HttpException({ error: 'Only jpg, png, gif, webp images allowed' }, 400);
+    if (result === 'too_large') throw new HttpException({ error: 'Image too large' }, 400);
+    if (!result || isUpdateConflict(result)) throw new HttpException({ error: 'Place not found' }, 404);
+    this.places.broadcast(tripId, 'place:updated', { place: result }, socketId);
+    this.places.onUpdated(result.id);
+    return { place: result };
   }
 
   @Put(':id/rating')

@@ -50,7 +50,7 @@ export async function fetchImageAsBlob(url: string): Promise<string> {
     }
     if (active < MAX_CONCURRENT) {
       active++
-      run()
+      void run()
     } else {
       queue.push(run)
     }

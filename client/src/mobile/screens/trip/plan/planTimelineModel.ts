@@ -157,6 +157,8 @@ export function buildPlanRows(opts: {
     if (row.kind === 'place') {
       const place = row.assignment.place
       if (place?.lat == null || place?.lng == null) continue
+      // Out of the route (#2532): the drive passes it by, so no leg starts or ends here.
+      if (row.assignment.route_excluded) continue
       const at: [number, number] = [place.lat, place.lng]
       connect(prev, at)
       // The leg's mode is stored on its ORIGIN place assignment (#1281), so carry

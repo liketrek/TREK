@@ -190,7 +190,14 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run lint`             | Lint source                                          |
 | `npm run lint:check`       | Same command as `npm run lint` — the name CI uses    |
 | `npm run lint:pages`       | Enforce the Page pattern (CI gate)                   |
-| `npm run theme:lint`       | Flag styling that bypasses the appearance tokens     |
+| `npm run theme:lint`       | Flag styling that bypasses the appearance tokens (not run in CI) |
+| `npm run check:gl-split`   | Fail when one built chunk carries both map engines (MapLibre and Mapbox); run after a build |
+| `npm run build:analyze`    | Production build with the bundle analyzer            |
+| `npm run e2e`              | Playwright end-to-end tests (local only, not in CI)  |
+| `npm run shots`            | Capture the wiki screenshots with Playwright         |
+| `npm run shots:promote`    | Downscale the captured screenshots and move them into `wiki/assets/` |
+| `npm run help:media`       | Record the help-center pictures against the real app on its own ports, so `npm run dev` can keep running |
+| `npm run help:media:promote` | Convert the recorded help pictures to WebP and move them into `public/help-media/` |
 | `npm run format`           | Format source                                        |
 
 ---

@@ -33,6 +33,7 @@ vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KE
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 const QUERY = 'Hotel Adlon Kempinski, Unter den Linden 77, Berlin';
 
@@ -65,7 +66,7 @@ function make(enabled = true) {
   if (enabled) delete process.env.TREK_PLACES_ENABLED;
   else process.env.TREK_PLACES_ENABLED = 'false';
   const database = { get: vi.fn(() => undefined) } as unknown as DatabaseService;
-  return new MapsService(database, {} as PlacePhotoCacheService);
+  return new MapsService(database, {} as PlacePhotoCacheService, noGoogleQuota);
 }
 
 beforeEach(() => {

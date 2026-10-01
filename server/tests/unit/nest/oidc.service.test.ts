@@ -145,6 +145,7 @@ beforeEach(() => {
   resetTestDb(testDb);
   delete process.env.OIDC_ADMIN_VALUE;
   delete process.env.OIDC_ADMIN_CLAIM;
+  delete process.env.OIDC_USERNAME_CLAIM;
   delete process.env.NODE_ENV;
 });
 
@@ -527,6 +528,48 @@ describe('findOrCreateUser', () => {
     );
     expect('user' in result).toBe(true);
     expect((result as { user: any }).user.role).toBe('admin');
+  });
+
+  it('OIDC-SVC-022b: without OIDC_USERNAME_CLAIM the username comes from name, as before (#1677)', () => {
+    createUser(testDb, { email: 'someone@example.com' });
+    const result = svc.findOrCreateUser(
+      { sub: 'sub-jane-1', email: 'jane@example.com', name: 'Jane Doe', preferred_username: 'jane' },
+      MOCK_CONFIG
+    );
+    expect((result as { user: { username: string } }).user.username).toBe('JaneDoe');
+  });
+
+  it('OIDC-SVC-022c: OIDC_USERNAME_CLAIM picks the claim the username is built from (#1677)', () => {
+    createUser(testDb, { email: 'someone@example.com' });
+    process.env.OIDC_USERNAME_CLAIM = 'preferred_username';
+    const result = svc.findOrCreateUser(
+      { sub: 'sub-jane-2', email: 'jane2@example.com', name: 'Jane Doe', preferred_username: 'jane.d' },
+      MOCK_CONFIG
+    );
+    expect((result as { user: { username: string } }).user.username).toBe('jane.d');
+  });
+
+  it('OIDC-SVC-022d: a named claim the provider leaves empty falls back to name, then the email (#1677)', () => {
+    createUser(testDb, { email: 'someone@example.com' });
+    process.env.OIDC_USERNAME_CLAIM = 'nickname';
+    const withName = svc.findOrCreateUser(
+      { sub: 'sub-jane-3', email: 'jane3@example.com', name: 'Jane Three', nickname: '  ' },
+      MOCK_CONFIG
+    );
+    expect((withName as { user: { username: string } }).user.username).toBe('JaneThree');
+    const bare = svc.findOrCreateUser({ sub: 'sub-jane-4', email: 'j.four@example.com' }, MOCK_CONFIG);
+    expect((bare as { user: { username: string } }).user.username).toBe('j.four');
+  });
+
+  it('OIDC-SVC-022e: a later login never renames the account to the claim', () => {
+    const { user } = createUser(testDb, { email: 'kept@example.com', username: 'chosen' });
+    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?').run('sub-kept', MOCK_CONFIG.issuer, user.id);
+    process.env.OIDC_USERNAME_CLAIM = 'preferred_username';
+    const result = svc.findOrCreateUser(
+      { sub: 'sub-kept', email: 'kept@example.com', name: 'Kept', preferred_username: 'idp-name' },
+      MOCK_CONFIG
+    );
+    expect((result as { user: { username: string } }).user.username).toBe('chosen');
   });
 
   it('OIDC-SVC-024: returns registration_disabled error when registration is off', () => {

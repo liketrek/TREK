@@ -18,9 +18,9 @@ describe('AdminStatCard', () => {
     expect(screen.getByText('0')).toBeInTheDocument();
   });
 
-  it('FE-ADMSTAT-003: renders the passed icon component with the card icon classes', () => {
+  it('FE-ADMSTAT-003: renders the passed icon component in the card', () => {
     const { container } = render(<AdminStatCard label="Trips" value={7} icon={Users} />);
 
-    expect(container.querySelector('svg.w-5.h-5.text-content')).toBeInTheDocument();
+    expect(container.querySelector('svg.lucide-users')).toBeInTheDocument();
   });
 });

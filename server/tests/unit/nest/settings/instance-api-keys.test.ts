@@ -32,6 +32,7 @@ import {
   readInstanceApiKey,
   writeInstanceApiKey,
   resolveApiKey,
+  operatorKeyVariables,
 } from '../../../../src/nest/settings/instance-api-keys';
 
 const db = new DatabaseService(testDb);
@@ -135,5 +136,45 @@ describe('instance API keys', () => {
     // touched — here it must not resurrect a cleared instance key for them.
     testDb.prepare('UPDATE users SET unsplash_api_key = NULL WHERE id = ?').run(user.id);
     expect(resolveApiKey(db, 'unsplash_api_key', user.id, undefined)).toEqual({ key: null, source: null });
+  });
+});
+
+describe('operatorKeyVariables (#1881)', () => {
+  const VARS = ['PLACES_API_KEY', 'UNSPLASH_ACCESS_KEY', 'AMAP_API_KEY'] as const;
+  const saved: Partial<Record<(typeof VARS)[number], string>> = {};
+  beforeEach(() => {
+    for (const v of VARS) {
+      saved[v] = process.env[v];
+      delete process.env[v];
+    }
+  });
+  afterAll(() => {
+    for (const v of VARS) {
+      if (saved[v] === undefined) delete process.env[v];
+      else process.env[v] = saved[v];
+    }
+  });
+
+  it('INSTKEY-010: names nothing while no variable is set', () => {
+    expect(operatorKeyVariables()).toEqual({});
+  });
+
+  it('INSTKEY-011: names the variable behind each key that has one, never its value', () => {
+    process.env.PLACES_API_KEY = 'google-from-env';
+    process.env.UNSPLASH_ACCESS_KEY = 'unsplash-from-env';
+    process.env.AMAP_API_KEY = 'amap-from-env';
+    const set = operatorKeyVariables();
+    expect(set).toEqual({
+      maps_api_key: 'PLACES_API_KEY',
+      unsplash_api_key: 'UNSPLASH_ACCESS_KEY',
+      amap_api_key: 'AMAP_API_KEY',
+    });
+    expect(JSON.stringify(set)).not.toContain('from-env');
+  });
+
+  it('INSTKEY-012: a blank variable does not count as set', () => {
+    process.env.PLACES_API_KEY = '';
+    process.env.UNSPLASH_ACCESS_KEY = '   ';
+    expect(operatorKeyVariables()).toEqual({});
   });
 });

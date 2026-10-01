@@ -258,7 +258,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     setPendingUnsplashUrl(null)
     if (isEditing && trip?.id) {
       // Existing trip: upload immediately
-      uploadCoverNow(normalized)
+      void uploadCoverNow(normalized)
     } else {
       // New trip: stage for upload after creation
       setPendingCoverFile(normalized)
@@ -269,7 +269,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   }
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleCoverSelect(e.target.files?.[0])
+    void handleCoverSelect(e.target.files?.[0])
     e.target.value = ''
   }
 
@@ -361,7 +361,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       if (item.type.startsWith('image/')) {
         e.preventDefault()
         const file = item.getAsFile()
-        if (file) handleCoverSelect(file)
+        if (file) void handleCoverSelect(file)
         return
       }
     }
@@ -488,7 +488,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
               onDragOver={e => { e.preventDefault(); setCoverDragActive(true) }}
               onDragLeave={() => setCoverDragActive(false)}
-              onDrop={e => { e.preventDefault(); setCoverDragActive(false); const file = e.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) handleCoverSelect(file) }}
+              onDrop={e => { e.preventDefault(); setCoverDragActive(false); const file = e.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) void handleCoverSelect(file) }}
               className={`w-full h-[130px] px-4 border-2 border-dashed rounded-xl flex items-center justify-center gap-1.5 text-body transition-colors ${
                 coverDragActive
                   ? 'border-accent bg-accent-subtle text-content'
@@ -502,7 +502,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               type="text"
               value={coverSearchQuery}
               onChange={e => setCoverSearchQuery(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCoverSearch() } }}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void handleCoverSearch() } }}
               placeholder={t('dashboard.unsplashSearchPlaceholder')}
               className={inputCls}
             />

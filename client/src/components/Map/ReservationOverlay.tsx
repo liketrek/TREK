@@ -2,7 +2,7 @@ import { Fragment, createElement, useMemo, useState } from 'react'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { Marker, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
-import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
+import { Plane, Train, Ship, Car, Bus, Sailboat, CableCar, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
 import { escapeHtml } from '@trek/shared'
 import { getTransitMapSegments, type TransitMapSegment } from './transitGeometry'
 import { geodesicArcs } from './flightGeodesy'
@@ -13,8 +13,8 @@ import type { Reservation, ReservationEndpoint } from '../../types'
 
 const ENDPOINT_PANE = 'reservation-endpoints'
 
-type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transit' | 'transport_other'
-const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transit', 'transport_other']
+type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'cable_car' | 'transit' | 'transport_other'
+const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'cable_car', 'transit', 'transport_other']
 
 const TRANSPORT_COLOR = '#3b82f6'
 
@@ -27,6 +27,8 @@ const TYPE_META: Record<TransportType, { color: string; icon: typeof Plane; geod
   taxi: { color: TRANSPORT_COLOR, icon: CarTaxiFront, geodesic: false },
   bicycle: { color: TRANSPORT_COLOR, icon: Bike, geodesic: false },
   ferry: { color: TRANSPORT_COLOR, icon: Sailboat, geodesic: true },
+  // Valley to mountain station as the rope runs: a straight line, never a road (#2535).
+  cable_car: { color: TRANSPORT_COLOR, icon: CableCar, geodesic: false },
   transit: { color: TRANSPORT_COLOR, icon: TramFront, geodesic: false },
   transport_other: { color: TRANSPORT_COLOR, icon: Route, geodesic: false },
 }

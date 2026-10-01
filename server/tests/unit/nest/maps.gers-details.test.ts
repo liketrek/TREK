@@ -20,6 +20,7 @@ vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KE
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 const PLACE = {
   gers: 'abc-123',
@@ -38,7 +39,7 @@ const PLACE = {
 
 function make(osmTags: Record<string, string> | null) {
   const database = { get: vi.fn(() => undefined) } as unknown as DatabaseService;
-  const svc = new MapsService(database, {} as PlacePhotoCacheService);
+  const svc = new MapsService(database, {} as PlacePhotoCacheService, noGoogleQuota);
   vi.spyOn(svc, 'resolveOsmIdentity').mockResolvedValue(
     osmTags ? { tags: osmTags, osmUrl: 'https://www.openstreetmap.org/node/1', matchedName: "L'Osteria" } : null,
   );
@@ -104,7 +105,7 @@ describe('MapsService.getPlaceDetails for a gers: id', () => {
     // through would turn a working answer into an error for the one user whose
     // details request happened to land while Overpass was unreachable.
     const database = { get: vi.fn(() => undefined) } as unknown as DatabaseService;
-    const svc = new MapsService(database, {} as PlacePhotoCacheService);
+    const svc = new MapsService(database, {} as PlacePhotoCacheService, noGoogleQuota);
     vi.spyOn(svc, 'resolveOsmIdentity').mockRejectedValue(new Error('overpass down'));
     mockById.mockResolvedValue({ ...PLACE, hours: { osm: 'Mo-Su 12:00-22:00' } });
 

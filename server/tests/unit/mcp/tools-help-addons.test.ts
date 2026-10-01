@@ -1,6 +1,6 @@
 /**
  * Unit tests for the MCP help and addons tools:
- * list_help_topics, get_help_page, list_addons.
+ * list_help_topics, get_help_page, search_help, list_addons.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -49,6 +49,7 @@ const { wiki } = vi.hoisted(() => {
       getWikiIndex: vi.fn(),
       getWikiPage: vi.fn(),
       getWikiAsset: vi.fn(),
+      searchWiki: vi.fn(),
     },
   };
 });
@@ -124,7 +125,19 @@ beforeEach(() => {
   delete process.env.DEMO_MODE;
   wiki.getWikiIndex.mockReset();
   wiki.getWikiPage.mockReset();
+  wiki.searchWiki.mockReset();
   wiki.getWikiIndex.mockResolvedValue({ sections: SECTIONS });
+  wiki.searchWiki.mockResolvedValue([
+    {
+      slug: 'Quick-Start',
+      title: 'Quick Start',
+      section: 'Getting Started',
+      anchor: null,
+      heading: null,
+      snippet: 'Create a trip, then add days to it.',
+      score: 9,
+    },
+  ]);
   wiki.getWikiPage.mockImplementation(async (slug: string) => {
     const page = PAGES[slug];
     if (!page) throw new wiki.WikiNotFound(slug);
@@ -294,6 +307,51 @@ describe('Tool: get_help_page', () => {
       const data = parseToolResult(result) as HelpPagePayload;
       expect(data.title).toBe('Quick Start');
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// search_help
+// ---------------------------------------------------------------------------
+
+describe('Tool: search_help', () => {
+  it('hands the query and limit to the wiki search and returns its hits', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'search_help', arguments: { query: 'create trip', limit: 3 } });
+      expect(result.isError).toBeFalsy();
+      const data = parseToolResult(result) as { hits: { slug: string; snippet: string }[] };
+      expect(data.hits).toHaveLength(1);
+      expect(data.hits[0].slug).toBe('Quick-Start');
+      expect(wiki.searchWiki).toHaveBeenCalledWith('create trip', 3);
+    });
+  });
+
+  it('rejects an empty query before the search runs', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'search_help', arguments: { query: '' } });
+      expect(result.isError).toBe(true);
+      expect(wiki.searchWiki).not.toHaveBeenCalled();
+    });
+  });
+
+  it('reports an unavailable search instead of throwing', async () => {
+    wiki.searchWiki.mockRejectedValue(new Error('ENOENT'));
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'search_help', arguments: { query: 'trip' } });
+      expect(result.isError).toBe(true);
+      expect(toolText(result)).toBe('Help search unavailable.');
+    });
+  });
+
+  it('stays registered for a token holding an unrelated scope', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const names = (await h.client.listTools()).tools.map((t) => t.name);
+      expect(names).toContain('search_help');
+    }, ['weather:read']);
   });
 });
 

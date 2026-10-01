@@ -73,6 +73,7 @@ import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-
 import { TrekPhotosRepository } from '../../src/nest/photos/trek-photos.repository';
 import { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service';
 import { makeStorageFixture } from './storage-fixture';
+import { noGoogleQuota } from './google-quota';
 
 /**
  * Hand-wired counterpart of the PluginsModule DI graph for no-Nest tests
@@ -111,7 +112,7 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
   const oauth = new PluginOAuthService(dbs);
   const accommodations = new AccommodationsService(dbs, permissions, realtime, assignments);
   // After it: deleting a place cancels the nights booked at it through this one.
-  const places = new PlacesService(dbs, permissions, realtime, new MapsService(dbs, photoCache), queryHelpers, unsplash, photoCache, journey, generalStorage, accommodations);
+  const places = new PlacesService(dbs, permissions, realtime, new MapsService(dbs, photoCache, noGoogleQuota), queryHelpers, unsplash, photoCache, journey, generalStorage, accommodations);
   // After accommodations: a hotel booking writes the stay's day stop through it.
   const reservations = new ReservationsService(dbs, permissions, budget, realtime, notificationsStub(), new ReservationsReadRepository(dbs), accommodations);
   const trips = new TripsService(dbs, reservations, days, permissions, budget, vacay, realtime, unsplash, generalStorage, new SettingsService(dbs));
@@ -139,7 +140,7 @@ export function createPluginRpcHostFactory(dbs: DatabaseService): PluginRpcHostF
     new VacayRpc(vacay, guards),
     // The photo half needs storage plus the allowed-types setting and the EXIF
     // backfill; none of the tests on this harness write bytes, so they are stubs.
-    new JournalRpc(journey, guards, generalStorage, { get: () => '*' } as never, { schedule: () => {} } as never, dbs),
+    new JournalRpc(journey, guards, generalStorage, { get: () => '*' } as never, { scheduleUpload: () => {} } as never, dbs),
     new CollectionsRpc(collections, guards),
     new DbRpc(new PluginUserSettingsService(dbs)),
     new MetaRpc(dbs, guards),

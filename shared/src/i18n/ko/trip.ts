@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': '거의 다 왔어요...',
   'trip.mobilePlan': '계획',
   'trip.mobilePlaces': '장소',
+  'trip.panelWidth': '패널 너비',
   'trip.toast.placeUpdated': '장소가 업데이트되었습니다',
   'trip.toast.tripUpdated': '여행이 업데이트됨',
   'trip.toast.placeAdded': '장소가 추가되었습니다',

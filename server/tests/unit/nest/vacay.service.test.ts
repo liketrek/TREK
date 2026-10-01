@@ -697,6 +697,38 @@ describe('toggleCompanyHoliday', () => {
   });
 });
 
+describe('half company holidays (#2439)', () => {
+  const entryOf = (planId: number, date: string) =>
+    testDb.prepare('SELECT fraction FROM vacay_entries WHERE plan_id = ? AND date = ?').get(planId, date) as { fraction: number } | undefined;
+  const holidayOf = (planId: number, date: string) =>
+    testDb.prepare('SELECT fraction FROM vacay_company_holidays WHERE plan_id = ? AND date = ?').get(planId, date) as { fraction: number } | undefined;
+
+  it('VACAY-SVC-036b: a half company holiday halves a whole vacation day instead of wiping it', () => {
+    const { user, plan } = setupUserWithPlan();
+    svc.toggleEntry(user.id, plan.id, '2025-12-24', 1);
+    expect(svc.toggleCompanyHoliday(plan.id, '2025-12-24', 'Christmas Eve', undefined, 0.5)).toEqual({ action: 'added', fraction: 0.5 });
+    expect(entryOf(plan.id, '2025-12-24')?.fraction).toBe(0.5);
+    expect(holidayOf(plan.id, '2025-12-24')?.fraction).toBe(0.5);
+  });
+
+  it('VACAY-SVC-036c: the other size converts the holiday, the same size clears it', () => {
+    const { user, plan } = setupUserWithPlan();
+    svc.toggleCompanyHoliday(plan.id, '2025-12-31', undefined, undefined, 0.5);
+    svc.toggleEntry(user.id, plan.id, '2025-12-31', 0.5);
+    expect(svc.toggleCompanyHoliday(plan.id, '2025-12-31', undefined, undefined, 1)).toEqual({ action: 'updated', fraction: 1 });
+    expect(entryOf(plan.id, '2025-12-31')).toBeUndefined();
+    expect(svc.toggleCompanyHoliday(plan.id, '2025-12-31', undefined, undefined, 1)).toEqual({ action: 'removed' });
+    expect(holidayOf(plan.id, '2025-12-31')).toBeUndefined();
+  });
+
+  it('VACAY-SVC-036d: leave on a half company holiday is half a day, whatever was asked', () => {
+    const { user, plan } = setupUserWithPlan();
+    testDb.prepare('UPDATE vacay_plans SET company_holidays_enabled = 1 WHERE id = ?').run(plan.id);
+    svc.toggleCompanyHoliday(plan.id, '2025-12-24', undefined, undefined, 0.5);
+    expect(svc.toggleEntry(user.id, plan.id, '2025-12-24', 1)).toMatchObject({ action: 'added', fraction: 0.5 });
+  });
+});
+
 // ── acceptInvite / declineInvite / cancelInvite ───────────────────────────────
 
 describe('acceptInvite', () => {
@@ -1482,7 +1514,7 @@ describe('getSharedCalendars', () => {
 
     const calendars = svc.getSharedCalendars(viewer.id, '2025');
 
-    expect(calendars[0].companyHolidays).toEqual([{ date: '2025-12-24' }]);
+    expect(calendars[0].companyHolidays).toEqual([{ date: '2025-12-24', fraction: 1 }]);
   });
 
   it('VACAY-SVC-065: an owner without any plan yields empty arrays (no lazy creation)', () => {

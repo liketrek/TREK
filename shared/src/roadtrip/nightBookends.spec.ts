@@ -1,5 +1,5 @@
 /**
- * ROADTRIP-BOOKENDS-001..032: a booked night stands at both ends of the days around it.
+ * ROADTRIP-BOOKENDS-001..035: a booked night stands at both ends of the days around it.
  *
  * Pinned here: which hotel a day wakes up in and which it sleeps in, where the two are
  * seated and where they are not (the hotel already there, a landing, a departure, a hire
@@ -7,7 +7,8 @@
  * does (a clock), that the choice does not depend on the order the stays come in, and
  * that a night spent at one hotel is a leg going nowhere. From 029 on: a day moved by a
  * ride the road does not see, a terminal out of a drive's reach, and the flight day of
- * the report read from the stored day to its nights.
+ * the report read from the stored day to its nights. From 033 on: the stop a booking put
+ * on its check-in day gives way to the evening at that stay.
  */
 import { assembleRoadtrip } from './assemble';
 import { carrierLegsFor, carrierSeam, seatCarrierStops, terminalAssignmentId, type CarrierBooking } from './carriers';
@@ -758,5 +759,59 @@ describe('the flight from Hamburg to the Munich hotel (trip 45, day 3)', () => {
       ]);
     }
     expect(timed(seated!).schedule.entries[0]).toMatchObject({ arrival: '13:45', departure: '13:45' });
+  });
+});
+
+describe('the stop a booking put on its check-in day (#2546)', () => {
+  const a = stay(1, D1, D2, GETAWAY);
+  const b = stay(2, D2, D3, WALLINGA);
+  /** The Wallinga stop the booking wrote, which Days hides. */
+  const booked = (ownerIndex: number, over: Partial<RoadtripStop> = {}) =>
+    stayStop(D2, ownerIndex, WALLINGA, { name: 'B', bookedNightId: 2, ...over });
+
+  it('ROADTRIP-BOOKENDS-033: seated first without a check-in, it gives way to the evening, which checks in', () => {
+    const [day] = seatNightBookends(
+      [planDay(D2, [booked(0), visit(D2, 1, { name: 'P1' }), visit(D2, 2, { name: 'P2', time: '18:00' })])],
+      days,
+      [a, b],
+    );
+    // Not check out, the hotel, the places and the hotel again: the day ends where it sleeps.
+    expect(shape(day)).toEqual(['morning:1', 'P1', 'P2', 'evening:2']);
+    expect(day!.stops[3]!.bookend).toMatchObject({ checkingIn: true, accommodationId: 2 });
+    // The places keep their stored index, and the evening the one behind the last stored stop.
+    expect(day!.stops.map((s) => s.ownerIndex)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('ROADTRIP-BOOKENDS-034: seated at its check-in in the middle of the day, it gives way too', () => {
+    const [day] = seatNightBookends(
+      [
+        planDay(D2, [
+          visit(D2, 0, { name: 'P0', time: '11:00' }),
+          booked(1, { checkInTime: '15:00' }),
+          visit(D2, 2, { name: 'P1' }),
+        ]),
+      ],
+      days,
+      [a, { ...b, check_in: '15:00' }],
+    );
+    expect(shape(day)).toEqual(['morning:1', 'P0', 'P1', 'evening:2']);
+    // The hour the room is ready stays on the evening's row, as a label.
+    expect(day!.stops[3]!.bookend).toMatchObject({ checkingIn: true, checkIn: '15:00' });
+  });
+
+  it('ROADTRIP-BOOKENDS-035: the hotel stays where the traveller placed it, and the booked stop where nothing replaces it', () => {
+    const p = () => visit(D2, 1, { name: 'P' });
+    // Placed by the traveller: theirs, and the day comes back to it in the evening.
+    const placed = seatNightBookends([planDay(D2, [booked(0, { bookedNightId: null }), p()])], days, [a, b]);
+    expect(shape(placed[0])).toEqual(['morning:1', 'B', 'P', 'evening:2']);
+    // Already the day's last stop: it is the evening, and nothing is seated behind it.
+    const last = seatNightBookends([planDay(D2, [p(), booked(1)])], days, [a, b]);
+    expect(shape(last[0])).toEqual(['morning:1', 'P', 'B']);
+    // A departure closes the day, so no evening is seated and the stop stays the hotel's visit.
+    const flight = seatNightBookends([planDay(D2, [booked(0), p(), terminal(D2, 2, 'departure')])], days, [a, b]);
+    expect(shape(flight[0])).toEqual(['morning:1', 'B', 'P', 'departure']);
+    // Another stay's stop is not tonight's, and is left alone.
+    const other = seatNightBookends([planDay(D2, [booked(0, { bookedNightId: 9 }), p()])], days, [a, b]);
+    expect(shape(other[0])).toEqual(['morning:1', 'B', 'P', 'evening:2']);
   });
 });

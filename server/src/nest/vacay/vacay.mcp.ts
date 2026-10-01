@@ -353,19 +353,20 @@ export class VacayMcp {
 
   @Tool({
     name: 'toggle_company_holiday',
-    description: 'Toggle a date as a company holiday for the whole plan.',
+    description: 'Toggle a date as a company holiday for the whole plan, whole or half. The same size again removes it; the other size converts it. A half company holiday leaves room for a half vacation day.',
     inputSchema: {
       date: z.string(),
       note: z.string().optional(),
+      half: z.boolean().optional().describe('True makes it a half company holiday (e.g. a free afternoon)'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: vacayAddonOn,
     access: { group: 'vacay', mode: 'write' },
   })
-  async toggleCompanyHoliday({ date, note }: { date: string; note?: string }, ctx: McpContext) {
+  async toggleCompanyHoliday({ date, note, half }: { date: string; note?: string; half?: boolean }, ctx: McpContext) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const planId = this.vacay.getActivePlanId(ctx.userId);
-    const result = this.vacay.toggleCompanyHoliday(planId, date, note, undefined);
+    const result = this.vacay.toggleCompanyHoliday(planId, date, note, undefined, half ? 0.5 : 1);
     return ok(result);
   }
 

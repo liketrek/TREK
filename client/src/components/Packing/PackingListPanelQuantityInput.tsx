@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type CSSProperties } from 'react'
 import { NumericInput } from '../shared/NumericInput'
 
-export function QuantityInput({ value, onSave }: { value: number; onSave: (qty: number) => void }) {
+/** `style` lays over the frame, for a row that wants the field quieter at rest. */
+export function QuantityInput({ value, onSave, style }: { value: number; onSave: (qty: number) => void; style?: CSSProperties }) {
   const [local, setLocal] = useState(String(value))
   useEffect(() => setLocal(String(value)), [value])
 
@@ -12,7 +13,7 @@ export function QuantityInput({ value, onSave }: { value: number; onSave: (qty: 
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent', flexShrink: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent', flexShrink: 0, ...style }}>
       <NumericInput
         value={local}
         onValueChange={setLocal}

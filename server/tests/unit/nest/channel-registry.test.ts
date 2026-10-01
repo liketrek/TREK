@@ -2,7 +2,7 @@
  * Unit tests for the external notification channel registry.
  * Covers CHREG-001 to CHREG-008.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   listChannels,
   getChannel,
@@ -18,14 +18,22 @@ import { registerBuiltinChannels } from '../../../src/nest/notifications/channel
 import type { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
 import type { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';
 import type { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
+import type { WebPushService } from '../../../src/nest/notifications/transports/web-push.service';
 
 // The built-ins take their transports as an argument now; these cases only care
-// that the three ids land in the registry with the right privileges, so the
+// that the four ids land in the registry with the right privileges, so the
 // transports are stubs.
+const pushStub = {
+  isAvailable: vi.fn(() => true),
+  hasDevices: vi.fn((userId: number) => userId === 7),
+  sendToUser: vi.fn(async () => true),
+  sendTest: vi.fn(async () => ({ success: true })),
+};
 const stubTransports = {
   mailer: { isSmtpConfigured: () => true, getUserEmail: () => null } as unknown as MailerService,
   webhook: { getUserWebhookUrl: () => null, getAdminWebhookUrl: () => null } as unknown as WebhookService,
   ntfy: { getUserNtfyConfig: () => null, getAdminNtfyConfig: () => ({ server: null, topic: null, token: null }) } as unknown as NtfyService,
+  push: pushStub as unknown as WebPushService,
 };
 
 function fakeChannel(id: string, over: Partial<ExternalChannel> = {}): ExternalChannel {
@@ -52,8 +60,8 @@ afterEach(() => {
 });
 
 describe('channelRegistry', () => {
-  it('CHREG-001 — the three built-in external channels are registered; in-app is not', () => {
-    expect(listChannels().map(c => c.id)).toEqual(['email', 'webhook', 'ntfy']);
+  it('CHREG-001: the four built-in external channels are registered; in-app is not', () => {
+    expect(listChannels().map(c => c.id)).toEqual(['email', 'webhook', 'ntfy', 'push']);
     expect(getChannel('inapp')).toBeUndefined();
   });
 
@@ -71,14 +79,14 @@ describe('channelRegistry', () => {
     expect(getChannel('plugin:gotify')).toBeDefined();
     live = false;
     expect(getChannel('plugin:gotify')).toBeUndefined();
-    expect(listChannels().map(c => c.id)).toEqual(['email', 'webhook', 'ntfy']);
+    expect(listChannels().map(c => c.id)).toEqual(['email', 'webhook', 'ntfy', 'push']);
   });
 
   it('CHREG-004 — a throwing plugin source cannot take notifications down', () => {
     setPluginChannelSource(() => {
       throw new Error('runtime exploded');
     });
-    expect(listChannels().map(c => c.id)).toEqual(['email', 'webhook', 'ntfy']);
+    expect(listChannels().map(c => c.id)).toEqual(['email', 'webhook', 'ntfy', 'push']);
   });
 
   it('CHREG-005 — a plugin can never claim a built-in id', () => {
@@ -92,12 +100,50 @@ describe('channelRegistry', () => {
     expect(getChannel('email')?.bypassesActiveToggleForAdminEvents).toBe(true);
     expect(getChannel('webhook')?.bypassesActiveToggleForAdminEvents).toBeUndefined();
     expect(getChannel('ntfy')?.bypassesActiveToggleForAdminEvents).toBeUndefined();
+    expect(getChannel('push')?.bypassesActiveToggleForAdminEvents).toBeUndefined();
   });
 
   it('CHREG-007 — webhook and ntfy deliver the admin-global copy; email does not', () => {
     expect(getChannel('webhook')?.supportsAdminGlobal).toBe(true);
     expect(getChannel('ntfy')?.supportsAdminGlobal).toBe(true);
     expect(getChannel('email')?.supportsAdminGlobal).toBeUndefined();
+    expect(getChannel('push')?.supportsAdminGlobal).toBeUndefined();
+    expect(getChannel('push')?.sendGlobal).toBeUndefined();
+  });
+
+  it('CHREG-008b: push carries every user event, but neither admin-scoped ones nor synology_session_cleared', () => {
+    const push = getChannel('push')!;
+    expect(push.source).toBe('builtin');
+    expect(push.labelKey).toBe('settings.notificationPreferences.push');
+    for (const event of ['trip_invite', 'collab_message', 'trip_reminder', 'plugin_notification'] as const) {
+      expect(push.supportsEvent(event)).toBe(true);
+    }
+    expect(push.supportsEvent('version_available')).toBe(false);
+    expect(push.supportsEvent('replica_failure')).toBe(false);
+    expect(push.supportsEvent('synology_session_cleared')).toBe(false);
+  });
+
+  it('CHREG-008c: push is configured for a user with a device and hands sends and tests to the transport', async () => {
+    const push = getChannel('push')!;
+    expect(push.isConfiguredFor(7)).toBe(true);
+    expect(push.isConfiguredFor(8)).toBe(false);
+    await push.sendToUser(7, MSG);
+    expect(pushStub.sendToUser).toHaveBeenCalledWith(7, MSG);
+    await expect(push.test!(7)).resolves.toEqual({ success: true });
+    expect(pushStub.sendTest).toHaveBeenCalledWith(7);
+  });
+
+  it('CHREG-008d: push is ready only while it can sign, and hides meanwhile; a plugin cannot claim that', () => {
+    const push = getChannel('push')!;
+    expect(push.hiddenWhileInstanceUnconfigured).toBe(true);
+    expect(push.isInstanceConfigured!()).toBe(true);
+    pushStub.isAvailable.mockReturnValueOnce(false);
+    expect(push.isInstanceConfigured!()).toBe(false);
+    // Email keeps its column without SMTP, as before.
+    expect(getChannel('email')?.hiddenWhileInstanceUnconfigured).toBeUndefined();
+
+    setPluginChannelSource(() => [fakeChannel('plugin:gotify', { hiddenWhileInstanceUnconfigured: true })]);
+    expect(getChannel('plugin:gotify')?.hiddenWhileInstanceUnconfigured).toBeUndefined();
   });
 
   it('CHREG-008 — built-ins carry every event except synology_session_cleared', () => {
@@ -122,6 +168,6 @@ describe('channelRegistry', () => {
     setPluginChannelSource(() => [boom]);
     await expect(getChannel('plugin:boom')!.sendToUser(1, MSG)).rejects.toThrow('nope');
     // and the registry is unharmed
-    expect(listChannels()).toHaveLength(4);
+    expect(listChannels()).toHaveLength(5);
   });
 });

@@ -63,6 +63,7 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 import { db } from '../../../src/db/database';
 import { DatabaseService } from '../../../src/nest/database/database.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { trekPlacesSearch } from '../../../src/nest/maps/trek-places.client';
 import {
   AmapPlacesProvider,
   AmapTipStash,
@@ -74,6 +75,7 @@ import {
 } from '../../../src/nest/maps/providers/amap.provider';
 import { isGooglePlaceId } from '../../../src/nest/maps/maps.helpers';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 const photoCacheStub = {
   get: vi.fn(() => null),
@@ -85,7 +87,7 @@ const photoCacheStub = {
   serveKey: vi.fn(() => null),
 } as unknown as PlacePhotoCacheService;
 
-const svc = new MapsService(new DatabaseService(db as never), photoCacheStub);
+const svc = new MapsService(new DatabaseService(db as never), photoCacheStub, noGoogleQuota);
 
 /** A provider over a fixed key, which is all these cases need. */
 function provider(tips = new AmapTipStash()): AmapPlacesProvider {
@@ -891,6 +893,123 @@ describe('MapsService with Amap in the keyed slot', () => {
     vi.stubGlobal('fetch', fetchSpy);
     await expect(svc.resolveGoogleMapsUrl('https://www.amap.com/place/B000A83M61')).rejects.toMatchObject({ status: 400 });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('MapsService: Amap first inside China when picked outright (#1636)', () => {
+  const BEIJING = { lat: 39.9087, lng: 116.3975, radius: 20000 };
+  const PARIS = { lat: 48.8584, lng: 2.2945, radius: 20000 };
+  const BEIJING_BOX = { low: { lat: 39.8, lng: 116.3 }, high: { lat: 40.0, lng: 116.5 } };
+  let spies: { mockRestore: () => void }[] = [];
+  afterEach(() => {
+    spies.forEach(s => s.mockRestore());
+    spies = [];
+    vi.mocked(trekPlacesSearch).mockClear();
+  });
+  function osmAnswers(places: Record<string, unknown>[]) {
+    const spy = vi.spyOn(svc, 'searchNominatim').mockResolvedValue(places as never);
+    spies.push(spy);
+    return spy;
+  }
+  const amapPoi = () => ok({ pois: [{ id: 'B1', name: '天安门', location: TIANANMEN_LOCATION }] });
+
+  it('AMAP-095: picked outright and searching around Beijing, Amap answers before the index and OpenStreetMap', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    const osm = osmAnswers([{ name: 'Tiananmen (OSM)' }]);
+    const fetchSpy = vi.fn().mockResolvedValue(amapPoi());
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await svc.searchPlaces(1, '天安门', 'zh', BEIJING);
+
+    expect(result.source).toBe('amap');
+    expect(result.places[0].amap_poi_id).toBe('amap:B1');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(osm).not.toHaveBeenCalled();
+    expect(trekPlacesSearch).not.toHaveBeenCalled();
+  });
+
+  it('AMAP-096: an empty Amap answer hands the search on, and Amap is not asked a second time', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    osmAnswers([]);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ count: '0', pois: [] })));
+    const searchText = vi.spyOn(AmapPlacesProvider.prototype, 'searchText');
+    spies.push(searchText);
+
+    const result = await svc.searchPlaces(1, 'nothing here', 'zh', BEIJING);
+
+    expect(result).toEqual({ places: [], source: 'amap' });
+    expect(trekPlacesSearch).toHaveBeenCalled();
+    expect(searchText).toHaveBeenCalledTimes(1);
+  });
+
+  it('AMAP-097: a search centred outside China keeps the usual order, so the Eiffel Tower does not land in Macau', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    osmAnswers([{ name: 'Tour Eiffel' }]);
+    const fetchSpy = vi.fn().mockResolvedValue(amapPoi());
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await svc.searchPlaces(1, 'Eiffel Tower', 'en', PARIS);
+
+    expect(result.places[0].name).toBe('Tour Eiffel');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('AMAP-098: Amap holding the slot only by default (auto) changes nothing', async () => {
+    mockProviderGet.mockReturnValue(undefined);
+    keys({ amap: 'akey' });
+    osmAnswers([{ name: 'Tiananmen (OSM)' }]);
+    const fetchSpy = vi.fn().mockResolvedValue(amapPoi());
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await svc.searchPlaces(1, '天安门', 'zh', BEIJING);
+
+    expect(result.places[0].name).toBe('Tiananmen (OSM)');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('AMAP-099: a failing Amap drops through to the index and OpenStreetMap with a warning', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    osmAnswers([{ name: 'Tiananmen (OSM)' }]);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    spies.push(warn);
+    spies.push(vi.spyOn(console, 'error').mockImplementation(() => {}));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(amapError('10003')));
+
+    const result = await svc.searchPlaces(1, '天安门', 'zh', BEIJING);
+
+    expect(result.places[0].name).toBe('Tiananmen (OSM)');
+    expect(warn).toHaveBeenCalledWith('Amap search failed, falling back:', expect.any(String));
+  });
+
+  it('AMAP-100: suggestions around Beijing come from Amap first, once', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    const fetchSpy = vi.fn().mockResolvedValue(ok({ tips: [{ id: 'T1', name: '天安门', district: '北京市东城区' }] }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await svc.autocompletePlaces(1, '天安', 'zh', BEIJING_BOX);
+
+    expect(result.source).toBe('amap');
+    expect(result.suggestions[0].placeId).toBe('amap:T1');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(trekPlacesSearch).not.toHaveBeenCalled();
+  });
+
+  it('AMAP-101: empty Amap suggestions hand on to the index and are not asked for again', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    const fetchSpy = vi.fn().mockResolvedValue(ok({ tips: [] }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await svc.autocompletePlaces(1, 'zzz', 'zh', BEIJING_BOX);
+
+    expect(result).toEqual({ suggestions: [], source: 'amap' });
+    expect(trekPlacesSearch).toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });
 

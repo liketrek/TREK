@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Cofnij: {action}',
   'undo.assignPlace': 'Miejsce przypisane do dnia',
   'undo.removeAssignment': 'Miejsce usunięte z dnia',
+  'undo.clearDay': 'Dzień wyczyszczony',
   'undo.reorder': 'Kolejność zmieniona',
   'undo.optimize': 'Trasa zoptymalizowana',
   'undo.deletePlace': 'Miejsce usunięte',

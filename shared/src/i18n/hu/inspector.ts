@@ -14,6 +14,7 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Függőben lévő foglalás',
   'inspector.google': 'Google Maps',
   'inspector.navigation': 'Navigáció',
+  'inspector.otherMapApp': 'Másik térképalkalmazás',
   'inspector.openWith': 'Megnyitás ezzel',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.website': 'Weboldal megnyitása',

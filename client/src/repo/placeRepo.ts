@@ -10,7 +10,7 @@ export const placeRepo = {
     return onlineThenCache(
       async () => {
         const result = await placesApi.list(tripId, params)
-        upsertPlaces(result.places)
+        void upsertPlaces(result.places)
         return result
       },
       async () => ({

@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useVacayStore } from '../../store/vacayStore'
 import { addListener, removeListener } from '../../api/websocket'
+import { useToast } from '../../components/shared/Toast'
+import { useTranslation } from '../../i18n'
+import { getApiErrorMessage } from '../../utils/apiError'
 
 /**
  * Vacay page logic — pulls the vacay store, owns the page-local UI state
@@ -14,6 +17,8 @@ export function useVacay() {
   const [showSettings, setShowSettings] = useState<boolean>(false)
   const [deleteYear, setDeleteYear] = useState<number | null>(null)
   const [showMobileSidebar, setShowMobileSidebar] = useState<boolean>(false)
+  const toast = useToast()
+  const { t } = useTranslation()
 
   useEffect(() => { loadAll() }, [])
 
@@ -42,6 +47,16 @@ export function useVacay() {
     if (selectedYear) { loadEntries(selectedYear); loadStats(selectedYear); loadHolidays(selectedYear); loadSharedCalendars(selectedYear) }
   }, [selectedYear])
 
+  // The confirm closes as it is answered, so a removal that fails says so here.
+  const removeYearReported = async (year: number | null) => {
+    if (year == null) return
+    try {
+      await removeYear(year)
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    }
+  }
+
   const handleAddNextYear = () => {
     const nextYear = years.length > 0 ? Math.max(...years) + 1 : new Date().getFullYear()
     addYear(nextYear)
@@ -53,7 +68,7 @@ export function useVacay() {
   }
 
   return {
-    years, selectedYear, setSelectedYear, removeYear, loading,
+    years, selectedYear, setSelectedYear, removeYear: removeYearReported, loading,
     incomingInvites, acceptInvite, declineInvite, plan, sharedCalendars,
     showSettings, setShowSettings, deleteYear, setDeleteYear,
     showMobileSidebar, setShowMobileSidebar,

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTripStore } from '../../../../store/tripStore'
 import { useRouteCalculation } from '../../../../hooks/useRouteCalculation'
 import { assignmentsApi, reservationsApi, weatherApi } from '../../../../api/client'
-import { usePluginStore } from '../../../../store/pluginStore'
+import { useRouteModeOptions } from '../../../../components/Planner/routeModes'
 import { getDayBookendHotels } from '../../../../utils/dayOrder'
 import { getDisplayTimeForDay, getMergedItems, getTransportForDay, hasCarrierEndpointOnDay, isCarrierTransport } from '../../../../utils/dayMerge'
 import { dayCoMapsUrl, dayExportStops, dayGoogleMapsUrl, optimizeDayOrder, type DayCarrier } from '../lib/dayRoute'
@@ -368,15 +368,7 @@ export function useMPlanTimeline(planner: TripPlanner) {
     : null
 
   // ── Per-segment travel mode (#1281) ──
-  const activePlugins = usePluginStore(s => s.plugins)
-  const routeModeOptions = useMemo(() => {
-    const opts: Array<{ key: string; label: string }> = [
-      { key: 'driving', label: t('mobileTrip.profileDriving') },
-      { key: 'walking', label: t('mobileTrip.profileWalking') },
-    ]
-    for (const p of activePlugins) for (const prof of p.routeProfiles ?? []) opts.push({ key: `plugin:${p.id}/${prof.id}`, label: prof.label })
-    return opts
-  }, [activePlugins, t])
+  const routeModeOptions = useRouteModeOptions()
 
   // Set the mode of the leg leaving a stop — optimistic, then persisted; null clears
   // the override back to the day default. Sticky against the whole-day picker.

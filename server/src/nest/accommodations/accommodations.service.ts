@@ -603,8 +603,7 @@ export class AccommodationsService {
       const linkedRes = this.db.all<{ id: number }>('SELECT id FROM reservations WHERE accommodation_id = ?', Number(id));
       const deletedBudgetItemIds: number[] = [];
       for (const res of linkedRes) {
-        const linkedBudget = this.db.get<{ id: number }>('SELECT id FROM budget_items WHERE reservation_id = ?', res.id);
-        if (linkedBudget) {
+        for (const linkedBudget of this.db.all<{ id: number }>('SELECT id FROM budget_items WHERE reservation_id = ?', res.id)) {
           this.db.run('DELETE FROM budget_items WHERE id = ?', linkedBudget.id);
           deletedBudgetItemIds.push(linkedBudget.id);
         }

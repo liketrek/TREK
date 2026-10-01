@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Fájl összekapcsolása',
   'files.linkEmpty': 'Még nincs összekapcsolható hely vagy foglalás',
   'files.menu': 'További lehetőségek',
-  'files.uploadErrorSize': 'A fájl túl nagy (max. 50 MB)',
+  'files.uploadErrorSize': 'A fájl túl nagy (max. {max} MB)',
   'files.title': 'Fájlok',
   'files.pageTitle': 'Fájlok és dokumentumok',
   'files.subtitle': '{count} fájl a következőhöz: {trip}',

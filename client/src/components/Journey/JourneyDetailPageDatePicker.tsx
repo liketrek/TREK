@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { localIsoDate } from '../../utils/localDate'
 import { ArrowLeft, ChevronRight, Calendar } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { useWeekStartDay } from '../../hooks/useWeekStartDay'
+import { leadingBlanks, weekdayLabels } from '../../utils/calendarWeek'
 
 /**
  * The header steps up a level on each click, days → months → years, and a
@@ -18,7 +20,8 @@ export function DatePicker({ value, onChange, tripDates }: {
   onChange: (date: string) => void
   tripDates?: Set<string>
 }) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const weekStart = useWeekStartDay()
   const [open, setOpen] = useState(false)
   const [view, setView] = useState<CalendarView>('days')
   const [yearPageStart, setYearPageStart] = useState(0)
@@ -28,9 +31,9 @@ export function DatePicker({ value, onChange, tripDates }: {
   })
 
   const daysInMonth = new Date(viewMonth.year, viewMonth.month + 1, 0).getDate()
-  // Monday-first, matching CustomDateTimePicker / VacayCalendar (getDay() is Sunday=0).
-  const firstDow = (new Date(viewMonth.year, viewMonth.month, 1).getDay() + 6) % 7
-  const monthName = new Date(viewMonth.year, viewMonth.month).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+  // Rows open on the user's week_start, like CustomDateTimePicker (#2029).
+  const firstDow = leadingBlanks(viewMonth.year, viewMonth.month, weekStart)
+  const monthName = new Date(viewMonth.year, viewMonth.month).toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 
   const prevMonth = () => {
     setViewMonth(p => p.month === 0 ? { year: p.year - 1, month: 11 } : { ...p, month: p.month - 1 })
@@ -89,10 +92,10 @@ export function DatePicker({ value, onChange, tripDates }: {
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
 
   const monthNames = Array.from({ length: 12 }, (_, i) =>
-    new Date(viewMonth.year, i).toLocaleDateString(undefined, { month: 'short' }))
+    new Date(viewMonth.year, i).toLocaleDateString(locale, { month: 'short' }))
   const years = Array.from({ length: YEAR_PAGE_SIZE }, (_, i) => yearPageStart + i)
 
-  const formatted = value ? new Date(value + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : null
+  const formatted = value ? new Date(value + 'T00:00:00').toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' }) : null
 
   const navButton = 'w-7 h-7 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center justify-center text-zinc-500'
   const gridCell = (selected: boolean) => `h-9 rounded-lg text-[12px] font-medium flex items-center justify-center transition-colors ${
@@ -168,7 +171,7 @@ export function DatePicker({ value, onChange, tripDates }: {
               <>
                 {/* Weekday headers */}
                 <div className="grid grid-cols-7 mb-1">
-                  {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((d, i) => (
+                  {weekdayLabels(locale, weekStart, 'short').map((d, i) => (
                     <div key={i} className="text-center text-[10px] font-medium text-zinc-400 py-1">{d}</div>
                   ))}
                 </div>

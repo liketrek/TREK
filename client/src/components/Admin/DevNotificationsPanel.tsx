@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useId } from 'react'
 import { adminApi, tripsApi } from '../../api/client'
 import { getApiErrorMessage } from '../../utils/apiError'
 import { useAuthStore } from '../../store/authStore'
 import { useToast } from '../shared/Toast'
+import { fs } from '../shared/DialogShell'
+import { EditorField, INPUT } from '../shared/dialogParts'
+import { SettingsCard, StatusPill } from '../Settings/settingsKit'
 import {
-  Bell, Zap, ArrowRight, CheckCircle, Navigation, User,
-  Calendar, Clock, Image, MessageSquare, Tag, UserPlus,
-  Download, MapPin,
+  Bell, Zap, CheckCircle, Navigation, User, Calendar, Clock, Image, MessageSquare, Tag, UserPlus,
+  Download, MapPin, ChevronDown, FlaskConical, Loader2, Map as MapIcon, ShieldCheck,
 } from 'lucide-react'
 
 interface Trip {
@@ -20,8 +22,26 @@ interface AppUser {
   email: string
 }
 
+/** A native select in the editors' box look, with the chevron the CustomSelect draws. */
+const SELECT = `${INPUT} appearance-none pr-9`
+
+function SelectBox({ id, children, ...rest }: React.SelectHTMLAttributes<HTMLSelectElement>): React.ReactElement {
+  return (
+    <div className="relative">
+      <select id={id} {...rest} className={SELECT}>{children}</select>
+      <ChevronDown size={14} strokeWidth={2.2} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-content-faint" />
+    </div>
+  )
+}
+
+/** The buttons of one group, two to a row from a small window up. */
+function ButtonGrid({ children }: { children: React.ReactNode }): React.ReactElement {
+  return <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{children}</div>
+}
+
 export default function DevNotificationsPanel(): React.ReactElement {
   const toast = useToast()
+  const ids = useId()
   const user = useAuthStore(s => s.user)
   const [sending, setSending] = useState<string | null>(null)
   const [trips, setTrips] = useState<Trip[]>([])
@@ -62,74 +82,38 @@ export default function DevNotificationsPanel(): React.ReactElement {
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   const Btn = ({
-    id, label, sub, icon: Icon, color, onClick,
+    id, label, sub, icon: Icon, onClick,
   }: {
-    id: string; label: string; sub: string; icon: React.ElementType; color: string; onClick: () => void
+    id: string; label: string; sub: string; icon: React.ElementType; onClick: () => void
   }) => (
     <button type="button"
       onClick={onClick}
       disabled={sending !== null}
-      className="flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors text-left w-full border-edge bg-surface-card"
-      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)' }}
+      className="flex w-full min-w-0 items-center gap-3 rounded-[12px] border border-edge-faint bg-surface-card px-3 py-2.5 text-left transition-colors hover:bg-surface-secondary disabled:cursor-default"
     >
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{ background: `${color}20`, color }}>
-        <Icon className="w-4 h-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-content">{label}</p>
-        <p className="text-xs truncate text-content-faint">{sub}</p>
-      </div>
-      {sending === id && (
-        <div className="w-4 h-4 border-2 border-slate-200 border-t-indigo-500 rounded-full animate-spin flex-shrink-0" />
-      )}
+      <span className="grid h-8 w-8 flex-none place-items-center rounded-[10px] bg-surface-tertiary text-content-secondary">
+        <Icon size={15} strokeWidth={2} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium text-content" style={fs(13, 'body')}>{label}</span>
+        <span className="block truncate font-geist text-content-faint" style={fs(11)}>{sub}</span>
+      </span>
+      {sending === id && <Loader2 size={15} className="flex-none animate-spin text-content-faint" />}
     </button>
   )
 
-  const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-    <h3 className="text-sm font-semibold mb-3 text-content-secondary">{children}</h3>
-  )
-
-  const TripSelector = () => (
-    <select
-      value={selectedTripId ?? ''}
-      onChange={e => setSelectedTripId(Number(e.target.value))}
-      className="w-full px-3 py-2 rounded-lg border text-sm mb-3 border-edge bg-surface-card text-content"
-    >
-      {trips.map(trip => <option key={trip.id} value={trip.id}>{trip.title}</option>)}
-    </select>
-  )
-
-  const UserSelector = () => (
-    <select
-      value={selectedUserId ?? ''}
-      onChange={e => setSelectedUserId(Number(e.target.value))}
-      className="w-full px-3 py-2 rounded-lg border text-sm mb-3 border-edge bg-surface-card text-content"
-    >
-      {users.map(u => <option key={u.id} value={u.id}>{u.username} ({u.email})</option>)}
-    </select>
-  )
-
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-2">
-        <div className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-[#fbbf24] text-[#000]">
-          DEV ONLY
-        </div>
-        <span className="text-sm font-medium text-content">
-          Notification Testing
-        </span>
-      </div>
-
+    <div>
       {/* ── Type Testing ─────────────────────────────────────────────────── */}
-      <div>
-        <SectionTitle>Type Testing</SectionTitle>
-        <p className="text-xs mb-3 text-content-muted">
-          Test how each in-app notification type renders, sent to yourself.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Btn id="simple-me" label="Simple → Me" sub="test_simple · user" icon={Bell} color="#6366f1"
+      {/* The whole tab is a dev build's tool; the first card, always there, says so in its band. */}
+      <SettingsCard
+        icon={FlaskConical}
+        title="Type Testing"
+        hint="Test how each in-app notification type renders, sent to yourself."
+        badge={<StatusPill tone="warning">DEV ONLY</StatusPill>}
+      >
+        <ButtonGrid>
+          <Btn id="simple-me" label="Simple → Me" sub="test_simple · user" icon={Bell}
             onClick={() => fire('simple-me', {
               event: 'test_simple',
               scope: 'user',
@@ -137,7 +121,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
               params: {},
             })}
           />
-          <Btn id="boolean-me" label="Boolean → Me" sub="test_boolean · user" icon={CheckCircle} color="#10b981"
+          <Btn id="boolean-me" label="Boolean → Me" sub="test_boolean · user" icon={CheckCircle}
             onClick={() => fire('boolean-me', {
               event: 'test_boolean',
               scope: 'user',
@@ -150,7 +134,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
               },
             })}
           />
-          <Btn id="navigate-me" label="Navigate → Me" sub="test_navigate · user" icon={Navigation} color="#f59e0b"
+          <Btn id="navigate-me" label="Navigate → Me" sub="test_navigate · user" icon={Navigation}
             onClick={() => fire('navigate-me', {
               event: 'test_navigate',
               scope: 'user',
@@ -158,7 +142,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
               params: {},
             })}
           />
-          <Btn id="simple-admins" label="Simple → All Admins" sub="test_simple · admin" icon={Zap} color="#ef4444"
+          <Btn id="simple-admins" label="Simple → All Admins" sub="test_simple · admin" icon={Zap}
             onClick={() => fire('simple-admins', {
               event: 'test_simple',
               scope: 'admin',
@@ -166,19 +150,23 @@ export default function DevNotificationsPanel(): React.ReactElement {
               params: {},
             })}
           />
-        </div>
-      </div>
+        </ButtonGrid>
+      </SettingsCard>
 
       {/* ── Trip-Scoped Events ───────────────────────────────────────────── */}
       {trips.length > 0 && (
-        <div>
-          <SectionTitle>Trip-Scoped Events</SectionTitle>
-          <p className="text-xs mb-3 text-content-muted">
-            Fires each trip event to all members of the selected trip (excluding yourself).
-          </p>
-          <TripSelector />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Btn id="booking_change" label="booking_change" sub="navigate · trip" icon={Calendar} color="#6366f1"
+        <SettingsCard icon={MapIcon} title="Trip-Scoped Events" hint="Fires each trip event to all members of the selected trip (excluding yourself).">
+          <EditorField label="Trip" htmlFor={`${ids}-trip`}>
+            <SelectBox
+              id={`${ids}-trip`}
+              value={selectedTripId ?? ''}
+              onChange={e => setSelectedTripId(Number(e.target.value))}
+            >
+              {trips.map(trip => <option key={trip.id} value={trip.id}>{trip.title}</option>)}
+            </SelectBox>
+          </EditorField>
+          <ButtonGrid>
+            <Btn id="booking_change" label="booking_change" sub="navigate · trip" icon={Calendar}
               onClick={() => selectedTripId && fire('booking_change', {
                 event: 'booking_change',
                 scope: 'trip',
@@ -186,7 +174,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
                 params: { actor: username, trip: tripTitle, booking: 'Test Hotel', type: 'hotel', tripId: String(selectedTripId) },
               })}
             />
-            <Btn id="trip_reminder" label="trip_reminder" sub="navigate · trip" icon={Clock} color="#10b981"
+            <Btn id="trip_reminder" label="trip_reminder" sub="navigate · trip" icon={Clock}
               onClick={() => selectedTripId && fire('trip_reminder', {
                 event: 'trip_reminder',
                 scope: 'trip',
@@ -194,7 +182,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
                 params: { trip: tripTitle, tripId: String(selectedTripId) },
               })}
             />
-            <Btn id="photos_shared" label="photos_shared" sub="navigate · trip" icon={Image} color="#f59e0b"
+            <Btn id="photos_shared" label="photos_shared" sub="navigate · trip" icon={Image}
               onClick={() => selectedTripId && fire('photos_shared', {
                 event: 'photos_shared',
                 scope: 'trip',
@@ -202,7 +190,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
                 params: { actor: username, trip: tripTitle, count: '5', tripId: String(selectedTripId) },
               })}
             />
-            <Btn id="collab_message" label="collab_message" sub="navigate · trip" icon={MessageSquare} color="#8b5cf6"
+            <Btn id="collab_message" label="collab_message" sub="navigate · trip" icon={MessageSquare}
               onClick={() => selectedTripId && fire('collab_message', {
                 event: 'collab_message',
                 scope: 'trip',
@@ -210,7 +198,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
                 params: { actor: username, trip: tripTitle, preview: 'This is a test message preview.', tripId: String(selectedTripId) },
               })}
             />
-            <Btn id="packing_tagged" label="packing_tagged" sub="navigate · trip" icon={Tag} color="#ec4899"
+            <Btn id="packing_tagged" label="packing_tagged" sub="navigate · trip" icon={Tag}
               onClick={() => selectedTripId && fire('packing_tagged', {
                 event: 'packing_tagged',
                 scope: 'trip',
@@ -218,25 +206,28 @@ export default function DevNotificationsPanel(): React.ReactElement {
                 params: { actor: username, trip: tripTitle, category: 'Clothing', tripId: String(selectedTripId) },
               })}
             />
-          </div>
-        </div>
+          </ButtonGrid>
+        </SettingsCard>
       )}
 
       {/* ── User-Scoped Events ───────────────────────────────────────────── */}
       {users.length > 0 && (
-        <div>
-          <SectionTitle>User-Scoped Events</SectionTitle>
-          <p className="text-xs mb-3 text-content-muted">
-            Fires each user event to the selected recipient.
-          </p>
-          <UserSelector />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <SettingsCard icon={User} title="User-Scoped Events" hint="Fires each user event to the selected recipient.">
+          <EditorField label="Recipient" htmlFor={`${ids}-user`}>
+            <SelectBox
+              id={`${ids}-user`}
+              value={selectedUserId ?? ''}
+              onChange={e => setSelectedUserId(Number(e.target.value))}
+            >
+              {users.map(u => <option key={u.id} value={u.id}>{u.username} ({u.email})</option>)}
+            </SelectBox>
+          </EditorField>
+          <ButtonGrid>
             <Btn
               id={`trip_invite-${selectedUserId}`}
               label="trip_invite"
               sub="navigate · user"
               icon={UserPlus}
-              color="#06b6d4"
               onClick={() => selectedUserId && fire(`trip_invite-${selectedUserId}`, {
                 event: 'trip_invite',
                 scope: 'user',
@@ -249,7 +240,6 @@ export default function DevNotificationsPanel(): React.ReactElement {
               label="vacay_invite"
               sub="navigate · user"
               icon={MapPin}
-              color="#f97316"
               onClick={() => selectedUserId && fire(`vacay_invite-${selectedUserId}`, {
                 event: 'vacay_invite',
                 scope: 'user',
@@ -257,18 +247,14 @@ export default function DevNotificationsPanel(): React.ReactElement {
                 params: { actor: username, planId: '1' },
               })}
             />
-          </div>
-        </div>
+          </ButtonGrid>
+        </SettingsCard>
       )}
 
       {/* ── Admin-Scoped Events ──────────────────────────────────────────── */}
-      <div>
-        <SectionTitle>Admin-Scoped Events</SectionTitle>
-        <p className="text-xs mb-3 text-content-muted">
-          Fires to all admin users.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Btn id="version_available" label="version_available" sub="navigate · admin" icon={Download} color="#64748b"
+      <SettingsCard icon={ShieldCheck} title="Admin-Scoped Events" hint="Fires to all admin users.">
+        <ButtonGrid>
+          <Btn id="version_available" label="version_available" sub="navigate · admin" icon={Download}
             onClick={() => fire('version_available', {
               event: 'version_available',
               scope: 'admin',
@@ -276,8 +262,8 @@ export default function DevNotificationsPanel(): React.ReactElement {
               params: { version: '9.9.9-test' },
             })}
           />
-        </div>
-      </div>
+        </ButtonGrid>
+      </SettingsCard>
     </div>
   )
 }

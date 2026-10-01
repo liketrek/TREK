@@ -70,6 +70,22 @@ export function trimUserWhitespace(db: Database.Database): boolean {
   return hadCollision;
 }
 
+/**
+ * Keeps place_regions in step with the place it was resolved from (#2527): a
+ * change to lat, lng or address drops the cached row. Migrations 244 and 246
+ * both create it, see there.
+ */
+function createPlaceRegionsFollowPlaceTrigger(db: Database.Database): void {
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS trg_place_regions_follow_place
+    AFTER UPDATE OF lat, lng, address ON places
+    WHEN OLD.lat IS NOT NEW.lat OR OLD.lng IS NOT NEW.lng OR OLD.address IS NOT NEW.address
+    BEGIN
+      DELETE FROM place_regions WHERE place_id = NEW.id;
+    END
+  `);
+}
+
 function runMigrations(db: Database.Database): void {
   db.exec('CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)');
   const versionRow = db.prepare('SELECT version FROM schema_version').get() as { version: number } | undefined;
@@ -5274,16 +5290,165 @@ function runMigrations(db: Database.Database): void {
      * clause matters because every place edit writes lat, lng and address
      * back whether they changed or not, and renaming a place must not throw
      * away a good row. The next Atlas load resolves the place where it is now.
+     *
+     * This is 244 on main (4.3.3) as well, so it sits here, ahead of Web Push.
+     */
+    () => createPlaceRegionsFollowPlaceTrigger(db),
+
+    /*
+     * Web Push (#894): one row per browser a user switched push on in.
+     *
+     * The endpoint is the push service URL that browser handed out, so it is
+     * unique: a browser shared by two accounts belongs to whoever subscribed on
+     * it last. p256dh and auth are the browser's keys for the RFC 8291 message
+     * encryption. vapid_public_key is the server key the subscription was made
+     * against, so a changed key pair shows up as a mismatch the sender can clean
+     * up, rather than as a push service refusing every message. failure_count
+     * and last_success_at are bookkeeping for the sender; the rows go with the
+     * user.
+     *
+     * Web Push was 244 before the #2527 trigger took that slot to match main.
+     * A 4.3.3 install is already at 244 with the trigger and gets the table
+     * here; an instance that ran this at 244 replays it as a no-op.
      */
     () => {
       db.exec(`
-        CREATE TRIGGER IF NOT EXISTS trg_place_regions_follow_place
-        AFTER UPDATE OF lat, lng, address ON places
-        WHEN OLD.lat IS NOT NEW.lat OR OLD.lng IS NOT NEW.lng OR OLD.address IS NOT NEW.address
-        BEGIN
-          DELETE FROM place_regions WHERE place_id = NEW.id;
-        END
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          endpoint TEXT NOT NULL UNIQUE,
+          p256dh TEXT NOT NULL,
+          auth TEXT NOT NULL,
+          vapid_public_key TEXT NOT NULL,
+          user_agent TEXT,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          last_success_at TEXT,
+          failure_count INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
       `);
+    },
+
+    /*
+     * The #2527 trigger once more, for an instance that ran Web Push at 244
+     * before the trigger took that slot. Such an instance never runs 244 again,
+     * so it gets the trigger here. Everywhere else it already exists and this
+     * is a no-op.
+     */
+    () => createPlaceRegionsFollowPlaceTrigger(db),
+
+    /*
+     * A stop kept on the day but left out of its route (#2532): shown as a pin, not
+     * driven to. 0 routes it like every stop before this existed.
+     */
+    () => {
+      const has = db.prepare("SELECT 1 FROM pragma_table_info('day_assignments') WHERE name = 'route_excluded'").get();
+      if (!has) db.exec('ALTER TABLE day_assignments ADD COLUMN route_excluded INTEGER NOT NULL DEFAULT 0');
+    },
+
+    /*
+     * How many of an item are packed so far (#2296), for "7 of 10 shirts". NULL is the
+     * plain checkbox every item has had, and `checked` stays the answer to "done?".
+     */
+    () => {
+      const has = db.prepare("SELECT 1 FROM pragma_table_info('packing_items') WHERE name = 'packed_quantity'").get();
+      if (!has) db.exec('ALTER TABLE packing_items ADD COLUMN packed_quantity INTEGER');
+    },
+
+    /*
+     * A bucket-list wish for one state or province rather than the whole country
+     * (#1901). NULL keeps every existing wish a country wish.
+     */
+    () => {
+      const has = db.prepare("SELECT 1 FROM pragma_table_info('bucket_list') WHERE name = 'region_code'").get();
+      if (!has) db.exec('ALTER TABLE bucket_list ADD COLUMN region_code TEXT');
+    },
+
+    /*
+     * Half company holidays (#2439): 0.5 covers the morning or afternoon and leaves
+     * the other half open for a half vacation day. 1 is what every holiday was.
+     */
+    () => {
+      const has = db.prepare("SELECT 1 FROM pragma_table_info('vacay_company_holidays') WHERE name = 'fraction'").get();
+      if (!has) db.exec('ALTER TABLE vacay_company_holidays ADD COLUMN fraction REAL NOT NULL DEFAULT 1');
+    },
+
+    /*
+     * A journey entry still being written (#696): contributors see it, the public
+     * share page does not. Its own flag, since `visibility` defaults to 'private' on
+     * every entry and filtering on it would empty every shared journey.
+     */
+    () => {
+      const has = db.prepare("SELECT 1 FROM pragma_table_info('journey_entries') WHERE name = 'is_draft'").get();
+      if (!has) db.exec('ALTER TABLE journey_entries ADD COLUMN is_draft INTEGER NOT NULL DEFAULT 0');
+    },
+
+    /*
+     * Two narrower ways to share a trip (#1712): only the travel (flights, trains,
+     * stays) without the day's activities, and without the place photos. Both off
+     * keeps every existing link exactly as it was.
+     */
+    () => {
+      const hasTravel = db.prepare("SELECT 1 FROM pragma_table_info('share_tokens') WHERE name = 'share_travel_only'").get();
+      if (!hasTravel) db.exec('ALTER TABLE share_tokens ADD COLUMN share_travel_only INTEGER NOT NULL DEFAULT 0');
+      const hasImages = db.prepare("SELECT 1 FROM pragma_table_info('share_tokens') WHERE name = 'share_hide_images'").get();
+      if (!hasImages) db.exec('ALTER TABLE share_tokens ADD COLUMN share_hide_images INTEGER NOT NULL DEFAULT 0');
+    },
+    /**
+     * A note on a settle-up payment (#2340), as expenses already have one:
+     * "paid back in cash at the airport". Null on every existing payment.
+     */
+    () => {
+      const has = db.prepare("SELECT 1 FROM pragma_table_info('budget_settlements') WHERE name = 'note'").get();
+      if (!has) db.exec('ALTER TABLE budget_settlements ADD COLUMN note TEXT');
+    },
+    /**
+     * Google API calls per UTC day (#1582), so the admin's daily ceiling has
+     * something to count against. One row a day, nothing about who searched.
+     */
+    () => {
+      db.exec('CREATE TABLE IF NOT EXISTS google_api_usage (day TEXT PRIMARY KEY, calls INTEGER NOT NULL DEFAULT 0)');
+    },
+    /**
+     * Packing templates remember what an item weighs, how many of it go along
+     * and which bag it lives in (#1131), so applying one does not mean typing
+     * all of that in again. The bag is kept by name: bags belong to a trip.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('packing_template_items')").all() as { name: string }[];
+      const has = (c: string) => cols.some(col => col.name === c);
+      if (!has('weight_grams')) db.exec('ALTER TABLE packing_template_items ADD COLUMN weight_grams INTEGER');
+      if (!has('quantity')) db.exec('ALTER TABLE packing_template_items ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1');
+      if (!has('bag_name')) db.exec('ALTER TABLE packing_template_items ADD COLUMN bag_name TEXT');
+    },
+    /**
+     * A journey's state as its owner sets it (#762): draft, live or completed.
+     * NULL keeps the state derived from the linked trips' dates, which is what
+     * every journey had so far; a journey with no trip could only ever be a draft.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('journeys')").all() as { name: string }[];
+      if (!cols.some(c => c.name === 'status_override')) db.exec('ALTER TABLE journeys ADD COLUMN status_override TEXT');
+    },
+    /**
+     * A place's e-mail and its own opening hours, typed in by hand (#2472): the
+     * search fills in what it knows, and these are for everything it does not.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('places')").all() as { name: string }[];
+      const has = (c: string) => cols.some(col => col.name === c);
+      if (!has('email')) db.exec('ALTER TABLE places ADD COLUMN email TEXT');
+      if (!has('opening_hours')) db.exec('ALTER TABLE places ADD COLUMN opening_hours TEXT');
+    },
+    /**
+     * A journey that puts an entry on the map where its first photo was taken
+     * (#1003). Off unless the owner turns it on: an entry somebody placed by hand
+     * is never moved, but an entry left without a place on purpose should not
+     * grow one either just because a picture was added.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('journeys')").all() as { name: string }[];
+      if (!cols.some(c => c.name === 'photo_location')) db.exec('ALTER TABLE journeys ADD COLUMN photo_location INTEGER NOT NULL DEFAULT 0');
     },
   ];
 

@@ -6,6 +6,7 @@ import { getEventText } from './mailer/email-html';
 import { MailerService } from './mailer/mailer.service';
 import { NtfyService, type NtfyConfig } from './transports/ntfy.service';
 import { WebhookService } from './transports/webhook.service';
+import { WebPushService } from './transports/web-push.service';
 import { NotificationPreferencesService, type PreferencesMatrix } from './notification-preferences.service';
 import { registerBuiltinChannels } from './channels/builtins';
 import {
@@ -272,7 +273,6 @@ function shouldSendToUser(
   prefs: NotificationPreferencesService,
 ): boolean {
   if (!channel.supportsEvent(event)) return false;
-  if (channel.isInstanceConfigured && !channel.isInstanceConfigured()) return false;
 
   if (ADMIN_SCOPED_EVENTS.has(event)) {
     if (!channel.bypassesActiveToggleForAdminEvents) return false;
@@ -285,7 +285,10 @@ function shouldSendToUser(
     if (!prefs.isEnabledForEvent(recipientId, event, channel.id)) return false;
   }
 
-  return channel.isConfiguredFor(recipientId);
+  if (!channel.isConfiguredFor(recipientId)) return false;
+  // Last, since it is the costly check: Web Push reads and verifies the server's
+  // key pair. Every check here is a plain AND, so the order changes no answer.
+  return !channel.isInstanceConfigured || channel.isInstanceConfigured();
 }
 
 /**
@@ -316,12 +319,13 @@ export class NotificationsService {
     private readonly webhook: WebhookService,
     private readonly ntfy: NtfyService,
     private readonly prefs: NotificationPreferencesService,
+    push: WebPushService,
   ) {
     // The registry is a module singleton shared with the plugin runtime and any
     // separately-constructed instance (which never runs onModuleInit), so
     // registering from here means every path that can dispatch has the
     // built-ins. registerChannel is an idempotent Map.set.
-    registerBuiltinChannels({ mailer, webhook, ntfy });
+    registerBuiltinChannels({ mailer, webhook, ntfy, push });
   }
 
   getPreferences(userId: number, role: string): PreferencesMatrix {
@@ -779,7 +783,7 @@ export class NotificationsService {
         );
       }
 
-      // ── External channels (email, webhook, ntfy, plugin:*) ───────────────
+      // ── External channels (email, webhook, ntfy, push, plugin:*) ─────────
       // One loop over the registry. The message is rendered once per recipient, in
       // their language, and handed to every channel that wants it — so a plugin
       // channel never touches i18n.

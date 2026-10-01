@@ -10,7 +10,7 @@ import { RtAutoRow, RtBookendRow, RtBookingChips, RtDryRow, RtLegRow, RtRideRow,
 import MBadge from '../../../components/MBadge'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { formatDurationShort } from '../../../../components/Roadtrip/roadtripModel'
-import { getNavigationTargets } from '../../../../components/Planner/placeNavigation'
+import { navigationTargetLabel, getNavigationTargets } from '../../../../components/Planner/placeNavigation'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { formatDistance } from '../../../../utils/units'
 import { formatClockTime } from '../../../../utils/formatters'
@@ -419,7 +419,7 @@ function UpNext({ planner, shell, rt, stageDayId, onOpen }: {
           className={`flex h-11 flex-1 items-center justify-center gap-[7px] rounded-full bg-m-act text-[0.8125rem] font-semibold text-m-actfg shadow-[0_10px_24px_-10px_rgba(0,0,0,.45)] ${targets.length ? '' : 'pointer-events-none opacity-40'}`}
         >
           <Navigation size={15} strokeWidth={2.2} aria-hidden="true" />
-          {targets.length === 1 ? targets[0].label : t('inspector.navigation')}
+          {targets.length === 1 ? navigationTargetLabel(targets[0], t) : t('inspector.navigation')}
         </a>
         <button
           type="button"

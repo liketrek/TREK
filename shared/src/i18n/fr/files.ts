@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Lier le fichier',
   'files.linkEmpty': 'Aucun lieu ni réservation à lier pour le moment',
   'files.menu': "Plus d'options",
-  'files.uploadErrorSize': 'Le fichier est trop volumineux (max 50 Mo)',
+  'files.uploadErrorSize': 'Le fichier est trop volumineux (max {max} Mo)',
   'files.title': 'Fichiers',
   'files.pageTitle': 'Fichiers et documents',
   'files.subtitle': '{count} fichiers pour {trip}',

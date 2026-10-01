@@ -784,17 +784,14 @@ describe('usePackingList — templates, import and signals', () => {
     expect(result.current.showSaveTemplate).toBe(true)
   })
 
-  it('FE-W5HOOK-054: a raised clear-checked signal runs the bulk delete', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
-    const items = [buildPackingItem({ id: 81, checked: 1 })]
-    let deleted = false
-    server.use(http.delete('/api/trips/1/packing/81', () => { deleted = true; return HttpResponse.json({ success: true }) }))
-    const { rerender } = renderPanel({ items, clearCheckedSignal: 0 })
+  it('FE-W5HOOK-054: a raised add-list signal opens the list name field', async () => {
+    const { result, rerender } = renderPanel({ items: [], addCategorySignal: 0 })
     await settled()
+    expect(result.current.addingCategory).toBe(false)
 
-    await act(async () => { rerender({ tripId: 1, items, clearCheckedSignal: 1 }) })
+    rerender({ tripId: 1, items: [], addCategorySignal: 1 })
 
-    await waitFor(() => expect(deleted).toBe(true))
+    expect(result.current.addingCategory).toBe(true)
   })
 
   it('FE-W5HOOK-055: a mousedown outside the template dropdown closes it', async () => {

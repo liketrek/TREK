@@ -14,11 +14,18 @@ const shared: TranslationStrings = {
   'shared.tabChat': 'Chat',
   'shared.days': 'dní',
   'shared.places': 'míst',
+  'shared.unplanned': 'Zatím nenaplánováno',
   'shared.other': 'Ostatní',
   'shared.totalBudget': 'Celkové náklady',
   'shared.messages': 'zpráv',
   'shared.sharedVia': 'Sdíleno přes',
   'shared.confirmed': 'Potvrzeno',
   'shared.pending': 'Čeká na potvrzení',
+  'shared.footerTagline': 'Plánovač cest, který si hostujete sami. Open source.',
+  'shared.emptyBookings': 'Zatím nejsou sdíleny žádné rezervace',
+  'shared.emptyPacking': 'Seznam věcí k zabalení je zatím prázdný',
+  'shared.emptyCosts': 'Zatím žádné výdaje',
+  'shared.emptyChat': 'Zatím žádné zprávy',
+  'shared.wholeTrip': 'Celá cesta',
 };
 export default shared;

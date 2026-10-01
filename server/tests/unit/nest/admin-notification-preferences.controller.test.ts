@@ -16,6 +16,8 @@ function controller() {
   const prefs = {
     getPreferencesMatrix: vi.fn(() => ({ rows: [{ event: 'trip_reminder' }] })),
     setAdminPreferences: vi.fn(),
+    getInstanceDefaults: vi.fn(() => ({ defaults: { trip_invite: { email: 'off' } } })),
+    setInstanceDefaults: vi.fn(),
   } as unknown as NotificationPreferencesService;
   return { c: new AdminNotificationPreferencesController(prefs), prefs };
 }
@@ -44,6 +46,14 @@ describe('AdminNotificationPreferencesController', () => {
     const { c, prefs } = controller();
     c.get({ id: 7, role: 'admin' } as User);
     expect(prefs.getPreferencesMatrix).toHaveBeenCalledWith(7, 'admin', 'admin');
+  });
+
+  it('ADMINPREF-005 the defaults for users are read and written for the acting admin (#1536)', () => {
+    const { c, prefs } = controller();
+    expect(c.getDefaults(admin)).toEqual({ defaults: { trip_invite: { email: 'off' } } });
+    expect(prefs.getInstanceDefaults).toHaveBeenCalledWith(1);
+    expect(c.setDefaults(admin, { defaults: { trip_invite: { email: 'off' } } } as never)).toEqual({ defaults: { trip_invite: { email: 'off' } } });
+    expect(prefs.setInstanceDefaults).toHaveBeenCalledWith({ trip_invite: { email: 'off' } });
   });
 
   it('ADMINPREF-004 the class is listed in its module controllers', () => {

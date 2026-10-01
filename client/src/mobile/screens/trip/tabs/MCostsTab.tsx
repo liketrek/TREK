@@ -15,7 +15,7 @@ import { budgetApi } from '../../../../api/client'
 import MCostSheet from '../sheets/MCostSheet'
 import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPreviewModal'
 import { useFreezeMissingRates } from '../../../../components/Budget/useFreezeMissingRates'
-import { finalBudgetFor, finalBudgetSources, paidByUser, readUserNote, settlementDate } from '../../../../components/Budget/CostsPanel.helpers'
+import { finalBudgetFor, finalBudgetSources, NOTE_MAX, paidByUser, readUserNote, settlementDate } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
@@ -24,7 +24,7 @@ import { localToday } from '../../../../components/Planner/today'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import MSheet from '../../../components/MSheet'
 import MChip from '../../../components/MChip'
-import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { CountPill, TabScroller } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import {
@@ -72,15 +72,17 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   }, [tripId, base, tripCurrency, displayPerTrip])
 
   // Mirrors CostsPanel.tsx: items reload on trip change, settlement reloads on
-  // trip/base change; further refreshes are explicit after each mutation below
-  // (add/edit/delete expense, add payment) rather than watching budgetItems, so
-  // an unrelated re-render doesn't refetch the settlement.
+  // trip/base change and when the number of expenses changes; further refreshes
+  // are explicit after each mutation below (add/edit/delete expense, add
+  // payment), so an unrelated re-render doesn't refetch the settlement. The count
+  // is for an expense saved outside this tab: a scanned receipt is reviewed in
+  // the trip sheets, which reload the items but cannot reach this settlement.
   useEffect(() => {
     planner.tripActions.loadBudgetItems(tripId)
   }, [tripId, planner.tripActions])
   useEffect(() => {
     loadSettlement()
-  }, [loadSettlement])
+  }, [budgetItems.length, loadSettlement])
   useFreezeMissingRates({ tripId, tripCurrency, canEdit, unconverted: settlement?.unconverted, onHealed: loadSettlement })
 
   const [search, setSearch] = useState('')
@@ -597,7 +599,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         onConfirm={() => {
           const item = confirmDelete
           setConfirmDelete(null)
-          if (item) handleDeleteExpense(item)
+          if (item) void handleDeleteExpense(item)
         }}
       />
 
@@ -633,9 +635,6 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
   const borderColor = tint(meta.color, 0.55)
   const members = item.members || []
   const note = readUserNote(item)
-  // A phone row has no width to spare for a note, so it stays folded away and
-  // the card itself is the handle — no extra control, no extra height.
-  const [noteOpen, setNoteOpen] = useState(false)
 
   return (
     <div className="mt-2 flex items-center gap-[6px]">
@@ -707,24 +706,7 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
           </span>
         </div>
 
-        {note && (
-          <button
-            type="button"
-            aria-expanded={noteOpen}
-            onClick={() => setNoteOpen(v => !v)}
-            className="mt-[7px] flex w-full items-center gap-[7px] rounded-xl bg-[color:var(--m-ic)] px-[9px] py-[6px] text-left"
-          >
-            <StickyNote size={11} strokeWidth={2} className="flex-none text-m-faint" />
-            <span className={`min-w-0 flex-1 text-[0.6875rem] leading-[1.5] text-m-muted ${noteOpen ? 'whitespace-pre-wrap [overflow-wrap:anywhere]' : 'truncate'}`}>
-              {note}
-            </span>
-            <ChevronDown
-              size={12}
-              strokeWidth={2}
-              className={`flex-none text-m-faint transition-transform duration-200 ${noteOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
-        )}
+        {note && <RowNote note={note} />}
       </div>
 
       {canEdit && (
@@ -738,6 +720,32 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * A row's note, folded to one line until tapped: a phone row has no width to
+ * spare for it. Expenses and payments (#2340) share it.
+ */
+function RowNote({ note }: { note: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      onClick={() => setOpen(v => !v)}
+      className="mt-[7px] flex w-full items-center gap-[7px] rounded-xl bg-[color:var(--m-ic)] px-[9px] py-[6px] text-left"
+    >
+      <StickyNote size={11} strokeWidth={2} className="flex-none text-m-faint" />
+      <span className={`min-w-0 flex-1 text-[0.6875rem] leading-[1.5] text-m-muted ${open ? 'whitespace-pre-wrap [overflow-wrap:anywhere]' : 'truncate'}`}>
+        {note}
+      </span>
+      <ChevronDown
+        size={12}
+        strokeWidth={2}
+        className={`flex-none text-m-faint transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+      />
+    </button>
   )
 }
 
@@ -784,6 +792,7 @@ function PaymentRow({ settlement, ctx, base, locale, t, personName, canEdit, onE
             {formatMoney(amount, base, locale)}
           </span>
         </div>
+        {settlement.note && <RowNote note={settlement.note} />}
       </div>
 
       {canEdit && (
@@ -903,6 +912,7 @@ function AddPaymentSheet({ open, editing, onClose, tripId, base, tripCurrency, p
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState(base)
   const [day, setDay] = useState(localToday())
+  const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -913,6 +923,7 @@ function AddPaymentSheet({ open, editing, onClose, tripId, base, tripCurrency, p
     setAmount(editing ? amountToInputString(editing.amount, cur) : '')
     setCurrency(cur)
     setDay(editing ? settlementDate(editing) : localToday())
+    setNote(editing?.note || '')
     setSaving(false)
   }, [open, editing, me, base, people])
 
@@ -922,7 +933,7 @@ function AddPaymentSheet({ open, editing, onClose, tripId, base, tripCurrency, p
   const save = async () => {
     if (!valid || saving) return
     setSaving(true)
-    const data = withFallbackFx({ from_user_id: fromId, to_user_id: toId, amount: amt, currency, settled_at: day }, tripCurrency)
+    const data = withFallbackFx({ from_user_id: fromId, to_user_id: toId, amount: amt, currency, settled_at: day, note: note.trim() || null }, tripCurrency)
     try {
       if (editing) await budgetApi.updateSettlement(tripId, editing.id, data)
       else await budgetApi.createSettlement(tripId, data)
@@ -983,6 +994,16 @@ function AddPaymentSheet({ open, editing, onClose, tripId, base, tripCurrency, p
             <CustomDatePicker value={day} onChange={setDay} style={{ width: '100%' }} />
           </div>
         </div>
+
+        <Eyebrow className="mb-[6px] mt-[14px] uppercase">{t('costs.note')}</Eyebrow>
+        <textarea
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          rows={2}
+          maxLength={NOTE_MAX}
+          placeholder={t('costs.paymentNotePlaceholder')}
+          className={FIELD_AREA_CLS}
+        />
       </div>
       <FormSheetFooter onCancel={onClose} cancelLabel={t('common.cancel')} onSubmit={save} submitLabel={editing ? t('common.save') : t('costs.addPayment')} submitDisabled={!valid || saving} />
     </MSheet>

@@ -3,6 +3,7 @@ import { MapPin, X } from 'lucide-react'
 import { mapsApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
 import { useLocationBias } from '../../hooks/useLocationBias'
+import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
 
 export interface LocationPoint {
   name: string
@@ -26,6 +27,7 @@ interface Props {
 
 export default function LocationSelect({ value, onChange, placeholder, style, places }: Props) {
   const { t, locale } = useTranslation()
+  const placeLang = usePlaceLanguage()
   // Ohne Reisekontext ist der Hinweis leer, und die Suche laeuft wie bisher.
   const { point: locationBias } = useLocationBias()
   const [query, setQuery] = useState(value?.name || '')
@@ -58,7 +60,7 @@ export default function LocationSelect({ value, onChange, placeholder, style, pl
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const data = await mapsApi.search(trimmed, locale, locationBias)
+        const data = await mapsApi.search(trimmed, placeLang, locationBias)
         setResults(data.places || [])
         setHighlight(-1)
       } catch {
@@ -113,6 +115,8 @@ export default function LocationSelect({ value, onChange, placeholder, style, pl
           value={query}
           placeholder={placeholder ?? t('reservations.searchLocation')}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); setHighlight(-1); if (value) onChange(null) }}
+          // Opens its list on focus, so a dialog must not focus it by itself (#1302).
+          data-no-autofocus
           onFocus={() => setOpen(true)}
           onKeyDown={onKey}
           className="bg-transparent text-content"

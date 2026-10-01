@@ -23,7 +23,7 @@ import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import type { Request, Response } from 'express';
 import type { Options } from 'multer';
 import path from 'path';
-import { MAX_TRIP_DAYS, type ActiveTripResponse } from '@trek/shared';
+import { MAX_TRIP_DAYS, type ActiveTripResponse, type TripSearchResponse } from '@trek/shared';
 import { StorageService } from '../storage/storage.service';
 import type { User } from '../../types';
 import { TripsService } from './trips.service';
@@ -84,6 +84,12 @@ export class TripsController {
     if (!row) return { trip: null };
     const { id, title, start_date, end_date } = row;
     return { trip: { id, title, start_date, end_date } };
+  }
+
+  /** Places across the user's trips for the dashboard search (#2190). Above @Get(':id'). */
+  @Get('search')
+  search(@CurrentUser() user: User, @Query('q') q?: string): TripSearchResponse {
+    return { matches: this.trips.searchPlaces(user.id, typeof q === 'string' ? q.slice(0, 100) : '') };
   }
 
   @Get('cover-images/search')

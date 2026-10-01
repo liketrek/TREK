@@ -332,7 +332,7 @@ describe('useMVacay', () => {
     mocks.vacay = buildVacay({ plan: buildPlan({ company_holidays_enabled: true }) });
     act(() => { rerender(); });
     await act(async () => { await result.current.handleDayTap('2026-12-24'); });
-    expect(toggleCompanyHoliday).toHaveBeenCalledWith('2026-12-24');
+    expect(toggleCompanyHoliday.mock.calls[0][0]).toBe('2026-12-24');
   });
 
   it('FE-MOB-MVAC-019: the entitlement stepper caps at 365 and never drops below used', async () => {

@@ -4,7 +4,7 @@ import { useMergedMapPois } from './useMergedMapPois'
 import type { Poi } from './poiCategories'
 
 /**
- * FE-MAP-MERGEPOI-001..006 — the two searches that can run at once in road trip mode.
+ * FE-MAP-MERGEPOI-001..010: the two searches that can run at once in road trip mode.
  *
  * The corridor answers "what is along the drive", the category pill answers "what is in
  * view". Both are drawn, the corridor's copy of a shared hit wins, and the reference is
@@ -82,5 +82,16 @@ describe('useMergedMapPois — the refuel offers', () => {
     rerender({ o: [] })
     expect(result.current).toBe(first)
     expect(result.current).toBe(corridor)
+  })
+
+  it('FE-MAP-MERGEPOI-010: a plugin POI next to the corridor is its own pin and keeps its look and rows', () => {
+    // Namespaced by the host, so a plugin id never collides with an OSM element of the same number.
+    const trailhead = {
+      ...poi('plugin:trail-finder:1'), category: 'plugin:trail-finder/trailheads',
+      icon: 'Signpost', color: '#2f855a', details: [{ label: 'Length', value: '12 km' }],
+    }
+    const { result } = renderHook(() => useMergedMapPois([poi('node:1')], [trailhead]))
+    expect(result.current.map(p => p.osm_id)).toEqual(['node:1', 'plugin:trail-finder:1'])
+    expect(result.current[1]).toBe(trailhead)
   })
 })

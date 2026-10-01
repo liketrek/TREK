@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { adminApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
-import { Key, Trash2, User, Loader2, Shield } from 'lucide-react'
+import { Key, Trash2, User, Loader2, Shield, KeyRound, Bot } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import ConfirmDialog from '../shared/ConfirmDialog'
+import { Tooltip } from '../shared/Tooltip'
+import { fs } from '../shared/DialogShell'
+import { SETTINGS_ICON_BUTTON, SettingRows, SettingsCard, SettingsHint, StatusPill } from '../Settings/settingsKit'
 
 interface AdminOAuthSession {
   id: number
@@ -27,6 +31,58 @@ interface AdminMcpToken {
 }
 
 const SCOPES_PREVIEW = 6
+
+const ROW = 'flex flex-wrap items-center gap-x-4 gap-y-2 px-3.5 py-3'
+const TILE = 'grid h-9 w-9 flex-none place-items-center rounded-[10px] bg-surface-tertiary text-content-secondary'
+const CHIP = 'inline-flex items-center rounded-full border border-edge-faint bg-surface-secondary px-2 py-[1px] font-geist text-content-muted'
+
+/** The spinner or the empty line a list shows in place of its rows. */
+function ListState({ loading, icon, text }: { loading: boolean; icon: ReactNode; text: string }) {
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 size={18} className="animate-spin text-content-faint" />
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-col items-center gap-2 py-6 text-content-faint">
+      {icon}
+      <SettingsHint>{text}</SettingsHint>
+    </div>
+  )
+}
+
+/** One fact on the right of a row: an eyebrow over its value. */
+function Meta({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0 text-right">
+      <div className="font-geist font-bold uppercase tracking-[.08em] text-content-faint" style={fs(9.5)}>{label}</div>
+      <div className="whitespace-nowrap font-geist tabular-nums text-content-muted" style={fs(12, 'body')}>{children}</div>
+    </div>
+  )
+}
+
+/** The owner of a session or token, with the person glyph in front. */
+function Owner({ name }: { name: string }) {
+  return (
+    <span className="inline-flex min-w-0 max-w-[180px] items-center gap-1.5 text-content-secondary" style={fs(12.5, 'body')}>
+      <User size={13} className="flex-none text-content-faint" />
+      <span className="truncate">{name}</span>
+    </span>
+  )
+}
+
+/** The trash button of a row, named by its tooltip. */
+function DeleteAction({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <Tooltip label={label} placement="left">
+      <button type="button" onClick={onClick} aria-label={label} className={`${SETTINGS_ICON_BUTTON} hover:text-danger`}>
+        <Trash2 size={14} />
+      </button>
+    </Tooltip>
+  )
+}
 
 export default function AdminMcpTokensPanel() {
   const [sessions, setSessions] = useState<AdminOAuthSession[]>([])
@@ -80,188 +136,107 @@ export default function AdminMcpTokensPanel() {
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-content">{t('admin.mcpTokens.title')}</h2>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{t('admin.mcpTokens.subtitle')}</p>
-      </div>
+  const date = (iso: string) => new Date(iso).toLocaleDateString(locale)
 
-      {/* OAuth Sessions */}
-      <div>
-        <h3 className="text-sm font-semibold mb-2 text-content-secondary">{t('admin.oauthSessions.sectionTitle')}</h3>
-        <div className="rounded-xl border overflow-hidden border-edge bg-surface-card">
-          {sessionsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-tertiary)' }} />
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-2">
-              <Shield className="w-8 h-8" style={{ color: 'var(--text-tertiary)' }} />
-              <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>{t('admin.oauthSessions.empty')}</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 px-4 py-2.5 text-xs font-medium border-b border-edge bg-surface-secondary"
-                style={{ color: 'var(--text-tertiary)' }}>
-                <span>{t('admin.oauthSessions.clientName')}</span>
-                <span>{t('admin.oauthSessions.owner')}</span>
-                <span className="text-right">{t('admin.oauthSessions.created')}</span>
-                <span></span>
-              </div>
-              {sessions.map((session, i) => {
-                const expanded = expandedScopes.has(session.id)
-                const visible = expanded ? session.scopes : session.scopes.slice(0, SCOPES_PREVIEW)
-                const hidden = session.scopes.length - SCOPES_PREVIEW
-                return (
-                  <div key={session.id}
-                    className={`grid grid-cols-[1fr_auto_auto_auto] items-start gap-x-6 px-4 py-3 ${i < sessions.length - 1 ? 'border-b border-edge' : ''}`}>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate text-content">{session.client_name}</p>
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {visible.map(scope => (
-                          <span key={scope} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono bg-surface-secondary border border-edge"
-                            style={{ color: 'var(--text-tertiary)' }}>
-                            {scope}
-                          </span>
-                        ))}
-                        {!expanded && hidden > 0 && (
-                          <button type="button" onClick={() => toggleScopes(session.id)}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors hover:opacity-80 bg-surface-secondary text-content-secondary border border-edge">
-                            +{hidden} more
-                          </button>
-                        )}
-                        {expanded && hidden > 0 && (
-                          <button type="button" onClick={() => toggleScopes(session.id)}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors hover:opacity-80 bg-surface-secondary text-content-secondary border border-edge">
-                            show less
-                          </button>
-                        )}
-                      </div>
+  return (
+    <div>
+      {/* OAuth Sessions. The tab's own subtitle sits in its band: the sidebar
+          already names the tab, so a bare heading over the cards only repeated it. */}
+      <SettingsCard
+        icon={Bot}
+        title={t('admin.oauthSessions.sectionTitle')}
+        hint={t('admin.mcpTokens.subtitle')}
+        badge={!sessionsLoading && sessions.length > 0 ? <StatusPill>{sessions.length}</StatusPill> : undefined}
+      >
+        {sessionsLoading || sessions.length === 0 ? (
+          <ListState loading={sessionsLoading} icon={<Shield size={24} strokeWidth={1.6} />} text={t('admin.oauthSessions.empty')} />
+        ) : (
+          <SettingRows>
+            {sessions.map(session => {
+              const expanded = expandedScopes.has(session.id)
+              const visible = expanded ? session.scopes : session.scopes.slice(0, SCOPES_PREVIEW)
+              const hidden = session.scopes.length - SCOPES_PREVIEW
+              return (
+                <div key={session.id} className={`${ROW} items-start`}>
+                  <span className={TILE}><Bot size={16} strokeWidth={1.9} /></span>
+                  <div className="min-w-0 flex-1 basis-60">
+                    <p className="m-0 truncate font-semibold text-content" style={fs(13, 'body')}>{session.client_name}</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1" style={fs(11)}>
+                      {visible.map(scope => (
+                        <span key={scope} className={CHIP}>{scope}</span>
+                      ))}
+                      {hidden > 0 && (
+                        <button type="button" onClick={() => toggleScopes(session.id)}
+                          className="inline-flex items-center rounded-full bg-surface-tertiary px-2 py-[1px] font-semibold text-content-secondary hover:text-content">
+                          {expanded ? 'show less' : `+${hidden} more`}
+                        </button>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-sm pt-0.5 text-content-secondary">
-                      <User className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="whitespace-nowrap">{session.username}</span>
-                    </div>
-                    <span className="text-xs whitespace-nowrap text-right pt-0.5" style={{ color: 'var(--text-tertiary)' }}>
-                      {new Date(session.created_at).toLocaleDateString(locale)}
-                    </span>
-                    <button type="button" onClick={() => setRevokeConfirmId(session.id)}
-                      className="p-1.5 rounded-lg transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
-                      style={{ color: 'var(--text-tertiary)' }} title={t('common.delete')}>
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
-                )
-              })}
-            </>
-          )}
-        </div>
-      </div>
+                  <div className="flex flex-none items-center gap-4 pt-0.5">
+                    <Owner name={session.username} />
+                    <Meta label={t('admin.oauthSessions.created')}>{date(session.created_at)}</Meta>
+                    <DeleteAction label={t('common.delete')} onClick={() => setRevokeConfirmId(session.id)} />
+                  </div>
+                </div>
+              )
+            })}
+          </SettingRows>
+        )}
+      </SettingsCard>
 
       {/* MCP Tokens */}
-      <div>
-        <h3 className="text-sm font-semibold mb-2 text-content-secondary">{t('admin.mcpTokens.sectionTitle')}</h3>
-        <div className="rounded-xl border overflow-hidden border-edge bg-surface-card">
-          {tokensLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-tertiary)' }} />
-            </div>
-          ) : tokens.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-2">
-              <Key className="w-8 h-8" style={{ color: 'var(--text-tertiary)' }} />
-              <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>{t('admin.mcpTokens.empty')}</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 px-4 py-2.5 text-xs font-medium border-b border-edge bg-surface-secondary"
-                style={{ color: 'var(--text-tertiary)' }}>
-                <span>{t('admin.mcpTokens.tokenName')}</span>
-                <span>{t('admin.mcpTokens.owner')}</span>
-                <span className="text-right">{t('admin.mcpTokens.created')}</span>
-                <span className="text-right">{t('admin.mcpTokens.lastUsed')}</span>
-                <span></span>
-              </div>
-              {tokens.map((token, i) => (
-                <div key={token.id}
-                  className={`grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-x-4 px-4 py-3 ${i < tokens.length - 1 ? 'border-b border-edge' : ''}`}>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate text-content">{token.name}</p>
-                    <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{token.token_prefix}...</p>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-sm text-content-secondary">
-                    <User className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="whitespace-nowrap">{token.username}</span>
-                  </div>
-                  <span className="text-xs whitespace-nowrap text-right" style={{ color: 'var(--text-tertiary)' }}>
-                    {new Date(token.created_at).toLocaleDateString(locale)}
-                  </span>
-                  <span className="text-xs whitespace-nowrap text-right" style={{ color: 'var(--text-tertiary)' }}>
-                    {token.last_used_at ? new Date(token.last_used_at).toLocaleDateString(locale) : t('admin.mcpTokens.never')}
-                  </span>
-                  <button type="button" onClick={() => setDeleteConfirmId(token.id)}
-                    className="p-1.5 rounded-lg transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
-                    style={{ color: 'var(--text-tertiary)' }} title={t('common.delete')}>
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+      <SettingsCard
+        icon={KeyRound}
+        title={t('admin.mcpTokens.sectionTitle')}
+        badge={!tokensLoading && tokens.length > 0 ? <StatusPill>{tokens.length}</StatusPill> : undefined}
+      >
+        {tokensLoading || tokens.length === 0 ? (
+          <ListState loading={tokensLoading} icon={<Key size={24} strokeWidth={1.6} />} text={t('admin.mcpTokens.empty')} />
+        ) : (
+          <SettingRows>
+            {tokens.map(token => (
+              <div key={token.id} className={ROW}>
+                <span className={TILE}><KeyRound size={16} strokeWidth={1.9} /></span>
+                <div className="min-w-0 flex-1 basis-48">
+                  <p className="m-0 truncate font-semibold text-content" style={fs(13, 'body')}>{token.name}</p>
+                  <p className="m-0 mt-0.5 truncate font-geist text-content-faint" style={fs(11)}>{token.token_prefix}...</p>
                 </div>
-              ))}
-            </>
-          )}
-        </div>
-      </div>
+                <div className="flex flex-none items-center gap-4">
+                  <Owner name={token.username} />
+                  <Meta label={t('admin.mcpTokens.created')}>{date(token.created_at)}</Meta>
+                  <Meta label={t('admin.mcpTokens.lastUsed')}>
+                    {token.last_used_at ? date(token.last_used_at) : t('admin.mcpTokens.never')}
+                  </Meta>
+                  <DeleteAction label={t('common.delete')} onClick={() => setDeleteConfirmId(token.id)} />
+                </div>
+              </div>
+            ))}
+          </SettingRows>
+        )}
+      </SettingsCard>
 
-      {/* Revoke OAuth session modal */}
-      {revokeConfirmId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
-          role="button" tabIndex={0} aria-label={t('common.close')}
-          onClick={e => { if (e.target === e.currentTarget) setRevokeConfirmId(null) }}
-          onKeyDown={e => {
-            if (e.target !== e.currentTarget) return
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRevokeConfirmId(null) }
-          }}>
-          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
-            <h3 className="text-base font-semibold text-content">{t('admin.oauthSessions.revokeTitle')}</h3>
-            <p className="text-sm text-content-secondary">{t('admin.oauthSessions.revokeMessage')}</p>
-            <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setRevokeConfirmId(null)}
-                className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
-                {t('common.cancel')}
-              </button>
-              <button type="button" onClick={() => handleRevoke(revokeConfirmId)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700">
-                {t('common.delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Revoke OAuth session */}
+      <ConfirmDialog
+        isOpen={revokeConfirmId !== null}
+        onClose={() => setRevokeConfirmId(null)}
+        onConfirm={() => { if (revokeConfirmId !== null) void handleRevoke(revokeConfirmId) }}
+        title={t('admin.oauthSessions.revokeTitle')}
+        message={t('admin.oauthSessions.revokeMessage')}
+        confirmLabel={t('common.delete')}
+        danger
+      />
 
-      {/* Delete MCP token modal */}
-      {deleteConfirmId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(0,0,0,0.5)]"
-          role="button" tabIndex={0} aria-label={t('common.close')}
-          onClick={e => { if (e.target === e.currentTarget) setDeleteConfirmId(null) }}
-          onKeyDown={e => {
-            if (e.target !== e.currentTarget) return
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDeleteConfirmId(null) }
-          }}>
-          <div className="rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 bg-surface-card">
-            <h3 className="text-base font-semibold text-content">{t('admin.mcpTokens.deleteTitle')}</h3>
-            <p className="text-sm text-content-secondary">{t('admin.mcpTokens.deleteMessage')}</p>
-            <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setDeleteConfirmId(null)}
-                className="px-4 py-2 rounded-lg text-sm border border-edge text-content-secondary">
-                {t('common.cancel')}
-              </button>
-              <button type="button" onClick={() => handleDelete(deleteConfirmId)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700">
-                {t('common.delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete MCP token */}
+      <ConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => { if (deleteConfirmId !== null) void handleDelete(deleteConfirmId) }}
+        title={t('admin.mcpTokens.deleteTitle')}
+        message={t('admin.mcpTokens.deleteMessage')}
+        confirmLabel={t('common.delete')}
+        danger
+      />
     </div>
   )
 }

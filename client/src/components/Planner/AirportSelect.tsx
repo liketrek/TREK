@@ -113,6 +113,8 @@ export default function AirportSelect({ value, onChange, placeholder, style }: P
           value={query}
           placeholder={placeholder ?? t('airport.searchPlaceholder')}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); if (value) onChange(null) }}
+          // Opens its list on focus, so a dialog must not focus it by itself (#1302).
+          data-no-autofocus
           onFocus={() => setOpen(true)}
           onKeyDown={onKey}
           className="bg-transparent text-content"

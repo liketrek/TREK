@@ -423,6 +423,44 @@ describe('Tool: get_place_details', () => {
 });
 
 // ---------------------------------------------------------------------------
+// search_nearby_places (#976)
+// ---------------------------------------------------------------------------
+
+describe('Tool: search_nearby_places', () => {
+  it('lists what the index holds around the point, nearest first with the distance', async () => {
+    const { user } = createUser(testDb);
+    trekNearbyMock.mockClear();
+    trekNearbyMock.mockResolvedValueOnce([
+      { gers: 'n-2', name: 'Farther', lat: 48.8611, lng: 2.3364, address: null, contact: null },
+      { gers: 'n-1', name: 'Closer', lat: 48.8607, lng: 2.3376, address: null, contact: null },
+    ]);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'search_nearby_places',
+        arguments: { lat: 48.8606, lng: 2.3376, radius: 200, limit: 5 },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.source).toBe('trek-places');
+      expect(data.places.map((p: any) => p.name)).toEqual(['Closer', 'Farther']);
+      expect(data.places[0].distance_m).toBe(11);
+      expect(trekNearbyMock).toHaveBeenCalledWith(48.8606, 2.3376, { radius: 200, limit: 5 });
+    });
+  });
+
+  it('refuses a circle wider than the REST route allows', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'search_nearby_places',
+        arguments: { lat: 48.8606, lng: 2.3376, radius: 5001 },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // search_pois (#30)
 // ---------------------------------------------------------------------------
 

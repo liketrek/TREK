@@ -27,7 +27,7 @@ if (process.platform === 'win32' && SRC.startsWith('/')) SRC = SRC.slice(1);
 const EXEMPT = [
   /Mapbox/i, /placePopup/i, /marker/i, /popup/i, /TripPDF/, /JourneyBookPDF/,
   /MapViewGL/, /MapView\./, /JourneyMapGL/, /reservationsMapbox/, /useAtlas/,
-  /ReservationOverlay/, /\.test\./, /\.spec\./,
+  /ReservationOverlay/, /packingPrintDocument/, /\.test\./, /\.spec\./,
 ];
 
 const ARB_CLASS = /\b(?:bg|text|border|ring|fill|stroke|from|via|to|shadow|outline|decoration|divide|caret)-\[\s*(?:#|rgba?\(|hsla?\(|oklch\()/;

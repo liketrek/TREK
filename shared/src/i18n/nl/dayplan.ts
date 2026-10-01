@@ -57,6 +57,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Kaarten en gps',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Dagplan exporteren als PDF',
+  'dayplan.pdfMine': 'Mijn plan als PDF',
+  'dayplan.pdfMineSub': 'Alleen de activiteiten en boekingen waaraan je deelneemt',
   'dayplan.gpxTooltip': 'Exporteren als GPX voor offline kaarten en gps-apparaten',
   'dayplan.gpxAll': 'Hele reis',
   'dayplan.gpxPlaces': 'Alleen plekken',
@@ -78,8 +80,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Alle plaatsen toegewezen',
   'dayplan.mobile.noMatch': 'Geen resultaat',
   'dayplan.mobile.createNew': 'Nieuwe plaats aanmaken',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Alle dagen uitklappen', // en-fallback
+  'dayplan.collapseAll': 'Alle dagen inklappen', // en-fallback
   'dayplan.reorderDays': 'Dagen herordenen',
   'dayplan.reorderTitle': 'Dagen herordenen',
   'dayplan.reorderHint': 'De plaatsen, notities en boekingen van een dag gaan mee.',
@@ -92,6 +94,14 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDay': 'Dag verwijderen',
   'dayplan.deleteDayTitle': '{day} verwijderen?',
   'dayplan.deleteDayBody': 'De dag wordt uit de reis verwijderd. Dit kan niet ongedaan worden gemaakt.',
+  'dayplan.excludeFromRoute': 'Uit de route halen',
+  'dayplan.includeInRoute': 'Weer aan de route toevoegen',
+  'dayplan.offRoute': 'Buiten de route',
+  'dayplan.offRouteHint': 'Blijft op de dag en op de kaart, maar de route slaat het over',
+  'dayplan.clearDay': 'Dag leegmaken',
+  'dayplan.clearDayTitle': '{day} leegmaken?',
+  'dayplan.clearDayBody':
+    'Alle plaatsen gaan van deze dag af. De plaatsen blijven in de reis, en de dag houdt zijn notities en boekingen.',
   'dayplan.deleteDayEmpty': 'Er staat niets gepland op deze dag.',
   'dayplan.impactPlaces': 'Geplande plekken: {count}',
   'dayplan.impactPlacesHint': 'Ze blijven in de lijst met plekken.',

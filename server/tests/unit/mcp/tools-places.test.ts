@@ -219,6 +219,23 @@ describe('Tool: create_place', () => {
 // update_place
 // ---------------------------------------------------------------------------
 
+describe('Tool: set_place_image_from_file (#1242)', () => {
+  it('refuses a file that is no picture, and one from another trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id);
+    const pdf = Number(testDb.prepare("INSERT INTO trip_files (trip_id, filename, original_name, mime_type) VALUES (?, 'a.pdf', 'a.pdf', 'application/pdf')").run(trip.id).lastInsertRowid);
+    const foreign = Number(testDb.prepare("INSERT INTO trip_files (trip_id, filename, original_name, mime_type) VALUES (?, 'b.jpg', 'b.jpg', 'image/jpeg')").run(other.id).lastInsertRowid);
+    await withHarness(user.id, async (h) => {
+      const notImage = await h.client.callTool({ name: 'set_place_image_from_file', arguments: { tripId: trip.id, placeId: place.id, fileId: pdf } });
+      expect(notImage.isError).toBe(true);
+      const notFound = await h.client.callTool({ name: 'set_place_image_from_file', arguments: { tripId: trip.id, placeId: place.id, fileId: foreign } });
+      expect(notFound.isError).toBe(true);
+    });
+  });
+});
+
 describe('Tool: update_place', () => {
   it('updates specific fields and preserves others', async () => {
     const { user } = createUser(testDb);
@@ -234,6 +251,35 @@ describe('Tool: update_place', () => {
       expect(data.place.name).toBe('New Name');
       // lat/lng preserved from original
       expect(data.place.lat).toBeCloseTo(place.lat ?? 48.8566);
+    });
+  });
+
+  it('takes an e-mail and structured opening hours, and null clears the hours (#2472)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Bakery' });
+    const hours = [{ closed: false, open: '08:00', close: '18:00' }, ...Array.from({ length: 6 }, () => ({ closed: true }))];
+
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({
+        name: 'update_place',
+        arguments: { tripId: trip.id, placeId: place.id, email: 'hi@bakery.test', opening_hours: hours },
+      })) as any;
+      expect(data.place.email).toBe('hi@bakery.test');
+      expect(JSON.parse(data.place.opening_hours)).toEqual(hours);
+
+      const cleared = parseToolResult(await h.client.callTool({
+        name: 'update_place',
+        arguments: { tripId: trip.id, placeId: place.id, opening_hours: null },
+      })) as any;
+      expect(cleared.place.opening_hours).toBeNull();
+      expect(cleared.place.email).toBe('hi@bakery.test');
+
+      const bad = await h.client.callTool({
+        name: 'update_place',
+        arguments: { tripId: trip.id, placeId: place.id, email: 'not-an-address' },
+      });
+      expect(bad.isError).toBe(true);
     });
   });
 

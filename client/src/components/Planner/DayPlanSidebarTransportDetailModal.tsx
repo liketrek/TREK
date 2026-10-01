@@ -1,14 +1,20 @@
-import { createPortal } from 'react-dom'
-import { Ticket, FileText, ExternalLink, Footprints, ArrowRight, Pencil } from 'lucide-react'
+import { useId, type ReactNode } from 'react'
+import { CalendarDays, Clock, ExternalLink, FileText, Pencil } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { markdownLinkComponents } from '../shared/markdownLink'
-import { useSettingsStore } from '../../store/settingsStore'
+import { BlurredCode } from '../shared/BookingCode'
+import { DialogButton, DialogFooter, DialogSection, DialogShell, FooterSpacer, PILL } from '../shared/DialogShell'
 import { useTripStore } from '../../store/tripStore'
 import { formatTime, splitReservationDateTime } from '../../utils/formatters'
-import { RES_ICONS, TRANSPORT_DETAIL_COLORS } from './DayPlanSidebar.constants'
+import { parseReservationMetadata } from '../../utils/flightLegs'
+import { BookingDialogHeader } from './bookings/BookingDialogShell'
+import { BOX, Eyebrow, Field, filesFor, fs, toneColor, toneOf } from './bookings/bookingParts'
+import { TransitLegs, transitSummary } from './bookings/transitParts'
 import type { Reservation } from '../../types'
+
+type Translate = (key: string, params?: Record<string, string | number>) => string
 
 interface DayPlanSidebarTransportDetailModalProps {
   transportDetail: Reservation | null
@@ -16,266 +22,202 @@ interface DayPlanSidebarTransportDetailModalProps {
   onNavigateToFiles?: () => void
   /** Opens the edit form for this reservation (shown as a footer action). */
   onEdit?: (res: Reservation) => void
-  t: (key: string, params?: Record<string, any>) => string
+  t: Translate
   locale: string
   timeFormat: string
 }
 
-export function DayPlanSidebarTransportDetailModal({
-  transportDetail, setTransportDetail, onNavigateToFiles, onEdit, t, locale, timeFormat,
-}: DayPlanSidebarTransportDetailModalProps) {
+/** One labelled value of the grid; a booking code is drawn through the blur preference. */
+interface DetailCell {
+  label: string
+  value: string
+  code?: boolean
+}
+
+/**
+ * The booking a rental pill, a transit row or a map endpoint opens from the
+ * plan: the head band tinted by its status like the booking dialogs, the
+ * booking's facts one labelled field each, a transit journey leg by leg, the
+ * notes and the files, and the edit in the bar at the foot.
+ */
+export function DayPlanSidebarTransportDetailModal({ transportDetail, ...rest }: DayPlanSidebarTransportDetailModalProps) {
   if (!transportDetail) return null
-  return createPortal(
-    <div className="bg-[rgba(0,0,0,0.3)]" style={{
-      position: 'fixed', inset: 0, zIndex: 1000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      backdropFilter: 'blur(3px)',
-    }}
-      role="button" tabIndex={0} aria-label={t('common.cancel')}
-      onClick={() => setTransportDetail(null)}
-      onKeyDown={e => {
-        if (e.target !== e.currentTarget) return
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTransportDetail(null) }
-      }}>
-      <div className="bg-surface-card" role="presentation" style={{
-        width: 380, maxHeight: '80vh', overflowY: 'auto',
-        borderRadius: 16,
-        boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
-        display: 'flex', flexDirection: 'column', gap: 14,
-      }} onClick={e => e.stopPropagation()}>
-        {(() => {
-          const res = transportDetail
-          const TransportIcon = RES_ICONS[res.type] || Ticket
-          const TRANSPORT_COLORS = TRANSPORT_DETAIL_COLORS
-          const color = TRANSPORT_COLORS[res.type] || 'var(--text-muted)'
-          const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
+  return <TransportDetailDialog res={transportDetail} {...rest} />
+}
 
-          const detailFields = []
-          if (res.type === 'flight') {
-            if (meta.airline) detailFields.push({ label: t('reservations.meta.airline'), value: meta.airline })
-            if (meta.flight_number) detailFields.push({ label: t('reservations.meta.flightNumber'), value: meta.flight_number })
-            if (meta.departure_airport) detailFields.push({ label: t('reservations.meta.from'), value: meta.departure_airport })
-            if (meta.arrival_airport) detailFields.push({ label: t('reservations.meta.to'), value: meta.arrival_airport })
-            if (meta.seat) detailFields.push({ label: t('reservations.meta.seat'), value: meta.seat })
-          } else if (res.type === 'train') {
-            if (meta.train_number) detailFields.push({ label: t('reservations.meta.trainNumber'), value: meta.train_number })
-            if (meta.platform) detailFields.push({ label: t('reservations.meta.platform'), value: meta.platform })
-            if (meta.seat) detailFields.push({ label: t('reservations.meta.seat'), value: meta.seat })
-          }
-          if (res.confirmation_number) detailFields.push({ label: t('reservations.confirmationCode'), value: res.confirmation_number, sensitive: true })
-          // A stopover booking can carry its own reference per segment (#1943); the
-          // flat fields above only ever describe the first leg. Marked sensitive so
-          // the blur setting covers them like the booking's own code.
-          if (Array.isArray(meta.legs) && meta.legs.length > 1) {
-            for (const leg of meta.legs) {
-              if (!leg?.confirmation_number) continue
-              const segment = [leg.from, leg.to].filter(Boolean).join(' → ')
-              detailFields.push({ label: segment || t('reservations.confirmationCode'), value: leg.confirmation_number, sensitive: true })
-            }
-          }
-          if (res.location) detailFields.push({ label: t('reservations.locationAddress'), value: res.location })
+function TransportDetailDialog({ res, setTransportDetail, onNavigateToFiles, onEdit, t, locale, timeFormat }: Omit<DayPlanSidebarTransportDetailModalProps, 'transportDetail'> & { res: Reservation }) {
+  const titleId = useId()
+  const allFiles = useTripStore(s => s.files)
+  const close = () => setTransportDetail(null)
+  const meta = parseReservationMetadata(res)
+  const transit = transitSummary(meta)
+  const files = filesFor(res, allFiles || [])
+  const when = whenOf(res, locale, timeFormat)
+  const cells = detailCells(res, meta, t)
+  const confirmed = res.status === 'confirmed'
 
-          return (
-            <>
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  borderRadius: '50%', background: `${color}18`,
-                }}>
-                  <TransportIcon size={18} strokeWidth={1.8} color={color} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600 }}>{res.title}</div>
-                  <div className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 2 }}>
-                    {(() => {
-                      const { date, time } = splitReservationDateTime(res.reservation_time)
-                      const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
-                      const dateStr = date
-                        ? new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
-                        : ''
-                      const timeStr = time ? formatTime(time, locale, timeFormat) : ''
-                      const endStr = endTime ? formatTime(endTime, locale, timeFormat) : ''
-                      const parts: string[] = []
-                      if (dateStr) parts.push(dateStr)
-                      if (timeStr) parts.push(timeStr + (endStr ? ` – ${endStr}` : ''))
-                      return parts.join(', ')
-                    })()}
-                  </div>
-                </div>
-                <div className={res.status === 'confirmed' ? 'bg-[rgba(22,163,74,0.1)] text-[#16a34a]' : 'bg-[rgba(217,119,6,0.1)] text-[#d97706]'} style={{
-                  padding: '3px 8px', borderRadius: 6, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
-                }}>
-                  {res.status === 'confirmed' ? t('planner.resConfirmed') : t('planner.resPending')}
-                </div>
-              </div>
+  const stats: { value: string; label: string }[] = []
+  if (transit && transit.legs.length > 0) {
+    if (transit.duration) stats.push({ value: durationText(transit.duration, t), label: t('transit.durationLabel') })
+    stats.push({ value: transit.transfers > 0 ? String(transit.transfers) : t('transit.direct'), label: t('transit.transfersLabel') })
+    // Under a minute of walking is not worth a tile.
+    if (transit.walk > 59) stats.push({ value: t('transit.min', { count: Math.round(transit.walk / 60) }), label: t('transit.walkLabel') })
+  }
 
-              {/* Detail-Felder */}
-              {detailFields.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {detailFields.map((f, i) => {
-                    const shouldBlur = f.sensitive && useSettingsStore.getState().settings.blur_booking_codes
-                    const valueStyle = {
-                      fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, wordBreak: 'break-word',
-                      filter: shouldBlur ? 'blur(5px)' : 'none', transition: 'filter 0.2s',
-                      cursor: shouldBlur ? 'pointer' : 'default',
-                      userSelect: shouldBlur ? 'none' : 'auto',
-                    } as const
-                    return (
-                      <div key={i} className="bg-surface-tertiary" style={{ padding: '8px 10px', borderRadius: 8 }}>
-                        <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{f.label}</div>
-                        {/* A hidden booking code is a reveal toggle, so it has to be a real
-                            button; a plain value stays inert text and out of the tab order. */}
-                        {shouldBlur ? (
-                          <button
-                            type="button"
-                            onMouseEnter={e => { e.currentTarget.style.filter = 'none' }}
-                            onMouseLeave={e => { e.currentTarget.style.filter = 'blur(5px)' }}
-                            onClick={e => { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(5px)' : 'none' }}
-                            className="text-content"
-                            style={{ ...valueStyle, display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, fontFamily: 'inherit' }}
-                          >{f.value}</button>
-                        ) : (
-                          <div className="text-content" style={valueStyle}>{f.value}</div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+  const header = (
+    <BookingDialogHeader
+      tone={toneOf(res)}
+      type={res.type}
+      labelId={titleId}
+      onClose={close}
+      title={res.title}
+      pills={(
+        <>
+          <span className={PILL}>
+            <span className="h-2 w-2 flex-none rounded-full" style={{ background: toneColor(confirmed ? 'confirmed' : 'pending') }} />
+            {confirmed ? t('planner.resConfirmed') : t('planner.resPending')}
+          </span>
+          {(when.day || when.time) && (
+            <span className={PILL}>
+              {when.day
+                ? <CalendarDays size={13} strokeWidth={2.2} className="text-content-faint" />
+                : <Clock size={13} strokeWidth={2.2} className="text-content-faint" />}
+              {when.day}
+              {when.time && <span className={when.day ? 'font-medium text-content-muted' : ''}>{when.time}</span>}
+            </span>
+          )}
+        </>
+      )}
+    />
+  )
 
-              {/* Public-transit itinerary (#1065) — legs from the transit search */}
-              {meta.transit?.legs && Array.isArray(meta.transit.legs) && meta.transit.legs.length > 0 && (
-                <>
-                {/* journey summary: duration · transfers · walking */}
-                <div className="bg-surface-tertiary text-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, flexWrap: 'wrap' }}>
-                  {meta.transit.duration > 0 && (
-                    <span>{Math.floor(meta.transit.duration / 3600) > 0 ? `${Math.floor(meta.transit.duration / 3600)} h ${Math.round((meta.transit.duration % 3600) / 60)} min` : t('transit.min', { count: Math.round(meta.transit.duration / 60) })}</span>
-                  )}
-                  <span className="text-content-faint">·</span>
-                  <span>{meta.transit.transfers > 0 ? t('transit.transfers', { count: meta.transit.transfers }) : t('transit.direct')}</span>
-                  {meta.transit.walk_seconds > 59 && (
-                    <>
-                      <span className="text-content-faint">·</span>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Footprints size={13} /> {t('transit.min', { count: Math.round(meta.transit.walk_seconds / 60) })}</span>
-                    </>
-                  )}
-                </div>
-                <div className="bg-surface-tertiary" style={{ padding: '10px 12px', borderRadius: 8 }}>
-                  <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 8 }}>
-                    {t('transit.itinerary')}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {meta.transit.legs.map((leg: { mode?: string; line?: string | null; line_color?: string | null; line_text_color?: string | null; headsign?: string | null; duration?: number; stops?: number; from?: { name?: string; time?: string | null }; to?: { name?: string; time?: string | null } }, i: number) => {
-                      const isWalk = leg.mode === 'WALK'
-                      const mins = leg.duration ? Math.round(leg.duration / 60) : null
-                      return (
-                        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                          {isWalk ? (
-                            <span className="text-content-faint" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, paddingTop: 1 }}>
-                              <Footprints size={12} />
-                            </span>
-                          ) : (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', background: leg.line_color || 'var(--bg-hover)', color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--text-primary)', borderRadius: 5, padding: '1px 6px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, flexShrink: 0 }}>
-                              {leg.line || leg.mode}
-                            </span>
-                          )}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div className="text-content" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                              {isWalk
-                                ? <span className="text-content-muted">{t('transit.walkTo', { name: leg.to?.name || '' })}</span>
-                                : <>
-                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{leg.from?.name}</span>
-                                    <ArrowRight size={10} className="text-content-faint" style={{ flexShrink: 0 }} />
-                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{leg.to?.name}</span>
-                                  </>}
-                            </div>
-                            <div className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', marginTop: 1 }}>
-                              {[
-                                leg.from?.time && !isWalk ? `${leg.from.time}${leg.to?.time ? ` – ${leg.to.time}` : ''}` : null,
-                                mins ? t('transit.min', { count: mins }) : null,
-                                !isWalk && leg.stops ? t('transit.stops', { count: leg.stops }) : null,
-                                !isWalk && leg.headsign ? `→ ${leg.headsign}` : null,
-                              ].filter(Boolean).join(' · ')}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-                </>
-              )}
+  const footer = (
+    <DialogFooter>
+      <FooterSpacer />
+      <DialogButton onClick={close}>{t('common.close')}</DialogButton>
+      {onEdit && (
+        <DialogButton variant="primary" onClick={() => onEdit(res)} icon={<Pencil size={14} strokeWidth={2} />}>{t('common.edit')}</DialogButton>
+      )}
+    </DialogFooter>
+  )
 
-              {/* Notizen */}
-              {res.notes && (
-                <div className="bg-surface-tertiary" style={{ padding: '8px 10px', borderRadius: 8 }}>
-                  <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{t('reservations.notes')}</div>
-                  <div className="collab-note-md text-content" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{res.notes}</Markdown></div>
-                </div>
-              )}
+  return (
+    <DialogShell onClose={close} labelledBy={titleId} header={header} footer={footer}>
+      {cells.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+          {cells.map((c, i) => (
+            <Field key={i} label={c.label}>
+              {c.code ? <BlurredCode className="font-geist tabular-nums">{c.value}</BlurredCode> : c.value}
+            </Field>
+          ))}
+        </div>
+      )}
 
-              {/* Dateien */}
-              {(() => {
-                const resFiles = (useTripStore.getState().files || []).filter(f =>
-                  !f.deleted_at && (
-                    f.reservation_id === res.id ||
-                    (f.linked_reservation_ids && f.linked_reservation_ids.includes(res.id))
-                  )
-                )
-                if (resFiles.length === 0) return null
-                return (
-                  <div>
-                    <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>{t('files.title')}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {resFiles.map(f => (
-                        <button key={f.id}
-                          type="button"
-                          onClick={() => { setTransportDetail(null); onNavigateToFiles?.() }}
-                          className="bg-surface-tertiary"
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-                            borderRadius: 8, cursor: 'pointer', border: 'none', textAlign: 'left', fontFamily: 'inherit',
-                            transition: 'background 0.1s',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                        >
-                          <FileText size={14} className="text-content-muted" style={{ flexShrink: 0 }} />
-                          <span className="text-content" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {f.original_name}
-                          </span>
-                          <ExternalLink size={11} className="text-content-faint" style={{ flexShrink: 0 }} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })()}
+      {res.location && <DetailField label={t('reservations.locationAddress')}>{res.location}</DetailField>}
 
-              {/* Aktionen */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                {onEdit && (
-                  <button type="button" onClick={() => onEdit(res)} className="bg-surface-tertiary text-content" style={{
-                    fontSize: 'calc(12px * var(--fs-scale-body, 1))',
-                    border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                  }}>
-                    <Pencil size={12} /> {t('common.edit')}
-                  </button>
-                )}
-                <button type="button" onClick={() => setTransportDetail(null)} className="bg-accent text-accent-text" style={{
-                  fontSize: 'calc(12px * var(--fs-scale-body, 1))',
-                  border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
-                }}>
-                  {t('common.close')}
-                </button>
-              </div>
-            </>
-          )
-        })()}
-      </div>
-    </div>,
-    document.body
+      {stats.length > 0 && (
+        <div className="flex gap-2">
+          {stats.map(s => (
+            <div key={s.label} className="min-w-0 flex-1 rounded-[12px] bg-surface-tertiary px-3 py-2.5 text-center">
+              <div className="truncate font-bold tabular-nums tracking-[-0.01em] text-content" style={fs(18, 'subtitle')}>{s.value}</div>
+              <div className="mt-0.5 truncate font-geist text-content-faint" style={fs(10.5)}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Public-transit itinerary (#1065): the legs the transit search stored. */}
+      {transit && transit.legs.length > 0 && (
+        <DialogSection label={t('transit.itinerary')}>
+          <TransitLegs legs={transit.legs} />
+        </DialogSection>
+      )}
+
+      {res.notes && (
+        <DialogSection label={t('reservations.notes')}>
+          <div className={`${BOX} collab-note-md px-3.5 py-3 text-content-secondary`} style={{ ...fs(13, 'body'), wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{res.notes}</Markdown>
+          </div>
+        </DialogSection>
+      )}
+
+      {files.length > 0 && (
+        <DialogSection label={t('files.title')}>
+          <div className="flex flex-col gap-1.5">
+            {files.map(f => (
+              <button key={f.id} type="button" onClick={() => { close(); onNavigateToFiles?.() }}
+                className={`${BOX} flex items-center gap-2.5 px-3.5 py-2.5 text-left hover:bg-surface-hover`}>
+                <FileText size={14} strokeWidth={2} className="flex-none text-content-muted" />
+                <span className="min-w-0 flex-1 truncate font-medium text-content" style={fs(13, 'body')}>{f.original_name}</span>
+                <ExternalLink size={12} strokeWidth={2} className="flex-none text-content-faint" />
+              </button>
+            ))}
+          </div>
+        </DialogSection>
+      )}
+    </DialogShell>
+  )
+}
+
+/** The facts of a flight or a train, the booking code and the code of each segment. */
+function detailCells(res: Reservation, meta: Record<string, unknown>, t: Translate): DetailCell[] {
+  const cells: DetailCell[] = []
+  const add = (label: string, value: unknown, code = false) => {
+    if (value) cells.push({ label, value: String(value), code })
+  }
+  if (res.type === 'flight') {
+    add(t('reservations.meta.airline'), meta.airline)
+    add(t('reservations.meta.flightNumber'), meta.flight_number)
+    add(t('reservations.meta.from'), meta.departure_airport)
+    add(t('reservations.meta.to'), meta.arrival_airport)
+    add(t('reservations.meta.seat'), meta.seat)
+  } else if (res.type === 'train') {
+    add(t('reservations.meta.trainNumber'), meta.train_number)
+    add(t('reservations.meta.platform'), meta.platform)
+    add(t('reservations.meta.seat'), meta.seat)
+  }
+  add(t('reservations.confirmationCode'), res.confirmation_number, true)
+  // A stopover booking can carry its own reference per segment (#1943); the
+  // flat fields above only ever describe the first leg. Drawn as codes, so the
+  // blur preference covers them like the booking's own.
+  const legs = Array.isArray(meta.legs) ? meta.legs as { from?: string; to?: string; confirmation_number?: string }[] : []
+  if (legs.length > 1) {
+    for (const leg of legs) {
+      if (!leg?.confirmation_number) continue
+      const segment = [leg.from, leg.to].filter(Boolean).join(' → ')
+      add(segment || t('reservations.confirmationCode'), leg.confirmation_number, true)
+    }
+  }
+  return cells
+}
+
+/** The booking's day and its time or time range, each empty when the booking has none. */
+function whenOf(res: Reservation, locale: string, timeFormat: string): { day: string; time: string } {
+  const { date, time } = splitReservationDateTime(res.reservation_time)
+  const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
+  const day = date
+    ? new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+    : ''
+  const start = time ? formatTime(time, locale, timeFormat) : ''
+  const end = endTime ? formatTime(endTime, locale, timeFormat) : ''
+  return { day, time: start && end ? `${start} → ${end}` : start }
+}
+
+/** A journey's length in the reader's language: minutes up to an hour, then hours and minutes. */
+function durationText(seconds: number, t: Translate): string {
+  const mins = Math.round(seconds / 60)
+  if (mins < 60) return t('transit.min', { count: mins })
+  const hours = Math.floor(mins / 60)
+  const minutes = mins % 60
+  return minutes > 0 ? t('dawarich.duration.hoursMinutes', { hours, minutes }) : t('dawarich.duration.hours', { hours })
+}
+
+/** A labelled value too long for a grid cell, such as an address. */
+function DetailField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <Eyebrow className="mb-[3px]">{label}</Eyebrow>
+      <div className={`${BOX} break-words px-3.5 py-2.5 font-medium text-content`} style={fs(13, 'body')}>{children}</div>
+    </div>
   )
 }

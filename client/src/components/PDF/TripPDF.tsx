@@ -1,22 +1,26 @@
 // Trip PDF via browser print window
 import { createElement } from 'react'
 import { getCategoryIcon } from '../shared/categoryIcons'
-import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship, Sailboat, Bike, CarTaxiFront, Route, Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle, ShoppingBag, Bookmark, Hotel, LogIn, LogOut, KeyRound, BedDouble, Utensils, Users, ParkingSquare, LucideIcon } from 'lucide-react'
+import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship, Sailboat, CableCar, Bike, CarTaxiFront, Route, Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle, ShoppingBag, Bookmark, Hotel, LogIn, LogOut, KeyRound, BedDouble, Utensils, Users, ParkingSquare, LucideIcon } from 'lucide-react'
 import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
-import type { Trip, Day, Place, Category, AssignmentsMap, DayNote, DistanceUnit } from '../../types'
+import type { Trip, Day, Place, Category, AssignmentsMap, DayNote, DistanceUnit, BudgetItem } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { hidesOnMiddleDay, getTransportForDay, getMergedItems, getSpanPhase, getDisplayTimeForDay } from '../../utils/dayMerge'
 import { safeHexColor } from '../../utils/safeColor'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { formatMoney, formatMoneySum, formatClockTime, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useTripStore } from '../../store/tripStore'
+import { useAddonStore } from '../../store/addonStore'
+import { planCosts } from '../Planner/planCosts'
 import { routeTrip, type TripRouteSummary } from '../Map/tripRouteGeometry'
 import { buildTripMapSvg } from './tripMapSvg'
 import { renderTripMapImage } from './tripMapImage'
 import { formatDistance } from '../../utils/units'
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
-import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
+import { getFlightLegs, getTrainLegs, usesStationRoute } from '../../utils/flightLegs'
 import { isServiceStopType } from '../Roadtrip/roadtripModel'
+import { onlyMyPlan } from './pdfScope'
 
 /**
  * Every day starts a new page by default. On a trip of short days that prints
@@ -25,17 +29,25 @@ import { isServiceStopType } from '../Roadtrip/roadtripModel'
  */
 const PAGE_BREAK_KEY = 'trek_pdf_page_break_per_day'
 
-function pageBreakPerDay(): boolean {
+/**
+ * The notes of a flight, train or rental (#1571): printed by default, like the
+ * notes of a place, and a switch in the preview leaves them out for a reader who
+ * wants the plan without the fine print.
+ */
+const TRANSPORT_NOTES_KEY = 'trek_pdf_transport_notes'
+
+/** A preview switch that is on unless it was turned off; both default to on. */
+function pdfSwitchOn(key: string): boolean {
   try {
-    return localStorage.getItem(PAGE_BREAK_KEY) !== '0'
+    return localStorage.getItem(key) !== '0'
   } catch {
     return true
   }
 }
 
-function rememberPageBreakPerDay(on: boolean): void {
+function rememberPdfSwitch(key: string, on: boolean): void {
   try {
-    localStorage.setItem(PAGE_BREAK_KEY, on ? '1' : '0')
+    localStorage.setItem(key, on ? '1' : '0')
   } catch {
     // A blocked localStorage costs the preference, not the export.
   }
@@ -61,8 +73,8 @@ function noteIconSvg(iconId) {
   return renderLucideIcon(Icon, { size: 14, strokeWidth: 1.8, color: '#94a3b8' })
 }
 
-const RESERVATION_ICON_MAP = { flight: Plane, train: Train, bus: Bus, car: Car, taxi: CarTaxiFront, bicycle: Bike, cruise: Ship, ferry: Sailboat, transport_other: Route, restaurant: Utensils, event: Ticket, tour: Users, parking: ParkingSquare, other: FileText }
-const RESERVATION_COLOR_MAP = { flight: '#3b82f6', train: '#06b6d4', bus: '#059669', car: '#6b7280', taxi: '#ca8a04', bicycle: '#84cc16', cruise: '#0ea5e9', ferry: '#0d9488', transport_other: '#6b7280', restaurant: '#ef4444', event: '#f59e0b', tour: '#10b981', parking: '#2563eb', other: '#6b7280' }
+const RESERVATION_ICON_MAP = { flight: Plane, train: Train, bus: Bus, car: Car, taxi: CarTaxiFront, bicycle: Bike, cruise: Ship, ferry: Sailboat, cable_car: CableCar, transport_other: Route, restaurant: Utensils, event: Ticket, tour: Users, parking: ParkingSquare, other: FileText }
+const RESERVATION_COLOR_MAP = { flight: '#3b82f6', train: '#06b6d4', bus: '#059669', car: '#6b7280', taxi: '#ca8a04', bicycle: '#84cc16', cruise: '#0ea5e9', ferry: '#0d9488', cable_car: '#dc2626', transport_other: '#6b7280', restaurant: '#ef4444', event: '#f59e0b', tour: '#10b981', parking: '#2563eb', other: '#6b7280' }
 function reservationIconSvg(type) {
   const Icon = RESERVATION_ICON_MAP[type] || Ticket
   const color = RESERVATION_COLOR_MAP[type] || '#3b82f6'
@@ -141,16 +153,6 @@ function longDateRange(days, locale) {
   return `${f.toLocaleDateString(locale, { day: 'numeric', month: 'long', timeZone: 'UTC' })} – ${l.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}`
 }
 
-// Day totals render in the trip's currency; foreign-currency place prices are
-// converted via the pre-fetched rates, or listed per-currency when rates are
-// unavailable (#1561).
-function dayCost(assignments, dayId, locale, tripCurrency, rates) {
-  const entries: MoneyEntry[] = (assignments[String(dayId)] || []).map(a => ({
-    amount: Number.parseFloat(a.place?.price) || 0,
-    currency: a.place?.currency || tripCurrency,
-  }))
-  return formatMoneySum(entries, tripCurrency, locale || 'en', rates)
-}
 
 // Pre-fetch place photos for all assigned places.
 // Assignment places are a server-side projection that drops osm_id, so we recover
@@ -206,6 +208,12 @@ interface downloadTripPDFProps {
    * the road trip view, and so does the print.
    */
   showServiceStops?: boolean
+  /** The trip's expenses, which the cost figures add up with Costs on (#2551). Read from the trip store when left out. */
+  budgetItems?: BudgetItem[]
+  /** Whether the Costs addon is on. Read from the addon store when left out. */
+  costsEnabled?: boolean
+  /** Prints only this member's plan (#2168): the stops and bookings that name them, and the ones that name nobody. */
+  onlyUserId?: number
 }
 
 /**
@@ -226,9 +234,15 @@ function planAssignments(assignments: AssignmentsMap, showServiceStops: boolean)
 
 // `assignments` is normalised here once, to the plan's own list; every read below
 // (and fetchPlacePhotos) relies on it being an object.
-export async function downloadTripPDF({ trip, days, places, assignments: stored = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale, timeFormat: _timeFormat, distanceUnit: _distanceUnit, showServiceStops = true }: downloadTripPDFProps) {
+export async function downloadTripPDF({ trip, days, places, assignments: allStored = {}, categories, dayNotes, reservations: allReservations = [], t: _t, locale: _locale, timeFormat: _timeFormat, distanceUnit: _distanceUnit, showServiceStops = true, budgetItems, costsEnabled, onlyUserId }: downloadTripPDFProps) {
+  const { assignments: stored, reservations } = onlyUserId != null
+    ? onlyMyPlan(allStored, allReservations, onlyUserId)
+    : { assignments: allStored, reservations: allReservations }
   const assignments = planAssignments(stored, showServiceStops)
-  const breaksPerDay = pageBreakPerDay()
+  const breaksPerDay = pdfSwitchOn(PAGE_BREAK_KEY)
+  const showTransportNotes = pdfSwitchOn(TRANSPORT_NOTES_KEY)
+  // Set while the days render: the switch only shows when there is a note to hide.
+  let hasTransportNotes = false
   const loc = _locale || undefined
   const tr = _t || (k => k)
   // The store read is the fallback, not the source: a caller that forgets the
@@ -328,12 +342,25 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
   // entirely (offline export keeps working), and a failed fetch degrades to
   // per-currency breakdowns instead of mislabeled sums (#1561).
   const tripCur = (trip?.currency || 'EUR').toUpperCase()
-  const allCostEntries: MoneyEntry[] = Object.values(assignments)
-    .flatMap(a => a)
-    .map(a => ({ amount: Number(a.place?.price) || 0, currency: a.place?.currency || tripCur }))
+  // The same figures the plan shows (#2551): the expenses with Costs on, each once,
+  // else each planned place's own price once. An expense linked to a place finds its
+  // day through every stop, the booked night's included.
+  const withCosts = costsEnabled ?? useAddonStore.getState().isEnabled('budget')
+  const costs = planCosts({
+    days: sorted,
+    assignments: withCosts ? stored : assignments,
+    reservations,
+    budgetItems: budgetItems ?? useTripStore.getState().budgetItems,
+    costsEnabled: withCosts,
+    tripCurrency: tripCur,
+  })
+  const allCostEntries: MoneyEntry[] = costs.total
   const needsFx = allCostEntries.some(e => e.amount !== 0 && e.currency.toUpperCase() !== tripCur)
   const fxRates = needsFx ? await fetchExchangeRates(tripCur) : null
   const totalCostLabel = formatMoneySum(allCostEntries, tripCur, loc || 'en', fxRates)
+  // Day totals render in the trip's currency; foreign amounts are converted via the
+  // pre-fetched rates, or listed per-currency when rates are unavailable (#1561).
+  const dayCost = (dayId: number) => formatMoneySum(costs.byDay.get(dayId) || [], tripCur, loc || 'en', fxRates)
 
   /*
    * The span label is the only PDF-specific piece left here. Everything else
@@ -366,7 +393,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
       .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
     const notes = (dayNotes || []).filter(n => n.day_id === day.id).slice()
       .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-    const cost = dayCost(assignments, day.id, loc, tripCur, fxRates)
+    const cost = dayCost(day.id)
 
     // Assembled exactly the way DayPlanSidebar assembles it, so the page and the
     // print cannot disagree about what order a day is in.
@@ -418,7 +445,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
               // carry — read back from the booking by index. At the gate that is
               // the code the airline asks for (#1943), so losing it here would
               // have been a real regression for a stopover flight.
-              const source = (r.type === 'train' ? getTrainLegs(r) : getFlightLegs(r))[l.index]
+              const source = (usesStationRoute(r.type) ? getTrainLegs(r) : getFlightLegs(r))[l.index]
               subtitleLines = [[
                 l.airline, l.flight_number, l.train_number,
                 l.platform ? `Gl. ${l.platform}` : '',
@@ -500,6 +527,8 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
             const endTime = phase === 'single' ? fmtTime(splitReservationDateTime(r.reservation_end_time).time) : ''
             const time = [startTime, endTime].filter(Boolean).join(' – ')
             const titleHtml = `${spanLabel ? escHtml(spanLabel) + ': ' : ''}${escHtml(r.title)}`
+            const transportNote = typeof r.notes === 'string' ? r.notes.trim() : ''
+            if (transportNote) hasTransportNotes = true
             return `
               <div class="note-card" style="border-left: 3px solid ${color};">
                 <div class="note-line" style="background: ${color};"></div>
@@ -509,6 +538,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
                   ${subtitleLines.filter(Boolean).map(s => `<div class="note-time">${escHtml(s)}</div>`).join('')}
                   ${locationLine ? `<div class="note-time">${escHtml(locationLine)}</div>` : ''}
                   ${r.confirmation_number ? `<div class="note-time" style="font-size:9px;">Code: ${escHtml(r.confirmation_number)}</div>` : ''}
+                  ${transportNote ? `<div class="note-time transport-note">${escHtml(transportNote)}</div>` : ''}
                 </div>
               </div>`
           }
@@ -735,6 +765,8 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
      Flowing days butt against each other without the page edge between them. */
   .day-break { page-break-before: always; }
   .pdf-flow .day-break { page-break-before: auto; }
+  .transport-note { font-style: italic; white-space: pre-line; }
+  .pdf-no-transport-notes .transport-note { display: none; }
   .pdf-flow .day-section + .day-section { margin-top: 18px; }
   /* Hold a flowing day together. Without this the header bar can be placed at the
      foot of a sheet while its content moves to the next one, which then repeats
@@ -852,7 +884,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
   }
 </style>
 </head>
-<body${breaksPerDay ? '' : ' class="pdf-flow"'}>
+<body${bodyClassAttr(breaksPerDay, showTransportNotes)}>
 
 <!-- Footer on every page -->
 <div class="pdf-footer">
@@ -921,10 +953,8 @@ ${pluginSectionsHtml}
   header.innerHTML = `
     <span style="font-size:13px;font-weight:600;color:var(--text-primary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(trip?.title || tr('pdf.travelPlan'))}</span>
     <div style="display:flex;align-items:center;gap:8px">
-      <label for="pdf-daybreak-toggle" style="font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none">${escHtml(tr('pdf.pageBreakPerDay'))}</label>
-      <button id="pdf-daybreak-toggle" type="button" role="switch" aria-checked="${breaksPerDay}" aria-label="${escHtml(tr('pdf.pageBreakPerDay'))}" style="${TOGGLE_TRACK} background:${trackColour(breaksPerDay)}">
-        <span style="${TOGGLE_KNOB} left:${knobOffset(breaksPerDay)}"></span>
-      </button>
+      ${hasTransportNotes ? previewSwitch('pdf-transport-notes-toggle', tr('pdf.transportNotes'), showTransportNotes) : ''}
+      ${previewSwitch('pdf-daybreak-toggle', tr('pdf.pageBreakPerDay'), breaksPerDay)}
       <button type="button" id="pdf-print-btn" style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-family:inherit">${tr('pdf.saveAsPdf')}</button>
       <button type="button" id="pdf-close-btn" style="background:none;border:none;cursor:pointer;color:var(--text-faint);display:flex;padding:4px;border-radius:6px">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -949,16 +979,40 @@ ${pluginSectionsHtml}
   const printBtn = header.querySelector<HTMLElement>('#pdf-print-btn')
   if (printBtn) printBtn.onclick = () => { iframe.contentWindow?.print() }
 
-  // The two layouts differ by one class, so switching is instant in the preview
-  // and there is no need to re-fetch photos or rebuild the document.
-  const dayBreakSwitch = header.querySelector<HTMLButtonElement>('#pdf-daybreak-toggle')
-  if (dayBreakSwitch) dayBreakSwitch.onclick = () => {
-    const on = dayBreakSwitch.getAttribute('aria-checked') !== 'true'
-    dayBreakSwitch.setAttribute('aria-checked', String(on))
-    dayBreakSwitch.style.background = trackColour(on)
-    const knob = dayBreakSwitch.firstElementChild as HTMLElement | null
-    if (knob) knob.style.left = knobOffset(on)
-    rememberPageBreakPerDay(on)
+  // Both choices differ by one class on <body>, so switching is instant in the
+  // preview and there is no need to re-fetch photos or rebuild the document.
+  wirePreviewSwitch(header, 'pdf-daybreak-toggle', on => {
+    rememberPdfSwitch(PAGE_BREAK_KEY, on)
     iframe.contentDocument?.body.classList.toggle('pdf-flow', !on)
+  })
+  wirePreviewSwitch(header, 'pdf-transport-notes-toggle', on => {
+    rememberPdfSwitch(TRANSPORT_NOTES_KEY, on)
+    iframe.contentDocument?.body.classList.toggle('pdf-no-transport-notes', !on)
+  })
+}
+
+function bodyClassAttr(breaksPerDay: boolean, showTransportNotes: boolean): string {
+  const classes = [!breaksPerDay && 'pdf-flow', !showTransportNotes && 'pdf-no-transport-notes'].filter(Boolean)
+  return classes.length ? ` class="${classes.join(' ')}"` : ''
+}
+
+/** A labelled switch for the preview header, as markup; wirePreviewSwitch gives it behaviour. */
+function previewSwitch(id: string, label: string, on: boolean): string {
+  return `<label for="${id}" style="font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none">${escHtml(label)}</label>
+      <button id="${id}" type="button" role="switch" aria-checked="${on}" aria-label="${escHtml(label)}" style="${TOGGLE_TRACK} background:${trackColour(on)}">
+        <span style="${TOGGLE_KNOB} left:${knobOffset(on)}"></span>
+      </button>`
+}
+
+function wirePreviewSwitch(header: HTMLElement, id: string, onChange: (on: boolean) => void): void {
+  const button = header.querySelector<HTMLButtonElement>(`#${id}`)
+  if (!button) return
+  button.onclick = () => {
+    const on = button.getAttribute('aria-checked') !== 'true'
+    button.setAttribute('aria-checked', String(on))
+    button.style.background = trackColour(on)
+    const knob = button.firstElementChild as HTMLElement | null
+    if (knob) knob.style.left = knobOffset(on)
+    onChange(on)
   }
 }

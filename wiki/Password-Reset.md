@@ -59,6 +59,9 @@ When choosing a new password (whether via the reset flow, the forced-change prom
 - Contain at least one **number**
 - Contain at least one **special character**
 - Not be a commonly used password
+- Not consist of a single repeated character
+
+While you type, the form lists the five character rules under the password field and ticks each one off as it is met, so you see what is still missing before you submit.
 
 ## Rate limiting
 

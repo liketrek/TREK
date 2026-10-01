@@ -1,7 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useId } from 'react'
 import { categoriesApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
-import { Plus, Edit2, Trash2, Pipette } from 'lucide-react'
+import { Plus, Pencil, Trash2, Pipette, Tags, Loader2 } from 'lucide-react'
+import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
+import { Tooltip } from '../shared/Tooltip'
+import ConfirmDialog from '../shared/ConfirmDialog'
+import { SettingRows, SettingsCard, SettingsHint, StatusPill, SETTINGS_BUTTON_PRIMARY, SETTINGS_ICON_BUTTON } from '../Settings/settingsKit'
 import { CATEGORY_ICON_MAP, ICON_LABELS, getCategoryIcon } from '../shared/categoryIcons'
 import { useTranslation } from '../../i18n'
 import { getApiErrorMessage } from '../../types'
@@ -12,20 +16,26 @@ const PRESET_COLORS = [
   '#6b7280', '#1f2937',
 ]
 
+// The colour a new category is stored with: data the server keeps, not a theme colour.
+const DEFAULT_COLOR = '#6366f1' // theme-lint-disable: a stored category colour, not styling
+
 const ICON_NAMES = Object.keys(CATEGORY_ICON_MAP)
 
 export default function CategoryManager() {
   const [categories, setCategories] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ name: '', color: '#6366f1', icon: 'MapPin' })
+  const [form, setForm] = useState({ name: '', color: DEFAULT_COLOR, icon: 'MapPin' })
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  // The category whose delete waits for the answer in the confirm dialog.
+  const [deleteId, setDeleteId] = useState(null)
   const colorInputRef = useRef(null)
   const toast = useToast()
   const { t } = useTranslation()
+  const labelId = useId()
 
-  useEffect(() => { loadCategories() }, [])
+  useEffect(() => { void loadCategories() }, [])
 
   const loadCategories = async () => {
     setIsLoading(true)
@@ -41,13 +51,13 @@ export default function CategoryManager() {
 
   const handleStartEdit = (cat) => {
     setEditingId(cat.id)
-    setForm({ name: cat.name, color: cat.color || '#6366f1', icon: cat.icon || 'MapPin' })
+    setForm({ name: cat.name, color: cat.color || DEFAULT_COLOR, icon: cat.icon || 'MapPin' })
     setShowForm(false)
   }
 
   const handleStartCreate = () => {
     setEditingId(null)
-    setForm({ name: '', color: '#6366f1', icon: 'MapPin' })
+    setForm({ name: '', color: DEFAULT_COLOR, icon: 'MapPin' })
     setShowForm(true)
   }
 
@@ -71,7 +81,7 @@ export default function CategoryManager() {
         setShowForm(false)
         toast.success(t('categories.toast.created'))
       }
-      setForm({ name: '', color: '#6366f1', icon: 'MapPin' })
+      setForm({ name: '', color: DEFAULT_COLOR, icon: 'MapPin' })
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, t('categories.toast.saveError')))
     } finally {
@@ -80,7 +90,6 @@ export default function CategoryManager() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm(t('categories.confirm.delete'))) return
     try {
       await categoriesApi.delete(id)
       setCategories(prev => prev.filter(c => c.id !== id))
@@ -92,22 +101,44 @@ export default function CategoryManager() {
 
   const isPresetColor = PRESET_COLORS.includes(form.color)
   const PreviewIcon = getCategoryIcon(form.icon)
+  const formOpen = showForm || editingId !== null
+  const saveDisabled = isSaving || !form.name.trim()
 
-  const categoryForm = (
-    <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-200">
-      <input
-        type="text"
-        value={form.name}
-        onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-        placeholder={t('categories.namePlaceholder')}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
-        autoFocus
-      />
-
-      <div>
-        <label className="block text-xs font-medium text-gray-600 mb-2">{t('categories.icon')}</label>
-        <div className="max-h-48 overflow-y-auto">
-          <div className="flex flex-wrap gap-1.5 px-1.5 py-1.5">
+  const categoryDialog = (
+    <DialogShell
+      onClose={handleCancel}
+      labelledBy={labelId}
+      width="detail"
+      header={
+        <DialogHeader
+          tile={<DialogTile><PreviewIcon size={20} strokeWidth={1.9} color={form.color} /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={handleCancel}
+          eyebrow={editingId ? t('common.edit') : t('categories.new')}
+          titleInput={{
+            value: form.name,
+            onChange: name => setForm(prev => ({ ...prev, name })),
+            label: t('categories.namePlaceholder'),
+            placeholder: t('categories.namePlaceholder'),
+            autoFocus: true,
+            onKeyDown: e => { if (e.key === 'Enter' && !saveDisabled) void handleSave() },
+          }}
+        />
+      }
+      footer={
+        <DialogFooter>
+          <FooterSpacer />
+          <DialogButton onClick={handleCancel}>{t('common.cancel')}</DialogButton>
+          <DialogButton variant="primary" onClick={handleSave} disabled={saveDisabled}>
+            {isSaving ? t('common.saving') : editingId ? t('categories.update') : t('categories.create')}
+          </DialogButton>
+        </DialogFooter>
+      }
+    >
+      <DialogSection label={t('categories.icon')}>
+        <div className="max-h-52 overflow-y-auto rounded-[14px] border border-edge-faint bg-surface-secondary p-2">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(38px,1fr))] gap-1">
             {ICON_NAMES.map(name => {
               const Icon = CATEGORY_ICON_MAP[name]
               const isSelected = form.icon === name
@@ -116,28 +147,29 @@ export default function CategoryManager() {
                   key={name}
                   type="button"
                   title={ICON_LABELS[name] || name}
+                  aria-label={ICON_LABELS[name] || name}
+                  aria-pressed={isSelected}
                   onClick={() => setForm(prev => ({ ...prev, icon: name }))}
-                  className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all ${
-                    isSelected
-                      ? 'ring-2 ring-offset-1 ring-slate-700'
-                      : 'hover:bg-gray-200'
+                  className={`grid h-[38px] place-items-center rounded-[10px] transition-colors ${
+                    isSelected ? 'bg-surface-card shadow-sm ring-2 ring-content' : 'text-content-secondary hover:bg-surface-card'
                   }`}
-                  style={{ background: isSelected ? `${form.color}18` : undefined }}
+                  style={isSelected ? { background: `${form.color}18` } : undefined}
                 >
-                  <Icon size={17} strokeWidth={1.8} color={isSelected ? form.color : '#374151'} />
+                  <Icon size={17} strokeWidth={1.8} color={isSelected ? form.color : 'currentColor'} />
                 </button>
               )
             })}
           </div>
         </div>
-      </div>
+      </DialogSection>
 
-      <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('categories.color')}</label>
-        <div className="flex items-center gap-2 flex-wrap">
+      <DialogSection label={t('categories.color')}>
+        <div className="flex flex-wrap items-center gap-2">
           {PRESET_COLORS.map(color => (
             <button key={color} type="button" onClick={() => setForm(prev => ({ ...prev, color }))}
-              className={`w-7 h-7 rounded-full transition-transform hover:scale-110 ${form.color === color ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : ''}`}
+              aria-label={color}
+              aria-pressed={form.color === color}
+              className={`h-7 w-7 rounded-full transition-transform hover:scale-110 ${form.color === color ? 'scale-110 ring-2 ring-content ring-offset-2 ring-offset-surface-card' : ''}`}
               style={{ backgroundColor: color }} />
           ))}
 
@@ -148,109 +180,102 @@ export default function CategoryManager() {
             value={form.color}
             onChange={e => setForm(prev => ({ ...prev, color: e.target.value }))}
             className="sr-only"
+            tabIndex={-1}
+            aria-hidden
           />
           <button
             type="button"
             title={t('categories.customColor')}
+            aria-label={t('categories.customColor')}
             onClick={() => colorInputRef.current?.click()}
-            className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-transform hover:scale-110 ${
+            className={`grid h-7 w-7 place-items-center rounded-full border-2 transition-transform hover:scale-110 ${
               !isPresetColor
-                ? 'ring-2 ring-offset-2 ring-gray-400 scale-110 border-transparent'
-                : 'border-dashed border-gray-300 hover:border-gray-400'
+                ? 'scale-110 border-transparent ring-2 ring-content ring-offset-2 ring-offset-surface-card'
+                : 'border-dashed border-edge text-content-faint hover:border-content-faint hover:text-content-muted'
             }`}
             style={!isPresetColor ? { backgroundColor: form.color } : undefined}
           >
-            {isPresetColor && <Pipette className="w-3 h-3 text-gray-400" />}
+            {isPresetColor && <Pipette size={12} strokeWidth={2} />}
           </button>
         </div>
-      </div>
+      </DialogSection>
 
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-500">{t('categories.preview')}:</span>
-        <span className="inline-flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full font-medium"
-          style={{ backgroundColor: `${form.color}20`, color: form.color }}>
-          <PreviewIcon size={14} strokeWidth={1.8} />
-          {form.name || t('categories.defaultName')}
-        </span>
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={handleCancel}
-          className="px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
-          {t('common.cancel')}
-        </button>
-        <button type="button" onClick={handleSave} disabled={isSaving || !form.name.trim()}
-          className="px-4 py-1.5 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-700 disabled:opacity-60 font-medium">
-          {isSaving ? t('common.saving') : editingId ? t('categories.update') : t('categories.create')}
-        </button>
-      </div>
-    </div>
+      <DialogSection label={t('categories.preview')}>
+        <div className="flex items-center rounded-[14px] border border-edge-faint bg-surface-secondary px-3.5 py-3">
+          <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 truncate rounded-full px-2.5 py-1 font-semibold"
+            style={{ ...fs(12.5, 'body'), backgroundColor: `${form.color}20`, color: form.color }}>
+            <PreviewIcon size={14} strokeWidth={1.8} className="flex-none" />
+            {form.name || t('categories.defaultName')}
+          </span>
+        </div>
+      </DialogSection>
+    </DialogShell>
   )
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="font-semibold text-content">{t('categories.title')}</h2>
-          <p className="mt-1 text-caption text-content-faint">{t('categories.subtitle')}</p>
-        </div>
-        <button type="button" onClick={handleStartCreate}
-          className="flex items-center gap-2 bg-slate-900 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-slate-700 text-sm font-medium">
-          <Plus className="w-4 h-4" />
+    <SettingsCard
+      icon={Tags}
+      title={t('categories.title')}
+      hint={t('categories.subtitle')}
+      badge={!isLoading && categories.length > 0 ? <StatusPill>{categories.length}</StatusPill> : undefined}
+      action={
+        <button type="button" onClick={handleStartCreate} className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
+          <Plus size={14} strokeWidth={2.2} />
           <span className="hidden sm:inline">{t('categories.new')}</span>
         </button>
-      </div>
-
-      {showForm && <div className="mb-4">{categoryForm}</div>}
-
+      }
+    >
       {isLoading ? (
-        <div className="flex items-center justify-center py-8 text-gray-400">
-          <div className="w-6 h-6 border-2 border-gray-300 border-t-slate-600 rounded-full animate-spin" />
+        <div className="grid place-items-center py-8">
+          <Loader2 size={20} className="animate-spin text-content-faint" />
         </div>
       ) : categories.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">
-          <p className="text-sm">{t('categories.empty')}</p>
+        <div className="rounded-[12px] border border-dashed border-edge px-4 py-6 text-center">
+          <SettingsHint>{t('categories.empty')}</SettingsHint>
         </div>
       ) : (
-        <div className="space-y-2">
+        <SettingRows>
           {categories.map(cat => {
             const Icon = getCategoryIcon(cat.icon)
             return (
-              <div key={cat.id}>
-                {editingId === cat.id ? (
-                  <div className="mb-2">{categoryForm}</div>
-                ) : (
-                  <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl hover:border-gray-200 group">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: `${cat.color}20` }}>
-                      <Icon size={18} strokeWidth={1.8} color={cat.color} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 text-sm">{cat.name}</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: `${cat.color}20`, color: cat.color }}>
-                          {cat.color}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button type="button" onClick={() => handleStartEdit(cat)}
-                        className="p-1.5 text-gray-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button type="button" onClick={() => handleDelete(cat.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+              <div key={cat.id} data-category-row={cat.id} className={`group flex items-center gap-3 px-3.5 py-3 ${editingId === cat.id ? 'bg-surface-secondary' : ''}`}>
+                <span className="grid h-9 w-9 flex-none place-items-center rounded-[10px]"
+                  style={{ backgroundColor: `${cat.color}20` }}>
+                  <Icon size={17} strokeWidth={1.8} color={cat.color} />
+                </span>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="min-w-0 truncate font-medium text-content" style={fs(13, 'body')}>{cat.name}</span>
+                  <span className="flex-none rounded-full px-2 py-[2px] font-geist font-semibold uppercase tabular-nums"
+                    style={{ ...fs(10.5), backgroundColor: `${cat.color}20`, color: cat.color }}>
+                    {cat.color}
+                  </span>
+                </div>
+                <div className="flex flex-none items-center gap-1.5">
+                  <Tooltip label={t('common.edit')}>
+                    <button type="button" onClick={() => handleStartEdit(cat)} aria-label={t('common.edit')} className={SETTINGS_ICON_BUTTON}>
+                      <Pencil size={14} strokeWidth={2} />
+                    </button>
+                  </Tooltip>
+                  <Tooltip label={t('common.delete')}>
+                    <button type="button" onClick={() => setDeleteId(cat.id)} aria-label={t('common.delete')} className={`${SETTINGS_ICON_BUTTON} hover:!text-danger`}>
+                      <Trash2 size={14} strokeWidth={2} />
+                    </button>
+                  </Tooltip>
+                </div>
               </div>
             )
           })}
-        </div>
+        </SettingRows>
       )}
-    </div>
+      {formOpen && categoryDialog}
+      <ConfirmDialog
+        isOpen={deleteId !== null}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => { if (deleteId !== null) void handleDelete(deleteId) }}
+        message={t('categories.confirm.delete')}
+        confirmLabel={t('common.delete')}
+        danger
+      />
+    </SettingsCard>
   )
 }

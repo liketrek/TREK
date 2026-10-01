@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'تراجع: {action}',
   'undo.assignPlace': 'تم تعيين المكان لليوم',
   'undo.removeAssignment': 'تم إزالة المكان من اليوم',
+  'undo.clearDay': 'تم إفراغ اليوم',
   'undo.reorder': 'تمت إعادة ترتيب الأماكن',
   'undo.optimize': 'تم تحسين المسار',
   'undo.deletePlace': 'تم حذف المكان',

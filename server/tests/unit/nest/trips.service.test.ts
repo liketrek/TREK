@@ -89,6 +89,7 @@ import path from 'path';
 import { notificationsStub } from '../../helpers/notifications';
 import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
 import { SettingsService } from '../../../src/nest/settings/settings.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 // Real sibling services over the same in-memory DB — updateTrip's date-shift
 // resyncs and the summary/bundle aggregation run their actual SQL.
@@ -108,7 +109,7 @@ const placesSvc = new PlacesService(
   dbs(),
   new PermissionsService(dbs()),
   new RealtimeService(),
-  new MapsService(dbs(), photoCache),
+  new MapsService(dbs(), photoCache, noGoogleQuota),
   new QueryHelpersService(dbs()),
   new UnsplashService(dbs(), new RuntimeEnvService(), coversFx.storage),
   photoCache,
@@ -1518,6 +1519,36 @@ describe('quirk fixes', () => {
  * running today → next one starting (earliest first) → most recently started →
  * undated last. If these drift, "open my trip" and the hero show different trips.
  */
+describe('searchPlaces (#2190)', () => {
+  it('TRIP-SVC-2190-1: finds places by name or address across own and shared trips, archived ones too', () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const own = createTrip(testDb, user.id, { title: 'Philly' });
+    const shared = createTrip(testDb, other.id, { title: 'SF' });
+    addTripMember(testDb, shared.id, user.id);
+    const foreign = createTrip(testDb, other.id, { title: 'Hidden' });
+    createPlace(testDb, own.id, { name: "Dante's Diner" });
+    const museum = createPlace(testDb, own.id, { name: 'Museum' });
+    testDb.prepare('UPDATE places SET address = ? WHERE id = ?').run('1 Diner Street', museum.id);
+    createPlace(testDb, shared.id, { name: 'City Lights Books' });
+    createPlace(testDb, foreign.id, { name: 'Secret Diner' });
+    testDb.prepare('UPDATE trips SET is_archived = 1 WHERE id = ?').run(own.id);
+
+    expect(svc.searchPlaces(user.id, 'diner')).toEqual([{ trip_id: own.id, places: ["Dante's Diner", 'Museum'] }]);
+    expect(svc.searchPlaces(user.id, 'books')).toEqual([{ trip_id: shared.id, places: ['City Lights Books'] }]);
+  });
+
+  it('TRIP-SVC-2190-2: wildcards are literal, short queries match nothing, and three names per trip at most', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    for (const name of ['Cafe A', 'Cafe B', 'Cafe C', 'Cafe D', '100% Juice']) createPlace(testDb, trip.id, { name });
+    expect(svc.searchPlaces(user.id, 'cafe')[0].places).toHaveLength(3);
+    expect(svc.searchPlaces(user.id, '%')).toEqual([]);
+    expect(svc.searchPlaces(user.id, '0%')[0].places).toEqual(['100% Juice']);
+    expect(svc.searchPlaces(user.id, '_a')).toEqual([]);
+  });
+});
+
 describe('activeTrip (startup destination)', () => {
   const TODAY = '2026-08-08';
 

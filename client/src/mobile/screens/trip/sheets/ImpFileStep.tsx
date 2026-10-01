@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { Check, FileDown } from 'lucide-react'
 import { placesApi } from '../../../../api/client'
+import { useAuthStore } from '../../../../store/authStore'
+import MToggle from '../../../components/MToggle'
 import { Eyebrow, FormSheetFooter } from './PlSheetChrome'
 import type { TripPlanner } from '../MTripShell'
 
@@ -37,6 +39,9 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
   const [summary, setSummary] = useState<ImportSummary | null>(null)
   const [gpxOpts, setGpxOpts] = useState({ waypoints: true, routes: true, tracks: true })
   const [kmlOpts, setKmlOpts] = useState({ points: true, paths: true })
+  // The Google pass the list import offers, for a file's points too (#2536).
+  const canEnrich = useAuthStore(s => s.hasMapsKey)
+  const [enrich, setEnrich] = useState(false)
 
   const validateFile = (f: File): string | null => {
     const ext = f.name.toLowerCase().split('.').pop()
@@ -77,12 +82,12 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
       const ext = f.name.toLowerCase().split('.').pop()
       try {
         if (ext === 'gpx') {
-          const result = await placesApi.importGpx(tripId, f, gpxOpts)
+          const result = await placesApi.importGpx(tripId, f, { ...gpxOpts, enrich: enrich && canEnrich })
           gpxCreated += result.count ?? 0
           totalSkipped += result.skipped ?? 0
           if (result.places?.length > 0) gpxIds.push(...result.places.map((p: { id: number }) => p.id))
         } else {
-          const result = await placesApi.importMapFile(tripId, f, kmlOpts)
+          const result = await placesApi.importMapFile(tripId, f, { ...kmlOpts, enrich: enrich && canEnrich })
           kmlCreated += result.count ?? 0
           if (result.places?.length > 0) kmlIds.push(...result.places.map((p: { id: number }) => p.id))
           const s = result.summary as ImportSummary | undefined
@@ -206,6 +211,16 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
             noneSelected={kmlNoneSelected}
             noneSelectedLabel={t('places.kmlImportNoneSelected')}
           />
+        )}
+
+        {canEnrich && ((isGpx && gpxOpts.waypoints) || (isKml && kmlOpts.points)) && (
+          <div className="mt-3 flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-[0.78125rem] font-semibold text-m-ink">{t('places.enrichOnImport')}</div>
+              <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-faint">{t('places.enrichOnImportFileHint')}</div>
+            </div>
+            <MToggle checked={enrich} onChange={setEnrich} ariaLabel={t('places.enrichOnImport')} className="mt-[2px]" />
+          </div>
         )}
 
         {summary && (

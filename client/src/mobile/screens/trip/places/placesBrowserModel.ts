@@ -1,4 +1,5 @@
 import type { AssignmentsMap, Day, Place } from '../../../../types'
+import { placeMatchesSearch } from '../../../../utils/placeSearch'
 import {
   plannedPlaceIds as sharedPlannedPlaceIds,
   type PlannedAccommodation, type PlannedReservation,
@@ -44,9 +45,7 @@ export function matchesCategoryFilter(place: Place, categoryFilters: Set<string>
 }
 
 export function matchesSearch(place: Place, search: string): boolean {
-  if (!search) return true
-  const q = search.toLowerCase()
-  return place.name.toLowerCase().includes(q) || (place.address || '').toLowerCase().includes(q)
+  return placeMatchesSearch(place, search)
 }
 
 interface PoolFilterArgs {

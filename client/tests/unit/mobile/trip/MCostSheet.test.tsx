@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ExpensePrefill } from '../../../../src/components/Budget/CostsPanel'
 import MCostSheet from '../../../../src/mobile/screens/trip/sheets/MCostSheet'
 import type { TripMember } from '../../../../src/components/Budget/BudgetPanelMemberChips'
 import { clearExchangeRateCache } from '../../../../src/hooks/useExchangeRates'
@@ -35,7 +36,7 @@ interface SheetOverrides {
   me?: number
   base?: string
   editing?: BudgetItem | null
-  prefill?: { name?: string; category?: string; amount?: number; reservationId?: number; placeId?: number }
+  prefill?: ExpensePrefill
 }
 
 function renderSheet(overrides: SheetOverrides = {}) {
@@ -179,6 +180,14 @@ describe('MCostSheet', () => {
     expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({
       name: 'Ryokan', category: 'accommodation', total_price: 240, reservation_id: 77,
     }))
+  })
+
+  it('FE-MOB-COSTSH-003c: a scanned receipt opens with its currency and its photo waiting to be attached', () => {
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    renderSheet({ prefill: { name: 'Sushi Dai', amount: 4200, currency: 'JPY', date: '2026-09-20', receiptFiles: [photo] } })
+    expect(nameField()).toHaveValue('Sushi Dai')
+    expect(screen.getByDisplayValue('4200')).toBeInTheDocument()
+    expect(screen.getByText('bill.jpg')).toBeInTheDocument()
   })
 
   it('FE-MOB-COSTSH-003b: a place prefill carries the place link into the payload (#1298)', async () => {

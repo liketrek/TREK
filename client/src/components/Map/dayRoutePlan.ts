@@ -4,7 +4,7 @@ import { getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg, type C
 import { withinDriveRange } from '@trek/shared/roadtrip'
 import type { Accommodation, AssignmentsMap, Day, Reservation } from '../../types'
 
-export const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other']
+export const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other']
 
 /** A waypoint on a day's drive, carrying the per-leg modes `resolveLegMode` reads off it. */
 export interface DayRoutePoint {
@@ -86,6 +86,8 @@ export function buildDayRouteRuns(dayId: number, input: DayRouteInputs): DayRout
     if (item.type === 'place') {
       const a = item.data
       if (!a.place?.lat || !a.place?.lng) return []
+      // Kept on the day, shown on the map, but not driven to (#2532).
+      if ((a as { route_excluded?: boolean }).route_excluded) return []
       return [{
         kind: 'place', lat: a.place.lat, lng: a.place.lng, pos: item.sortKey, time: a.place?.place_time ?? null,
         // Per-segment travel mode (#1281): mode of the leg leaving this place.

@@ -1,5 +1,6 @@
 import React from 'react'
 import { Trash2, Reply, ChevronUp } from 'lucide-react'
+import { Tooltip } from '../shared/Tooltip'
 import { URL_REGEX } from './CollabChat.constants'
 import { formatTime, formatDateSeparator, shouldShowDateSeparator } from './CollabChat.helpers'
 import { MessageText } from './CollabChatMessageText'
@@ -52,14 +53,15 @@ export function ChatMessages(props: any) {
                 <React.Fragment key={msg.id}>
                   {showDate && (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 6px' }}>
-                      <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-secondary)', padding: '3px 12px', borderRadius: 99, letterSpacing: 0.3, textTransform: 'uppercase' }}>
+                      <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-card)', padding: '3px 12px', borderRadius: 99, letterSpacing: 0.3, textTransform: 'uppercase' }}>
                         {formatDateSeparator(msg.created_at, t)}
                       </span>
                     </div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
-                    <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontStyle: 'italic' }}>
-                      {msg.username} {t('collab.chat.deletedMessage') || 'deleted a message'} · {formatTime(msg.created_at, is12h)}
+                    <span style={{ display: 'inline-flex', gap: 6, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', fontStyle: 'italic' }}>
+                      <span>{msg.username} {t('collab.chat.deletedMessage') || 'deleted a message'}</span>
+                      <span style={{ fontStyle: 'normal' }}>{formatTime(msg.created_at, is12h)}</span>
                     </span>
                   </div>
                 </React.Fragment>
@@ -78,7 +80,7 @@ export function ChatMessages(props: any) {
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 6px' }}>
                     <span style={{
                       fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)',
-                      background: 'var(--bg-secondary)', padding: '3px 12px', borderRadius: 99,
+                      background: 'var(--bg-card)', padding: '3px 12px', borderRadius: 99,
                       letterSpacing: 0.3, textTransform: 'uppercase',
                     }}>
                       {formatDateSeparator(msg.created_at, t)}
@@ -144,8 +146,10 @@ export function ChatMessages(props: any) {
                         </div>
                       ) : (
                         <div style={{
-                          background: own ? '#007AFF' : 'var(--bg-secondary)',
-                          color: own ? '#fff' : 'var(--text-primary)',
+                          // Own messages in the accent, the others as cards on the tinted panel.
+                          background: own ? 'var(--accent)' : 'var(--bg-card)',
+                          color: own ? 'var(--accent-text)' : 'var(--text-primary)',
+                          border: own ? 'none' : '1px solid var(--border-faint)',
                           borderRadius: br, padding: hasReply ? '4px 4px 8px 4px' : '8px 14px',
                           fontSize: 'calc(14px * var(--fs-scale-body, 1))', lineHeight: 1.4, wordBreak: 'break-word', whiteSpace: 'pre-wrap',
                         }}>
@@ -153,7 +157,7 @@ export function ChatMessages(props: any) {
                           {hasReply && (
                             <div style={{
                               padding: '5px 10px', marginBottom: 4, borderRadius: 12,
-                              background: own ? 'rgba(255,255,255,0.15)' : 'var(--bg-tertiary)',
+                              background: own ? 'color-mix(in srgb, var(--accent-text) 15%, transparent)' : 'var(--bg-secondary)',
                               fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: 1.3,
                             }}>
                               <div style={{ fontWeight: 600, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', opacity: 0.7, marginBottom: 1 }}>
@@ -174,16 +178,17 @@ export function ChatMessages(props: any) {
                         </div>
                       )}
 
-                      {/* Hover actions */}
+                      {/* Hover actions: above the reactions of the message before, which reach into this row */}
                       <div style={{
-                        position: 'absolute', top: -14,
+                        position: 'absolute', top: -14, zIndex: 3,
                         display: 'flex', gap: 2,
                         opacity: hoveredId === msg.id ? 1 : 0,
                         pointerEvents: hoveredId === msg.id ? 'auto' : 'none',
                         transition: 'opacity .1s',
                         ...(own ? { left: -6 } : { right: -6 }),
                       }}>
-                        <button type="button" onClick={() => setReplyTo(msg)} title={t('collab.chat.reply')} style={{
+                        <Tooltip label={t('collab.chat.reply')}>
+                        <button type="button" onClick={() => setReplyTo(msg)} aria-label={t('collab.chat.reply')} style={{
                           width: 24, height: 24, borderRadius: '50%', border: 'none',
                           background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                           cursor: 'pointer', color: 'var(--accent-text)', padding: 0,
@@ -194,8 +199,10 @@ export function ChatMessages(props: any) {
                         >
                           <Reply size={11} />
                         </button>
+                        </Tooltip>
                         {own && canEdit && (
-                          <button type="button" onClick={() => handleDelete(msg.id)} title={t('common.delete')} style={{
+                          <Tooltip label={t('common.delete')}>
+                          <button type="button" onClick={() => handleDelete(msg.id)} aria-label={t('common.delete')} style={{
                             width: 24, height: 24, borderRadius: '50%', border: 'none',
                             background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             cursor: 'pointer', color: 'var(--accent-text)', padding: 0,
@@ -206,6 +213,7 @@ export function ChatMessages(props: any) {
                           >
                             <Trash2 size={11} />
                           </button>
+                          </Tooltip>
                         )}
                       </div>
                     </div>

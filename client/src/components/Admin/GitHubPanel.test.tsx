@@ -191,7 +191,7 @@ describe('GitHubPanel', () => {
     expect(listItem.closest('li')).toBeInTheDocument();
 
     // Bold text rendered as <strong>
-    const container = document.querySelector('.mt-2.p-3.rounded-lg')!;
+    const container = listItem.closest('ul')!.parentElement!;
     expect(container.querySelector('strong')).toBeInTheDocument();
     expect(container.querySelector('strong')!.textContent).toBe('bold text');
 

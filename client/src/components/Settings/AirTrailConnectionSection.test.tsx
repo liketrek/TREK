@@ -31,11 +31,9 @@ function renderSection() {
   );
 }
 
-// The desktop ToggleSwitch has no accessible name, so reach it through the label
-// text it sits next to.
+// Each switch carries its row's label as its accessible name.
 function toggleNextTo(label: string): HTMLElement {
-  const row = screen.getByText(label).parentElement as HTMLElement;
-  return row.querySelector('button') as HTMLElement;
+  return screen.getByRole('button', { name: label });
 }
 
 beforeEach(() => {

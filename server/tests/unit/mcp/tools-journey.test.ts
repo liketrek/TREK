@@ -143,6 +143,21 @@ describe('Tool: update_journey_entry', () => {
       expect(Array.isArray(data.entry.photos)).toBe(true);
     });
   });
+
+  it('creates a draft and publishes it, as the REST route does (#696)', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = (parseToolResult(await h.client.callTool({ name: 'create_journey', arguments: { title: 'J' } })) as any).journey;
+      const draft = (parseToolResult(await h.client.callTool({
+        name: 'create_journey_entry', arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'Rough', is_draft: true },
+      })) as any).entry;
+      expect(draft.is_draft).toBe(true);
+      const published = (parseToolResult(await h.client.callTool({
+        name: 'update_journey_entry', arguments: { entryId: draft.id, is_draft: false },
+      })) as any).entry;
+      expect(published.is_draft).toBe(false);
+    });
+  });
 });
 
 describe('Tool: update_journey_preferences', () => {
@@ -387,6 +402,19 @@ describe('journey write tools', () => {
       expect(reordered.success).toBe(true);
       expect((await h.client.callTool({
         name: 'reorder_journey_entries', arguments: { journeyId: journey.id, orderedIds: [999999] },
+      })).isError).toBe(true);
+    });
+  });
+
+  it('reorder_journey_entry_photos refuses ids that are not the entry photos (#824)', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const entry = (parseToolResult(await h.client.callTool({
+        name: 'create_journey_entry', arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'A' },
+      })) as any).entry;
+      expect((await h.client.callTool({
+        name: 'reorder_journey_entry_photos', arguments: { entryId: entry.id, orderedIds: [999999] },
       })).isError).toBe(true);
     });
   });

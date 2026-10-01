@@ -5,22 +5,39 @@ import Navbar from '../components/Layout/Navbar'
 import apiClient from '../api/client'
 import CustomSelect from '../components/shared/CustomSelect'
 import EmptyState from '../components/shared/EmptyState'
-import { Globe, MapPin, Briefcase, Calendar, Flag, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search, Check } from 'lucide-react'
+import { Globe, MapPin, Briefcase, Calendar, Flag, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search, Check, ArrowLeft, ChevronRight, type LucideIcon } from 'lucide-react'
 import type { TranslationFn } from '../types'
 import { Tooltip } from '../components/shared/Tooltip'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../components/shared/DialogShell'
+import { EditorField, GRID_2 } from '../components/shared/dialogParts'
 import DawarichAtlasSidePanel from '../components/Dawarich/DawarichAtlasSidePanel'
-import { A2_TO_A3, countryCodeToFlag, findBucketDuplicate, isBucketDuplicateError, withCountryMarkedVisited, type AtlasCountry, type AtlasStats, type AtlasData, type CountryDetail } from './atlas/atlasModel'
+import CountryFlag from '../components/shared/CountryFlag'
+import { A2_TO_A3, countryCodeToFlag, findBucketDuplicate, isBucketDuplicateError, visitedRegionCount, withCountryMarkedVisited, type AtlasCountry, type AtlasStats, type AtlasData, type CountryDetail } from './atlas/atlasModel'
 import { continentForCountry } from '@trek/shared'
 import { useAtlas } from './atlas/useAtlas'
 import AtlasCountrySearch from './atlas/AtlasCountrySearch'
 import AtlasLayerToggle from './atlas/AtlasLayerToggle'
 import { useToast } from '../components/shared/Toast'
 import { getApiErrorMessage } from '../types'
+import HelpAnchor from '../components/Help/HelpAnchor'
+import AtlasCountryPlaces from '../components/Atlas/AtlasCountryPlaces'
+
+// Fixed ids rather than useId: the page body stays free of hooks, and there is only one atlas.
+const COUNTRY_DIALOG_TITLE = 'atlas-country-dialog-title'
+const BUCKET_MONTH_ID = 'atlas-bucket-month'
+const BUCKET_YEAR_ID = 'atlas-bucket-year'
+/** The footer's destructive answer, filled like ConfirmDialog's. */
+const DANGER_BUTTON = 'inline-flex items-center gap-1.5 rounded-[10px] bg-danger px-4 py-2 font-medium text-white hover:opacity-90' // theme-lint-disable: white on the danger fill, as ConfirmDialog draws it
 
 export default function AtlasPage(): React.ReactElement {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
   // chunk of its own instead of a dead limb in this one.
-  return <AtlasPageDesktop />
+  return (
+    <>
+      <HelpAnchor id="atlas" />
+      <AtlasPageDesktop />
+    </>
+  )
 }
 
 function AtlasPageDesktop(): React.ReactElement {
@@ -34,7 +51,7 @@ function AtlasPageDesktop(): React.ReactElement {
     data, setData, stats, countries, selectedCountry, countryDetail,
     showPlanned, togglePlanned,
     loadCountryDetail, handleUnmarkCountry, select_country_from_search,
-    visitedRegions, setVisitedRegions,
+    visitedRegions, setVisitedRegions, regionsVisited, placesOpen, setPlacesOpen,
     atlas_country_search, set_atlas_country_search,
     atlas_country_results, set_atlas_country_results,
     atlas_country_open, set_atlas_country_open, atlas_country_options,
@@ -116,7 +133,27 @@ function AtlasPageDesktop(): React.ReactElement {
           plannedCount={stats.totalCountriesPlanned || 0}
         />
 
-        {/* Mobile: Bottom bar */}
+        {placesOpen && selectedCountry && countryDetail && (
+        <DialogShell
+          onClose={() => setPlacesOpen(false)}
+          labelledBy="atlas-places-title"
+          width="detail"
+          header={(
+            <DialogHeader
+              tile={<DialogTile><CountryFlag code={selectedCountry} size={26} /></DialogTile>}
+              tint={NEUTRAL_TINT}
+              labelId="atlas-places-title"
+              onClose={() => setPlacesOpen(false)}
+              title={resolveName(selectedCountry)}
+              sub={`${countryDetail.places.length} ${t('atlas.places')}`}
+            />
+          )}
+        >
+          <AtlasCountryPlaces detail={countryDetail} onOpenTrip={id => navigate(`/trips/${id}`)} />
+        </DialogShell>
+      )}
+
+      {/* Mobile: Bottom bar */}
         <div className="md:hidden absolute left-0 right-0 z-10 flex justify-center" style={{ bottom: 'calc(84px + env(safe-area-inset-bottom, 0px) + 8px)', touchAction: 'manipulation' }}>
           <div className="flex items-center gap-4 px-5 py-4 rounded-2xl"
             style={{ background: dark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.5)', backdropFilter: 'blur(16px)' }}>
@@ -125,7 +162,7 @@ function AtlasPageDesktop(): React.ReactElement {
               <p className="text-3xl font-black tabular-nums leading-none text-content">{stats.totalCountries}</p>
               <p className="text-[9px] font-semibold uppercase tracking-wide mt-1 text-content-faint">{t('atlas.countries')}</p>
             </div>
-            {[[stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalCities || 0, t('atlas.cities')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
+            {[[regionsVisited, t('atlas.regions')], [stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalCities || 0, t('atlas.cities')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
               <div key={i} className="text-center px-1">
                 <p className="text-xl font-black tabular-nums leading-none text-content">{v}</p>
                 <p className="text-[9px] font-semibold uppercase tracking-wide mt-1 text-content-faint">{l}</p>
@@ -176,6 +213,9 @@ function AtlasPageDesktop(): React.ReactElement {
           <SidebarContent
             data={data} stats={stats} countries={countries} selectedCountry={selectedCountry}
             countryDetail={countryDetail} resolveName={resolveName}
+            regionsVisited={regionsVisited}
+            countryRegions={selectedCountry ? visitedRegionCount(visitedRegions, selectedCountry) : 0}
+            onOpenPlaces={() => setPlacesOpen(true)}
             onCountryClick={loadCountryDetail} onTripClick={(id) => navigate(`/trips/${id}`)} onUnmarkCountry={handleUnmarkCountry}
             bucketList={bucketList} bucketTab={bucketTab} setBucketTab={setBucketTab}
             showBucketAdd={showBucketAdd} setShowBucketAdd={setShowBucketAdd}
@@ -194,285 +234,255 @@ function AtlasPageDesktop(): React.ReactElement {
 
       </div>
 
-      {/* Country action popup */}
+      {/* Country action popup: the flag and the name at the head, what can be
+          done with the country below. A region names its country under its own name. */}
       {confirmAction && (
-        <div role="presentation" className="bg-[rgba(0,0,0,0.4)]" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-          onClick={() => setConfirmAction(null)}>
-          <div role="presentation" className="bg-surface-card" style={{ borderRadius: 16, padding: 24, maxWidth: 340, width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.2)', textAlign: 'center' }}
-            onClick={e => e.stopPropagation()}>
-            {confirmAction.code.length === 2 ? (
-              <img src={`https://flagcdn.com/w80/${confirmAction.code.toLowerCase()}.png`} alt={confirmAction.code} style={{ width: 48, height: 34, borderRadius: 6, objectFit: 'cover', marginBottom: 12, display: 'inline-block' }} />
-            ) : (
-              <div style={{ fontSize: 'calc(36px * var(--fs-scale-title, 1))', marginBottom: 12 }}>{countryCodeToFlag(confirmAction.code)}</div>
-            )}
-            <h3 className="text-content" style={{ margin: '0 0 16px', fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700 }}>{confirmAction.name}</h3>
-
-            {confirmAction.type === 'choose' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button type="button" onClick={async () => {
-                  try {
-                    await apiClient.post(`/addons/atlas/country/${confirmAction.code}/mark`)
-                    setData(prev => (prev ? withCountryMarkedVisited(prev, confirmAction.code) : prev))
-                  } catch (err) {
-                    toast.error(getApiErrorMessage(err, t('common.error')))
-                  }
-                  setConfirmAction(null)
-                }}
-                  className="border border-edge"
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                  <MapPin size={18} className="text-content" style={{ flexShrink: 0 }} />
-                  <div>
-                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('atlas.markVisited')}</div>
-                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.markVisitedHint')}</div>
-                  </div>
+        <DialogShell
+          onClose={() => setConfirmAction(null)}
+          labelledBy={COUNTRY_DIALOG_TITLE}
+          width="narrow"
+          header={(
+            <DialogHeader
+              tile={(
+                <DialogTile>
+                  {confirmAction.code.length === 2 ? (
+                    <img src={`https://flagcdn.com/w80/${confirmAction.code.toLowerCase()}.png`} alt={confirmAction.code} className="h-6 w-[34px] rounded-[5px] object-cover ring-1 ring-edge-faint" />
+                  ) : (
+                    <span className="leading-none" style={fs(26, 'subtitle')}>{countryCodeToFlag(confirmAction.code)}</span>
+                  )}
+                </DialogTile>
+              )}
+              // The two removals take the danger wash ConfirmDialog asks its destructive questions in.
+              tint={confirmAction.type === 'unmark' || confirmAction.type === 'unmark-region' ? 'var(--danger-soft)' : NEUTRAL_TINT}
+              labelId={COUNTRY_DIALOG_TITLE}
+              onClose={() => setConfirmAction(null)}
+              title={confirmAction.name}
+              sub={confirmAction.countryName || undefined}
+            />
+          )}
+          footer={(
+            <DialogFooter>
+              {confirmAction.type === 'bucket' && (
+                <DialogButton onClick={() => setConfirmAction({ ...confirmAction, type: confirmAction.regionCode ? 'choose-region' : 'choose' })} icon={<ArrowLeft size={14} strokeWidth={2.2} />}>
+                  {t('common.back')}
+                </DialogButton>
+              )}
+              <FooterSpacer />
+              {confirmAction.type !== 'bucket' && (
+                <DialogButton onClick={() => setConfirmAction(null)}>{t('common.cancel')}</DialogButton>
+              )}
+              {confirmAction.type === 'mark' && (
+                <DialogButton variant="primary" onClick={executeConfirmAction}>{t('atlas.markVisited')}</DialogButton>
+              )}
+              {confirmAction.type === 'unmark' && (
+                <button type="button" onClick={executeConfirmAction} className={DANGER_BUTTON} style={fs(13, 'body')}>
+                  {t('atlas.unmark')}
                 </button>
-                <button type="button" onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' as any })}
-                  className="border border-edge"
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                  <Star size={18} className="text-[#fbbf24]" style={{ flexShrink: 0 }} />
-                  <div>
-                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('atlas.addToBucket')}</div>
-                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
-                  </div>
-                </button>
-                {(() => {
-                  const wishlistItems = bucketList.filter(b => b.country_code === confirmAction.code)
-                  if (wishlistItems.length === 0) return null
-                  return (
-                    <button type="button" onClick={async () => {
-                      await Promise.all(wishlistItems.map(item => handleDeleteBucketItem(item.id)))
-                      setConfirmAction(null)
-                    }}
-                      className="border border-edge"
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                      <Trash2 size={18} className="text-[#ef4444]" style={{ flexShrink: 0 }} />
-                      <div>
-                        <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('atlas.removeFromBucket')}</div>
-                        <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.removeFromBucketHint')}</div>
-                      </div>
-                    </button>
-                  )
-                })()}
-              </div>
-            )}
-
-            {confirmAction.type === 'choose-region' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {confirmAction.countryName && (
-                  <p className="text-content-muted" style={{ margin: '-8px 0 8px', fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{confirmAction.countryName}</p>
-                )}
+              )}
+              {confirmAction.type === 'unmark-region' && (
                 <button type="button" onClick={async () => {
-                  const { code: countryCode, name: rName, regionCode: rCode } = confirmAction
+                  const { code: countryCode, regionCode: rCode } = confirmAction
                   if (!rCode) return
                   try {
-                    await apiClient.post(`/addons/atlas/region/${rCode}/mark`, { name: rName, country_code: countryCode })
+                    await apiClient.delete(`/addons/atlas/region/${rCode}/mark`)
                     setVisitedRegions(prev => {
-                      const existing = prev[countryCode] || []
-                      if (existing.find(r => r.code === rCode)) return prev
-                      return { ...prev, [countryCode]: [...existing, { code: rCode, name: rName, placeCount: 0, manuallyMarked: true }] }
+                      const remaining = (prev[countryCode] || []).filter(r => r.code !== rCode)
+                      const next = { ...prev, [countryCode]: remaining }
+                      if (remaining.length === 0) delete next[countryCode]
+                      return next
                     })
-                    setData(prev => (prev ? withCountryMarkedVisited(prev, countryCode) : prev))
+                    // If no visible regions remain at all (not just manually-marked ones:
+                    // the server now hides a region regardless of how it was derived, and
+                    // cascades to the country the same way), remove the country too, but
+                    // only when it has no real place/trip data of its own: a country with
+                    // real places is never actually hidden server-side (#1490), so
+                    // optimistically removing it here would just flash and reappear on
+                    // the next reload.
+                    setData(prev => {
+                      if (!prev) return prev
+                      const c = prev.countries.find(c => c.code === countryCode)
+                      if (!c || c.placeCount > 0 || c.tripCount > 0) return prev
+                      const remainingRegions = (visitedRegions[countryCode] || []).filter(r => r.code !== rCode)
+                      if (remainingRegions.length > 0) return prev
+                      const cont = continentForCountry(countryCode)
+                      return {
+                        ...prev,
+                        countries: prev.countries.filter(c => c.code !== countryCode),
+                        stats: { ...prev.stats, totalCountries: Math.max(0, prev.stats.totalCountries - 1) },
+                        continents: { ...prev.continents, [cont]: Math.max(0, (prev.continents?.[cont] || 0) - 1) },
+                      }
+                    })
                   } catch (err) {
                     toast.error(getApiErrorMessage(err, t('common.error')))
                   }
                   setConfirmAction(null)
-                }}
-                  className="border border-edge"
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                  <MapPin size={18} className="text-content" style={{ flexShrink: 0 }} />
-                  <div>
-                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('atlas.markVisited')}</div>
-                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.markRegionVisitedHint')}</div>
-                  </div>
+                }} className={DANGER_BUTTON} style={fs(13, 'body')}>
+                  {t('atlas.unmark')}
                 </button>
-                <button type="button" onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' })}
-                  className="border border-edge"
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                  <Star size={18} className="text-[#fbbf24]" style={{ flexShrink: 0 }} />
-                  <div>
-                    <div className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('atlas.addToBucket')}</div>
-                    <div className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('atlas.addToBucketHint')}</div>
-                  </div>
-                </button>
-              </div>
-            )}
-
-            {confirmAction.type === 'unmark' && (
-              <>
-                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('atlas.confirmUnmark')}</p>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                  <button type="button" onClick={() => setConfirmAction(null)}
-                    className="border border-edge text-content-muted"
-                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {t('common.cancel')}
-                  </button>
-                  <button type="button" onClick={executeConfirmAction}
-                    className="bg-[#ef4444] text-white"
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {t('atlas.unmark')}
-                  </button>
-                </div>
-              </>
-            )}
-
-            {confirmAction.type === 'unmark-region' && (
-              <>
-                {confirmAction.countryName && (
-                  <p className="text-content-muted" style={{ margin: '-8px 0 8px', fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{confirmAction.countryName}</p>
-                )}
-                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('atlas.confirmUnmarkRegion')}</p>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                  <button type="button" onClick={() => setConfirmAction(null)}
-                    className="border border-edge text-content-muted"
-                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {t('common.cancel')}
-                  </button>
-                  <button type="button" onClick={async () => {
-                    const { code: countryCode, regionCode: rCode } = confirmAction
-                    if (!rCode) return
-                    try {
-                      await apiClient.delete(`/addons/atlas/region/${rCode}/mark`)
-                      setVisitedRegions(prev => {
-                        const remaining = (prev[countryCode] || []).filter(r => r.code !== rCode)
-                        const next = { ...prev, [countryCode]: remaining }
-                        if (remaining.length === 0) delete next[countryCode]
-                        return next
-                      })
-                      // If no visible regions remain at all (not just manually-marked ones —
-                      // the server now hides a region regardless of how it was derived, and
-                      // cascades to the country the same way), remove the country too, but
-                      // only when it has no real place/trip data of its own: a country with
-                      // real places is never actually hidden server-side (#1490), so
-                      // optimistically removing it here would just flash and reappear on
-                      // the next reload.
-                      setData(prev => {
-                        if (!prev) return prev
-                        const c = prev.countries.find(c => c.code === countryCode)
-                        if (!c || c.placeCount > 0 || c.tripCount > 0) return prev
-                        const remainingRegions = (visitedRegions[countryCode] || []).filter(r => r.code !== rCode)
-                        if (remainingRegions.length > 0) return prev
-                        const cont = continentForCountry(countryCode)
-                        return {
-                          ...prev,
-                          countries: prev.countries.filter(c => c.code !== countryCode),
-                          stats: { ...prev.stats, totalCountries: Math.max(0, prev.stats.totalCountries - 1) },
-                          continents: { ...prev.continents, [cont]: Math.max(0, (prev.continents?.[cont] || 0) - 1) },
-                        }
-                      })
-                    } catch (err) {
-                      toast.error(getApiErrorMessage(err, t('common.error')))
-                    }
-                    setConfirmAction(null)
-                  }}
-                    className="bg-[#ef4444] text-white"
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {t('atlas.unmark')}
-                  </button>
-                </div>
-              </>
-            )}
-
-            {confirmAction.type === 'bucket' && (
-              <>
-                <p className="text-content-muted" style={{ margin: '0 0 14px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('atlas.bucketWhen')}</p>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
-                  <div style={{ flex: 1 }}>
-                    <CustomSelect
-                      value={String(bucketMonth)}
-                      onChange={v => setBucketMonth(Number(v))}
-                      placeholder={t('atlas.month')}
-                      options={[
-                        { value: '0', label: '—' },
-                        ...Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: new Date(2000, i).toLocaleString(language, { month: 'long' }) })),
-                      ]}
-                      size="sm"
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <CustomSelect
-                      value={String(bucketYear)}
-                      onChange={v => setBucketYear(Number(v))}
-                      placeholder={t('atlas.year')}
-                      options={[
-                        { value: '0', label: '—' },
-                        ...Array.from({ length: 20 }, (_, i) => ({ value: String(new Date().getFullYear() + i), label: String(new Date().getFullYear() + i) })),
-                      ]}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <button type="button" onClick={() => setConfirmAction({ ...confirmAction, type: confirmAction.regionCode ? 'choose-region' : 'choose' })}
-                    className="border border-edge text-content-muted"
-                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {t('common.back')}
-                  </button>
-                  <button type="button" onClick={async () => {
-                    const targetDate = bucketMonth > 0 && bucketYear > 0 ? `${bucketYear}-${String(bucketMonth).padStart(2, '0')}` : null
-                    // #1898: one entry per target date. The dialog stays open on a
-                    // duplicate so another month can be picked right away.
-                    if (findBucketDuplicate(bucketList, { name: confirmAction.name, country_code: confirmAction.code, target_date: targetDate, lat: null, lng: null })) {
+              )}
+              {confirmAction.type === 'bucket' && (
+                <DialogButton variant="primary" icon={<Star size={14} strokeWidth={2.2} />} onClick={async () => {
+                  const targetDate = bucketMonth > 0 && bucketYear > 0 ? `${bucketYear}-${String(bucketMonth).padStart(2, '0')}` : null
+                  // #1898: one entry per target date. The dialog stays open on a
+                  // duplicate so another month can be picked right away.
+                  if (findBucketDuplicate(bucketList, { name: confirmAction.name, country_code: confirmAction.code, target_date: targetDate, lat: null, lng: null })) {
+                    toast.error(t('atlas.bucketDuplicate'))
+                    return
+                  }
+                  try {
+                    const r = await apiClient.post('/addons/atlas/bucket-list', { name: confirmAction.name, country_code: confirmAction.code, target_date: targetDate, region_code: confirmAction.regionCode ?? null })
+                    setBucketList(prev => [r.data.item, ...prev])
+                  } catch (err) {
+                    if (isBucketDuplicateError(err)) {
                       toast.error(t('atlas.bucketDuplicate'))
                       return
                     }
-                    try {
-                      const r = await apiClient.post('/addons/atlas/bucket-list', { name: confirmAction.name, country_code: confirmAction.code, target_date: targetDate })
-                      setBucketList(prev => [r.data.item, ...prev])
-                    } catch (err) {
-                      if (isBucketDuplicateError(err)) {
-                        toast.error(t('atlas.bucketDuplicate'))
-                        return
-                      }
-                      toast.error(getApiErrorMessage(err, t('common.error')))
-                    }
-                    setBucketMonth(0); setBucketYear(0)
+                    toast.error(getApiErrorMessage(err, t('common.error')))
+                  }
+                  setBucketMonth(0); setBucketYear(0)
+                  setConfirmAction(null)
+                }}>
+                  {t('atlas.addToBucket')}
+                </DialogButton>
+              )}
+            </DialogFooter>
+          )}
+        >
+          {confirmAction.type === 'choose' && (
+            <div className="flex flex-col gap-2">
+              <CountryChoice icon={MapPin} title={t('atlas.markVisited')} hint={t('atlas.markVisitedHint')} onClick={async () => {
+                try {
+                  await apiClient.post(`/addons/atlas/country/${confirmAction.code}/mark`)
+                  setData(prev => (prev ? withCountryMarkedVisited(prev, confirmAction.code) : prev))
+                } catch (err) {
+                  toast.error(getApiErrorMessage(err, t('common.error')))
+                }
+                setConfirmAction(null)
+              }} />
+              <CountryChoice icon={Star} tone="text-warning" title={t('atlas.addToBucket')} hint={t('atlas.addToBucketHint')}
+                onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' })} />
+              {(() => {
+                const wishlistItems = bucketList.filter(b => b.country_code === confirmAction.code)
+                if (wishlistItems.length === 0) return null
+                return (
+                  <CountryChoice icon={Trash2} tone="text-danger" title={t('atlas.removeFromBucket')} hint={t('atlas.removeFromBucketHint')} onClick={async () => {
+                    await Promise.all(wishlistItems.map(item => handleDeleteBucketItem(item.id)))
                     setConfirmAction(null)
-                  }}
-                    className="bg-[#fbbf24] text-[#1a1a1a]"
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {t('atlas.addToBucket')}
-                  </button>
-                </div>
-              </>
-            )}
+                  }} />
+                )
+              })()}
+            </div>
+          )}
 
-            {confirmAction.type === 'mark' && (
-              <>
-                <p className="text-content-muted" style={{ margin: '0 0 20px', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}>{t('atlas.confirmMark')}</p>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                  <button type="button" onClick={() => setConfirmAction(null)}
-                    className="border border-edge text-content-muted"
-                    style={{ padding: '8px 20px', borderRadius: 10, background: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {t('common.cancel')}
-                  </button>
-                  <button type="button" onClick={executeConfirmAction}
-                    className="bg-content text-white"
-                    style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {t('atlas.markVisited')}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+          {confirmAction.type === 'choose-region' && (
+            <div className="flex flex-col gap-2">
+              <CountryChoice icon={MapPin} title={t('atlas.markVisited')} hint={t('atlas.markRegionVisitedHint')} onClick={async () => {
+                const { code: countryCode, name: rName, regionCode: rCode } = confirmAction
+                if (!rCode) return
+                try {
+                  await apiClient.post(`/addons/atlas/region/${rCode}/mark`, { name: rName, country_code: countryCode })
+                  setVisitedRegions(prev => {
+                    const existing = prev[countryCode] || []
+                    if (existing.find(r => r.code === rCode)) return prev
+                    return { ...prev, [countryCode]: [...existing, { code: rCode, name: rName, placeCount: 0, manuallyMarked: true }] }
+                  })
+                  setData(prev => (prev ? withCountryMarkedVisited(prev, countryCode) : prev))
+                } catch (err) {
+                  toast.error(getApiErrorMessage(err, t('common.error')))
+                }
+                setConfirmAction(null)
+              }} />
+              <CountryChoice icon={Star} tone="text-warning" title={t('atlas.addToBucket')} hint={t('atlas.addToBucketHint')}
+                onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' })} />
+            </div>
+          )}
+
+          {confirmAction.type === 'unmark' && (
+            <p className="m-0 text-content-secondary" style={fs(13.5, 'body')}>{t('atlas.confirmUnmark')}</p>
+          )}
+
+          {confirmAction.type === 'unmark-region' && (
+            <p className="m-0 text-content-secondary" style={fs(13.5, 'body')}>{t('atlas.confirmUnmarkRegion')}</p>
+          )}
+
+          {confirmAction.type === 'mark' && (
+            <p className="m-0 text-content-secondary" style={fs(13.5, 'body')}>{t('atlas.confirmMark')}</p>
+          )}
+
+          {confirmAction.type === 'bucket' && (
+            <>
+              <p className="m-0 text-content-secondary" style={fs(13.5, 'body')}>{t('atlas.bucketWhen')}</p>
+              <div className={GRID_2}>
+                <EditorField label={t('atlas.month')} htmlFor={BUCKET_MONTH_ID}>
+                  <CustomSelect
+                    id={BUCKET_MONTH_ID}
+                    value={String(bucketMonth)}
+                    onChange={v => setBucketMonth(Number(v))}
+                    placeholder={t('atlas.month')}
+                    options={[
+                      { value: '0', label: t('common.none') },
+                      ...Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: new Date(2000, i).toLocaleString(language, { month: 'long' }) })),
+                    ]}
+                    size="sm"
+                  />
+                </EditorField>
+                <EditorField label={t('atlas.year')} htmlFor={BUCKET_YEAR_ID}>
+                  <CustomSelect
+                    id={BUCKET_YEAR_ID}
+                    value={String(bucketYear)}
+                    onChange={v => setBucketYear(Number(v))}
+                    placeholder={t('atlas.year')}
+                    options={[
+                      { value: '0', label: t('common.none') },
+                      ...Array.from({ length: 20 }, (_, i) => ({ value: String(new Date().getFullYear() + i), label: String(new Date().getFullYear() + i) })),
+                    ]}
+                    size="sm"
+                  />
+                </EditorField>
+              </div>
+            </>
+          )}
+        </DialogShell>
       )}
     </div>
+  )
+}
+
+/** One answer of the country dialog, built like an export row: icon tile, what it does, and what that means. */
+function CountryChoice({ icon: Icon, tone = 'text-content-secondary', title, hint, onClick }: {
+  icon: LucideIcon
+  /** The icon's colour class. */
+  tone?: string
+  title: string
+  hint: string
+  onClick: () => void
+}): React.ReactElement {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center gap-3 rounded-[14px] border border-edge-faint bg-surface-card px-3 py-2.5 text-left transition-colors hover:bg-surface-hover"
+    >
+      <span className={`grid h-9 w-9 flex-none place-items-center rounded-[10px] bg-surface-tertiary transition-colors group-hover:bg-surface-card ${tone}`}>
+        <Icon size={16} strokeWidth={1.9} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-semibold text-content" style={fs(13.5, 'body')}>{title}</span>
+        <span className="block text-content-muted" style={fs(11.5)}>{hint}</span>
+      </span>
+      <ChevronRight size={15} strokeWidth={2} className="flex-none text-content-faint transition-transform group-hover:translate-x-0.5" />
+    </button>
   )
 }
 
 interface SidebarContentProps {
   data: AtlasData | null
   stats: AtlasStats
+  /** Regions visited over every country, and in the country picked (#1639). */
+  regionsVisited: number
+  countryRegions: number
+  /** Opens the list of the picked country's places (#2174). */
+  onOpenPlaces: () => void
   countries: AtlasCountry[]
   selectedCountry: string | null
   countryDetail: CountryDetail | null
@@ -505,7 +515,7 @@ interface SidebarContentProps {
   dark: boolean
 }
 
-function SidebarContent({ data, stats, countries, selectedCountry, countryDetail, resolveName, onTripClick, onUnmarkCountry, bucketList, bucketTab, setBucketTab, showBucketAdd, setShowBucketAdd, bucketForm, setBucketForm, onAddBucket, onDeleteBucket, onClearBucketVisit, onSearchBucket, onSelectBucketPoi, bucketSearchResults, setBucketSearchResults, bucketPoiMonth, setBucketPoiMonth, bucketPoiYear, setBucketPoiYear, bucketSearching, bucketSearch, setBucketSearch, t, dark }: SidebarContentProps): React.ReactElement {
+function SidebarContent({ data, stats, regionsVisited, countryRegions, onOpenPlaces, countries, selectedCountry, countryDetail, resolveName, onTripClick, onUnmarkCountry, bucketList, bucketTab, setBucketTab, showBucketAdd, setShowBucketAdd, bucketForm, setBucketForm, onAddBucket, onDeleteBucket, onClearBucketVisit, onSearchBucket, onSelectBucketPoi, bucketSearchResults, setBucketSearchResults, bucketPoiMonth, setBucketPoiMonth, bucketPoiYear, setBucketPoiYear, bucketSearching, bucketSearch, setBucketSearch, t, dark }: SidebarContentProps): React.ReactElement {
   const { language } = useTranslation()
   const statsContentRef = useRef<HTMLDivElement>(null)
   const bucketSearchRowRef = useRef<HTMLDivElement>(null)
@@ -634,7 +644,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
           <div ref={bucketSearchRowRef} style={{ display: 'flex', gap: 4 }}>
             <input type="text" value={bucketForm.name || bucketSearch}
               onChange={e => { const v = e.target.value; if (bucketForm.name) setBucketForm({ ...bucketForm, name: v }); else setBucketSearch(v) }}
-              onKeyDown={e => { if (e.key === 'Enter' && !bucketForm.name) onSearchBucket(); else if (e.key === 'Enter') onAddBucket(); if (e.key === 'Escape') setShowBucketAdd(false) }}
+              onKeyDown={e => { if (e.key === 'Enter' && !bucketForm.name) void onSearchBucket(); else if (e.key === 'Enter') void onAddBucket(); if (e.key === 'Escape') setShowBucketAdd(false) }}
               placeholder={t('atlas.bucketNamePlaceholder')}
               autoFocus
               className="border border-edge text-content bg-surface-input"
@@ -751,7 +761,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
         )}
       </div>
       {/* Other stats */}
-      {[[stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalCities || 0, t('atlas.cities')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
+      {[[regionsVisited, t('atlas.regions')], [stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalCities || 0, t('atlas.cities')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
         <div key={i} className="flex flex-col items-center justify-center px-3 py-5 shrink-0">
           <span className="text-2xl font-black tabular-nums leading-none" style={{ color: tp }}>{v}</span>
           <span className="text-[9px] font-semibold mt-1.5 uppercase tracking-wide whitespace-nowrap" style={{ color: tf }}>{l}</span>
@@ -807,7 +817,10 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
         <>
           <div style={{ width: 2, background: bg(0.08), margin: '12px 0' }} />
           <div className="flex items-center gap-3 px-6 py-4">
-            <span className="text-3xl">{countryCodeToFlag(selectedCountry)}</span>
+            {/* Twemoji where the platform has no flag glyphs: Windows draws the emoji as two letters. */}
+            {/^[A-Za-z]{2}$/.test(selectedCountry)
+              ? <CountryFlag code={selectedCountry} size={30} />
+              : <span className="text-3xl">{countryCodeToFlag(selectedCountry)}</span>}
             <div>
               <p className="text-sm font-bold" style={{ color: tp }}>
                 {resolveName(selectedCountry)}
@@ -815,7 +828,26 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
                   <span className="ml-2 text-[9px] font-semibold uppercase tracking-wide" style={{ color: tf }}>{t('atlas.planned')}</span>
                 )}
               </p>
-              <p className="text-[10px] mb-1" style={{ color: tf }}>{countryDetail.places.length} {t('atlas.places')} · {countryDetail.trips.length} {t('atlas.tripPlural')}</p>
+              {/* Counts as quiet badges, the regions among them once any is visited (#1639). */}
+              <div className="mb-1.5 flex flex-wrap gap-1">
+                {countryDetail.places.length > 0 && (
+                  <Tooltip label={t('atlas.placesShow')}>
+                    <button type="button" onClick={onOpenPlaces}
+                      className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums transition-opacity hover:opacity-75"
+                      style={{ background: bg(0.1), color: tp }}>
+                      <MapPin size={9} />{countryDetail.places.length} {t('atlas.places')}
+                    </button>
+                  </Tooltip>
+                )}
+                {[
+                  [countryDetail.trips.length, t('atlas.tripPlural')],
+                  ...(countryRegions > 0 ? [[countryRegions, t('atlas.regions')] as const] : []),
+                ].map(([n, label]) => (
+                  <span key={label} className="whitespace-nowrap rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums" style={{ background: bg(0.06), color: tf }}>
+                    {n} {label}
+                  </span>
+                ))}
+              </div>
               <div className="flex flex-wrap gap-1">
                 {countryDetail.trips.slice(0, 3).map(trip => (
                   <button type="button" key={trip.id} onClick={() => onTripClick(trip.id)}

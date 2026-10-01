@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'Almost there...',
   'trip.mobilePlan': 'Plan',
   'trip.mobilePlaces': 'Places',
+  'trip.panelWidth': 'Panel width',
   'trip.toast.placeUpdated': 'Place updated',
   'trip.toast.tripUpdated': 'Trip updated',
   'trip.toast.placeAdded': 'Place added',

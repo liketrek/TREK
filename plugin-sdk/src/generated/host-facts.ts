@@ -1,5 +1,6 @@
 // GENERATED — do not edit by hand.
 // Source: server/src/nest/plugins/protocol/envelope.ts + server/src/plugin-event-sink.ts
+//         + shared/src/plugins/plugin-poi-facts.ts
 // Regenerate: node --import tsx server/scripts/gen-plugin-facts.ts
 
 export const HOOK_PERMISSION: Readonly<Record<string, string>> = {
@@ -7,6 +8,7 @@ export const HOOK_PERMISSION: Readonly<Record<string, string>> = {
   calendarSource: 'hook:calendar-source',
   placeDetailProvider: 'hook:place-detail-provider',
   searchProvider: 'hook:search-provider',
+  poiCategoryProvider: 'hook:poi-category-provider',
   warningProvider: 'hook:trip-warning-provider',
   tableContributor: 'hook:table-contributor',
   mapMarkerProvider: 'hook:map-marker-provider',
@@ -67,6 +69,7 @@ export const KNOWN_PERMISSIONS: string[] = [
   'hook:calendar-source',
   'hook:place-detail-provider',
   'hook:search-provider',
+  'hook:poi-category-provider',
   'hook:trip-warning-provider',
   'hook:table-contributor',
   'hook:map-marker-provider',
@@ -355,3 +358,33 @@ export const EVENT_SNAPSHOT_GRANT: Readonly<Record<string, string>> = {
   dayNote: 'db:read:daynotes',
   file: 'db:read:files',
 };
+
+/**
+ * `capabilities.poiCategories` (#1781): the lucide icons a category may use, how many
+ * categories one plugin may declare, and the longest label.
+ */
+export const POI_CATEGORY_ICONS: string[] = [
+  'Footprints',
+  'Mountain',
+  'MountainSnow',
+  'Signpost',
+  'Trees',
+  'TentTree',
+  'Tent',
+  'Accessibility',
+  'Droplet',
+  'Droplets',
+  'PlugZap',
+  'Zap',
+  'Bath',
+  'Bike',
+  'Waves',
+  'Landmark',
+  'MapPin',
+  'Star',
+  'Heart',
+  'Info',
+];
+
+export const POI_CATEGORY_MAX = 4;
+export const POI_CATEGORY_LABEL_MAX = 40;

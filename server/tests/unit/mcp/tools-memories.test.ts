@@ -55,8 +55,9 @@ const synologySearch = vi.spyOn(SynologyService.prototype, 'searchSynologyPhotos
 const synologyAlbums = vi.spyOn(SynologyService.prototype, 'listSynologyAlbums');
 const synologyAlbumPhotos = vi.spyOn(SynologyService.prototype, 'getSynologyAlbumPhotos');
 // Detached in production; held still here so a case can assert what was queued
-// without the provider lookup it would otherwise fire.
-const backfillSchedule = vi.spyOn(PhotoCaptureBackfillService.prototype, 'schedule').mockImplementation(() => {});
+// without the provider lookup it would otherwise fire. It answers "a row learned
+// its capture time", which is what makes the journey refresh go out.
+const backfillRun = vi.spyOn(PhotoCaptureBackfillService.prototype, 'run').mockResolvedValue(true);
 
 const IMMICH_ASSET = { id: 'a1', takenAt: '2026-07-01T10:00:00.000Z', city: 'Rome', country: 'IT', lat: 41.9, lng: 12.5, mediaType: 'image' };
 const SYNOLOGY_ASSET = { id: 's1', takenAt: '2026-07-02T10:00:00.000Z', lat: 48.1, lng: 11.6 };
@@ -94,7 +95,7 @@ beforeEach(() => {
   synologySearch.mockReset().mockResolvedValue({ success: true, data: { assets: [SYNOLOGY_ASSET], total: 1, hasMore: false } });
   synologyAlbums.mockReset().mockResolvedValue({ success: true, data: { albums: [{ id: '7', albumName: 'Munich', assetCount: 3, passphrase: 'pp' }] } });
   synologyAlbumPhotos.mockReset().mockResolvedValue({ success: true, data: { assets: [SYNOLOGY_ASSET], total: 1, hasMore: false } });
-  backfillSchedule.mockClear();
+  backfillRun.mockClear();
 });
 
 afterAll(() => {
@@ -466,7 +467,25 @@ describe('Tool: add_journey_provider_photos', () => {
         arguments: { journeyId: journey.id, entryId: entry.id, provider: 'immich', asset_ids: ['bf-1'] },
       });
       const photoId = (testDb.prepare('SELECT id FROM trek_photos WHERE asset_id = ? AND owner_id = ?').get('bf-1', user.id) as { id: number }).id;
-      expect(backfillSchedule).toHaveBeenCalledWith([photoId], user.id);
+      expect(backfillRun).toHaveBeenCalledWith([photoId], user.id);
+    });
+  });
+
+  it('tells the journey once the capture times have landed, exactly as the REST routes do', async () => {
+    // Same shared rule as POST /api/journeys/:id/gallery/provider-photos: the
+    // gallery re-sorts on the event instead of waiting for a reload (#1587).
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'add_journey_provider_photos',
+        arguments: { journeyId: journey.id, provider: 'immich', asset_ids: ['bf-2'] },
+      });
+      await vi.waitFor(() => expect(broadcastMock).toHaveBeenCalledWith(
+        user.id,
+        expect.objectContaining({ type: 'journey:photos:updated', journeyId: journey.id }),
+        undefined,
+      ));
     });
   });
 

@@ -57,6 +57,7 @@ describe('Maps e2e (real auth guard + temp SQLite)', () => {
     const maps = app.get(MapsService);
     vi.spyOn(maps, 'searchPlaces').mockResolvedValue({ places: [{ name: 'Berlin' }], source: 'osm' });
     vi.spyOn(maps, 'reverseGeocode').mockResolvedValue({ name: 'Spot', address: 'Street 1' });
+    vi.spyOn(maps, 'nearbyPlaces').mockResolvedValue({ places: [{ name: 'Cafe', distance_m: 40 }], source: 'trek-places' });
   });
 
   afterAll(async () => {
@@ -82,6 +83,19 @@ describe('Maps e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).post('/api/maps/search').set('Cookie', sessionCookie(1)).send({ query: 'berlin' });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ places: [{ name: 'Berlin' }], source: 'osm' });
+  });
+
+  it('200 with the places near a point (POST stays 200, not 201)', async () => {
+    const res = await request(server).post('/api/maps/nearby?lang=de').set('Cookie', sessionCookie(1)).send({ lat: 52.5, lng: 13.4 });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ places: [{ name: 'Cafe', distance_m: 40 }], source: 'trek-places' });
+  });
+
+  it('400 on nearby with a circle wider than the contract allows, 401 without a session', async () => {
+    const wide = await request(server).post('/api/maps/nearby').set('Cookie', sessionCookie(1)).send({ lat: 52.5, lng: 13.4, radius: 9000 });
+    expect(wide.status).toBe(400);
+    const anon = await request(server).post('/api/maps/nearby').send({ lat: 52.5, lng: 13.4 });
+    expect(anon.status).toBe(401);
   });
 
   it('200 on reverse geocode', async () => {

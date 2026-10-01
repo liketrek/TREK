@@ -61,7 +61,7 @@ vi.mock('../../../src/utils/ssrfGuard', () => {
   }
   return {
     checkSsrf: mockCheckSsrf,
-    createPinnedDispatcher: mockCreatePinnedDispatcher,
+    createOutboundDispatcher: mockCreatePinnedDispatcher,
     SsrfBlockedError,
     // The notification transports go through safeFetchFollow now, so the fake
     // has to guard and then hand over to the stubbed fetch the way it does.
@@ -545,7 +545,7 @@ describe('linkPreview hardening', () => {
     // the pin does not cover that hop: Node skips the pinned lookup for a literal IP.
     expect(init.redirect).toBe('error');
     expect(init.signal).toBeInstanceOf(AbortSignal);
-    expect(mockCreatePinnedDispatcher).toHaveBeenCalledWith('93.184.216.34');
+    expect(mockCreatePinnedDispatcher).toHaveBeenCalledWith('https://example.com/init', '93.184.216.34');
     expect(init.dispatcher).toBe(dispatcher);
     // One Agent is built per preview; leaving it open leaks its sockets.
     expect(dispatcher.close).toHaveBeenCalled();

@@ -23,6 +23,8 @@
     "theme:lint:strict": "node scripts/theme-lint.mjs --strict",
     "e2e": "playwright test",
     "shots": "playwright test --project=screenshots",
+    "help:media": "node e2e/help/run.mjs",
+    "help:media:promote": "node e2e/help/promote.mjs",
     "shots:promote": "node e2e/screenshots/promote.mjs",
     "e2e:report": "playwright show-report",
     "format": "prettier --write \"src/**/*.tsx\" \"src/**/*.css\"",

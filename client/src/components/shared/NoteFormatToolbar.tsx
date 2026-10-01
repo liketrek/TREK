@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { Bold, Italic, Strikethrough, List, ListOrdered, Link2, Quote, Code } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { Tooltip } from './Tooltip'
 
 type FormatAction =
   | { type: 'wrap'; before: string; after: string }
@@ -15,6 +16,8 @@ interface Props {
   compact?: boolean
   /** Mobile sheets run on their own token family, scoped to `.m-root`. */
   variant?: 'desktop' | 'mobile'
+  /** Shows each button's name in the shared Tooltip instead of the browser's native one. */
+  customTooltips?: boolean
 }
 
 const ACTIONS: Array<{ icon: typeof Bold; labelKey: string; action: FormatAction }> = [
@@ -43,7 +46,7 @@ const ACTIONS: Array<{ icon: typeof Bold; labelKey: string; action: FormatAction
  * `--journal-*` variables and hardcodes English labels; this one runs on theme
  * tokens and goes through i18n, so it can sit in the planner.
  */
-export default function NoteFormatToolbar({ textareaRef, onChange, compact, variant = 'desktop' }: Props) {
+export default function NoteFormatToolbar({ textareaRef, onChange, compact, variant = 'desktop', customTooltips = false }: Props) {
   const { t } = useTranslation()
   // Applied after the re-render, when the field holds the new text.
   const pendingSelection = useRef<[number, number] | null>(null)
@@ -94,22 +97,25 @@ export default function NoteFormatToolbar({ textareaRef, onChange, compact, vari
 
   return (
     <div className="flex flex-wrap items-center gap-[2px]" role="toolbar" aria-label={t('notes.format.toolbar')}>
-      {ACTIONS.map(({ icon: Icon, labelKey, action }) => (
-        <button
-          key={labelKey}
-          type="button"
-          title={t(labelKey)}
-          aria-label={t(labelKey)}
-          // Buttons in a toolbar above a field must not steal focus, or the
-          // selection they are about to format is gone before the click lands.
-          onMouseDown={e => e.preventDefault()}
-          onClick={() => apply(action)}
-          className={buttonCls}
-          style={{ width: size, height: size, cursor: 'pointer', padding: 0, ...(variant === 'mobile' ? {} : { border: 0, background: 'none' }) }}
-        >
-          <Icon size={compact ? 13 : 15} strokeWidth={1.9} />
-        </button>
-      ))}
+      {ACTIONS.map(({ icon: Icon, labelKey, action }) => {
+        const button = (
+          <button
+            key={labelKey}
+            type="button"
+            title={customTooltips ? undefined : t(labelKey)}
+            aria-label={t(labelKey)}
+            // Buttons in a toolbar above a field must not steal focus, or the
+            // selection they are about to format is gone before the click lands.
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => apply(action)}
+            className={buttonCls}
+            style={{ width: size, height: size, cursor: 'pointer', padding: 0, ...(variant === 'mobile' ? {} : { border: 0, background: 'none' }) }}
+          >
+            <Icon size={compact ? 13 : 15} strokeWidth={1.9} />
+          </button>
+        )
+        return customTooltips ? <Tooltip key={labelKey} label={t(labelKey)}>{button}</Tooltip> : button
+      })}
     </div>
   )
 }

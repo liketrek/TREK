@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useId, useState } from 'react'
+import { Link2, Search } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { journeyApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
+import { INPUT } from '../shared/dialogParts'
 import { pickGradient } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 
 export function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: {
@@ -12,6 +14,7 @@ export function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: 
   onAdded: () => void
 }) {
   const { t } = useTranslation()
+  const labelId = useId()
   const [trips, setTrips] = useState<{ id: number; title: string; destination?: string; start_date?: string; end_date?: string }[]>([])
   const [search, setSearch] = useState('')
   const [adding, setAdding] = useState<number | null>(null)
@@ -42,57 +45,68 @@ export function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: 
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-5 bg-[rgba(9,9,11,0.75)]">
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[420px] w-full flex flex-col overflow-hidden">
-
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
-          <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.trips.linkTrip')}</h2>
-          <button type="button" onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="px-6 py-5 flex flex-col gap-4">
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.trips.searchTrip')}</label>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={t('journey.trips.searchPlaceholder')}
-              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
-            />
-          </div>
-
-          <div className="max-h-[280px] overflow-y-auto flex flex-col gap-1">
-            {filtered.length === 0 && (
-              <p className="text-[12px] text-zinc-400 text-center py-4">{t('journey.trips.noTripsAvailable')}</p>
-            )}
-            {filtered.map(trip => (
-              <div
-                key={trip.id}
-                className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-transparent"
-              >
-                <div className="w-9 h-9 rounded-md flex-shrink-0" style={{ background: pickGradient(trip.id) }} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-zinc-900 dark:text-white truncate">{trip.title}</div>
-                  {(trip.destination || trip.start_date) && (
-                    <div className="text-[11px] text-zinc-500 truncate">
-                      {trip.destination}{trip.destination && trip.start_date ? ' · ' : ''}{trip.start_date}
-                    </div>
-                  )}
-                </div>
-                <button type="button"
-                  onClick={() => handleAdd(trip.id)}
-                  disabled={adding === trip.id}
-                  className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50"
-                >
-                  {adding === trip.id ? '...' : t('journey.trips.link')}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+    <DialogShell
+      onClose={onClose}
+      labelledBy={labelId}
+      width="narrow"
+      // The list shrinks while the search narrows it; a pinned top edge keeps the field still.
+      align="top"
+      header={(
+        <DialogHeader
+          tile={<DialogTile><Link2 size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={onClose}
+          title={t('journey.trips.linkTrip')}
+        />
+      )}
+      footer={(
+        <DialogFooter>
+          <FooterSpacer />
+          <DialogButton onClick={onClose}>{t('common.cancel')}</DialogButton>
+        </DialogFooter>
+      )}
+    >
+      <div className="relative">
+        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-content-faint" aria-hidden="true" />
+        <input
+          autoFocus
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={t('journey.trips.searchPlaceholder')}
+          aria-label={t('journey.trips.searchTrip')}
+          className={`${INPUT} pl-8`}
+        />
       </div>
-    </div>
+
+      {filtered.length === 0 ? (
+        <p className="m-0 rounded-[12px] bg-surface-secondary px-4 py-6 text-center text-content-faint" style={fs(12.5, 'body')}>{t('journey.trips.noTripsAvailable')}</p>
+      ) : (
+        <div className="flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5">
+          {filtered.map(trip => (
+            <div key={trip.id} className="flex min-h-[52px] items-center gap-3 rounded-[10px] px-2.5 py-2 hover:bg-surface-card">
+              <span className="h-9 w-9 flex-none rounded-[9px]" style={{ background: pickGradient(trip.id) }} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-semibold text-content" style={fs(13, 'body')}>{trip.title}</div>
+                {(trip.destination || trip.start_date) && (
+                  <div className="truncate text-content-faint" style={fs(11.5)}>
+                    {[trip.destination, trip.start_date].filter(Boolean).join(', ')}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleAdd(trip.id)}
+                disabled={adding === trip.id}
+                className="inline-flex flex-none items-center rounded-[8px] bg-accent px-2.5 py-1.5 font-semibold text-accent-text hover:opacity-90 disabled:cursor-default disabled:opacity-50"
+                style={fs(11.5, 'body')}
+              >
+                {adding === trip.id ? '...' : t('journey.trips.link')}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </DialogShell>
   )
 }

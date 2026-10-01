@@ -127,6 +127,13 @@ export interface ExternalChannel {
   readonly bypassesActiveToggleForAdminEvents?: boolean;
   /** Delivers the one admin-scoped global copy (not per-recipient). */
   readonly supportsAdminGlobal?: boolean;
+  /**
+   * The user's matrix marks this channel inactive (no column, no settings card)
+   * while isInstanceConfigured() says no. Web Push sets it: without a usable key
+   * pair a browser could not even subscribe. Email does not, and keeps its
+   * column while SMTP is not set up, as it always has.
+   */
+  readonly hiddenWhileInstanceUnconfigured?: boolean;
 
   supportsEvent(event: NotifEventType): boolean;
   /**

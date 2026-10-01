@@ -15,6 +15,7 @@ import { TransitService } from '../../../src/nest/transit/transit.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 vi.mock('../../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/app-config')>();
@@ -26,7 +27,7 @@ const fetchMock = vi.fn();
 // No `transit_provider` row means Transitous, so every case below keeps
 // exercising the MOTIS path — the Google branch has its own suite.
 const db = { get: () => undefined, run: () => undefined } as unknown as DatabaseService;
-const svc = new TransitService(new GoogleTransitProvider(db));
+const svc = new TransitService(new GoogleTransitProvider(db, noGoogleQuota));
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);

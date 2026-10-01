@@ -12,7 +12,7 @@ import { mapsApi } from '../../api/client'
 import { entityGradient } from '../../utils/gradients'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { NavigationMenu } from '../shared/NavigationMenu'
-import { getNavigationTargets, openNavigationTarget } from '../Planner/placeNavigation'
+import { navigationTargetLabel, getNavigationTargets, openNavigationTarget } from '../Planner/placeNavigation'
 import { STATUS_META, STATUS_ORDER, normalizeLinkUrl } from '../../pages/collections/collectionsModel'
 import { useToast } from '../shared/Toast'
 import { Tooltip } from '../shared/Tooltip'
@@ -373,7 +373,7 @@ export default function CollectionPlaceDetail({
                   }}
                 >
                   <Navigation size={14} />
-                  {navigationTargets.length === 1 ? navigationTargets[0].label : t('inspector.navigation')}
+                  {navigationTargets.length === 1 ? navigationTargetLabel(navigationTargets[0], t) : t('inspector.navigation')}
                 </button>
                 {navOpen && (
                   <NavigationMenu

@@ -47,6 +47,7 @@ export type CreateBucketData = {
   country_code?: string | null;
   notes?: string | null;
   target_date?: string | null;
+  region_code?: string | null;
 };
 
 export type UpdateBucketData = {
@@ -93,6 +94,18 @@ export class BucketItemExistsError extends Error {
 // bucket forms send '' where the map dialogs send null.
 function blankToNull(value: string | null | undefined): string | null {
   return value === undefined || value === null || value === '' ? null : value;
+}
+
+/**
+ * A wished-for region as stored (#1901): ISO 3166-2, upper case as the region
+ * boundaries carry it, and only when it lies in the item's own country. Anything
+ * else is no region, which keeps a caller that skips the contract (the plugin RPC)
+ * from pinning a wish to somebody else's map.
+ */
+export function bucketRegionCode(region: string | null | undefined, country: string | null): string | null {
+  const code = blankToNull(region)?.toUpperCase() ?? null;
+  if (!code || !country || !/^[A-Z]{2}-[A-Z0-9]{1,8}$/.test(code)) return null;
+  return code.startsWith(`${country.toUpperCase()}-`) ? code : null;
 }
 
 /**
@@ -986,7 +999,7 @@ export class AtlasService {
     if (this.findDuplicateBucketItem(userId, identity)) throw new BucketItemExistsError();
     const result = this.db
       .prepare(
-        'INSERT INTO bucket_list (user_id, name, lat, lng, country_code, notes, target_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO bucket_list (user_id, name, lat, lng, country_code, notes, target_date, region_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       )
       .run(
         userId,
@@ -996,6 +1009,7 @@ export class AtlasService {
         identity.country_code,
         data.notes ?? null,
         identity.target_date,
+        bucketRegionCode(data.region_code, identity.country_code),
       );
     return this.db.prepare('SELECT * FROM bucket_list WHERE id = ?').get(result.lastInsertRowid);
   }
@@ -1104,6 +1118,49 @@ export class AtlasService {
   `, userId, userId);
     if (!trip) return null;
 
+    return {
+      title: trip.title,
+      start_date: trip.start_date,
+      end_date: trip.end_date,
+      countries: this.tripCountries(trip.id),
+    };
+  }
+
+  /**
+   * The trip the user goes on next, the counterpart of lastTrip for a widget that
+   * counts down (#2542).
+   *
+   * Next means not started yet: a trip that is under way is still the last trip,
+   * so the two never name the same one. Only a trip with a start date qualifies,
+   * because a trip with only an end date has nothing to count down to. The days
+   * are counted in SQLite's own calendar, the same `date('now')` lastTrip cuts
+   * on, so the switch from next to last happens at one moment for both fields.
+   */
+  nextTrip(userId: number): { title: string; start_date: string; end_date: string | null; days_until: number; countries: string[] } | null {
+    const trip = this.db.get<{ id: number; title: string; start_date: string; end_date: string | null; days_until: number }>(`
+    SELECT t.id, t.title, t.start_date, t.end_date,
+           CAST(julianday(t.start_date) - julianday(date('now')) AS INTEGER) AS days_until
+    FROM trips t
+    LEFT JOIN trip_members tm ON t.id = tm.trip_id
+    WHERE (t.user_id = ? OR tm.user_id = ?)
+      AND t.start_date IS NOT NULL
+      AND t.start_date > date('now')
+    ORDER BY t.start_date ASC, t.id ASC
+    LIMIT 1
+  `, userId, userId);
+    if (!trip) return null;
+
+    return {
+      title: trip.title,
+      start_date: trip.start_date,
+      end_date: trip.end_date,
+      days_until: trip.days_until,
+      countries: this.tripCountries(trip.id),
+    };
+  }
+
+  /** The countries a trip's places resolved to in `place_regions`, most-visited first. */
+  private tripCountries(tripId: number): string[] {
     const rows = this.db.all<{ country_code: string; places: number }>(`
     SELECT pr.country_code, COUNT(DISTINCT p.id) AS places
     FROM place_regions pr
@@ -1111,14 +1168,8 @@ export class AtlasService {
     WHERE p.trip_id = ? AND pr.country_code IS NOT NULL
     GROUP BY pr.country_code
     ORDER BY places DESC, pr.country_code ASC
-  `, trip.id);
-
-    return {
-      title: trip.title,
-      start_date: trip.start_date,
-      end_date: trip.end_date,
-      countries: rows.map(r => r.country_code.toUpperCase()),
-    };
+  `, tripId);
+    return rows.map(r => r.country_code.toUpperCase());
   }
 
   getTravelStats(userId: number) {

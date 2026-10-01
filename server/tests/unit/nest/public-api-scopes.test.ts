@@ -143,6 +143,7 @@ function statsController() {
         totalTrips: 1, totalDays: 2, totalPlaces: 3, totalDistanceKm: 4,
       })),
       lastTrip: vi.fn(() => null),
+      nextTrip: vi.fn(() => null),
     } as unknown as AtlasService,
     new RateLimitService(),
   );

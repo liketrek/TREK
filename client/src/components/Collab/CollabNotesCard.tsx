@@ -1,14 +1,16 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
+import { safeExternalHref } from '../../utils/safeUrl'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { sanitizedMarkdownPlugins, sanitizedMarkdownComponents } from '../shared/markdownSanitize'
-import { Trash2, Pin, PinOff, Pencil, Maximize2 } from 'lucide-react'
-import { FONT } from './CollabNotes.constants'
+import { ExternalLink, Maximize2, MoreHorizontal, Pencil, Pin, PinOff, Trash2 } from 'lucide-react'
+import { Tooltip } from '../shared/Tooltip'
+import { ContextMenu, useContextMenu } from '../shared/ContextMenu'
+import { Eyebrow, fs } from '../Planner/bookings/bookingParts'
 import { AuthedImg } from './CollabNotesAuthedImg'
 import { UserAvatar } from './CollabNotesUserAvatar'
-import { WebsiteThumbnail } from './CollabNotesWebsiteThumbnail'
 import type { CollabNote, NoteFile } from './CollabNotes.types'
 import type { User } from '../../types'
 
@@ -27,175 +29,130 @@ interface NoteCardProps {
   t: (key: string) => string
 }
 
-export function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onView, onPreviewFile, getCategoryColor, tripId, t }: NoteCardProps) {
-  const [hovered, setHovered] = useState(false)
+/** The link chip shows the host: that is what people recognise, "www." is noise. */
+function linkHost(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
+}
 
+const LINK_BTN = 'grid h-[26px] w-[26px] flex-none place-items-center rounded-full bg-surface-card shadow-sm'
+
+/**
+ * A note as the booking cards are drawn, kept compact: one head band tinted by
+ * its category, carrying the category dot, the title, its link, the actions
+ * behind "…" and who wrote it; under it the text and the files.
+ */
+export function NoteCard({ note, canEdit, onUpdate, onDelete, onEdit, onView, onPreviewFile, getCategoryColor, t }: NoteCardProps) {
   const author = note.author || note.user || { username: note.username, avatar: note.avatar_url || avatarSrc(note.avatar) }
   const color = getCategoryColor ? getCategoryColor(note.category) : (note.color || '#6366f1')
+  const attachments = note.attachments || []
+  const shown = attachments.slice(0, 3)
+  const hidden = attachments.length - shown.length
+  // Allow-listed like everywhere else a note's link opens: the field takes any string.
+  const websiteHref = safeExternalHref(note.website)
+  const hasBody = !!note.content || attachments.length > 0
+  const menu = useContextMenu()
 
   const handleTogglePin = useCallback(() => {
-    onUpdate(note.id, { pinned: !note.pinned })
+    void onUpdate(note.id, { pinned: !note.pinned })
   }, [note.id, note.pinned, onUpdate])
 
   const handleDelete = useCallback(() => {
     onDelete(note.id)
   }, [note.id, onDelete])
 
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        position: 'relative',
-        borderRadius: 12,
-        overflow: 'hidden',
-        border: `1px solid ${note.pinned ? color + '40' : color + '25'}`,
-        background: note.pinned ? `${color}08` : 'var(--bg-card)',
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: FONT,
-        transition: 'transform 0.12s, box-shadow 0.12s',
-        ...(hovered ? { transform: 'translateY(-1px)', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' } : {}),
-      }}
-    >
-      {/* Header bar — like reservation cards */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px',
-        background: `${color}0d`,
-      }}>
-        {!!note.pinned && <Pin size={9} color={color} style={{ flexShrink: 0 }} />}
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden', flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {note.title}
-          </span>
-          {note.category && (
-            <span style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 600, color, background: `${color}18`, padding: '2px 6px', borderRadius: 99, flexShrink: 0, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-              {note.category}
-            </span>
-          )}
-        </span>
+  const menuItems = [
+    ...(note.content ? [{ label: t('common.expand'), icon: Maximize2, onClick: () => onView?.(note) }] : []),
+    ...(canEdit ? [
+      { label: note.pinned ? t('collab.notes.unpin') : t('collab.notes.pin'), icon: note.pinned ? PinOff : Pin, onClick: handleTogglePin },
+      { label: t('collab.notes.edit'), icon: Pencil, onClick: () => onEdit?.(note) },
+      { divider: true },
+      { label: t('collab.notes.delete'), icon: Trash2, onClick: handleDelete, danger: true },
+    ] : []),
+  ]
 
-        {/* Hover actions in header */}
-        {(
-          <div style={{
-            display: 'flex', gap: 2,
-          }}>
-            {note.content && (
-              <button type="button" onClick={() => onView?.(note)} title={t('collab.notes.expand') || 'Expand'}
-                style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-                <Maximize2 size={10} />
-              </button>
+  return (
+    <article
+      aria-label={note.title}
+      className="group flex flex-col overflow-hidden rounded-2xl border bg-surface-card transition-shadow hover:shadow-md"
+      // A pinned note keeps its category colour on the frame, the way a selected booking card does.
+      style={{ borderColor: note.pinned ? `color-mix(in srgb, ${color} 45%, transparent)` : 'var(--border-faint)' }}
+    >
+      <div className={`flex items-center gap-2 py-1.5 pl-3 pr-1.5 ${hasBody ? 'border-b border-edge-faint' : ''}`} style={{ background: `color-mix(in srgb, ${color} 11%, transparent)` }}>
+        {/* The category is only its colour here; the name is in the tooltip and the filter above. */}
+        {note.category && (
+          <Tooltip label={note.category}>
+            <span role="img" aria-label={note.category} data-testid="note-category-dot" className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: color }} />
+          </Tooltip>
+        )}
+        <span className="min-w-0 flex-1 truncate font-bold text-content" style={fs(13, 'body')}>{note.title}</span>
+        {!!note.pinned && <Pin size={12} strokeWidth={2.2} className="flex-none" style={{ color }} />}
+        {/* The link rides in the title row as one round button; the host is in its tooltip. */}
+        {note.website && (
+          <Tooltip label={websiteHref ? linkHost(websiteHref) : note.website}>
+            {websiteHref ? (
+              <a href={websiteHref} target="_blank" rel="noopener noreferrer" aria-label={linkHost(websiteHref)} className={`${LINK_BTN} text-content-muted hover:text-content`}>
+                <ExternalLink size={12} strokeWidth={2.2} />
+              </a>
+            ) : (
+              <span role="img" aria-label={note.website} className={`${LINK_BTN} text-content-faint`}>
+                <ExternalLink size={12} strokeWidth={2.2} />
+              </span>
             )}
-            {canEdit && <button type="button" onClick={handleTogglePin} title={note.pinned ? t('collab.notes.unpin') : t('collab.notes.pin')}
-              style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
-              onMouseEnter={e => e.currentTarget.style.color = color}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              {note.pinned ? <PinOff size={10} /> : <Pin size={10} />}
-            </button>}
-            {canEdit && <button type="button" onClick={() => onEdit?.(note)} title={t('collab.notes.edit')}
-              style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              <Pencil size={10} />
-            </button>}
-            {canEdit && <button type="button" onClick={handleDelete} title={t('collab.notes.delete')}
-              style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
-              onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              <Trash2 size={10} />
-            </button>}
-            <div style={{ width: 1, height: 12, background: 'var(--border-faint)', flexShrink: 0, marginLeft: 1, marginRight: 1 }} />
-            {/* Author avatar */}
-            <div style={{ position: 'relative', flexShrink: 0 }}
-              onMouseEnter={e => { const tip = e.currentTarget.querySelector<HTMLElement>('[data-tip]'); if (tip) tip.style.opacity = '1' }}
-              onMouseLeave={e => { const tip = e.currentTarget.querySelector<HTMLElement>('[data-tip]'); if (tip) tip.style.opacity = '0' }}>
-              <UserAvatar user={author} size={16} />
-              <div data-tip style={{
-                position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
-                marginBottom: 6, pointerEvents: 'none', opacity: 0, transition: 'opacity 0.12s',
-                whiteSpace: 'nowrap', zIndex: 10,
-                background: 'var(--bg-card)', color: 'var(--text-primary)',
-                fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500, padding: '5px 10px', borderRadius: 8,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint)',
-              }}>
-                {author.username}
+          </Tooltip>
+        )}
+        {menuItems.length > 0 && (
+          <Tooltip label={t('files.menu')} disabled={!!menu.menu}>
+            <button type="button" onClick={e => menu.open(e, menuItems, true)} aria-label={t('files.menu')} aria-haspopup="menu"
+              className="grid h-[26px] w-[26px] flex-none place-items-center rounded-full text-content-muted transition-colors hover:bg-surface-card hover:text-content">
+              <MoreHorizontal size={15} strokeWidth={2} />
+            </button>
+          </Tooltip>
+        )}
+        <Tooltip label={author.username}>
+          <span role="img" aria-label={author.username} className="flex flex-none"><UserAvatar user={author} size={20} /></span>
+        </Tooltip>
+      </div>
+
+      {hasBody && (
+        <div className="flex flex-1 flex-col gap-2 px-3 pb-2.5 pt-2">
+          {note.content && (
+            <div className="collab-note-md line-clamp-3 break-words text-content-muted" style={{ ...fs(12, 'body'), lineHeight: 1.45 }}>
+              <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={sanitizedMarkdownPlugins} components={sanitizedMarkdownComponents}>{note.content}</Markdown>
+            </div>
+          )}
+
+          {attachments.length > 0 && (
+            <div>
+              <Eyebrow className="mb-[3px]">{t('files.title')}</Eyebrow>
+              <div className="flex items-center gap-1.5">
+                {shown.map(a => {
+                  const isImage = a.mime_type?.startsWith('image/')
+                  const isPdf = a.mime_type === 'application/pdf'
+                  const ext = (a.original_name || '').split('.').pop()?.toUpperCase() || '?'
+                  return isImage ? (
+                    <AuthedImg key={a.id} src={a.url} alt={a.original_name}
+                      style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 10, cursor: 'pointer' }}
+                      onClick={() => onPreviewFile?.(a)} />
+                  ) : (
+                    <Tooltip key={a.id} label={a.original_name || ext}>
+                      <button type="button" aria-label={a.original_name} onClick={() => onPreviewFile?.(a)}
+                        className={`grid h-10 w-10 place-items-center rounded-[10px] font-geist font-bold tracking-[.03em] transition-transform hover:scale-[1.06] ${isPdf ? 'bg-danger-soft text-danger' : 'bg-surface-secondary text-content-muted'}`}
+                        style={fs(9)}>
+                        {ext}
+                      </button>
+                    </Tooltip>
+                  )
+                })}
+                {hidden > 0 && (
+                  <span className="rounded-full bg-surface-tertiary px-2 py-[2px] font-geist font-bold text-content-muted" style={fs(10)}>+{hidden}</span>
+                )}
               </div>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Card body */}
-      <div style={{
-        padding: '8px 12px 10px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-        flex: 1,
-      }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {note.content && (
-              <div className="collab-note-md" style={{
-                fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0,
-                maxHeight: '4.5em', overflow: 'hidden',
-                wordBreak: 'break-word', fontFamily: FONT,
-              }}>
-                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={sanitizedMarkdownPlugins} components={sanitizedMarkdownComponents}>{note.content}</Markdown>
-              </div>
-            )}
-          </div>
-              {/* Right: website + attachment thumbnails */}
-              {(note.website || (note.attachments?.length ?? 0) > 0) && (
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'flex-start' }}>
-                  {/* Website */}
-                  {note.website && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <span style={{ fontSize: 'calc(7px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Link</span>
-                      <WebsiteThumbnail url={note.website} tripId={tripId} color={color} />
-                    </div>
-                  )}
-                  {/* Files */}
-                  {(note.attachments || []).length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <span style={{ fontSize: 'calc(7px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{t('files.title')}</span>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                  {(note.attachments || []).slice(0, note.website ? 1 : 2).map(a => {
-                    const isImage = a.mime_type?.startsWith('image/')
-                    const ext = (a.original_name || '').split('.').pop()?.toUpperCase() || '?'
-                    return isImage ? (
-                      <AuthedImg key={a.id} src={a.url} alt={a.original_name}
-                        style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', transition: 'transform 0.12s, box-shadow 0.12s' }}
-                        onClick={() => onPreviewFile?.(a)}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }} />
-                    ) : (
-                      <button type="button" key={a.id} title={a.original_name} aria-label={a.original_name} onClick={() => onPreviewFile?.(a)}
-                        style={{
-                          width: 48, height: 48, borderRadius: 8, cursor: 'pointer',
-                          background: a.mime_type === 'application/pdf' ? '#ef44441a' : 'var(--bg-secondary)',
-                          border: 'none', padding: 0, fontFamily: 'inherit',
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
-                          transition: 'transform 0.12s, box-shadow 0.12s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}>
-                        <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
-                      </button>
-                    )
-                  })}
-                  {(note.attachments?.length || 0) > (note.website ? 1 : 2) && (
-                    <span style={{ fontSize: 'calc(8px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', textAlign: 'center' }}>+{(note.attachments?.length || 0) - (note.website ? 1 : 2)}</span>
-                  )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+          )}
         </div>
-      </div>
-    </div>
+      )}
+
+      <ContextMenu menu={menu.menu} onClose={menu.close} />
+    </article>
   )
 }

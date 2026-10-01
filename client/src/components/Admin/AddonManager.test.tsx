@@ -1,4 +1,4 @@
-// FE-ADMIN-ADDON-001 to FE-ADMIN-ADDON-037
+// FE-ADMIN-ADDON-001 to FE-ADMIN-ADDON-039
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -703,7 +703,7 @@ describe('AddonManager', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('Saved');
     expect(bodies[0]).toEqual({
-      config: { provider: 'local', model: 'qwen3:8b', baseUrl: '', apiKey: '••••••••', multimodal: true },
+      config: { provider: 'local', model: 'qwen3:8b', baseUrl: '', apiKey: '••••••••', vision: 'auto' },
     });
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -737,7 +737,7 @@ describe('AddonManager', () => {
     await screen.findByText('Saved');
     // The model is trimmed before it is stored, the key is sent verbatim
     expect(bodies[0]).toEqual({
-      config: { provider: 'openai', model: 'mistral:7b', baseUrl: '', apiKey: 'sk-live', multimodal: false },
+      config: { provider: 'openai', model: 'mistral:7b', baseUrl: '', apiKey: 'sk-live', vision: 'auto' },
     });
   });
 
@@ -765,8 +765,38 @@ describe('AddonManager', () => {
     await screen.findByText('Saved');
     // The stale local base URL must not ride along to Anthropic — it would hijack the endpoint.
     expect(bodies[0]).toEqual({
-      config: { provider: 'anthropic', model: 'claude-haiku-4-5-20251001', baseUrl: '', apiKey: 'sk-ant-live', multimodal: false },
+      config: { provider: 'anthropic', model: 'claude-haiku-4-5-20251001', baseUrl: '', apiKey: 'sk-ant-live', vision: 'auto' },
     });
+  });
+
+  it('FE-ADMIN-ADDON-038: whether the model reads images is auto, on or off, kept as stored and saved as chosen', async () => {
+    const user = userEvent.setup();
+    const bodies: unknown[] = [];
+    server.use(
+      addonsRoute([llmAddon({ provider: 'openai', model: 'gpt-4.1-mini', baseUrl: '', apiKey: 'sk', vision: 'off' })]),
+      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+
+    // Stored off stays off; a cloud provider is told what Automatic means for it.
+    await user.click(await screen.findByRole('button', { name: 'No' }));
+    expect(screen.getByText('Automatic means no for a cloud model. Choose Yes if this model reads images.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Yes' }));
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved');
+    expect(bodies[0]).toMatchObject({ config: { provider: 'openai', vision: 'on' } });
+    expect(bodies[0]).not.toHaveProperty('config.multimodal');
+  });
+
+  it('FE-ADMIN-ADDON-039: with the local provider the hint says Automatic asks the server', async () => {
+    server.use(addonsRoute([llmAddon({ provider: 'local', model: 'qwen3.5:4b' })]), modelsRoute([]));
+    render(<AddonManager />);
+    expect(await screen.findByText('Automatic asks the Ollama server whether this model reads images.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Automatic' })).toBeInTheDocument();
   });
 
   it('FE-ADMIN-ADDON-027: an error frame in the pull stream aborts the pull and is reported', async () => {

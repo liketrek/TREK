@@ -1,153 +1,112 @@
 # Trip Planner Overview
 
-The trip planner is the main workspace for building your itinerary. You open it by clicking a trip card on the dashboard.
+The trip planner is where a trip is built. Open it by clicking a trip card on the [dashboard](My-Trips-Dashboard).
 
-![Trip Planner](assets/TripPlannerWithPlane.png)
+![The Plan tab with a day selected: the days column on the left, the map in the middle and the places column on the right](assets/TripPlanner.png)
 
 ## Layout
 
-The planner uses a **three-pane resizable layout** on desktop:
+On a desktop or a tablet (768 px and wider) the **Plan** tab has three parts:
 
 ```
 ┌─────────────────┬──────────────────────────┬──────────────────┐
-│  Day Plan       │                          │  Places          │
-│  Sidebar        │       Interactive        │  Sidebar         │
-│  (left)         │          Map             │  (right)         │
-│                 │        (center)          │                  │
+│  Days           │                          │  Places          │
+│  (left)         │           Map            │  (right)         │
+│                 │         (centre)         │                  │
 └─────────────────┴──────────────────────────┴──────────────────┘
 ```
 
-- **Left sidebar** — Day plan: your list of days, assigned places, notes, and transport entries. Collapsible via the panel toggle button.
-- **Center** — Interactive map showing all place markers and day routes.
-- **Right sidebar** — Places list: search, category filters, and bulk actions. Collapsible.
+- **Days** on the left: the trip day by day. Every day is a card with its places, bookings, transports and notes. See [Day Plans and Notes](Day-Plans-and-Notes).
+- **Map** in the centre: the places of the trip, the route of the selected day and the booking routes you switched on. The lock on the map (*Lock the map view*) keeps the view where it is, so picking a day or a place no longer zooms or pans; click it again to let the map follow the selection. See [Map Features](Map-Features).
+- **Places** on the right: every place of the trip, with search, filters, import and a select mode. See [Places and Search](Places-and-Search).
 
-Each sidebar has a drag handle on its inner edge for resizing.
+The two side columns float over the map. Drag the inner edge of a column to make it wider or narrower. On a tablet the edge follows a finger as well and shows a grip, also in the narrower portrait layout, and with the keyboard focus on it the arrow keys change the width. The small tab on its edge tucks the column away, and a tucked column leaves a tile named **Plan** or **Places** at the edge of the map that brings it back.
 
-![Planner in its three-pane layout: the day plan sidebar with days, places, notes and flight entries on the left, the map in the centre, and the places sidebar with search and category filter on the right](assets/TripPlanner.png)
+Two panels open over the map, centred between the columns:
 
-A **Day Detail panel** floats over the map area when you open a specific day, showing the weather forecast, that day's reservations, and the accommodation block. It can be collapsed to a slim header bar without closing it.
+- **Day details** opens when you click a day's head band: the weather, the day's bookings and its stay. The chevron folds it to a slim bar, **X** closes it. See [Day details panel](Day-Plans-and-Notes#day-detail-panel).
+- **The place inspector** opens when you click a place, in either column or on the map. See [The place inspector](Places-and-Search#the-place-inspector).
 
-Opening a day also narrows the Places sidebar. With a day selected, the **Planned** filter lists and counts only the places on that day's plan, the same set the map draws, and a line under the places filter (the select that offers **All**, **Unplanned** and **Planned**, plus **Tracks** once the trip has one, each with its count in the menu) says **Showing the open day only**. Its **X** closes the day again, so list, count and map return to the whole trip. **All** and **Unplanned** stay trip-wide on purpose: a place on some other day is planned, whichever day happens to be open.
+Opening a day also narrows the places column. With a day open, **Planned** in the **Show** menu of the places column lists and counts only the places on that day, the same set the map draws, and a chip under the filters says **Showing the open day only**. Its **X** (*Show the whole trip*) closes the day again, so list, count and map return to the whole trip. **All** and **Unplanned** stay trip-wide on purpose: a place on some other day is planned, whichever day happens to be open.
+
+With the [Road trip](Road-Trip) addon on, a **Days** / **Road trip** switch sits above the days column. See [Road trip view](#road-trip-view).
 
 ## Tabs
 
 The tab bar sits directly below the main navigation bar.
 
-| Tab | Description |
+| Tab | What it holds |
 |---|---|
-| **Plan** | The three-pane map view described above. Always visible. |
-| **Transports** | Flights, trains, cars, cruises, and buses. |
-| **Bookings** | Hotels, restaurants, events, tours, and other bookings. |
-| **Lists** | Packing list and to-do list. |
-| **Costs** | Expense tracking, splitting, and settlement. |
-| **Files** | Document manager for receipts, tickets, and other files. |
-| **Collab** | Real-time chat, shared notes, and polls. |
+| **Plan** | Days, map and places, as described on this page. Always shown. |
+| **Transports** | Flights, trains, buses, cars, taxis, bicycles, ferries, cruises, cable cars and public transit, as cards, a list or a timeline. See [Transport: Flights, Trains, Cars](Transport-Flights-Trains-Cars). |
+| **Bookings** | Stays, restaurants, events, tours, parking and other bookings, in the same three views. See [Reservations and Bookings](Reservations-and-Bookings). |
+| **Lists** | Packing list and to-dos. See [Packing Lists](Packing-Lists) and [Todos and Tasks](Todos-and-Tasks). |
+| **Costs** | Expenses, splits and settling up, as a list or a table. See [Costs](Budget-Tracking). |
+| **Files** | Tickets, receipts and other documents. See [Documents and Files](Documents-and-Files). |
+| **Collab** | Chat, shared notes, polls and What's Next. See [Real-Time Collaboration](Real-Time-Collaboration). |
 
-> **Admin:** The **Lists**, **Costs**, **Files**, and **Collab** tabs only appear when the corresponding addon is enabled. See [Admin-Addons](Admin-Addons).
+> **Admin:** The **Lists**, **Costs**, **Files** and **Collab** tabs only appear when the matching addon is enabled. See [Admin-Addons](Admin-Addons).
 
-The active tab is saved in `sessionStorage` per trip, so switching between trips preserves your last position.
+The active tab is saved in `sessionStorage` per trip, so switching between trips brings you back to where you were. The installed app (PWA) goes further: after the system closed it, it reopens on the trip and the tab it was on, and on a phone on the plan day as well.
 
-## Roadtrip daily start and end times
+## Bookings on the plan
 
-> The road trip addon has its own page: [Road-Trip](Road-Trip).
+A booking or transport opens its detail first, wherever you click it on the Plan tab:
 
-Nearby station search results group into count badges when zoomed out. Click a badge to zoom into its stations. Stations that still overlap at close zoom appear in a selectable list. Planned stops, including photo markers, also group into count badges when zoomed out. Day endings remain separate. This works with all supported map providers in Roadtrip mode.
+- a booking or transport row in a day,
+- a rental car pill in a day's head band, or the ticket at the end of a stay pill there (*Open booking*),
+- a booking in the day details panel, including the booking box of a stay,
+- a booking card in the place inspector,
+- an endpoint of a booking route on the map,
+- a ride, terminal or booking chip in the road trip rail.
 
-In the Roadtrip view, open **Driving settings** and enter a **Day start time** and **Day end time** in HH:mm format. Both values enable automatic daily scheduling and connect the drives between days. Clear either field to return to the existing schedule. These preferences belong to the trip. All travellers see the same daily schedule, vehicle settings and driving limits. Members with permission to edit days can change them. Existing trips inherit their owner's previous values once; later changes affect only that trip.
+The detail shows status, type and day, the booking code with a copy button, the times, travelers, notes, files and linked expenses. Its footer holds **On map**, **Change route** for a public transit journey, **Delete** and **Edit**. **Edit** opens the editor. See [Reservations and Bookings](Reservations-and-Bookings) for everything the detail shows.
 
-Driving pauses at the end time and resumes from the same location at the next day's start time. Stops and visit durations determine where each pause falls. Editing, adding or removing stops recalculates the pauses and subsequent arrivals. If a visit crosses the end time, the remaining visit continues there the next morning before driving resumes.
+![The booking detail of a hotel stay, with status, type and day pills, the booking code, tiles for check-in, check-out and the nights, and the fields below](assets/BookingDetail.png)
 
-Choose **Along the route** to pause at the point reached at the cutoff, or **At the last place** to stay after the last visit when the next place cannot be reached before the cutoff. For example, arriving at 16:00 and staying for one hour ends the day at 17:00 if the next drive takes two hours and the cutoff is 18:00. That drive starts from the same place the next morning. If a single drive cannot fit within a full daily window, a message asks you to add an intermediate place or choose pauses along the route. The final destination does not generate an extra drive to fill the remaining time.
+## Dialogs
 
-The map and daily cards show the pause location without creating a place, accommodation or booking. The location within a drive is an estimate based on the elapsed share of the leg's duration along its route geometry. The next real stop is reached after the remaining drive, so its arrival can be later than the daily start time. Transport legs such as ferry crossings continue to their destination without a pause in the middle.
+Every dialog of a trip shares one frame. The head band carries an icon tile, a small line that says what the dialog does (for example **Edit Place** or **Add accommodation**), the name, and pills for facts such as the status, the type or the category. In the dialogs for a place, a booking, a transport or a note, the name is a field: you type it straight into the band. **Cancel** and the save button sit in the footer. **Escape** or the **X** in the head band closes the dialog without saving.
 
-Manual times take precedence. A first stop set to 07:00 still starts at 07:00 even with an automatic 08:00 start. A fixed late appointment can extend that day. If fixed appointments cannot be reached without changing their time or stored day, a visible message pauses automatic scheduling. Missing routes also show a message until a complete schedule can be calculated.
-
-The daily layout is calculated for the Roadtrip view. Stored day assignments stay intact, with **From day 1** labels identifying stops carried forward. Additional preview days appear when needed, including beyond the trip's existing days.
-
-To mix both behaviors, select a stop and enable **End the day here** in its place details. This ends the day after that visit and its stay, even when the daily cutoff has not been reached. The next drive starts the following morning. The switch is available only in Roadtrip mode with valid daily travel times. Turning those times off keeps each saved choice but stops applying it. The choice belongs to that particular visit, so another visit to the same place is independent. Disable the switch to follow the default again. The editable **STAY** duration appears beside this switch and opens the same editor as the sidebar.
-
-While online, drag an end-of-day map label along the driving route or onto a visit. A visit that automatically moved into the following day can become the previous day's final stop, even if its full stay ends after the automatic cutoff. Fixed visit times remain protected. Right-click a dragged label to restore its automatic ending, or restore all dragged endings in Driving settings. Focused labels also support the arrow keys and Delete. These overrides belong to the trip, survive reloads and are copied with the trip. They take effect only while daily travel times are enabled.
-
-The map marks pauses with a moon and day number beside a place or above the route. These markers disappear when zoomed out beyond level 6.
-
-> **AI / MCP:** `get_roadtrip_context` reads saved days, visits, pins, stays, vias, followed tracks and day endings. `calculate_roadtrip` calculates arrivals, day splits, driving limits and vehicle-range warnings on the server, using the same planning logic as the browser. No open TREK tab is needed. Pauses remain calculated markers, never places or bookings. `get_roadtrip_settings` and `update_roadtrip_settings` read and change the shared driving preferences for the specified trip; changes update connected views for all its travellers. Place and assignment tools edit stops, stay durations, times and ordering. `set_assignment_end_day` and `set_day_boundary` set or clear individual day endings. `search_roadtrip_corridor` finds stops along a calculated day, with name, charging and route-section filters. `import_trip_gpx` imports tracks; the via tools edit their routing handles. See [MCP-Addon-Tools](MCP-Addon-Tools) for units, scopes and incomplete results.
-
-## Mobile Layout
-
-On screens narrower than 768 px, TREK does not squeeze the three-pane layout — it opens a dedicated mobile trip screen instead: a day-chip rail under the top bar, a switch between the day plan and a full-screen map, and a bottom dock for the other tabs. Tablets and desktops (768 px and up) get the three-pane layout described above.
+When a dialog opens, the focus moves inside it (on a desktop into its first field), and **Tab** stays inside until it closes. In the dialogs for a place, a booking and a transport, a stray click beside the dialog or **Escape** no longer throws away what you typed: once something has changed, TREK asks *Discard your changes?* with **Keep editing** and **Discard**.
 
 ## Undo
 
-The planner tracks your recent actions — adding places, assigning them to days, reordering, and removing assignments — in a short undo ring. The **Undo** button sits in the Day Plan Sidebar toolbar (at the top of the sidebar); it is greyed out until an undoable action is available. It shows the name of the last action as a tooltip on hover and reverses it when clicked.
+The planner keeps your recent actions in a short undo ring: adding, deleting and importing places, putting them on a day, taking them off, moving them to another day, reordering, optimizing a route, clearing a day, locking a place and changing categories. The **Undo** button (a curved arrow) sits in the head band of the days column. It is greyed out until there is something to undo, its tooltip names the last action (*Undo: Route optimized*), and a click reverses it.
 
 Deleting a day is not in the ring. The question before the delete lists what goes with the day instead; see [Deleting a day](Day-Plans-and-Notes#deleting-a-day). An earlier reorder of the days can still be undone afterwards, minus the day that is gone.
 
-## Splash Screen
+## Road trip view
 
-When you first open a trip, a brief loading screen appears while the planner data and place photos are fetched. This screen shows the trip title and a loading animation. Once data is ready and a short grace period for photos has elapsed, the planner workspace appears.
+With the [Road trip](Road-Trip) addon enabled, the **Days** / **Road trip** switch above the days column turns the day cards into one continuous drive: arrival times, daily travel times, driving limits, range, search along the route, via points and current hazard warnings. The choice is kept per trip for the browser session. All of it is on its own page:
 
-## Getting Around
+- [Daily travel times and day endings](Road-Trip#daily-travel-times-and-day-endings), including **End the day here** and dragging an end-of-day label on the map.
+- [Driving settings](Road-Trip#driving-settings), shared by everyone on the trip.
+- [Search along the route](Road-Trip#search-along-the-route), **Add manually** and [adding a stop from the search](Road-Trip#adding-a-stop-from-the-search), with the accommodation portals.
+- [Charger availability and tariffs](Road-Trip#charger-availability-and-tariffs).
+- [Weather warnings and disaster alerts](Road-Trip#weather-warnings-and-disaster-alerts).
+- [Booked nights on the drive](Road-Trip#booked-nights-on-the-drive) and [starting and ending the day at the stay](Road-Trip#starting-and-ending-the-day-at-the-stay).
+- [Importing a Google Maps route](Road-Trip#importing-a-google-maps-route).
+- [MCP tools](Road-Trip#mcp-tools) for planning a drive from an assistant.
 
-| Task | Where to go |
-|---|---|
-| Add and search places | [Places-and-Search](Places-and-Search) |
-| Organize days and notes | [Day-Plans-and-Notes](Day-Plans-and-Notes) |
-| Map features and routes | [Map-Features](Map-Features) |
-| Weather forecasts | [Weather-Forecasts](Weather-Forecasts) |
-| Reservations and bookings | [Reservations-and-Bookings](Reservations-and-Bookings) |
+In the Road trip view, **Edit** on a stop on the way or on a booked night opens the compact stop dialog with its stay and check-in instead of the full place form; **More details** in that dialog opens the full form. Ordinary places keep the full place form.
 
-Driving settings includes **Show hazard areas**, off by default and shared by the trip. In online Roadtrip mode, the map loads current DWD warnings for Germany and worldwide GDACS notices. Click an area or event point for its source report and update time. A point alone does not describe the affected area. Feeds refresh every ten minutes; unavailable or incomplete sources are labelled. These are current notices, not forecasts for travel dates or confirmed road closures, and they do not change routing. GDACS supplies a limited recent-event feed, with affected-area geometry loaded for up to twelve flood, wildfire or cyclone events. Coverage is not exhaustive.
+## Mobile layout
 
-> **AI / MCP:** Use `get_roadtrip_hazards` to read notices and source availability. Set `roadtrip_show_hazards` through `update_roadtrip_settings` to change the shared map setting.
+On screens narrower than 768 px, TREK does not squeeze the three columns together. It opens a dedicated trip screen instead: a rail of day chips under the top bar, a switch between the day plan and a full-screen map, and a dock at the bottom for the other tabs. While a trip is running, today's chip is marked, and a button beside the rail (*Jump to today*) scrolls back to it, in the plan and on the map. Reopening a trip selects a day again instead of showing an empty plan.
 
-## Related Pages
+## Splash screen
 
-- [Places-and-Search](Places-and-Search)
-- [Day-Plans-and-Notes](Day-Plans-and-Notes)
-- [Map-Features](Map-Features)
-- [Weather-Forecasts](Weather-Forecasts)
-- [Reservations-and-Bookings](Reservations-and-Bookings)
+When you open a trip, a short loading screen shows the trip title while the plan and the place photos are fetched. Once the data is there and a short grace period for photos has passed, the planner appears.
+
+## Related pages
+
+- [Day Plans and Notes](Day-Plans-and-Notes)
+- [Places and Search](Places-and-Search)
+- [Map Features](Map-Features)
+- [Route Optimization](Route-Optimization)
+- [Weather Forecasts](Weather-Forecasts)
+- [Accommodations](Accommodations)
+- [Reservations and Bookings](Reservations-and-Bookings)
+- [Road Trip](Road-Trip)
 - [Admin-Addons](Admin-Addons)
-
-Driving settings also controls **Show in Days too** under **Service stops**. It is on by default and applies to every service stop in the trip, including existing stops. Turn it off to keep service stops exclusively in the Roadtrip view and omit them from the normal Days view and its route. Hotels, and any place a booking points at, stay in the places list and on the Days map either way. Turning it on restores their visibility without creating duplicates. The setting is shared with fellow travellers and can also be changed through `update_roadtrip_settings` using `roadtrip_service_stops_in_days`.
-
-**Start and end each day at your stay**, under **Route line** in Driving settings, starts each Roadtrip day after a booked night at that hotel and ends each day before one there. It is off by default and shared by the trip. The hotel rows are drawn from the booking, not stored as stops, so the Days view stays as it is and switching it off gives the drive exactly as before. On the phone it is the one switch in **Driving figures**. See [Road-Trip](Road-Trip#starting-and-ending-the-day-at-the-stay).
-
-> **AI / MCP:** Set `roadtrip_hotel_bookends` through `update_roadtrip_settings`; a missing value means off. `calculate_roadtrip` returns the hotel rows as stops carrying `bookend`.
-
-**Looking for** in Roadtrip also searches installed place-search plugins. Plugin results show their source and can be added like other stops. Search remains online-only and runs on request. Results outside the chosen corridor are removed, and failed sources are shown beside the remaining results. It opens on Charging when the trip's vehicle is electric and on Fuel otherwise, and the choice is yours from then on.
-
-Clicking a result brings it into view on the map, which is how you tell which side of the road it is on. **Clear results** above the list empties both the list and its pins, along with the name, section, plug and power filters.
-
-**Add manually**, beside Search, is for the stop the search does not know about: a good share of the chargers standing at a junction are in no OpenStreetMap extract. Look the place up by name and TREK works out which leg of which day it belongs on, measured against the drawn route. **Add between** offers every leg of every routed day if that guess is wrong, and a place well away from the route is accepted rather than refused, with a note saying how far off it sits. From there it opens the same dialog a found result does, so the kind of stop and the time spent there are chosen in one place.
-
-> **AI / MCP:** `search_roadtrip_corridor` uses the same combined sources and reports `failedSources`.
-
-In Roadtrip, open the three-dot menu beside the day selector to import a Google Maps directions link. Preview the ordered stops, choose a day, then confirm. Resolved stops are appended to that day; unresolved locations are marked and skipped. TREK calculates its own route between the stops. Import needs an online connection and permission to edit places and days.
-
-> **AI / MCP:** Use preview_google_maps_route to inspect a link, then import_google_maps_route to append the reviewed stops to a trip day.
-
-Roadtrip charging stops show compact availability and published energy-price badges. The place detail panel adds source attribution, timestamps and tariff conditions. Data comes from the public MobiData BW OCPDB aggregation, including participating German operators and Swiss data, without an API key or account. Coverage varies; an unknown or stale status does not mean a charger is free. Prices are published source tariffs, not personal charging-card quotes. Data refreshes while Roadtrip is visible and is not advertised as live offline.
-
-The same panel appears in the dialog that adds a station found along the route, so availability and price can be read before the stop exists. It is fetched once per opened dialog and only for a stop being added as a charging stop, never per row of the result list.
-
-> **AI / MCP:** get_roadtrip_charging_info reads the same availability, tariff components, freshness and source information for a saved charging stop. lookup_roadtrip_charging_info reads it for a station that is not on the trip, named by coordinate instead of by place id.
-
-GDACS warning popups show the current episode score when supplied, falling back to the overall event score. The compact scale indicates GDACS humanitarian impact, not whether roads are passable.
-
-### Accommodation portals in Roadtrip
-
-The Add as a stop dialog offers trivago and CHECK24 for hotels, or PiNCAMP and Pitchup for campsites. The portal opens in a new tab without adding a stop or making a booking. trivago receives the search text; PiNCAMP receives a geographic area extending roughly 20 km from the stop; Pitchup receives the stop coordinates. All three receive the trip dates when both days have dates and departure is after arrival. Review the destination, dates and guest count on the portal. CHECK24 requires a manual search. The dialog asks only for the **Check-in** time, in the shared TREK time picker; the check-out is a booking detail and is entered under Days.
-
-All Looking for categories, including accommodation, are added as Roadtrip service stops. In Roadtrip mode, Edit in a planned place's details opens the stop dialog with its saved duration and check-in time. Saving updates the existing stop; More details still opens the full place editor. The shared stop-type contract also accepts hotel through MCP.
-
-A booked night is anchored on its check-in the way a pinned time anchors any other stop, and takes the place's STAY as its length: the day is built to be there by then, and a drive that gets there later is reported late rather than moving the stop. A time pinned on the stop itself wins over the check-in. The drive never reads the check-out: it is the latest the room has to be handed back, not the time anybody drives on, so it stays a booking detail under Days. To leave at a set hour, give the visit an End, see [Road-Trip](Road-Trip#leaving-at-a-set-time). Browser planning and MCP use the same scheduling logic.
-
-The overnight dialog prefills check-in from the calculated arrival when available; existing manual check-in values take priority. Before adding a corridor result, the suggested arrival is estimated along the current routed leg.
-
-Ordinary places retain the full place editor in Roadtrip mode. The compact stop editor is used for service stops and accommodation. When visits move into another day, their calculated departure continues into that day's following stops, including midnight offsets.
-
-Stops reached after midnight move to the next calculated Roadtrip day with a FROM DAY label. This also creates a display day when no saved day exists yet and retains arrival times for a day containing only one moved stop.
-
-Range warnings also locate an empty battery or tank on connections between days. The warning offers reachable stations on that connection and inserts a selected stop before its destination.

@@ -56,6 +56,12 @@ describe('TripShareController', () => {
     expect(updatedRes.statusCode).toBe(200);
   });
 
+  it('POST forwards the two narrowing options, as the MCP tool does (#1712)', () => {
+    const createOrUpdate = vi.fn().mockReturnValue({ token: 't', created: true });
+    new TripShareController(svc({ createOrUpdate } as Partial<ShareService>)).create(user, '5', { share_travel_only: true, share_hide_images: true }, res());
+    expect(createOrUpdate).toHaveBeenCalledWith('5', user.id, expect.objectContaining({ share_travel_only: true, share_hide_images: true }));
+  });
+
   it('GET 404 without access, 403 without share_manage, returns info or a null token', () => {
     expect(thrown(() => new TripShareController(svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) })).get(user, '5'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
     // Reading returns the token itself, so it needs the same permission as

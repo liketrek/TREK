@@ -98,7 +98,7 @@ export default function MCollShareSheet({
     if (collectionId == null) return
     const current = member.role ?? 'editor'
     const next = COLLECTION_ROLES[(COLLECTION_ROLES.indexOf(current) + 1) % COLLECTION_ROLES.length]
-    run(member.user_id, () => setMemberRole(collectionId, member.user_id, next))
+    void run(member.user_id, () => setMemberRole(collectionId, member.user_id, next))
   }
 
   const handleInvite = async () => {

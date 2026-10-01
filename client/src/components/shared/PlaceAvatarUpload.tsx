@@ -1,11 +1,13 @@
-import { useRef, useState } from 'react'
-import { Camera, Loader2, X } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Camera, Loader2, Upload, X } from 'lucide-react'
 import PlaceAvatar from './PlaceAvatar'
 import { Tooltip } from './Tooltip'
 import { normalizeImageFile } from '../../utils/convertHeic'
 import { useToast } from './Toast'
 import { useTranslation, translateApiError } from '../../i18n'
-import type { Place } from '../../types'
+import { fetchImageAsBlob } from '../../api/authUrl'
+import type { Place, TripFile } from '../../types'
 
 interface Category {
   color?: string
@@ -19,6 +21,16 @@ interface PlaceAvatarUploadProps {
   onUpload: (file: File) => Promise<void>
   /** Clears the custom image; the auto-fetched default thumbnail then returns (#1136). */
   onRemove: () => Promise<void> | void
+  /** Pictures already attached to the place, offered as its image beside an upload (#1242). */
+  attachedImages?: TripFile[]
+  onPickAttached?: (fileId: number) => Promise<void>
+}
+
+const PICKABLE = /^image\/(jpeg|png|gif|webp)$/
+
+/** The images among a place's files that can stand as its picture. */
+export function pickableImages(files: TripFile[]): TripFile[] {
+  return files.filter(f => PICKABLE.test(f.mime_type || ''))
 }
 
 /**
@@ -26,12 +38,29 @@ interface PlaceAvatarUploadProps {
  * a camera overlay with a tooltip, clicking opens the file picker, and when a custom
  * upload is present a small corner button removes it (falling back to the default).
  */
-export default function PlaceAvatarUpload({ place, category, size = 52, onUpload, onRemove }: PlaceAvatarUploadProps) {
+export default function PlaceAvatarUpload({ place, category, size = 52, onUpload, onRemove, attachedImages = [], onPickAttached }: PlaceAvatarUploadProps) {
   const { t } = useTranslation()
   const toast = useToast()
   const fileRef = useRef<HTMLInputElement>(null)
+  const anchorRef = useRef<HTMLDivElement>(null)
   const [busy, setBusy] = useState(false)
+  const [chooserOpen, setChooserOpen] = useState(false)
   const hasCustom = Boolean(place.image_url)
+  const offersAttached = !!onPickAttached && attachedImages.length > 0
+  // With pictures on the place the click asks where from; without, it goes straight to the device.
+  const openPicker = () => { if (busy) return; if (offersAttached) setChooserOpen(o => !o); else fileRef.current?.click() }
+
+  const pickAttached = async (fileId: number) => {
+    setChooserOpen(false)
+    setBusy(true)
+    try {
+      await onPickAttached!(fileId)
+    } catch (err: unknown) {
+      toast.error(translateApiError(t, err, 'places.imageUploadError'))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -65,10 +94,13 @@ export default function PlaceAvatarUpload({ place, category, size = 52, onUpload
         <div
           className="group"
           style={{ position: 'relative', width: size, height: size, borderRadius: '50%', cursor: busy ? 'default' : 'pointer' }}
-          onClick={() => { if (!busy) fileRef.current?.click() }}
+          ref={anchorRef}
+          onClick={openPicker}
           role="button"
           tabIndex={0}
-          onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !busy) { e.preventDefault(); fileRef.current?.click() } }}
+          aria-haspopup={offersAttached ? 'dialog' : undefined}
+          aria-expanded={offersAttached ? chooserOpen : undefined}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker() } }}
           aria-label={hasCustom ? t('places.changeImage') : t('places.uploadImage')}
         >
           <PlaceAvatar place={place} category={category} size={size} />
@@ -106,6 +138,81 @@ export default function PlaceAvatarUpload({ place, category, size = 52, onUpload
       )}
 
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" style={{ display: 'none' }} onChange={handleFile} />
+      {chooserOpen && (
+        <ImageChooser
+          anchor={anchorRef.current}
+          images={attachedImages}
+          onUpload={() => { setChooserOpen(false); fileRef.current?.click() }}
+          onPick={id => { void pickAttached(id) }}
+          onClose={() => setChooserOpen(false)}
+        />
+      )}
     </div>
+  )
+}
+
+/** Upload from the device, or one of the pictures already on the place (#1242). */
+function ImageChooser({ anchor, images, onUpload, onPick, onClose }: {
+  anchor: HTMLElement | null
+  images: TripFile[]
+  onUpload: () => void
+  onPick: (fileId: number) => void
+  onClose: () => void
+}) {
+  const { t } = useTranslation()
+  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+
+  useLayoutEffect(() => {
+    if (!anchor) return
+    const r = anchor.getBoundingClientRect()
+    const width = 264
+    setPos({ top: r.bottom + 8, left: Math.min(Math.max(12, r.left), window.innerWidth - width - 12) })
+  }, [anchor])
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (!ref.current?.contains(target) && !anchor?.contains(target)) onClose()
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
+  }, [anchor, onClose])
+
+  if (!pos) return null
+  return createPortal(
+    <div ref={ref} role="dialog" aria-label={t('places.chooseImage')}
+      className="trek-popover-enter fixed z-[var(--z-toast)] flex w-[264px] flex-col gap-2 rounded-[14px] border border-edge-secondary bg-surface-card p-2 shadow-popover"
+      style={{ top: pos.top, left: pos.left }}>
+      <button type="button" onClick={onUpload}
+        className="flex items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-body font-semibold text-content hover:bg-surface-hover">
+        <Upload size={14} strokeWidth={2.2} className="text-content-muted" />
+        {t('places.uploadFromDevice')}
+      </button>
+      <div className="px-2.5 text-caption font-semibold uppercase tracking-[0.04em] text-content-faint">{t('places.fromAttachedFiles')}</div>
+      <div className="grid grid-cols-4 gap-1.5 px-1 pb-1">
+        {images.map(f => <AttachedThumb key={f.id} file={f} onPick={() => onPick(f.id)} />)}
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
+function AttachedThumb({ file, onPick }: { file: TripFile; onPick: () => void }) {
+  const [src, setSrc] = useState<string | null>(null)
+  useEffect(() => {
+    let current = true
+    fetchImageAsBlob(file.url).then(u => { if (current) setSrc(u) }).catch(() => {})
+    return () => { current = false }
+  }, [file.url])
+  return (
+    <Tooltip label={file.original_name} placement="top">
+      <button type="button" onClick={onPick} aria-label={file.original_name}
+        className="aspect-square overflow-hidden rounded-[9px] bg-surface-secondary ring-1 ring-edge-faint transition-shadow hover:ring-2 hover:ring-accent">
+        {src && <img src={src} alt="" className="h-full w-full object-cover" />}
+      </button>
+    </Tooltip>
   )
 }

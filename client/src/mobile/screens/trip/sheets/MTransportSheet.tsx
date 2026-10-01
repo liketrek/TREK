@@ -6,7 +6,7 @@ import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { splitReservationDateTime } from '../../../../utils/formatters'
-import { getFlightLegs, getTrainLegs } from '../../../../utils/flightLegs'
+import { getFlightLegs, getTrainLegs, usesStationRoute } from '../../../../utils/flightLegs'
 import { openFile } from '../../../../utils/fileDownload'
 import { runsOnDay } from '../../../../utils/reservationRoutes'
 import type { Reservation } from '../../../../types'
@@ -99,7 +99,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
 
   // Per-segment booking codes (#1943), only on a real stopover booking: the
   // single-leg fallback would just echo the booking's own code shown below.
-  const routeLegs = res.type === 'flight' ? getFlightLegs(res) : res.type === 'train' ? getTrainLegs(res) : []
+  const routeLegs = res.type === 'flight' ? getFlightLegs(res) : usesStationRoute(res.type) ? getTrainLegs(res) : []
   const legCodes = routeLegs.length > 1 ? routeLegs.filter(l => l.confirmation_number) : []
 
   const resFiles = (planner.files || []).filter(f =>
@@ -144,7 +144,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   }
 
   const deleteTransport = () => {
-    planner.handleDeleteReservation(res.id)
+    void planner.handleDeleteReservation(res.id)
     shell.closeSheet()
   }
 

@@ -40,7 +40,7 @@ export class VacayRpc {
     const date = this.dateStr(params.date);
     const note = typeof params.note === 'string' ? params.note.slice(0, 256) : undefined;
     this.requireVacayAddon();
-    return this.vacay.toggleCompanyHoliday(this.vacay.getActivePlanId(userId), date, note, undefined);
+    return this.vacay.toggleCompanyHoliday(this.vacay.getActivePlanId(userId), date, note, undefined, params.fraction);
   }
 
   private requireVacayUser(ctx: PluginRpcContext, kind: 'reads' | 'writes'): number {

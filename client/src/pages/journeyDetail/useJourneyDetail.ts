@@ -11,12 +11,13 @@ import { useToast } from '../../components/shared/Toast'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { lockBodyScroll } from '../../utils/bodyScrollLock'
 import type { JourneyEntry } from '../../store/journeyStore'
-import { createDraftJourneyEntry } from './JourneyDetailPage.helpers'
+import { createDraftJourneyEntry, photoUrl } from './JourneyDetailPage.helpers'
 import { useDawarichSuggestions } from '../../hooks/useDawarichSuggestions'
 import { openStaysByDate } from '../../components/Dawarich/dawarichSuggestionModel'
 import type { DawarichSuggestion, DawarichSuggestionTarget } from '@trek/shared'
 
 import { useDawarichJournalTrail } from '../../hooks/useDawarichJournalTrail'
+import { useProviderPhotoAdds } from './useProviderPhotoAdds'
 
 /** Stable identity for "this journey draws no trip tracks" (#2194). */
 const NO_TRACKS: JourneyTrack[] = []
@@ -290,6 +291,10 @@ export function useJourneyDetail() {
     }
   }, [updateEntry, loadJourney, current, toast, t])
 
+  // Provider photos from the gallery picker and from the entry editor, the same
+  // way on desktop and phone (#1587).
+  const providerPhotos = useProviderPhotoAdds(() => { void loadJourney(Number(id)) })
+
   const restoreSuggestions = useCallback(async () => {
     if (!current) return
     try {
@@ -413,6 +418,25 @@ export function useJourneyDetail() {
       }
     })
   }, [mapEntries, current?.entries])
+
+  /**
+   * The journey's geotagged photos as thumbnails on its map (#2453), the same
+   * layer the shared view has had since #1614. A tap opens the photos of that
+   * cluster in the lightbox.
+   */
+  const mapPhotos = useMemo(() => (current?.gallery ?? [])
+    .filter(p => typeof p.lat === 'number' && typeof p.lng === 'number')
+    .map(p => ({ id: String(p.id), lat: p.lat as number, lng: p.lng as number, thumbUrl: photoUrl(p, 'thumbnail') })),
+  [current?.gallery])
+  const openMapPhotos = useCallback((ids: string[]) => {
+    const wanted = new Set(ids)
+    const photos = (current?.gallery ?? []).filter(p => wanted.has(String(p.id)))
+    if (!photos.length) return
+    setLightbox({
+      photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })),
+      index: 0,
+    })
+  }, [current?.gallery])
 
   /**
    * Where a journey should open: on today, when today is part of it.
@@ -539,7 +563,10 @@ export function useJourneyDetail() {
     mapRef, fullMapRef, galleryUploadRef, galleryProviders, setGalleryProviders, galleryBrowseRef,
     activeLocationId, handleMarkerClick, handleLocationClick,
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks: mapTracks, dawarichTrail,
+    mapPhotos, openMapPhotos,
     feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
+    addPickedProviderPhotos: providerPhotos.addPickedPhotos,
+    addEntryProviderPhotos: providerPhotos.addEntryPhotos,
   }
 }

@@ -21,11 +21,13 @@ import type { ViewportPadding } from '../../../../utils/mapViewport'
 const NO_POIS: Poi[] = []
 
 /**
- * The compass stands one gap to the right of the base-layer switcher both engines draw
- * in the bottom left corner. Worked out from the switcher's own numbers rather than
- * written down as 70, so moving or resizing the switcher carries the compass along.
+ * The compass stands one gap above the base-layer switcher both engines draw in the
+ * bottom left corner, on the same left edge, so the two round controls form a column
+ * instead of a row. Worked out from the switcher's own numbers, so moving or resizing
+ * the switcher carries the compass along.
  */
-const COMPASS_LEFT = MAP_LAYER_SWITCHER_INSET + MAP_ROUND_CONTROL_SIZE + 8
+const COMPASS_LEFT = MAP_LAYER_SWITCHER_INSET
+const COMPASS_RAISE = MAP_ROUND_CONTROL_SIZE + 8
 
 /** The safe-area insets at the top and the bottom of the screen, in pixels. */
 interface SafeInsets {
@@ -353,6 +355,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         dayPlaces={onStage ? undefined : planner.dayPlaces}
         route={stageMap ? stageMap.lines : planner.overviewActive ? planner.tripOverview.lines : planner.route}
         routeColors={stageMap ? stageMap.lineColors : planner.overviewActive ? planner.tripOverview.lineColors : undefined}
+        routeWalking={stageMap || planner.overviewActive ? undefined : planner.routeWalking}
         accessLines={stageMap ? stageMap.accessLines : undefined}
         // A hit somebody tapped in the search sheet, a stop shown from its sheet, or the
         // stations the fuel search is offering take the camera while their day is on
@@ -423,6 +426,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         <div className="pointer-events-none absolute left-4 right-4 z-[25] flex flex-col items-center gap-2 top-[calc(var(--m-safe-top,12px)+96px)]">
           <PoiCategoryPill
             fullWidth
+            categories={poi.categories}
             active={poi.active}
             onToggle={poi.toggle}
             loadingKeys={poi.loadingKeys}
@@ -434,14 +438,12 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
       )}
 
       {/* Compass, GL maps only (Leaflet cannot rotate). Both engines draw the base-layer
-          switcher in the bottom left corner, so the compass sits beside it rather than in
-          the corner: at `left-3` it started 8px left of the switcher and ran on under it,
-          reading as a second button showing through the frosted shell. Same
-          --bottom-nav-h band as the locate button's `right: 12`, so the round controls
-          still share one line. The left offset is inline because it is computed from the
-          switcher's own numbers. */}
+          switcher in the bottom left corner, so the compass stands on top of it, on the
+          same left edge: beside it the two read as one crowded row next to the dock.
+          The offsets are inline because they are computed from the switcher's own
+          numbers. */}
       {mapActive && glMap && (
-        <div className="pointer-events-none absolute z-[25]" style={{ left: COMPASS_LEFT, bottom: 'calc(var(--bottom-nav-h, 84px) + 12px)' }}>
+        <div className="pointer-events-none absolute z-[25]" style={{ left: COMPASS_LEFT, bottom: `calc(var(--bottom-nav-h, 84px) + ${12 + COMPASS_RAISE}px)` }}>
           <MapCompassPill map={glMap} />
         </div>
       )}

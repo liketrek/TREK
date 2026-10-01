@@ -982,9 +982,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   invoke(id: string, method: string, params: Record<string, unknown>, actingUserId?: number): Promise<unknown> {
     return this.supervisor.invoke(id, method, params, { actingUserId });
   }
-  /** Ids of active plugins implementing a provider hook (e.g. 'placeDetailProvider'). */
-  providersOf(hook: string): string[] {
-    return this.supervisor.providersOf(hook);
+  /** Ids of active plugins implementing a provider hook (e.g. 'placeDetailProvider'), or one optional function of it. */
+  providersOf(hook: string, fn?: string): string[] {
+    return this.supervisor.providersOf(hook, fn);
   }
   /**
    * Ask ONE plugin's provider hook for data (host→plugin). A tighter default

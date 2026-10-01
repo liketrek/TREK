@@ -75,7 +75,7 @@ import { JournalRpcModule } from '../journey/journal-rpc.module';
     PluginRegistryService,
     PluginRpcHostFactory,
     PluginRpcRegistryService,
-    // Owns no wire method; declares and performs all 18 host-to-plugin hook calls.
+    // Owns no wire method; declares and performs all 21 host-to-plugin hook calls.
     PluginHooks,
     // The wire surface that belongs to no domain: the plugin's own sqlite, its
     // namespaced entity metadata, and the host-mediated calls (user lookup,

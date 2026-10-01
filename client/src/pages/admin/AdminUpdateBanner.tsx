@@ -2,6 +2,8 @@ import React from 'react'
 import { ArrowUpCircle, ExternalLink, Download } from 'lucide-react'
 import type { TranslationFn } from '../../types'
 import type { UpdateInfo } from './adminModel'
+import { fs } from '../../components/shared/DialogShell'
+import { SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY } from '../../components/Settings/settingsKit'
 
 interface AdminUpdateBannerProps {
   updateInfo: UpdateInfo
@@ -9,44 +11,35 @@ interface AdminUpdateBannerProps {
   onHowTo: () => void
 }
 
-// The "new version available" banner shown at the top of the admin page.
-// Purely presentational — extracted from AdminPage.
+// The "new version available" banner shown at the top of the admin page, as a
+// card of the settings kit: a warning tile, the versions, and the two actions
+// in the dialogs' button shapes. Purely presentational.
 export default function AdminUpdateBanner({ updateInfo, t, onHowTo }: AdminUpdateBannerProps): React.ReactElement {
   return (
-    <div className="mb-6 p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700">
-      <div className="flex items-center gap-4 flex-1 min-w-0">
-        <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-amber-500 dark:bg-amber-600">
-          <ArrowUpCircle className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">{t('admin.update.available')}</p>
-          <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-            {t('admin.update.text').replace('{version}', `v${updateInfo.latest}`).replace('{current}', `v${updateInfo.current}`)}
-          </p>
-        </div>
+    <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-edge-faint bg-surface-secondary px-4 py-3">
+      <span className="grid h-10 w-10 flex-none place-items-center rounded-[12px] bg-warning-soft text-warning">
+        <ArrowUpCircle size={18} strokeWidth={2} />
+      </span>
+      <div className="min-w-0 flex-1 basis-64">
+        <p className="m-0 font-bold text-content" style={fs(14, 'body')}>{t('admin.update.available')}</p>
+        <p className="m-0 mt-0.5 text-content-muted" style={fs(12.5, 'body')}>
+          {t('admin.update.text').replace('{version}', `v${updateInfo.latest}`).replace('{current}', `v${updateInfo.current}`)}
+        </p>
       </div>
-      {/* Both controls carry the same box metrics — padding, text size, icon, and a
-          border the filled one only needs to stop the outlined one from ending up
-          2px shorter. Two buttons side by side read as one group, so a size gap
-          reads as a mistake rather than as hierarchy; the fill, the colour and the
-          weight are what mark the primary action. */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex flex-none flex-wrap items-center gap-2" style={fs(13, 'body')}>
         {updateInfo.release_url && (
           <a
             href={updateInfo.release_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+            className={SETTINGS_BUTTON}
           >
-            <ExternalLink className="w-4 h-4 flex-shrink-0" />
+            <ExternalLink size={14} strokeWidth={2.1} className="flex-none" />
             {t('admin.update.button')}
           </a>
         )}
-        <button type="button"
-          onClick={onHowTo}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border border-transparent bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-gray-200"
-        >
-          <Download className="w-4 h-4 flex-shrink-0" />
+        <button type="button" onClick={onHowTo} className={SETTINGS_BUTTON_PRIMARY}>
+          <Download size={14} strokeWidth={2.1} className="flex-none" />
           {t('admin.update.howTo')}
         </button>
       </div>

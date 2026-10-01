@@ -10,6 +10,7 @@ import {
   adminAddonUpdateRequestSchema,
   adminCollabFeaturesRequestSchema,
   adminNotificationPreferencesRequestSchema,
+  notificationDefaultsUpdateRequestSchema,
   adminDefaultUserSettingsRequestSchema,
   adminTestNotificationRequestSchema,
   adminTransitProviderRequestSchema,
@@ -35,6 +36,7 @@ export class AdminOidcUpdateDto extends createZodDto(adminOidcUpdateRequestSchem
 export class AdminAddonUpdateDto extends createZodDto(adminAddonUpdateRequestSchema) {}
 export class AdminCollabFeaturesDto extends createZodDto(adminCollabFeaturesRequestSchema) {}
 export class AdminNotificationPreferencesDto extends createZodDto(adminNotificationPreferencesRequestSchema) {}
+export class NotificationDefaultsUpdateDto extends createZodDto(notificationDefaultsUpdateRequestSchema) {}
 export class AdminDefaultUserSettingsDto extends createZodDto(adminDefaultUserSettingsRequestSchema) {}
 export class AdminTestNotificationDto extends createZodDto(adminTestNotificationRequestSchema) {}
 export class AdminTransitProviderDto extends createZodDto(adminTransitProviderRequestSchema) {}

@@ -14,7 +14,7 @@ export const dayRepo = {
     return onlineThenCache(
       async () => {
         const result = await daysApi.list(tripId)
-        upsertDays(result.days)
+        void upsertDays(result.days)
         return result
       },
       async () => ({

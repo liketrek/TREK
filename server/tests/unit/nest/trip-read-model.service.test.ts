@@ -78,6 +78,7 @@ import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.serv
 import { makeStorageFixture } from '../../helpers/storage-fixture';
 import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repository';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 // Real sibling services over the same in-memory DB — the aggregation runs the
 // actual SQL of every domain it fans out to, so a shape change downstream shows
@@ -90,7 +91,7 @@ const daysSvc = new DaysService(dbs(), new PermissionsService(dbs()), new Realti
 const photoCache = new PlacePhotoCacheService(dbs(), makeStorageFixture('photos/google/').storage);
 const placesSvc = new PlacesService(
   dbs(), new PermissionsService(dbs()), new RealtimeService(),
-  new MapsService(dbs(), photoCache), new QueryHelpersService(dbs()),
+  new MapsService(dbs(), photoCache, noGoogleQuota), new QueryHelpersService(dbs()),
   new UnsplashService(dbs(), new RuntimeEnvService(), makeStorageFixture('').storage), photoCache,
   new JourneyDomainService(dbs(), new RealtimeService(), new TrekPhotosRepository(dbs())),
   makeStorageFixture('').storage,

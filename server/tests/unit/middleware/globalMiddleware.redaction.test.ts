@@ -80,6 +80,86 @@ describe('globalMiddleware request-log redaction', () => {
     expect(redact({ accessKeyId: 'ak-1', tokenCount: 5 })).toEqual({ accessKeyId: 'ak-1', tokenCount: 5 });
   });
 
+  it('hides the Web Push subscription body: the endpoint capability URL and both keys', () => {
+    // POST /api/notifications/push/subscriptions, as PushSubscription.toJSON() hands it over.
+    expect(
+      redact({
+        subscription: {
+          endpoint: 'https://fcm.googleapis.com/fcm/send/device-capability',
+          expirationTime: null,
+          keys: { p256dh: 'BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA', auth: 'tBHItJI5svbpez7KI4CCXg' },
+        },
+      }),
+    ).toEqual({
+      subscription: {
+        endpoint: '[REDACTED]',
+        expirationTime: null,
+        keys: { p256dh: '[REDACTED]', auth: '[REDACTED]' },
+      },
+    });
+  });
+
+  it('hides the subscription the service worker posts again after the browser renewed it', () => {
+    // sw-push.js on pushsubscriptionchange: the same route and shape, and a renewed
+    // subscription may carry a real expiry instead of null.
+    expect(
+      redact({
+        subscription: {
+          endpoint: 'https://updates.push.services.mozilla.com/wpush/v2/renewed-capability',
+          expirationTime: 1767225600000,
+          keys: { p256dh: 'BOr1renewedPublicKey', auth: 'renewedAuthSecret' },
+        },
+      }),
+    ).toEqual({
+      subscription: {
+        endpoint: '[REDACTED]',
+        expirationTime: 1767225600000,
+        keys: { p256dh: '[REDACTED]', auth: '[REDACTED]' },
+      },
+    });
+  });
+
+  it('hides the endpoint of a subscription that arrives without its keys', () => {
+    // The route refuses this body with a 400, but the request is logged all the same.
+    expect(
+      redact({ subscription: { endpoint: 'https://fcm.googleapis.com/fcm/send/keyless', expirationTime: null } }),
+    ).toEqual({ subscription: { endpoint: '[REDACTED]', expirationTime: null } });
+    expect(redact({ subscription: { endpoint: 'https://fcm.googleapis.com/fcm/send/lone' } })).toEqual({
+      subscription: { endpoint: '[REDACTED]' },
+    });
+    expect(
+      redact({ subscription: { endpoint: 'https://fcm.googleapis.com/fcm/send/odd-keys', keys: 'not-an-object' } }),
+    ).toEqual({ subscription: { endpoint: '[REDACTED]', keys: 'not-an-object' } });
+  });
+
+  it('hides the endpoint of the body that forgets a push device', () => {
+    // DELETE /api/notifications/push/subscriptions (logout, switching push off, the worker's renewal).
+    expect(redact({ endpoint: 'https://web.push.apple.com/QGx-device' })).toEqual({ endpoint: '[REDACTED]' });
+    expect(redact({ Endpoint: 'https://web.push.apple.com/QGx-device' })).toEqual({ Endpoint: '[REDACTED]' });
+  });
+
+  it('keeps an endpoint that is an ordinary setting readable, like the S3 backend URL', () => {
+    expect(
+      redact({ endpoint: 'http://127.0.0.1:9000', bucket: 'trek', region: 'us-east-1', secretAccessKey: 'sk' }),
+    ).toEqual({ endpoint: 'http://127.0.0.1:9000', bucket: 'trek', region: 'us-east-1', secretAccessKey: '[REDACTED]' });
+    expect(redact({ endpoint: 'https://s3.example.com', forcePathStyle: true })).toEqual({
+      endpoint: 'https://s3.example.com',
+      forcePathStyle: true,
+    });
+  });
+
+  it('decides p256dh and auth by name wherever they appear, and nothing near them by accident', () => {
+    // Only the push subscription sends either field today; an `auth` anywhere
+    // else would carry credentials too. The fields around them stay readable.
+    expect(redact({ p256dh: 'BPub', Auth: 'secret', auth_method: 'basic', author: 'Ada' })).toEqual({
+      p256dh: '[REDACTED]',
+      Auth: '[REDACTED]',
+      auth_method: 'basic',
+      author: 'Ada',
+    });
+    expect(redact({ auth: { user: 'mailer', pass: 'hunter2' } })).toEqual({ auth: '[REDACTED]' });
+  });
+
   it('passes non-object values through untouched', () => {
     expect(redact('plain string')).toBe('plain string');
     expect(redact(42)).toBe(42);

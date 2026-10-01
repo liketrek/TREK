@@ -14,11 +14,18 @@ const shared: TranslationStrings = {
   'shared.tabChat': '聊天',
   'shared.days': '天',
   'shared.places': '个地点',
+  'shared.unplanned': '尚未规划',
   'shared.other': '其他',
   'shared.totalBudget': '总费用',
   'shared.messages': '条消息',
   'shared.sharedVia': '通过以下分享',
   'shared.confirmed': '已确认',
   'shared.pending': '待确认',
+  'shared.footerTagline': '由你自己托管的旅行规划工具。开源。',
+  'shared.emptyBookings': '尚未共享任何预订',
+  'shared.emptyPacking': '行李清单还是空的',
+  'shared.emptyCosts': '暂无支出',
+  'shared.emptyChat': '暂无消息',
+  'shared.wholeTrip': '整个行程',
 };
 export default shared;

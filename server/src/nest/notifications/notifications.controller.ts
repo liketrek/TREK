@@ -25,7 +25,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { NotificationPreferencesService } from './notification-preferences.service';
-import { AdminNotificationPreferencesDto } from '../admin/admin.dto';
+import { AdminNotificationPreferencesDto, NotificationDefaultsUpdateDto } from '../admin/admin.dto';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { ManagedForbidden } from '../common/managed';
 
@@ -227,6 +227,18 @@ export class AdminNotificationPreferencesController {
   @Get()
   get(@CurrentUser() user: User) {
     return this.prefs.getPreferencesMatrix(user.id, user.role, 'admin');
+  }
+
+  /** What every user's notification cells start as, and which the admin blocked (#1536). */
+  @Get('defaults')
+  getDefaults(@CurrentUser() user: User) {
+    return this.prefs.getInstanceDefaults(user.id);
+  }
+
+  @Put('defaults')
+  setDefaults(@CurrentUser() user: User, @Body() body: NotificationDefaultsUpdateDto) {
+    this.prefs.setInstanceDefaults(body.defaults);
+    return this.prefs.getInstanceDefaults(user.id);
   }
 
   @Put()

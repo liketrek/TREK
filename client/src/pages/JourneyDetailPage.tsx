@@ -25,11 +25,18 @@ import { GalleryView } from '../components/Journey/JourneyDetailPageGalleryView'
 import { EntryEditor } from '../components/Journey/JourneyDetailPageEntryEditor'
 import { AddTripDialog } from '../components/Journey/JourneyDetailPageAddTripDialog'
 import { JourneySettingsDialog } from '../components/Journey/JourneyDetailPageSettingsDialog'
+import HelpAnchor from '../components/Help/HelpAnchor'
+import JourneyDayJump from '../components/Journey/JourneyDayJump'
 
 export default function JourneyDetailPage() {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
   // chunk of its own instead of a dead limb in this one.
-  return <JourneyDetailPageDesktop />
+  return (
+    <>
+      <HelpAnchor id="journey-detail" />
+      <JourneyDetailPageDesktop />
+    </>
+  )
 }
 
 function JourneyDetailPageDesktop() {
@@ -50,9 +57,10 @@ function JourneyDetailPageDesktop() {
     dawarichByDate, dawarichBusyId, acceptDawarich, dismissDawarich,
     mapRef, fullMapRef, galleryUploadRef, galleryProviders, setGalleryProviders, galleryBrowseRef,
     activeLocationId, handleMarkerClick, handleLocationClick,
-    mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
+    mapEntries, sidebarMapItems, tripDates, isMobile, tracks, mapPhotos, openMapPhotos,
     feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
+    addPickedProviderPhotos, addEntryProviderPhotos,
   } = useJourneyDetail()
 
   if (loading || !current) {
@@ -98,7 +106,7 @@ function JourneyDetailPageDesktop() {
     : []
   const sortedDates = [...new Set([...dayGroups.keys(), ...suggestionDates])]
     .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-  const lifecycle = computeJourneyLifecycle(current.status, tripDateMin || null, tripDateMax || null)
+  const lifecycle = computeJourneyLifecycle(current.status, tripDateMin || null, tripDateMax || null, current.status_override)
 
   const showMobileCombined = isMobile && view === 'timeline'
   const showMobileGallery = isMobile && view === 'gallery'
@@ -451,7 +459,7 @@ function JourneyDetailPageDesktop() {
                     const locations = [...new Set(entries.map(e => e.location_name).filter(Boolean))]
 
                     return (
-                      <div key={date} className="flex flex-col gap-3 trek-stagger">
+                      <div key={date} data-day={date} className="flex flex-col gap-3 trek-stagger">
                         <div className="backdrop-blur border-y md:border rounded-none md:rounded-2xl -mx-4 md:mx-0 px-4 py-3 flex items-center justify-between" style={{ background: 'var(--vg-surf)', borderColor: 'var(--vg-line)' }}>
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[13px] font-bold text-white" style={{ background: DAY_COLORS[dayIdx % DAY_COLORS.length], boxShadow: `0 5px 14px -4px ${DAY_COLORS[dayIdx % DAY_COLORS.length]}` }}>
@@ -596,6 +604,7 @@ function JourneyDetailPageDesktop() {
                   trips={current.trips}
                   onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption ?? null, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
                   onRefresh={() => loadJourney(Number(id))}
+                  onAddProviderPhotos={addPickedProviderPhotos}
                 />
               </div>
 
@@ -605,9 +614,9 @@ function JourneyDetailPageDesktop() {
                   buttons, the left to the reorder arrows. Zero-height sticky box
                   so it rides the scroll without taking layout space, and each
                   half appears only when there is somewhere to go. */}
-              {!isMobile && (!feedEdge.atTop || !feedEdge.atBottom) && (
+              {!isMobile && view === 'timeline' && (!feedEdge.atTop || !feedEdge.atBottom || sortedDates.length > 1) && (
                 <div className="sticky bottom-0 z-20 h-0 pointer-events-none">
-                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-auto">
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 pointer-events-auto">
                     {!feedEdge.atTop && (
                       <button type="button"
                         onClick={() => scrollFeedTo('top')}
@@ -619,6 +628,15 @@ function JourneyDetailPageDesktop() {
                         <ChevronUp size={16} strokeWidth={2.4} />
                       </button>
                     )}
+                    {/* Every day, and each day's entries, one click away (#1243). */}
+                    <JourneyDayJump
+                      feedRef={feedRef}
+                      days={sortedDates.map((date, i) => ({
+                        date,
+                        color: DAY_COLORS[i % DAY_COLORS.length],
+                        entries: (dayGroups.get(date) ?? []).map(e => ({ id: e.id, title: e.title || e.location_name || t('journey.detail.newEntry') })),
+                      }))}
+                    />
                     {!feedEdge.atBottom && (
                       <button type="button"
                         onClick={() => scrollFeedTo('bottom')}
@@ -650,6 +668,8 @@ function JourneyDetailPageDesktop() {
                   checkins={[]}
                   entries={sidebarMapItems as any}
                   tracks={tracks}
+                  photos={mapPhotos}
+                  onPhotoClick={openMapPhotos}
                   height={9999}
                   activeMarkerId={activeEntryId}
                   onMarkerClick={handleMarkerClick}
@@ -696,9 +716,7 @@ function JourneyDetailPageDesktop() {
           showVerdict={current.show_verdict !== 0}
           showMood={current.show_mood !== 0}
           showWeather={current.show_weather !== 0}
-          onAddProviderPhotos={async (entryId, group) => {
-            await journeyApi.addProviderPhotos(entryId, group.provider, group.assetIds, undefined, group.passphrase, group.mediaTypes)
-          }}
+          onAddProviderPhotos={addEntryProviderPhotos}
           onDone={() => {
             setEditingEntry(null)
             loadJourney(Number(id))

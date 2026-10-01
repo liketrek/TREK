@@ -31,7 +31,7 @@ function build(overrides: {
   // Typed parameters so the assertions below can index mock.calls.
   const put = vi.fn(async (_category: string, _filename: string, _body?: unknown, _opts?: unknown) => undefined);
   const del = vi.fn(async (_category: string, _filename: string) => undefined);
-  const schedule = vi.fn();
+  const scheduleUpload = vi.fn();
   const addPhoto = vi.fn(overrides.addPhoto === undefined
     ? () => ({ id: 5, photo_id: 42 })
     : () => overrides.addPhoto);
@@ -43,10 +43,10 @@ function build(overrides: {
     { requireAddon: vi.fn() } as never,
     { put, delete: del } as never,
     { get: () => overrides.allowed ?? '*' } as never,
-    { schedule } as never,
+    { scheduleUpload } as never,
     { prepare: () => ({ get: () => ({ email: overrides.email ?? 'user@example.test' }) }) } as never,
   );
-  return { rpc, put, del, schedule, addPhoto };
+  return { rpc, put, del, scheduleUpload, addPhoto };
 }
 
 const input = (over: Record<string, unknown> = {}) => ({ name: 'photo.jpg', content_base64: PNG, ...over });
@@ -57,7 +57,7 @@ beforeEach(() => {
 
 describe('journal.addEntryPhoto', () => {
   it('JPHOTO-001: stores the bytes under a name of its own, then links the photo', async () => {
-    const { rpc, put, schedule, addPhoto } = build();
+    const { rpc, put, scheduleUpload, addPhoto } = build();
 
     const photo = await rpc.addEntryPhoto({ entryId: 3, input: input({ caption: 'Tokyo' }) }, ACTOR);
 
@@ -69,7 +69,9 @@ describe('journal.addEntryPhoto', () => {
     expect(category).toBe('journey');
     expect(filename).toMatch(/^[0-9a-f-]{36}\.jpg$/);
     expect(addPhoto).toHaveBeenCalledWith(3, 7, `journey/${filename}`, undefined, 'Tokyo');
-    expect(schedule).toHaveBeenCalledWith([42], 7);
+    // An upload's capture time is backfilled like the REST upload's, without the
+    // journey refresh: one photo per call would be one reload per photo (#1587).
+    expect(scheduleUpload).toHaveBeenCalledWith([{ id: 5, photo_id: 42 }], 7);
   });
 
   it('JPHOTO-002: refuses an entry the acting user cannot edit, and removes the object it just wrote', async () => {

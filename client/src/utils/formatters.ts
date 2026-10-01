@@ -1,4 +1,4 @@
-import type { AssignmentsMap, Day } from '../types'
+import type { Day } from '../types'
 
 // Collapses verbose Nominatim display_name strings (e.g. "Place, 1, Road, Neighbourhood,
 // City, County, State, Country, Postcode, Country") into "Place, Postcode, Country".
@@ -124,6 +124,24 @@ export function cleanAmountText(value: string | number | null | undefined): stri
   if (value == null) return ''
   const n = Number(value)
   return Number.isFinite(n) && String(value).trim() !== '' ? String(cleanAmount(n)) : String(value)
+}
+
+/**
+ * A booking's price for its card: formatted as money when it is a number, in
+ * its own currency or else the trip's (a price with none is in the trip's
+ * currency), and passed through as written otherwise.
+ */
+export function formatPriceText(
+  price: string | number | null | undefined,
+  currency: string | null | undefined,
+  tripCurrency: string | null | undefined,
+  locale: string,
+): string {
+  if (price == null || price === '') return ''
+  const n = Number(price)
+  const code = (currency || tripCurrency || '').toUpperCase()
+  if (Number.isFinite(n) && String(price).trim() !== '' && code) return formatMoney(n, code, locale)
+  return `${cleanAmountText(price)}${currency ? ` ${currency.toUpperCase()}` : ''}`
 }
 
 /**
@@ -301,20 +319,4 @@ export function formatMoneySum(
     ...foreign.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
   ]
   return parts.map(cur => formatMoney(groups.get(cur)!, cur, locale, opts)).join(' + ')
-}
-
-export function dayTotalCost(
-  dayId: number,
-  assignments: AssignmentsMap,
-  base: string,
-  tripCurrency: string,
-  locale: string,
-  rates?: Record<string, number> | null,
-): string | null {
-  const da = assignments[String(dayId)] || []
-  const entries = da.map(a => ({
-    amount: Number.parseFloat(String(a.place?.price ?? '')) || 0,
-    currency: a.place?.currency || tripCurrency,
-  }))
-  return formatMoneySum(entries, base, locale, rates, { decimals: 0 })
 }

@@ -133,7 +133,8 @@ describe('MAtlas', () => {
     render(<MAtlas />);
 
     expect(await screen.findByText('Japan')).toBeInTheDocument();
-    expect(screen.getByText('2 atlas.places · 2 atlas.trips')).toBeInTheDocument();
+    expect(screen.getAllByText((_, el) => el?.textContent?.trim() === '2 atlas.places').length).toBeGreaterThan(0);
+    expect(screen.getAllByText((_, el) => el?.textContent?.trim() === '2 atlas.trips').length).toBeGreaterThan(0);
     expect(screen.getByText('Kansai')).toBeInTheDocument();
   });
 

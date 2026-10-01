@@ -54,6 +54,7 @@ import { TrekPhotosRepository } from '../../../src/nest/photos/trek-photos.repos
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { notificationsStub } from '../../helpers/notifications';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 const dbs = new DatabaseService(testDb);
 const realtime = new RealtimeService();
@@ -67,7 +68,7 @@ const places = new PlacesService(
   dbs,
   new PermissionsService(dbs),
   realtime,
-  new MapsService(dbs, photoCache),
+  new MapsService(dbs, photoCache, noGoogleQuota),
   new QueryHelpersService(dbs),
   new UnsplashService(dbs, runtimeEnv, makeStorageFixture('').storage),
   photoCache,

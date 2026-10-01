@@ -121,6 +121,47 @@ describe('saveAsTemplate', () => {
   });
 });
 
+describe('templates carry weight, quantity and bag (#1131)', () => {
+  it('PACK-SVC-1131-1: a saved template keeps each item\'s weight, count and bag name, and applying it restores them', () => {
+    const { user } = createUser(testDb);
+    const source = createTrip(testDb, user.id);
+    const bagId = testDb.prepare('INSERT INTO packing_bags (trip_id, name, color) VALUES (?, ?, ?)').run(source.id, 'Backpack', '#111111').lastInsertRowid;
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order, weight_grams, quantity, bag_id) VALUES (?, ?, ?, 1, 0, ?, ?, ?)')
+      .run(source.id, 'Socks', 'Clothes', 60, 4, bagId);
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, 1)').run(source.id, 'Charger', 'Tech');
+
+    const saved = svc.saveAsTemplate(source.id, user.id, 'Hiking')!;
+    const rows = testDb.prepare(`SELECT ti.name, ti.weight_grams, ti.quantity, ti.bag_name FROM packing_template_items ti
+      JOIN packing_template_categories tc ON tc.id = ti.category_id WHERE tc.template_id = ? ORDER BY ti.name`).all(saved.id);
+    expect(rows).toEqual([
+      { name: 'Charger', weight_grams: null, quantity: 1, bag_name: null },
+      { name: 'Socks', weight_grams: 60, quantity: 4, bag_name: 'Backpack' },
+    ]);
+
+    // A fresh trip has no bag of that name, so applying creates one.
+    const target = createTrip(testDb, user.id);
+    const added = svc.applyTemplate(target.id, saved.id) as any[];
+    const socks = added.find(i => i.name === 'Socks');
+    expect(socks).toMatchObject({ weight_grams: 60, quantity: 4, checked: 0 });
+    const bag = testDb.prepare('SELECT id, name FROM packing_bags WHERE trip_id = ?').get(target.id) as { id: number; name: string };
+    expect(bag.name).toBe('Backpack');
+    expect(socks.bag_id).toBe(bag.id);
+    expect(added.find(i => i.name === 'Charger')).toMatchObject({ weight_grams: null, quantity: 1, bag_id: null });
+  });
+
+  it('PACK-SVC-1131-2: applying reuses a bag the trip already has under that name', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const existing = testDb.prepare('INSERT INTO packing_bags (trip_id, name, color) VALUES (?, ?, ?)').run(trip.id, 'Duffel', '#222222').lastInsertRowid;
+    const templateId = seedTemplate(user.id, ['Towel']);
+    testDb.prepare("UPDATE packing_template_items SET bag_name = 'Duffel', weight_grams = 400 WHERE name = 'Towel'").run();
+
+    const [towel] = svc.applyTemplate(trip.id, templateId) as any[];
+    expect(towel).toMatchObject({ bag_id: Number(existing), weight_grams: 400 });
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM packing_bags WHERE trip_id = ?').get(trip.id)).toEqual({ n: 1 });
+  });
+});
+
 // ── listTemplates ───────────────────────────────────────────────────────────────
 
 describe('listTemplates', () => {
@@ -682,6 +723,23 @@ describe('legacy-quirk fixes', () => {
     expect((svc.updateItem(trip.id, item.id, { quantity: 9999 }, ['quantity'], undefined, user.id) as any).quantity).toBe(999);
     // Omitted key leaves the quantity unchanged.
     expect((svc.updateItem(trip.id, item.id, { name: 'Wool socks' }, ['name'], undefined, user.id) as any).quantity).toBe(999);
+  });
+
+  it('PACK-SVC-053b: a packed count keeps the box in step (#2296)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = svc.createItem(trip.id, { name: 'Shirts', quantity: 10 }, user.id) as any;
+    const put = (data: Record<string, unknown>) => svc.updateItem(trip.id, item.id, data, Object.keys(data), undefined, user.id) as any;
+
+    expect(put({ packed_quantity: 7 })).toMatchObject({ packed_quantity: 7, checked: 0 });
+    // Reaching the quantity ticks the item off and drops the partial count.
+    expect(put({ packed_quantity: 12 })).toMatchObject({ packed_quantity: null, checked: 1 });
+    // Unticking starts over from nothing.
+    expect(put({ checked: 0 })).toMatchObject({ packed_quantity: null, checked: 0 });
+    expect(put({ packed_quantity: 6 })).toMatchObject({ packed_quantity: 6, checked: 0 });
+    // A quantity lowered to the count finishes the item; a rename leaves it alone.
+    expect(put({ name: 'Tees' })).toMatchObject({ packed_quantity: 6, checked: 0 });
+    expect(put({ quantity: 5 })).toMatchObject({ quantity: 5, packed_quantity: null, checked: 1 });
   });
 });
 

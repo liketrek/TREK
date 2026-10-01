@@ -2,7 +2,7 @@ import {
   McpController, Tool, Resource, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
+  demoDenied, errorResult, ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
@@ -77,18 +77,23 @@ export class AtlasMcp {
       // "same place, different date" case the report calls for was unreachable.
       // update_bucket_list_item has had the field all along.
       target_date: z.string().nullable().optional().describe('When you plan to go, e.g. "2027-05"'),
+      region_code: z.string().regex(/^[A-Za-z]{2}-[A-Za-z0-9]{1,8}$/).optional().describe('ISO 3166-2 code of a state or province on the wish list, e.g. "US-CA"; needs country_code and has to belong to it. Hatches that region on the Atlas map'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: atlasAddonOn,
     access: { group: 'atlas', mode: 'write' },
   })
   async createBucketListItem(
-    { name, lat, lng, country_code, notes, target_date }: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string; target_date?: string | null },
+    { name, lat, lng, country_code, notes, target_date, region_code }: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string; target_date?: string | null; region_code?: string },
     ctx: McpContext,
   ) {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    // The same rule the REST contract enforces: a region comes with its own country.
+    if (region_code && (!country_code || !region_code.toUpperCase().startsWith(`${country_code.toUpperCase()}-`))) {
+      return errorResult('region_code must belong to country_code.');
+    }
     try {
-      const item = this.atlas.createBucketItem(ctx.userId, { name, lat, lng, country_code, notes, target_date });
+      const item = this.atlas.createBucketItem(ctx.userId, { name, lat, lng, country_code, notes, target_date, region_code });
       return ok({ item });
     } catch (err) {
       if (err instanceof BucketItemExistsError) return bucketDuplicateResult();

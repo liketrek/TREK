@@ -33,7 +33,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
             padding: '6px 10px', borderRadius: 10, background: 'var(--bg-secondary)',
-            borderLeft: '3px solid #007AFF', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)',
+            borderLeft: '3px solid var(--accent)', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)',
           }}>
             <Reply size={12} style={{ flexShrink: 0, opacity: 0.5 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
@@ -87,8 +87,8 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
           {canEdit && (
             <button type="button" onClick={handleSend} disabled={(!text.trim() && !imageFiles.length) || sending} style={{
               width: 34, height: 34, borderRadius: '50%', border: 'none',
-              background: text.trim() || imageFiles.length ? '#007AFF' : 'var(--border-primary)',
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: text.trim() || imageFiles.length ? 'var(--accent)' : 'var(--border-primary)',
+              color: text.trim() || imageFiles.length ? 'var(--accent-text)' : 'var(--text-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: text.trim() || imageFiles.length ? 'pointer' : 'default', flexShrink: 0,
               transition: 'background 0.15s',
             }}>

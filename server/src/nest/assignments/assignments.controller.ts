@@ -20,6 +20,7 @@ import {
   AssignmentEndDayDto,
   AssignmentNotesDto,
   AssignmentTransportDto,
+  AssignmentRouteDto,
   AssignmentParticipantsDto,
 } from './assignments.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -91,6 +92,26 @@ export class DayAssignmentsController {
     this.assignments.reorderAssignments(dayId, body.orderedIds);
     this.assignments.broadcast(tripId, 'assignment:reordered', { dayId: Number(dayId), orderedIds: body.orderedIds }, socketId);
     return { success: true };
+  }
+
+  // Declared before ':id' so the bare collection path is never read as an id (#2470).
+  @RequirePermission('day_edit')
+  @Delete()
+  clear(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('dayId') dayId: string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    if (!this.assignments.dayExists(dayId, tripId)) {
+      throw new HttpException({ error: 'Day not found' }, 404);
+    }
+    const removedIds = this.assignments.clearDay(dayId);
+    for (const assignmentId of removedIds) {
+      this.assignments.broadcast(tripId, 'assignment:deleted', { assignmentId, dayId: Number(dayId) }, socketId);
+    }
+    if (removedIds.length > 0) this.assignments.reconcile(tripId, socketId);
+    return { success: true, removedIds };
   }
 
   @RequirePermission('day_edit')
@@ -233,6 +254,23 @@ export class AssignmentOpsController {
     const assignment = body.direction === 'incoming'
       ? this.assignments.setIncomingLegTransportMode(id, body.transport_mode ?? null)
       : this.assignments.setLegTransportMode(id, body.transport_mode ?? null);
+    this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
+    return { assignment };
+  }
+
+  @RequirePermission('day_edit')
+  @Put(':id/route')
+  route(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Body() body: AssignmentRouteDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    if (!this.assignments.getAssignmentForTrip(id, tripId)) {
+      throw new HttpException({ error: 'Assignment not found' }, 404);
+    }
+    const assignment = this.assignments.setRouteExcluded(id, body.excluded);
     this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
     return { assignment };
   }

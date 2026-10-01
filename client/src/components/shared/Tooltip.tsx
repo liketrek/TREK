@@ -67,14 +67,16 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, ch
     },
     onMouseEnter: (e: React.MouseEvent) => { show(); childProps.onMouseEnter?.(e) },
     onMouseLeave: (e: React.MouseEvent) => { hide(); childProps.onMouseLeave?.(e) },
-    onFocus: (e: React.FocusEvent) => { show(); childProps.onFocus?.(e) },
+    // Keyboard focus only. A dialog hands focus back to the button that opened it
+    // when it closes, and a tooltip over whatever comes next is noise, not help.
+    onFocus: (e: React.FocusEvent) => { if ((e.currentTarget as HTMLElement).matches(':focus-visible')) show(); childProps.onFocus?.(e) },
     onBlur: (e: React.FocusEvent) => { hide(); childProps.onBlur?.(e) },
   } as TriggerProps)
 
   return (
     <>
       {trigger}
-      {open && createPortal(
+      {open && !disabled && createPortal(
         <div
           ref={tooltipRef}
           role="tooltip"

@@ -9,6 +9,7 @@ import {
   placeExportGpxRequestSchema,
   placeRatingRequestSchema,
   placeUpdateRequestSchema,
+  placeImageFromFileRequestSchema,
 } from '@trek/shared';
 
 /**
@@ -28,6 +29,7 @@ import {
 export class PlaceCreateDto extends createZodDto(placeCreateRequestSchema) {}
 export class PlaceUpdateDto extends createZodDto(placeUpdateRequestSchema) {}
 export class PlaceRatingDto extends createZodDto(placeRatingRequestSchema) {}
+export class PlaceImageFromFileDto extends createZodDto(placeImageFromFileRequestSchema) {}
 export class PlaceBulkDeleteDto extends createZodDto(placeBulkDeleteRequestSchema) {}
 export class PlaceBulkUpdateDto extends createZodDto(placeBulkUpdateRequestSchema) {}
 export class PlaceImportListDto extends createZodDto(placeImportListRequestSchema) {}

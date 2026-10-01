@@ -60,6 +60,7 @@ export class JourneyService {
   updateEntry(entryId: number, userId: number, data: Parameters<typeof this.journey.updateEntry>[2], sid?: string) { return this.journey.updateEntry(entryId, userId, data, sid); }
   deleteEntry(entryId: number, userId: number, sid?: string) { return this.journey.deleteEntry(entryId, userId, sid); }
   reorderEntries(id: number, userId: number, orderedIds: number[], sid?: string) { return this.journey.reorderEntries(id, userId, orderedIds, sid); }
+  reorderEntryPhotos(entryId: number, userId: number, orderedIds: number[], sid?: string) { return this.journey.reorderEntryPhotos(entryId, userId, orderedIds, sid); }
 
   // Photos
   addPhoto(entryId: number, userId: number, filePath: string, thumbnailPath: string | undefined, caption: string | undefined, media?: { mediaType?: string; durationMs?: number | null }) { return this.journey.addPhoto(entryId, userId, filePath, thumbnailPath, caption, media); }

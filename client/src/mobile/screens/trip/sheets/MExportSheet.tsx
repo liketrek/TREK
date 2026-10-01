@@ -1,11 +1,13 @@
 import { useState, type ReactNode } from 'react'
-import { CalendarPlus, ChevronRight, FileDown, Share2 } from 'lucide-react'
+import { CalendarPlus, ChevronRight, FileDown, Share2, UserRound } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { IcsSubscribeModal } from '../../../../components/Planner/IcsSubscribeModal'
 import { useTripStore } from '../../../../store/tripStore'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { useRoadtripSettings } from '../../../../hooks/useRoadtripSettings'
 import { useTranslation } from '../../../../i18n'
+import { useAuthStore } from '../../../../store/authStore'
+import { hasPersonalPlan } from '../../../../components/PDF/pdfScope'
 import { INNER_CLS, TileHeader } from './MTripSheetUi'
 import type { MTripSheetsProps } from '../MTripShell'
 import type { LucideIcon } from 'lucide-react'
@@ -27,7 +29,9 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   const open = shell.sheet?.id === 'export'
   const dayNotes = useTripStore(s => s.dayNotes)
   const [subscribeOpen, setSubscribeOpen] = useState(false)
-  const [pdfBusy, setPdfBusy] = useState(false)
+  const [pdfBusy, setPdfBusy] = useState<false | 'all' | 'mine'>(false)
+  const myId = useAuthStore(s => s.user?.id)
+  const offerMine = myId != null && hasPersonalPlan(planner.storedAssignments, planner.reservations)
   const [icsBusy, setIcsBusy] = useState(false)
   const [gpxBusy, setGpxBusy] = useState(false)
   // The subscription link reads the trip without an account, so it needs the
@@ -35,12 +39,12 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   // not: that is a file this member may already read.
   const canManageShare = planner.can('share_manage', planner.trip)
 
-  const exportPdf = async () => {
+  const exportPdf = async (mine = false) => {
     if (!planner.trip || pdfBusy) return
     const flatNotes = Object.entries(dayNotes).flatMap(([dayId, notes]) =>
       notes.map(n => ({ ...n, day_id: Number(dayId) })),
     )
-    setPdfBusy(true)
+    setPdfBusy(mine ? 'mine' : 'all')
     try {
       // See DayPlanSidebarToolbar: loaded on demand, not with the trip.
       const { downloadTripPDF } = await import('../../../../components/PDF/TripPDF')
@@ -57,6 +61,7 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
         timeFormat,
         distanceUnit,
         showServiceStops,
+        onlyUserId: mine ? myId : undefined,
       })
     } catch (e) {
       planner.toast.error(`${t('dayplan.pdfError')}: ${e instanceof Error ? e.message : String(e)}`)
@@ -130,10 +135,18 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
         <div className="flex flex-col gap-2">
           <ExportRow
             icon={FileDown}
-            title={pdfBusy ? t('common.loading') : t('dayplan.pdf')}
+            title={pdfBusy === 'all' ? t('common.loading') : t('dayplan.pdf')}
             sub={t('dayplan.pdfTooltip')}
             onClick={() => void exportPdf()}
           />
+          {offerMine && (
+            <ExportRow
+              icon={UserRound}
+              title={pdfBusy === 'mine' ? t('common.loading') : t('dayplan.pdfMine')}
+              sub={t('dayplan.pdfMineSub')}
+              onClick={() => void exportPdf(true)}
+            />
+          )}
           <ExportRow
             icon={FileDown}
             title={icsBusy ? t('common.loading') : t('mobileTrip.icsDownload')}

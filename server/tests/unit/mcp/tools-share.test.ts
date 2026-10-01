@@ -71,6 +71,16 @@ describe('Tool: get_share_link', () => {
     });
   });
 
+  it('stores the two narrowing options like the REST route (#1712)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id, share_travel_only: true, share_hide_images: true } });
+      const link = parseToolResult(await h.client.callTool({ name: 'get_share_link', arguments: { tripId: trip.id } })) as any;
+      expect(link.link).toMatchObject({ share_travel_only: true, share_hide_images: true });
+    });
+  });
+
   it('returns access denied for a non-member trip', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);

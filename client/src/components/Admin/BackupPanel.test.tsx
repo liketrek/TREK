@@ -165,8 +165,8 @@ describe('BackupPanel', () => {
     await waitFor(() => {
       expect(screen.getByText('Restore Backup?')).toBeInTheDocument()
     })
-    // Click the backdrop overlay (the fixed-position div)
-    const backdrop = document.querySelector('[style*="position: fixed"]') as HTMLElement
+    // Click the backdrop overlay (the shared confirm dialog's dimmed layer)
+    const backdrop = document.querySelector('.trek-backdrop-enter') as HTMLElement
     expect(backdrop).toBeTruthy()
     fireEvent.click(backdrop!)
     await waitFor(() => {
@@ -215,6 +215,10 @@ describe('BackupPanel', () => {
     ) as HTMLElement
     expect(trashBtn).toBeTruthy()
     await user.click(trashBtn!)
+    // The question is the shared confirm dialog now, not window.confirm
+    expect(await screen.findByText('Delete backup "backup-2025-01-15.zip"?')).toBeInTheDocument()
+    const deleteButtons = screen.getAllByRole('button', { name: 'Delete' })
+    await user.click(deleteButtons[deleteButtons.length - 1]!)
     await waitFor(() => {
       expect(screen.getByText('Backup deleted')).toBeInTheDocument()
     })
@@ -421,7 +425,6 @@ describe('BackupPanel', () => {
         return HttpResponse.json({ error: 'file is locked' }, { status: 500 })
       }),
     )
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     render(<><ToastContainer /><BackupPanel /></>)
     await screen.findByText('backup-2025-01-15.zip')
 
@@ -429,11 +432,13 @@ describe('BackupPanel', () => {
       b => b.querySelector('svg.lucide-trash2'),
     ) as HTMLElement
     await user.click(trashBtn)
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }))
     expect(deleteCalls).toBe(0)
     expect(screen.getByText('backup-2025-01-15.zip')).toBeInTheDocument()
 
-    confirmSpy.mockReturnValue(true)
     await user.click(trashBtn)
+    const deleteButtons = await screen.findAllByRole('button', { name: 'Delete' })
+    await user.click(deleteButtons[deleteButtons.length - 1]!)
 
     expect(await screen.findByText('Failed to delete')).toBeInTheDocument()
     expect(screen.getByText('backup-2025-01-15.zip')).toBeInTheDocument()
@@ -584,18 +589,24 @@ describe('BackupPanel', () => {
     expect(await screen.findByText('Download failed')).toBeInTheDocument()
   })
 
-  // BKP-029: Confirm button hover styling
-  it('FE-ADMIN-BKP-029: the destructive confirm button darkens on hover', async () => {
+  // BKP-029: Escape takes the restore question back
+  it('FE-ADMIN-BKP-029: Escape dismisses the restore question without restoring', async () => {
     const user = userEvent.setup()
+    let restoreCalled = false
+    server.use(
+      http.post('/api/backup/restore/:filename', () => {
+        restoreCalled = true
+        return HttpResponse.json({ success: true })
+      }),
+    )
     render(<BackupPanel />)
     await screen.findByText('backup-2025-01-15.zip')
 
     await user.click(screen.getAllByText('Restore')[0])
-    const confirmBtn = await screen.findByText('Yes, restore')
+    await screen.findByText('Yes, restore')
 
-    fireEvent.mouseEnter(confirmBtn)
-    expect(confirmBtn.style.background).toBe('rgb(185, 28, 28)')
-    fireEvent.mouseLeave(confirmBtn)
-    expect(confirmBtn.style.background).toBe('rgb(220, 38, 38)')
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByText('Restore Backup?')).not.toBeInTheDocument())
+    expect(restoreCalled).toBe(false)
   })
 })

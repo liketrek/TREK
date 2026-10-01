@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'Hampir sampai...',
   'trip.mobilePlan': 'Rencana',
   'trip.mobilePlaces': 'Tempat',
+  'trip.panelWidth': 'Lebar panel',
   'trip.toast.placeUpdated': 'Tempat diperbarui',
   'trip.toast.tripUpdated': 'Perjalanan diperbarui',
   'trip.toast.placeAdded': 'Tempat ditambahkan',

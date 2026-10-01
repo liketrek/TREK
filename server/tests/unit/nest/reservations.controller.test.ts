@@ -204,18 +204,44 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
 
   describe('DELETE /:id', () => {
     it('404 when nothing deleted', () => {
-      const svc = makeService({ remove: vi.fn().mockReturnValue({ deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null }) } as Partial<ReservationsService>);
+      const broadcast = vi.fn();
+      const svc = makeService({
+        remove: vi.fn().mockReturnValue({ deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] }),
+        broadcast,
+      } as Partial<ReservationsService>);
       expect(thrown(() => new ReservationsController(svc, airtrailLink).remove(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Reservation not found' } });
+      expect(broadcast).not.toHaveBeenCalled();
     });
 
     it('broadcasts the accommodation + budget cascade then reservation:deleted', () => {
-      const remove = vi.fn().mockReturnValue({ deleted: { id: 9, title: 'Hotel', type: 'lodging', accommodation_id: 3 }, accommodationDeleted: true, deletedBudgetItemId: 7 });
+      const remove = vi.fn().mockReturnValue({ deleted: { id: 9, title: 'Hotel', type: 'lodging', accommodation_id: 3 }, accommodationDeleted: true, deletedBudgetItemId: 7, deletedBudgetItemIds: [7] });
       const broadcast = vi.fn(); const notifyBookingChange = vi.fn();
       const svc = makeService({ remove, broadcast, notifyBookingChange } as Partial<ReservationsService>);
       expect(new ReservationsController(svc, airtrailLink).remove(user, '5', '9', 'sock')).toEqual({ success: true });
       expect(broadcast).toHaveBeenCalledWith('5', 'accommodation:deleted', { accommodationId: 3 }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:deleted', { itemId: 7 }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'reservation:deleted', { reservationId: 9 }, 'sock');
+      expect(notifyBookingChange).toHaveBeenCalledWith('5', user.id, 'Hotel', 'lodging');
+    });
+
+    it('announces every expense the booking took with it, before the booking itself (#2084)', () => {
+      const remove = vi.fn().mockReturnValue({ deleted: { id: 9, title: 'Flight', type: 'flight', accommodation_id: null }, accommodationDeleted: false, deletedBudgetItemId: 7, deletedBudgetItemIds: [7, 8] });
+      const broadcast = vi.fn();
+      const svc = makeService({ remove, broadcast } as Partial<ReservationsService>);
+      new ReservationsController(svc, airtrailLink).remove(user, '5', '9', 'sock');
+      expect(broadcast.mock.calls).toEqual([
+        ['5', 'budget:deleted', { itemId: 7 }, 'sock'],
+        ['5', 'budget:deleted', { itemId: 8 }, 'sock'],
+        ['5', 'reservation:deleted', { reservationId: 9 }, 'sock'],
+      ]);
+    });
+
+    it('announces no expense when the booking carried none', () => {
+      const remove = vi.fn().mockReturnValue({ deleted: { id: 9, title: 'Museum', type: 'activity', accommodation_id: null }, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] });
+      const broadcast = vi.fn();
+      const svc = makeService({ remove, broadcast } as Partial<ReservationsService>);
+      new ReservationsController(svc, airtrailLink).remove(user, '5', '9', 'sock');
+      expect(broadcast.mock.calls).toEqual([['5', 'reservation:deleted', { reservationId: 9 }, 'sock']]);
     });
   });
 });

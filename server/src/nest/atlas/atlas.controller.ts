@@ -152,9 +152,9 @@ export class AtlasController {
     if (!body.name?.trim()) {
       throw new HttpException({ error: 'Name is required' }, 400);
     }
-    const { name, lat, lng, country_code, notes, target_date } = body;
+    const { name, lat, lng, country_code, notes, target_date, region_code } = body;
     try {
-      return { item: this.atlas.createBucketItem(user.id, { name, lat, lng, country_code, notes, target_date }) };
+      return { item: this.atlas.createBucketItem(user.id, { name, lat, lng, country_code, notes, target_date, region_code }) };
     } catch (err) {
       // #1898: the same wish twice is a conflict, not a server error. Bespoke
       // { error } body like the neighbouring 400/404s.

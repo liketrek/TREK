@@ -101,7 +101,6 @@ export function PluginActions({ items, tripId, className }: { items: ViewContrib
         <button type="button"
           key={a.pluginId + a.id}
           onClick={(e) => run(a, e)}
-          title={a.label}
           className={className ?? 'px-2 h-7 inline-flex items-center rounded-lg border border-edge bg-surface-card text-xs text-content-muted hover:text-content hover:border-content-faint transition-colors'}
         >
           {a.label}

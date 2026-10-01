@@ -8,6 +8,7 @@ import { DaysModule } from '../days/days.module';
 import { ReservationsModule } from '../reservations/reservations.module';
 import { AuthModule } from '../auth/auth.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { GoogleQuotaModule } from '../google-quota/google-quota.module';
 
 /**
  * Transit domain (#1065) — the Transitous/MOTIS proxy, with the optional
@@ -17,7 +18,7 @@ import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
  */
 @Module({
   // DaysModule + ReservationsModule: TransitMcp's create_transit_journey injects both.
-  imports: [McpSharedModule, RateLimitModule, DaysModule, ReservationsModule, AuthModule],
+  imports: [McpSharedModule, RateLimitModule, DaysModule, ReservationsModule, AuthModule, GoogleQuotaModule],
   controllers: [TransitController],
   providers: [TransitService, TransitMcp, GoogleTransitProvider],
   exports: [TransitService],

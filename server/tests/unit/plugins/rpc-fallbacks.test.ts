@@ -180,7 +180,7 @@ describe('service errors are translated into the RPC taxonomy', () => {
     const { guards } = guardsFor();
     const notifyBookingChange = vi.fn();
     const reservations = {
-      remove: vi.fn(() => ({ deleted: { title: 'Hotel', type: null, accommodation_id: null }, accommodationDeleted: false, deletedBudgetItemId: null })),
+      remove: vi.fn(() => ({ deleted: { title: 'Hotel', type: null, accommodation_id: null }, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] })),
       notifyBookingChange,
     } as never;
     const host = new PluginRpcHost('p', ALL, makeDeps(), createTestPluginRegistry([new ReservationsRpc(reservations, realtime(), guards)]));
@@ -285,7 +285,7 @@ describe('every schema-validated method rejects a payload its schema refuses', (
       createTestPluginRegistry([new VacayRpc(vacay, guards), new TagsRpc(tags)]),
     );
     await host.dispatch(req('vacay.toggleCompanyHoliday', { date: '2027-01-01', note: 42 }), 42);
-    expect(toggleCompanyHoliday).toHaveBeenCalledWith(1, '2027-01-01', undefined, undefined);
+    expect(toggleCompanyHoliday).toHaveBeenCalledWith(1, '2027-01-01', undefined, undefined, undefined);
     await host.dispatch(req('tags.update', { tagId: 1, input: { name: 'kept' } }), 42);
     expect(update).toHaveBeenCalledWith(1, 'kept', undefined);
   });

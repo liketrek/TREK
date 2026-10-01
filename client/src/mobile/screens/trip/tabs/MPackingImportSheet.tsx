@@ -5,6 +5,7 @@ import { Eyebrow, FIELD_AREA_CLS, FormSheetFooter, FormSheetHeader } from '../sh
 import { packingApi } from '../../../../api/client'
 import { useTripStore } from '../../../../store/tripStore'
 import { parseImportLines } from '../../../../components/Packing/packingListPanel.helpers'
+import { PACKING_IMPORT_ACCEPT } from '../../../../components/Packing/packingListPanel.constants'
 import type { TripPlanner } from '../MTripShell'
 
 export interface MPackingImportSheetProps {
@@ -58,7 +59,8 @@ export default function MPackingImportSheet({ planner, open, onClose }: MPacking
       <FormSheetHeader title={t('packing.importTitle')} onClose={onClose} closeLabel={t('common.close')} />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
-        <p className="mb-3 font-geist text-[0.71875rem] leading-[1.5] text-m-muted">{t('packing.importHint')}</p>
+        <p className="mb-1 font-geist text-[0.71875rem] leading-[1.5] text-m-muted">{t('packing.importHint')}</p>
+        <p className="mb-3 font-geist text-[0.71875rem] leading-[1.5] text-m-muted">{t('packing.importHintMarkdown')}</p>
 
         <textarea
           value={text}
@@ -68,7 +70,7 @@ export default function MPackingImportSheet({ planner, open, onClose }: MPacking
           className={`${FIELD_AREA_CLS} font-geist`}
         />
 
-        <input ref={fileInputRef} type="file" accept=".csv,.txt" onChange={handleFile} className="hidden" />
+        <input ref={fileInputRef} type="file" accept={PACKING_IMPORT_ACCEPT} onChange={handleFile} className="hidden" />
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}

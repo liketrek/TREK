@@ -356,7 +356,7 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={e => { handleCoverFile(e.target.files?.[0]); e.target.value = '' }}
+              onChange={e => { void handleCoverFile(e.target.files?.[0]); e.target.value = '' }}
             />
             {coverPreview ? (
               <div className="relative h-[130px] overflow-hidden rounded-[16px]">
@@ -398,7 +398,7 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
                 <input
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch() } }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void handleSearch() } }}
                   placeholder={t('dashboard.unsplashSearchPlaceholder')}
                   className={`${inputCls} pt-0 text-[0.8125rem] font-medium`}
                 />

@@ -12,7 +12,7 @@ import type { JourneyContributor } from '../../types';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { AuthService } from '../auth/auth.service';
-import { PhotoCaptureBackfillService } from '../memories/photo-capture-backfill.service';
+import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
 
 /** Legacy registrar gate: the whole journey surface rode the journey addon. */
 const journeyAddonOn = addonGate(ADDON_IDS.JOURNEY);
@@ -110,7 +110,7 @@ export class JourneyMcp {
     private readonly share: JourneyShareService,
     readonly addons: AddonsService,
     private readonly auth: AuthService,
-    private readonly captureBackfill: PhotoCaptureBackfillService,
+    private readonly photoCapture: JourneyPhotoCaptureService,
   ) {}
 
   // ── Read ────────────────────────────────────────────────────────────────
@@ -241,15 +241,17 @@ export class JourneyMcp {
 
   @Tool({
     name: 'update_journey',
-    description: "Update an existing journey's title, subtitle, cover, or status. Owner only.",
+    description: "Update an existing journey's title, subtitle, cover, or status. Owner only. status_override sets the state shown for the journey (draft, live, completed) instead of deriving it from the linked trips' dates; null goes back to the dates.",
     inputSchema: {
       journeyId: z.number().int().positive(),
       title: z.string().min(1).max(200).optional(),
       subtitle: z.string().max(300).optional(),
       status: z.enum(['draft', 'active', 'completed', 'archived']).optional(),
+      status_override: z.enum(['draft', 'live', 'completed']).nullable().optional().describe('Shown state set by hand, or null to follow the trip dates'),
       show_verdict: z.boolean().optional().describe('Whether entries in this journey offer a pros/cons list'),
       show_mood: z.boolean().optional().describe('Whether entries in this journey offer a mood'),
       show_weather: z.boolean().optional().describe('Whether entries in this journey offer a weather note'),
+      photo_location: z.boolean().optional().describe('Whether an entry without a place takes the position of the first geotagged photo added to it'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
@@ -257,8 +259,8 @@ export class JourneyMcp {
   })
   updateJourney(
     { journeyId, ...data }: {
-      journeyId: number; title?: string; subtitle?: string; status?: string;
-      show_verdict?: boolean; show_mood?: boolean; show_weather?: boolean;
+      journeyId: number; title?: string; subtitle?: string; status?: string; status_override?: string | null;
+      show_verdict?: boolean; show_mood?: boolean; show_weather?: boolean; photo_location?: boolean;
     },
     ctx: McpContext,
   ) {
@@ -347,6 +349,7 @@ export class JourneyMcp {
       visibility: ENTRY_VISIBILITY.optional().describe('Defaults to private; "shared" and "public" expose the entry through the journey share link'),
       type: ENTRY_TYPE.optional().describe('Defaults to "entry"; "skeleton" is the stub TREK derives from a trip place and hides behind the hide-skeletons preference'),
       sort_order: z.number().int().min(0).optional(),
+      is_draft: z.boolean().optional().describe('True keeps the entry a draft: contributors see it, the journey share link does not'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
@@ -357,7 +360,7 @@ export class JourneyMcp {
       journeyId: number; entry_date: string; title?: string; story?: string; entry_time?: string;
       location_name?: string; location_lat?: number; location_lng?: number; mood?: string; weather?: string;
       tags?: string[]; pros_cons?: { pros: string[]; cons: string[] }; visibility?: EntryVisibility;
-      type?: EntryType; sort_order?: number;
+      type?: EntryType; sort_order?: number; is_draft?: boolean;
     },
     ctx: McpContext,
   ) {
@@ -371,7 +374,7 @@ export class JourneyMcp {
 
   @Tool({
     name: 'update_journey_entry',
-    description: 'Update an existing journey entry: its text, date, place, coordinates, weather, tags, verdict, visibility, or whether it counts as a stop. Fields left out keep their value; pass null to clear one. To move an entry within its day use reorder_journey_entries rather than setting sort_order here.',
+    description: 'Update an existing journey entry: its text, date, place, coordinates, weather, tags, verdict, visibility, whether it is a draft, or whether it counts as a stop. Fields left out keep their value; pass null to clear one. To move an entry within its day use reorder_journey_entries rather than setting sort_order here.',
     inputSchema: {
       entryId: z.number().int().positive(),
       title: z.string().max(300).nullable().optional(),
@@ -390,6 +393,7 @@ export class JourneyMcp {
       sort_order: z.number().int().min(0).optional(),
       stats_excluded: z.boolean().optional().describe('True leaves the entry in the journal but takes it off the journey route and out of its distance, countries and step count (see get_journey_stats); false puts it back. For the home airport, a stopover, the place the trip was planned from'),
       dismissed: z.boolean().optional().describe('True waves a trip-derived suggestion away: it leaves the journey without being deleted, so the trip sync does not offer it again. restore_journey_suggestions brings every dismissed one back'),
+      is_draft: z.boolean().optional().describe('True turns the entry into a draft that the journey share link leaves out; false publishes it'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
@@ -402,7 +406,7 @@ export class JourneyMcp {
       location_lng?: number | null; mood?: string | null; weather?: string | null;
       tags?: string[] | null; pros_cons?: { pros: string[]; cons: string[] } | null;
       visibility?: EntryVisibility; type?: EntryType; sort_order?: number; stats_excluded?: boolean;
-      dismissed?: boolean;
+      dismissed?: boolean; is_draft?: boolean;
     },
     ctx: McpContext,
   ) {
@@ -443,6 +447,25 @@ export class JourneyMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const success = this.journey.reorderEntries(journeyId, ctx.userId, orderedIds, undefined);
     if (!success) return notFound('Journey not found, access denied, or entry IDs do not belong to this journey.');
+    return ok({ success: true });
+  }
+
+  @Tool({
+    name: 'reorder_journey_entry_photos',
+    description: 'Put the photos of one journey entry in a new order. Pass every photo id the entry holds (the journey photo ids list_journey_entries returns), each once, first photo first. The first one is the entry cover.',
+    inputSchema: {
+      entryId: z.number().int().positive(),
+      orderedIds: z.array(z.number().int().positive()).min(1).max(500),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    when: journeyAddonOn,
+    access: { group: 'journey', mode: 'write' },
+  })
+  reorderJourneyEntryPhotos({ entryId, orderedIds }: { entryId: number; orderedIds: number[] }, ctx: McpContext) {
+    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
+    if (!this.journey.reorderEntryPhotos(entryId, ctx.userId, orderedIds, undefined)) {
+      return notFound('Entry not found, access denied, or the ids are not exactly the photos of this entry.');
+    }
     return ok({ success: true });
   }
 
@@ -572,11 +595,9 @@ export class JourneyMcp {
 
     // Detached, exactly as the REST routes schedule it: the provider is asked
     // when and where each photo was taken, and without that answer an attached
-    // photo can never appear on the journey map (#1614).
-    this.captureBackfill.schedule(
-      photos.map(p => (p as { photo_id?: number }).photo_id).filter((id): id is number => typeof id === 'number'),
-      ctx.userId,
-    );
+    // photo can never appear on the journey map (#1614). Open clients are told
+    // once it lands, so the gallery re-sorts without a reload (#1587).
+    this.photoCapture.scheduleForJourney(journeyId, photos, ctx.userId);
     // `skipped` is what tells a caller that a shortfall was duplicates rather
     // than a failure; the REST body carries only photos and added.
     return ok({ photos, added: photos.length, skipped: asset_ids.length - photos.length });

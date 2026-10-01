@@ -209,6 +209,13 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       expect(broadcast).toHaveBeenCalledWith('5', 'packing:updated', { item: { id: 9, name: 'X' } }, 'sock');
     });
 
+    it('forwards a packed count to the service, as the MCP tool does (#2296)', () => {
+      const updateItem = vi.fn().mockReturnValue({ id: 9, packed_quantity: 3 });
+      const svc = makeService({ updateItem, broadcast: vi.fn() } as Partial<PackingService>);
+      new PackingController(svc).update(user, '5', '9', { packed_quantity: 3 });
+      expect(updateItem).toHaveBeenCalledWith('5', '9', expect.objectContaining({ packed_quantity: 3 }), ['packed_quantity'], undefined, user.id);
+    });
+
     it('keeps a private update scoped to the owner (#858)', () => {
       const updateItem = vi.fn().mockReturnValue({ id: 9, name: 'X', is_private: 1, owner_id: 1 });
       const broadcast = vi.fn();

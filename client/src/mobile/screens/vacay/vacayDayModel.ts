@@ -27,6 +27,8 @@ export interface DayVisualContext {
   todayStr: string
   entryMap: Record<string, VacayEntry[]>
   companyHolidaySet: Set<string>
+  /** Half company holidays (#2439): half-filled, still open for half a day of leave. */
+  companyHalfSet?: Set<string>
   companyHolidaysEnabled: boolean
   holidays: HolidaysMap
   weekendDays: number[]
@@ -124,6 +126,9 @@ function baseDayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext
     if (allComp) visual.textShadow = '0 1px 2px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.6)'
     if (entries.some(e => (e.fraction ?? 1) === 0.5)) visual.half = true
     return withSchool(visual)
+  }
+  if (ctx.companyHolidaysEnabled && ctx.companyHalfSet?.has(dateStr)) {
+    return withSchool({ background: 'linear-gradient(135deg, #F5D9A6 50%, transparent 50%)', numColor: '#8A5A00' })
   }
   if (publicHoliday) {
     return withSchool({ background: publicHoliday.color, numColor: holidayInk(publicHoliday.color) })

@@ -11,6 +11,7 @@ const todo: TranslationStrings = {
   'todo.uncategorized': '목록 없음',
   'todo.namePlaceholder': '작업 이름',
   'todo.descriptionPlaceholder': '설명 (선택)',
+  'todo.editDescription': '클릭하여 편집, 링크는 바로 열립니다',
   'todo.unassigned': '미배정',
   'todo.noCategory': '목록 없음',
   'todo.hasDescription': '설명 있음',

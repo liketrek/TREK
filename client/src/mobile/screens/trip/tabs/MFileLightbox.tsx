@@ -42,7 +42,7 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
     let cancelled = false
     setImgSrc('')
     if (fileUrl && !isVideo(fileMimeType)) {
-      getAuthUrl(fileUrl, 'download').then(url => { if (!cancelled) setImgSrc(url) })
+      void getAuthUrl(fileUrl, 'download').then(url => { if (!cancelled) setImgSrc(url) })
     }
     return () => { cancelled = true }
   }, [fileUrl, fileMimeType])

@@ -1,35 +1,33 @@
-import { createPortal } from 'react-dom'
-import { X, MapPin, Ticket, Check } from 'lucide-react'
+import { useId } from 'react'
+import { MapPin, Ticket, Check, Paperclip } from 'lucide-react'
 import { filesApi } from '../../api/client'
 import type { Place, Reservation, Day } from '../../types'
 import type { FileManagerState } from './useFileManager'
 import { TRANSPORT_TYPES } from './FileManager.constants'
 import { transportIcon } from './FileManager.helpers'
+import { DialogHeader, DialogShell, DialogTile, NEUTRAL_TINT } from '../shared/DialogShell'
+import { EditorField, INPUT } from '../shared/dialogParts'
 
 export function AssignModal(S: FileManagerState) {
   const { files, assignFileId, setAssignFileId, t, days, assignments, places, reservations, tripId, handleAssign, refreshFiles } = S
-  return createPortal(
-    <div role="presentation" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      onClick={() => setAssignFileId(null)}>
-      <div role="presentation" style={{
-        background: 'var(--bg-card)', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-        width: 'min(600px, calc(100vw - 32px))', maxHeight: '70vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-      }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{t('files.assignTitle')}</div>
-            <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {files.find(f => f.id === assignFileId)?.original_name || ''}
-            </div>
-          </div>
-          <button type="button" onClick={() => setAssignFileId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4, display: 'flex', flexShrink: 0 }}>
-            <X size={18} />
-          </button>
-        </div>
-        <div style={{ padding: '8px 12px 0' }}>
-          <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '0 2px 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {t('files.noteLabel') || 'Note'}
-          </div>
+  const labelId = useId()
+  const close = () => setAssignFileId(null)
+  return (
+    <DialogShell
+      onClose={close}
+      labelledBy={labelId}
+      header={(
+        <DialogHeader
+          tile={<DialogTile><Paperclip size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={close}
+          eyebrow={t('files.assignTitle')}
+          title={files.find(f => f.id === assignFileId)?.original_name || ''}
+        />
+      )}
+    >
+        <EditorField label={t('files.noteLabel') || 'Note'}>
           <input
             type="text"
             placeholder={t('files.notePlaceholder')}
@@ -38,18 +36,14 @@ export function AssignModal(S: FileManagerState) {
               const val = e.target.value.trim()
               const file = files.find(f => f.id === assignFileId)
               if (file && val !== (file.description || '')) {
-                handleAssign(file.id, { description: val } as any)
+                void handleAssign(file.id, { description: val } as any)
               }
             }}
             onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-            style={{
-              width: '100%', padding: '7px 10px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', borderRadius: 8,
-              border: '1px solid var(--border-primary)', background: 'var(--bg-secondary)',
-              color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none',
-            }}
+            className={INPUT}
           />
-        </div>
-        <div style={{ overflowY: 'auto', padding: 8 }}>
+        </EditorField>
+        <div className="rounded-[16px] bg-surface-secondary p-2">
           {(() => {
             const file = files.find(f => f.id === assignFileId)
             if (!file) return null
@@ -211,8 +205,6 @@ export function AssignModal(S: FileManagerState) {
             )
           })()}
         </div>
-      </div>
-    </div>,
-    document.body
+    </DialogShell>
   )
 }

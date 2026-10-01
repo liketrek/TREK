@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  CalendarDays, Car, Compass, Footprints, Hotel, MapPin, Pencil, Plus, RotateCcw,
-  Route as RouteIcon, TramFront, Zap,
-} from 'lucide-react'
+import { CalendarDays, Compass, Eraser, Hotel, MapPin, Pencil, Plus, RotateCcw, Route as RouteIcon, TramFront } from 'lucide-react'
 import type { WeatherResult } from '@trek/shared'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation } from '../../../../i18n'
 import { weatherApi } from '../../../../api/client'
 import { useSettingsStore } from '../../../../store/settingsStore'
-import { usePluginStore } from '../../../../store/pluginStore'
+import { routeModeIcon, useRouteModeOptions } from '../../../../components/Planner/routeModes'
+import { dayHeadingParts } from '../../../../utils/dayLabel'
+import { stayDayTimes } from '../../../../components/Planner/stayDayTimes'
 import { useDayNotes } from '../../../../hooks/useDayNotes'
 import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
@@ -45,24 +44,13 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
   const canEditReservations = planner.can('reservation_edit', planner.trip)
   const tripHasDates = Boolean(planner.trip?.start_date && planner.trip?.end_date)
 
-  // Route-profile pills: the built-ins plus every profile an active routeProvider
-  // plugin declared (same key format as the desktop picker, 'plugin:<id>/<profile>').
-  const activePlugins = usePluginStore(s => s.plugins)
-  const routeProfileOptions = useMemo(() => {
-    const opts: Array<{ key: string; label: string }> = [
-      { key: 'driving', label: t('mobileTrip.profileDriving') },
-      { key: 'walking', label: t('mobileTrip.profileWalking') },
-    ]
-    for (const p of activePlugins) {
-      for (const prof of p.routeProfiles ?? []) opts.push({ key: `plugin:${p.id}/${prof.id}`, label: prof.label })
-    }
-    return opts
-  }, [activePlugins, t])
+  const routeProfileOptions = useRouteModeOptions()
 
   const isFahrenheit = useSettingsStore(s => s.settings.temperature_unit) === 'fahrenheit'
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const blurCodes = useSettingsStore(s => s.settings.blur_booking_codes)
   const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
+  const dateFirst = useSettingsStore(s => s.settings.day_date_first === true)
 
   const dayAssignments = useMemo<Assignment[]>(() => {
     if (!day) return []
@@ -240,6 +228,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
     : null
   // A day_number of 0 is as unusable as a missing one — both fall back to the row position.
   const dayLabel = day?.title || t('planner.dayN', { n: day ? day.day_number || dayIndex + 1 : '?' })
+  const heading = dayHeadingParts(dayLabel, formattedDate, dateFirst)
   const WeatherIcon = weatherIconFor(weather?.main)
 
   const stayBadge = (acc: (typeof dayAccommodations)[number]) => {
@@ -270,7 +259,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                 />
               ) : (
                 <>
-                  <span className="truncate">{dayLabel}</span>
+                  <span className="truncate">{heading.primary}</span>
                   {canEditDays && (
                     <button
                       type="button"
@@ -283,7 +272,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                   )}
                 </>
               )}
-              sub={formattedDate}
+              sub={heading.secondary}
               onClose={shell.closeSheet}
               closeLabel={t('common.close')}
             />
@@ -346,7 +335,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                 {routable && (
                   <div className={`flex overflow-hidden rounded-full ${INNER_CLS}`}>
                     {routeProfileOptions.map(p => {
-                      const ProfileIcon = p.key === 'driving' ? Car : p.key === 'walking' ? Footprints : Zap
+                      const ProfileIcon = routeModeIcon(p.key)
                       const active = planner.routeProfile === p.key
                       return (
                         <button
@@ -392,6 +381,16 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                   >
                     <RotateCcw size={13} strokeWidth={2} />
                     {t('dayplan.optimize')}
+                  </button>
+                )}
+                {canEditDays && dayAssignments.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => planner.handleClearDay(day.id)}
+                    className={`flex items-center gap-[5px] rounded-full px-3 py-[7px] text-[0.75rem] font-semibold text-m-ink ${INNER_CLS}`}
+                  >
+                    <Eraser size={13} strokeWidth={2} />
+                    {t('dayplan.clearDay')}
                   </button>
                 )}
                 {canEditDays && tripHasDates && (
@@ -494,6 +493,10 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
               <div className="flex flex-col gap-2">
                 {dayAccommodations.map(acc => {
                   const badge = stayBadge(acc)
+                  const times = stayDayTimes(acc, day.id)
+                  // The desk time carries the arrival or departure colour itself (#2393),
+                  // so the head keeps its room for the name and drops the badge.
+                  const badgeAtTime = times.checkIn || times.checkOut
                   const linked = planner.reservations.find(r => String(r.accommodation_id ?? '') === String(acc.id))
                   return (
                     <div key={acc.id} className={`rounded-[16px] px-3 py-[11px] ${INNER_CLS}`}>
@@ -523,9 +526,11 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                           )}
                         </div>
                         </button>
-                        <span className={`flex-none rounded-full border px-[7px] py-[2px] text-[0.5625rem] font-bold uppercase tracking-[.05em] ${badge.cls}`}>
-                          {badge.label}
-                        </span>
+                        {!badgeAtTime && (
+                          <span className={`flex-none rounded-full border px-[7px] py-[2px] text-[0.5625rem] font-bold uppercase tracking-[.05em] ${badge.cls}`}>
+                            {badge.label}
+                          </span>
+                        )}
                         {canEditDays && acc.place_id != null && (
                           <button
                             type="button"
@@ -537,16 +542,17 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                           </button>
                         )}
                       </div>
-                      {(acc.check_in || acc.check_out || acc.confirmation) && (
+                      {(badgeAtTime || acc.confirmation) && (
                         <div className="mt-[10px] flex gap-[6px]">
-                          {acc.check_in && (
+                          {times.checkIn && acc.check_in && (
                             <StatBox
                               value={`${displayTime(acc.check_in, locale, timeFormat)}${acc.check_in_end ? ` – ${displayTime(acc.check_in_end, locale, timeFormat)}` : ''}`}
                               label={t('day.checkIn')}
+                              labelTone="confirmed"
                             />
                           )}
-                          {acc.check_out && (
-                            <StatBox value={displayTime(acc.check_out, locale, timeFormat)} label={t('day.checkOut')} />
+                          {times.checkOut && acc.check_out && (
+                            <StatBox value={displayTime(acc.check_out, locale, timeFormat)} label={t('day.checkOut')} labelTone="danger" />
                           )}
                           {acc.confirmation && (
                             <StatBox value={acc.confirmation} label={t('day.confirmation')} blurred={blurCodes} />

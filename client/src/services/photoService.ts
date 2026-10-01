@@ -115,14 +115,14 @@ export function fetchPhoto(
     callback?.(entry)
     notify(cacheKey, entry)
     // Generate base64 thumb in background
-    urlToBase64(photoId).then(thumb => {
+    void urlToBase64(photoId).then(thumb => {
       if (thumb) { entry.thumbDataUrl = thumb; notifyThumb(cacheKey, thumb) }
     })
     return
   }
 
   inFlight.add(cacheKey)
-  acquireRequestSlot().then(() =>
+  void acquireRequestSlot().then(() =>
     mapsApi.placePhoto(photoId, lat, lng, name)
       .then(async (data: { photoUrl?: string }) => {
         const photoUrl = data.photoUrl || null

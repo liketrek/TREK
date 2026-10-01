@@ -23,7 +23,8 @@ function setup(overrides: Partial<ComponentProps<typeof PageSidebar>> = {}) {
 
 describe('PageSidebar', () => {
   it('FE-W4PSB-001: renders the label, every tab and the panel children', () => {
-    setup()
+    // Ungrouped tabs: the label heads the list. Grouped ones lead with their group instead.
+    setup({ tabs: TABS.map(({ group: _group, ...tab }) => tab) })
 
     expect(screen.getAllByText('SETTINGS').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: /^Appearance$/ })).toBeInTheDocument()
@@ -36,6 +37,7 @@ describe('PageSidebar', () => {
 
     expect(screen.getByText('General')).toBeInTheDocument()
     expect(screen.getByText('Account')).toBeInTheDocument()
+    expect(screen.queryByText('SETTINGS')).not.toBeInTheDocument()
   })
 
   it('FE-W4PSB-003: highlights the active tab', () => {

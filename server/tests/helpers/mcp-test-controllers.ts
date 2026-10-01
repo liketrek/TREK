@@ -95,6 +95,7 @@ import { ImmichService } from '../../src/nest/memories/immich.service';
 import { SynologyService } from '../../src/nest/memories/synology.service';
 import { MemoriesAccessService } from '../../src/nest/memories/memories-access.service';
 import { PhotoCaptureBackfillService } from '../../src/nest/memories/photo-capture-backfill.service';
+import { JourneyPhotoCaptureService } from '../../src/nest/journey/journey-photo-capture.service';
 import { PhotoResolverService } from '../../src/nest/memories/photo-resolver.service';
 import { ThumbnailService } from '../../src/nest/memories/thumbnail.service';
 import { TrekPhotoCacheService } from '../../src/nest/memories/trek-photo-cache.service';
@@ -108,6 +109,8 @@ import { makeStorageFixture } from './storage-fixture';
 // PluginHooks.prototype to play the provider fan-out.
 import { TripWarningsMcp } from '../../src/nest/plugins/contributions/trip-warnings.mcp';
 import { PluginSearchMcp } from '../../src/nest/plugins/contributions/plugin-search.mcp';
+import { PluginPoisMcp } from '../../src/nest/plugins/contributions/plugin-pois.mcp';
+import { PluginPoisService } from '../../src/nest/plugins/contributions/plugin-pois.service';
 import { PluginHooks } from '../../src/nest/plugins/plugin-hooks.service';
 import type { PluginRuntimeService } from '../../src/nest/plugins/plugin-runtime.service';
 import { AirtrailMcp } from '../../src/nest/integrations/airtrail.mcp';
@@ -117,6 +120,7 @@ import { AirtrailImportService } from '../../src/nest/integrations/airtrail-impo
 import { ReservationImportMcp } from '../../src/nest/reservation-import/reservation-import.mcp';
 import { HelpMcp } from '../../src/nest/help/help.mcp';
 import { AddonsMcp } from '../../src/nest/addons/addons.mcp';
+import { noGoogleQuota } from './google-quota';
 
 /**
  * Hand-wired counterpart of the boot-time discovery in McpRegistryService,
@@ -156,7 +160,7 @@ export function createMcpTestRegistry(): McpRegistry {
   // Exactly one instance, shared by maps, places and share: its stampede guard
   // and its on-disk set only work if all three readers see the same maps.
   const placePhotoCache = new PlacePhotoCacheService(dbService, makeStorageFixture('photos/google/').storage);
-  const mapsService = new MapsService(dbService, placePhotoCache);
+  const mapsService = new MapsService(dbService, placePhotoCache, noGoogleQuota);
   const journeyDomain = new JourneyDomainService(dbService, realtimeService, new TrekPhotosRepository(dbService));
   // The last three were previously omitted, which left them `undefined` at
   // runtime — silently fine while nothing called them, a TypeError the moment
@@ -229,7 +233,7 @@ export function createMcpTestRegistry(): McpRegistry {
       new DaysMcp(daysService, authService, guards, dayRemovalService),
       new RoadtripMcp(new RoadtripService(dbService, realtimeService), dbService, guards, authService, addonsService),
       new RoadtripPreferencesMcp(new RoadtripPreferencesService(dbService, realtimeService), authService, addonsService, dbService, guards),
-      new FilesMcp(new FilesService(dbService, permissionsService, realtimeService, new EphemeralTokenService(), generalStorage), authService, guards),
+      new FilesMcp(new FilesService(dbService, permissionsService, realtimeService, new EphemeralTokenService(), generalStorage), authService, guards, new AllowedFileTypesService(dbService)),
       new AccommodationsMcp(accommodationsService, dbService, placesService, authService, guards),
       new AssignmentsMcp(assignmentsService, daysService, authService, guards),
       new CollabMcp(collabService, authService, addonsService, guards),
@@ -243,9 +247,9 @@ export function createMcpTestRegistry(): McpRegistry {
       new MapsMcp(mapsService),
       new PlacesMcp(placesService, mapsService, dbService, authService, journeyDomain, assignmentsService, guards),
       new CollectionsMcp(new CollectionsService(dbService, permissionsService, realtimeService, notificationsStub(), generalStorage), dbService, authService, addonsService),
-      new TransitMcp(new TransitService(new GoogleTransitProvider(dbService)), daysService, reservationsService, dbService, authService, guards),
+      new TransitMcp(new TransitService(new GoogleTransitProvider(dbService, noGoogleQuota)), daysService, reservationsService, dbService, authService, guards),
       new AtlasMcp(new AtlasService(dbService), addonsService, authService),
-      new JourneyMcp(journeyDomain, new JourneyShareService(dbService, journeyDomain, new SettingsService(dbService)), addonsService, authService, captureBackfill),
+      new JourneyMcp(journeyDomain, new JourneyShareService(dbService, journeyDomain, new SettingsService(dbService)), addonsService, authService, new JourneyPhotoCaptureService(captureBackfill, journeyDomain, { reverseGeocode: async () => ({ name: null, address: null }) } as never)),
       new MemoriesMcp(immichService, synologyService, dbService, addonsService),
       new NotificationsMcp(makeNotificationsService(dbService, realtimeService), authService),
       new AirtrailMcp(new AirtrailService(dbService, new AuditService(dbService), new AirtrailClient()), addonsService),
@@ -254,6 +258,7 @@ export function createMcpTestRegistry(): McpRegistry {
       new HelpMcp(), new AddonsMcp(addonsService),
       new TripWarningsMcp(new PluginHooks({ providersOf: () => [], invokeHook: async () => [] } as unknown as PluginRuntimeService), dbService),
       new PluginSearchMcp(new PluginHooks({ providersOf: () => [], invokeHook: async () => [] } as unknown as PluginRuntimeService)),
+      new PluginPoisMcp(new PluginPoisService(new PluginHooks({ providersOf: () => [], invokeHook: async () => [] } as unknown as PluginRuntimeService), dbService)),
     ],
     { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess },
   );

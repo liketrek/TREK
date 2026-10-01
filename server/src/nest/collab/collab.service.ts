@@ -5,7 +5,7 @@ import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
-import { checkSsrf, createPinnedDispatcher } from '../../utils/ssrfGuard';
+import { checkSsrf, createOutboundDispatcher } from '../../utils/ssrfGuard';
 import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
 import type { CollabNote, CollabPoll, CollabMessage, TripFile, User } from '../../types';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -662,7 +662,7 @@ export class CollabService {
       return { ...fallback, error: 'URL not allowed' };
     }
 
-    const dispatcher = createPinnedDispatcher(ssrf.resolvedIp!);
+    const dispatcher = createOutboundDispatcher(url, ssrf.resolvedIp!);
     try {
       // AbortSignal.timeout covers the body as well. The hand-rolled controller
       // this replaces was cleared as soon as the headers arrived, so a server that

@@ -159,7 +159,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anyPower': 'Будь-яка потужність',
   'roadtrip.poi.free': 'Безкоштовно',
   'roadtrip.poi.wholeDay': 'Весь день',
-  'roadtrip.poi.midLeg': 'На пiвдорозi, {from} до {to}',
+  'roadtrip.poi.midLeg': 'На півдорозі, {from} до {to}',
   'roadtrip.track.title': 'День {number} іде за треком',
   'roadtrip.track.hint': 'Провести цей день за імпортованим треком',
   'roadtrip.track.badge': 'Трек',

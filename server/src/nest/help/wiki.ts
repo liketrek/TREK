@@ -275,3 +275,220 @@ export async function getWikiAsset(assetPath: string): Promise<{ buf: Buffer; ty
   if (cached) return { buf: cached.buf, type: cached.type };
   throw new WikiNotFound(assetPath);
 }
+
+// ── Full-text search ─────────────────────────────────────────────────────────
+
+export interface WikiSearchHit {
+  slug: string;
+  title: string;
+  section: string;
+  /** The heading the best match sits under, as a GitHub-style anchor, or null for the page top. */
+  anchor: string | null;
+  heading: string | null;
+  snippet: string;
+  score: number;
+}
+
+interface IndexedPage {
+  slug: string;
+  title: string;
+  section: string;
+  /** Plain text of the whole page as written, for snippets. */
+  plain: string;
+  /** The same, lower-cased once, for scoring. */
+  text: string;
+  /** Headings in document order with the plain text that follows each one. */
+  chunks: { heading: string; anchor: string; text: string }[];
+}
+
+const SEARCH_MAX_QUERY = 120;
+const SEARCH_MAX_LIMIT = 20;
+const SNIPPET_RADIUS = 90;
+
+let indexCache: { pages: IndexedPage[]; ts: number } | null = null;
+let indexBuild: Promise<IndexedPage[]> | null = null;
+
+/** GitHub's heading anchor: lower-case, punctuation dropped, spaces to hyphens. */
+function headingAnchor(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-');
+}
+
+/**
+ * Markdown to the words a reader actually sees: code fences and HTML comments go,
+ * link and image syntax collapses to its label, `[[Title|Slug]]` keeps the title,
+ * emphasis markers and table pipes are dropped. Good enough for ranking; the page
+ * itself is still rendered from the real markdown.
+ */
+function toPlainText(md: string): string {
+  return md
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, ' ')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[`*_~>|#]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Split a page at its headings so a hit can point at the section it lives in. */
+function chunkByHeading(md: string): IndexedPage['chunks'] {
+  const chunks: IndexedPage['chunks'] = [];
+  let heading = '';
+  let buf: string[] = [];
+  const flush = () => {
+    const text = toPlainText(buf.join('\n'));
+    if (heading || text) chunks.push({ heading, anchor: heading ? headingAnchor(heading) : '', text });
+    buf = [];
+  };
+  let inFence = false;
+  for (const line of md.split('\n')) {
+    if (/^(```|~~~)/.test(line)) inFence = !inFence;
+    const h = !inFence && line.match(/^#{2,4}\s+(\S.*\S|.)\s*$/);
+    if (h) {
+      flush();
+      heading = h[1].replace(/[*_`]/g, '').trim();
+      continue;
+    }
+    buf.push(line);
+  }
+  flush();
+  return chunks;
+}
+
+async function buildIndex(): Promise<IndexedPage[]> {
+  const { sections } = await getWikiIndex();
+  const jobs = sections.flatMap((section) =>
+    section.pages.map(async (p): Promise<IndexedPage | null> => {
+      try {
+        const md = await fetchText(`${p.slug}.md`);
+        const plain = toPlainText(md);
+        return {
+          slug: p.slug,
+          title: extractTitle(md, p.slug),
+          section: section.title,
+          plain,
+          text: plain.toLowerCase(),
+          chunks: chunkByHeading(md),
+        };
+      } catch {
+        // One unreadable page must not take the whole search down.
+        return null;
+      }
+    }),
+  );
+  const pages = (await Promise.all(jobs)).filter((p): p is IndexedPage => p !== null);
+  return pages;
+}
+
+async function getIndex(): Promise<IndexedPage[]> {
+  // The bundled wiki is pinned to this build, so its index never goes stale;
+  // the GitHub fallback refreshes on the same hourly TTL as the pages.
+  if (indexCache && (useLocalWiki || fresh(indexCache.ts))) return indexCache.pages;
+  if (!indexBuild) {
+    indexBuild = buildIndex()
+      .then((pages) => {
+        indexCache = { pages, ts: Date.now() };
+        return pages;
+      })
+      .finally(() => {
+        indexBuild = null;
+      });
+  }
+  return indexBuild;
+}
+
+/** Cut a readable window around the first occurrence of `needle` (or the start of the text). */
+function snippetAround(text: string, needle: string): string {
+  const lower = text.toLowerCase();
+  const at = needle ? lower.indexOf(needle) : -1;
+  if (at < 0) return text.length > SNIPPET_RADIUS * 2 ? `${text.slice(0, SNIPPET_RADIUS * 2).trimEnd()}…` : text;
+  let start = Math.max(0, at - SNIPPET_RADIUS);
+  let end = Math.min(text.length, at + needle.length + SNIPPET_RADIUS);
+  // Snap to word boundaries so the window doesn't open or close mid-word.
+  if (start > 0) {
+    const sp = text.lastIndexOf(' ', start);
+    start = sp > 0 ? sp + 1 : start;
+  }
+  if (end < text.length) {
+    const sp = text.indexOf(' ', end);
+    end = sp > 0 ? sp : end;
+  }
+  return `${start > 0 ? '…' : ''}${text.slice(start, end).trim()}${end < text.length ? '…' : ''}`;
+}
+
+function countOccurrences(haystack: string, needle: string): number {
+  if (!needle) return 0;
+  let n = 0;
+  let i = haystack.indexOf(needle);
+  while (i >= 0 && n < 50) {
+    n++;
+    i = haystack.indexOf(needle, i + needle.length);
+  }
+  return n;
+}
+
+/**
+ * Rank wiki pages against a free-text query. Title hits weigh most, then the
+ * heading a chunk sits under, then plain body occurrences; the whole phrase
+ * beats its scattered words. Returns at most `limit` hits, best first.
+ */
+export async function searchWiki(query: string, limit = 8): Promise<WikiSearchHit[]> {
+  const q = query.trim().toLowerCase().slice(0, SEARCH_MAX_QUERY);
+  const tokens = Array.from(new Set(q.split(/\s+/).filter((t) => t.length >= 2)));
+  if (!q || tokens.length === 0) return [];
+  const max = Math.min(Math.max(1, Math.floor(limit)), SEARCH_MAX_LIMIT);
+
+  const pages = await getIndex();
+  const hits: WikiSearchHit[] = [];
+  for (const page of pages) {
+    const title = page.title.toLowerCase();
+    let score = 0;
+    if (title.includes(q)) score += 12;
+    for (const t of tokens) {
+      if (title.includes(t)) score += 6;
+      score += Math.min(5, countOccurrences(page.text, t));
+    }
+    if (tokens.length > 1 && page.text.includes(q)) score += 4;
+    if (score === 0) continue;
+
+    // Best chunk: the heading + text that carries the most of the query.
+    let best: IndexedPage['chunks'][number] | null = null;
+    let bestScore = 0;
+    for (const chunk of page.chunks) {
+      const h = chunk.heading.toLowerCase();
+      const body = chunk.text.toLowerCase();
+      let s = 0;
+      if (h && h.includes(q)) s += 8;
+      for (const t of tokens) {
+        if (h.includes(t)) s += 4;
+        if (body.includes(t)) s += 1;
+      }
+      if (body.includes(q)) s += 3;
+      if (s > bestScore) {
+        bestScore = s;
+        best = chunk;
+      }
+    }
+    if (best?.heading) score += 3;
+
+    const source = best?.text || page.plain;
+    const needle = source.toLowerCase().includes(q) ? q : (tokens.find((t) => source.toLowerCase().includes(t)) ?? '');
+    hits.push({
+      slug: page.slug,
+      title: page.title,
+      section: page.section,
+      anchor: best?.anchor || null,
+      heading: best?.heading || null,
+      snippet: snippetAround(source, needle),
+      score,
+    });
+  }
+  hits.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
+  return hits.slice(0, max);
+}

@@ -10,11 +10,13 @@ import BackupPanel from '../components/Admin/BackupPanel'
 import GitHubPanel from '../components/Admin/GitHubPanel'
 import AddonManager from '../components/Admin/AddonManager'
 import PackingTemplateManager from '../components/Admin/PackingTemplateManager'
+import HelpAnchor from '../components/Help/HelpAnchor'
+import { getHelpContext } from '../help/registry'
 import AuditLogPanel from '../components/Admin/AuditLogPanel'
 import AdminMcpTokensPanel from '../components/Admin/AdminMcpTokensPanel'
 import AdminPluginsPanel from '../components/Admin/AdminPluginsPanel'
 import AdminStoragePanel from '../components/Admin/storage/AdminStoragePanel'
-import { Users, Map, Briefcase, Shield, FileText, SlidersHorizontal, UserCog, Puzzle, Blocks, Settings as SettingsIcon, Bell, Database, ScrollText, KeyRound, GitBranch, Bug, HardDrive } from 'lucide-react'
+import { Users, Map, Briefcase, Shield, FileText, RotateCcw, Save, SlidersHorizontal, UserCog, Puzzle, Blocks, Settings as SettingsIcon, Bell, Database, ScrollText, KeyRound, GitBranch, Bug, HardDrive } from 'lucide-react'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
 import { useAdmin } from './admin/useAdmin'
 import AdminUpdateBanner from './admin/AdminUpdateBanner'
@@ -24,6 +26,8 @@ import AdminSettingsTab from './admin/AdminSettingsTab'
 import AdminNotificationsTab from './admin/AdminNotificationsTab'
 import AdminUserModals from './admin/AdminUserModals'
 import { managedAdminTabs } from '../managed'
+import { SettingsHeader, SETTINGS_BUTTON_PRIMARY } from '../components/Settings/settingsKit'
+import { fs } from '../components/shared/DialogShell'
 
 export default function AdminPage(): React.ReactElement {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
@@ -79,19 +83,30 @@ function AdminPageDesktop(): React.ReactElement {
     })),
   ]
 
+  // Every tab is its own help screen; a tab without one falls back to the admin overview.
+  const helpId = getHelpContext(`admin-${activeTab}`) ? `admin-${activeTab}` : 'admin'
   return (
-    <PageShell background="var(--bg-secondary)">
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-              <Shield className="w-5 h-5 text-slate-700" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">{t('admin.title')}</h1>
-              <p className="text-slate-500 text-sm">{t('admin.subtitle')}</p>
-            </div>
-          </div>
+    <PageShell background="var(--bg-primary)">
+      <HelpAnchor id={helpId} />
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+          {/* Header: the page's bar, with the four counts as tiles on its right */}
+          <SettingsHeader
+            icon={Shield}
+            title={t('admin.title')}
+            subtitle={t('admin.subtitle')}
+            actions={stats ? (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { label: t('admin.stats.users'), value: stats.totalUsers, icon: Users },
+                  { label: t('admin.stats.trips'), value: stats.totalTrips, icon: Briefcase },
+                  { label: t('admin.stats.places'), value: stats.totalPlaces, icon: Map },
+                  { label: t('admin.stats.files'), value: stats.totalFiles || 0, icon: FileText },
+                ].map(({ label, value, icon: Icon }) => (
+                  <AdminStatCard key={label} label={label} value={value} icon={Icon} />
+                ))}
+              </div>
+            ) : undefined}
+          />
 
           {/* Update Banner */}
           {updateInfo && (
@@ -100,10 +115,13 @@ function AdminPageDesktop(): React.ReactElement {
 
           {/* Demo Baseline Button */}
           {demoMode && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-amber-900">Demo Baseline</p>
-                <p className="text-xs text-amber-700">Save current state as the hourly reset point. All admin trips and settings will be preserved.</p>
+            <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-edge-faint bg-surface-secondary px-4 py-3">
+              <span className="grid h-10 w-10 flex-none place-items-center rounded-[12px] bg-warning-soft text-warning">
+                <RotateCcw size={18} strokeWidth={2} />
+              </span>
+              <div className="min-w-0 flex-1 basis-64">
+                <p className="m-0 font-bold text-content" style={fs(14, 'body')}>Demo Baseline</p>
+                <p className="m-0 mt-0.5 text-content-muted" style={fs(12.5, 'body')}>Save current state as the hourly reset point. All admin trips and settings will be preserved.</p>
               </div>
               <button type="button"
                 onClick={async () => {
@@ -114,24 +132,12 @@ function AdminPageDesktop(): React.ReactElement {
                     toast.error(e.response?.data?.error || 'Failed to save baseline')
                   }
                 }}
-                className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 transition-colors flex-shrink-0 ml-4"
+                className={`${SETTINGS_BUTTON_PRIMARY} flex-none`}
+                style={fs(13, 'body')}
               >
+                <Save size={14} strokeWidth={2.1} />
                 Save Baseline
               </button>
-            </div>
-          )}
-
-          {/* Stats */}
-          {stats && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              {[
-                { label: t('admin.stats.users'), value: stats.totalUsers, icon: Users },
-                { label: t('admin.stats.trips'), value: stats.totalTrips, icon: Briefcase },
-                { label: t('admin.stats.places'), value: stats.totalPlaces, icon: Map },
-                { label: t('admin.stats.files'), value: stats.totalFiles || 0, icon: FileText },
-              ].map(({ label, value, icon: Icon }) => (
-                <AdminStatCard key={label} label={label} value={value} icon={Icon} />
-              ))}
             </div>
           )}
 

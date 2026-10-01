@@ -1,4 +1,4 @@
-// FE-TP-HOOK-001 to FE-TP-HOOK-135
+// FE-TP-HOOK-001 to FE-TP-HOOK-175
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { TranslationProvider } from '../../i18n/TranslationContext'
@@ -17,7 +17,7 @@ import {
   healthApi, airtrailApi, mapsApi,
 } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
-import { offlineDb } from '../../db/offlineDb'
+import { offlineDb, saveImportFiles, getImportFiles } from '../../db/offlineDb'
 import { getCached, fetchPhoto } from '../../services/photoService'
 import type { Accommodation, Place, Reservation, Settings } from '../../types'
 
@@ -1062,6 +1062,44 @@ describe('useTripPlanner — add place entry points', () => {
     expect(mapsApi.reverse).not.toHaveBeenCalled()
   })
 
+  it('FE-TP-HOOK-141: a plugin POI prefills with its own id, and a website only when it is a web address', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+    const trailhead = {
+      lat: 47.1, lng: 11.2, name: 'Trailhead', address: 'Hut 1', website: 'https://trails.example/th-1', phone: '+43 1',
+      osm_id: 'plugin:trail-finder:th-1', category: 'plugin:trail-finder/trailheads', source: 'plugin:trail-finder',
+      details: [{ label: 'Length', value: '12 km' }], icon: 'Signpost', color: '#2f855a',
+    }
+
+    act(() => { result.current.openAddPlaceFromPoi(trailhead) })
+
+    // Only the fields the form has: the details, icon and colour stay on the map.
+    expect(result.current.prefillCoords).toMatchObject({
+      lat: 47.1, lng: 11.2, name: 'Trailhead', address: 'Hut 1', website: 'https://trails.example/th-1', phone: '+43 1',
+      osm_id: 'plugin:trail-finder:th-1', stop_type: null, duration_minutes: undefined,
+    })
+    expect(mapsApi.reverse).not.toHaveBeenCalled()
+
+    act(() => { result.current.openAddPlaceFromPoi({ ...trailhead, website: 'javascript:alert(1)' }) })
+    expect(result.current.prefillCoords?.website).toBeUndefined()
+    act(() => { result.current.openAddPlaceFromPoi({ ...trailhead, website: 'trails.example' }) })
+    expect(result.current.prefillCoords?.website).toBe('https://trails.example')
+  })
+
+  it('FE-TP-HOOK-142: a plugin POI tapped on the map opens the same prefilled form', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+
+    act(() => {
+      result.current.handlePoiClick({
+        lat: 47.1, lng: 11.2, name: 'Trailhead', address: null, website: null, phone: null, osm_id: 'plugin:trail-finder:th-1',
+      })
+    })
+
+    expect(result.current.showPlaceForm).toBe(true)
+    expect(result.current.prefillCoords).toMatchObject({ name: 'Trailhead', osm_id: 'plugin:trail-finder:th-1', website: undefined })
+  })
+
   it('FE-TP-HOOK-050: the pool editor resolves a place\'s lone assignment for its times', async () => {
     const place = buildPlace({ id: 1, lat: 1, lng: 2 })
     seedTrip({
@@ -1903,6 +1941,202 @@ describe('useTripPlanner — bookings and transports', () => {
 
     expect(toasts.some(t => t.message === 'referenced')).toBe(true)
   })
+
+  it('FE-TP-HOOK-164: a transit journey opens in the full transport editor and leaves the journey view', async () => {
+    seedTrip()
+    const journey = buildReservation({ id: 9, type: 'transit', day_id: 7 })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.setTransitJourney(journey) })
+    act(() => { result.current.openTransportEditor(journey) })
+
+    expect(result.current.editingTransport).toBe(journey)
+    expect(result.current.transportModalDayId).toBe(7)
+    expect(result.current.transportModalAutomated).toBe(false)
+    expect(result.current.transitPrefill).toBeNull()
+    expect(result.current.transitJourney).toBeNull()
+    expect(result.current.showTransportModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-165: changing a journey\'s route seeds the transit search with its stops', async () => {
+    seedTrip()
+    const journey = buildReservation({
+      id: 9, type: 'transit', day_id: 7,
+      endpoints: [
+        { role: 'from', name: 'Kyoto', lat: 34.9, lng: 135.7 },
+        { role: 'to', name: 'Osaka', lat: 34.7, lng: 135.5 },
+      ] as never,
+    })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.changeTransitRoute(journey) })
+
+    expect(result.current.transitPrefill).toEqual({
+      from: { name: 'Kyoto', lat: 34.9, lng: 135.7 },
+      to: { name: 'Osaka', lat: 34.7, lng: 135.5 },
+    })
+    expect(result.current.editingTransport).toBe(journey)
+    expect(result.current.transportModalDayId).toBe(7)
+    expect(result.current.transportModalAutomated).toBe(true)
+    expect(result.current.showTransportModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-166: a journey without stops or day seeds an empty search', async () => {
+    seedTrip()
+    const journey = buildReservation({ id: 9, type: 'transit', day_id: null })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.changeTransitRoute(journey) })
+
+    expect(result.current.transitPrefill).toEqual({ from: null, to: null })
+    expect(result.current.transportModalDayId).toBeNull()
+  })
+})
+
+describe("useTripPlanner — the plan's booking detail", () => {
+  const routedTrain = (over: Partial<Reservation> = {}) => buildReservation({
+    id: 20, type: 'train', title: 'Shinkansen', day_id: 7,
+    endpoints: [
+      { role: 'from', name: 'Tokyo', lat: 35.68, lng: 139.76, sequence: 0 },
+      { role: 'to', name: 'Kyoto', lat: 34.98, lng: 135.75, sequence: 1 },
+    ] as never,
+    ...over,
+  })
+
+  it("FE-TP-HOOK-167: a booking opens by id, shows the store's copy and closes by itself once it is gone", async () => {
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    expect(result.current.bookingDetail).toBeNull()
+
+    act(() => { result.current.openBookingDetail(dinner) })
+    expect(result.current.bookingDetail).toBe(dinner)
+
+    const renamed = { ...dinner, title: 'Dinner at Kikunoi' }
+    act(() => { useTripStore.setState({ reservations: [renamed] }) })
+    expect(result.current.bookingDetail).toBe(renamed)
+
+    act(() => { useTripStore.setState({ reservations: [] }) })
+    expect(result.current.bookingDetail).toBeNull()
+
+    act(() => { useTripStore.setState({ reservations: [renamed] }) })
+    act(() => { result.current.closeBookingDetail() })
+    expect(result.current.bookingDetail).toBeNull()
+  })
+
+  it('FE-TP-HOOK-168: Edit opens the transport editor for a transport and the booking editor for anything else', async () => {
+    const train = routedTrain()
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [train, dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingDetail(train) })
+    expect(result.current.bookingDetailEditor).toBe(result.current.openTransportEditor)
+    act(() => { result.current.bookingDetailEditor!(train) })
+    expect(result.current.editingTransport).toBe(train)
+    expect(result.current.showTransportModal).toBe(true)
+    expect(result.current.showReservationModal).toBe(false)
+
+    act(() => { result.current.openBookingDetail(dinner) })
+    act(() => { result.current.bookingDetailEditor!(dinner) })
+    expect(result.current.editingReservation).toBe(dinner)
+    expect(result.current.showReservationModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-169: without day_edit a transport has no editor and a journey no route change', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { day_edit: 'admin' } })
+    const train = routedTrain()
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [train, dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingDetail(train) })
+    expect(result.current.bookingDetailEditor).toBeUndefined()
+    expect(result.current.bookingDetailChangeRoute).toBeUndefined()
+
+    // The booking editor asks for reservation_edit only, as on the Bookings tab.
+    act(() => { result.current.openBookingDetail(dinner) })
+    expect(typeof result.current.bookingDetailEditor).toBe('function')
+  })
+
+  it('FE-TP-HOOK-170: without reservation_edit a booking has no editor, while a journey keeps its route change', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { reservation_edit: 'admin' } })
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingDetail(dinner) })
+
+    expect(result.current.bookingDetailEditor).toBeUndefined()
+    expect(result.current.bookingDetailChangeRoute).toBe(result.current.changeTransitRoute)
+  })
+
+  it('FE-TP-HOOK-171: On map switches a route on and opens its day, and a second press switches it off', async () => {
+    const train = routedTrain()
+    seedTrip({ reservations: [train] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.showBookingOnMap(train) })
+
+    expect(result.current.visibleConnections).toEqual([20])
+    expect(actions.setSelectedDay).toHaveBeenCalledWith(7)
+    expect(result.current.activeTab).toBe('plan')
+
+    act(() => { result.current.showBookingOnMap(train) })
+    expect(result.current.visibleConnections).toEqual([])
+  })
+
+  it('FE-TP-HOOK-172: On map for a booking at a place selects that place on its day', async () => {
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner', place_id: 33, day_id: 7 })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.showBookingOnMap(dinner) })
+
+    expect(actions.setSelectedDay).toHaveBeenCalledWith(7)
+    expect(result.current.selectedPlaceId).toBe(33)
+  })
+  it('FE-TP-HOOK-173: a booking opened from the day list asks for day_edit before its editor, as that row did', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { day_edit: 'admin' } })
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingFromDayList(dinner) })
+    expect(result.current.bookingDetail).toBe(dinner)
+    expect(result.current.bookingDetailEditor).toBeUndefined()
+
+    // The same booking from anywhere else keeps the booking editor's own right.
+    act(() => { result.current.openBookingDetail(dinner) })
+    expect(typeof result.current.bookingDetailEditor).toBe('function')
+  })
+
+  it('FE-TP-HOOK-174: with day_edit the day list hands a booking to its editor like any other place', async () => {
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingFromDayList(dinner) })
+    act(() => { result.current.bookingDetailEditor!(dinner) })
+
+    expect(result.current.editingReservation).toBe(dinner)
+    expect(result.current.showReservationModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-175: a booking is on the map while its route is switched on', async () => {
+    const train = routedTrain()
+    seedTrip({ reservations: [train] })
+
+    const { result } = await renderPlanner()
+    expect(result.current.isBookingOnMap(train)).toBe(false)
+
+    act(() => { result.current.showBookingOnMap(train) })
+    expect(result.current.isBookingOnMap(train)).toBe(true)
+  })
 })
 
 describe('useTripPlanner — booking import review', () => {
@@ -2063,6 +2297,86 @@ describe('useTripPlanner — booking import review', () => {
     await waitFor(() => expect(result.current.tripId).toBe(42))
     expect(result.current.showTransportModal).toBe(false)
     expect(useBackgroundTasksStore.getState().tasks).toHaveLength(1)
+  })
+})
+
+describe('useTripPlanner — a receipt scanned from Costs', () => {
+  const RECEIPT = { merchant: 'Café', date: '2026-09-20', total: 12.5, currency: 'EUR', items: [{ name: 'Tart', price: 12.5 }] }
+
+  it('FE-TP-HOOK-160: a read receipt opens the expense editor pre-filled, with the photo to attach, and clears the widget', async () => {
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-r', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT, sourceFiles: [photo],
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense).toEqual({
+      name: 'Café', amount: 12.5, currency: 'EUR', date: '2026-09-20', lines: [{ name: 'Tart', price: 12.5 }], receiptFiles: [photo],
+    })
+    expect(result.current.showReservationModal).toBe(false)
+    expect(useBackgroundTasksStore.getState().tasks).toHaveLength(0)
+
+    act(() => { result.current.clearReceiptExpense() })
+    expect(result.current.receiptExpense).toBeNull()
+  })
+
+  it('FE-TP-HOOK-162: after a reload the photo comes back from IndexedDB for the review', async () => {
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    await saveImportFiles('job-db', [photo])
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-db', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT,
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense?.receiptFiles?.map(f => f.name)).toEqual(['bill.jpg'])
+    await waitFor(async () => expect(await getImportFiles('job-db')).toEqual([]))
+  })
+
+  it('FE-TP-HOOK-161: a scan that read nothing just clears the widget', async () => {
+    seedTrip()
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-n', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: null,
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(useBackgroundTasksStore.getState().tasks).toHaveLength(0))
+    expect(result.current.receiptExpense).toBeNull()
+  })
+
+  it('FE-TP-HOOK-163: a member who may add expenses but not upload files gets the reading without the photo', async () => {
+    // The photo goes up through the file upload on save, and a refused upload
+    // used to take the whole expense down with it.
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { file_upload: 'trip_owner' } })
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-u', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT, sourceFiles: [photo],
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense).toMatchObject({ name: 'Café', amount: 12.5, receiptFiles: [] })
   })
 })
 

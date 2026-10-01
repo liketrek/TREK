@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react'
-import { Plane, Save } from 'lucide-react'
+import { Loader2, Plane, Save } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { airtrailApi } from '../../api/client'
 import AirTrailIcon from '../shared/AirTrailIcon'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
+import { SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill } from './settingsKit'
+import { EditorField, GRID_2, INPUT } from '../shared/dialogParts'
+import { fs } from '../shared/DialogShell'
 
 /**
  * Settings → Integrations → AirTrail. Per-user connection to a self-hosted
  * AirTrail instance (URL + Bearer API key). Mirrors the photo-provider (Immich)
- * connection layout: stacked fields, a toggle, then Save / Test-connection with
- * a status badge. The key is stored encrypted and never prefilled.
+ * connection layout: the two fields side by side, the switches as rows, then
+ * Save / Test-connection, with the connection state as a pill in the card's band. The key is stored encrypted and never prefilled.
  */
 export default function AirTrailConnectionSection(): React.ReactElement {
   const { t } = useTranslation()
@@ -55,8 +58,9 @@ export default function AirTrailConnectionSection(): React.ReactElement {
       setApiKey('')
       if (d?.warning) toast.warning(d.warning)
       else toast.success(t('settings.airtrail.toast.saved'))
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error || t('settings.airtrail.toast.saveError'))
+    } catch (err) {
+      const reason = (err as { response?: { data?: { error?: string } } } | null)?.response?.data?.error
+      toast.error(reason || t('settings.airtrail.toast.saveError'))
     } finally {
       setSaving(false)
     }
@@ -78,81 +82,76 @@ export default function AirTrailConnectionSection(): React.ReactElement {
 
   const canSave = !!url.trim() && (connected || !!apiKey.trim())
 
+  const fieldId = (name: string) => `airtrail-${name}`
+
   return (
-    <Section title={t('settings.airtrail.title')} icon={AirTrailIcon}>
-      <div className="space-y-3">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.airtrail.url')}</label>
+    <Section
+      title={t('settings.airtrail.title')}
+      icon={AirTrailIcon}
+      badge={
+        <StatusPill tone={connected ? 'success' : 'neutral'} icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>
+          {connected ? t('settings.airtrail.connected') : t('settings.airtrail.notConnected')}
+        </StatusPill>
+      }
+    >
+      <div className={GRID_2}>
+        <EditorField label={t('settings.airtrail.url')} htmlFor={fieldId('url')}>
           <input
+            id={fieldId('url')}
             type="url"
             value={url}
             onChange={e => setUrl(e.target.value)}
             placeholder="https://airtrail.example.com"
-            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+            className={INPUT}
           />
-        </div>
+        </EditorField>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.airtrail.apiKey')}</label>
+        <EditorField label={t('settings.airtrail.apiKey')} htmlFor={fieldId('key')} hint={t('settings.airtrail.apiKeyHint')}>
           <input
+            id={fieldId('key')}
             type="password"
             value={apiKey}
             onChange={e => setApiKey(e.target.value)}
             autoComplete="off"
             placeholder={connected && !apiKey ? '••••••••' : t('settings.airtrail.apiKeyPlaceholder')}
-            className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+            className={INPUT}
           />
-          <p className="mt-1 text-xs text-slate-500">{t('settings.airtrail.apiKeyHint')}</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <ToggleSwitch on={allowInsecureTls} onToggle={() => setAllowInsecureTls(v => !v)} />
-          <span className="text-sm font-medium text-slate-700">{t('settings.airtrail.allowInsecureTls')}</span>
-        </div>
-
-        <div>
-          <div className="flex items-center gap-3">
-            <ToggleSwitch on={writeEnabled} onToggle={() => setWriteEnabled(v => !v)} />
-            <span className="text-sm font-medium text-slate-700">{t('settings.airtrail.writeBack')}</span>
-          </div>
-          <p className="mt-1 text-xs text-slate-500">{t('settings.airtrail.writeBackHint')}</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button"
-            onClick={handleSave}
-            disabled={saving || loading || !canSave}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700 disabled:bg-slate-400"
-          >
-            <Save className="w-4 h-4" /> {t('common.save')}
-          </button>
-          <button type="button"
-            onClick={handleTest}
-            disabled={testing || loading || !url.trim()}
-            className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50"
-          >
-            {testing ? (
-              <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" />
-            ) : (
-              <Plane className="w-4 h-4" />
-            )}
-            {t('settings.airtrail.test.button')}
-          </button>
-          {connected ? (
-            <span className="basis-full sm:basis-auto text-xs font-medium text-green-600 flex items-center gap-1">
-              <span className="w-2 h-2 bg-green-500 rounded-full" />
-              {t('settings.airtrail.connected')}
-            </span>
-          ) : (
-            <span className="basis-full sm:basis-auto text-xs font-medium text-slate-400 flex items-center gap-1">
-              <span className="w-2 h-2 bg-slate-300 rounded-full" />
-              {t('settings.airtrail.notConnected')}
-            </span>
-          )}
-        </div>
-
-        <p className="text-xs text-slate-500">{t('settings.airtrail.hint')}</p>
+        </EditorField>
       </div>
+
+      <SettingRows>
+        <SettingRow
+          label={t('settings.airtrail.allowInsecureTls')}
+          control={<ToggleSwitch on={allowInsecureTls} onToggle={() => setAllowInsecureTls(v => !v)} label={t('settings.airtrail.allowInsecureTls')} />}
+        />
+        <SettingRow
+          label={t('settings.airtrail.writeBack')}
+          hint={t('settings.airtrail.writeBackHint')}
+          control={<ToggleSwitch on={writeEnabled} onToggle={() => setWriteEnabled(v => !v)} label={t('settings.airtrail.writeBack')} />}
+        />
+      </SettingRows>
+
+      <div className="flex flex-wrap items-center gap-2" style={fs(13, 'body')}>
+        <button type="button"
+          onClick={handleSave}
+          disabled={saving || loading || !canSave}
+          className={SETTINGS_BUTTON_PRIMARY}
+        >
+          <Save size={14} strokeWidth={2.2} /> {t('common.save')}
+        </button>
+        <button type="button"
+          onClick={handleTest}
+          disabled={testing || loading || !url.trim()}
+          className={SETTINGS_BUTTON}
+        >
+          {testing
+            ? <Loader2 size={14} strokeWidth={2.2} className="animate-spin" />
+            : <Plane size={14} strokeWidth={2.2} />}
+          {t('settings.airtrail.test.button')}
+        </button>
+      </div>
+
+      <SettingsHint>{t('settings.airtrail.hint')}</SettingsHint>
     </Section>
   )
 }

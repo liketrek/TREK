@@ -33,6 +33,7 @@ vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KE
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 // The index switch is an environment variable now, not an admin row: it decides
 // whether a search leaves the instance at all, so it is pinned by the operator
@@ -87,7 +88,7 @@ function make(enabled = true, rows: Record<string, string> = {}) {
       typeof key === 'string' && sql.includes('app_settings') && rows[key] !== undefined ? { value: rows[key] } : undefined,
     ),
   } as unknown as DatabaseService;
-  return new MapsService(database, {} as PlacePhotoCacheService);
+  return new MapsService(database, {} as PlacePhotoCacheService, noGoogleQuota);
 }
 
 const googleAnswer = (name: string) => ({

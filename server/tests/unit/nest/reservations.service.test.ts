@@ -287,6 +287,7 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       expect(result.deleted).toMatchObject({ id: res.id, title: 'Hotel', type: 'hotel' });
       expect(result.accommodationDeleted).toBe(true);
       expect(result.deletedBudgetItemId).toBe(item.id);
+      expect(result.deletedBudgetItemIds).toEqual([item.id]);
       expect(testDb.prepare('SELECT COUNT(*) as c FROM reservations WHERE id = ?').get(res.id)).toEqual({ c: 0 });
       expect(testDb.prepare('SELECT COUNT(*) as c FROM day_accommodations WHERE id = ?').get(acc.id)).toEqual({ c: 0 });
       expect(testDb.prepare('SELECT COUNT(*) as c FROM budget_items WHERE id = ?').get(item.id)).toEqual({ c: 0 });
@@ -294,7 +295,34 @@ describe('ReservationsService (DI-native, real SQL)', () => {
 
     it('RESV-SVC-012: returns the empty shape when the reservation is missing', () => {
       const { trip } = ownerTrip();
-      expect(svc.remove('999', String(trip.id))).toEqual({ deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null });
+      expect(svc.remove('999', String(trip.id))).toEqual({ deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] });
+    });
+
+    it('RESV-SVC-037: takes every linked expense with it and reports each one (#2084)', () => {
+      const { trip } = ownerTrip();
+      const res = createReservation(testDb, trip.id, { title: 'Flight', type: 'flight' });
+      const fare = createBudgetItem(testDb, trip.id, { name: 'Fare' });
+      const luggage = createBudgetItem(testDb, trip.id, { name: 'Luggage' });
+      const unlinked = createBudgetItem(testDb, trip.id, { name: 'Coffee' });
+      testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(res.id, fare.id, luggage.id);
+
+      const result = svc.remove(String(res.id), String(trip.id));
+
+      expect(result.deletedBudgetItemIds).toEqual([fare.id, luggage.id]);
+      // The single-id field stays for older readers, as the first of them.
+      expect(result.deletedBudgetItemId).toBe(fare.id);
+      expect(testDb.prepare('SELECT id FROM budget_items WHERE trip_id = ? ORDER BY id').all(trip.id)).toEqual([{ id: unlinked.id }]);
+    });
+
+    it('RESV-SVC-038: a booking without expenses reports none and deletes no expense', () => {
+      const { trip } = ownerTrip();
+      const res = createReservation(testDb, trip.id);
+      const unlinked = createBudgetItem(testDb, trip.id);
+
+      const result = svc.remove(String(res.id), String(trip.id));
+
+      expect(result).toMatchObject({ accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] });
+      expect(testDb.prepare('SELECT id FROM budget_items WHERE id = ?').get(unlinked.id)).toEqual({ id: unlinked.id });
     });
   });
 
@@ -595,6 +623,69 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'other', undefined, 'sock');
       expect(budget.updateBudgetItem).toHaveBeenCalledWith(item.id, String(trip.id), { category: 'flights' });
       expect(broadcast).toHaveBeenCalledWith(String(trip.id), 'budget:updated', { item: { id: item.id, category: 'flights' } }, 'sock');
+    });
+
+    it('RESV-SVC-039: a type change re-files every linked expense still on the derived category, one broadcast each (#2084)', () => {
+      const { trip, res, item: fare } = linkedItem({ name: 'Fare', category: 'transport' });
+      const luggage = createBudgetItem(testDb, trip.id, { name: 'Luggage', category: 'transport' });
+      const picked = createBudgetItem(testDb, trip.id, { name: 'Lounge', category: 'food' });
+      testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(res.id, luggage.id, picked.id);
+      budget.updateBudgetItem.mockImplementation((id: number) => ({ id, category: 'flights' }));
+
+      // train -> flight: transport -> flights.
+      svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'train', undefined, 'sock');
+
+      expect(budget.updateBudgetItem.mock.calls).toEqual([
+        [fare.id, String(trip.id), { category: 'flights' }],
+        [luggage.id, String(trip.id), { category: 'flights' }],
+      ]);
+      // The hand-picked category survives.
+      expect(budget.updateBudgetItem).not.toHaveBeenCalledWith(picked.id, expect.anything(), expect.anything());
+      expect(broadcast).toHaveBeenCalledWith(String(trip.id), 'budget:updated', { item: { id: fare.id, category: 'flights' } }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith(String(trip.id), 'budget:updated', { item: { id: luggage.id, category: 'flights' } }, 'sock');
+      expect(broadcast).toHaveBeenCalledTimes(2);
+    });
+
+    it('RESV-SVC-041: with several expenses linked, the booking price field touches none of them (#2084)', () => {
+      const { trip, res, item: fare } = linkedItem({ name: 'Fare', total_price: 100 });
+      const seat = createBudgetItem(testDb, trip.id, { name: 'Seat', total_price: 20 });
+      testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(res.id, seat.id);
+
+      // A price speaks for one expense; with two there is no telling which, so
+      // neither a new figure nor a clear may land on an arbitrary one of them.
+      svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'flight', { total_price: 500 }, 'sock');
+      svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'flight', { total_price: 0 }, 'sock');
+
+      expect(budget.updateBudgetItem).not.toHaveBeenCalled();
+      expect(budget.deleteBudgetItem).not.toHaveBeenCalled();
+      expect(budget.createBudgetItem).not.toHaveBeenCalled();
+      expect(broadcast).not.toHaveBeenCalled();
+      expect(testDb.prepare('SELECT id, total_price FROM budget_items WHERE reservation_id = ? ORDER BY id').all(res.id))
+        .toEqual([{ id: fare.id, total_price: 100 }, { id: seat.id, total_price: 20 }]);
+    });
+
+    it('RESV-SVC-042: the type-change re-file still runs when several expenses stop the price path', () => {
+      const { trip, res, item: fare } = linkedItem({ name: 'Fare', category: 'transport' });
+      const seat = createBudgetItem(testDb, trip.id, { name: 'Seat', category: 'transport' });
+      testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(res.id, seat.id);
+      budget.updateBudgetItem.mockImplementation((id: number) => ({ id, category: 'flights' }));
+
+      svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'train', { total_price: 500 }, 'sock');
+
+      // Only the two category writes, never the price.
+      expect(budget.updateBudgetItem.mock.calls).toEqual([
+        [fare.id, String(trip.id), { category: 'flights' }],
+        [seat.id, String(trip.id), { category: 'flights' }],
+      ]);
+      expect(budget.createBudgetItem).not.toHaveBeenCalled();
+    });
+
+    it('RESV-SVC-040: a type change that keeps the derived category touches no linked expense', () => {
+      const { trip, res } = linkedItem({ category: 'transport' });
+      // train -> bus: both file under transport.
+      svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'bus', 'X', 'train', undefined, 'sock');
+      expect(budget.updateBudgetItem).not.toHaveBeenCalled();
+      expect(broadcast).not.toHaveBeenCalled();
     });
 
     it('updates an existing linked item when a price is provided', () => {

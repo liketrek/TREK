@@ -14,6 +14,7 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Đang chờ đặt chỗ',
   'inspector.google': 'Google Maps',
   'inspector.navigation': 'Điều hướng',
+  'inspector.otherMapApp': 'Ứng dụng bản đồ khác',
   'inspector.openWith': 'Mở bằng',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.saveToCollection': 'Lưu vào Bộ sưu tập',

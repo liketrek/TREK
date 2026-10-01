@@ -236,7 +236,7 @@ describe('addon-gated domains validate their input', () => {
     const toggleCompanyHoliday = vi.fn(() => ({}));
     const host = build({ vacay: { toggleCompanyHoliday } });
     await host.dispatch(req('vacay.toggleCompanyHoliday', { date: '2027-01-01' }), 42);
-    expect(toggleCompanyHoliday).toHaveBeenCalledWith(1, '2027-01-01', undefined, undefined);
+    expect(toggleCompanyHoliday).toHaveBeenCalledWith(1, '2027-01-01', undefined, undefined, undefined);
   });
 
   it('ADDONERR-010e a collab message without a replyTo passes null', async () => {

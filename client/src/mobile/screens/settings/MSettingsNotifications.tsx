@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Bell, Link2, Send } from 'lucide-react'
+import { Bell, Link2, Lock, Send } from 'lucide-react'
+import { WEB_PUSH_CHANNEL_ID } from '@trek/shared'
 import { useTranslation } from '../../../i18n'
 import { notificationsApi, settingsApi } from '../../../api/client'
 import { useToast } from '../../../components/shared/Toast'
 import { MSetCard, MSetEyebrow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
 import MChip from '../../components/MChip'
+import MWebPushCard from './MWebPushCard'
+import { EVENT_LABEL_KEYS, channelLabel, isLockedCell } from '../../../components/Settings/notificationLabels'
 
 interface ChannelDescriptor {
   id: string
@@ -24,36 +27,18 @@ interface PreferencesMatrix {
   channels: ChannelDescriptor[]
   event_types: string[]
   implemented_combos: Record<string, string[]>
+  /** Cells the admin switched off for everyone (#1536). */
+  locked?: Record<string, string[]>
   defaults?: { ntfyServer: string | null }
 }
 
-function channelLabel(ch: ChannelDescriptor, t: (k: string) => string): string {
-  if (ch.labelKey) return t(ch.labelKey) || ch.id
-  return ch.label || ch.id
-}
-
-const EVENT_LABEL_KEYS: Record<string, string> = {
-  trip_invite: 'settings.notifyTripInvite',
-  booking_change: 'settings.notifyBookingChange',
-  trip_reminder: 'settings.notifyTripReminder',
-  todo_due: 'settings.notifyTodoDue',
-  vacay_invite: 'settings.notifyVacayInvite',
-  vacay_share: 'settings.notifyVacayShare',
-  collection_invite: 'settings.notifyCollectionInvite',
-  synology_session_cleared: 'settings.notifySynologySessionCleared',
-  plugin_notification: 'settings.notifyPluginNotification',
-  photos_shared: 'settings.notifyPhotosShared',
-  collab_message: 'settings.notifyCollabMessage',
-  packing_tagged: 'settings.notifyPackingTagged',
-  version_available: 'settings.notifyVersionAvailable',
-}
 
 const MASKED = '••••••••'
 
 /**
  * "Notifications" section — NotificationsTab parity: webhook + ntfy channel
- * credentials, plugin channels and the event/channel preference matrix,
- * rendered as chip rows instead of the desktop grid.
+ * credentials, push on this device, plugin channels and the event/channel
+ * preference matrix, rendered as chip rows instead of the desktop grid.
  */
 export default function MSettingsNotifications() {
   const { t } = useTranslation()
@@ -119,7 +104,7 @@ export default function MSettingsNotifications() {
   }
 
   const toggle = async (eventType: string, channel: string) => {
-    if (!matrix) return
+    if (!matrix || isLockedCell(matrix.locked, eventType, channel)) return
     const current = matrix.preferences[eventType]?.[channel] ?? true
     const updated = {
       ...matrix.preferences,
@@ -282,6 +267,8 @@ export default function MSettingsNotifications() {
             </div>
           )}
 
+          {hasChannel(WEB_PUSH_CHANNEL_ID) && <MWebPushCard />}
+
           {pluginChannels.map((ch) => (
             <div key={ch.id} className="mb-3 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3">
               <MSetEyebrow className="mb-1">{channelLabel(ch, t)}</MSetEyebrow>
@@ -320,6 +307,17 @@ export default function MSettingsNotifications() {
                 <div className="flex flex-wrap gap-[6px]">
                   {relevantChannels.map((ch) => {
                     const isOn = matrix.preferences[eventType]?.[ch.id] ?? true
+                    // Switched off for everyone by the admin (#1536): shown, but locked.
+                    if (isLockedCell(matrix.locked, eventType, ch.id)) {
+                      return (
+                        <span key={ch.id} aria-disabled="true" data-locked
+                          aria-label={`${channelLabel(ch, t)}: ${t('settings.notificationPreferences.lockedByAdmin')}`}
+                          className="inline-flex flex-none items-center gap-[5px] rounded-full border border-dashed border-[color:var(--m-rowbr)] px-3 py-[7px] text-[0.75rem] font-semibold text-m-faint">
+                          <Lock size={11} strokeWidth={2.4} aria-hidden="true" />
+                          {channelLabel(ch, t)}
+                        </span>
+                      )
+                    }
                     return (
                       <MChip key={ch.id} active={isOn} onClick={() => toggle(eventType, ch.id)}>
                         {channelLabel(ch, t)}

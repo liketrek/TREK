@@ -29,8 +29,8 @@ Go to **Settings → Integrations**. Each enabled provider gets its own settings
 |-------|----------|-------|
 | Server URL | Yes | Full URL of your Immich instance, e.g. `https://immich.example.com` |
 | API Key | Yes | Stored encrypted; never returned to the browser after saving |
-| Skip SSL certificate verification | No | Checkbox; lets TREK connect to an Immich server with a self-signed certificate. Off by default |
-| Mirror journey photos to Immich on upload | No | Checkbox; when enabled, photos you upload in TREK are also pushed to your Immich library |
+| Skip SSL certificate verification | No | Switch; lets TREK connect to an Immich server with a self-signed certificate. Off by default |
+| Mirror journey photos to Immich on upload | No | Switch; when on, photos you upload in TREK are also pushed to your Immich library |
 
 Enter the full URL of your Immich instance and an Immich API key. The API key is stored encrypted on the TREK server and is never returned to the browser after it is saved.
 
@@ -67,7 +67,7 @@ TREK never modifies or deletes anything in Immich, so no `update`, `delete`, or 
 | Username | Yes | Synology account username |
 | Password | Yes | Stored encrypted; leave blank to keep the existing password |
 | MFA code (if enabled) | No | One-time password for 2FA; only needed on first connection or when re-authenticating |
-| Skip SSL certificate verification | No | Checkbox; disable TLS certificate validation for self-signed certificates |
+| Skip SSL certificate verification | No | Switch; disables TLS certificate validation for self-signed certificates |
 
 #### Required DSM account permissions
 
@@ -84,7 +84,7 @@ Synology Photos doesn't use API keys — TREK signs in with a regular DSM user a
 
 ## Testing the connection
 
-Each provider section has a **Test Connection** button. Clicking it sends your current field values to the server and attempts to authenticate with the provider. A green "Connected" badge confirms success; any error message from the provider is shown if it fails.
+Each provider card has a **Test connection** button next to **Save**. Clicking it sends your current field values to the server and attempts to authenticate with the provider. The card's badge then reads **Connected** (otherwise **Not connected**); any error message from the provider is shown if it fails.
 
 For Synology, a successful test stores a session token so the OTP code is not required again on subsequent saves (as long as the URL and username remain the same).
 
@@ -99,6 +99,12 @@ You can configure both Immich and Synology simultaneously. TREK queries photos f
 ## After setup
 
 Once a provider is connected, you can browse and attach photos to your trips. See [Documents-and-Files](Documents-and-Files) for how to manage files after setup.
+
+In the [Journey Journal](Journey-Journal) the same libraries are used in three places:
+
+- the **External photos** tab of the entry editor, which searches the entry's day and puts photos taken near the entry first (see [External photos](Journey-Journal#external-photos));
+- the journey gallery's photo picker, with **Select all** over a day, the **Trip Period**, a **Date Range** or **All Photos**;
+- TREK Studio, where the **Content** section offers **From Immich** and **From Synology Photos** next to **Upload photos** (see [TREK Studio](Journey-Journal#trek-studio)).
 
 ---
 

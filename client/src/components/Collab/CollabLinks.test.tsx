@@ -1,4 +1,4 @@
-// FE-COMP-LINKS-001 to FE-COMP-LINKS-013
+// FE-COMP-LINKS-001 to FE-COMP-LINKS-016
 
 vi.mock('../../api/websocket', () => ({
   connect: vi.fn(),
@@ -55,7 +55,7 @@ describe('CollabLinks', () => {
     render(<CollabLinks tripId={1} />);
     const heading = await screen.findByRole('heading', { level: 3 });
     expect(heading).toHaveTextContent(/links/i);
-    expect(heading).toHaveStyle({ textTransform: 'uppercase' });
+    expect(heading).toHaveClass('uppercase');
     expect(screen.getByRole('button', { name: /add link|collab\.links\.add/i })).toBeInTheDocument();
   });
 
@@ -75,7 +75,7 @@ describe('CollabLinks', () => {
     render(<CollabLinks tripId={1} />);
     await user.click(await screen.findByRole('button', { name: /add link|collab\.links\.add/i }));
     expect(await screen.findByLabelText(/link title|collab\.links\.titlePlaceholder/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/https|collab\.links\.urlPlaceholder/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^link$|^reservations\.urlLabel$|https|collab\.links\.urlPlaceholder/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-LINKS-005: saving posts the link and closes the form', async () => {
@@ -90,7 +90,7 @@ describe('CollabLinks', () => {
     render(<CollabLinks tripId={1} />);
     await user.click(await screen.findByRole('button', { name: /add link|collab\.links\.add/i }));
     await user.type(await screen.findByLabelText(/link title|collab\.links\.titlePlaceholder/i), 'Ferry timetable');
-    await user.type(screen.getByLabelText(/https|collab\.links\.urlPlaceholder/i), 'https://ferries.example/timetable');
+    await user.type(screen.getByLabelText(/^link$|^reservations\.urlLabel$|https|collab\.links\.urlPlaceholder/i), 'https://ferries.example/timetable');
     await user.click(screen.getByRole('button', { name: /save link|collab\.links\.save/i }));
 
     await waitFor(() => expect(posted).toEqual({ title: 'Ferry timetable', url: 'https://ferries.example/timetable' }));
@@ -106,7 +106,7 @@ describe('CollabLinks', () => {
     render(<CollabLinks tripId={1} />);
     await user.click(await screen.findByRole('button', { name: /add link|collab\.links\.add/i }));
     await user.type(await screen.findByLabelText(/link title|collab\.links\.titlePlaceholder/i), 'Ferry timetable');
-    await user.type(screen.getByLabelText(/https|collab\.links\.urlPlaceholder/i), 'https://ferries.example/timetable');
+    await user.type(screen.getByLabelText(/^link$|^reservations\.urlLabel$|https|collab\.links\.urlPlaceholder/i), 'https://ferries.example/timetable');
     await user.click(screen.getByRole('button', { name: /save link|collab\.links\.save/i }));
 
     expect(await screen.findByLabelText(/link title|collab\.links\.titlePlaceholder/i)).toHaveValue('Ferry timetable');
@@ -138,7 +138,7 @@ describe('CollabLinks', () => {
     expect(title).toHaveValue('Ferry timetable');
     await user.clear(title);
     await user.type(title, 'Ferry timetable 2026');
-    const url = screen.getByLabelText(/https|collab\.links\.urlPlaceholder/i);
+    const url = screen.getByLabelText(/^link$|^reservations\.urlLabel$|https|collab\.links\.urlPlaceholder/i);
     expect(url).toHaveValue('https://ferries.example/timetable');
     await user.clear(url);
     await user.type(url, 'https://ferries.example/2026');
@@ -198,7 +198,7 @@ describe('CollabLinks', () => {
     await waitFor(() => expect(chip.querySelector('img')).toBeNull());
 
     await user.click(screen.getByRole('button', { name: /edit link|collab\.links\.edit/i }));
-    const url = await screen.findByLabelText(/https|collab\.links\.urlPlaceholder/i);
+    const url = await screen.findByLabelText(/^link$|^reservations\.urlLabel$|https|collab\.links\.urlPlaceholder/i);
     await user.clear(url);
     await user.type(url, 'https://new.example/page');
     await user.click(screen.getByRole('button', { name: /save link|collab\.links\.save/i }));
@@ -223,6 +223,32 @@ describe('CollabLinks', () => {
     expect(action).toMatch(/margin:\s*-4px 0/);
   });
 
+  it('FE-COMP-LINKS-016: a long title wraps and grows the chip instead of ending in an ellipsis (#2550)', async () => {
+    const title = 'Very long ferry timetable for the northern isles in the summer season';
+    server.use(http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink({ title })] })));
+    render(<CollabLinks tripId={1} />);
+    // The whole name is in the chip, not a shortened copy of it.
+    expect(await screen.findByText(title)).toHaveClass('collab-link-chip__title');
+
+    // jsdom lays nothing out, so the rules are the assertion: the title may not be
+    // cut, and it has to be allowed to break, even inside one long word.
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
+    const rule = (selector: string) => {
+      const at = css.indexOf(`\n${selector} {`);
+      return at === -1 ? '' : css.slice(at, css.indexOf('}', at));
+    };
+    const titleRule = rule('.collab-link-chip__title');
+    expect(titleRule, '.collab-link-chip__title rule missing from index.css').not.toBe('');
+    expect(titleRule).not.toMatch(/white-space:\s*nowrap/);
+    expect(titleRule).not.toMatch(/text-overflow:\s*ellipsis/);
+    expect(titleRule).not.toMatch(/overflow:\s*hidden/);
+    expect(titleRule).toMatch(/overflow-wrap:\s*anywhere/);
+    // The host drops below a wrapping title instead of squeezing it.
+    expect(rule('.collab-link-chip__text')).toMatch(/flex-wrap:\s*wrap/);
+    // A grown chip keeps rounded corners rather than a pill's stadium ends.
+    expect(rule('.collab-link-chip')).not.toMatch(/border-radius:\s*999px/);
+  });
+
   it('FE-COMP-LINKS-008: a viewer without edit rights gets no add button', async () => {
     // collab_edit reserved for the owner, on somebody else's trip.
     seedStore(usePermissionsStore, { permissions: { collab_edit: 'trip_owner' } });
@@ -230,5 +256,38 @@ describe('CollabLinks', () => {
     render(<CollabLinks tripId={1} />);
     expect(await screen.findByText(/no shared links yet|collab\.links\.empty/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /add link|collab\.links\.add/i })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-LINKS-014: pinning a link saves it and turns the pin into an unpin', async () => {
+    const user = userEvent.setup();
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })),
+      http.put('/api/trips/1/collab/links/1', async ({ request }) => {
+        put = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ link: buildLink({ pinned: 1 }) });
+      }),
+    );
+    render(<CollabLinks tripId={1} />);
+    await user.click(await screen.findByRole('button', { name: /^pin link$|^collab\.links\.pin$/i }));
+    expect(await screen.findByRole('button', { name: /^unpin link$|^collab\.links\.unpin$/i })).toBeInTheDocument();
+    expect(put).toEqual({ pinned: true });
+  });
+
+  it('FE-COMP-LINKS-015: a failed pin says so and leaves the link as it was', async () => {
+    const user = userEvent.setup();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const toasts: string[] = [];
+    window.__addToast = ((message: string) => { toasts.push(message); return 1; }) as unknown as typeof window.__addToast;
+    server.use(
+      http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })),
+      http.put('/api/trips/1/collab/links/1', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabLinks tripId={1} />);
+    await user.click(await screen.findByRole('button', { name: /^pin link$|^collab\.links\.pin$/i }));
+    await waitFor(() => expect(toasts.length).toBe(1));
+    expect(screen.getByRole('button', { name: /^pin link$|^collab\.links\.pin$/i })).toBeInTheDocument();
+    delete window.__addToast;
+    errors.mockRestore();
   });
 });

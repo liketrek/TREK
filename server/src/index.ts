@@ -8,7 +8,10 @@ import path from 'node:path';
 import fs from 'node:fs';
 import http from 'node:http';
 import type { INestApplication } from '@nestjs/common';
-import { buildApp, getHttpServer } from './bootstrap';
+// bootstrap is required inside bootstrap() below, not imported here: importing
+// it opens the database, and a first-start restore (#1089) has to put the
+// backup's database in place before that happens.
+import type * as Bootstrap from './bootstrap';
 
 // data/tmp is the driver-agnostic global scratch dir (restore-upload spool,
 // mirror stream staging) and stays boot-created here. Driver-owned roots — the
@@ -87,7 +90,10 @@ async function bootstrap(): Promise<void> {
   // global pipeline + /uploads + every /api domain + the platform/transport routes
   // (/mcp, /.well-known, OAuth SDK, SPA catch-all). buildApp() owns the composition
   // order; it is shared with the integration-test harness so they can't drift.
+  const restore = await restoreBeforeTheDatabaseOpens();
+  const { buildApp, getHttpServer } = require('./bootstrap') as typeof Bootstrap;
   nestApp = await buildApp();
+  if (restore.restored) await finishFirstBootRestore(nestApp, restore);
   // The server buildApp created and bound /ws to. Creating a second one here
   // would serve the REST API fine and leave the gateway attached to a socket
   // nobody listens on.
@@ -108,6 +114,43 @@ async function bootstrap(): Promise<void> {
 
   if (HOST) server.listen(PORT, HOST, onListen);
   else server.listen(PORT, onListen);
+}
+
+/**
+ * RESTORE_FROM_BACKUP on a first start (#1089), before anything opens the
+ * database. See nest/backup/boot-restore.ts for when it runs and why it fails
+ * the start rather than coming up empty.
+ */
+async function restoreBeforeTheDatabaseOpens() {
+  const { restoreOnFirstBoot } = require('./nest/backup/boot-restore') as typeof import('./nest/backup/boot-restore');
+  const env = readEnv();
+  const dataDir = path.join(__dirname, '../data');
+  return restoreOnFirstBoot({
+    archive: env.backup.restoreFromBackup,
+    dbFile: env.db.trekDbFile || path.join(dataDir, 'travel.db'),
+    dataDir,
+  });
+}
+
+/**
+ * The uploads go in once storage is up, through the same driver every upload
+ * uses, so an instance on S3 gets them in S3. A failure here leaves the restored
+ * database running and says where the files are, rather than stopping a start
+ * whose data is already in place.
+ */
+async function finishFirstBootRestore(
+  app: INestApplication,
+  restore: { uploads: string | null; staging: string },
+): Promise<void> {
+  const { StorageService } = require('./nest/storage/storage.service') as typeof import('./nest/storage/storage.service');
+  const { rehydrateUploads } = require('./nest/backup/backup.impl') as typeof import('./nest/backup/backup.impl');
+  try {
+    if (restore.uploads) await rehydrateUploads(app.get(StorageService), restore.uploads);
+    fs.rmSync(restore.staging, { recursive: true, force: true });
+    console.log('[restore] Backup restored. Sign in with an account from the backup.');
+  } catch (err) {
+    console.error(`[restore] The database was restored, but the uploads could not be copied (${err instanceof Error ? err.message : String(err)}). They are still in ${restore.staging}.`);
+  }
 }
 
 bootstrap().catch((err) => {

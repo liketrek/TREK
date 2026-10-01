@@ -3,14 +3,15 @@ import { PLUGIN_PERMISSIONS } from '@trek/shared'
 import {
   Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud,
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
-  SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
-  Radio, Luggage, Globe, Image, CalendarDays, Bell, Info, History, PauseCircle,
-  Wallet, Puzzle, MapPin, ListChecks, Pencil, Tag, FileText, Route, Navigation, Clock, LocateFixed, Palette, Bot,
+  SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, Database,
+  Globe, Info, History, PauseCircle, Puzzle, Bot,
 } from 'lucide-react'
 import PluginIcon from '../../../components/shared/PluginIcon'
 import { adminApi } from '../../../api/client'
 import { useInstanceSettings } from '../../../components/Admin/useInstanceSettings'
 import { bypassChip, bypassOffer, useRangeBypass, type RangeWarning, type TrekRangeBypass } from '../../../components/Admin/useRangeBypass'
+import { deriveCaps } from '../../../components/Admin/pluginCaps'
+import PluginPoiCategoryList from '../../../components/Admin/PluginPoiCategoryList'
 import { usePluginStore } from '../../../store/pluginStore'
 import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
@@ -138,6 +139,8 @@ interface RegistryDetail extends RegistryItem {
       tripPage?: { replaces?: string[] }
       /** Tools the plugin will publish on the MCP server once mcp:tools is granted. */
       mcpTools?: Array<{ name: string; title?: string; description: string }>
+      /** Explore-pill categories it adds (#1781), checked again before anything draws them. */
+      poiCategories?: unknown
     }
   } | null
 }
@@ -227,53 +230,6 @@ function isNewer(a: string, b: string): boolean {
 
 function parseJson<T>(raw: string | null | undefined, fallback: T): T {
   try { const v = JSON.parse(raw || '') as T; return v ?? fallback } catch { return fallback }
-}
-
-interface Cap { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; net?: boolean }
-
-// Turn a plugin's declared permissions + capabilities into the at-a-glance chips
-// that make its real reach legible without opening the detail dialog.
-function deriveCaps(perms: string[], caps: { widget?: { slot?: string }; tripPage?: { replaces?: string[] } }, t: T): Cap[] {
-  const out: Cap[] = []
-  if (perms.includes('db:read:trips')) out.push({ icon: Database, label: t('admin.plugins.cap.readsTrips') })
-  if (perms.includes('db:read:users')) out.push({ icon: Users, label: t('admin.plugins.cap.readsUsers') })
-  if (perms.includes('db:write:costs')) out.push({ icon: Wallet, label: t('admin.plugins.cap.writesCosts') })
-  else if (perms.includes('db:read:costs')) out.push({ icon: Wallet, label: t('admin.plugins.cap.readsCosts') })
-  if (perms.includes('db:read:packing')) out.push({ icon: Luggage, label: t('admin.plugins.cap.readsPacking') })
-  if (perms.includes('db:read:files')) out.push({ icon: FileText, label: t('admin.plugins.cap.readsFiles') })
-  if (perms.includes('db:write:places')) out.push({ icon: MapPin, label: t('admin.plugins.cap.writesPlaces') })
-  if (perms.includes('db:write:days')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.writesDays') })
-  if (perms.includes('db:write:itinerary')) out.push({ icon: ListChecks, label: t('admin.plugins.cap.writesItinerary') })
-  if (perms.includes('db:write:trips')) out.push({ icon: Pencil, label: t('admin.plugins.cap.writesTrips') })
-  if (perms.includes('db:meta')) out.push({ icon: Tag, label: t('admin.plugins.cap.metadata') })
-  if (caps.widget) {
-    const slotKey = caps.widget.slot === 'hero' ? 'admin.plugins.cap.heroWidget'
-      : caps.widget.slot === 'place-detail' ? 'admin.plugins.cap.placeSlot'
-      : caps.widget.slot === 'day-detail' ? 'admin.plugins.cap.daySlot'
-      : caps.widget.slot === 'reservation-detail' ? 'admin.plugins.cap.reservationSlot'
-      : 'admin.plugins.cap.widget'
-    out.push({ icon: LayoutDashboard, label: t(slotKey as never) })
-  }
-  // Replacing planner tabs is the one capability that HIDES core UI — always chip it.
-  if (caps.tripPage?.replaces?.length) out.push({ icon: LayoutDashboard, label: t('admin.plugins.cap.replacesTabs') })
-  if (perms.includes('mcp:tools')) out.push({ icon: Bot, label: t('admin.plugins.cap.mcpTools') })
-  if (perms.some(p => p.startsWith('ws:broadcast'))) out.push({ icon: Radio, label: t('admin.plugins.cap.realtime') })
-  if (perms.includes('hook:photo-provider')) out.push({ icon: Image, label: t('admin.plugins.cap.photos') })
-  if (perms.includes('hook:calendar-source')) out.push({ icon: CalendarDays, label: t('admin.plugins.cap.calendar') })
-  if (perms.includes('hook:place-detail-provider')) out.push({ icon: MapPin, label: t('admin.plugins.cap.placeDetails') })
-  if (perms.includes('hook:search-provider')) out.push({ icon: Search, label: t('admin.plugins.cap.search') })
-  if (perms.includes('hook:trip-warning-provider')) out.push({ icon: AlertTriangle, label: t('admin.plugins.cap.warnings') })
-  if (perms.includes('hook:map-layer-provider')) out.push({ icon: Route, label: t('admin.plugins.cap.mapLayers') })
-  if (perms.includes('hook:route-provider')) out.push({ icon: Navigation, label: t('admin.plugins.cap.routing') })
-  if (perms.includes('hook:day-schedule-provider')) out.push({ icon: Clock, label: t('admin.plugins.cap.daySchedule') })
-  if (perms.includes('hook:day-tint-provider')) out.push({ icon: Palette, label: t('admin.plugins.cap.dayTint') })
-  if (perms.includes('geolocation:read')) out.push({ icon: LocateFixed, label: t('admin.plugins.cap.geolocation') })
-  if (perms.includes('hook:notification-channel')) out.push({ icon: Bell, label: t('admin.plugins.cap.notificationChannel') })
-  if (perms.includes('events:subscribe')) out.push({ icon: Radio, label: t('admin.plugins.cap.events') })
-  for (const h of perms.filter(p => p.startsWith('http:outbound:')).map(p => p.slice('http:outbound:'.length)).filter(Boolean)) {
-    out.push({ icon: ArrowRight, label: h, net: true })
-  }
-  return out
 }
 
 interface DepChip { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; blocked: boolean; warn?: boolean }
@@ -1803,6 +1759,11 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
               </ul>
               <p className="text-[11.5px] text-content-faint mt-2">{t('admin.plugins.mcpToolsHint')}</p>
             </div>
+          )}
+
+          {manifest && (
+            <PluginPoiCategoryList pluginId={item.id} permissions={manifest.permissions} categories={manifest.capabilities?.poiCategories}
+              className="mt-5" titleClassName={sectionH} itemClassName="text-[13px] text-m-muted" />
           )}
 
           {manifest && (manifest.egress.length > 0 || manifest.operatorEgress) && (

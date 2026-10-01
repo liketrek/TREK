@@ -123,6 +123,17 @@ ENV PORT=3000
 ARG APP_VERSION=dev
 ENV APP_VERSION=${APP_VERSION}
 
+# OCI metadata: Renovate, Watchtower and the registries read the source label to
+# link an image update to its release notes (#1498). The release workflows add
+# the commit and the build time; a local build carries everything else.
+LABEL org.opencontainers.image.title="TREK" \
+      org.opencontainers.image.description="Self-hosted collaborative travel planner" \
+      org.opencontainers.image.url="https://github.com/liketrek/TREK" \
+      org.opencontainers.image.source="https://github.com/liketrek/TREK" \
+      org.opencontainers.image.documentation="https://github.com/liketrek/TREK/wiki" \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.version="${APP_VERSION}"
+
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \

@@ -22,6 +22,8 @@ import { accommodationRepo } from '../../repo/accommodationRepo'
 import { offlineDb, getImportFiles, deleteImportFiles } from '../../db/offlineDb'
 import { isEffectivelyOffline } from '../../sync/networkMode'
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
+import { receiptToPrefill } from '../../components/Budget/CostsPanel.helpers'
+import type { ExpensePrefill } from '../../components/Budget/CostsPanel'
 import { useAuthStore } from '../../store/authStore'
 import { useResizablePanels } from '../../hooks/useResizablePanels'
 import { useTripWebSocket } from '../../hooks/useTripWebSocket'
@@ -38,6 +40,7 @@ import { collapsedDayDates } from '../../components/Map/dawarichTrail'
 import { useRoadtripCorridor } from '../../components/Roadtrip/useRoadtripCorridor'
 import { PHONE_CORRIDOR_OPTIONS } from '../../components/Roadtrip/corridorSearchModel'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
+import { useDayClear } from './useDayClear'
 import { useRefuelSearch } from '../../components/Roadtrip/useRefuelSearch'
 import type { RefuelCandidate } from '../../components/Roadtrip/refuelSuggestion'
 import { useFollowTrack } from '../../components/Roadtrip/useFollowTrack'
@@ -57,7 +60,7 @@ import type { ManualStopTarget, ServiceStopMode } from '../../components/Roadtri
 import type { RoadtripStopDraft } from '../../components/Roadtrip/RoadtripStopPopup'
 import type { StayDraft } from '../../components/Roadtrip/RoadtripStayModal'
 import { inspectorStay } from '../../components/Roadtrip/stayReading'
-import { MAX_TRIP_DAYS, type RoadtripStopType } from '@trek/shared'
+import { MAX_TRIP_DAYS, normalizePlaceWebsite, type RoadtripStopType } from '@trek/shared'
 import { usePlaceSelection } from '../../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../../hooks/usePlannerHistory'
 import { useAirtrailConnection } from '../../hooks/useAirtrailConnection'
@@ -70,12 +73,15 @@ import { applyStayStops } from '../../store/stayStops'
 import { placesForDays, resolvePoolAssignmentId } from './tripPlannerModel'
 import { isDeepLinkableTripTab, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
+import { showReservationOnMap } from '../../components/Planner/bookings/showOnMap'
 import {
   parseStoredConnections, resolveEffectiveConnections, resolveVisibleConnectionIds,
   toggleConnectionId, toggleAllConnections as flipAllConnectionsMode,
   type StoredConnections,
 } from '../../utils/connectionsVisibility'
+import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
 import { plannedPlaceIds, plannedPlaceIdsForDay } from '../../utils/plannedPlaces'
+import { pendingStayPlaceIds } from '../../utils/pendingStays'
 import { useDayDelete } from './useDayDelete'
 import { useDayAdd } from './useDayAdd'
 
@@ -100,6 +106,7 @@ export function useTripPlanner() {
   const navigate = useNavigate()
   const toast = useToast()
   const { t, language, locale } = useTranslation()
+  const placeLang = usePlaceLanguage()
   const { settings } = useSettingsStore()
   const roadtripSettings = useRoadtripSettings(s => s, tripId)
   // trip-page plugins mount as tabs inside this trip planner (tripId-scoped).
@@ -303,7 +310,7 @@ export function useTripPlanner() {
   const {
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrow: narrowPanels,
-    startResizeLeft, startResizeRight,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
   } = useResizablePanels()
   const { selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment } = usePlaceSelection()
   const [dayDetail, setShowDayDetail] = useState<Day | null>(null)
@@ -311,9 +318,12 @@ export function useTripPlanner() {
   // the panel along instead of leaving it on a day that is gone.
   const showDayDetail = dayDetail && days.some(d => d.id === dayDetail.id) ? dayDetail : null
   const [dayDetailCollapsed, setDayDetailCollapsed] = useState(false)
+  // The day's "+" can ask for a new stay: the details panel opens on that day and
+  // takes the request once, then hands it back so a later opening stays plain.
+  const [stayPickerDayId, setStayPickerDayId] = useState<number | null>(null)
   const [showPlaceForm, setShowPlaceForm] = useState<boolean>(false)
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
-  const [prefillCoords, setPrefillCoords] = useState<{ lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string; stop_type?: RoadtripStopType | null; duration_minutes?: number } | null>(null)
+  const [prefillCoords, setPrefillCoords] = useState<{ lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string; stop_type?: RoadtripStopType | null; duration_minutes?: number; category?: string } | null>(null)
   const [editingAssignmentId, setEditingAssignmentId] = useState<number | null>(null)
   // Day context of the open form. Set only by the day-scoped entry points (the
   // mobile day toolbar, a long-press on the mobile map); every other opener
@@ -416,6 +426,40 @@ export function useTripPlanner() {
   const [transportModalAutomated, setTransportModalAutomated] = useState<boolean>(false)
   const [transitPrefill, setTransitPrefill] = useState<{ from?: { name: string; lat: number; lng: number } | null; to?: { name: string; lat: number; lng: number } | null; time?: string | null } | null>(null)
   const [transitJourney, setTransitJourney] = useState<Reservation | null>(null)
+  // The booking whose detail is open over the desktop plan: a day row, a rental pill,
+  // the inspector's booking card, a map endpoint or the road-trip rail opened it.
+  // Held by id, so the dialog shows the store's copy and goes away by itself once the
+  // booking is deleted. `fromDayList` remembers that a row of the day list opened it,
+  // whose editor also asks for day_edit.
+  const [bookingDetailOpen, setBookingDetailOpen] = useState<{ id: number; fromDayList: boolean } | null>(null)
+
+  // The full transport editor on a saved entry. For a transit journey that is where
+  // travellers, costs, files, code and status live; an unchanged-endpoints save keeps
+  // the stored itinerary (#2148).
+  const openTransportEditor = useCallback((r: Reservation) => {
+    setEditingTransport(r)
+    setTransportModalDayId(r.day_id ?? null)
+    setTransportModalAutomated(false)
+    setTransitPrefill(null)
+    setTransitJourney(null)
+    setShowTransportModal(true)
+  }, [])
+  // Re-enters the transit search seeded with a journey's route; the journey is
+  // REPLACED on save (editingTransport drives handleSaveTransport's update path).
+  const changeTransitRoute = useCallback((r: Reservation) => {
+    const eps = r.endpoints || []
+    const from = eps.find(e => e.role === 'from')
+    const to = eps.find(e => e.role === 'to')
+    setTransitPrefill({
+      from: from ? { name: from.name, lat: from.lat, lng: from.lng } : null,
+      to: to ? { name: to.name, lat: to.lat, lng: to.lng } : null,
+    })
+    setEditingTransport(r)
+    setTransportModalDayId(r.day_id ?? null)
+    setTransportModalAutomated(true)
+    setTransitJourney(null)
+    setShowTransportModal(true)
+  }, [])
 
   // The bottom-nav "+" is context-aware per tab: on the Bookings / Transports tabs
   // it opens the booking / transport modal via ?create=reservation|transport
@@ -435,6 +479,8 @@ export function useTripPlanner() {
   const [reservationPrefill, setReservationPrefill] = useState<BookingReviewDraft | null>(null)
   const [transportPrefill, setTransportPrefill] = useState<BookingReviewDraft | null>(null)
   const [importReviewActive, setImportReviewActive] = useState(false)
+  // The expense a scanned receipt pre-fills, opened by the page's expense editor.
+  const [receiptExpense, setReceiptExpense] = useState<ExpensePrefill | null>(null)
   const importQueueRef = useRef<BookingImportPreviewItem[]>([])
   // The files this import was parsed from, so each reviewed booking can attach its source doc.
   const importSourceFilesRef = useRef<File[]>([])
@@ -488,6 +534,23 @@ export function useTripPlanner() {
       return next
     })
   }, [tripId])
+  // A locked map stays where the traveller put it (#2010): picking a day or a place no
+  // longer zooms or pans it. Remembered per browser, like the other view toggles; the
+  // first frame of a trip still fits, or the map would open on nothing.
+  const [mapLocked, setMapLocked] = useState<boolean>(() => {
+    try { return localStorage.getItem('trek:map-locked') === '1' } catch { return false }
+  })
+  const mapLockedRef = useRef(mapLocked)
+  mapLockedRef.current = mapLocked
+  const isMobileRef = useRef(isMobile)
+  isMobileRef.current = isMobile
+  const toggleMapLocked = useCallback(() => {
+    setMapLocked(prev => {
+      const next = !prev
+      try { localStorage.setItem('trek:map-locked', next ? '1' : '0') } catch { /* private mode keeps it for the session */ }
+      return next
+    })
+  }, [])
   // The recorded route from Dawarich (#2279), per trip and per session for the
   // same reason as the overview above: it answers "what actually happened on
   // this trip", which is a question about one trip rather than a preference.
@@ -651,6 +714,7 @@ export function useTripPlanner() {
 
   const [expandedDayIds, setExpandedDayIds] = useState<Set<number> | null>(null)
 
+  const compactUnplanned = useSettingsStore(s => s.settings.map_compact_unplanned === true)
   const mapPlaces = useMemo(() => {
     // Build set of place IDs assigned to collapsed days
     const hiddenPlaceIds = new Set<number>()
@@ -683,6 +747,8 @@ export function useTripPlanner() {
         : plannedPlaceIds({ assignments, accommodations: tripAccommodations, reservations }))
       : null
 
+    const compactIds = compactUnplanned ? plannedPlaceIds({ assignments, accommodations: tripAccommodations, reservations }) : null
+    const pendingIds = pendingStayPlaceIds(tripAccommodations, reservations)
     return places.filter(p => {
       if (!p.lat || !p.lng) return false
       if (placesFilter === 'tracks' && !p.route_geometry) return false
@@ -698,10 +764,15 @@ export function useTripPlanner() {
       if (placesFilter === 'unplanned' && plannedIds && plannedIds.has(p.id)) return false
       if (placesFilter === 'planned' && plannedIds && !plannedIds.has(p.id)) return false
       return true
+    }).map(p => {
+      // How the map tells a place apart (#2024, #2281); untouched places keep their identity.
+      const compact = !!compactIds && !compactIds.has(p.id)
+      const pending = pendingIds.has(p.id)
+      return compact || pending ? { ...p, _compact: compact, _pending: pending } : p
     })
-  }, [places, placesCategoryFilter, placesFilter, assignments, expandedDayIds, selectedDayId, days, tripAccommodations, reservations])
+  }, [places, placesCategoryFilter, placesFilter, assignments, expandedDayIds, selectedDayId, days, tripAccommodations, reservations, compactUnplanned])
 
-  const { route, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
+  const { route, routeWalking, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
   // Road trip mode already draws the whole trip its own way, so the overview stands
   // down there rather than drawing a second set of lines over it.
   const overviewActive = overviewShown && !roadtripMode
@@ -792,7 +863,8 @@ export function useTripPlanner() {
 
   const handleSelectDay = useCallback((dayId: number | null, skipFit?: boolean) => {
     tripActions.setSelectedDay(dayId)
-    if (!skipFit) setFitKey(k => k + 1)
+    // The lock is a desktop control; the phone always follows the day.
+    if (!skipFit && !(mapLockedRef.current && !isMobileRef.current)) setFitKey(k => k + 1)
     setMobileSidebarOpen(null)
     updateRouteForDay(dayId)
   }, [updateRouteForDay])
@@ -857,17 +929,17 @@ export function useTripPlanner() {
     setShowPlaceForm(true)
     try {
       const { mapsApi } = await import('../../api/client')
-      const data = await mapsApi.reverse(lat, lng, language)
+      const data = await mapsApi.reverse(lat, lng, placeLang)
       if (data.name || data.address) {
         setPrefillCoords(prev => prev ? { ...prev, name: data.name || '', address: data.address || '' } : prev)
       }
     } catch { /* best effort */ }
-  }, [language])
+  }, [placeLang])
 
   // Open the Add-Place form pre-filled from an OSM "explore" POI marker — all the
   // data already comes from the POI, so no reverse-geocode is needed.
   const openAddPlaceFromPoi = useCallback((
-    poi: { lat: number; lng: number; name: string; address: string | null; website: string | null; phone: string | null; osm_id: string },
+    poi: { lat: number; lng: number; name: string; address: string | null; website: string | null; phone: string | null; osm_id: string; category?: string | null; poi_type?: string | null },
     dayId?: number | null,
     /** Index within that day. Omitted, the place is appended, which is what every caller did before. */
     position?: number | null,
@@ -884,9 +956,15 @@ export function useTripPlanner() {
       lng: poi.lng,
       name: poi.name,
       address: poi.address || '',
-      website: poi.website || undefined,
+      // Checked again on the way into the form: a plugin POI's website is the plugin's
+      // text, and only an address a browser opens as a page belongs in the field.
+      website: normalizePlaceWebsite(poi.website) ?? undefined,
       phone: poi.phone || undefined,
+      // A plugin POI's `plugin:<pluginId>:<id>` rides along as it is. The server never
+      // takes that prefix for a Google place id, so the details column makes no Google call.
       osm_id: poi.osm_id,
+      // What the map search filed it under, so the form can preselect a category (#2282).
+      category: poi.poi_type || poi.category || undefined,
       stop_type: stop?.stopType ?? null,
       duration_minutes: stop?.dwellMinutes,
     })
@@ -2547,6 +2625,10 @@ export function useTripPlanner() {
     canEditDays: can('day_edit', trip), t, locale, toast, onDeleted: afterDayDeleted,
   })
 
+  const dayClear = useDayClear({
+    tripId, days, canEditDays: can('day_edit', trip), t, locale, toast, roadtripVias, updateRouteForDay, pushUndo,
+  })
+
   const handleSaveReservation = async (data: Record<string, string | number | null> & { title: string }) => {
     try {
       // Imported hotel with a reviewed address but no existing place picked: match
@@ -2629,6 +2711,34 @@ export function useTripPlanner() {
     }
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }
+
+  // ── The plan's booking detail ───────────────────────────────────────────────
+  // A click on a booking in the plan shows it first; the editor is one Edit away.
+  const bookingDetail = bookingDetailOpen == null ? null : reservations.find(r => r.id === bookingDetailOpen.id) ?? null
+  const openBookingDetail = (r: Reservation) => setBookingDetailOpen({ id: r.id, fromDayList: false })
+  const openBookingFromDayList = (r: Reservation) => setBookingDetailOpen({ id: r.id, fromDayList: true })
+  const closeBookingDetail = () => setBookingDetailOpen(null)
+  // Edit opens the editor the click used to open straight away, under the same right:
+  // day_edit for the transport editor, reservation_edit for the booking editor, and
+  // from a row of the day list day_edit on top, as that row asked for it. Without
+  // the right the detail has no Edit.
+  const editReservation = (r: Reservation) => { setEditingReservation(r); setShowReservationModal(true) }
+  const editorFor = (r: Reservation | null, fromDayList: boolean) => {
+    if (!r) return undefined
+    if (TRANSPORT_TYPES.has(r.type)) return can('day_edit', trip) ? openTransportEditor : undefined
+    if (fromDayList && !can('day_edit', trip)) return undefined
+    return can('reservation_edit', trip) ? editReservation : undefined
+  }
+  const bookingDetailEditor = editorFor(bookingDetail, !!bookingDetailOpen?.fromDayList)
+  // A transit journey is searched again under the right its journey view asked for,
+  // on the plan and on the Transports tab alike.
+  const bookingDetailChangeRoute = can('day_edit', trip) ? changeTransitRoute : undefined
+  // "On map", from the plan and from both booking tabs: the route switches on and its
+  // day opens, or the place is selected.
+  const showBookingOnMap = (r: Reservation) => showReservationOnMap(r, {
+    visibleConnections, toggleConnection, selectDay: id => handleSelectDay(id), selectPlace: setSelectedPlaceId, openPlan: () => handleTabChange('plan'),
+  })
+  const isBookingOnMap = (r: Reservation) => visibleConnections.includes(r.id)
 
   // ── Review-before-save booking import ───────────────────────────────────────
   // Match an existing trip place by name, else geocode the reviewed address and
@@ -2719,26 +2829,45 @@ export function useTripPlanner() {
   // Lives in the hook so the page stays a pure wiring container.
   const bgTasks = useBackgroundTasksStore((s) => s.tasks)
   const dismissBgTask = useBackgroundTasksStore((s) => s.dismiss)
+  const loadedTripId = trip?.id
   useEffect(() => {
     const task = bgTasks.find(
       (tk) => tk.tripId === String(tripId) && tk.status === 'done' && tk.reviewRequested && !tk.consumed,
     )
-    if (task && task.items && task.items.length > 0) {
+    if (task && task.kind === 'costs') {
+      // A scanned receipt is reviewed in the expense editor, pre-filled with what
+      // was read and with the photo waiting to be attached when it is saved. The
+      // photo goes up through the trip's file upload, so it is only put there for
+      // someone who may upload files: for anyone else it made the whole save fail,
+      // expense included, over an attachment they never picked. Whether they may
+      // is only known once this trip is loaded, so the review waits for it.
+      if (loadedTripId !== tripId) return
+      const receipt = task.receipt
+      const jobId = task.id
+      const inMemory = task.sourceFiles
+      dismissBgTask(jobId)
+      if (!receipt) return
+      void (async () => {
+        const files = inMemory && inMemory.length ? inMemory : await getImportFiles(jobId)
+        void deleteImportFiles(jobId)
+        setReceiptExpense(receiptToPrefill(receipt, canUploadFiles ? files : []))
+      })()
+    } else if (task && task.items && task.items.length > 0) {
       // Hand the items (and the source files, to attach to each booking) to the review flow
       // and clear the widget entry — once the user hit "review", the background card is done.
       const items = task.items
       const jobId = task.id
       const inMemory = task.sourceFiles
-      const kind = task.kind ?? 'bookings'
+      const kind = task.kind === 'transports' ? 'transports' : 'bookings'
       dismissBgTask(jobId)
       // Prefer the in-memory files (immediate path); after a reload they live in IndexedDB.
       void (async () => {
         const files = inMemory && inMemory.length ? inMemory : await getImportFiles(jobId)
-        deleteImportFiles(jobId)
+        void deleteImportFiles(jobId)
         startImportReview(items, files, kind)
       })()
     }
-  }, [bgTasks, tripId, startImportReview, dismissBgTask])
+  }, [bgTasks, tripId, startImportReview, dismissBgTask, canUploadFiles, loadedTripId])
 
   // Called when a reviewed item's modal closes (saved or skipped): open the next,
   // or finish the review session and refresh accommodations.
@@ -2828,9 +2957,10 @@ export function useTripPlanner() {
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrowPanels,
-    startResizeLeft, startResizeRight,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,
     showDayDetail, setShowDayDetail, dayDetailCollapsed, setDayDetailCollapsed,
+    stayPickerDayId, setStayPickerDayId,
     showPlaceForm, setShowPlaceForm, editingPlace, setEditingPlace,
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
     placeFormDayId, setPlaceFormDayId, reservationModalDayId, setReservationModalDayId,
@@ -2861,18 +2991,23 @@ export function useTripPlanner() {
     showTransportModal, setShowTransportModal, editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,
     transportModalAutomated, setTransportModalAutomated, transitPrefill, setTransitPrefill, transitJourney, setTransitJourney,
+    openTransportEditor, changeTransitRoute,
+    bookingDetail, openBookingDetail, openBookingFromDayList, closeBookingDetail, bookingDetailEditor, bookingDetailChangeRoute, showBookingOnMap, isBookingOnMap,
     reservationPrefill, transportPrefill, importReviewActive, startImportReview, advanceImportReview,
+    receiptExpense, clearReceiptExpense: () => setReceiptExpense(null),
+    mapLocked, toggleMapLocked,
     routeShown, setRouteShown, autoShowRoute, transitRoutesShown, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds, deletePlaceNote, deletePlacesNote,
     visibleConnections, roadtripConnections, toggleConnection, allConnectionsShown, toggleAllConnections, mapTransportDetail, setMapTransportDetail,
     isMobile, isTouch,
     expandedDayIds, setExpandedDayIds, mapPlaces,
-    route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
+    route, routeWalking, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
     handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu, openAddPlaceFromPoi, handlePoiClick,
     handleSavePlace, openPlaceEditor, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces, confirmChangeCategory,
     handleAssignToDay, handleMoveToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, dayAdd, handleUpdateDayTitle,
     ...dayDelete,
+    ...dayClear,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
     mapTileUrl, fontStyle, splashDone,

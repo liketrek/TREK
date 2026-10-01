@@ -30,16 +30,18 @@ const req = (method: string, params: Record<string, unknown> = {}): RpcRequest =
 const events = (r: { broadcast: ReturnType<typeof vi.fn> }) => r.broadcast.mock.calls.map((c) => c[1]);
 
 /** Trip 1 belongs to user 42; reservation 5 and accommodation 11 sit on it. */
-function build(opts: { canEdit?: boolean; cascade?: boolean; stop?: boolean; seenActions?: string[]; unresolved?: string[]; foreign?: string[] } = {}) {
+function build(opts: { canEdit?: boolean; cascade?: boolean; stop?: boolean; seenActions?: string[]; unresolved?: string[]; foreign?: string[]; expenses?: number[] } = {}) {
   const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
+  // The expenses a delete takes with it: one with `cascade`, any number with `expenses` (#2084).
+  const expenses = opts.expenses ?? (opts.cascade ? [7] : []);
   const reservations = {
     create: vi.fn(() => ({ reservation: { id: 40 }, accommodationCreated: !!opts.cascade })),
     getReservation: vi.fn((id: string) => (id === '5' ? { id: 5, title: 'Hotel', type: 'lodging' } : undefined)),
     update: vi.fn(() => ({ reservation: { id: 5 }, accommodationChanged: !!opts.cascade })),
     remove: vi.fn((id: string) =>
       id === '5'
-        ? { deleted: { title: 'Hotel', type: 'lodging', accommodation_id: opts.cascade ? 11 : null }, accommodationDeleted: !!opts.cascade, deletedBudgetItemId: opts.cascade ? 7 : null }
-        : { deleted: null, accommodationDeleted: false, deletedBudgetItemId: null },
+        ? { deleted: { title: 'Hotel', type: 'lodging', accommodation_id: opts.cascade ? 11 : null }, accommodationDeleted: !!opts.cascade, deletedBudgetItemId: expenses[0] ?? null, deletedBudgetItemIds: expenses }
+        : { deleted: null, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] },
     ),
     syncBudgetOnCreate: vi.fn(),
     syncBudgetOnUpdate: vi.fn(),
@@ -145,6 +147,16 @@ describe('ReservationsRpc', () => {
     const f = build({ cascade: true });
     await f.host().dispatch(req('reservations.delete', { tripId: 1, reservationId: 5 }), 42);
     expect(events(f.realtime)).toEqual(['accommodation:deleted', 'budget:deleted', 'reservation:deleted']);
+  });
+
+  it('BOOK-RPC-021 a booking carrying several expenses announces each one it took with it (#2084)', async () => {
+    const f = build({ expenses: [7, 8] });
+    await f.host().dispatch(req('reservations.delete', { tripId: 1, reservationId: 5 }), 42);
+    expect(f.realtime.broadcast.mock.calls).toEqual([
+      [1, 'budget:deleted', { itemId: 7 }, undefined],
+      [1, 'budget:deleted', { itemId: 8 }, undefined],
+      [1, 'reservation:deleted', { reservationId: 5 }, undefined],
+    ]);
   });
 
   it('BOOK-RPC-007 the budget sync and the booking notification both run', async () => {

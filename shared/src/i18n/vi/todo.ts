@@ -11,6 +11,7 @@ const todo: TranslationStrings = {
   'todo.uncategorized': 'Không có danh sách',
   'todo.namePlaceholder': 'Tên nhiệm vụ',
   'todo.descriptionPlaceholder': 'Mô tả (tùy chọn)',
+  'todo.editDescription': 'Nhấn để chỉnh sửa, liên kết mở trực tiếp',
   'todo.unassigned': 'Chưa được chỉ định',
   'todo.noCategory': 'Không có danh sách',
   'todo.hasDescription': 'Có mô tả',

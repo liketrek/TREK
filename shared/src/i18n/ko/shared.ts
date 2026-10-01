@@ -14,11 +14,18 @@ const shared: TranslationStrings = {
   'shared.tabChat': '채팅',
   'shared.days': '일',
   'shared.places': '장소',
+  'shared.unplanned': '아직 계획되지 않음',
   'shared.other': '기타',
   'shared.totalBudget': '총 비용',
   'shared.messages': '메시지',
   'shared.sharedVia': '공유 경로',
   'shared.confirmed': '확정됨',
   'shared.pending': '대기 중',
+  'shared.footerTagline': '직접 호스팅하는 여행 플래너. 오픈 소스.',
+  'shared.emptyBookings': '아직 공유된 예약이 없습니다',
+  'shared.emptyPacking': '짐 목록이 아직 비어 있습니다',
+  'shared.emptyCosts': '아직 지출이 없습니다',
+  'shared.emptyChat': '아직 메시지가 없습니다',
+  'shared.wholeTrip': '전체 여행',
 };
 export default shared;

@@ -1223,9 +1223,9 @@ describe('applySettlementUpdate', () => {
 
     const res = budget.applySettlementUpdate(7, 1, { from_user_id: 2, to_user_id: 1, amount: 10.126 });
     // from, to, rounded amount, currency-flag(0)/value(null), rate-flag(null)/value(1),
-    // settled_at-flag(0)/value(null), id.
-    // No currency/exchange_rate/settled_at passed → all three CASE guards keep the existing columns.
-    expect(run).toHaveBeenCalledWith(2, 1, 10.13, 0, null, null, 1, 0, null, 7);
+    // settled_at-flag(0)/value(null), note-flag(0)/value(null) (#2340), id.
+    // No currency/exchange_rate/settled_at/note passed → every CASE guard keeps the existing column.
+    expect(run).toHaveBeenCalledWith(2, 1, 10.13, 0, null, null, 1, 0, null, 0, null, 7);
     expect(res).toMatchObject({ id: 7, from_user_id: 2, to_user_id: 1, amount: 10.13 });
   });
 });

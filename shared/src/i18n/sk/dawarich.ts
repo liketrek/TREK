@@ -1,0 +1,182 @@
+import type { TranslationStrings } from '../types';
+
+const dawarich: TranslationStrings = {
+  // ── Connection ─────────────────────────────────────────────────────────────
+  'dawarich.title': 'Dawarich',
+  'dawarich.intro':
+    'Pripojte svoju vlastnú inštanciu Dawarich a uvidíte, kde ste skutočne boli. TREK ju prečíta a navrhne záznamy do denníka, miesta a krajiny — nič sa nepridá, kým to nepotvrdíte, a do Dawarichu sa nič nezapisuje.',
+  'dawarich.url': 'Adresa inštancie',
+  'dawarich.apiKey': 'API kľúč',
+  'dawarich.apiKeyPlaceholder': 'Vložte svoj API kľúč Dawarich',
+  'dawarich.apiKeyHint': 'Nájdete ho v Dawarichu pod Účet → API kľúč. Ukladá sa zašifrovane a znova sa nezobrazí.',
+  'dawarich.allowInsecureTls': 'Povoliť vlastnoručne podpísaný certifikát',
+  'dawarich.allowInsecureTlsHint':
+    'Potrebné len vtedy, keď vaša inštancia používa certifikát, ktorému váš server nedôveruje.',
+  'dawarich.syncEnabled': 'Automaticky hľadať nové pobyty',
+  'dawarich.syncEnabledHint': 'Keď je vypnuté, TREK číta Dawarich len na vyžiadanie.',
+  'dawarich.test.button': 'Otestovať pripojenie',
+  'dawarich.test.success': 'Pripojené. Za posledných 30 dní nájdených {count} pobytov.',
+  'dawarich.test.failed': 'Dawarich sa nepodarilo kontaktovať.',
+  'dawarich.syncNow': 'Skontrolovať teraz',
+  'dawarich.connected': 'Pripojené',
+  'dawarich.notConnected': 'Nepripojené',
+  'dawarich.disconnect': 'Odpojiť',
+  'dawarich.lastSync': 'Naposledy skontrolované {when}',
+  'dawarich.neverSynced': 'Zatiaľ neskontrolované',
+  'dawarich.syncPartial': 'niektoré cesty sa nepodarilo načítať',
+  'dawarich.serverVersion': 'Dawarich {version}',
+
+  'dawarich.toast.saved': 'Pripojenie k Dawarichu uložené',
+  'dawarich.toast.saveError': 'Pripojenie sa nepodarilo uložiť',
+  'dawarich.toast.disconnected': 'Dawarich odpojený',
+  'dawarich.toast.synced': 'Nájdených {count} nových pobytov',
+  'dawarich.toast.syncError': 'Dawarich sa nepodarilo načítať',
+  'dawarich.toast.syncRunning': 'Kontrola už prebieha',
+  'dawarich.toast.acceptError': 'Toto sa nepodarilo pridať',
+  'dawarich.toast.updateError': 'Tento návrh sa nepodarilo aktualizovať',
+  'dawarich.toast.accepted.place': 'Pridané do cesty',
+  'dawarich.toast.accepted.journal': 'Pridané do denníka',
+  'dawarich.toast.accepted.bucket_list': 'Odškrtnuté zo zoznamu prianí',
+
+  // ── What the connected instance can do ─────────────────────────────────────
+  'dawarich.capability.visits': 'pobyty',
+  'dawarich.capability.track': 'zaznamenaná trasa',
+  'dawarich.capability.locations': 'porovnanie so zoznamom prianí',
+  'dawarich.capability.visitedCities': 'krajiny a mestá',
+  'dawarich.capability.missing': 'Táto verzia Dawarichu neponúka: {features}.',
+
+  // ── Failure reasons, as sentences the reader can act on ────────────────────
+  'dawarich.error.unreachable': 'TREK sa na túto adresu nedostal.',
+  'dawarich.error.unauthorized': 'Dawarich odmietol API kľúč.',
+  'dawarich.error.forbidden': 'Tento API kľúč nemá oprávnenie toto čítať.',
+  'dawarich.error.not_found': 'Táto verzia Dawarichu tento koncový bod nemá.',
+  'dawarich.error.rate_limited': 'Dawarich požiadal TREK o spomalenie. Skúste to prosím o chvíľu znova.',
+  'dawarich.error.server_error': 'Dawarich odpovedal chybou.',
+  'dawarich.error.invalid_response': 'Táto adresa odpovedala niečím, čo nie je Dawarich.',
+  'dawarich.error.too_large': 'Dawarich poslal viac dát, než koľko TREK prečíta naraz.',
+  'dawarich.error.not_connected': 'Zatiaľ nie je pripojená žiadna inštancia Dawarich.',
+  'dawarich.error.addon_disabled': 'Doplnok Dawarich je v tejto inštancii vypnutý.',
+  'dawarich.error.offline': 'To vyžaduje pripojenie — TREK je práve offline.',
+  'dawarich.error.invalid_url': 'TREK túto adresu použiť nemôže.',
+  'dawarich.warning.private_ip':
+    'Táto adresa mieri na privátnu IP ({ip}). Overte, že to tak má byť — server k nej možno potrebuje ALLOW_INTERNAL_NETWORK=true.',
+  'dawarich.error.unknown': 'Pri komunikácii s Dawarichom sa niečo pokazilo.',
+
+  // ── The recorded route on the map ──────────────────────────────────────────
+  'dawarich.trail.show': 'Zobraziť zaznamenanú trasu',
+  'dawarich.trail.hide': 'Skryť zaznamenanú trasu',
+  'dawarich.trail.loading': 'Načítava sa zaznamenaná trasa…',
+  'dawarich.trail.empty': 'V týchto dňoch sa nič nezaznamenalo',
+  'dawarich.trail.offline': 'Zaznamenaná trasa vyžaduje pripojenie',
+  'dawarich.trail.unavailable': 'Zaznamenanú trasu sa nepodarilo načítať',
+
+  // ── Suggestions ────────────────────────────────────────────────────────────
+  'dawarich.duration.minutes': '{minutes} min',
+  'dawarich.duration.hours': '{hours} h',
+  'dawarich.duration.hoursMinutes': '{hours} h {minutes} min',
+  'dawarich.checkedAgo': 'skontrolované {ago}',
+
+  'dawarich.badge.lowConfidence': 'Neisté',
+  'dawarich.badge.sourceChanged': 'Zmenené v Dawarichu',
+  'dawarich.badge.sourceMissing': 'V Dawarichu už nie je',
+
+  'dawarich.suggestions.title': 'Z Dawarichu',
+  'dawarich.suggestions.pending': '{count} čaká na vás',
+  'dawarich.suggestions.loading': 'Načítava sa Dawarich…',
+  'dawarich.suggestions.notConnected': 'Pripojte Dawarich v Nastaveniach a uvidíte tu svoje pobyty.',
+  'dawarich.suggestions.unavailable': 'Dawarich sa nepodarilo načítať.',
+  'dawarich.suggestions.allHandled': 'Všetko, čo je tu zaznamenané, už je vybavené.',
+  'dawarich.suggestions.asJournal': 'Napísať záznam do denníka',
+  'dawarich.suggestions.asPlace': 'Pridať ako miesto',
+  'dawarich.suggestions.dismiss': 'Tu som nebol',
+  'dawarich.suggestions.dismissed': 'Zamietnuté',
+  'dawarich.suggestions.restore': 'Vrátiť späť',
+  'dawarich.suggestions.showHandled': 'Zobraziť {count} už vybavených',
+  'dawarich.suggestions.hideHandled': 'Skryť už vybavené',
+  'dawarich.suggestions.matchesWish': 'Na vašom zozname prianí: {name}',
+  'dawarich.suggestions.acceptedAs.place': 'Pridané ako miesto',
+  'dawarich.suggestions.acceptedAs.journal': 'V denníku',
+  'dawarich.suggestions.acceptedAs.bucket_list': 'Prianie odškrtnuté',
+  'dawarich.suggestions.sourceChanged':
+    'Tento pobyt sa od vášho použitia v Dawarichu zmenil. To, čo ste napísali v TREKu, zostáva bez zmeny.',
+  'dawarich.suggestions.sourceMissing':
+    'Tento pobyt už v Dawarichu neexistuje. To, čo ste napísali v TREKu, zostáva bez zmeny.',
+  'dawarich.sourceStatus.suggested': 'Rozpoznané, nepotvrdené',
+  'dawarich.confidence.high': 'Isté rozpoznanie',
+  'dawarich.confidence.medium': 'Pomerne isté rozpoznanie',
+  'dawarich.confidence.low': 'Neisté rozpoznanie',
+
+  // ── The review step ────────────────────────────────────────────────────────
+  'dawarich.accept.title.place': 'Pridať tento pobyt ako miesto',
+  'dawarich.accept.title.journal': 'Napísať záznam do denníka',
+  'dawarich.accept.title.bucket_list': 'Odškrtnúť prianie',
+  'dawarich.accept.confirm.place': 'Pridať miesto',
+  'dawarich.accept.confirm.journal': 'Pridať záznam',
+  'dawarich.accept.confirm.bucket_list': 'Odškrtnúť',
+  'dawarich.accept.recorded': 'Zaznamenané od {from} do {to}',
+  'dawarich.accept.duration': '{minutes} min',
+  'dawarich.accept.name': 'Názov',
+  'dawarich.accept.date': 'Dátum',
+  'dawarich.accept.from': 'Príchod',
+  'dawarich.accept.to': 'Odchod',
+  'dawarich.accept.trip': 'Cesta',
+  'dawarich.accept.thisTrip': 'Táto cesta',
+  'dawarich.accept.pickTrip': 'Vyberte cestu',
+  'dawarich.accept.day': 'Deň',
+  'dawarich.accept.noDay': 'Zatiaľ bez dňa',
+  'dawarich.accept.journal': 'Denník',
+  'dawarich.accept.pickJournal': 'Vyberte denník',
+  'dawarich.accept.notes': 'Poznámky',
+  'dawarich.accept.story': 'Váš príbeh',
+  'dawarich.accept.storyPlaceholder': 'Čo sa tu stalo?',
+  'dawarich.accept.photosHint': 'Fotky pridáte k záznamu až po jeho vytvorení.',
+
+  // ── A place that came out of a recording ──────────────────────────────────
+  'dawarich.place.fromDawarich': 'Pridané z vašich záznamov Dawarich',
+
+  // ── Wishlist ───────────────────────────────────────────────────────────────
+  'dawarich.bucket.title': 'Porovnať zoznam prianí s Dawarichom',
+  'dawarich.bucket.description':
+    'Prehľadá vaše záznamy a hľadá miesta, kam ste sa chceli dostať. Návšteva vyžaduje blízkosť aj strávený čas — prejsť okolo sa nepočíta.',
+  'dawarich.bucket.scan': 'Skontrolovať zoznam prianí',
+  'dawarich.bucket.scanning': 'Kontroluje sa…',
+  'dawarich.bucket.noMatches': 'Vo vašich záznamoch sa neobjavilo nič z vášho zoznamu prianí.',
+  'dawarich.bucket.alreadyVisited': 'Už odškrtnuté',
+  'dawarich.bucket.confirm': 'Odškrtnúť {count}',
+  'dawarich.bucket.confirmed': 'Odškrtnutých prianí: {count}',
+  'dawarich.bucket.skipped': '{count} položiek nemá súradnice a nedali sa skontrolovať.',
+  'dawarich.bucket.truncated': 'Skontrolované boli len prvé položky. Zvyšok skontrolujete ďalším spustením.',
+  'dawarich.bucket.visitedFrom': 'Odškrtnuté podľa vašich záznamov v Dawarichu',
+  'dawarich.bucket.clearVisit': 'Vrátiť späť',
+
+  // ── Atlas ──────────────────────────────────────────────────────────────────
+  'dawarich.atlas.title': 'Krajiny z Dawarichu',
+  'dawarich.atlas.description':
+    'Krajiny, v ktorých ste podľa svojich záznamov boli. Potvrďte tie, ktoré chcete mať v Atlase — nič sa nepridá samo a čo ste označili ručne, zostáva vaše.',
+  'dawarich.atlas.load': 'Vyhľadať krajiny',
+  'dawarich.atlas.loading': 'Načítavajú sa vaše záznamy…',
+  'dawarich.atlas.empty': 'Vaše záznamy neukazujú žiadne krajiny, ktoré by TREK ešte nemal.',
+  'dawarich.atlas.cities': '{count} miest',
+  'dawarich.atlas.citiesOne': '1 mesto',
+  'dawarich.atlas.accept': 'Pridať {count} krajín',
+  'dawarich.atlas.accepted': '{count} krajín pridaných',
+  'dawarich.atlas.unresolved': 'TREK nedokázal tieto priradiť ku krajine: {names}.',
+  'dawarich.atlas.source': 'Z Dawarichu',
+  'dawarich.atlas.range': 'Prehliadnuté od {from} do {to}',
+
+  'dawarich.atlas.trigger': 'Priania a krajiny z vašich záznamov',
+  'dawarich.atlas.dialogSubtitle': 'Čo vaše záznamy hovoria o vašom Atlase',
+  'dawarich.atlas.tab.wishes': 'Zoznam prianí',
+  'dawarich.atlas.tab.countries': 'Krajiny',
+  'dawarich.atlas.window': 'Prehľadaných bolo posledných 12 mesiacov.',
+  'dawarich.selected': 'Vybraných: {count}',
+  'dawarich.again': 'Skontrolovať znova',
+  'dawarich.bucket.metersAway': '{meters} m ďaleko',
+  'dawarich.bucket.kilometersAway': '{km} km ďaleko',
+  'dawarich.bucket.rule': 'Prianie sa počíta ako splnené do {meters} m a po {minutes} minútach na mieste.',
+
+  'dawarich.journey.dayStays.one': '1 pobyt z Dawarichu',
+  'dawarich.journey.dayStays.other': '{count} pobytov z Dawarichu',
+};
+
+export default dawarich;

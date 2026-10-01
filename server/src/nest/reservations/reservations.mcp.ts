@@ -19,7 +19,7 @@ import { transportLegInputSchema, reservationUrlSchema, type TransportLegInput }
 // What counts as a transport booking, for the update_transport gate. Every value
 // ReservationsPanel renders with a transport icon, so a stored `transit` row is
 // editable through the transport tools like any other.
-const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'] as const;
+const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other'] as const;
 // What a caller may ASK for, which is the transport form's own picker
 // (client/src/components/Planner/TransportModal.tsx), in its order. The tools
 // below used to accept four of these nine, so a bus or a ferry could be planned
@@ -29,7 +29,7 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cr
 // booking carries a provider itinerary in metadata.transit, and create_transit_journey
 // is what writes one. A hand-made `transit` row would be a shape the transit UI
 // does not expect.
-const CREATABLE_TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'] as const;
+const CREATABLE_TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transport_other'] as const;
 /** Only these two carry per-segment detail: the transport form writes metadata.legs for a flight or a train and for nothing else. */
 const LEG_TRANSPORT_TYPES = ['flight', 'train'] as const;
 /** Everything the picker offers that is not a transport: create_reservation's half. */
@@ -472,11 +472,12 @@ export class ReservationsMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
-    const { deleted, accommodationDeleted } = this.reservations.remove(reservationId, tripId);
+    const { deleted, accommodationDeleted, deletedBudgetItemIds } = this.reservations.remove(reservationId, tripId);
     if (!deleted) return errorResult('Reservation not found.');
     if (accommodationDeleted) {
       this.guards.safeBroadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id });
     }
+    for (const itemId of deletedBudgetItemIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
     return ok({ success: true });
   }
@@ -902,8 +903,9 @@ export class ReservationsMcp {
     if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
     if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
-    const { deleted } = this.reservations.remove(reservationId, tripId);
+    const { deleted, deletedBudgetItemIds } = this.reservations.remove(reservationId, tripId);
     if (!deleted) return errorResult('Transport not found.');
+    for (const itemId of deletedBudgetItemIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
     return ok({ success: true });
   }

@@ -34,7 +34,7 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
     place_id INTEGER NOT NULL, order_index INTEGER DEFAULT 0, notes TEXT, reservation_status TEXT,
     reservation_notes TEXT, reservation_datetime TEXT, assignment_time TEXT, assignment_end_time TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+    route_excluded INTEGER NOT NULL DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE day_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
     trip_id INTEGER NOT NULL, text TEXT, time TEXT, icon TEXT, sort_order INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
@@ -51,7 +51,7 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE packing_items (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
     name TEXT NOT NULL, checked INTEGER DEFAULT 0, category TEXT, sort_order INTEGER DEFAULT 0,
     weight_grams INTEGER, bag_id INTEGER, quantity INTEGER NOT NULL DEFAULT 1,
-    is_private INTEGER NOT NULL DEFAULT 0, owner_id INTEGER, updated_at DATETIME,
+    is_private INTEGER NOT NULL DEFAULT 0, owner_id INTEGER, updated_at DATETIME, packed_quantity INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE packing_item_recipients (item_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
     PRIMARY KEY (item_id, user_id));`);
@@ -75,6 +75,9 @@ const { db } = vi.hoisted(() => {
     needs_review INTEGER DEFAULT 0, day_plan_position REAL, external_source TEXT, sync_enabled INTEGER,
     ingest_state TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec('CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, day_number INTEGER, date TEXT);');
+  // The places list reads each place's country and region (#2537).
+  tmp.exec(`CREATE TABLE place_regions (place_id INTEGER PRIMARY KEY, country_code TEXT NOT NULL,
+    region_code TEXT NOT NULL, region_name TEXT NOT NULL);`);
   tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
     image_url TEXT, address TEXT, lat REAL, lng REAL, category_id INTEGER, description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);

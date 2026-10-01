@@ -108,6 +108,7 @@ const RESET_TABLES = [
   'visited_countries',
   'bucket_list',
   // Notifications & audit
+  'push_subscriptions',
   'notification_channel_preferences',
   'notifications',
   'audit_log',

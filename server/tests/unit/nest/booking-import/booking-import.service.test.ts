@@ -79,6 +79,18 @@ describe('BookingImportService.preview', () => {
     expect(res.files![0].aiUsed).toBe(false);
   });
 
+  it('fallback-on-empty: a photo goes straight to the LLM, kitinerary is not asked', async () => {
+    const { svc, extractor, llmParse } = make({
+      kit: true, ai: true,
+      extract: async () => [HOTEL_KI],
+      parse: async () => ({ kiItems: [HOTEL_KI], warnings: [] }),
+    });
+    const res = await svc.preview([file('ticket.jpg')], 'fallback-on-empty', 1);
+    expect(extractor.extract).not.toHaveBeenCalled();
+    expect(llmParse.parse).toHaveBeenCalledWith({ buffer: expect.any(Buffer), originalName: 'ticket.jpg' }, 1);
+    expect(res.items[0].needs_review).toBe(true);
+  });
+
   it('force-ai: skips kitinerary entirely and uses the LLM', async () => {
     const { svc, extractor, llmParse } = make({
       kit: true, ai: true,

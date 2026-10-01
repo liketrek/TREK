@@ -59,6 +59,8 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmed': 'مؤكد',
   'dayplan.pendingRes': 'قيد الانتظار',
   'dayplan.pdfTooltip': 'تصدير خطة اليوم بصيغة PDF',
+  'dayplan.pdfMine': 'خطتي بصيغة PDF',
+  'dayplan.pdfMineSub': 'الأنشطة والحجوزات التي تشارك فيها فقط',
   'dayplan.gpxTooltip': 'تصدير كملف GPX للخرائط دون اتصال وأجهزة GPS',
   'dayplan.gpxAll': 'الرحلة كاملة',
   'dayplan.gpxPlaces': 'الأماكن فقط',
@@ -66,8 +68,8 @@ const dayplan: TranslationStrings = {
   'dayplan.gpxEmpty': 'لا يوجد شيء للتصدير بعد',
   'dayplan.gpxFailed': 'فشل تصدير GPX',
   'dayplan.pdfError': 'فشل تصدير PDF',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'توسيع كل الأيام', // en-fallback
+  'dayplan.collapseAll': 'طي كل الأيام', // en-fallback
   'dayplan.export': 'تصدير',
   'dayplan.exportIntro': 'خذ خطتك معك: كمستند أو في تقويمك أو على جهاز GPS.',
   'dayplan.exportDocument': 'مستند',
@@ -91,6 +93,13 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDay': 'حذف اليوم',
   'dayplan.deleteDayTitle': 'حذف {day}؟',
   'dayplan.deleteDayBody': 'سيُزال اليوم من الرحلة. لا يمكن التراجع عن ذلك.',
+  'dayplan.excludeFromRoute': 'استبعاد من المسار',
+  'dayplan.includeInRoute': 'إعادة إلى المسار',
+  'dayplan.offRoute': 'خارج المسار',
+  'dayplan.offRouteHint': 'يبقى في اليوم وعلى الخريطة، لكن المسار يتخطاه',
+  'dayplan.clearDay': 'إفراغ اليوم',
+  'dayplan.clearDayTitle': 'إفراغ {day}؟',
+  'dayplan.clearDayBody': 'ستُزال كل الأماكن من هذا اليوم. تبقى الأماكن في الرحلة، ويحتفظ اليوم بملاحظاته وحجوزاته.',
   'dayplan.deleteDayEmpty': 'لا يوجد شيء مخطط لهذا اليوم.',
   'dayplan.impactPlaces': 'الأماكن المخططة: {count}',
   'dayplan.impactPlacesHint': 'تبقى في قائمة الأماكن.',

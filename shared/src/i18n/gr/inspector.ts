@@ -14,6 +14,7 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Εκκρεμής Κράτηση',
   'inspector.google': 'Google Maps',
   'inspector.navigation': 'Πλοήγηση',
+  'inspector.otherMapApp': 'Άλλη εφαρμογή χαρτών',
   'inspector.openWith': 'Άνοιγμα με',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.saveToCollection': 'Αποθήκευση στη Συλλογή',

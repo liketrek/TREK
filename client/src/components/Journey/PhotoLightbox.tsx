@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react'
 import VideoPlayer from './VideoPlayerLazy'
+import { usePhotoZoom } from './usePhotoZoom'
+import { Tooltip } from '../shared/Tooltip'
+import { useTranslation } from '../../i18n'
 
 interface LightboxPhoto {
   id: string
@@ -18,11 +21,22 @@ interface Props {
   onClose: () => void
 }
 
+/** The round glass buttons of the top bar. */
+const ROUND_BTN: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
+  width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  color: '#fff', cursor: 'pointer',
+}
+
 export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props) {
   const [idx, setIdx] = useState(startIndex)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const { t } = useTranslation()
 
   const photo = photos[idx]
+  // Zoom starts over on every photo (#1484).
+  const zoom = usePhotoZoom(photo?.id)
+  const isImage = !!photo && photo.mediaType !== 'video'
   const hasPrev = idx > 0
   const hasNext = idx < photos.length - 1
 
@@ -39,12 +53,20 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
     return () => window.removeEventListener('keydown', onKey)
   }, [prev, next, onClose])
 
+  // A pinch, a double tap or a pan of an enlarged photo belongs to the zoom; only
+  // the rest is a swipe that turns the page or closes the lightbox.
   const onTouchStart = (e: React.TouchEvent) => {
+    if (isImage && zoom.touchStart(e)) { touchStart.current = null; return }
     const t = e.touches[0]
     touchStart.current = { x: t.clientX, y: t.clientY }
   }
 
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (isImage && zoom.touchMove(e)) touchStart.current = null
+  }
+
   const onTouchEnd = (e: React.TouchEvent) => {
+    if (isImage && zoom.touchEnd(e)) { touchStart.current = null; return }
     if (!touchStart.current) return
     const t = e.changedTouches[0]
     const dx = t.clientX - touchStart.current.x
@@ -74,6 +96,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
         paddingBottom: 'var(--bottom-nav-h)',
       }}
       onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
       {/* Photo area — centered with nav overlays */}
@@ -86,13 +109,37 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
           <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500 }}>
             {idx + 1} / {photos.length}
           </span>
-          <button type="button" onClick={onClose} style={{
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {isImage && (
+            <>
+              <Tooltip label={t('journey.lightbox.zoomOut')}>
+                <button type="button" onClick={zoom.zoomOut} disabled={!zoom.zoomed} aria-label={t('journey.lightbox.zoomOut')} style={{ ...ROUND_BTN, opacity: zoom.zoomed ? 1 : 0.4 }}>
+                  <ZoomOut size={17} />
+                </button>
+              </Tooltip>
+              {zoom.zoomed && (
+                <Tooltip label={t('journey.lightbox.zoomReset')}>
+                  <button type="button" onClick={zoom.reset} aria-label={t('journey.lightbox.zoomReset')}
+                    style={{ ...ROUND_BTN, width: 'auto', borderRadius: 99, padding: '0 12px', fontSize: 'calc(12px * var(--fs-scale-caption, 1))', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                    {Math.round(zoom.zoom.scale * 100)}%
+                  </button>
+                </Tooltip>
+              )}
+              <Tooltip label={t('journey.lightbox.zoomIn')}>
+                <button type="button" onClick={zoom.zoomIn} disabled={!zoom.canZoomIn} aria-label={t('journey.lightbox.zoomIn')} style={{ ...ROUND_BTN, opacity: zoom.canZoomIn ? 1 : 0.4 }}>
+                  <ZoomIn size={17} />
+                </button>
+              </Tooltip>
+            </>
+          )}
+          <button type="button" onClick={onClose} aria-label={t('common.close')} style={{
             background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
             width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', cursor: 'pointer',
           }}>
             <X size={18} />
           </button>
+          </div>
         </div>
 
         {/* Prev button — visible on hover (desktop), always visible (mobile) */}
@@ -115,12 +162,17 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
         ) : (
           <img
             key={photo.id}
+            ref={zoom.imgRef}
             src={photo.src}
             alt={photo.caption || ''}
+            draggable={false}
+            {...zoom.mouse}
             style={{
               maxWidth: '92vw', maxHeight: '92vh',
               objectFit: 'contain', borderRadius: 4,
               animation: 'fadeIn 0.15s ease',
+              userSelect: 'none',
+              ...zoom.style,
             }}
           />
         )}

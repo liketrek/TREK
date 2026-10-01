@@ -650,6 +650,103 @@ describe('exportICS', () => {
     expect(ics).toContain('DESCRIPTION:Type: flight\\nConfirmation: BOOK1\\nRoute: FRA → BER → HND\r\n');
   });
 
+  it('CAL-045: a connecting flight with times on every leg becomes one event per leg (#2389)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Layover' });
+    const d1 = createDay(testDb, trip.id, { date: '2025-06-02' });
+    const d2 = createDay(testDb, trip.id, { date: '2025-06-03' });
+    const flight = createReservation(testDb, trip.id, { title: 'FRA to HND', type: 'flight' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, confirmation_number=?, metadata=? WHERE id=?').run(
+      '2025-06-02T09:00', 'BOOK1',
+      JSON.stringify({ legs: [
+        { from: 'FRA', to: 'BER', airline: 'LH', flight_number: '1', dep_day_id: d1.id, dep_time: '09:00', arr_day_id: d1.id, arr_time: '10:10' },
+        { from: 'BER', to: 'HND', airline: 'LH', flight_number: '2', confirmation_number: 'SEG2', dep_day_id: d1.id, dep_time: '12:30', arr_day_id: d2.id, arr_time: '07:45' },
+      ] }),
+      flight.id,
+    );
+
+    const ics = svc.exportICS(trip.id).ics.replace(/\r\n /g, '');
+
+    expect(ics).toContain(`UID:trek-res-leg1-${flight.id}@trek`);
+    expect(ics).toContain(`UID:trek-res-leg2-${flight.id}@trek`);
+    expect(ics).not.toContain(`UID:trek-res-${flight.id}@trek`);
+    expect(ics).toContain('DTSTART:20250602T090000\r\nDTEND:20250602T101000\r\nSUMMARY:FRA to HND: FRA → BER');
+    // The second leg lands the next morning, and its own reference rides along.
+    expect(ics).toContain('DTSTART:20250602T123000\r\nDTEND:20250603T074500\r\nSUMMARY:FRA to HND: BER → HND');
+    expect(ics).toContain('DESCRIPTION:LH 2\\nConfirmation: SEG2\\nLeg 2 of 2\\nType: flight');
+    expect(ics).toContain('LOCATION:BER\r\n');
+  });
+
+  it('CAL-1807: a cruise with ports of call is one event per sailing', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Baltic' });
+    const d1 = createDay(testDb, trip.id, { date: '2025-06-02' });
+    const d2 = createDay(testDb, trip.id, { date: '2025-06-03' });
+    const cruise = createReservation(testDb, trip.id, { title: 'Baltic cruise', type: 'cruise' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?').run(
+      '2025-06-02T17:00',
+      JSON.stringify({ legs: [
+        { from: 'Kiel', to: 'Tallinn', dep_day_id: d1.id, dep_time: '17:00', arr_day_id: d2.id, arr_time: '09:00' },
+        { from: 'Tallinn', to: 'Kiel', dep_day_id: d2.id, dep_time: '18:00', arr_day_id: d2.id, arr_time: '23:00' },
+      ] }),
+      cruise.id,
+    );
+    const ics = svc.exportICS(trip.id).ics.replace(/\r\n /g, '');
+    expect(ics).toContain('SUMMARY:Baltic cruise: Kiel → Tallinn');
+    expect(ics).toContain('SUMMARY:Baltic cruise: Tallinn → Kiel');
+    expect(ics).toContain(`UID:trek-res-leg2-${cruise.id}@trek`);
+  });
+
+  it('CAL-2389b: legs take their zones and names from one endpoint per airport (#2389)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Layover' });
+    const d1 = createDay(testDb, trip.id, { date: '2025-06-02' });
+    const flight = createReservation(testDb, trip.id, { title: 'Via Frankfurt', type: 'flight' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?').run(
+      '2025-06-02T09:00',
+      JSON.stringify({ legs: [
+        { dep_day_id: d1.id, dep_time: '09:00', arr_day_id: d1.id, arr_time: '10:00' },
+        { dep_day_id: d1.id, dep_time: '12:00', arr_day_id: d1.id, arr_time: '15:00' },
+      ] }),
+      flight.id,
+    );
+    const insertEp = testDb.prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    insertEp.run(flight.id, 'from', 0, 'Paris CDG', 'CDG', 49.0, 2.5, 'Europe/Paris', '09:00', '2025-06-02');
+    // No stored zone here: it is worked out from the coordinates.
+    insertEp.run(flight.id, 'stop', 1, 'Frankfurt', 'FRA', 50.03, 8.57, null, '12:00', '2025-06-02');
+    insertEp.run(flight.id, 'to', 2, 'London LHR', 'LHR', 51.47, -0.45, 'Europe/London', '15:00', '2025-06-02');
+
+    const { ics } = svc.exportICS(trip.id);
+
+    expect(ics).toContain('DTSTART;TZID=Europe/Paris:20250602T090000');
+    expect(ics).toContain('DTEND;TZID=Europe/Berlin:20250602T100000');
+    expect(ics).toContain('DTSTART;TZID=Europe/Berlin:20250602T120000');
+    expect(ics).toContain('DTEND;TZID=Europe/London:20250602T150000');
+    expect(ics).toContain('SUMMARY:Via Frankfurt: CDG → FRA');
+    expect(ics).toContain('SUMMARY:Via Frankfurt: FRA → LHR');
+  });
+
+  it('CAL-046: a leg without a departure clock keeps the single event', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Layover' });
+    const d1 = createDay(testDb, trip.id, { date: '2025-06-02' });
+    const flight = createReservation(testDb, trip.id, { title: 'FRA to HND', type: 'flight' });
+    testDb.prepare('UPDATE reservations SET reservation_time=?, metadata=? WHERE id=?').run(
+      '2025-06-02T09:00',
+      JSON.stringify({ legs: [
+        { from: 'FRA', to: 'BER', dep_day_id: d1.id, dep_time: '09:00' },
+        { from: 'BER', to: 'HND', dep_day_id: d1.id },
+      ] }),
+      flight.id,
+    );
+
+    const ics = svc.exportICS(trip.id).ics;
+    expect(ics).toContain(`UID:trek-res-${flight.id}@trek`);
+    expect(ics).not.toContain('res-leg');
+  });
+
   it('CAL-020: an empty trip title falls back for SUMMARY, X-WR-CALNAME and the filename', () => {
     const { user } = createUser(testDb);
     // The title is only NOT NULL, not non-empty; an empty one used to produce

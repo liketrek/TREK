@@ -15,7 +15,7 @@ import { splitShareLabel, useExpenseFx } from '../../../../components/Budget/exp
 import { SYMBOLS, SPLIT_COLORS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
 import { localToday } from '../../../../components/Planner/today'
-import { amountPattern, calculateTicketShares, hasTicketSplit, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
+import { amountPattern, calculateTicketShares, hasTicketSplit, newExpenseSeed, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
 import { payersBalanced, rebalancePayers } from '../../../../components/Budget/CostsPanel.helpers'
 import GuestBadge from '../../../../components/shared/GuestBadge'
@@ -76,15 +76,14 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : (prefill?.category || 'food'))
   const [catOpen, setCatOpen] = useState(false)
   const [note, setNote] = useState(() => readUserNote(editing))
-  const [currency, setCurrency] = useState(editingCurrency)
-  const [day, setDay] = useState(editing?.expense_date || localToday())
+  const [seed] = useState(() => newExpenseSeed(prefill, base, people.map(p => p.id), localToday()))
+  const [currency, setCurrency] = useState(editing ? editingCurrency : seed.currency)
+  const [day, setDay] = useState(editing ? (editing.expense_date || localToday()) : seed.day)
   // Edit and prefill seeds are padded to the currency's decimals (#2175), same
-  // as the desktop modal: a saved 4,90 must reopen as "4,90", not "4,9". A
-  // prefill has no currency of its own and is read as `base`.
+  // as the desktop modal: a saved 4,90 must reopen as "4,90", not "4,9".
   const [total, setTotal] = useState<string>(() => {
     if (editing) return editing.total_price ? amountToInputString(editing.total_price, editingCurrency) : ''
-    if (prefill?.amount != null) return amountToInputString(prefill.amount, base)
-    return ''
+    return seed.total
   })
   const [participants, setParticipants] = useState<Set<number>>(() =>
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
@@ -115,7 +114,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     return 'equally'
   })
 
-  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => readTicketItems(editing))
+  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => editing ? readTicketItems(editing) : seed.ticketItems)
 
   const [customAmounts, setCustomAmounts] = useState<Record<number, string>>(() => {
     const m: Record<number, string> = {}
@@ -128,7 +127,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   })
 
   const [receipts, setReceipts] = useState<BudgetItemReceipt[]>(() => editing?.receipts || [])
-  const [pendingReceiptFiles, setPendingReceiptFiles] = useState<File[]>([])
+  const [pendingReceiptFiles, setPendingReceiptFiles] = useState<File[]>(() => editing ? [] : seed.receiptFiles)
   const [uploadingReceipt, setUploadingReceipt] = useState(false)
   const [previewReceipts, setPreviewReceipts] = useState<{ receipts: BudgetItemReceipt[]; initialIndex: number } | null>(null)
 
@@ -193,11 +192,11 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   }, [totalNum])
 
   const enableMultiPayer = () => {
-    const seed = payerIds.size > 0 ? new Set(payerIds) : new Set<number>([payerId > 0 ? payerId : me])
+    const startPayers = payerIds.size > 0 ? new Set(payerIds) : new Set<number>([payerId > 0 ? payerId : me])
     const pinned = new Set<number>()
-    setPayerIds(seed)
+    setPayerIds(startPayers)
     setPinnedPayers(pinned)
-    setPayerAmounts(prev => rebalancePayers(prev, pinned, seed, totalNum))
+    setPayerAmounts(prev => rebalancePayers(prev, pinned, startPayers, totalNum))
     setMultiPayer(true)
   }
 

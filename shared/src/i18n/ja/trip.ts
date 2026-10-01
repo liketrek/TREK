@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'もうすぐ到着...',
   'trip.mobilePlan': '計画',
   'trip.mobilePlaces': '場所',
+  'trip.panelWidth': 'パネルの幅',
   'trip.toast.placeUpdated': '場所を更新しました',
   'trip.toast.tripUpdated': '旅行を更新しました',
   'trip.toast.placeAdded': '場所を追加しました',

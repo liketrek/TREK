@@ -151,6 +151,18 @@ describe('Share-link e2e (real auth guard + real SQL over temp SQLite)', () => {
     expect(after.body).toEqual({ token: null });
   });
 
+  it('carries the narrowing options through to the public read (#1712)', async () => {
+    const created = await request(server).post(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1))
+      .send({ share_travel_only: true, share_hide_images: true });
+    const info = await request(server).get(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1));
+    expect(info.body).toEqual(expect.objectContaining({ share_travel_only: true, share_hide_images: true }));
+    const res = await request(server).get(`/api/shared/${created.body.token}`);
+    expect(res.body.permissions).toEqual(expect.objectContaining({ share_travel_only: true, share_hide_images: true }));
+    expect(res.body.dayNotes).toEqual({});
+    const bad = await request(server).post(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1)).send({ share_hide_images: 'yes' });
+    expect(bad.status).toBe(400);
+  });
+
   it('public shared read is unguarded (200, no cookie)', async () => {
     const created = await request(server).post(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1)).send({});
     const res = await request(server).get(`/api/shared/${created.body.token}`);

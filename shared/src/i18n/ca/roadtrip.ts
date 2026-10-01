@@ -160,7 +160,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.anyPower': 'Qualsevol potència',
   'roadtrip.poi.free': 'Gratuït',
   'roadtrip.poi.wholeDay': 'Tot el dia',
-  'roadtrip.poi.midLeg': 'A mig cami, {from} a {to}',
+  'roadtrip.poi.midLeg': 'A mig camí, {from} a {to}',
   'roadtrip.track.title': 'El dia {number} segueix una traça',
   'roadtrip.track.hint': 'Fes que aquest dia segueixi una traça importada',
   'roadtrip.track.badge': 'Traça',

@@ -28,9 +28,12 @@ function setAtlas(over: Record<string, unknown> = {}): AtlasController {
   return mocks.atlas;
 }
 
-/** The two CustomSelect triggers in a popup both render the "—" placeholder option. */
+/**
+ * The month and year triggers, both on their empty option: "None" in the country
+ * dialog (the key, since t is mocked here), the older dash in the sidebar's form.
+ */
 function selectTriggers(): HTMLElement[] {
-  return screen.getAllByRole('button').filter((b) => b.textContent?.trim() === '—');
+  return screen.getAllByRole('button').filter((b) => ['common.none', '—'].includes(b.textContent?.trim() ?? ''));
 }
 
 beforeEach(() => {
@@ -69,10 +72,8 @@ describe('AtlasPage wiring', () => {
       expect(flag.src).toContain('flagcdn.com/w80/de.png');
 
       const markBtn = screen.getByText('atlas.markVisited').closest('button') as HTMLButtonElement;
-      fireEvent.mouseEnter(markBtn);
-      expect(markBtn.style.background).toBe('var(--bg-secondary)');
-      fireEvent.mouseLeave(markBtn);
-      expect(markBtn.style.background).toBe('none');
+      // The option rows light up through their hover class now, not inline mouse handlers.
+      expect(markBtn.className).toContain('hover:bg-surface-hover');
 
       fireEvent.click(markBtn);
 
@@ -106,7 +107,10 @@ describe('AtlasPage wiring', () => {
       fireEvent.click(bucketBtn);
       expect(atlas.setConfirmAction).toHaveBeenCalledWith({ ...action, type: 'bucket' });
 
-      fireEvent.click(screen.getByText('Germany').closest('div[style*="z-index: 1000"]') as HTMLElement);
+      // DialogShell closes only on a press that starts and ends on the backdrop.
+      const backdrop = screen.getByRole('dialog').parentElement as HTMLElement;
+      fireEvent.mouseDown(backdrop);
+      fireEvent.click(backdrop);
       expect(atlas.setConfirmAction).toHaveBeenLastCalledWith(null);
     });
 
@@ -181,10 +185,7 @@ describe('AtlasPage wiring', () => {
       render(<AtlasPage />);
 
       const bucketBtn = screen.getByText('atlas.addToBucket').closest('button') as HTMLButtonElement;
-      fireEvent.mouseEnter(bucketBtn);
-      expect(bucketBtn.style.background).toBe('var(--bg-secondary)');
-      fireEvent.mouseLeave(bucketBtn);
-      expect(bucketBtn.style.background).toBe('none');
+      expect(bucketBtn.className).toContain('hover:bg-surface-hover');
 
       fireEvent.click(bucketBtn);
       expect(atlas.setConfirmAction).toHaveBeenCalledWith({ ...action, type: 'bucket' });
@@ -351,7 +352,7 @@ describe('AtlasPage wiring', () => {
       fireEvent.click(screen.getByText('atlas.addToBucket'));
 
       await waitFor(() => expect(atlas.setConfirmAction).toHaveBeenLastCalledWith(null));
-      expect(body).toEqual({ name: 'Germany', country_code: 'DE', target_date: '2027-05' });
+      expect(body).toMatchObject({ name: 'Germany', country_code: 'DE', target_date: '2027-05' });
       expect(atlas.bucketList as unknown[]).toHaveLength(1);
       expect(atlas.setBucketMonth).toHaveBeenLastCalledWith(0);
       expect(atlas.setBucketYear).toHaveBeenLastCalledWith(0);
@@ -375,7 +376,7 @@ describe('AtlasPage wiring', () => {
 
       fireEvent.click(screen.getByText('atlas.addToBucket'));
 
-      await waitFor(() => expect(body).toEqual({ name: 'Bretagne', country_code: 'FR', target_date: null }));
+      await waitFor(() => expect(body).toMatchObject({ name: 'Bretagne', country_code: 'FR', target_date: null }));
     });
 
     it('FE-PAGE-ATLASW-018b: a country already wishlisted for that date is not posted again (#1898)', async () => {
@@ -459,7 +460,8 @@ describe('AtlasPage wiring', () => {
       render(<AtlasPage />);
 
       expect(screen.getByText('France')).toBeInTheDocument();
-      expect(screen.getByText('3 atlas.places · 4 atlas.tripPlural')).toBeInTheDocument();
+      expect(screen.getAllByText((_, el) => el?.textContent?.trim() === '3 atlas.places').length).toBeGreaterThan(0);
+      expect(screen.getAllByText((_, el) => el?.textContent?.trim() === '4 atlas.tripPlural').length).toBeGreaterThan(0);
       // Only the first three trips are shown.
       expect(screen.queryByText('Brest')).not.toBeInTheDocument();
 

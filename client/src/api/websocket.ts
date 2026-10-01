@@ -93,7 +93,7 @@ function scheduleReconnect(): void {
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null
     if (shouldReconnect) {
-      connectInternal(true)
+      void connectInternal(true)
     }
   }, reconnectDelay)
   reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY)
@@ -141,7 +141,7 @@ async function connectInternal(_isReconnect = false): Promise<void> {
         // Flush queued mutations first so local writes land before server read-back.
         // If the hook fails, still refetch to keep the UI correct.
         if (preReconnectHook) {
-          preReconnectHook().catch(console.error).then(doRefetch)
+          void preReconnectHook().catch(console.error).then(doRefetch)
         } else {
           doRefetch()
         }
@@ -170,7 +170,7 @@ export function connect(): void {
     clearTimeout(reconnectTimer)
     reconnectTimer = null
   }
-  connectInternal(false)
+  void connectInternal(false)
 }
 
 export function disconnect(): void {

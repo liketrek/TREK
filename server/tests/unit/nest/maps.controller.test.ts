@@ -80,6 +80,26 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     });
   });
 
+  describe('POST /nearby', () => {
+    it('forwards the point, the circle, the count and the language', async () => {
+      const nearbyPlaces = vi.fn().mockResolvedValue({ places: [], source: 'trek-places' });
+      const res = await makeController({ nearbyPlaces }).nearby(user, { lat: 52.5, lng: 13.4, radius: 300, limit: 5 }, 'de');
+      expect(res).toEqual({ places: [], source: 'trek-places' });
+      expect(nearbyPlaces).toHaveBeenCalledWith(3, 52.5, 13.4, { radius: 300, limit: 5, lang: 'de' });
+    });
+
+    it('maps a provider error to its status, and anything else to 500', async () => {
+      const refused = vi.fn().mockRejectedValue(withError(429, 'Quota exceeded'));
+      expect(await thrown(() => makeController({ nearbyPlaces: refused }).nearby(user, { lat: 1, lng: 2 }))).toEqual({
+        status: 429, body: { error: 'Quota exceeded' },
+      });
+      const broken = vi.fn().mockRejectedValue('boom');
+      expect(await thrown(() => makeController({ nearbyPlaces: broken }).nearby(user, { lat: 1, lng: 2 }))).toEqual({
+        status: 500, body: { error: 'Nearby search error' },
+      });
+    });
+  });
+
   describe('GET /area', () => {
     const BOX = { minLat: 54, minLng: 12, maxLat: 54.2, maxLng: 12.3 };
 

@@ -1,0 +1,36 @@
+import type { TranslationStrings } from '../types';
+
+const notifications: TranslationStrings = {
+  'notifications.title': "การแจ้งเตือน",
+  'notifications.markAllRead': "ทำเครื่องหมายว่าอ่านแล้วทั้งหมด",
+  'notifications.deleteAll': "ลบทั้งหมด",
+  'notifications.showAll': "แสดงการแจ้งเตือนทั้งหมด",
+  'notifications.empty': "ไม่มีการแจ้งเตือน",
+  'notifications.emptyDescription': "คุณตามทันแล้ว!",
+  'notifications.all': "ทั้งหมด",
+  'notifications.unreadOnly': "ยังไม่ได้อ่าน",
+  'notifications.markRead': "ทำเครื่องหมายว่าอ่านแล้ว",
+  'notifications.markUnread': "ทำเครื่องหมายว่ายังไม่ได้อ่าน",
+  'notifications.delete': "ลบ",
+  'notifications.system': "ระบบ",
+  'notifications.synologySessionCleared.title': "Synology Photos ถูกตัดการเชื่อมต่อ",
+  'notifications.synologySessionCleared.text':
+    "เซิร์ฟเวอร์หรือบัญชีของคุณมีการเปลี่ยนแปลง — ไปที่การตั้งค่าเพื่อทดสอบการเชื่อมต่อของคุณอีกครั้ง",
+  'notifications.versionAvailable.title': "อัปเดตพร้อมใช้งาน",
+  'notifications.versionAvailable.text': "TREK {version} มีจำหน่ายแล้ว",
+  'notifications.versionAvailable.button': "ดูรายละเอียด",
+  'notifications.test.title': "ทดสอบการแจ้งเตือนจาก {actor}",
+  'notifications.test.text': "นี่เป็นการแจ้งเตือนการทดสอบง่ายๆ",
+  'notifications.test.booleanTitle': "{actor} ขอให้คุณอนุมัติ",
+  'notifications.test.booleanText': "นี่คือการแจ้งเตือนแบบบูลีนทดสอบ เลือกการดำเนินการด้านล่าง",
+  'notifications.test.accept': "อนุมัติ",
+  'notifications.test.decline': "ปฏิเสธ",
+  'notifications.test.navigateTitle': "ลองดูสิ่งนี้",
+  'notifications.test.navigateText': "นี่คือการแจ้งเตือนการทดสอบการนำทาง",
+  'notifications.test.goThere': "ไปที่นั่น",
+  'notifications.test.adminTitle': "แอดมินออกอากาศ",
+  'notifications.test.adminText': "{actor} ส่งการแจ้งเตือนการทดสอบไปยังผู้ดูแลระบบทุกคน",
+  'notifications.test.tripTitle': "{actor} โพสต์ในการเดินทางของคุณ",
+  'notifications.test.tripText': "ทดสอบการแจ้งเตือนสำหรับการเดินทาง \"{trip}\"",
+};
+export default notifications;

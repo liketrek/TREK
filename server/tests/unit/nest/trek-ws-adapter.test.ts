@@ -282,6 +282,28 @@ describe('TrekWsAdapter server creation', () => {
     }
   });
 
+  it('WSAD-031d: a same-host origin passes even when the allowlist names another (#2543)', () => {
+    // A browser always sends Origin on an upgrade. Reached at its LAN address or
+    // under a second name, the instance is still talking to its own page, and
+    // refusing that left the planner without live updates.
+    wsOrigins.value = ['https://trip.example'];
+    const ad = new TrekWsAdapter(httpServer);
+    const server = ad.create(0, { path: '/ws' }) as { options: { verifyClient?: unknown } };
+    try {
+      const verify = server.options.verifyClient as (
+        info: { origin: string; req: { headers: { host?: string } } },
+        cb: (ok: boolean, code?: number, msg?: string) => void,
+      ) => void;
+      const seen: unknown[][] = [];
+      verify({ origin: 'http://192.168.1.20:3000', req: { headers: { host: '192.168.1.20:3000' } } }, (...args) => seen.push(args));
+      // A foreign page cannot pick the Host header, so it still gets the 403.
+      verify({ origin: 'https://evil.example', req: { headers: { host: '192.168.1.20:3000' } } }, (...args) => seen.push(args));
+      expect(seen).toEqual([[true], [false, 403, 'Origin not allowed']]);
+    } finally {
+      void ad.close(server as never);
+    }
+  });
+
   it('WSAD-030b: falls back to /ws when the gateway declares no path', () => {
     wsOrigins.value = null;
     const ad = new TrekWsAdapter(httpServer);

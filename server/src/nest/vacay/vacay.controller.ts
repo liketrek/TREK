@@ -244,7 +244,7 @@ export class VacayController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const planId = this.vacay.getActivePlanId(user.id);
-    return this.vacay.toggleCompanyHoliday(planId, body.date, body.note, socketId);
+    return this.vacay.toggleCompanyHoliday(planId, body.date, body.note, socketId, body.fraction);
   }
 
   @Get('stats/:year')

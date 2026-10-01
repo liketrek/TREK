@@ -6,6 +6,16 @@ import { decodeEntryRow } from './journey-entry-row';
 import { GALLERY_CHRONOLOGICAL_ORDER } from './journey-gallery-order';
 import { SettingsService } from '../settings/settings.service';
 
+/**
+ * A photo whose every entry is a draft (#696) stays off the public page, and so do
+ * its bytes. One that also sits on a published entry, or on no entry at all (a
+ * plain gallery photo), is shown. `gp` is the journey_photos row.
+ */
+const NOT_DRAFT_ONLY_PHOTO = `NOT (
+  EXISTS (SELECT 1 FROM journey_entry_photos d JOIN journey_entries de ON de.id = d.entry_id WHERE d.journey_photo_id = gp.id AND de.is_draft = 1)
+  AND NOT EXISTS (SELECT 1 FROM journey_entry_photos p JOIN journey_entries pe ON pe.id = p.entry_id WHERE p.journey_photo_id = gp.id AND pe.is_draft = 0)
+)`;
+
 interface JourneySharePermissions {
   share_timeline?: boolean;
   share_gallery?: boolean;
@@ -126,7 +136,7 @@ export class JourneyShareService {
       SELECT gp.photo_id, tkp.owner_id, gp.journey_id
       FROM journey_photos gp
       JOIN trek_photos tkp ON tkp.id = gp.photo_id
-      WHERE gp.photo_id = ? AND gp.journey_id = ?
+      WHERE gp.photo_id = ? AND gp.journey_id = ? AND ${NOT_DRAFT_ONLY_PHOTO}
     `).get(photoId, row.journey_id) as any;
     if (!photo) return null;
     const journey = this.db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(row.journey_id) as any;
@@ -144,7 +154,7 @@ export class JourneyShareService {
       FROM journey_photos gp
       JOIN trek_photos tkp ON tkp.id = gp.photo_id
       JOIN journeys j ON j.id = gp.journey_id
-      WHERE tkp.asset_id = ? AND gp.journey_id = ?
+      WHERE tkp.asset_id = ? AND gp.journey_id = ? AND ${NOT_DRAFT_ONLY_PHOTO}
     `).get(assetId, row.journey_id) as any;
     // Only resolve assets that actually belong to this shared journey.
     if (!photo) return null;
@@ -164,7 +174,7 @@ export class JourneyShareService {
     // Entries with photos
     const entries = this.db.prepare(`
       SELECT je.* FROM journey_entries je
-      WHERE je.journey_id = ? AND je.type != 'skeleton' AND je.dismissed = 0
+      WHERE je.journey_id = ? AND je.type != 'skeleton' AND je.dismissed = 0 AND je.is_draft = 0
       ORDER BY je.entry_date, je.sort_order
     `).all(row.journey_id) as any[];
 
@@ -190,7 +200,7 @@ export class JourneyShareService {
              tp.media_type, tp.duration_ms, tp.taken_at, tp.lat, tp.lng
       FROM journey_photos gp
       JOIN trek_photos tp ON tp.id = gp.photo_id
-      WHERE gp.journey_id = ?
+      WHERE gp.journey_id = ? AND ${NOT_DRAFT_ONLY_PHOTO}
       ${GALLERY_CHRONOLOGICAL_ORDER}
     `).all(row.journey_id) as any[];
 
