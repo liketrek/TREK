@@ -551,7 +551,7 @@ export function NoteRow({ note, chrome, reorder, drag, onEdit }: {
   const { time: noteTime, detail } = splitNoteTime(note.time)
   const time = noteTime ? fmtTime(noteTime, chrome) : ''
   const [title, ...rest] = note.text.split('\n')
-  const titleExtra = rest.join(' ').trim()
+  const titleExtra = rest.join('\n').trim()
 
   return (
     <div
@@ -561,10 +561,10 @@ export function NoteRow({ note, chrome, reorder, drag, onEdit }: {
       // A link in the rendered body keeps its own tap; the rest of the row edits.
       onClick={chrome.editing ? (e => { if (!(e.target as HTMLElement).closest('a')) onEdit() }) : undefined}
       onKeyDown={chrome.editing ? (e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onEdit() } }) : undefined}
-      className={`my-[2px] flex items-center gap-2.5 ${chrome.editing ? 'cursor-pointer' : ''} ${dragClass(drag)}`}
+      className={`my-[2px] flex items-start gap-2.5 ${chrome.editing ? 'cursor-pointer' : ''} ${dragClass(drag)}`}
     >
       {!chrome.editing && (
-        <AvatarRing style={note.color ? { background: skin.iconBackground, borderColor: skin.border } : undefined}>
+        <AvatarRing className="mt-[2px]" style={note.color ? { background: skin.iconBackground, borderColor: skin.border } : undefined}>
           <Icon size={14} strokeWidth={2} style={{ color: skin.iconColor }} />
         </AvatarRing>
       )}
@@ -572,20 +572,20 @@ export function NoteRow({ note, chrome, reorder, drag, onEdit }: {
         className="min-w-0 flex-1 rounded-[13px] border px-[11px] py-[7px]"
         style={{ borderColor: skin.border, background: note.color ? skin.background : 'var(--m-ic)' }}
       >
-        <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 items-start gap-1.5">
           {time && <span className={TIME_CHIP}>{time}</span>}
-          <span className="min-w-0 text-[0.875rem] font-semibold">{title}</span>
+          <span className="min-w-0 break-words [overflow-wrap:anywhere] [word-break:break-word] text-[0.875rem] font-semibold">{title}</span>
         </div>
         {titleExtra && (
-          <div className="mt-px font-geist text-[0.71875rem] leading-[1.4] text-m-muted">{titleExtra}</div>
+          <MarkdownText className="mt-px font-geist text-[0.71875rem] leading-[1.4] text-m-muted break-words [overflow-wrap:anywhere] [word-break:break-word]">{titleExtra}</MarkdownText>
         )}
         {detail && (
           // Rendered, not raw: a note written with the formatting bar would
           // otherwise read as `**asterisks**` on the phone.
-          <MarkdownText className="mt-px font-geist text-[0.71875rem] leading-[1.45] text-m-muted [overflow-wrap:anywhere]">{detail}</MarkdownText>
+          <MarkdownText className="mt-px font-geist text-[0.71875rem] leading-[1.45] text-m-muted break-words [overflow-wrap:anywhere] [word-break:break-word]">{detail}</MarkdownText>
         )}
       </div>
-      {chrome.editing && <span className="flex flex-none items-center gap-1.5">{reorder}</span>}
+      {chrome.editing && <span className="mt-[2px] flex flex-none items-center gap-1.5">{reorder}</span>}
     </div>
   )
 }

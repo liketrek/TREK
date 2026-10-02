@@ -28,7 +28,7 @@ export default function MarkdownText({ children, className = '', clamp = false }
 }) {
   return (
     <div
-      className={`collab-note-md ${clamp ? 'truncate ' : ''}${className}`}
+      className={`collab-note-md break-words [overflow-wrap:anywhere] [word-break:break-word] ${clamp ? 'truncate ' : ''}${className}`}
       style={clamp ? { maxHeight: '1.2em', lineHeight: 1.2 } : undefined}
     >
       <Markdown

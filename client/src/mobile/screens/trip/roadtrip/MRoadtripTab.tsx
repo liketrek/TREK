@@ -180,7 +180,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
       {searchBar}
       <div
         ref={cardRef}
-        className={`absolute inset-0 overflow-y-auto overscroll-contain px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] ${
+        className={`absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] ${
           searchBar ? 'pt-[calc(var(--m-safe-top,12px)+150px)]' : 'pt-[calc(var(--m-safe-top,12px)+102px)]'
         }`}
       >

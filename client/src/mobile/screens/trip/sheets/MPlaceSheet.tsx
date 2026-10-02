@@ -474,7 +474,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                           {day.title || t('planner.dayN', { n: (day.day_number ?? planner.days.indexOf(day) + 1) || '?' })}
                         </div>
                       )}
-                      <div className="whitespace-pre-wrap font-geist text-[0.75rem] leading-[1.5] text-m-muted">{assignment.notes}</div>
+                      <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] font-geist text-[0.75rem] leading-[1.5] text-m-muted">{assignment.notes}</div>
                     </div>
                   ))}
                 </div>

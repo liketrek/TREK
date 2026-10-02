@@ -1535,16 +1535,18 @@ img[alt="TREK"] {
 
 /* Markdown in Collab Notes */
 .collab-note-md strong, .collab-note-md-full strong { font-weight: 700 !important; }
+.collab-note-md, .collab-note-md-full { overflow-wrap: anywhere; word-break: break-word; }
 .collab-note-md em, .collab-note-md-full em { font-style: italic !important; }
 .collab-note-md h1, .collab-note-md h2, .collab-note-md h3 { font-weight: 700 !important; margin: 0; }
 .collab-note-md-full h1 { font-size: 1.3em !important; font-weight: 700 !important; margin: 0.8em 0 0.3em; }
 .collab-note-md-full h2 { font-size: 1.15em !important; font-weight: 700 !important; margin: 0.8em 0 0.3em; }
 .collab-note-md-full h3 { font-size: 1em !important; font-weight: 700 !important; margin: 0.8em 0 0.3em; }
 .collab-note-md p, .collab-note-md-full p { margin: 0 0 0.3em; }
+.collab-note-md p:last-child, .collab-note-md-full p:last-child { margin-bottom: 0; }
 .collab-note-md ul, .collab-note-md-full ul { list-style-type: disc !important; padding-left: 1.4em !important; margin: 0.2em 0; }
 .collab-note-md ol, .collab-note-md-full ol { list-style-type: decimal !important; padding-left: 1.4em !important; margin: 0.2em 0; }
 .collab-note-md li, .collab-note-md-full li { display: list-item !important; margin: 0.1em 0; }
-.collab-note-md code, .collab-note-md-full code { font-size: 0.9em; padding: 1px 5px; border-radius: 4px; background: var(--bg-secondary); }
+.collab-note-md code, .collab-note-md-full code { font-size: 0.9em; padding: 1px 5px; border-radius: 4px; background: var(--bg-secondary); word-break: break-all; }
 .collab-note-md-full pre { padding: 10px 12px; border-radius: 8px; background: var(--bg-secondary); overflow-x: auto; margin: 0.5em 0; }
 .collab-note-md-full pre code { padding: 0; background: none; }
 .collab-note-md a, .collab-note-md-full a { color: #3b82f6; text-decoration: underline; word-break: normal; overflow-wrap: break-word; }
