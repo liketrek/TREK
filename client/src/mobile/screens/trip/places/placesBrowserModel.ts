@@ -17,9 +17,6 @@ import {
  * there.
  */
 
-/** Kept under this name for the browser's callers; the predicate itself lives in utils/placesFilter. */
-export { matchesCategoryFilter }
-
 export function plannedPlaceIds(
   assignments: AssignmentsMap,
   accommodations: PlannedAccommodation[] = [],

@@ -9,7 +9,7 @@ import { tintOf } from './planParts'
 import { CategoryTile } from './PlacesBulkCategoryModal'
 import type { PlacesFilter, SidebarState } from './usePlacesSidebar'
 import { PLACES_SORTS, type PlacesSort } from './placesSort'
-import { RATING_FLOORS } from '../../utils/placesFilter'
+import { RATING_FLOORS, UNCATEGORIZED } from '../../utils/placesFilter'
 
 /**
  * Below this the two labels stop fitting side by side and both buttons fall back
@@ -259,7 +259,7 @@ function CategoryFilter(S: SidebarState) {
   let label = t('places.allCategories')
   if (categoryFilters.size === 1) {
     const only = categories.find(c => categoryFilters.has(String(c.id)))
-    if (categoryFilters.has('uncategorized')) label = t('places.noCategory')
+    if (categoryFilters.has(UNCATEGORIZED)) label = t('places.noCategory')
     else if (only) label = only.name
   } else if (categoryFilters.size > 1) {
     label = `${categoryFilters.size} ${t('places.categoriesSelected')}`
@@ -278,8 +278,8 @@ function CategoryFilter(S: SidebarState) {
       ))}
       {places.some(p => p.category_id == null) && (
         <CategoryChoice
-          on={categoryFilters.has('uncategorized')}
-          onClick={() => toggleCategoryFilter('uncategorized')}
+          on={categoryFilters.has(UNCATEGORIZED)}
+          onClick={() => toggleCategoryFilter(UNCATEGORIZED)}
           tile={<CategoryTile size={22} />}
           label={t('places.noCategory')}
         />

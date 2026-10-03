@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
-  filterPool, firstPlannedDayNumbers, matchesCategoryFilter, matchesSearch,
+  filterPool, firstPlannedDayNumbers, matchesSearch,
   plannedPlaceIds, poolCounts,
 } from './placesBrowserModel'
+import { matchesCategoryFilter } from '../../../../utils/placesFilter'
 import type { AssignmentsMap, Day, Place } from '../../../../types'
 
 const mkPlace = (id: number, over: Partial<Place> = {}): Place =>
