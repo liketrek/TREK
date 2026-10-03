@@ -62,6 +62,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Φιλτράρισμα ανά χώρα ή περιοχή',
   'places.allLocations': 'Όλες οι χώρες',
   'places.filterShow': 'Εμφάνιση',
+  'places.filters': 'Φίλτρα',
   'places.clearSearch': 'Καθαρισμός αναζήτησης',
   'places.yourRating': 'Η βαθμολογία σου',
   'places.notRated': 'Χωρίς βαθμολογία ακόμη',

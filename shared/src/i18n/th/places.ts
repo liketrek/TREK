@@ -55,6 +55,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'กรองตามประเทศหรือภูมิภาค',
   'places.allLocations': 'ทุกประเทศ',
   'places.filterShow': 'แสดง',
+  'places.filters': 'ตัวกรอง',
   'places.clearSearch': 'ล้างการค้นหา',
   'places.yourRating': 'คะแนนของคุณ',
   'places.notRated': 'ยังไม่ได้รับการจัดอันดับ',

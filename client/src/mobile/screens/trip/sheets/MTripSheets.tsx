@@ -25,6 +25,7 @@ import MNoteSheet, { type MNoteSheetPayload } from './MNoteSheet'
 import MImportSheet from './MImportSheet'
 import MExportSheet from './MExportSheet'
 import MMehrSheet from './MMehrSheet'
+import MPlacesFilterSheet from '../places/MPlacesFilterSheet'
 import MRtStopSheet from '../roadtrip/MRtStopSheet'
 import MRtStaySheet from '../roadtrip/MRtStaySheet'
 import MRtKindSheet from '../roadtrip/MRtKindSheet'
@@ -91,6 +92,12 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         onClose={shell.closeSheet}
       />
       <MImportSheet planner={planner} open={sheet?.id === 'import'} onClose={shell.closeSheet} />
+      <MPlacesFilterSheet
+        open={sheet?.id === 'placesFilter'}
+        onClose={shell.closeSheet}
+        places={planner.places}
+        categories={planner.categories}
+      />
 
       {/* ── Planner-flag editors (also serve ?create= and the import review) ── */}
       <MPlaceEditSheet planner={planner} onOpenExpense={openBookingExpense} />

@@ -63,6 +63,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Ülke veya bölgeye göre filtrele',
   'places.allLocations': 'Tüm ülkeler',
   'places.filterShow': 'Göster',
+  'places.filters': 'Filtreler',
   'places.clearSearch': 'Aramayı temizle',
   'places.yourRating': 'Senin puanın',
   'places.notRated': 'Henüz puanlanmadı',

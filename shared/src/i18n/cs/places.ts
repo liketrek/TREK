@@ -61,6 +61,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Filtrovat podle země nebo regionu',
   'places.allLocations': 'Všechny země',
   'places.filterShow': 'Zobrazit',
+  'places.filters': 'Filtry',
   'places.clearSearch': 'Vymazat hledání',
   'places.yourRating': 'Tvé hodnocení',
   'places.notRated': 'Zatím bez hodnocení',

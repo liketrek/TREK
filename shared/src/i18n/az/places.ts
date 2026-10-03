@@ -70,6 +70,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Ölkə və ya regiona görə filtrlə',
   'places.allLocations': 'Bütün ölkələr',
   'places.filterShow': 'Göstər',
+  'places.filters': 'Filtrlər',
   'places.clearSearch': 'Axtarışı təmizlə',
   'places.yourRating': 'Sizin reytinqiniz',
   'places.notRated': 'Hələ qiymətləndirilməyib',

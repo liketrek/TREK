@@ -54,7 +54,7 @@ export type MTripCollabTab = 'chat' | 'notes' | 'links' | 'polls'
  * { dayId, note? }), 'accommodation' (payload { dayId?, accId?, from? }),
  * 'transport' (payload { reservationId }), 'bract'
  * (payload { placeId, dayPicker? }), 'import', 'export', 'members',
- * 'tripedit', 'bags', 'task'. The place inspector keys off the planner's
+ * 'tripedit', 'bags', 'task', 'placesFilter' (the map's places filter). The place inspector keys off the planner's
  * place selection instead of a sheet id, and planner-backed editors (place
  * form, transport, booking, expense) keep using the planner's own modal flags.
  */

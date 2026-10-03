@@ -17,7 +17,7 @@ import { openLeg } from '../../../helpers/legAlternatives'
 import { RT_ALT_BAR_LIFT } from '../../../../src/mobile/screens/trip/roadtrip/useMRtAlternatives'
 import { corePoiCategories, pluginPoiCategories } from '../../../../src/components/Map/usePoiCategories'
 
-// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-045
+// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-048
 //
 // The stage's pins come out of the trip store rather than the planner's map list, so the
 // stage fixtures seed the store and leave `mapPlaces` to stand for what the plan tab shows.
@@ -183,7 +183,7 @@ beforeEach(() => {
     moved: false, toggle: vi.fn(), searchArea: vi.fn(), onViewportChange: vi.fn(),
   }
   useSettingsStore.setState(s => ({ settings: { ...s.settings, map_poi_pill_enabled: true } }))
-  seedStore(useTripStore, { places: [], placesFilter: 'all', placesCategoryFilter: new Set<string>() })
+  seedStore(useTripStore, { places: [], placesFilter: 'all', placesCategoryFilter: new Set<string>(), placesRatingFilter: 'all' })
 })
 
 describe('MMapArea', () => {
@@ -950,5 +950,32 @@ describe('MMapArea and a booked night at the edge of the stage', () => {
     expect((divider.parentElement as HTMLElement).style.overflowX).toBe('auto')
     trailheads.click()
     expect(mocks.poi.toggle).toHaveBeenCalledWith('plugin:trail-finder/trailheads')
+  })
+})
+
+describe('MMapArea — places filter', () => {
+  it('FE-MOB-MAPAREA-046: the plan map offers the places filter, and a tap opens its sheet', () => {
+    const { shell } = renderArea({ trTab: 'plan' })
+    const pill = screen.getByTestId('places-filter-pill')
+    expect(pill).toHaveAccessibleName('Filters')
+    expect(pill).toHaveAttribute('aria-pressed', 'false')
+    act(() => { pill.click() })
+    expect(shell.openSheet).toHaveBeenCalledWith('placesFilter')
+  })
+
+  it('FE-MOB-MAPAREA-047: the pill lights up and counts the filters narrowing the pins', () => {
+    seedStore(useTripStore, { placesFilter: 'unplanned', placesRatingFilter: 4 })
+    renderArea({ trTab: 'plan' })
+    const pill = screen.getByTestId('places-filter-pill')
+    expect(pill).toHaveAttribute('aria-pressed', 'true')
+    expect(pill).toHaveAccessibleName('Filters (2)')
+    expect(screen.getByText('2')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('FE-MOB-MAPAREA-048: the stage draws its own pins, so it has no places filter, and neither has a covered map', () => {
+    renderArea({ trTab: 'roadtrip', mapFront: true })
+    expect(screen.queryByTestId('places-filter-pill')).not.toBeInTheDocument()
+    renderArea({ view: 'plan', mapFront: false })
+    expect(screen.queryByTestId('places-filter-pill')).not.toBeInTheDocument()
   })
 })

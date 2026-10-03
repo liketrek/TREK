@@ -61,6 +61,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'تصفية حسب البلد أو المنطقة',
   'places.allLocations': 'كل الدول',
   'places.filterShow': 'عرض',
+  'places.filters': 'عوامل التصفية',
   'places.clearSearch': 'مسح البحث',
   'places.yourRating': 'تقييمك',
   'places.notRated': 'لم يُقيَّم بعد',

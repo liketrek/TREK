@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import MPlacesBrowser from '../../../../src/mobile/screens/trip/places/MPlacesBrowser'
 import { collectionsApi } from '../../../../src/api/collections'
@@ -10,7 +10,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { AssignmentsMap, Category, Day, Place } from '../../../../src/types'
 
-// FE-MOB-PBROW-001 to FE-MOB-PBROW-031
+// FE-MOB-PBROW-001 to FE-MOB-PBROW-034
 
 const CATEGORIES = [
   { id: 1, name: 'Sights', color: '#123456', icon: 'landmark' },
@@ -168,10 +168,37 @@ describe('MPlacesBrowser', () => {
     expect(useTripStore.getState().placesCategoryFilter.size).toBe(0)
   })
 
+  it('FE-MOB-PBROW-032: the panel rating floor narrows the list, badges the button and lands in the store', () => {
+    const planner = makePlanner({
+      places: [{ ...LOUVRE, rating_avg: 4.5 }, { ...EIFFEL, rating_avg: 3 }, SEINE],
+    } as Partial<TripPlanner>)
+    renderBrowser(planner)
+    const panelBtn = screen.getByRole('button', { name: 'places.allCategories' })
+    fireEvent.click(panelBtn)
+    const floors = screen.getByRole('group', { name: 'Filter by rating' })
+    fireEvent.click(within(floors).getByRole('button', { name: '4+' }))
+    expect(useTripStore.getState().placesRatingFilter).toBe(4)
+    expect(screen.getByText('Louvre')).toBeInTheDocument()
+    expect(screen.queryByText('Eiffel Tower')).not.toBeInTheDocument()
+    expect(screen.queryByText('Seine Track')).not.toBeInTheDocument()
+    expect(panelBtn).toHaveTextContent('1')
+
+    fireEvent.click(within(floors).getByRole('button', { name: 'All' }))
+    expect(useTripStore.getState().placesRatingFilter).toBe('all')
+    expect(screen.getByText('Seine Track')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PBROW-033: a floor set from the map sheet already thins the list on arrival', () => {
+    seedStore(useTripStore, { placesRatingFilter: 5 })
+    renderBrowser(makePlanner({ places: [{ ...LOUVRE, rating_avg: 5 }, EIFFEL] } as Partial<TripPlanner>))
+    expect(screen.getByText('Louvre')).toBeInTheDocument()
+    expect(screen.queryByText('Eiffel Tower')).not.toBeInTheDocument()
+  })
+
   it('FE-MOB-PBROW-011: the uncategorized row filters the places without a category', () => {
     renderBrowser()
     fireEvent.click(screen.getByRole('button', { name: 'places.allCategories' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: 'places.noCategory' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'No Category' }))
     expect([...useTripStore.getState().placesCategoryFilter]).toEqual(['uncategorized'])
     expect(screen.getByText('Eiffel Tower')).toBeInTheDocument()
     expect(screen.queryByText('Louvre')).not.toBeInTheDocument()
@@ -181,7 +208,7 @@ describe('MPlacesBrowser', () => {
     const planner = makePlanner({ places: [LOUVRE, SEINE] } as Partial<TripPlanner>)
     renderBrowser(planner)
     fireEvent.click(screen.getByRole('button', { name: 'places.allCategories' }))
-    expect(screen.queryByRole('checkbox', { name: 'places.noCategory' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: 'No Category' })).not.toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Food' })).toBeInTheDocument()
   })
 
@@ -360,6 +387,13 @@ describe('MPlacesBrowser', () => {
     renderBrowser(makePlanner({ places: [LOUVRE] } as Partial<TripPlanner>), buildShell({ browseFromEdit: true }))
     expect(screen.getByText('places.allPlanned')).toBeInTheDocument()
     expect(screen.queryByText('places.noneFound')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PBROW-034: an unplanned pool emptied by the rating floor reports no matches, not "all planned"', () => {
+    seedStore(useTripStore, { placesRatingFilter: 5 })
+    renderBrowser(makePlanner({ places: [EIFFEL] } as Partial<TripPlanner>), buildShell({ browseFromEdit: true }))
+    expect(screen.getByText('places.noneFound')).toBeInTheDocument()
+    expect(screen.queryByText('places.allPlanned')).not.toBeInTheDocument()
   })
 
   it('FE-MOB-PBROW-028: a search without hits reports no matches', () => {

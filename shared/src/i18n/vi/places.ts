@@ -61,6 +61,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Lọc theo quốc gia hoặc vùng',
   'places.allLocations': 'Tất cả quốc gia',
   'places.filterShow': 'Hiển thị',
+  'places.filters': 'Bộ lọc',
   'places.clearSearch': 'Xóa tìm kiếm',
   'places.yourRating': 'Đánh giá của bạn',
   'places.notRated': 'Chưa có đánh giá',

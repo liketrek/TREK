@@ -61,6 +61,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Filtrar por país ou região',
   'places.allLocations': 'Todos os países',
   'places.filterShow': 'Mostrar',
+  'places.filters': 'Siloù',
   'places.clearSearch': 'Limpar busca',
   'places.yourRating': 'Sua avaliação',
   'places.notRated': 'Ainda sem avaliações',

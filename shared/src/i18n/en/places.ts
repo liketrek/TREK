@@ -64,6 +64,8 @@ const places: TranslationStrings = {
   /** The button that opens the filter panel, and the panel's name. */
   /** Label over the all/unplanned/planned/tracks choice in the filter panel. */
   'places.filterShow': 'Show',
+  /** The phone map's button that opens the places filter sheet, and the sheet's title. */
+  'places.filters': 'Filters',
   'places.clearSearch': 'Clear search',
   'places.yourRating': 'Your rating',
   'places.notRated': 'Not rated yet',

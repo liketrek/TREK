@@ -61,6 +61,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Фільтр за країною або регіоном',
   'places.allLocations': 'Усі країни',
   'places.filterShow': 'Показати',
+  'places.filters': 'Фільтри',
   'places.clearSearch': 'Очистити пошук',
   'places.yourRating': 'Твоя оцінка',
   'places.notRated': 'Ще не оцінено',

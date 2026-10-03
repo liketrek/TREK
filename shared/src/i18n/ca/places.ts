@@ -60,6 +60,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Filtra per país o regió',
   'places.allLocations': 'Tots els països',
   'places.filterShow': 'Mostrar',
+  'places.filters': 'Filtres',
   'places.clearSearch': 'Esborra la cerca',
   'places.yourRating': 'La teva valoració',
   'places.notRated': 'Encara sense valoració',
