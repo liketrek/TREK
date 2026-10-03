@@ -70,7 +70,7 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': 'Usunięty w TREK',
   'docsync.state.scope_drift': 'Przeniesiony poza folder',
 
-  'docsync.conflict.resolve': "Rozwiąż {count}",
+  'docsync.conflict.resolve': 'Rozwiąż {count}',
 
   'docsync.conflict.title': 'Obie kopie zostały zmienione',
   'docsync.conflict.keepTrek': 'Zachowaj wersję z TREK',
@@ -177,7 +177,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Transfer się nie powiódł.',
 
   'docsync.error.unknown_provider': 'Ten dostawca nie jest dostępny na tej instancji.',
-  'docsync.error.provider_disabled': 'Wstrzymane: administrator wyłączył tego dostawcę. Synchronizacja zostanie wznowiona, gdy znów go włączy.',
+  'docsync.error.provider_disabled':
+    'Wstrzymane: administrator wyłączył tego dostawcę. Synchronizacja zostanie wznowiona, gdy znów go włączy.',
   'docsync.binding.reconnect': 'Połącz ponownie',
 };
 

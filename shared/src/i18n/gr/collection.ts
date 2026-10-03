@@ -156,7 +156,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'Προσθήκη σε λίστα',
   'collections.file.targetExistingHint': 'Σε μία που έχετε ήδη',
   'collections.file.searchLists': 'Αναζήτηση λιστών',
-  'collections.file.intoHint': 'Τα μέρη που έχει ήδη η λίστα μένουν όπως είναι, όπως και το όνομα και το χρώμα της. Οι ετικέτες του αρχείου προστίθενται.',
+  'collections.file.intoHint':
+    'Τα μέρη που έχει ήδη η λίστα μένουν όπως είναι, όπως και το όνομα και το χρώμα της. Οι ετικέτες του αρχείου προστίθενται.',
   'collections.file.confirmInto': 'Προσθήκη στη λίστα',
   'collections.file.doneInto': '{count} μέρη προστέθηκαν στη λίστα {name}',
   'collections.file.doneIntoDuplicates': '{count} προστέθηκαν στη λίστα {name}, {duplicates} υπήρχαν ήδη',

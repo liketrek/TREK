@@ -57,7 +57,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Tiện ích Dawarich đang bị tắt trên phiên bản này.',
   'dawarich.error.offline': 'Việc này cần kết nối — TREK hiện đang ngoại tuyến.',
   'dawarich.error.invalid_url': 'TREK không dùng được địa chỉ này.',
-  'dawarich.warning.private_ip': 'Địa chỉ này trỏ tới một IP riêng ({ip}). Hãy chắc chắn đó là điều bạn muốn — máy chủ có thể cần ALLOW_INTERNAL_NETWORK=true để truy cập.',
+  'dawarich.warning.private_ip':
+    'Địa chỉ này trỏ tới một IP riêng ({ip}). Hãy chắc chắn đó là điều bạn muốn — máy chủ có thể cần ALLOW_INTERNAL_NETWORK=true để truy cập.',
   'dawarich.error.unknown': 'Đã xảy ra lỗi khi trao đổi với Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────

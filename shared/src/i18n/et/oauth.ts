@@ -38,10 +38,11 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': 'Atlase haldus',
   'oauth.scope.atlas:write.description': 'Riikide ja piirkondade külastatuks märkimine ning soovinimekirja haldus',
   'oauth.scope.packing:read.label': 'Pakkimisnimekirjade vaatamine',
-  'oauth.scope.packing:read.description': 'Pakitavate esemete, kottide ja kategooriate vastutajate lugemine',
+  'oauth.scope.packing:read.description':
+    'Pakitavate esemete, kottide, kategooriate vastutajate ja ostunimekirja kirjete lugemine',
   'oauth.scope.packing:write.label': 'Pakkimisnimekirjade haldus',
   'oauth.scope.packing:write.description':
-    'Pakitavate esemete ja kottide lisamine, uuendamine, kustutamine, märkimine ning järjestamine',
+    'Pakitavate esemete, kottide ja ostunimekirja kirjete lisamine, uuendamine, kustutamine, märkimine ning järjestamine',
   'oauth.scope.todos:read.label': 'Ülesandenimekirjade vaatamine',
   'oauth.scope.todos:read.description': 'Reisi ülesannete ja kategooriate vastutajate lugemine',
   'oauth.scope.todos:write.label': 'Ülesandenimekirjade haldus',

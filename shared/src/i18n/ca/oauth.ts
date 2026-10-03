@@ -38,9 +38,11 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': "Gestiona l'Atles",
   'oauth.scope.atlas:write.description': 'Marca països i regions com a visitats, gestiona la llista de desitjos',
   'oauth.scope.packing:read.label': "Mostra les llistes d'equipatge",
-  'oauth.scope.packing:read.description': 'Llegeix articles, maletes i responsables de categoria',
+  'oauth.scope.packing:read.description':
+    'Llegeix articles, maletes, responsables de categoria i articles de la llista de la compra',
   'oauth.scope.packing:write.label': "Gestiona les llistes d'equipatge",
-  'oauth.scope.packing:write.description': 'Afegeix, actualitza, elimina, marca i reordena articles i maletes',
+  'oauth.scope.packing:write.description':
+    'Afegeix, actualitza, elimina, marca i reordena articles, maletes i articles de la llista de la compra',
   'oauth.scope.todos:read.label': 'Mostra les llistes de tasques',
   'oauth.scope.todos:read.description': 'Llegeix tasques del viatge i responsables de categoria',
   'oauth.scope.todos:write.label': 'Gestiona les llistes de tasques',
@@ -100,17 +102,22 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Fitxers',
   'oauth.scope.group.settings': 'Configuració',
   'oauth.scope.files:read.label': 'Veure els fitxers del viatge',
-  'oauth.scope.files:read.description': 'Llistar els documents d’un viatge: noms, mides, qui els ha pujat i a què estan vinculats',
+  'oauth.scope.files:read.description':
+    'Llistar els documents d’un viatge: noms, mides, qui els ha pujat i a què estan vinculats',
   'oauth.scope.files:write.label': 'Gestionar els fitxers del viatge',
-  'oauth.scope.files:write.description': 'Reanomenar i descriure fitxers, vincular-los a reserves i llocs, destacar-los i enviar-los a la paperera',
+  'oauth.scope.files:write.description':
+    'Reanomenar i descriure fitxers, vincular-los a reserves i llocs, destacar-los i enviar-los a la paperera',
   'oauth.scope.files:content.label': 'Llegir el contingut dels fitxers',
-  'oauth.scope.files:content.description': 'Llegir el contingut d’un document pujat, com un PDF de reserva o un bitllet',
+  'oauth.scope.files:content.description':
+    'Llegir el contingut d’un document pujat, com un PDF de reserva o un bitllet',
   'oauth.scope.settings:read.label': 'Veure les teves preferències',
   'oauth.scope.settings:read.description': 'Llegir unitats, format d’hora, idioma, moneda per defecte i pàgina d’inici',
   'oauth.scope.settings:write.label': 'Canviar les teves preferències',
-  'oauth.scope.settings:write.description': 'Canviar unitats, format d’hora, idioma, moneda per defecte i pàgina d’inici. Mai les claus API desades',
+  'oauth.scope.settings:write.description':
+    'Canviar unitats, format d’hora, idioma, moneda per defecte i pàgina d’inici. Mai les claus API desades',
   'oauth.scope.group.plugins': 'Connectors',
   'oauth.scope.plugins:use.label': 'Executar eines de connectors',
-  'oauth.scope.plugins:use.description': 'Permet que aquest client cridi eines publicades pels connectors que un administrador ha instal·lat i aprovat. Cada connector actua amb els permisos que ja tenia concedits, no amb els àmbits d\'aquest testimoni',
+  'oauth.scope.plugins:use.description':
+    "Permet que aquest client cridi eines publicades pels connectors que un administrador ha instal·lat i aprovat. Cada connector actua amb els permisos que ja tenia concedits, no amb els àmbits d'aquest testimoni",
 };
 export default oauth;

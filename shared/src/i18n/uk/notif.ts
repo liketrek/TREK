@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} тепер доступний',
   'notif.replica_failure.title': 'Збій репліки сховища',
   'notif.replica_failure.text': "Помилка запису в репліку '{backend}': {op} для {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Помилка запису в репліку '{backend}': {op} для {key} — {error}. Із моменту останнього сповіщення приховано ще {suppressed} помилок.",
+  'notif.replica_failure.textSuppressed':
+    "Помилка запису в репліку '{backend}': {op} для {key} — {error}. Із моменту останнього сповіщення приховано ще {suppressed} помилок.",
   'notif.action.view_trip': 'Відкрити поїздку',
   'notif.action.view_collab': 'Відкрити повідомлення',
   'notif.action.view_packing': 'Відкрити пакування',

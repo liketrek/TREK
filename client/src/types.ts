@@ -84,6 +84,20 @@ export interface TodoItem {
   priority: number
 }
 
+export interface ShoppingItem {
+  id: number
+  trip_id: number
+  name: string
+  checked: number
+  quantity?: string | null
+  category?: string | null
+  assigned_user_id?: number | null
+  notes?: string | null
+  sort_order: number
+  budget_item_id?: number | null
+  created_at?: string
+}
+
 export interface TripFile {
   id: number
   trip_id: number

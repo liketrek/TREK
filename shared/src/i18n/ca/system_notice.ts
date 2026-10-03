@@ -60,11 +60,14 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.features_label': 'Els protagonistes',
   'system_notice.release_notes.features_aside': 'I això no és tot',
   'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': 'El primer planificador de viatges de codi obert amb API de llocs pròpia. 73,6 milions de llocs, sense clau, sense quota.',
+  'system_notice.release_notes.feature_places_body':
+    'El primer planificador de viatges de codi obert amb API de llocs pròpia. 73,6 milions de llocs, sense clau, sense quota.',
   'system_notice.release_notes.feature_roadtrip_title': 'Complement Roadtrip',
-  'system_notice.release_notes.feature_roadtrip_body': 'Planifica el trajecte tot sol: ruta, distància, hores i parades. Desactivat fins que un admin l’activi.',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Planifica el trajecte tot sol: ruta, distància, hores i parades. Desactivat fins que un admin l’activi.',
   'system_notice.release_notes.feature_dawarich_title': 'Integració amb Dawarich',
-  'system_notice.release_notes.feature_dawarich_body': 'L’alternativa autoallotjada a Google Timeline, ara llegible des de TREK. TREK llegeix, i només llegeix.',
+  'system_notice.release_notes.feature_dawarich_body':
+    'L’alternativa autoallotjada a Google Timeline, ara llegible des de TREK. TREK llegeix, i només llegeix.',
   'system_notice.release_notes.footnote': 'I una llarga llista de canvis més petits a la resta de TREK.',
   'system_notice.release_notes.notes_label': 'Notes de la versió',
   'system_notice.release_notes.note_eyebrow': 'Una nota del mantenidor',
@@ -84,8 +87,10 @@ const system_notice: TranslationStrings = {
     "Si s'ha guanyat un lloc als teus viatges, convida'm a un cafè i ajuda a fer que arribi la propera versió.",
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Dona suport a Ko-fi',
-  'system_notice.release_notes.intro': 'Una API de llocs pròpia, viatges per carretera planificats de cap a peus, el teu historial d’ubicacions a les teves mans, i els teus documents sincronitzats.',
+  'system_notice.release_notes.intro':
+    'Una API de llocs pròpia, viatges per carretera planificats de cap a peus, el teu historial d’ubicacions a les teves mans, i els teus documents sincronitzats.',
   'system_notice.release_notes.feature_docsync_title': 'Sincronització de documents',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud i Synology Drive. Els documents d’un viatge flueixen en tots dos sentits amb el magatzem que ja fas servir.',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx, Papra, Nextcloud, OpenCloud i Synology Drive. Els documents d’un viatge flueixen en tots dos sentits amb el magatzem que ja fas servir.',
 };
 export default system_notice;

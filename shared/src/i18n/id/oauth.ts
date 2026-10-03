@@ -38,9 +38,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': 'Kelola Atlas',
   'oauth.scope.atlas:write.description': 'Tandai negara dan wilayah yang dikunjungi, kelola daftar impian',
   'oauth.scope.packing:read.label': 'Lihat daftar perlengkapan',
-  'oauth.scope.packing:read.description': 'Baca barang perlengkapan, tas, dan penugasan kategori',
+  'oauth.scope.packing:read.description': 'Baca barang perlengkapan, tas, penugasan kategori, dan item daftar belanja',
   'oauth.scope.packing:write.label': 'Kelola daftar perlengkapan',
-  'oauth.scope.packing:write.description': 'Tambah, perbarui, hapus, centang, dan urutkan barang dan tas',
+  'oauth.scope.packing:write.description':
+    'Tambah, perbarui, hapus, centang, dan urutkan barang, tas, dan item daftar belanja',
   'oauth.scope.todos:read.label': 'Lihat daftar to-do',
   'oauth.scope.todos:read.description': 'Baca item to-do perjalanan dan penugasan kategori',
   'oauth.scope.todos:write.label': 'Kelola daftar to-do',
@@ -97,17 +98,21 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Berkas',
   'oauth.scope.group.settings': 'Pengaturan',
   'oauth.scope.files:read.label': 'Lihat berkas perjalanan',
-  'oauth.scope.files:read.description': 'Menampilkan dokumen perjalanan: nama, ukuran, siapa yang mengunggah, dan tautannya',
+  'oauth.scope.files:read.description':
+    'Menampilkan dokumen perjalanan: nama, ukuran, siapa yang mengunggah, dan tautannya',
   'oauth.scope.files:write.label': 'Kelola berkas perjalanan',
-  'oauth.scope.files:write.description': 'Ganti nama dan deskripsi berkas, tautkan ke pemesanan dan tempat, beri bintang dan buang ke sampah',
+  'oauth.scope.files:write.description':
+    'Ganti nama dan deskripsi berkas, tautkan ke pemesanan dan tempat, beri bintang dan buang ke sampah',
   'oauth.scope.files:content.label': 'Baca isi berkas',
   'oauth.scope.files:content.description': 'Membaca isi dokumen yang diunggah, misalnya PDF pemesanan atau tiket',
   'oauth.scope.settings:read.label': 'Lihat preferensi Anda',
   'oauth.scope.settings:read.description': 'Membaca satuan, format waktu, bahasa, mata uang bawaan, dan halaman awal',
   'oauth.scope.settings:write.label': 'Ubah preferensi Anda',
-  'oauth.scope.settings:write.description': 'Mengubah satuan, format waktu, bahasa, mata uang bawaan, dan halaman awal. Tidak pernah kunci API tersimpan',
+  'oauth.scope.settings:write.description':
+    'Mengubah satuan, format waktu, bahasa, mata uang bawaan, dan halaman awal. Tidak pernah kunci API tersimpan',
   'oauth.scope.group.plugins': 'Plugin',
   'oauth.scope.plugins:use.label': 'Jalankan alat plugin',
-  'oauth.scope.plugins:use.description': 'Izinkan klien ini memanggil alat yang disediakan oleh plugin yang dipasang dan disetujui administrator. Setiap plugin bertindak dengan akses yang sudah diberikan kepadanya, bukan dengan cakupan token ini',
+  'oauth.scope.plugins:use.description':
+    'Izinkan klien ini memanggil alat yang disediakan oleh plugin yang dipasang dan disetujui administrator. Setiap plugin bertindak dengan akses yang sudah diberikan kepadanya, bukan dengan cakupan token ini',
 };
 export default oauth;

@@ -35,9 +35,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': 'إدارة Atlas',
   'oauth.scope.atlas:write.description': 'تعليم الدول والمناطق كمزارة، وإدارة قائمة الأمنيات',
   'oauth.scope.packing:read.label': 'عرض قوائم الأمتعة',
-  'oauth.scope.packing:read.description': 'قراءة عناصر الأمتعة والحقائب ومُسنَدي الفئات',
+  'oauth.scope.packing:read.description': 'قراءة عناصر الأمتعة والحقائب ومُسنَدي الفئات وعناصر قائمة التسوق',
   'oauth.scope.packing:write.label': 'إدارة قوائم الأمتعة',
-  'oauth.scope.packing:write.description': 'إضافة وتحديث وحذف وتبديل وإعادة ترتيب عناصر الأمتعة والحقائب',
+  'oauth.scope.packing:write.description':
+    'إضافة وتحديث وحذف وتبديل وإعادة ترتيب عناصر الأمتعة والحقائب وعناصر قائمة التسوق',
   'oauth.scope.todos:read.label': 'عرض قوائم المهام',
   'oauth.scope.todos:read.description': 'قراءة مهام الرحلة ومُسنَدي الفئات',
   'oauth.scope.todos:write.label': 'إدارة قوائم المهام',
@@ -98,15 +99,18 @@ const oauth: TranslationStrings = {
   'oauth.scope.files:read.label': 'عرض ملفات الرحلة',
   'oauth.scope.files:read.description': 'سرد مستندات الرحلة: الأسماء والأحجام ومن رفعها وبماذا ترتبط',
   'oauth.scope.files:write.label': 'إدارة ملفات الرحلة',
-  'oauth.scope.files:write.description': 'إعادة تسمية الملفات ووصفها وربطها بالحجوزات والأماكن وتمييزها ونقلها إلى سلة المهملات',
+  'oauth.scope.files:write.description':
+    'إعادة تسمية الملفات ووصفها وربطها بالحجوزات والأماكن وتمييزها ونقلها إلى سلة المهملات',
   'oauth.scope.files:content.label': 'قراءة محتوى الملفات',
   'oauth.scope.files:content.description': 'قراءة محتوى مستند مرفوع، مثل ملف PDF لحجز أو تذكرة',
   'oauth.scope.settings:read.label': 'عرض تفضيلاتك',
   'oauth.scope.settings:read.description': 'قراءة الوحدات وتنسيق الوقت واللغة والعملة الافتراضية وصفحة البداية',
   'oauth.scope.settings:write.label': 'تغيير تفضيلاتك',
-  'oauth.scope.settings:write.description': 'تغيير الوحدات وتنسيق الوقت واللغة والعملة الافتراضية وصفحة البداية. لا مفاتيح API المخزنة أبدًا',
+  'oauth.scope.settings:write.description':
+    'تغيير الوحدات وتنسيق الوقت واللغة والعملة الافتراضية وصفحة البداية. لا مفاتيح API المخزنة أبدًا',
   'oauth.scope.group.plugins': 'الإضافات',
   'oauth.scope.plugins:use.label': 'تشغيل أدوات الإضافات',
-  'oauth.scope.plugins:use.description': 'السماح لهذا التطبيق باستدعاء الأدوات التي توفرها الإضافات التي ثبّتها المسؤول ووافق عليها. تعمل كل إضافة بالصلاحيات الممنوحة لها مسبقًا، وليس بنطاقات هذا الرمز',
+  'oauth.scope.plugins:use.description':
+    'السماح لهذا التطبيق باستدعاء الأدوات التي توفرها الإضافات التي ثبّتها المسؤول ووافق عليها. تعمل كل إضافة بالصلاحيات الممنوحة لها مسبقًا، وليس بنطاقات هذا الرمز',
 };
 export default oauth;

@@ -46,6 +46,10 @@ const { db } = vi.hoisted(() => {
     name TEXT NOT NULL, checked INTEGER NOT NULL DEFAULT 0, category TEXT, sort_order INTEGER NOT NULL DEFAULT 0,
     due_date TEXT, description TEXT, assigned_user_id INTEGER, priority INTEGER NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  // bundle() reads the shopping list beside the to-dos.
+  tmp.exec(`CREATE TABLE shopping_items (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
+    name TEXT NOT NULL, checked INTEGER DEFAULT 0, quantity TEXT, category TEXT, assigned_user_id INTEGER,
+    notes TEXT, sort_order INTEGER DEFAULT 0, budget_item_id INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   // bundle()'s packingItems now runs PackingService's real SQL (DI-injected, no
   // mock) — viewer-scoped (#858), so the recipients table must exist too.
   tmp.exec(`CREATE TABLE packing_items (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,

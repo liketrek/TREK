@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version}が利用可能です',
   'notif.replica_failure.title': 'ストレージレプリカの障害',
   'notif.replica_failure.text': "レプリカ '{backend}' への書き込みに失敗しました：{op} / {key} — {error}",
-  'notif.replica_failure.textSuppressed': "レプリカ '{backend}' への書き込みに失敗しました：{op} / {key} — {error}。前回の通知以降、{suppressed}件の追加の失敗が抑制されました。",
+  'notif.replica_failure.textSuppressed':
+    "レプリカ '{backend}' への書き込みに失敗しました：{op} / {key} — {error}。前回の通知以降、{suppressed}件の追加の失敗が抑制されました。",
   'notif.action.view_trip': '旅行を見る',
   'notif.action.view_collab': 'メッセージを見る',
   'notif.action.view_packing': '持ち物を見る',

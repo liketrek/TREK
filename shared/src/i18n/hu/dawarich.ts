@@ -59,7 +59,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'A Dawarich bővítmény ki van kapcsolva ezen a példányon.',
   'dawarich.error.offline': 'Ehhez kapcsolat kell — a TREK most offline.',
   'dawarich.error.invalid_url': 'A TREK nem tudja használni ezt a címet.',
-  'dawarich.warning.private_ip': 'Ez a cím privát IP-re mutat ({ip}). Ellenőrizd, hogy így akartad-e — a szervernek ehhez ALLOW_INTERNAL_NETWORK=true kellhet.',
+  'dawarich.warning.private_ip':
+    'Ez a cím privát IP-re mutat ({ip}). Ellenőrizd, hogy így akartad-e — a szervernek ehhez ALLOW_INTERNAL_NETWORK=true kellhet.',
   'dawarich.error.unknown': 'Hiba történt a Dawarichhal folytatott kommunikáció közben.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -174,7 +175,8 @@ const dawarich: TranslationStrings = {
   'dawarich.again': 'Ellenőrzés újra',
   'dawarich.bucket.metersAway': '{meters} m-re',
   'dawarich.bucket.kilometersAway': '{km} km-re',
-  'dawarich.bucket.rule': 'Egy kívánság {meters} méteren belül és {minutes} perc helyszíni idő után számít teljesítettnek.',
+  'dawarich.bucket.rule':
+    'Egy kívánság {meters} méteren belül és {minutes} perc helyszíni idő után számít teljesítettnek.',
 
   'dawarich.journey.dayStays.one': '1 tartózkodás a Dawarichból',
   'dawarich.journey.dayStays.other': '{count} tartózkodás a Dawarichból',

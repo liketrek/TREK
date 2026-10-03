@@ -38,9 +38,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': 'Manage Atlas',
   'oauth.scope.atlas:write.description': 'Mark countries and regions visited, manage bucket list',
   'oauth.scope.packing:read.label': 'View packing lists',
-  'oauth.scope.packing:read.description': 'Read packing items, bags, and category assignees',
+  'oauth.scope.packing:read.description': 'Read packing items, bags, category assignees, and shopping list items',
   'oauth.scope.packing:write.label': 'Manage packing lists',
-  'oauth.scope.packing:write.description': 'Add, update, delete, toggle, and reorder packing items and bags',
+  'oauth.scope.packing:write.description':
+    'Add, update, delete, toggle, and reorder packing items, bags, and shopping list items',
   'oauth.scope.todos:read.label': 'View to-do lists',
   'oauth.scope.todos:read.description': 'Read trip to-do items and category assignees',
   'oauth.scope.todos:write.label': 'Manage to-do lists',
@@ -97,17 +98,22 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Files',
   'oauth.scope.group.settings': 'Settings',
   'oauth.scope.files:read.label': 'View trip files',
-  'oauth.scope.files:read.description': 'List the documents on a trip: names, sizes, who uploaded them, what they link to',
+  'oauth.scope.files:read.description':
+    'List the documents on a trip: names, sizes, who uploaded them, what they link to',
   'oauth.scope.files:write.label': 'Organise trip files',
-  'oauth.scope.files:write.description': 'Rename and describe files, link them to bookings and places, star and trash them',
+  'oauth.scope.files:write.description':
+    'Rename and describe files, link them to bookings and places, star and trash them',
   'oauth.scope.files:content.label': 'Read file contents',
-  'oauth.scope.files:content.description': 'Read what is inside an uploaded document, such as a booking PDF or a ticket',
+  'oauth.scope.files:content.description':
+    'Read what is inside an uploaded document, such as a booking PDF or a ticket',
   'oauth.scope.settings:read.label': 'View your preferences',
   'oauth.scope.settings:read.description': 'Read units, time format, language, default currency, and start page',
   'oauth.scope.settings:write.label': 'Change your preferences',
-  'oauth.scope.settings:write.description': 'Change units, time format, language, default currency, and start page. Never stored API keys',
+  'oauth.scope.settings:write.description':
+    'Change units, time format, language, default currency, and start page. Never stored API keys',
   'oauth.scope.group.plugins': 'Plugins',
   'oauth.scope.plugins:use.label': 'Run plugin tools',
-  'oauth.scope.plugins:use.description': 'Let this client call tools published by the plugins an administrator installed and approved. Each plugin acts with the access it was already granted, not with the scopes on this token',
+  'oauth.scope.plugins:use.description':
+    'Let this client call tools published by the plugins an administrator installed and approved. Each plugin acts with the access it was already granted, not with the scopes on this token',
 };
 export default oauth;

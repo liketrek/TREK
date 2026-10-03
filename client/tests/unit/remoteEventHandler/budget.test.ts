@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useTripStore } from '../../../src/store/tripStore';
 import { resetAllStores } from '../../helpers/store';
-import { buildBudgetItem } from '../../helpers/factories';
+import { buildBudgetItem, buildShoppingItem } from '../../helpers/factories';
 import type { BudgetItemMember } from '../../../src/types';
 
 beforeEach(() => {
@@ -54,6 +54,20 @@ describe('remoteEventHandler > budget', () => {
     const { budgetItems } = useTripStore.getState();
     expect(budgetItems).toHaveLength(1);
     expect(budgetItems.find(i => i.id === 1)).toBeUndefined();
+  });
+
+  it('FE-WSEVT-BUDGET-004b: budget:deleted frees the shopping items that expense booked', () => {
+    seedData();
+    useTripStore.setState({
+      shoppingItems: [
+        buildShoppingItem({ id: 10, checked: 1, budget_item_id: 1 }),
+        buildShoppingItem({ id: 11, checked: 1, budget_item_id: 2 }),
+      ],
+    });
+    useTripStore.getState().handleRemoteEvent({ type: 'budget:deleted', itemId: 1 });
+    const byId = new Map(useTripStore.getState().shoppingItems.map(i => [i.id, i]));
+    expect(byId.get(10)?.budget_item_id).toBeNull();
+    expect(byId.get(11)?.budget_item_id).toBe(2);
   });
 
   it('FE-WSEVT-BUDGET-005: budget:members-updated replaces entire members array and persons count', () => {

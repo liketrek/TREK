@@ -158,6 +158,11 @@ export const TREK_WS_EVENTS = {
     payload: z.object({ category: z.string(), assignees: z.array(z.unknown()) }),
   },
 
+  // ── Shopping ──────────────────────────────────────────────────────────────
+  'shopping:created': { scope: 'trip', payload: z.object({ item: entity }) },
+  'shopping:updated': { scope: 'trip', payload: z.object({ item: entity }) },
+  'shopping:deleted': { scope: 'trip', payload: z.object({ itemId: id }) },
+
   // ── Budget ───────────────────────────────────────────────────────────────
   'budget:created': { scope: 'trip', payload: z.object({ item: entity }) },
   'budget:updated': { scope: 'trip', payload: z.object({ item: entity }) },

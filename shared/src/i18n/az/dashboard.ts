@@ -88,7 +88,8 @@ const dashboard: TranslationStrings = {
   'dashboard.endDate': 'Bitmə tarixi',
   'dashboard.dayCount': 'Günlərin sayı',
   'dashboard.dayCountHint': 'Səyahət tarixləri təyin edilmədikdə neçə günün planlaşdırılacağını göstərin.',
-  'dashboard.noDateHint': 'Tarix təyin edilməyib — standart olaraq 7 gün yaradılacaq. Bunu istənilən vaxt dəyişə bilərsiniz.',
+  'dashboard.noDateHint':
+    'Tarix təyin edilməyib — standart olaraq 7 gün yaradılacaq. Bunu istənilən vaxt dəyişə bilərsiniz.',
   'dashboard.coverImage': 'Üz qabığı şəkli',
   'dashboard.addCoverImage': 'Üz qabığı şəkli əlavə et (və ya sürükləyib burax)',
   'dashboard.addMembers': 'Səyahət yoldaşları',
@@ -107,7 +108,8 @@ const dashboard: TranslationStrings = {
   'dashboard.endDateError': 'Bitmə tarixi başlama tarixindən sonra olmalıdır',
   'dashboard.tripTooLong': 'Səyahət ən çox {days} gün davam edə bilər',
   'dashboard.dateShiftTitle': 'Yeni başlama tarixi',
-  'dashboard.dateShiftIntro': 'Səyahətin başlama tarixini dəyişdiniz. Planlarınız yeni tarixlərə necə uyğunlaşdırılsın?',
+  'dashboard.dateShiftIntro':
+    'Səyahətin başlama tarixini dəyişdiniz. Planlarınız yeni tarixlərə necə uyğunlaşdırılsın?',
   'dashboard.dateShiftKeepBookings': 'Rezervasiyaların tarixlərini saxla',
   'dashboard.dateShiftKeepBookingsDesc':
     'Günlük planlar yeni tarixlərə köçürülür, rezervasiya və yaşayış yerləri isə tarixləri hələ də səyahət müddətinə daxil olduğu halda ilkin tarixlərində qalır.',
@@ -125,8 +127,7 @@ const dashboard: TranslationStrings = {
   'dashboard.shrinkBookingsHint':
     'Onlar Rezervasiyalar bölməsində qalır. Tarixi hələ də səyahət müddətinə daxil olan rezervasiya həmin günə yenidən əlavə edilir.',
   'dashboard.shrinkBookingsShiftHint': 'Onlar gün təyin edilmədən Rezervasiyalar bölməsində qalır.',
-  'dashboard.shrinkStayHint':
-    'Giriş və ya çıxış silinən günə düşdüyü üçün qalma qeydi tamamilə silinir.',
+  'dashboard.shrinkStayHint': 'Giriş və ya çıxış silinən günə düşdüyü üçün qalma qeydi tamamilə silinir.',
   'dashboard.shrinkStayBookedHint':
     'Giriş və ya çıxış silinən günə düşdüyü üçün qalma qeydi tamamilə silinir. Onun “{booking}” rezervasiyası və xərci Rezervasiyalar bölməsində qalır.',
   'dashboard.shrinkStayBookingHint':

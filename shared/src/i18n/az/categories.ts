@@ -14,11 +14,9 @@ const categories: TranslationStrings = {
   'categories.update': 'Yenilə',
   'categories.create': 'Yarat',
 
-  'categories.confirm.delete':
-    'Kateqoriya silinsin? Bu kateqoriyadakı məkanlar silinməyəcək.',
+  'categories.confirm.delete': 'Kateqoriya silinsin? Bu kateqoriyadakı məkanlar silinməyəcək.',
 
-  'categories.toast.loadError':
-    'Kateqoriyaları yükləmək mümkün olmadı',
+  'categories.toast.loadError': 'Kateqoriyaları yükləmək mümkün olmadı',
   'categories.toast.nameRequired': 'Ad daxil edin',
   'categories.toast.updated': 'Kateqoriya yeniləndi',
   'categories.toast.created': 'Kateqoriya yaradıldı',

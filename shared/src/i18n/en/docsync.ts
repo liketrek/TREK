@@ -69,7 +69,7 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': 'Deleted in TREK',
   'docsync.state.scope_drift': 'Moved out of the folder',
 
-  'docsync.conflict.resolve': "Resolve {count}",
+  'docsync.conflict.resolve': 'Resolve {count}',
 
   'docsync.conflict.title': 'Both copies changed',
   'docsync.conflict.keepTrek': 'Keep the TREK version',
@@ -174,7 +174,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'The transfer did not go through.',
 
   'docsync.error.unknown_provider': 'This provider is not available on this instance.',
-  'docsync.error.provider_disabled': 'Paused: an administrator has switched this provider off. Syncing resumes once it is back on.',
+  'docsync.error.provider_disabled':
+    'Paused: an administrator has switched this provider off. Syncing resumes once it is back on.',
   'docsync.binding.reconnect': 'Reconnect',
 };
 

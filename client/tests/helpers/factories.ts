@@ -13,6 +13,7 @@ import type {
   DayNote,
   PackingItem,
   TodoItem,
+  ShoppingItem,
   BudgetItem,
   Reservation,
   TripFile,
@@ -180,6 +181,22 @@ export function buildTodoItem(overrides: Partial<TodoItem> = {}): TodoItem {
     description: null,
     assigned_user_id: null,
     priority: 0,
+    ...overrides,
+  };
+}
+
+export function buildShoppingItem(overrides: Partial<ShoppingItem> = {}): ShoppingItem {
+  const id = next();
+  return {
+    id,
+    trip_id: 1,
+    name: `Shopping item ${id}`,
+    category: null,
+    checked: 0,
+    sort_order: 0,
+    quantity: null,
+    assigned_user_id: null,
+    notes: null,
     ...overrides,
   };
 }

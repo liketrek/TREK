@@ -4,8 +4,7 @@ const dayplan: TranslationStrings = {
   'dayplan.icsTooltip': 'Təqvimi ixrac et (ICS)',
   'dayplan.emptyDay': 'Bu gün üçün heç bir məkan planlaşdırılmayıb',
   'dayplan.addPlaceHere': 'Bu günə məkan əlavə et',
-  'dayplan.cannotReorderTransport':
-    'Sabit vaxtı olan rezervasiyaların sırası dəyişdirilə bilməz',
+  'dayplan.cannotReorderTransport': 'Sabit vaxtı olan rezervasiyaların sırası dəyişdirilə bilməz',
 
   'dayplan.confirmRemoveTimeTitle': 'Vaxt silinsin?',
   'dayplan.confirmRemoveTimeBody':
@@ -15,8 +14,7 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmDeleteNoteTitle': 'Qeyd silinsin?',
   'dayplan.confirmDeleteNoteBody': 'Bu qeyd həmişəlik silinəcək.',
 
-  'dayplan.cannotDropOnTimed':
-    'Elementlər vaxtı müəyyən edilmiş qeydlərin arasına yerləşdirilə bilməz',
+  'dayplan.cannotDropOnTimed': 'Elementlər vaxtı müəyyən edilmiş qeydlərin arasına yerləşdirilə bilməz',
   'dayplan.cannotBreakChronology':
     'Bu, vaxtı müəyyən edilmiş elementlərin və rezervasiyaların xronoloji ardıcıllığını pozacaq',
 
@@ -63,25 +61,20 @@ const dayplan: TranslationStrings = {
   'dayplan.optimize': 'Optimallaşdır',
 
   'dayplan.transportMode.change': 'Nəqliyyat növünü dəyiş',
-  'dayplan.transportMode.useDefault':
-    'Günün standart seçimindən istifadə et',
+  'dayplan.transportMode.useDefault': 'Günün standart seçimindən istifadə et',
 
   'dayplan.optimized': 'Marşrut optimallaşdırıldı',
   'dayplan.routeError': 'Marşrutu hesablamaq mümkün olmadı',
-  'dayplan.toast.needTwoPlaces':
-    'Marşrutu optimallaşdırmaq üçün ən azı iki məkan tələb olunur',
+  'dayplan.toast.needTwoPlaces': 'Marşrutu optimallaşdırmaq üçün ən azı iki məkan tələb olunur',
   'dayplan.toast.routeOptimized': 'Marşrut optimallaşdırıldı',
-  'dayplan.toast.routeOptimizedFromHotel':
-    'Marşrut yaşayış yerinizdən başlayaraq optimallaşdırıldı',
-  'dayplan.toast.noGeoPlaces':
-    'Marşrutun hesablanması üçün koordinatları olan heç bir məkan tapılmadı',
+  'dayplan.toast.routeOptimizedFromHotel': 'Marşrut yaşayış yerinizdən başlayaraq optimallaşdırıldı',
+  'dayplan.toast.noGeoPlaces': 'Marşrutun hesablanması üçün koordinatları olan heç bir məkan tapılmadı',
 
   'dayplan.confirmed': 'Təsdiqlənib',
   'dayplan.pendingRes': 'Gözləyir',
 
   'dayplan.export': 'İxrac et',
-  'dayplan.exportIntro':
-    'Planınızı özünüzlə aparın: sənəd kimi, təqviminizdə və ya GPS cihazınızda.',
+  'dayplan.exportIntro': 'Planınızı özünüzlə aparın: sənəd kimi, təqviminizdə və ya GPS cihazınızda.',
   'dayplan.exportDocument': 'Sənəd',
   'dayplan.exportCalendar': 'Təqvim',
   'dayplan.exportMaps': 'Xəritələr və GPS',
@@ -90,8 +83,7 @@ const dayplan: TranslationStrings = {
   'dayplan.pdfTooltip': 'Günlük planı PDF kimi ixrac et',
   'dayplan.pdfMine': 'Mənim planım PDF kimi',
   'dayplan.pdfMineSub': 'Yalnız iştirak etdiyiniz fəaliyyətlər və rezervasiyalar',
-  'dayplan.gpxTooltip':
-    'Oflayn xəritələr və GPS cihazları üçün GPX kimi ixrac et',
+  'dayplan.gpxTooltip': 'Oflayn xəritələr və GPS cihazları üçün GPX kimi ixrac et',
   'dayplan.gpxAll': 'Bütün səyahət',
   'dayplan.gpxPlaces': 'Yalnız məkanlar',
   'dayplan.gpxDays': 'Günlər marşrut kimi',
@@ -107,14 +99,12 @@ const dayplan: TranslationStrings = {
 
   'dayplan.reorderDays': 'Günlərin sırasını dəyiş',
   'dayplan.reorderTitle': 'Günlərin sırasını dəyiş',
-  'dayplan.reorderHint':
-    'Günə aid məkanlar, qeydlər və rezervasiyalar günlə birlikdə daşınacaq.',
+  'dayplan.reorderHint': 'Günə aid məkanlar, qeydlər və rezervasiyalar günlə birlikdə daşınacaq.',
   'dayplan.addDay': 'Gün əlavə et',
   'dayplan.moveUp': 'Yuxarı daşı',
   'dayplan.moveDown': 'Aşağı daşı',
   'dayplan.reorderUndo': 'Günlərin sırasını dəyiş',
-  'dayplan.reorderError':
-    'Günlərin sırasını dəyişmək mümkün olmadı',
+  'dayplan.reorderError': 'Günlərin sırasını dəyişmək mümkün olmadı',
   'dayplan.addDayError': 'Gün əlavə etmək mümkün olmadı',
   'dayplan.deleteDay': 'Günü sil',
   'dayplan.deleteDayTitle': '{day} silinsin?',
@@ -150,25 +140,19 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDayShrink': 'Səyahət artıq {date} tarixində bitir',
   'dayplan.deleteDayShrinkHint': 'Son tarixi qəbul edəcək tarixsiz gün yoxdur.',
   'dayplan.impactStayShorter': '{name} məkanında qalma: bir gecə az',
-  'dayplan.deleteDayStayShorterHint':
-    'Bu günü əhatə etdiyi üçün çıxış tarixi artıq {date} olacaq.',
-  'dayplan.deleteDayStayShorterUndatedHint':
-    'Bu günü əhatə etdiyi üçün qalma müddəti artıq bir gün əvvəl bitir.',
+  'dayplan.deleteDayStayShorterHint': 'Bu günü əhatə etdiyi üçün çıxış tarixi artıq {date} olacaq.',
+  'dayplan.deleteDayStayShorterUndatedHint': 'Bu günü əhatə etdiyi üçün qalma müddəti artıq bir gün əvvəl bitir.',
   'dayplan.deleteDaySpareDated': '{day}, {date} tarixini qəbul edir',
-  'dayplan.deleteDaySpareDatedHint':
-    'Bu, tarixsiz ilk gündür və səyahətin son tarixini qəbul edir.',
+  'dayplan.deleteDaySpareDatedHint': 'Bu, tarixsiz ilk gündür və səyahətin son tarixini qəbul edir.',
   'dayplan.deleteDayLast': 'Səyahətdə ən azı bir gün olmalıdır',
   'dayplan.daysOffline': 'Günləri dəyişmək üçün internet bağlantısı lazımdır',
   'dayplan.deleteDaySuccess': 'Gün silindi',
   'dayplan.deleteDayError': 'Günü silmək mümkün olmadı',
   'dayplan.addUndatedDay': 'Tarixsiz',
-  'dayplan.addUndatedDayHint':
-    'Sona tarixsiz gün əlavə edir. Səyahətin tarixləri dəyişməz qalır.',
+  'dayplan.addUndatedDayHint': 'Sona tarixsiz gün əlavə edir. Səyahətin tarixləri dəyişməz qalır.',
   'dayplan.addDatedDay': '{date} tarixini əlavə et',
-  'dayplan.addDatedDayHint':
-    '{date} tarixini əlavə edir və səyahəti bir gün uzadır.',
-  'dayplan.tripExtended':
-    'Gün əlavə edildi. Səyahət artıq bir gün sonra, {date} tarixində bitir.',
+  'dayplan.addDatedDayHint': '{date} tarixini əlavə edir və səyahəti bir gün uzadır.',
+  'dayplan.tripExtended': 'Gün əlavə edildi. Səyahət artıq bir gün sonra, {date} tarixində bitir.',
 };
 
 export default dayplan;

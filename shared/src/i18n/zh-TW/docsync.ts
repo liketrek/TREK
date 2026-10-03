@@ -67,7 +67,7 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': '已在 TREK 中刪除',
   'docsync.state.scope_drift': '已移出資料夾',
 
-  'docsync.conflict.resolve': "處理 {count} 個",
+  'docsync.conflict.resolve': '處理 {count} 個',
 
   'docsync.conflict.title': '兩份都有變更',
   'docsync.conflict.keepTrek': '保留 TREK 版本',

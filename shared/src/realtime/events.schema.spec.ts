@@ -52,6 +52,9 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'todo:updated': { item: { id: 4 } },
   'todo:deleted': { itemId: 4 },
   'todo:assignees': { category: 'before', assignees: [1] },
+  'shopping:created': { item: { id: 5 } },
+  'shopping:updated': { item: { id: 5 } },
+  'shopping:deleted': { itemId: 5 },
   'budget:created': { item: { id: 11 } },
   'budget:updated': { item: { id: 11 } },
   'budget:deleted': { itemId: 11 },
@@ -146,16 +149,17 @@ const DRIFT_VARIANTS: Partial<Record<TrekWsEventName, Record<string, unknown>[]>
 };
 
 describe('@trek/shared realtime event registry', () => {
-  it('WSEVT-REG-001: pins the authoritative inventory counts (74 trip + 33 user = 107)', () => {
+  it('WSEVT-REG-001: pins the authoritative inventory counts (77 trip + 33 user = 110)', () => {
     // 67th to 69th trip event: the three collab:link:* a shared link emits.
     // 70th and 71st: the road trip's vias and tracks, which used to be written silently.
     // 74th: docsync:changed, so a sync run that moved documents refreshes the
     // panel without every member polling for it.
+    // 75th-77th: shopping:created, shopping:updated, shopping:deleted for the shopping list.
     // 33rd user event: journey:photos:updated, so the gallery re-sorts once the
     // capture times of an import have landed (#1587).
-    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(74);
+    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(77);
     expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(33);
-    expect(TREK_WS_EVENT_NAMES).toHaveLength(107);
+    expect(TREK_WS_EVENT_NAMES).toHaveLength(110);
   });
 
   it('WSEVT-REG-002: every name is domain:action shaped and outside the reserved plugin: namespace', () => {

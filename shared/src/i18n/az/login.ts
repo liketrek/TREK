@@ -3,7 +3,8 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'Giriş uğursuz oldu. Giriş məlumatlarınızı yoxlayın.',
   'login.tagline': 'Səyahətləriniz.\nPlanınız.',
-  'login.description': 'İnteraktiv xəritələr, büdcələr və real vaxt sinxronizasiyası ilə səyahətləri birlikdə planlaşdırın.',
+  'login.description':
+    'İnteraktiv xəritələr, büdcələr və real vaxt sinxronizasiyası ilə səyahətləri birlikdə planlaşdırın.',
   'login.title': 'Daxil ol',
   'login.subtitle': 'Yenidən xoş gəlmisiniz',
   'login.signingIn': 'Daxil olunur…',
@@ -15,7 +16,7 @@ const login: TranslationStrings = {
   'login.createAccount': 'Hesab yarat',
   'login.createAccountHint': 'Yeni hesab yaradın.',
   'login.creating': 'Yaradılır…',
-  'login.noAccount': "Hesabınız yoxdur?",
+  'login.noAccount': 'Hesabınız yoxdur?',
   'login.hasAccount': 'Artıq hesabınız var?',
   'login.register': 'Qeydiyyatdan keç',
   'login.emailPlaceholder': 'nümunə@email.com',
@@ -46,20 +47,21 @@ const login: TranslationStrings = {
   'login.rememberMe': 'Məni yadda saxla',
   'login.forgotPasswordTitle': 'Parolunuzu sıfırlayın',
   'login.forgotPasswordBody':
-    "Qeydiyyatdan keçdiyiniz e-poçt ünvanını daxil edin. Hesab mövcuddursa, sıfırlama keçidi göndəriləcək.",
+    'Qeydiyyatdan keçdiyiniz e-poçt ünvanını daxil edin. Hesab mövcuddursa, sıfırlama keçidi göndəriləcək.',
   'login.forgotPasswordSubmit': 'Sıfırlama keçidini göndər',
   'login.forgotPasswordSentTitle': 'E-poçtunuzu yoxlayın',
   'login.forgotPasswordSentBody':
     'Bu e-poçt ünvanı ilə hesab mövcuddursa, sıfırlama keçidi göndərilir. Keçidin etibarlılıq müddəti 60 dəqiqədir.',
   'login.forgotPasswordSmtpHintOff':
-    "Diqqət: administratorunuz SMTP-ni konfiqurasiya etməyib. Buna görə sıfırlama keçidi e-poçtla göndərilmək əvəzinə server konsoluna yazılacaq.",
+    'Diqqət: administratorunuz SMTP-ni konfiqurasiya etməyib. Buna görə sıfırlama keçidi e-poçtla göndərilmək əvəzinə server konsoluna yazılacaq.',
   'login.backToLogin': 'Girişə qayıt',
   'login.newPassword': 'Yeni parol',
   'login.confirmPassword': 'Yeni parolu təsdiqlə',
-  'login.passwordsDontMatch': "Parollar uyğun gəlmir",
+  'login.passwordsDontMatch': 'Parollar uyğun gəlmir',
   'login.mfaCode': '2FA kodu',
   'login.resetPasswordTitle': 'Yeni parol təyin et',
-  'login.resetPasswordBody': 'Əvvəllər burada istifadə etmədiyiniz güclü parol seçin. Parol ən azı 8 simvoldan ibarət olmalıdır.',
+  'login.resetPasswordBody':
+    'Əvvəllər burada istifadə etmədiyiniz güclü parol seçin. Parol ən azı 8 simvoldan ibarət olmalıdır.',
   'login.resetPasswordMfaBody': 'Sıfırlamanı tamamlamaq üçün 2FA kodunuzu və ya ehtiyat kodu daxil edin.',
   'login.resetPasswordSubmit': 'Parolu sıfırla',
   'login.resetPasswordVerify': 'Doğrula və sıfırla',
@@ -70,7 +72,7 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Sıfırlama uğursuz oldu. Keçidin vaxtı bitmiş ola bilər.',
   'login.passkey.signIn': 'Passkey ilə daxil ol',
   'login.passkey.failed': 'Passkey ilə giriş uğursuz oldu. Yenidən cəhd edin.',
-  'login.insecureCookie.title': "HTTP üzərindən giriş sessiyası saxlanmır",
+  'login.insecureCookie.title': 'HTTP üzərindən giriş sessiyası saxlanmır',
   'login.insecureCookie.body':
     'Adi HTTP üzərindən qoşulduğunuz üçün brauzer TREK-in təhlükəsiz sessiya kukisini saxlamır — növbəti sorğu "Access token required" xətası ilə uğursuz olur. Həll: HTTPS istifadə edin və ya ev laboratoriyası üçün COOKIE_SECURE=false təyin edin.',
   'login.insecureCookie.link': 'Problemlərin həlli təlimatını aç',

@@ -57,7 +57,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'إضافة Dawarich معطّلة على هذا الخادم.',
   'dawarich.error.offline': 'يحتاج هذا إلى اتصال — TREK غير متصل حالياً.',
   'dawarich.error.invalid_url': 'لا يمكن لـ TREK استخدام هذا العنوان.',
-  'dawarich.warning.private_ip': 'هذا العنوان يشير إلى عنوان IP خاص ({ip}). تأكد أن هذا ما تقصده — قد يحتاج الخادم إلى ALLOW_INTERNAL_NETWORK=true للوصول إليه.',
+  'dawarich.warning.private_ip':
+    'هذا العنوان يشير إلى عنوان IP خاص ({ip}). تأكد أن هذا ما تقصده — قد يحتاج الخادم إلى ALLOW_INTERNAL_NETWORK=true للوصول إليه.',
   'dawarich.error.unknown': 'حدث خطأ ما أثناء التواصل مع Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -95,10 +96,8 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.place': 'تمت الإضافة كمكان',
   'dawarich.suggestions.acceptedAs.journal': 'في المجلة',
   'dawarich.suggestions.acceptedAs.bucket_list': 'تم شطب الأمنية',
-  'dawarich.suggestions.sourceChanged':
-    'تغيّرت هذه الإقامة في Dawarich منذ أن استخدمتها. ما كتبته في TREK لم يُمَس.',
-  'dawarich.suggestions.sourceMissing':
-    'لم تعد هذه الإقامة موجودة في Dawarich. ما كتبته في TREK لم يُمَس.',
+  'dawarich.suggestions.sourceChanged': 'تغيّرت هذه الإقامة في Dawarich منذ أن استخدمتها. ما كتبته في TREK لم يُمَس.',
+  'dawarich.suggestions.sourceMissing': 'لم تعد هذه الإقامة موجودة في Dawarich. ما كتبته في TREK لم يُمَس.',
   'dawarich.sourceStatus.suggested': 'مُكتشَفة، غير مؤكدة',
   'dawarich.confidence.high': 'اكتشاف موثوق',
   'dawarich.confidence.medium': 'اكتشاف موثوق إلى حدٍّ ما',

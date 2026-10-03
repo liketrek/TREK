@@ -2,7 +2,7 @@
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildBudgetItem, buildTrip } from '../../../tests/helpers/factories';
+import { buildBudgetItem, buildShoppingItem, buildTrip } from '../../../tests/helpers/factories';
 import { clearExchangeRateCache } from '../../hooks/useExchangeRates';
 import { useTripStore } from '../tripStore';
 
@@ -111,6 +111,24 @@ describe('budgetSlice', () => {
     await expect(deletePromise).rejects.toThrow();
     // After rollback, item is back
     expect(useTripStore.getState().budgetItems).toContainEqual(item);
+  });
+
+  it('FE-STORE-BUDGET-007b: deleteBudgetItem frees the shopping items the expense booked, and restores them on error', async () => {
+    const item = buildBudgetItem({ id: 5, trip_id: 1 });
+    const booked = buildShoppingItem({ id: 1, trip_id: 1, checked: 1, budget_item_id: 5 });
+    const other = buildShoppingItem({ id: 2, trip_id: 1, checked: 1, budget_item_id: 6 });
+    seedStore(useTripStore, { budgetItems: [item], shoppingItems: [booked, other] });
+
+    server.use(http.delete('/api/trips/1/budget/5', () => HttpResponse.json({ success: true })));
+    await useTripStore.getState().deleteBudgetItem(1, 5);
+    const byId = new Map(useTripStore.getState().shoppingItems.map(i => [i.id, i]));
+    expect(byId.get(1)?.budget_item_id).toBeNull();
+    expect(byId.get(2)?.budget_item_id).toBe(6);
+
+    seedStore(useTripStore, { budgetItems: [item], shoppingItems: [booked] });
+    server.use(http.delete('/api/trips/1/budget/5', () => HttpResponse.json({ error: 'forbidden' }, { status: 403 })));
+    await expect(useTripStore.getState().deleteBudgetItem(1, 5)).rejects.toThrow();
+    expect(useTripStore.getState().shoppingItems[0].budget_item_id).toBe(5);
   });
 
   it('FE-STORE-BUDGET-008: setBudgetItemMembers updates members on matching item', async () => {

@@ -14,15 +14,13 @@ const settings: TranslationStrings = {
   'settings.plugins.oauth.disconnect': 'Bağlantını kəs',
   'settings.tabs.plugins': 'Plaginlər',
   'settings.plugins.title': 'Plagin tənzimləmələri',
-  'settings.plugins.subtitle':
-    'İstifadə etdiyiniz plaginlər üçün şəxsi tənzimləmələriniz (API açarları və seçimlər).',
+  'settings.plugins.subtitle': 'İstifadə etdiyiniz plaginlər üçün şəxsi tənzimləmələriniz (API açarları və seçimlər).',
   'settings.plugins.empty': 'Aktiv plagin yoxdur.',
   'settings.plugins.saved': 'Tənzimləmələr yadda saxlanıldı',
   'settings.plugins.requiredMissing': '“{field}” tələb olunur',
 
   'settings.pluginActivity.title': 'Plagin fəaliyyəti',
-  'settings.pluginActivity.description':
-    'Plaginin sizin adınızdan etdiyi bütün əməliyyatlar, ən yenidən başlayaraq.',
+  'settings.pluginActivity.description': 'Plaginin sizin adınızdan etdiyi bütün əməliyyatlar, ən yenidən başlayaraq.',
   'settings.pluginActivity.empty': 'Hələ plagin fəaliyyəti yoxdur.',
   'settings.pluginActivity.refresh': 'Yenilə',
   'settings.pluginActivity.columns.plugin': 'Plagin',
@@ -38,8 +36,7 @@ const settings: TranslationStrings = {
   'settings.map': 'Xəritə',
   'settings.mapTemplate': 'Xəritə şablonu',
   'settings.mapTemplatePlaceholder.select': 'Şablon seçin...',
-  'settings.mapDefaultHint':
-    'OpenStreetMap üçün boş saxlayın (standart)',
+  'settings.mapDefaultHint': 'OpenStreetMap üçün boş saxlayın (standart)',
   'settings.routingBase': 'Şəxsi marşrut mühərriki',
   'settings.routingBaseHint':
     'Öz OSRM instansiyanız. Sahə boş olduqda saniyədə təxminən bir sorğuya icazə verən ictimai serverlər istifadə edilir — bu, bir günlük plan üçün kifayətdir, avtomobil səyahəti üçün isə məhdud ola bilər. Server yenidən başladıldıqdan sonra qüvvəyə minir.',
@@ -50,12 +47,9 @@ const settings: TranslationStrings = {
   'settings.mapProvider': 'Xəritə provayderi',
   'settings.mapProviderHint':
     'Səyahət planlayıcısı və Səyahət gündəliyi xəritələrinə təsir edir. Atlas həmişə Leaflet istifadə edir.',
-  'settings.mapLeafletSubtitle':
-    'Klassik 2D, istənilən rastr plitələri',
-  'settings.mapMapboxSubtitle':
-    'Vektor plitələri, 3D binalar və relyef',
-  'settings.mapMapLibreSubtitle':
-    'OpenFreeMap vektor plitələri, token tələb olunmur',
+  'settings.mapLeafletSubtitle': 'Klassik 2D, istənilən rastr plitələri',
+  'settings.mapMapboxSubtitle': 'Vektor plitələri, 3D binalar və relyef',
+  'settings.mapMapLibreSubtitle': 'OpenFreeMap vektor plitələri, token tələb olunmur',
   'settings.mapExperimental': 'Eksperimental',
 
   'settings.mapMapboxToken': 'Mapbox giriş tokeni',
@@ -71,21 +65,16 @@ const settings: TranslationStrings = {
 
   'settings.mapStyle': 'Xəritə üslubu',
   'settings.mapStylePlaceholder': 'Mapbox üslubu seçin',
-  'settings.mapStyleHint':
-    'Hazır üslub və ya öz mapbox://styles/USER/ID URL-iniz',
-  'settings.mapOpenFreeMapStylePlaceholder':
-    'OpenFreeMap üslubu seçin',
+  'settings.mapStyleHint': 'Hazır üslub və ya öz mapbox://styles/USER/ID URL-iniz',
+  'settings.mapOpenFreeMapStylePlaceholder': 'OpenFreeMap üslubu seçin',
   'settings.mapOpenFreeMapStyleHint':
     'Hazır üslub və ya OpenFreeMap üslub URL-i. OpenFreeMap üslubları tokensiz işləyir.',
 
   'settings.map3dBuildings': '3D binalar və relyef',
-  'settings.map3dHint':
-    'Maililik və real 3D bina modelləri — peyk görünüşü daxil olmaqla bütün üslublarda işləyir.',
+  'settings.map3dHint': 'Maililik və real 3D bina modelləri — peyk görünüşü daxil olmaqla bütün üslublarda işləyir.',
   'settings.mapHighQuality': 'Yüksək keyfiyyət rejimi',
-  'settings.mapHighQualityHint':
-    'Daha kəskin kənarlar və real dünya görünüşü üçün hamarlama və qlobus proyeksiyası.',
-  'settings.mapHighQualityWarning':
-    'Zəif cihazlarda performansa təsir edə bilər.',
+  'settings.mapHighQualityHint': 'Daha kəskin kənarlar və real dünya görünüşü üçün hamarlama və qlobus proyeksiyası.',
+  'settings.mapHighQualityWarning': 'Zəif cihazlarda performansa təsir edə bilər.',
   'settings.mapTipLabel': 'İpucu:',
   'settings.mapTip':
     'xəritəni fırlatmaq və əymək üçün sağ kliklə sürükləyin. Məkan əlavə etmək üçün orta düymə ilə klikləyin (sağ klik fırlatma üçün ayrılıb).',
@@ -96,8 +85,7 @@ const settings: TranslationStrings = {
   'settings.mapsKeyHint':
     'Məkan axtarışı üçün. Places API (New) tələb olunur. console.cloud.google.com ünvanından əldə edin',
   'settings.weatherKey': 'OpenWeatherMap API açarı',
-  'settings.weatherKeyHint':
-    'Hava məlumatları üçün. openweathermap.org/api ünvanında pulsuzdur',
+  'settings.weatherKeyHint': 'Hava məlumatları üçün. openweathermap.org/api ünvanında pulsuzdur',
   'settings.keyPlaceholder': 'Açarı daxil edin...',
   'settings.configured': 'Konfiqurasiya edilib',
   'settings.saveKeys': 'Açarları yadda saxla',
@@ -115,7 +103,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Bütün tarix seçicilərində həftənin ilk günü. Vacay-ın öz ayarı var.',
   'settings.preferredNavApp': 'Yerləri açmaq üçün',
   'settings.preferredNavAppAsk': 'Hər dəfə soruş',
-  'settings.preferredNavAppHint': 'Tətbiq seçiləndə naviqasiya düyməsi bütün xəritə tətbiqlərini təklif etmək əvəzinə onu birbaşa açır.',
+  'settings.preferredNavAppHint':
+    'Tətbiq seçiləndə naviqasiya düyməsi bütün xəritə tətbiqlərini təklif etmək əvəzinə onu birbaşa açır.',
 
   'settings.bookingLabels': 'Rezervasiya marşrutu etiketləri',
   'settings.bookingLabelsHint':
@@ -124,13 +113,11 @@ const settings: TranslationStrings = {
   'settings.mapPoiPillHint':
     'OpenStreetMap vasitəsilə yaxınlıqdakı restoranları, otelləri və digər məkanları tapmaq üçün səyahət xəritəsində kateqoriya düyməsi göstərin.',
   'settings.blurBookingCodes': 'Rezervasiya kodlarını bulanıqlaşdır',
-  'settings.aiAlwaysRetry':
-    'Rezervasiya idxalını həmişə AI ilə yenidən sına',
+  'settings.aiAlwaysRetry': 'Rezervasiya idxalını həmişə AI ilə yenidən sına',
   'settings.aiAlwaysRetryHint':
     'Fayl standart təhlil vasitəsi ilə oxunmadıqda onu avtomatik olaraq AI ilə yenidən təhlil edin.',
 
-  'settings.optimizeFromAccommodation':
-    'Marşrutu yaşayış yerindən başlayaraq optimallaşdır',
+  'settings.optimizeFromAccommodation': 'Marşrutu yaşayış yerindən başlayaraq optimallaşdır',
   'settings.optimizeFromAccommodationHint':
     'Günü optimallaşdırarkən marşrutu səhər oyandığınız oteldən başladın və həmin axşam giriş etdiyiniz oteldə bitirin.',
 
@@ -161,8 +148,7 @@ const settings: TranslationStrings = {
   'settings.plugins.actions.confirm': 'Bu əməliyyat icra edilsin?',
   'settings.notificationPreferences.sendTest': 'Test göndər',
   'settings.notificationPreferences.configure': 'Konfiqurasiya et',
-  'settings.notificationPreferences.testSuccess':
-    'Test bildirişi göndərildi.',
+  'settings.notificationPreferences.testSuccess': 'Test bildirişi göndərildi.',
   'settings.notificationPreferences.testFailed': 'Test uğursuz oldu.',
   'settings.notificationPreferences.pluginConfigured':
     'Konfiqurasiya edilib. Giriş məlumatlarını plaginin tənzimləmələr səhifəsindən idarə edin.',
@@ -184,38 +170,31 @@ const settings: TranslationStrings = {
     'Heç bir bildiriş kanalı konfiqurasiya edilməyib. Administratordan e-poçt və ya webhook bildirişlərini quraşdırmasını istəyin.',
 
   'settings.webhookUrl.label': 'Webhook URL-i',
-  'settings.webhookUrl.placeholder':
-    'https://discord.com/api/webhooks/...',
-  'settings.webhookUrl.hint':
-    'Bildirişlər almaq üçün Discord, Slack və ya fərdi webhook URL-inizi daxil edin.',
+  'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
+  'settings.webhookUrl.hint': 'Bildirişlər almaq üçün Discord, Slack və ya fərdi webhook URL-inizi daxil edin.',
   'settings.webhookUrl.saved': 'Webhook URL-i yadda saxlanıldı',
   'settings.webhookUrl.test': 'Yoxla',
-  'settings.webhookUrl.testSuccess':
-    'Test webhook-u uğurla göndərildi',
+  'settings.webhookUrl.testSuccess': 'Test webhook-u uğurla göndərildi',
   'settings.webhookUrl.testFailed': 'Test webhook-u uğursuz oldu',
 
   'settings.ntfyUrl.topicLabel': 'Ntfy mövzusu',
   'settings.ntfyUrl.topicPlaceholder': 'my-trek-alerts',
-  'settings.ntfyUrl.serverLabel':
-    'Ntfy server URL-i (istəyə bağlı)',
+  'settings.ntfyUrl.serverLabel': 'Ntfy server URL-i (istəyə bağlı)',
   'settings.ntfyUrl.serverPlaceholder': 'https://ntfy.sh',
   'settings.ntfyUrl.hint':
     'Push bildirişləri almaq üçün ntfy mövzusunu daxil edin. Administratorunuzun konfiqurasiya etdiyi standart serverdən istifadə etmək üçün server sahəsini boş saxlayın.',
   'settings.ntfyUrl.tokenLabel': 'Giriş tokeni (istəyə bağlı)',
-  'settings.ntfyUrl.tokenHint':
-    'Parolla qorunan mövzular üçün tələb olunur.',
+  'settings.ntfyUrl.tokenHint': 'Parolla qorunan mövzular üçün tələb olunur.',
   'settings.ntfyUrl.saved': 'Ntfy tənzimləmələri yadda saxlanıldı',
   'settings.ntfyUrl.test': 'Yoxla',
-  'settings.ntfyUrl.testSuccess':
-    'Test ntfy bildirişi uğurla göndərildi',
+  'settings.ntfyUrl.testSuccess': 'Test ntfy bildirişi uğurla göndərildi',
   'settings.ntfyUrl.testFailed': 'Test ntfy bildirişi uğursuz oldu',
   'settings.ntfyUrl.tokenCleared': 'Giriş tokeni təmizləndi',
 
   'settings.notificationsDisabled':
     'Bildirişlər konfiqurasiya edilməyib. Administratordan e-poçt və ya webhook bildirişlərini aktivləşdirməsini istəyin.',
   'settings.notificationsActive': 'Aktiv kanal',
-  'settings.notificationsManagedByAdmin':
-    'Bildiriş hadisələri administratorunuz tərəfindən konfiqurasiya edilir.',
+  'settings.notificationsManagedByAdmin': 'Bildiriş hadisələri administratorunuz tərəfindən konfiqurasiya edilir.',
   'settings.on': 'Aktiv',
   'settings.off': 'Deaktiv',
 
@@ -230,8 +209,7 @@ const settings: TranslationStrings = {
   'settings.mcp.copied': 'Kopyalandı!',
   'settings.mcp.apiTokens': 'API tokenləri',
   'settings.mcp.createToken': 'Yeni token yarat',
-  'settings.mcp.noTokens':
-    'Hələ token yoxdur. MCP müştərilərini qoşmaq üçün token yaradın.',
+  'settings.mcp.noTokens': 'Hələ token yoxdur. MCP müştərilərini qoşmaq üçün token yaradın.',
   'settings.mcp.tokenCreatedAt': 'Yaradılıb',
   'settings.mcp.tokenUsedAt': 'İstifadə edilib',
   'settings.mcp.deleteTokenTitle': 'Tokeni sil',
@@ -239,8 +217,7 @@ const settings: TranslationStrings = {
     'Bu token dərhal işləməyəcək. Ondan istifadə edən bütün MCP müştəriləri giriş icazəsini itirəcək.',
   'settings.mcp.modal.createTitle': 'API tokeni yarat',
   'settings.mcp.modal.tokenName': 'Tokenin adı',
-  'settings.mcp.modal.tokenNamePlaceholder':
-    'məs. Claude Desktop, İş noutbuku',
+  'settings.mcp.modal.tokenNamePlaceholder': 'məs. Claude Desktop, İş noutbuku',
   'settings.mcp.modal.creating': 'Yaradılır…',
   'settings.mcp.modal.create': 'Token yarat',
   'settings.mcp.modal.createdTitle': 'Token yaradıldı',
@@ -278,17 +255,14 @@ const settings: TranslationStrings = {
   'settings.oauth.sessionExpires': 'Bitmə vaxtı',
   'settings.oauth.revoke': 'Ləğv et',
   'settings.oauth.revokeSession': 'Sessiyanı ləğv et',
-  'settings.oauth.revokeSessionMessage':
-    'Bu OAuth sessiyasının giriş icazəsi dərhal ləğv ediləcək.',
+  'settings.oauth.revokeSessionMessage': 'Bu OAuth sessiyasının giriş icazəsi dərhal ləğv ediləcək.',
 
   'settings.oauth.modal.createTitle': 'OAuth müştərisini qeydiyyatdan keçir',
   'settings.oauth.modal.presets': 'Sürətli seçimlər',
   'settings.oauth.modal.clientName': 'Tətbiqin adı',
-  'settings.oauth.modal.clientNamePlaceholder':
-    'məs. Claude Web, Mənim MCP tətbiqim',
+  'settings.oauth.modal.clientNamePlaceholder': 'məs. Claude Web, Mənim MCP tətbiqim',
   'settings.oauth.modal.redirectUris': 'Yönləndirmə URI-ləri',
-  'settings.oauth.modal.redirectUrisPlaceholder':
-    'https://your-app.com/callback\nhttps://your-app.com/auth',
+  'settings.oauth.modal.redirectUrisPlaceholder': 'https://your-app.com/callback\nhttps://your-app.com/auth',
   'settings.oauth.modal.redirectUrisHint':
     'Hər sətirdə bir URI. HTTPS, geri dövrəli HTTP və ya şəxsi tətbiq sxemi (myapp://). Geri dövrəli URI-nin portu istisna olmaqla tam uyğunlaşdırılır.',
   'settings.oauth.modal.scopes': 'İcazə verilən sahələr',
@@ -302,19 +276,14 @@ const settings: TranslationStrings = {
   'settings.oauth.modal.createdWarning':
     'Müştəri sirri yalnız bir dəfə göstərilir. İndi kopyalayın — sonradan bərpa edilə bilməz.',
 
-  'settings.oauth.toast.createError':
-    'OAuth müştərisini qeydiyyatdan keçirmək mümkün olmadı',
+  'settings.oauth.toast.createError': 'OAuth müştərisini qeydiyyatdan keçirmək mümkün olmadı',
   'settings.oauth.toast.deleted': 'OAuth müştərisi silindi',
-  'settings.oauth.toast.deleteError':
-    'OAuth müştərisini silmək mümkün olmadı',
+  'settings.oauth.toast.deleteError': 'OAuth müştərisini silmək mümkün olmadı',
   'settings.oauth.toast.revoked': 'Sessiya ləğv edildi',
-  'settings.oauth.toast.revokeError':
-    'Sessiyanı ləğv etmək mümkün olmadı',
-  'settings.oauth.toast.rotateError':
-    'Müştəri sirrini yeniləmək mümkün olmadı',
+  'settings.oauth.toast.revokeError': 'Sessiyanı ləğv etmək mümkün olmadı',
+  'settings.oauth.toast.rotateError': 'Müştəri sirrini yeniləmək mümkün olmadı',
 
-  'settings.oauth.modal.machineClient':
-    'Maşın müştərisi (brauzer girişi olmadan)',
+  'settings.oauth.modal.machineClient': 'Maşın müştərisi (brauzer girişi olmadan)',
   'settings.oauth.modal.machineClientHint':
     'client_credentials icazəsindən istifadə edin — yönləndirmə URI-ləri tələb olunmur. Token birbaşa client_id və client_secret vasitəsilə verilir və seçilmiş icazə sahələri daxilində sizin adınızdan işləyir.',
   'settings.oauth.modal.machineClientUsage':
@@ -331,8 +300,7 @@ const settings: TranslationStrings = {
   'settings.about.descriptionManaged':
     'TREK səyahətlərinizi ilk ideyadan son xatirəyədək təşkil etməyə kömək edir. Günlük planlaşdırma, büdcə, baqaj siyahıları, fotolar və daha çoxu — hamısı bir yerdə.',
   'settings.about.sourceTitle': 'Mənbə kodu',
-  'settings.about.sourceHint':
-    'TREK AGPL-3.0 lisenziyalı açıq mənbəli layihədir',
+  'settings.about.sourceHint': 'TREK AGPL-3.0 lisenziyalı açıq mənbəli layihədir',
 
   'settings.about.supporters.badge': 'Aylıq dəstəkçilər',
   'settings.about.supporters.title': 'TREK-in səyahət yoldaşları',
@@ -342,16 +310,14 @@ const settings: TranslationStrings = {
   'settings.about.supporters.tierEmpty': 'İlk dəstəkçi olun',
   'settings.about.supporter.tier.noReturnTicket': 'Dönüşsüz bilet',
   'settings.about.supporter.tier.lostLuggageVip': 'İtmiş baqaj VIP',
-  'settings.about.supporter.tier.businessClassDreamer':
-    'Biznes sinfi xəyalpərəsti',
+  'settings.about.supporter.tier.businessClassDreamer': 'Biznes sinfi xəyalpərəsti',
   'settings.about.supporter.tier.budgetTraveller': 'Büdcəli səyahətçi',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel otaq yoldaşı',
 
   'settings.about.description':
     'TREK səyahətlərinizi ilk ideyadan son xatirəyədək təşkil etməyə kömək edən, öz serverinizdə yerləşdirilən səyahət planlayıcısıdır. Günlük planlaşdırma, büdcə, baqaj siyahıları, fotolar və daha çoxu — hamısı bir yerdə, öz serverinizdə.',
   'settings.about.madeWith': 'Hazırlanıb:',
-  'settings.about.madeBy':
-    'Maurice və böyüyən açıq mənbə icması tərəfindən.',
+  'settings.about.madeBy': 'Maurice və böyüyən açıq mənbə icması tərəfindən.',
 
   'settings.username': 'İstifadəçi adı',
   'settings.email': 'E-poçt',
@@ -367,8 +333,7 @@ const settings: TranslationStrings = {
   'settings.passwordRequired': 'Cari və yeni parolu daxil edin',
   'settings.passwordTooShort': 'Parol ən azı 8 simvoldan ibarət olmalıdır',
   'settings.passwordMismatch': 'Parollar uyğun gəlmir',
-  'settings.passwordWeak':
-    'Parolda böyük hərf, kiçik hərf, rəqəm və xüsusi simvol olmalıdır',
+  'settings.passwordWeak': 'Parolda böyük hərf, kiçik hərf, rəqəm və xüsusi simvol olmalıdır',
   'settings.passwordCommon': 'Bu parol çox yayğındır. Zəhmət olmasa, unikal parol seçin.',
   'settings.passwordRepetitive': 'Parol həddən artıq təkrarlanır',
   'settings.passwordRules': 'Parol tələbləri',
@@ -378,8 +343,7 @@ const settings: TranslationStrings = {
   'settings.passwordRule.digit': 'Rəqəm',
   'settings.passwordRule.special': 'Xüsusi simvol',
   'settings.passwordChanged': 'Parol uğurla dəyişdirildi',
-  'settings.mustChangePassword':
-    'Davam etməzdən əvvəl parolunuzu dəyişməlisiniz. Aşağıda yeni parol təyin edin.',
+  'settings.mustChangePassword': 'Davam etməzdən əvvəl parolunuzu dəyişməlisiniz. Aşağıda yeni parol təyin edin.',
 
   'settings.deleteAccount': 'Hesabı sil',
   'settings.deleteAccountTitle': 'Hesabınız silinsin?',
@@ -412,8 +376,7 @@ const settings: TranslationStrings = {
   'settings.mfa.backupTitle': 'Ehtiyat kodları',
   'settings.mfa.backupDescription':
     'Autentifikator tətbiqinə girişinizi itirsəniz, bu birdəfəlik ehtiyat kodlarından istifadə edin.',
-  'settings.mfa.backupWarning':
-    'Bu kodları indi yadda saxlayın. Hər kod yalnız bir dəfə istifadə edilə bilər.',
+  'settings.mfa.backupWarning': 'Bu kodları indi yadda saxlayın. Hər kod yalnız bir dəfə istifadə edilə bilər.',
   'settings.mfa.backupCopy': 'Kodları kopyala',
   'settings.mfa.backupDownload': 'TXT endir',
   'settings.mfa.backupPrint': 'Çap / PDF',
@@ -421,20 +384,16 @@ const settings: TranslationStrings = {
   'settings.mfa.enabled': 'Hesabınızda 2FA aktivdir.',
   'settings.mfa.disabled': '2FA aktiv deyil.',
   'settings.mfa.setup': 'Autentifikatoru quraşdır',
-  'settings.mfa.scanQr':
-    'Bu QR kodu tətbiqinizlə skan edin və ya gizli açarı əl ilə daxil edin.',
+  'settings.mfa.scanQr': 'Bu QR kodu tətbiqinizlə skan edin və ya gizli açarı əl ilə daxil edin.',
   'settings.mfa.secretLabel': 'Gizli açar (əl ilə daxil etmə)',
   'settings.mfa.codePlaceholder': '6 rəqəmli kod',
   'settings.mfa.enable': '2FA-nı aktivləşdir',
   'settings.mfa.cancelSetup': 'Ləğv et',
   'settings.mfa.disableTitle': '2FA-nı deaktiv et',
-  'settings.mfa.disableHint':
-    'Hesab parolunuzu və autentifikatorunuzdakı cari kodu daxil edin.',
+  'settings.mfa.disableHint': 'Hesab parolunuzu və autentifikatorunuzdakı cari kodu daxil edin.',
   'settings.mfa.disable': '2FA-nı deaktiv et',
-  'settings.mfa.toastEnabled':
-    'İki mərhələli autentifikasiya aktivləşdirildi',
-  'settings.mfa.toastDisabled':
-    'İki mərhələli autentifikasiya deaktiv edildi',
+  'settings.mfa.toastEnabled': 'İki mərhələli autentifikasiya aktivləşdirildi',
+  'settings.mfa.toastDisabled': 'İki mərhələli autentifikasiya deaktiv edildi',
   'settings.mfa.demoBlocked': 'Demo rejimində əlçatan deyil',
 
   'settings.currency': 'Göstərilən valyuta',
@@ -453,18 +412,15 @@ const settings: TranslationStrings = {
     'Keçid açarları aktivdir, lakin bu serverdə hələ tam konfiqurasiya edilməyib. Administratorunuzdan WebAuthn domenini təyin etməsini istəyin.',
   'settings.passkey.add': 'Keçid açarı əlavə et',
   'settings.passkey.addTitle': 'Keçid açarı əlavə et',
-  'settings.passkey.passwordPrompt':
-    'Cari parolunuzu təsdiqləyin, sonra cihazınızdakı göstərişləri izləyin.',
+  'settings.passkey.passwordPrompt': 'Cari parolunuzu təsdiqləyin, sonra cihazınızdakı göstərişləri izləyin.',
   'settings.passkey.passwordRequired': 'Cari parolunuz tələb olunur.',
-  'settings.passkey.namePlaceholder':
-    'Ad (istəyə bağlı, məsələn, “iPhone”)',
+  'settings.passkey.namePlaceholder': 'Ad (istəyə bağlı, məsələn, “iPhone”)',
   'settings.passkey.addedToast': 'Keçid açarı əlavə edildi',
   'settings.passkey.added': 'Əlavə edilib',
   'settings.passkey.addError': 'Keçid açarını əlavə etmək mümkün olmadı',
   'settings.passkey.cancelled': 'Keçid açarının quraşdırılması ləğv edildi',
   'settings.passkey.deleted': 'Keçid açarı silindi',
-  'settings.passkey.deleteConfirm':
-    'Bu keçid açarı silinsin? Parolunuzla təsdiqləyin.',
+  'settings.passkey.deleteConfirm': 'Bu keçid açarı silinsin? Parolunuzla təsdiqləyin.',
   'settings.passkey.rename': 'Adını dəyiş',
   'settings.passkey.defaultName': 'Keçid açarı',
   'settings.passkey.synced': 'Sinxronlaşdırılıb',
@@ -480,21 +436,17 @@ const settings: TranslationStrings = {
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API açarı',
   'settings.airtrail.apiKeyHint':
     'AirTrail-də Tənzimləmələr → Təhlükəsizlik bölməsindən yaradılır. Şifrələnmiş şəkildə saxlanılır.',
-  'settings.airtrail.allowInsecureTls':
-    'Öz-özünə imzalanmış sertifikatlara icazə ver',
-  'settings.airtrail.allowInsecureTlsHint':
-    'Yalnız öz şəbəkənizdəki etibarlı instansiya üçün aktivləşdirin.',
+  'settings.airtrail.allowInsecureTls': 'Öz-özünə imzalanmış sertifikatlara icazə ver',
+  'settings.airtrail.allowInsecureTlsHint': 'Yalnız öz şəbəkənizdəki etibarlı instansiya üçün aktivləşdirin.',
   'settings.airtrail.writeBack': 'Dəyişiklikləri AirTrail-ə geri yaz',
   'settings.airtrail.writeBackHint':
     'Standart olaraq deaktivdir: AirTrail əsas məlumat mənbəyidir və TREK ondan yalnız oxuyur. TREK-də edilən dəyişiklikləri AirTrail-ə göndərmək üçün aktivləşdirin.',
   'settings.airtrail.connected': 'Qoşulub',
   'settings.airtrail.notConnected': 'Qoşulmayıb',
   'settings.airtrail.toast.saved': 'AirTrail bağlantısı yadda saxlanıldı',
-  'settings.airtrail.toast.saveError':
-    'Bağlantını yadda saxlamaq mümkün olmadı',
+  'settings.airtrail.toast.saveError': 'Bağlantını yadda saxlamaq mümkün olmadı',
   'settings.airtrail.test.button': 'Bağlantını yoxla',
-  'settings.airtrail.test.success':
-    'Qoşuldu — {count} uçuş tapıldı',
+  'settings.airtrail.test.success': 'Qoşuldu — {count} uçuş tapıldı',
   'settings.airtrail.test.failed': 'Bağlantı uğursuz oldu',
 
   'settings.aiParsing.title': 'AI ilə təhlil',
@@ -508,17 +460,13 @@ const settings: TranslationStrings = {
     'Lokal Ollama son nöqtəsi administrator tənzimləmələrində bütün instansiya üçün bir dəfə quraşdırılır. Burada öz OpenAI və ya Anthropic açarınızdan istifadə edə bilərsiniz.',
   'settings.aiParsing.model': 'Model',
   'settings.aiParsing.baseUrl': 'Əsas URL',
-  'settings.aiParsing.baseUrlHint':
-    'Modelin işlədiyi yer — lokal Ollama serveri və ya OpenAI ilə uyğun son nöqtə.',
+  'settings.aiParsing.baseUrlHint': 'Modelin işlədiyi yer — lokal Ollama serveri və ya OpenAI ilə uyğun son nöqtə.',
   'settings.aiParsing.apiKey': 'API açarı',
-  'settings.aiParsing.apiKeyHint':
-    'Şifrələnmiş şəkildə saxlanılır. Cari açarı saxlamaq üçün boş buraxın.',
+  'settings.aiParsing.apiKeyHint': 'Şifrələnmiş şəkildə saxlanılır. Cari açarı saxlamaq üçün boş buraxın.',
   'settings.aiParsing.multimodal': 'Model şəkilləri oxuyur',
-  'settings.aiParsing.multimodalHint':
-    'Şəkilləri oxuyan model üçün aç: onda foto idxal oluna və ya skan edilə bilər.',
+  'settings.aiParsing.multimodalHint': 'Şəkilləri oxuyan model üçün aç: onda foto idxal oluna və ya skan edilə bilər.',
   'settings.aiParsing.toast.saved': 'AI tənzimləmələri yadda saxlanıldı',
-  'settings.aiParsing.toast.saveError':
-    'AI tənzimləmələrini yadda saxlamaq mümkün olmadı',
+  'settings.aiParsing.toast.saveError': 'AI tənzimləmələrini yadda saxlamaq mümkün olmadı',
 
   'settings.tabs.appearance': 'Görünüş',
   'settings.appearance.theme': 'Tema',
@@ -539,8 +487,7 @@ const settings: TranslationStrings = {
   'settings.appearance.transparencyHint':
     'Şüşəyə bənzər yarımşəffaf səthlər. Bütöv və daha yüksək kontrastlı fonlar üçün deaktiv edin.',
   'settings.appearance.reduceMotion': 'Hərəkəti azalt',
-  'settings.appearance.reduceMotionHint':
-    'Animasiyaları və keçidləri minimuma endirin.',
+  'settings.appearance.reduceMotionHint': 'Animasiyaları və keçidləri minimuma endirin.',
   'settings.appearance.density': 'Sıxlıq',
   'settings.appearance.comfortable': 'Rahat',
   'settings.appearance.compact': 'Yığcam',
@@ -561,8 +508,7 @@ const settings: TranslationStrings = {
   'settings.appearance.widget.currency': 'Valyuta',
   'settings.appearance.widget.collections': 'Kolleksiyalar',
   'settings.appearance.widget.timezones': 'Saat qurşaqları',
-  'settings.appearance.widget.upcomingReservations':
-    'Qarşıdan gələn rezervasiyalar',
+  'settings.appearance.widget.upcomingReservations': 'Qarşıdan gələn rezervasiyalar',
   'settings.appearance.widget.atlas': 'Atlas / ölkələr',
   'settings.appearance.widget.tripsTotal': 'Ümumi səyahətlər',
   'settings.appearance.widget.daysTraveled': 'Səyahət edilən günlər',
@@ -570,8 +516,7 @@ const settings: TranslationStrings = {
   'settings.appearance.reset': 'Standartlara sıfırla',
   'settings.appearance.group.belowHero': 'Əsas blokun altında',
   'settings.appearance.group.bottomOfPage': 'Səhifənin aşağısında',
-  'settings.appearance.sidebarHint':
-    'Bütün sağ sütun. Deaktiv etdikdə idarə paneli mərkəzə çəkilir.',
+  'settings.appearance.sidebarHint': 'Bütün sağ sütun. Deaktiv etdikdə idarə paneli mərkəzə çəkilir.',
   'settings.appearance.densityHint':
     'Yığcam rejim ekrana daha çox məlumat sığdırmaq üçün aralıqları və daxili boşluqları azaldır.',
   'settings.appearance.textSizeAll': 'Hər şey',
@@ -596,8 +541,7 @@ const settings: TranslationStrings = {
     'Paneldə hansı elementlərin görünəcəyini və hansılarının “Daha çox” altında yerləşəcəyini seçin. İdarə paneli həmişə birinci qalır.',
   'settings.appearance.mobileNav.inBar': 'Paneldə',
   'settings.appearance.mobileNav.underMore': '“Daha çox” altında',
-  'settings.appearance.mobileNav.moreEmpty':
-    'Burada hələ heç nə yoxdur — bütün elementlər panelə sığır.',
+  'settings.appearance.mobileNav.moreEmpty': 'Burada hələ heç nə yoxdur — bütün elementlər panelə sığır.',
   'settings.appearance.mobileNav.pinned': 'Bərkidilib',
   'settings.appearance.mobileNav.toMore': '“Daha çox” altına daşı',
   'settings.appearance.mobileNav.toBar': 'Panelə daşı',
@@ -654,21 +598,15 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripsTitle': 'Səyahətlər',
   'settings.offline.storage.tripOn': 'Oflayn saxlanılır',
   'settings.offline.storage.tripOff': 'Saxlanılmır',
-  'settings.offline.storage.tripFinished':
-    'Bitib. Yalnız aktivləşdirsəniz oflayn saxlanılacaq.',
+  'settings.offline.storage.tripFinished': 'Bitib. Yalnız aktivləşdirsəniz oflayn saxlanılacaq.',
 
-  'settings.offline.notice.stored':
-    'Bu cihazda {count} səyahət saxlanıldı',
-  'settings.offline.notice.nothing':
-    'Saxlanılacaq heç nə yoxdur. Saxlamaq istədiyiniz səyahətləri aktivləşdirin.',
-  'settings.offline.notice.busy':
-    'Sinxronlaşdırma artıq davam edir. Bir az sonra yenidən cəhd edin.',
+  'settings.offline.notice.stored': 'Bu cihazda {count} səyahət saxlanıldı',
+  'settings.offline.notice.nothing': 'Saxlanılacaq heç nə yoxdur. Saxlamaq istədiyiniz səyahətləri aktivləşdirin.',
+  'settings.offline.notice.busy': 'Sinxronlaşdırma artıq davam edir. Bir az sonra yenidən cəhd edin.',
   'settings.offline.notice.offline':
     'Bağlantı yoxdur. Səyahətləri oflayn istifadə üçün saxlamaq məqsədilə internetə qoşulun.',
-  'settings.offline.notice.signedOut':
-    'Sessiyanız başa çatıb. Sinxronlaşdırmaq üçün yenidən daxil olun.',
-  'settings.offline.notice.failed':
-    'Endirməni tamamlamaq mümkün olmadı. Bağlantınızı yoxlayıb yenidən cəhd edin.',
+  'settings.offline.notice.signedOut': 'Sessiyanız başa çatıb. Sinxronlaşdırmaq üçün yenidən daxil olun.',
+  'settings.offline.notice.failed': 'Endirməni tamamlamaq mümkün olmadı. Bağlantınızı yoxlayıb yenidən cəhd edin.',
   'settings.offline.notice.loadFailed':
     'Bu cihazın oflayn yaddaşını oxumaq mümkün olmadı. Keşi təmizləmək adətən problemi həll edir.',
 
@@ -679,8 +617,7 @@ const settings: TranslationStrings = {
   'settings.offline.stats.pending': 'Gözləyən dəyişikliklər',
   'settings.offline.stats.failed': 'Uğursuz dəyişikliklər',
   'settings.offline.stats.conflicts': 'Ziddiyyətlər',
-  'settings.offline.empty':
-    'Hələ heç bir səyahət keşlənməyib. Sinxronlaşdırmaq üçün internetə qoşulun.',
+  'settings.offline.empty': 'Hələ heç bir səyahət keşlənməyib. Sinxronlaşdırmaq üçün internetə qoşulun.',
   'settings.offline.loading': 'Yüklənir…',
 
   'settings.offline.conflicts.title': 'Sinxronlaşdırma ziddiyyətləri',
@@ -693,21 +630,17 @@ const settings: TranslationStrings = {
   'settings.offline.conflicts.item': '“{name}” üçün dəyişiklik',
   'settings.offline.conflicts.strategyTitle': 'Ziddiyyət yarandıqda',
   'settings.offline.conflicts.strategy.ask': 'Hər dəfə məndən soruş',
-  'settings.offline.conflicts.strategy.mine':
-    'Həmişə mənim versiyamı saxla',
-  'settings.offline.conflicts.strategy.server':
-    'Həmişə server versiyasını saxla',
+  'settings.offline.conflicts.strategy.mine': 'Həmişə mənim versiyamı saxla',
+  'settings.offline.conflicts.strategy.server': 'Həmişə server versiyasını saxla',
 
   'settings.offline.banner.offline': 'Oflayn',
   'settings.offline.banner.forced': 'Oflayn rejim',
   'settings.offline.banner.queued': 'Oflayn · növbədə {count}',
   'settings.offline.banner.syncing': '{count} sinxronlaşdırılır…',
-  'settings.offline.banner.failed':
-    'Sinxronlaşdırmaq mümkün olmadı: {count}',
+  'settings.offline.banner.failed': 'Sinxronlaşdırmaq mümkün olmadı: {count}',
   'settings.offline.banner.conflicts': 'Ziddiyyətlər: {count}',
 
-  'settings.alwaysShowRoutes':
-    'Rezervasiya marşrutlarını həmişə göstər',
+  'settings.alwaysShowRoutes': 'Rezervasiya marşrutlarını həmişə göstər',
   'settings.alwaysShowRoutesHint':
     'Hər uçuş, qatar və digər rezervasiyanın marşrutunu xəritədə avtomatik göstərin — hər biri üçün ayrıca aktivləşdirməyə ehtiyac yoxdur.',
 
@@ -717,8 +650,7 @@ const settings: TranslationStrings = {
   'settings.apiScopes.hint':
     'Bütün məlumatları görməli olan açar üçün hər şeyi aktiv saxlayın. Deaktiv etdiyiniz məlumat sadəcə cavabdan çıxarılmır, bu açar üçün tamamilə qadağan edilir.',
   'settings.apiScopes.all': 'Hər şey',
-  'settings.apiScopes.noneSelected':
-    'Ən azı bir sahə seçin, əks halda açar heç bir məlumatı oxuya bilməyəcək.',
+  'settings.apiScopes.noneSelected': 'Ən azı bir sahə seçin, əks halda açar heç bir məlumatı oxuya bilməyəcək.',
   'settings.apiScopes.limited': '{total} sahədən {count}',
   'settings.apiScopes.trips': 'Səyahətlər',
   'settings.apiScopes.days': 'Günlər',
@@ -734,8 +666,7 @@ const settings: TranslationStrings = {
   'settings.apiKeys.description':
     'Digər proqramların səyahətlərinizi oxuya bilməsi üçün ictimai API açarları. Yalnız oxuma: açar heç nəyi dəyişdirə və ya silə bilməz.',
   'settings.apiKeys.create': 'Açar yarat',
-  'settings.apiKeys.empty':
-    'Hələ açar yoxdur. Digər proqramı qoşmaq üçün açar yaradın.',
+  'settings.apiKeys.empty': 'Hələ açar yoxdur. Digər proqramı qoşmaq üçün açar yaradın.',
   'settings.apiKeys.createdAt': 'yaradılıb',
   'settings.apiKeys.usedAt': 'son istifadə',
   'settings.apiKeys.deleteTitle': 'Açarı sil',
@@ -749,18 +680,15 @@ const settings: TranslationStrings = {
     'Açarı /api/v1 ünvanına “Authorization: Bearer ...” və ya “X-API-Key: ...” kimi göndərin.',
   'settings.apiKeys.endpoint': 'Son nöqtə',
   'settings.apiKeys.neverUsed': 'heç vaxt istifadə edilməyib',
-  'settings.apiKeys.loadFailed':
-    'Açarlarınızı yükləmək mümkün olmadı. Yenidən sınamaq üçün səhifəni yeniləyin.',
+  'settings.apiKeys.loadFailed': 'Açarlarınızı yükləmək mümkün olmadı. Yenidən sınamaq üçün səhifəni yeniləyin.',
   'settings.apiKeys.limitReached':
     'Hesab üçün maksimum say olan {max} açarınız var. Yeni açar yaratmaq üçün artıq istifadə etmədiyiniz açarlardan birini silin.',
-  'settings.apiKeys.copyFailed':
-    'Kopyalamaq mümkün olmadı. Mətni seçərək əl ilə kopyalayın.',
+  'settings.apiKeys.copyFailed': 'Kopyalamaq mümkün olmadı. Mətni seçərək əl ilə kopyalayın.',
 
   'settings.apiKeys.modal.createTitle': 'API açarı yarat',
   'settings.apiKeys.modal.name': 'Ad',
   'settings.apiKeys.modal.namePlaceholder': 'məs. Dawarich',
-  'settings.apiKeys.modal.nameHint':
-    'Açarı daha sonra tanımağınız üçün yalnız sizə görünən ad.',
+  'settings.apiKeys.modal.nameHint': 'Açarı daha sonra tanımağınız üçün yalnız sizə görünən ad.',
   'settings.apiKeys.modal.creating': 'Yaradılır...',
   'settings.apiKeys.modal.create': 'Yarat',
   'settings.apiKeys.modal.createdTitle': 'API açarı yaradıldı',

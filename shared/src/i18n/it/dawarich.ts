@@ -11,8 +11,7 @@ const dawarich: TranslationStrings = {
   'dawarich.apiKeyHint':
     'La trovi in Dawarich sotto Account → Chiave API. Viene salvata cifrata e non viene più mostrata.',
   'dawarich.allowInsecureTls': 'Consenti certificato autofirmato',
-  'dawarich.allowInsecureTlsHint':
-    'Serve solo se la tua istanza usa un certificato di cui il tuo server non si fida.',
+  'dawarich.allowInsecureTlsHint': 'Serve solo se la tua istanza usa un certificato di cui il tuo server non si fida.',
   'dawarich.syncEnabled': 'Cerca automaticamente nuove soste',
   'dawarich.syncEnabledHint': 'Se disattivato, TREK legge Dawarich solo quando glielo chiedi.',
   'dawarich.test.button': 'Prova la connessione',
@@ -59,7 +58,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Il componente aggiuntivo Dawarich è disattivato su questa istanza.',
   'dawarich.error.offline': 'Serve una connessione: TREK al momento è offline.',
   'dawarich.error.invalid_url': 'TREK non può usare questo indirizzo.',
-  'dawarich.warning.private_ip': 'Questo indirizzo punta a un IP privato ({ip}). Verifica che sia voluto: il server potrebbe richiedere ALLOW_INTERNAL_NETWORK=true per raggiungerlo.',
+  'dawarich.warning.private_ip':
+    'Questo indirizzo punta a un IP privato ({ip}). Verifica che sia voluto: il server potrebbe richiedere ALLOW_INTERNAL_NETWORK=true per raggiungerlo.',
   'dawarich.error.unknown': 'Qualcosa è andato storto nella comunicazione con Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -83,8 +83,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.title': 'Da Dawarich',
   'dawarich.suggestions.pending': '{count} in attesa di te',
   'dawarich.suggestions.loading': 'Lettura di Dawarich…',
-  'dawarich.suggestions.notConnected':
-    'Collega Dawarich nelle Impostazioni per vedere qui le tue soste.',
+  'dawarich.suggestions.notConnected': 'Collega Dawarich nelle Impostazioni per vedere qui le tue soste.',
   'dawarich.suggestions.unavailable': 'Impossibile leggere Dawarich.',
   'dawarich.suggestions.allHandled': 'Tutto ciò che è registrato qui è già stato gestito.',
   'dawarich.suggestions.asJournal': 'Scrivi una voce di diario',
@@ -146,8 +145,7 @@ const dawarich: TranslationStrings = {
   'dawarich.bucket.confirm': 'Spunta {count}',
   'dawarich.bucket.confirmed': '{count} desideri spuntati',
   'dawarich.bucket.skipped': '{count} voci non hanno coordinate e non sono state controllate.',
-  'dawarich.bucket.truncated':
-    'Sono state controllate solo le prime voci. Esegui di nuovo il controllo per le altre.',
+  'dawarich.bucket.truncated': 'Sono state controllate solo le prime voci. Esegui di nuovo il controllo per le altre.',
   'dawarich.bucket.visitedFrom': 'Spuntato dalle tue registrazioni Dawarich',
   'dawarich.bucket.clearVisit': 'Annulla',
 

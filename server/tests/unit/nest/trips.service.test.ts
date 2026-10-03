@@ -60,6 +60,7 @@ import { DaysService } from '../../../src/nest/days/days.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { TodoService } from '../../../src/nest/todo/todo.service';
+import { ShoppingService } from '../../../src/nest/shopping/shopping.service';
 import { PackingService } from '../../../src/nest/packing/packing.service';
 import { FilesService } from '../../../src/nest/files/files.service';
 import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
@@ -140,6 +141,7 @@ const readModelSvc = new TripReadModelService(
   new CollabService(dbs(), new PermissionsService(dbs()), new RealtimeService(), notificationsStub(), coversFx.storage, new RateLimitService()),
   placesSvc,
   new TodoService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
+  new ShoppingService(dbs(), new PermissionsService(dbs()), new RealtimeService()),
   new FilesService(dbs(), new PermissionsService(dbs()), new RealtimeService(), new EphemeralTokenService(), coversFx.storage),
 );
 

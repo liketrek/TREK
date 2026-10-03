@@ -51,8 +51,8 @@ import { useTripWebSocket } from '../hooks/useTripWebSocket'
 import { useRouteCalculation } from '../hooks/useRouteCalculation'
 import { usePlaceSelection } from '../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../hooks/usePlannerHistory'
-import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, TodoItem } from '../types'
-import { ListTodo, ListPlus, Download, Plus, FolderPlus } from 'lucide-react'
+import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, ShoppingItem, TodoItem } from '../types'
+import { ListTodo, ListPlus, Download, Plus, FolderPlus, ShoppingBag } from 'lucide-react'
 import { useTripPlanner } from './tripPlanner/useTripPlanner'
 import { usePoiExplore } from '../components/Map/usePoiExplore'
 import { useMergedMapPois } from '../components/Map/useMergedMapPois'
@@ -68,6 +68,7 @@ import PanelResizeHandle from '../components/Planner/PanelResizeHandle'
 // too and both belong to the plan tab, so splitting it here would move nothing.
 const ReservationsPanel = lazyWithRetry(() => import('../components/Planner/ReservationsPanel'))
 const PackingListPanel = lazyWithRetry(() => import('../components/Packing/PackingListPanel'))
+const ShoppingListPanel = lazyWithRetry(() => import('../components/Shopping/ShoppingListPanel'))
 const TodoListPanel = lazyWithRetry(() => import('../components/Todo/TodoListPanel'))
 const FileManager = lazyWithRetry(() => import('../components/Files/FileManager'))
 const CostsPanel = lazyWithRetry(() => import('../components/Budget/CostsPanel'))
@@ -118,11 +119,11 @@ function LazyPanel({ id, children, overlay }: { id: string; children: React.Reac
   )
 }
 
-function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; packingItems: PackingItem[]; todoItems: TodoItem[] }) {
-  const [subTab, setSubTab] = useState<'packing' | 'todo'>(() => {
-    return (sessionStorage.getItem(`trip-lists-subtab-${tripId}`) as 'packing' | 'todo') || 'packing'
+function ListsContainer({ tripId, packingItems, shoppingItems = [], todoItems }: { tripId: number; packingItems: PackingItem[]; shoppingItems?: ShoppingItem[]; todoItems: TodoItem[] }) {
+  const [subTab, setSubTab] = useState<'packing' | 'shopping' | 'todo'>(() => {
+    return (sessionStorage.getItem(`trip-lists-subtab-${tripId}`) as 'packing' | 'shopping' | 'todo') || 'packing'
   })
-  const setSubTabPersist = (tab: 'packing' | 'todo') => { setSubTab(tab); sessionStorage.setItem(`trip-lists-subtab-${tripId}`, tab) }
+  const setSubTabPersist = (tab: 'packing' | 'shopping' | 'todo') => { setSubTab(tab); sessionStorage.setItem(`trip-lists-subtab-${tripId}`, tab) }
   const [importPackingSignal, setImportPackingSignal] = useState(0)
   const [addCategorySignal, setAddCategorySignal] = useState(0)
   const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
@@ -135,12 +136,13 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
 
   const tabs = [
     { id: 'packing' as const, label: t('todo.subtab.packing'), icon: PackageCheck, count: packingItems.length },
+    { id: 'shopping' as const, label: t('todo.subtab.shopping'), icon: ShoppingBag, count: shoppingItems.length },
     { id: 'todo' as const, label: t('todo.subtab.todo'), icon: ListTodo, count: todoItems.length },
   ]
 
-  // The to-do view fills what is left under the bar, so its list and detail pane
-  // scroll inside the screen and the pane's buttons stay in sight.
-  const fill = subTab === 'todo'
+  // The to-do and shopping views fill what is left under the bar, so their lists
+  // scroll inside the screen.
+  const fill = subTab === 'todo' || subTab === 'shopping'
   return (
     <div style={fill ? { display: 'flex', flexDirection: 'column', height: '100%' } : undefined}>
       <div style={{ padding: '24px 28px 0', flexShrink: 0 }} className="max-md:!px-4 max-md:!pt-4">
@@ -249,6 +251,11 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
             <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} addCategorySignal={addCategorySignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} view={packingView} onViewChange={setPackingView} />
           </LazyPanel>
         )}
+        {subTab === 'shopping' && (
+          <LazyPanel id="shopping">
+            <ShoppingListPanel tripId={tripId} items={shoppingItems} />
+          </LazyPanel>
+        )}
         {subTab === 'todo' && (
           <LazyPanel id="todo">
             <TodoListPanel tripId={tripId} items={todoItems} addItemSignal={addTodoSignal} />
@@ -275,7 +282,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   // selection, CRUD handlers with undo, map filters, splash) lives in the hook.
   const {
     tripId, navigate, toast, t, language, placesPhotosEnabled,
-    trip, days, places, assignments, packingItems, todoItems, categories, reservations, budgetItems, files,
+    trip, days, places, assignments, packingItems, shoppingItems, todoItems, categories, reservations, budgetItems, files,
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
@@ -1055,7 +1062,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
 
         {activeTab === 'listen' && (
           <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
-            <ListsContainer tripId={tripId} packingItems={packingItems} todoItems={todoItems} />
+            <ListsContainer tripId={tripId} packingItems={packingItems} shoppingItems={shoppingItems} todoItems={todoItems} />
           </div>
         )}
 

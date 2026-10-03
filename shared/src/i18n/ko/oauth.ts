@@ -36,9 +36,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': 'Atlas 관리',
   'oauth.scope.atlas:write.description': '방문한 나라 및 지역 표시, 버킷 리스트 관리',
   'oauth.scope.packing:read.label': '짐 목록 보기',
-  'oauth.scope.packing:read.description': '짐 항목, 가방, 카테고리 배정 읽기',
+  'oauth.scope.packing:read.description': '짐 항목, 가방, 카테고리 배정 및 쇼핑 목록 항목 읽기',
   'oauth.scope.packing:write.label': '짐 목록 관리',
-  'oauth.scope.packing:write.description': '짐 항목 및 가방 추가, 업데이트, 삭제, 체크, 순서 변경',
+  'oauth.scope.packing:write.description': '짐 항목, 가방 및 쇼핑 목록 항목 추가, 업데이트, 삭제, 체크, 순서 변경',
   'oauth.scope.todos:read.label': '할 일 목록 보기',
   'oauth.scope.todos:read.description': '여행 할 일 항목 및 카테고리 배정 읽기',
   'oauth.scope.todos:write.label': '할 일 목록 관리',
@@ -106,6 +106,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:write.description': '단위, 시간 형식, 언어, 기본 통화, 시작 페이지 변경. 저장된 API 키는 제외',
   'oauth.scope.group.plugins': '플러그인',
   'oauth.scope.plugins:use.label': '플러그인 도구 실행',
-  'oauth.scope.plugins:use.description': '관리자가 설치하고 승인한 플러그인이 제공하는 도구를 이 클라이언트가 호출할 수 있도록 허용합니다. 각 플러그인은 이 토큰의 범위가 아니라 이미 부여받은 권한으로 동작합니다',
+  'oauth.scope.plugins:use.description':
+    '관리자가 설치하고 승인한 플러그인이 제공하는 도구를 이 클라이언트가 호출할 수 있도록 허용합니다. 각 플러그인은 이 토큰의 범위가 아니라 이미 부여받은 권한으로 동작합니다',
 };
 export default oauth;

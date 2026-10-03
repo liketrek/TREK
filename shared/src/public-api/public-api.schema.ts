@@ -198,7 +198,12 @@ export type PublicApiInclude = (typeof PUBLIC_API_INCLUDES)[number];
  */
 export const publicApiIncludeQuerySchema = z
   .string()
-  .transform((raw) => raw.split(',').map((part) => part.trim()).filter(Boolean))
+  .transform((raw) =>
+    raw
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean),
+  )
   .pipe(z.array(z.enum(PUBLIC_API_INCLUDES)).min(1));
 
 export const publicApiTripListSchema = z.object({

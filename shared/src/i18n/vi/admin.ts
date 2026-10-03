@@ -50,7 +50,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNotificationsHint':
     'Định cấu hình kênh nào gửi thông báo chỉ dành cho quản trị viên (ví dụ: cảnh báo phiên bản).',
   'admin.notificationDefaults.title': 'Mặc định cho người dùng',
-  'admin.notificationDefaults.hint': 'Trạng thái ban đầu của thông báo cho mỗi người dùng. "Tắt" người dùng vẫn có thể tự bật; "Chặn" tắt cho mọi người và hiển thị khóa trong cài đặt của họ. Áp dụng cho mọi người chưa tự đổi ô đó.',
+  'admin.notificationDefaults.hint':
+    'Trạng thái ban đầu của thông báo cho mỗi người dùng. "Tắt" người dùng vẫn có thể tự bật; "Chặn" tắt cho mọi người và hiển thị khóa trong cài đặt của họ. Áp dụng cho mọi người chưa tự đổi ô đó.',
   'admin.notificationDefaults.on': 'Bật',
   'admin.notificationDefaults.off': 'Tắt',
   'admin.notificationDefaults.blocked': 'Chặn',
@@ -138,43 +139,31 @@ const admin: TranslationStrings = {
   'admin.requireMfa': 'Yêu cầu xác thực hai yếu tố (2FA)',
   'admin.requireMfaHint': 'Người dùng không có 2FA phải hoàn tất thiết lập trong Cài đặt trước khi sử dụng ứng dụng.',
   'admin.apiKeys': 'API Key',
-  'admin.apiKeysHint': 'Dữ liệu địa điểm đến từ đâu. Chỉ mục TREK không cần khóa; hai nhà cung cấp bên dưới là tùy chọn.',
+  'admin.apiKeysHint':
+    'Dữ liệu địa điểm đến từ đâu. Chỉ mục TREK không cần khóa; hai nhà cung cấp bên dưới là tùy chọn.',
   'admin.trekApi.badgeDefault': 'Nguồn mặc định khuyến nghị',
   'admin.googleCaveat.badge': 'Không khuyến nghị',
   'admin.googleCaveat.body':
     'TREK là phần mềm nguồn mở và ở đây chúng tôi không trung lập. Ở quy mô này, đánh giá và ảnh của các cửa hàng thông thường chỉ có ở Google, và đó là độc quyền. Ô này có mặt vì không có lựa chọn khác, không phải vì chúng tôi khuyến nghị. Khi đó mọi truy vấn đều đi tới Google.',
   'admin.trekApi.tagline':
     'Chỉ mục địa điểm của riêng TREK. Tìm kiếm không cần khóa Google, không hạn mức, và không ai đếm lượt tìm của bạn.',
-  'admin.trekApi.factPlaces':
-    '73,6 triệu địa điểm trên toàn thế giới',
-  'admin.trekApi.factNoKey':
-    'Không khóa, không hạn mức',
-  'admin.trekApi.factOffline':
-    'Gói theo quốc gia dùng được ngoại tuyến',
-  'admin.trekApi.factPrivacy':
-    'Không bao giờ ghi lại nội dung tìm kiếm',
-  'admin.trekApi.more':
-    'Bên trong có gì',
-  'admin.trekApi.fieldPhone':
-    'Điện thoại',
-  'admin.trekApi.fieldStableId':
-    'Mã định danh ổn định',
+  'admin.trekApi.factPlaces': '73,6 triệu địa điểm trên toàn thế giới',
+  'admin.trekApi.factNoKey': 'Không khóa, không hạn mức',
+  'admin.trekApi.factOffline': 'Gói theo quốc gia dùng được ngoại tuyến',
+  'admin.trekApi.factPrivacy': 'Không bao giờ ghi lại nội dung tìm kiếm',
+  'admin.trekApi.more': 'Bên trong có gì',
+  'admin.trekApi.fieldPhone': 'Điện thoại',
+  'admin.trekApi.fieldStableId': 'Mã định danh ổn định',
   'admin.trekApi.includedNote':
     'Mô tả lấy từ trang web của chính địa điểm, giờ mở cửa lấy từ OpenStreetMap ở nơi đã được điền.',
-  'admin.trekApi.notRatings':
-    'Đánh giá',
-  'admin.trekApi.notPhotos':
-    'Ảnh của cửa hàng thông thường',
+  'admin.trekApi.notRatings': 'Đánh giá',
+  'admin.trekApi.notPhotos': 'Ảnh của cửa hàng thông thường',
   'admin.trekApi.notIncludedNote':
     'Không nguồn mở nào có cả hai, với bất kỳ giá nào. Với hai thứ đó khóa Google vẫn là con đường duy nhất.',
-  'admin.trekApi.sourcesLabel':
-    'Nguồn',
-  'admin.trekApi.sourcesNote':
-    'Mọi trường trong phản hồi đều cho biết nó đến từ nguồn nào.',
-  'admin.trekApi.included':
-    'Có',
-  'admin.trekApi.notIncluded':
-    'Không có',
+  'admin.trekApi.sourcesLabel': 'Nguồn',
+  'admin.trekApi.sourcesNote': 'Mọi trường trong phản hồi đều cho biết nó đến từ nguồn nào.',
+  'admin.trekApi.included': 'Có',
+  'admin.trekApi.notIncluded': 'Không có',
   'admin.mapsKey': 'Google Maps API Key',
   'admin.mapsKeyHint': 'Cần thiết cho tìm kiếm địa điểm. Truy cập tại console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -231,11 +220,15 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Hiển thị hình ảnh và mô tả khi thêm địa điểm. Wikipedia và OpenStreetMap luôn được dùng; Google được thêm vào khi bật Ảnh địa điểm hoặc Chi tiết địa điểm.',
   'admin.placesGoogleOnly.title': 'Chỉ tìm bằng Google',
-  'admin.placesGoogleOnly.subtitle': 'Mọi tìm kiếm và mọi gợi ý đều đi tới Google Places. Khi tắt, chỉ mục của TREK và OpenStreetMap trả lời trước, Google chỉ được hỏi khi cả hai không tìm thấy gì.',
-  'admin.placesGoogleOnly.missingKey': 'Cần khóa API Google Maps. Không có khóa, tìm kiếm chạy trên chỉ mục của TREK và OpenStreetMap, bất kể công tắc này.',
-  'admin.placesGoogleOnly.otherProvider': 'Cần Google làm nhà cung cấp địa điểm. Khi chọn Amap hoặc OpenStreetMap, không tìm kiếm nào được gửi đến Google dù công tắc này đặt thế nào.',
+  'admin.placesGoogleOnly.subtitle':
+    'Mọi tìm kiếm và mọi gợi ý đều đi tới Google Places. Khi tắt, chỉ mục của TREK và OpenStreetMap trả lời trước, Google chỉ được hỏi khi cả hai không tìm thấy gì.',
+  'admin.placesGoogleOnly.missingKey':
+    'Cần khóa API Google Maps. Không có khóa, tìm kiếm chạy trên chỉ mục của TREK và OpenStreetMap, bất kể công tắc này.',
+  'admin.placesGoogleOnly.otherProvider':
+    'Cần Google làm nhà cung cấp địa điểm. Khi chọn Amap hoặc OpenStreetMap, không tìm kiếm nào được gửi đến Google dù công tắc này đặt thế nào.',
   'admin.googleQuota.title': 'Giới hạn lượt gọi Google mỗi ngày',
-  'admin.googleQuota.subtitle': 'Khi đạt giới hạn, TREK ngừng gọi Google đến ngày hôm sau (UTC) và tìm kiếm bằng OpenStreetMap. Để trống nếu không giới hạn.',
+  'admin.googleQuota.subtitle':
+    'Khi đạt giới hạn, TREK ngừng gọi Google đến ngày hôm sau (UTC) và tìm kiếm bằng OpenStreetMap. Để trống nếu không giới hạn.',
   'admin.googleQuota.placeholder': 'Không giới hạn',
   'admin.googleQuota.usedToday': 'Hôm nay: {used}',
   'admin.googleQuota.usedOfLimit': 'Hôm nay: {used} / {limit}',
@@ -245,10 +238,14 @@ const admin: TranslationStrings = {
   'admin.transitProvider.subtitle': 'Dịch vụ nào trả lời tìm kiếm giao thông công cộng.',
   'admin.transitProvider.transitous': 'Transitous (miễn phí)',
   'admin.transitProvider.google': 'Google',
-  'admin.transitProvider.transitousHint': 'Nguồn GTFS cộng đồng. Miễn phí và không cần khóa, phủ sóng tốt nhất ở châu Âu.',
-  'admin.transitProvider.googleHint': 'Dùng khóa Google ở trên, cho những khu vực Transitous không có dữ liệu. Tính phí theo mỗi lượt tìm kiếm — khi chưa đặt khóa thì vẫn dùng Transitous.',
-  'admin.transitProvider.noKeyWarning': 'Đã chọn Google, nhưng chưa cấu hình khóa Google — tìm kiếm giao thông vẫn dùng Transitous. Thêm khóa ở mục Khóa API phía trên.',
-  'admin.transitProvider.personalKeyWarning': 'Chỉ khóa Google của riêng bạn được đặt, nên tìm kiếm của các thành viên khác vẫn quay về Transitous. Lưu khóa ở trên với quyền quản trị để áp dụng cho toàn bộ máy chủ.',
+  'admin.transitProvider.transitousHint':
+    'Nguồn GTFS cộng đồng. Miễn phí và không cần khóa, phủ sóng tốt nhất ở châu Âu.',
+  'admin.transitProvider.googleHint':
+    'Dùng khóa Google ở trên, cho những khu vực Transitous không có dữ liệu. Tính phí theo mỗi lượt tìm kiếm — khi chưa đặt khóa thì vẫn dùng Transitous.',
+  'admin.transitProvider.noKeyWarning':
+    'Đã chọn Google, nhưng chưa cấu hình khóa Google — tìm kiếm giao thông vẫn dùng Transitous. Thêm khóa ở mục Khóa API phía trên.',
+  'admin.transitProvider.personalKeyWarning':
+    'Chỉ khóa Google của riêng bạn được đặt, nên tìm kiếm của các thành viên khác vẫn quay về Transitous. Lưu khóa ở trên với quyền quản trị để áp dụng cho toàn bộ máy chủ.',
   'admin.placeShadow.title': 'Nhật ký tìm kiếm địa điểm',
   'admin.placeShadow.subtitle':
     'Ghi lại kết quả tìm kiếm nào đã được chọn, để sau này có thể đánh giá một chỉ mục địa điểm khác bằng những lượt tìm kiếm thật. Không có gì rời khỏi máy chủ này, và quản trị viên có thể xuất hoặc xóa nhật ký bất cứ lúc nào.',
@@ -420,7 +417,8 @@ const admin: TranslationStrings = {
     'Tô màu các ngày trong kế hoạch ngày (ví dụ ngày đó thuộc chặng nào của chuyến đi)',
   'admin.plugins.cap.mcpTools': 'Xuất bản công cụ AI',
   'admin.plugins.mcpToolsTitle': 'Công cụ AI được xuất bản',
-  'admin.plugins.mcpToolsHint': 'Trợ lý có thể chạy chúng thay cho người dùng. Mỗi công cụ hoạt động với quyền được cấp ở trên.',
+  'admin.plugins.mcpToolsHint':
+    'Trợ lý có thể chạy chúng thay cho người dùng. Mỗi công cụ hoạt động với quyền được cấp ở trên.',
   'admin.plugins.poiCategoriesTitle': 'Danh mục bản đồ mà plugin thêm vào',
   'admin.plugins.perm.mcp:tools':
     'Xuất bản các công cụ mà trợ lý AI có thể chạy thay bạn (nó hoạt động với quyền bạn cấp cho tiện ích tại đây, không phải quyền của trợ lý)',
@@ -524,7 +522,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Đổi phiên bản…',
   'admin.plugins.noVersions': 'Không tìm thấy phiên bản đã xuất bản trong sổ đăng ký.',
   'admin.plugins.downgradeTitle': 'Quay lại phiên bản cũ của plugin này?',
-  'admin.plugins.downgradeBody': 'Chuyển từ v{from} sang v{to}: dữ liệu do phiên bản mới hơn ghi vẫn còn nguyên, và phiên bản cũ hơn có thể không hiểu được.',
+  'admin.plugins.downgradeBody':
+    'Chuyển từ v{from} sang v{to}: dữ liệu do phiên bản mới hơn ghi vẫn còn nguyên, và phiên bản cũ hơn có thể không hiểu được.',
   'admin.plugins.downgradeConfirm': 'Quay lại',
   'admin.plugins.updatesHeld': 'Đã tạm dừng cập nhật ở v{version}',
   'admin.plugins.resumeUpdates': 'Tiếp tục cập nhật',
@@ -597,8 +596,7 @@ const admin: TranslationStrings = {
     '“{name}” khai báo hỗ trợ TREK {range}, còn máy chủ này đang chạy {host}. TREK chỉ cho phép vì TREK_PLUGINS_IGNORE_TREK_RANGE đã được đặt. Tác giả chưa cập nhật phạm vi phiên bản của plugin cho TREK này, nên không có gì đảm bảo nó hoạt động — và trong một số ít trường hợp, plugin không tương thích có thể làm hỏng dữ liệu TREK. Chỉ tiếp tục nếu bạn chấp nhận rủi ro đó.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '“{name}” không khai báo hỗ trợ phiên bản TREK nào; máy chủ này đang chạy {host}. TREK chỉ cho phép vì TREK_PLUGINS_IGNORE_TREK_RANGE đã được đặt. Không có dấu hiệu nào cho thấy tác giả đã thử nghiệm trên TREK này, nên không có gì đảm bảo nó hoạt động — và trong một số ít trường hợp, plugin không tương thích có thể làm hỏng dữ liệu TREK. Chỉ tiếp tục nếu bạn chấp nhận rủi ro đó.',
-  'admin.plugins.dep.trekBypassed':
-    'Ngoài phạm vi TREK của nó ({range}) — đã tắt kiểm tra phiên bản',
+  'admin.plugins.dep.trekBypassed': 'Ngoài phạm vi TREK của nó ({range}) — đã tắt kiểm tra phiên bản',
   'admin.plugins.dep.trekBypassedUnknown': 'Không khai báo phạm vi TREK — đã tắt kiểm tra phiên bản',
   'admin.plugins.incompatible': 'Không tương thích',
   'admin.plugins.accessTitle': 'Những gì có thể truy cập',
@@ -613,7 +611,8 @@ const admin: TranslationStrings = {
   'admin.addons.title': 'Tiện ích bổ sung',
   'admin.addons.subtitle': 'Bật hoặc tắt các tính năng để tùy chỉnh trải nghiệm TREK của bạn.',
   'admin.addons.catalog.packing.name': 'Danh sách',
-  'admin.addons.catalog.packing.description': 'Danh sách đóng gói và nhiệm vụ cần làm cho chuyến đi của bạn',
+  'admin.addons.catalog.packing.description':
+    'Danh sách đóng gói, danh sách mua sắm và nhiệm vụ cần làm cho chuyến đi của bạn',
   'admin.addons.catalog.budget.name': 'Chi phí',
   'admin.addons.catalog.budget.description': 'Theo dõi chi phí chuyến đi và chia cho những người cùng đi',
   'admin.addons.catalog.documents.name': 'Tài liệu',
@@ -640,12 +639,14 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'Đọc các điểm lưu trú và lộ trình đã ghi từ phiên bản Dawarich mà mỗi người tự kết nối',
   'admin.addons.catalog.llm_parsing.name': 'Phân tích bằng AI',
-  'admin.addons.catalog.llm_parsing.description': 'Đọc các đặt chỗ mà bộ phân tích tích hợp không hiểu, bằng mô hình AI bạn chọn',
+  'admin.addons.catalog.llm_parsing.description':
+    'Đọc các đặt chỗ mà bộ phân tích tích hợp không hiểu, bằng mô hình AI bạn chọn',
   'admin.addons.llm.vision.auto': 'Tự động',
   'admin.addons.llm.vision.on': 'Có',
   'admin.addons.llm.vision.off': 'Không',
   'admin.addons.llm.vision.hintLocal': 'Tự động sẽ hỏi máy chủ Ollama xem mô hình này có đọc được hình ảnh không.',
-  'admin.addons.llm.vision.hintCloud': 'Với mô hình đám mây, Tự động nghĩa là không. Chọn Có nếu mô hình này đọc được hình ảnh.',
+  'admin.addons.llm.vision.hintCloud':
+    'Với mô hình đám mây, Tự động nghĩa là không. Chọn Có nếu mô hình này đọc được hình ảnh.',
   'admin.addons.enabled': 'Đã bật',
   'admin.addons.disabled': 'Tắt',
   'admin.addons.type.trip': 'Chuyến đi',
@@ -778,7 +779,8 @@ const admin: TranslationStrings = {
   'admin.invite.boundTo': 'thêm vào {trip}',
   'admin.placesUsageTitle': 'Khóa được dùng cho việc gì',
   'admin.mapsKeyHintShort': 'Thêm ảnh, đánh giá và giờ mở cửa. Mọi tra cứu khi đó sẽ đi qua Google.',
-  'admin.amapKeyHintShort': 'Cho tìm kiếm địa điểm tại Trung Quốc đại lục. Cần khóa dịch vụ web, không phải khóa JS API.',
+  'admin.amapKeyHintShort':
+    'Cho tìm kiếm địa điểm tại Trung Quốc đại lục. Cần khóa dịch vụ web, không phải khóa JS API.',
   'admin.collab.links.subtitle': 'Liên kết chia sẻ và dấu trang',
 };
 export default admin;

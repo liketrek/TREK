@@ -53,11 +53,13 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': 'Avtomobil marşrutu göstəriciləri',
   'mobileTrip.rtDesktopNote':
     'Bu göstəricilər kompüterdə təyin edilir. Orada alternativ marşrutları müqayisə edə və günü idxal edilmiş iz üzrə hərəkət edəcək şəkildə qura bilərsiniz.',
-  'mobileTrip.rtPlanOnDesktop': 'Planlaşdırma kompüterdə aparılır. Gündə iki məkan olduqda TREK avtomobil marşrutunu hesablayır.',
+  'mobileTrip.rtPlanOnDesktop':
+    'Planlaşdırma kompüterdə aparılır. Gündə iki məkan olduqda TREK avtomobil marşrutunu hesablayır.',
   'mobileTrip.rtSearchOffline': 'İnternet bağlantısı tələb olunur: axtarış qarşıdakı marşrutu yoxlayır.',
   'mobileTrip.rtBehind': 'Plandan {time} geri',
   'mobileTrip.rtStart': 'Başlanğıc',
-  'mobileTrip.rtStayScope': 'Qalma müddəti məkana aiddir, buna görə bu dayanacağın planlaşdırıldığı hər gün üçün hesablanır.',
+  'mobileTrip.rtStayScope':
+    'Qalma müddəti məkana aiddir, buna görə bu dayanacağın planlaşdırıldığı hər gün üçün hesablanır.',
   'mobileTrip.rtStayLess': '{count} dəqiqə az',
   'mobileTrip.rtStayMore': '{count} dəqiqə çox',
   'mobileTrip.rtNightDesktopOnly':
@@ -68,7 +70,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtFromStart': 'Mərhələnin başlanğıcından',
   'mobileTrip.rtNoneAhead': 'Qarşıdakı yolda heç nə yoxdur. Bütün mərhələ üzrə sınayın.',
   'mobileTrip.rtNoneOnStage': 'Bu mərhələdə həmin növdə heç nə yoxdur.',
-  'mobileTrip.rtTruncated.one': '1 marşrut hissəsində bir cavaba sığmayacaq qədər nəticə var. Qalanlarını görmək üçün daha az növ seçin.',
+  'mobileTrip.rtTruncated.one':
+    '1 marşrut hissəsində bir cavaba sığmayacaq qədər nəticə var. Qalanlarını görmək üçün daha az növ seçin.',
   'mobileTrip.rtTruncated.other':
     '{count} marşrut hissəsində bir cavaba sığmayacaq qədər nəticə var. Qalanlarını görmək üçün daha az növ seçin.',
   'mobileTrip.rtNoDay': 'Gün seçilməyib',

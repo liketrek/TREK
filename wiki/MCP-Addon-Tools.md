@@ -8,7 +8,7 @@ This page covers MCP tools and resources that require specific addons to be enab
 
 ### Packing _(Packing addon required)_
 
-Requires `packing:read` or `packing:write` scope. The Packing addon is listed as **Lists** under **Admin → Addons** (id `packing`) and covers packing lists and to-dos.
+Requires `packing:read` or `packing:write` scope. The Packing addon is listed as **Lists** under **Admin → Addons** (id `packing`) and covers packing lists, shopping lists and to-dos.
 
 | Tool | Description |
 |---|---|
@@ -30,6 +30,20 @@ Requires `packing:read` or `packing:write` scope. The Packing addon is listed as
 | `set_bag_members` | Assign trip members to a packing bag. |
 | `get_packing_category_assignees` | Get which trip members are assigned to each packing category. |
 | `set_packing_category_assignees` | Assign trip members to a packing category. |
+
+### Shopping list _(Packing addon required)_
+
+Requires `packing:read` or `packing:write` scope — the shopping list is a sub-tab of **Lists** and shares the packing scope and the `packing_edit` permission.
+
+| Tool | Description |
+|---|---|
+| `list_shopping_items` | List all shopping list items for a trip, ordered by position. |
+| `create_shopping_item` | Add an item with name, free-text quantity, category, buyer, and notes. |
+| `update_shopping_item` | Update an existing item. Pass `null` to clear nullable fields. |
+| `toggle_shopping_item` | Mark an item as bought or not. |
+| `delete_shopping_item` | Delete a shopping list item. |
+| `clear_checked_shopping_items` | Delete every bought item at once. |
+| `reorder_shopping_items` | Reorder the shopping list by providing a new ordered list of IDs. |
 
 ### To-Dos _(Packing addon required)_
 
@@ -285,6 +299,7 @@ Resources provide read-only access via `trek://` URIs. The following resources r
 | `trek://trips/{tripId}/packing` | Packing | `packing:read` | Packing checklist |
 | `trek://trips/{tripId}/packing/bags` | Packing | `packing:read` | Packing bags with their assigned members |
 | `trek://trips/{tripId}/todos` | Packing | `todos:read` | To-do items ordered by position |
+| `trek://trips/{tripId}/shopping` | Packing | `packing:read` | Shopping list items ordered by position |
 | `trek://trips/{tripId}/collab-notes` | Collab | `collab:read` | Shared collaborative notes |
 | `trek://bucket-list` | Atlas | `atlas:read` | Your personal travel bucket list |
 | `trek://visited-countries` | Atlas | `atlas:read` | Countries marked as visited in Atlas |

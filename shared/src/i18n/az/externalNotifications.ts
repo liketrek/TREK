@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+
 const az: NotificationLocale = {
   email: {
     footer: 'Bu məktubu TREK-də bildirişləriniz aktiv olduğu üçün aldınız.',
@@ -55,9 +56,7 @@ const az: NotificationLocale = {
       title: 'Yaddaş replikası xətası',
       body:
         `“${p.backend}” replikasına yazmaq mümkün olmadı: ${p.key} üçün ${p.op} — ${p.error}.` +
-        (p.suppressed !== '0'
-          ? ` Son bildirişdən bəri ${p.suppressed} əlavə xəta gizlədilib.`
-          : ''),
+        (p.suppressed !== '0' ? ` Son bildirişdən bəri ${p.suppressed} əlavə xəta gizlədilib.` : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Synology sessiyası təmizləndi',

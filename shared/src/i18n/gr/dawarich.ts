@@ -14,8 +14,7 @@ const dawarich: TranslationStrings = {
   'dawarich.allowInsecureTlsHint':
     'Χρειάζεται μόνο αν η εγκατάστασή σας χρησιμοποιεί πιστοποιητικό που δεν εμπιστεύεται ο διακομιστής σας.',
   'dawarich.syncEnabled': 'Αυτόματος έλεγχος για νέες στάσεις',
-  'dawarich.syncEnabledHint':
-    'Απενεργοποιημένο σημαίνει ότι το TREK διαβάζει το Dawarich μόνο όταν του το ζητήσετε.',
+  'dawarich.syncEnabledHint': 'Απενεργοποιημένο σημαίνει ότι το TREK διαβάζει το Dawarich μόνο όταν του το ζητήσετε.',
   'dawarich.test.button': 'Δοκιμή σύνδεσης',
   'dawarich.test.success': 'Συνδέθηκε. Βρέθηκαν {count} στάσεις τις τελευταίες 30 ημέρες.',
   'dawarich.test.failed': 'Δεν ήταν δυνατή η επικοινωνία με το Dawarich.',
@@ -60,7 +59,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Το πρόσθετο Dawarich είναι απενεργοποιημένο σε αυτή την εγκατάσταση.',
   'dawarich.error.offline': 'Αυτό χρειάζεται σύνδεση — το TREK είναι εκτός σύνδεσης αυτή τη στιγμή.',
   'dawarich.error.invalid_url': 'Το TREK δεν μπορεί να χρησιμοποιήσει αυτή τη διεύθυνση.',
-  'dawarich.warning.private_ip': 'Αυτή η διεύθυνση οδηγεί σε ιδιωτική IP ({ip}). Βεβαιωθείτε ότι αυτό εννοούσατε — ο διακομιστής ίσως χρειάζεται ALLOW_INTERNAL_NETWORK=true.',
+  'dawarich.warning.private_ip':
+    'Αυτή η διεύθυνση οδηγεί σε ιδιωτική IP ({ip}). Βεβαιωθείτε ότι αυτό εννοούσατε — ο διακομιστής ίσως χρειάζεται ALLOW_INTERNAL_NETWORK=true.',
   'dawarich.error.unknown': 'Κάτι πήγε στραβά στην επικοινωνία με το Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -84,8 +84,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.title': 'Από το Dawarich',
   'dawarich.suggestions.pending': '{count} περιμένουν από εσάς',
   'dawarich.suggestions.loading': 'Ανάγνωση του Dawarich…',
-  'dawarich.suggestions.notConnected':
-    'Συνδέστε το Dawarich στις Ρυθμίσεις για να βλέπετε εδώ τις στάσεις σας.',
+  'dawarich.suggestions.notConnected': 'Συνδέστε το Dawarich στις Ρυθμίσεις για να βλέπετε εδώ τις στάσεις σας.',
   'dawarich.suggestions.unavailable': 'Δεν ήταν δυνατή η ανάγνωση του Dawarich.',
   'dawarich.suggestions.allHandled': 'Όλα όσα καταγράφηκαν εδώ έχουν διεκπεραιωθεί.',
   'dawarich.suggestions.asJournal': 'Γράψτε καταχώρηση ημερολογίου',
@@ -147,8 +146,7 @@ const dawarich: TranslationStrings = {
   'dawarich.bucket.confirm': 'Σημείωση {count} ως εκπληρωμένων',
   'dawarich.bucket.confirmed': '{count} επιθυμίες σημειώθηκαν ως εκπληρωμένες',
   'dawarich.bucket.skipped': '{count} καταχωρήσεις δεν έχουν συντεταγμένες και δεν ήταν δυνατό να ελεγχθούν.',
-  'dawarich.bucket.truncated':
-    'Ελέγχθηκαν μόνο οι πρώτες καταχωρήσεις. Εκτελέστε το ξανά για τις υπόλοιπες.',
+  'dawarich.bucket.truncated': 'Ελέγχθηκαν μόνο οι πρώτες καταχωρήσεις. Εκτελέστε το ξανά για τις υπόλοιπες.',
   'dawarich.bucket.visitedFrom': 'Σημειώθηκε ως εκπληρωμένη από τις καταγραφές σας στο Dawarich',
   'dawarich.bucket.clearVisit': 'Αναίρεση',
 
@@ -176,7 +174,8 @@ const dawarich: TranslationStrings = {
   'dawarich.again': 'Έλεγχος ξανά',
   'dawarich.bucket.metersAway': '{meters} μ. μακριά',
   'dawarich.bucket.kilometersAway': '{km} χλμ. μακριά',
-  'dawarich.bucket.rule': 'Μια επιθυμία μετράει ως εκπληρωμένη σε απόσταση έως {meters} μ. και μετά από {minutes} λεπτά στο σημείο.',
+  'dawarich.bucket.rule':
+    'Μια επιθυμία μετράει ως εκπληρωμένη σε απόσταση έως {meters} μ. και μετά από {minutes} λεπτά στο σημείο.',
 
   'dawarich.journey.dayStays.one': '1 στάση από το Dawarich',
   'dawarich.journey.dayStays.other': '{count} στάσεις από το Dawarich',

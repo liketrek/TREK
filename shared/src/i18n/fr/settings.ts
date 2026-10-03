@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Sélectionner un modèle…',
   'settings.mapDefaultHint': 'Laissez vide pour OpenStreetMap (par défaut)',
   'settings.routingBase': 'Moteur de calcul d’itinéraire propre',
-  'settings.routingBaseHint': 'Votre propre instance OSRM. Vide utilise les serveurs publics, limités à environ une requête par seconde : suffisant pour une journée, juste pour un road trip. Prend effet après un redémarrage du serveur.',
+  'settings.routingBaseHint':
+    'Votre propre instance OSRM. Vide utilise les serveurs publics, limités à environ une requête par seconde : suffisant pour une journée, juste pour un road trip. Prend effet après un redémarrage du serveur.',
   'settings.valhallaBase': 'Instance Valhalla propre',
   'settings.valhallaBaseHint':
     'TREK utilise par défaut la Valhalla publique de FOSSGIS pour éviter les péages, autoroutes et ferries. Saisissez ici l’URL de votre propre Valhalla pour l’utiliser à la place. Si seule une instance de routage personnalisée est configurée, la Valhalla publique n’est pas utilisée. Après avoir saisi une URL personnalisée, redémarrez le serveur et rechargez la page.',
@@ -84,7 +85,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Premier jour de la semaine dans tous les sélecteurs de date. Vacay a son propre réglage.',
   'settings.preferredNavApp': 'Ouvrir les lieux dans',
   'settings.preferredNavAppAsk': 'Demander à chaque fois',
-  'settings.preferredNavAppHint': "Avec une app choisie, le bouton de navigation l'ouvre directement au lieu de proposer toutes les apps de cartes.",
+  'settings.preferredNavAppHint':
+    "Avec une app choisie, le bouton de navigation l'ouvre directement au lieu de proposer toutes les apps de cartes.",
   'settings.blurBookingCodes': 'Masquer les codes de réservation',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -556,7 +558,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'Aucune connexion. Connectez-vous pour enregistrer des voyages hors ligne.',
   'settings.offline.notice.signedOut': 'Votre session a expiré. Reconnectez-vous pour synchroniser.',
   'settings.offline.notice.failed': 'Le téléchargement n’a pas pu se terminer. Vérifiez votre connexion et réessayez.',
-  'settings.offline.notice.loadFailed': 'Impossible de lire le stockage hors ligne de cet appareil. Vider le cache résout généralement le problème.',
+  'settings.offline.notice.loadFailed':
+    'Impossible de lire le stockage hors ligne de cet appareil. Vider le cache résout généralement le problème.',
   'settings.offline.clear': 'Vider le cache',
   'settings.offline.clearConfirm':
     'Vider toutes les données de voyage hors ligne ? Vous pourrez resynchroniser à tout moment lorsque vous serez en ligne.',
@@ -616,13 +619,15 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Liste de souhaits',
   'settings.apiScopes.stats': 'Totaux',
   'settings.apiKeys.title': 'Clés API',
-  'settings.apiKeys.description': 'Clés pour l\'API publique, afin que d\'autres logiciels puissent lire vos voyages. Lecture seule : une clé ne peut rien modifier ni supprimer.',
+  'settings.apiKeys.description':
+    "Clés pour l'API publique, afin que d'autres logiciels puissent lire vos voyages. Lecture seule : une clé ne peut rien modifier ni supprimer.",
   'settings.apiKeys.create': 'Créer une clé',
   'settings.apiKeys.empty': 'Aucune clé pour le moment. Créez-en une pour connecter un autre logiciel.',
   'settings.apiKeys.createdAt': 'créée',
   'settings.apiKeys.usedAt': 'dernière utilisation',
   'settings.apiKeys.deleteTitle': 'Supprimer la clé',
-  'settings.apiKeys.deleteMessage': 'Tout ce qui utilise cette clé cesse de fonctionner immédiatement. Cette action est irréversible.',
+  'settings.apiKeys.deleteMessage':
+    'Tout ce qui utilise cette clé cesse de fonctionner immédiatement. Cette action est irréversible.',
   'settings.apiKeys.deleted': 'Clé supprimée',
   'settings.apiKeys.deleteFailed': 'Impossible de supprimer la clé',
   'settings.apiKeys.createFailed': 'Impossible de créer la clé',
@@ -631,7 +636,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.endpoint': 'Point de terminaison',
   'settings.apiKeys.neverUsed': 'jamais utilisée',
   'settings.apiKeys.loadFailed': 'Impossible de charger vos clés. Rechargez la page pour réessayer.',
-  'settings.apiKeys.limitReached': 'Vous avez {max} clés, le maximum pour un compte. Supprimez-en une dont vous n\'avez plus besoin pour en créer une autre.',
+  'settings.apiKeys.limitReached':
+    "Vous avez {max} clés, le maximum pour un compte. Supprimez-en une dont vous n'avez plus besoin pour en créer une autre.",
   'settings.apiKeys.copyFailed': 'Impossible de copier. Sélectionnez le texte et copiez-le manuellement.',
   'settings.apiKeys.modal.createTitle': 'Créer une clé API',
   'settings.apiKeys.modal.name': 'Nom',
@@ -640,7 +646,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Création...',
   'settings.apiKeys.modal.create': 'Créer',
   'settings.apiKeys.modal.createdTitle': 'Clé API créée',
-  'settings.apiKeys.modal.createdWarning': 'Copiez la clé maintenant. Elle n\'est affichée qu\'une seule fois et ne peut pas être récupérée ensuite.',
+  'settings.apiKeys.modal.createdWarning':
+    "Copiez la clé maintenant. Elle n'est affichée qu'une seule fois et ne peut pas être récupérée ensuite.",
   'settings.apiKeys.modal.done': 'Terminé',
 };
 

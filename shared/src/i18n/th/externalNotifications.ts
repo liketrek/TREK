@@ -56,7 +56,9 @@ const th: NotificationLocale = {
       title: 'การจำลองที่เก็บข้อมูลล้มเหลว',
       body:
         `การเขียนไปยังแบบจำลอง '${p.backend}' ล้มเหลว: ${p.op} ของ ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` มีการระงับข้อผิดพลาดเพิ่มเติม ${p.suppressed} รายการตั้งแต่การแจ้งเตือนครั้งก่อน` : ''),
+        (p.suppressed !== '0'
+          ? ` มีการระงับข้อผิดพลาดเพิ่มเติม ${p.suppressed} รายการตั้งแต่การแจ้งเตือนครั้งก่อน`
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'ล้างเซสชัน Synology แล้ว',

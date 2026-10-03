@@ -5450,6 +5450,40 @@ function runMigrations(db: Database.Database): void {
       const cols = db.prepare("SELECT name FROM pragma_table_info('journeys')").all() as { name: string }[];
       if (!cols.some(c => c.name === 'photo_location')) db.exec('ALTER TABLE journeys ADD COLUMN photo_location INTEGER NOT NULL DEFAULT 0');
     },
+    /**
+     * Shopping list items for trips.
+     */
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS shopping_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          checked INTEGER DEFAULT 0,
+          quantity TEXT,
+          category TEXT,
+          assigned_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          notes TEXT,
+          sort_order INTEGER DEFAULT 0,
+          budget_item_id INTEGER REFERENCES budget_items(id) ON DELETE SET NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_shopping_items_trip_id ON shopping_items(trip_id);
+        CREATE INDEX IF NOT EXISTS idx_shopping_items_budget_item_id ON shopping_items(budget_item_id);
+      `);
+    },
+    /**
+     * Link shopping items to budget items.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('shopping_items')").all() as { name: string }[];
+      if (!cols.some(c => c.name === 'budget_item_id')) {
+        db.exec(`
+          ALTER TABLE shopping_items ADD COLUMN budget_item_id INTEGER REFERENCES budget_items(id) ON DELETE SET NULL;
+          CREATE INDEX IF NOT EXISTS idx_shopping_items_budget_item_id ON shopping_items(budget_item_id);
+        `);
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

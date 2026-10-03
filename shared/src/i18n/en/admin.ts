@@ -50,7 +50,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNotificationsHint':
     'Configure which channels deliver admin-only notifications (e.g. version alerts).',
   'admin.notificationDefaults.title': 'Defaults for users',
-  'admin.notificationDefaults.hint': "How every user's notifications start. Off is a default each user may still turn on; Blocked turns it off for everyone and shows as locked in their settings. It applies to everyone who has not changed that cell themselves.",
+  'admin.notificationDefaults.hint':
+    "How every user's notifications start. Off is a default each user may still turn on; Blocked turns it off for everyone and shows as locked in their settings. It applies to everyone who has not changed that cell themselves.",
   'admin.notificationDefaults.on': 'On',
   'admin.notificationDefaults.off': 'Off',
   'admin.notificationDefaults.blocked': 'Blocked',
@@ -137,43 +138,31 @@ const admin: TranslationStrings = {
   'admin.requireMfa': 'Require two-factor authentication (2FA)',
   'admin.requireMfaHint': 'Users without 2FA must complete setup in Settings before using the app.',
   'admin.apiKeys': 'API Keys',
-  'admin.apiKeysHint': 'Where place data comes from. The TREK index needs no key; the two providers below are optional.',
+  'admin.apiKeysHint':
+    'Where place data comes from. The TREK index needs no key; the two providers below are optional.',
   'admin.trekApi.badgeDefault': 'Recommended default',
   'admin.googleCaveat.badge': 'Not recommended',
   'admin.googleCaveat.body':
     'TREK is open source and we are not neutral here. Ratings and photos of ordinary businesses exist at this scale only at Google, and that is what a monopoly is. The field is here because there is no alternative, not because we recommend it. Every lookup then goes to Google.',
   'admin.trekApi.tagline':
-    'TREK\'s own place index. Search without a Google key, without a quota and without anyone counting your lookups.',
-  'admin.trekApi.factPlaces':
-    '73.6 million places worldwide',
-  'admin.trekApi.factNoKey':
-    'No key, no quota',
-  'admin.trekApi.factOffline':
-    'Country packages work offline',
-  'admin.trekApi.factPrivacy':
-    'Searches are never logged',
-  'admin.trekApi.more':
-    'What is in it',
-  'admin.trekApi.fieldPhone':
-    'Phone',
-  'admin.trekApi.fieldStableId':
-    'Stable id',
+    "TREK's own place index. Search without a Google key, without a quota and without anyone counting your lookups.",
+  'admin.trekApi.factPlaces': '73.6 million places worldwide',
+  'admin.trekApi.factNoKey': 'No key, no quota',
+  'admin.trekApi.factOffline': 'Country packages work offline',
+  'admin.trekApi.factPrivacy': 'Searches are never logged',
+  'admin.trekApi.more': 'What is in it',
+  'admin.trekApi.fieldPhone': 'Phone',
+  'admin.trekApi.fieldStableId': 'Stable id',
   'admin.trekApi.includedNote':
-    'Descriptions come from the place\'s own website; opening hours from OpenStreetMap where they are tagged.',
-  'admin.trekApi.notRatings':
-    'Ratings',
-  'admin.trekApi.notPhotos':
-    'Photos of ordinary businesses',
+    "Descriptions come from the place's own website; opening hours from OpenStreetMap where they are tagged.",
+  'admin.trekApi.notRatings': 'Ratings',
+  'admin.trekApi.notPhotos': 'Photos of ordinary businesses',
   'admin.trekApi.notIncludedNote':
     'No open dataset has either, at any price. A Google key stays the only way to those two.',
-  'admin.trekApi.sourcesLabel':
-    'Sources',
-  'admin.trekApi.sourcesNote':
-    'Every field in a response says which of these it came from.',
-  'admin.trekApi.included':
-    'Included',
-  'admin.trekApi.notIncluded':
-    'Not included',
+  'admin.trekApi.sourcesLabel': 'Sources',
+  'admin.trekApi.sourcesNote': 'Every field in a response says which of these it came from.',
+  'admin.trekApi.included': 'Included',
+  'admin.trekApi.notIncluded': 'Not included',
   'admin.mapsKey': 'Google Maps API Key',
   'admin.mapsKeyHint': 'Required for place search. Get at console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -188,12 +177,14 @@ const admin: TranslationStrings = {
     'For place search inside mainland China, where Google is unreachable and OpenStreetMap coverage is thin. Needs a "Web 服务" (web service) key, not a JS API key. Get one at console.amap.com.',
   'admin.keyFromEnv': 'Set via {name}',
   'admin.placesProvider.title': 'Place search provider',
-  'admin.placesProvider.subtitle': "TREK's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing: Automatic prefers Google where a key exists, then Amap.",
+  'admin.placesProvider.subtitle':
+    "TREK's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing: Automatic prefers Google where a key exists, then Amap.",
   'admin.placesProvider.auto': 'Automatic',
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'The selected provider has no API key configured, so place search is answered by the TREK index and OpenStreetMap alone.',
+  'admin.placesProvider.missingKey':
+    'The selected provider has no API key configured, so place search is answered by the TREK index and OpenStreetMap alone.',
   'admin.placesProvider.saved': 'Place search provider saved',
   'admin.validateKey': 'Test',
   'admin.keyValid': 'Connected',
@@ -226,11 +217,15 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Show pictures and a description while adding a place. Wikipedia and OpenStreetMap are always used; Google is added on top when Place Photos or Place Details are on.',
   'admin.placesGoogleOnly.title': 'Search with Google only',
-  'admin.placesGoogleOnly.subtitle': 'Every search and every suggestion goes to Google Places. Off, TREK\'s own index and OpenStreetMap answer first and Google is only asked when they find nothing.',
-  'admin.placesGoogleOnly.missingKey': 'Needs a Google Maps API key. Without one, search runs on TREK\'s own index and OpenStreetMap whatever this switch says.',
-  'admin.placesGoogleOnly.otherProvider': 'Needs Google as the places provider. With Amap or OpenStreetMap picked, search never goes to Google whatever this switch says.',
+  'admin.placesGoogleOnly.subtitle':
+    "Every search and every suggestion goes to Google Places. Off, TREK's own index and OpenStreetMap answer first and Google is only asked when they find nothing.",
+  'admin.placesGoogleOnly.missingKey':
+    "Needs a Google Maps API key. Without one, search runs on TREK's own index and OpenStreetMap whatever this switch says.",
+  'admin.placesGoogleOnly.otherProvider':
+    'Needs Google as the places provider. With Amap or OpenStreetMap picked, search never goes to Google whatever this switch says.',
   'admin.googleQuota.title': 'Daily limit for Google calls',
-  'admin.googleQuota.subtitle': 'Once reached, TREK stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave it empty for no limit.',
+  'admin.googleQuota.subtitle':
+    'Once reached, TREK stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave it empty for no limit.',
   'admin.googleQuota.placeholder': 'No limit',
   'admin.googleQuota.usedToday': 'Today: {used}',
   'admin.googleQuota.usedOfLimit': 'Today: {used} of {limit}',
@@ -241,9 +236,12 @@ const admin: TranslationStrings = {
   'admin.transitProvider.transitous': 'Transitous (free)',
   'admin.transitProvider.google': 'Google',
   'admin.transitProvider.transitousHint': 'Community GTFS feeds. Free and keyless, with the best coverage in Europe.',
-  'admin.transitProvider.googleHint': 'Uses the Google API key above, for regions Transitous has no data for. Billed per search — Transitous is used while no key is set.',
-  'admin.transitProvider.noKeyWarning': 'Google is selected, but no Google API key is configured — transit search is still using Transitous. Add a key under API Keys above.',
-  'admin.transitProvider.personalKeyWarning': 'Only your own Google key is set, so other members\' transit searches still fall back to Transitous. Save the key above as an admin to apply it instance-wide.',
+  'admin.transitProvider.googleHint':
+    'Uses the Google API key above, for regions Transitous has no data for. Billed per search — Transitous is used while no key is set.',
+  'admin.transitProvider.noKeyWarning':
+    'Google is selected, but no Google API key is configured — transit search is still using Transitous. Add a key under API Keys above.',
+  'admin.transitProvider.personalKeyWarning':
+    "Only your own Google key is set, so other members' transit searches still fall back to Transitous. Save the key above as an admin to apply it instance-wide.",
   'admin.placeShadow.title': 'Place Search Log',
   'admin.placeShadow.subtitle':
     'Record which search result was picked, so a different place index can be measured against real searches later. Nothing leaves this instance, and an admin can export or delete the log at any time.',
@@ -457,7 +455,8 @@ const admin: TranslationStrings = {
     'Colour-code days in the day plan (e.g. which leg of the trip a day belongs to)',
   'admin.plugins.cap.mcpTools': 'Publishes AI tools',
   'admin.plugins.mcpToolsTitle': 'AI tools it publishes',
-  'admin.plugins.mcpToolsHint': 'An assistant can run these on a user’s behalf. Each one acts with the access granted above.',
+  'admin.plugins.mcpToolsHint':
+    'An assistant can run these on a user’s behalf. Each one acts with the access granted above.',
   'admin.plugins.poiCategoriesTitle': 'Map categories it adds',
   'admin.plugins.perm.mcp:tools':
     'Publish tools that an AI assistant can run on your behalf (it acts with the access you grant the plugin here, not with the assistant’s own)',
@@ -561,7 +560,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Change version…',
   'admin.plugins.noVersions': 'No published versions found in the registry.',
   'admin.plugins.downgradeTitle': 'Roll back this plugin?',
-  'admin.plugins.downgradeBody': 'Switching from v{from} to v{to}: data written by the newer version stays in place, and the older version may not understand it.',
+  'admin.plugins.downgradeBody':
+    'Switching from v{from} to v{to}: data written by the newer version stays in place, and the older version may not understand it.',
   'admin.plugins.downgradeConfirm': 'Roll back',
   'admin.plugins.updatesHeld': 'Updates paused at v{version}',
   'admin.plugins.resumeUpdates': 'Resume updates',
@@ -660,7 +660,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': 'Notes, polls, chat and suggestions for planning together',
   'admin.addons.catalog.roadtrip.name': 'Road trip',
-  'admin.addons.catalog.roadtrip.description': 'Plan drives with stops along the route, driving times, and arrival times that update themselves',
+  'admin.addons.catalog.roadtrip.description':
+    'Plan drives with stops along the route, driving times, and arrival times that update themselves',
   'admin.addons.catalog.memories.name': 'Photos (Immich)',
   'admin.addons.catalog.memories.description': 'Share trip photos via your Immich instance',
   'admin.addons.catalog.mcp.name': 'MCP',
@@ -675,7 +676,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'Read visits and recorded routes from a Dawarich instance each reader connects themselves',
   'admin.addons.catalog.llm_parsing.name': 'AI Parsing',
-  'admin.addons.catalog.llm_parsing.description': 'Reads bookings the built-in parser cannot, using an AI model you choose',
+  'admin.addons.catalog.llm_parsing.description':
+    'Reads bookings the built-in parser cannot, using an AI model you choose',
   'admin.addons.llm.vision.auto': 'Automatic',
   'admin.addons.llm.vision.on': 'Yes',
   'admin.addons.llm.vision.off': 'No',

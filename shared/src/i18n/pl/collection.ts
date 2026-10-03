@@ -156,7 +156,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'Dodaj do listy',
   'collections.file.targetExistingHint': 'Do listy, którą już masz',
   'collections.file.searchLists': 'Szukaj list',
-  'collections.file.intoHint': 'Miejsca, które lista już ma, zostają bez zmian, tak samo jej nazwa i kolor. Etykiety z pliku zostaną dodane.',
+  'collections.file.intoHint':
+    'Miejsca, które lista już ma, zostają bez zmian, tak samo jej nazwa i kolor. Etykiety z pliku zostaną dodane.',
   'collections.file.confirmInto': 'Dodaj do listy',
   'collections.file.doneInto': 'Dodano {count} miejsc do {name}',
   'collections.file.doneIntoDuplicates': 'Dodano {count} do {name}, {duplicates} już tam było',

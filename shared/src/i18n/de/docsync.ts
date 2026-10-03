@@ -71,7 +71,7 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': 'In TREK gelöscht',
   'docsync.state.scope_drift': 'Aus dem Ordner verschoben',
 
-  'docsync.conflict.resolve': "{count} klären",
+  'docsync.conflict.resolve': '{count} klären',
 
   'docsync.conflict.title': 'Beide Kopien wurden geändert',
   'docsync.conflict.keepTrek': 'Die TREK-Version behalten',
@@ -178,7 +178,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Die Übertragung ist nicht durchgegangen.',
 
   'docsync.error.unknown_provider': 'Dieser Anbieter steht auf dieser Instanz nicht zur Verfügung.',
-  'docsync.error.provider_disabled': 'Pausiert: Ein Administrator hat diesen Anbieter abgeschaltet. Der Abgleich läuft weiter, sobald er wieder eingeschaltet ist.',
+  'docsync.error.provider_disabled':
+    'Pausiert: Ein Administrator hat diesen Anbieter abgeschaltet. Der Abgleich läuft weiter, sobald er wieder eingeschaltet ist.',
   'docsync.binding.reconnect': 'Neu verbinden',
 };
 

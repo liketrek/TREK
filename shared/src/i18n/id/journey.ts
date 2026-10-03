@@ -199,11 +199,14 @@ const journey: TranslationStrings = {
   'journey.settings.showTripTracksHint': 'Menggambar rute terekam dari perjalanan yang tertaut pada peta.',
   'journey.settings.status': 'Status',
   'journey.settings.statusAuto': 'Otomatis',
-  'journey.settings.statusAutoHint': 'Mengikuti tanggal perjalanan yang ditautkan. Tanpa perjalanan, jurnal tetap berupa draf.',
-  'journey.settings.statusManualHint': 'Diatur manual. Tanggal perjalanan tidak lagi mengubahnya sampai kamu kembali ke otomatis.',
+  'journey.settings.statusAutoHint':
+    'Mengikuti tanggal perjalanan yang ditautkan. Tanpa perjalanan, jurnal tetap berupa draf.',
+  'journey.settings.statusManualHint':
+    'Diatur manual. Tanggal perjalanan tidak lagi mengubahnya sampai kamu kembali ke otomatis.',
   'journey.settings.photosSection': 'Foto',
   'journey.settings.photoLocation': 'Tentukan lokasi entri dari fotonya',
-  'journey.settings.photoLocationHint': 'Entri tanpa lokasi memakai titik tempat foto pertamanya yang ber-GPS diambil. Lokasi yang kamu atur sendiri tidak pernah dipindah.',
+  'journey.settings.photoLocationHint':
+    'Entri tanpa lokasi memakai titik tempat foto pertamanya yang ber-GPS diambil. Lokasi yang kamu atur sendiri tidak pernah dipindah.',
   'journey.settings.endJourney': 'Arsipkan Perjalanan',
   'journey.settings.reopenJourney': 'Pulihkan Perjalanan',
   'journey.settings.archived': 'Perjalanan diarsipkan',
@@ -297,12 +300,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Unduh halaman ganda ini',
-  'journey.studio.downloadSpreadHint': 'Menyimpan desain halaman ganda ini sebagai berkas, tanpa foto, untuk dibagikan atau dipakai lagi',
+  'journey.studio.downloadSpreadHint':
+    'Menyimpan desain halaman ganda ini sebagai berkas, tanpa foto, untuk dibagikan atau dipakai lagi',
   'journey.studio.importSpread': 'Impor',
   'journey.studio.importSpreadHint': 'Menambahkan halaman ganda dari berkas desain yang diunduh',
   'journey.studio.importSpreadFailed': 'Berkas itu bukan halaman ganda TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Menyusun buku butuh ruang kerja, jadi Studio hanya ada di desktop, begitu juga pembuatan PDF. Bagian lain dari perjalananmu tetap berjalan seperti biasa di sini.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Menyusun buku butuh ruang kerja, jadi Studio hanya ada di desktop, begitu juga pembuatan PDF. Bagian lain dari perjalananmu tetap berjalan seperti biasa di sini.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -366,7 +371,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -447,7 +453,8 @@ const journey: TranslationStrings = {
   'journey.studio.paste': 'Tempel (Ctrl+V)',
   'journey.studio.pasteEmpty': 'Salin sesuatu dulu, lalu tempel di halaman mana pun',
   'journey.studio.myLayouts': 'Tata letakku',
-  'journey.studio.myLayoutsEmpty': 'Simpan halaman yang sudah kamu susun dan tata halaman lain dengan cara yang sama. Foto dan teksnya tetap.',
+  'journey.studio.myLayoutsEmpty':
+    'Simpan halaman yang sudah kamu susun dan tata halaman lain dengan cara yang sama. Foto dan teksnya tetap.',
   'journey.studio.saveLayout': 'Simpan halaman ini sebagai tata letak',
   'journey.studio.saveLayoutHint': 'Menyimpan susunannya tanpa foto, untuk semua editor buku ini',
   'journey.studio.saveLayoutFull': 'Buku ini menyimpan hingga 24 tata letak. Hapus satu untuk menyimpan yang lain.',
@@ -559,7 +566,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Garis luar',
   'journey.studio.mapSourceRelief': 'Relief',
   'journey.studio.mapSourceSatellite': 'Satelit',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 bebas awan, bebas dicetak dengan atribusi. Tajam sampai ke jalan kota.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 bebas awan, bebas dicetak dengan atribusi. Tajam sampai ke jalan kota.',
   'journey.studio.routeLook': 'Garis rute',
   'journey.studio.routeStyle': 'Gaya garis',
   'journey.studio.routePlain': 'Biasa',
@@ -582,14 +590,16 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Ambil lagi',
   'journey.studio.roadsClear': 'Hapus',
   'journey.studio.roadsBusy': 'Meminta',
-  'journey.studio.roadsHint': 'Minta layanan rute untuk jalur yang dilalui tiap segmen. Segmen panjang dibiarkan apa adanya.',
+  'journey.studio.roadsHint':
+    'Minta layanan rute untuk jalur yang dilalui tiap segmen. Segmen panjang dibiarkan apa adanya.',
   'journey.studio.roadsHave': 'Jalannya tersimpan di buku ini, jadi garis yang tercetak sama walau offline.',
   'journey.studio.mapPerTrip': 'Perjalanan satu per satu',
   'journey.studio.mapWholeJourney': 'Seluruh Journey',
   'journey.studio.mapScope': 'Tampilkan',
   'journey.studio.mapPrintDpi': 'Hasil cetak sekitar',
   'journey.studio.mapPrintDpiLow': 'kurang tajam pada ukuran ini, coba tampilan lebih lebar atau sumber lain',
-  'journey.studio.mapSourceReliefHint': 'Relief berbayang NASA, bebas dicetak. Cocok untuk negara atau benua, terlalu kasar untuk satu kota.',
+  'journey.studio.mapSourceReliefHint':
+    'Relief berbayang NASA, bebas dicetak. Cocok untuk negara atau benua, terlalu kasar untuk satu kota.',
   'journey.studio.mapSourceTiles': 'Ubin peta',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Diambil saat render dan dicetak dengan atribusinya',
@@ -652,8 +662,10 @@ const journey: TranslationStrings = {
   'journey.entry.offRoute': 'Di luar rute',
   'journey.entry.draft': 'Draf',
   'journey.editor.draft': 'Draf',
-  'journey.editor.draftHint': 'Hanya kamu dan kontributor lain yang melihat entri ini. Journey yang dibagikan tidak menampilkannya sampai kamu mematikan opsi ini.',
-  'journey.editor.tripSuggestionHint': 'Hari ini termasuk dalam perjalanan ini. Tautkan, dan tempat-tempatnya akan masuk ke journey ini.',
+  'journey.editor.draftHint':
+    'Hanya kamu dan kontributor lain yang melihat entri ini. Journey yang dibagikan tidak menampilkannya sampai kamu mematikan opsi ini.',
+  'journey.editor.tripSuggestionHint':
+    'Hari ini termasuk dalam perjalanan ini. Tautkan, dan tempat-tempatnya akan masuk ke journey ini.',
   'journey.editor.tripSuggestionLater': 'Nanti saja',
   'journey.suggestions.dismiss': 'Abaikan saran ini',
   'journey.suggestions.dismissed': 'Saran diabaikan',

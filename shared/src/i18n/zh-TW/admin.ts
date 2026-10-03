@@ -48,7 +48,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': '設定主題後管理員 Ntfy 始終觸發',
   'admin.notifications.adminNotificationsHint': '配置哪些渠道傳遞僅管理員通知（例如版本提醒）。',
   'admin.notificationDefaults.title': '使用者預設值',
-  'admin.notificationDefaults.hint': '每位使用者通知的初始狀態。「關閉」使用者仍可自行開啟；「封鎖」會為所有人關閉，並在其設定中顯示為鎖定。適用於尚未自行變更該欄位的所有人。',
+  'admin.notificationDefaults.hint':
+    '每位使用者通知的初始狀態。「關閉」使用者仍可自行開啟；「封鎖」會為所有人關閉，並在其設定中顯示為鎖定。適用於尚未自行變更該欄位的所有人。',
   'admin.notificationDefaults.on': '開啟',
   'admin.notificationDefaults.off': '關閉',
   'admin.notificationDefaults.blocked': '封鎖',
@@ -139,38 +140,22 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': '不建議',
   'admin.googleCaveat.body':
     'TREK 是開源軟體，在這件事上我們並不中立。在這個規模上，評分和一般店家的照片只有 Google 有，這就是壟斷。這個欄位存在是因為沒有替代品，而不是因為我們推薦。填了它，每次查詢都會送往 Google。',
-  'admin.trekApi.tagline':
-    'TREK 自己的地點索引。不用 Google 金鑰，沒有配額，也沒有人統計你搜了什麼。',
-  'admin.trekApi.factPlaces':
-    '全球 7363 萬個地點',
-  'admin.trekApi.factNoKey':
-    '不需金鑰，沒有配額',
-  'admin.trekApi.factOffline':
-    '國家資料包可離線使用',
-  'admin.trekApi.factPrivacy':
-    '搜尋內容從不記錄',
-  'admin.trekApi.more':
-    '裡面有什麼',
-  'admin.trekApi.fieldPhone':
-    '電話',
-  'admin.trekApi.fieldStableId':
-    '穩定識別碼',
-  'admin.trekApi.includedNote':
-    '簡介取自地點自己的網站，營業時間在已填寫之處取自 OpenStreetMap。',
-  'admin.trekApi.notRatings':
-    '評分',
-  'admin.trekApi.notPhotos':
-    '一般店家的照片',
-  'admin.trekApi.notIncludedNote':
-    '兩者在任何開放資料集中都沒有，出多少錢也沒有。這兩項仍然只能走 Google 金鑰。',
-  'admin.trekApi.sourcesLabel':
-    '來源',
-  'admin.trekApi.sourcesNote':
-    '回應裡的每個欄位都會標明它來自其中哪一個。',
-  'admin.trekApi.included':
-    '包含',
-  'admin.trekApi.notIncluded':
-    '不包含',
+  'admin.trekApi.tagline': 'TREK 自己的地點索引。不用 Google 金鑰，沒有配額，也沒有人統計你搜了什麼。',
+  'admin.trekApi.factPlaces': '全球 7363 萬個地點',
+  'admin.trekApi.factNoKey': '不需金鑰，沒有配額',
+  'admin.trekApi.factOffline': '國家資料包可離線使用',
+  'admin.trekApi.factPrivacy': '搜尋內容從不記錄',
+  'admin.trekApi.more': '裡面有什麼',
+  'admin.trekApi.fieldPhone': '電話',
+  'admin.trekApi.fieldStableId': '穩定識別碼',
+  'admin.trekApi.includedNote': '簡介取自地點自己的網站，營業時間在已填寫之處取自 OpenStreetMap。',
+  'admin.trekApi.notRatings': '評分',
+  'admin.trekApi.notPhotos': '一般店家的照片',
+  'admin.trekApi.notIncludedNote': '兩者在任何開放資料集中都沒有，出多少錢也沒有。這兩項仍然只能走 Google 金鑰。',
+  'admin.trekApi.sourcesLabel': '來源',
+  'admin.trekApi.sourcesNote': '回應裡的每個欄位都會標明它來自其中哪一個。',
+  'admin.trekApi.included': '包含',
+  'admin.trekApi.notIncluded': '不包含',
   'admin.mapsKey': 'Google Maps API 金鑰',
   'admin.mapsKeyHint': '用於地點搜尋。在 console.cloud.google.com 獲取',
   'admin.mapsKeyHintLong':
@@ -222,11 +207,15 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     '新增地點時顯示圖片與描述。一律使用維基百科與 OpenStreetMap；開啟「地點照片」或「地點詳細資料」時會額外使用 Google。',
   'admin.placesGoogleOnly.title': '僅使用 Google 搜尋',
-  'admin.placesGoogleOnly.subtitle': '所有搜尋和建議都會送到 Google Places。關閉時，TREK 自有索引和 OpenStreetMap 先回答，只有兩者都沒有結果時才詢問 Google。',
-  'admin.placesGoogleOnly.missingKey': '需要 Google Maps API 金鑰。沒有金鑰時，無論此開關如何，搜尋都透過 TREK 索引和 OpenStreetMap 進行。',
-  'admin.placesGoogleOnly.otherProvider': '需要將 Google 設為地點提供者。選擇 Amap 或 OpenStreetMap 時，無論此開關如何設定，搜尋都不會送往 Google。',
+  'admin.placesGoogleOnly.subtitle':
+    '所有搜尋和建議都會送到 Google Places。關閉時，TREK 自有索引和 OpenStreetMap 先回答，只有兩者都沒有結果時才詢問 Google。',
+  'admin.placesGoogleOnly.missingKey':
+    '需要 Google Maps API 金鑰。沒有金鑰時，無論此開關如何，搜尋都透過 TREK 索引和 OpenStreetMap 進行。',
+  'admin.placesGoogleOnly.otherProvider':
+    '需要將 Google 設為地點提供者。選擇 Amap 或 OpenStreetMap 時，無論此開關如何設定，搜尋都不會送往 Google。',
   'admin.googleQuota.title': 'Google 呼叫每日上限',
-  'admin.googleQuota.subtitle': '達到上限後，TREK 會在隔天（UTC）前停止呼叫 Google，改用 OpenStreetMap 搜尋。留空表示不限制。',
+  'admin.googleQuota.subtitle':
+    '達到上限後，TREK 會在隔天（UTC）前停止呼叫 Google，改用 OpenStreetMap 搜尋。留空表示不限制。',
   'admin.googleQuota.placeholder': '不限制',
   'admin.googleQuota.usedToday': '今天：{used}',
   'admin.googleQuota.usedOfLimit': '今天：{used} / {limit}',
@@ -237,9 +226,12 @@ const admin: TranslationStrings = {
   'admin.transitProvider.transitous': 'Transitous（免費）',
   'admin.transitProvider.google': 'Google',
   'admin.transitProvider.transitousHint': '社群 GTFS 資料來源。免費且免金鑰，在歐洲的涵蓋率最佳。',
-  'admin.transitProvider.googleHint': '使用上方的 Google 金鑰，涵蓋 Transitous 沒有資料的地區。依每次搜尋計費——未設定金鑰時仍使用 Transitous。',
-  'admin.transitProvider.noKeyWarning': '已選擇 Google，但尚未設定 Google 金鑰——大眾運輸搜尋仍在使用 Transitous。請在上方的 API 金鑰中新增金鑰。',
-  'admin.transitProvider.personalKeyWarning': '只設定了你自己的 Google 金鑰，因此其他成員的搜尋仍會回退到 Transitous。請以管理員身分在上方儲存金鑰，使其套用至整個執行個體。',
+  'admin.transitProvider.googleHint':
+    '使用上方的 Google 金鑰，涵蓋 Transitous 沒有資料的地區。依每次搜尋計費——未設定金鑰時仍使用 Transitous。',
+  'admin.transitProvider.noKeyWarning':
+    '已選擇 Google，但尚未設定 Google 金鑰——大眾運輸搜尋仍在使用 Transitous。請在上方的 API 金鑰中新增金鑰。',
+  'admin.transitProvider.personalKeyWarning':
+    '只設定了你自己的 Google 金鑰，因此其他成員的搜尋仍會回退到 Transitous。請以管理員身分在上方儲存金鑰，使其套用至整個執行個體。',
   'admin.placeShadow.title': '地點搜尋紀錄',
   'admin.placeShadow.subtitle':
     '記錄使用者選了哪一筆搜尋結果，以便日後用真實的搜尋來評估另一套地點索引。資料不會離開本執行個體，管理員隨時可以匯出或刪除紀錄。',
@@ -426,7 +418,8 @@ const admin: TranslationStrings = {
   'admin.plugins.poiCategoriesTitle': '新增的地圖分類',
   'admin.plugins.perm.mcp:tools':
     '發布 AI 助理可以代你執行的工具（它以你在此處授予外掛的權限運作，而非助理自身的權限）',
-  'admin.plugins.perm.geolocation:read': '在其任一檢視開啟時查詢你的即時位置（由 TREK 使用本站台既有的位置權限讀取，不會另外為外掛詢問）',
+  'admin.plugins.perm.geolocation:read':
+    '在其任一檢視開啟時查詢你的即時位置（由 TREK 使用本站台既有的位置權限讀取，不會另外為外掛詢問）',
   'admin.plugins.perm.hook:pdf-section-provider': '向行程 PDF 匯出附加文字段落',
   'admin.plugins.perm.hook:atlas-layer-provider': '在 Atlas 世界地圖上標示國家（例如願望清單或旅遊警示）',
   'admin.plugins.perm.hook:journal-entry-provider': '向日誌條目新增額外列（連結、統計）',
@@ -609,7 +602,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.mcp.name': 'MCP',
   'admin.addons.catalog.mcp.description': '用於 AI 助手整合的模型上下文協議',
   'admin.addons.catalog.packing.name': '行李',
-  'admin.addons.catalog.packing.description': '每次旅行的行李準備清單',
+  'admin.addons.catalog.packing.description': '旅行的行李準備清單、購物清單與待辦事項',
   'admin.addons.catalog.budget.name': '費用',
   'admin.addons.catalog.budget.description': '記錄行程開銷並在同行者之間分攤',
   'admin.addons.catalog.documents.name': '文件',
@@ -629,8 +622,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.airtrail.name': 'AirTrail',
   'admin.addons.catalog.airtrail.description': '從你的 AirTrail 執行個體同步航班',
   'admin.addons.catalog.dawarich.name': 'Dawarich',
-  'admin.addons.catalog.dawarich.description':
-    '從各位使用者自行連接的 Dawarich 執行個體讀取造訪紀錄與記錄的路線',
+  'admin.addons.catalog.dawarich.description': '從各位使用者自行連接的 Dawarich 執行個體讀取造訪紀錄與記錄的路線',
   'admin.addons.catalog.llm_parsing.name': 'AI 解析',
   'admin.addons.catalog.llm_parsing.description': '用你選擇的 AI 模型讀取內建解析器無法識別的訂位',
   'admin.addons.llm.vision.auto': '自動',

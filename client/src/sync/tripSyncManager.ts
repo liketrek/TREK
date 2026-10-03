@@ -19,6 +19,7 @@ import {
   upsertPlaces,
   upsertPackingItems,
   upsertTodoItems,
+  upsertShoppingItems,
   upsertBudgetItems,
   upsertReservations,
   upsertTripFiles,
@@ -36,7 +37,7 @@ import { isAuthed } from './authGate'
 import { isEffectivelyOffline } from './networkMode'
 import { getOfflinePrefs, isTripOfflineEnabled, isTripPinned } from './offlinePrefs'
 import { useSettingsStore } from '../store/settingsStore'
-import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile, Accommodation, TripMember } from '../types'
+import type { Trip, Day, Place, PackingItem, TodoItem, ShoppingItem, BudgetItem, Reservation, TripFile, Accommodation, TripMember } from '../types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ interface TripBundle {
   places: Place[]
   packingItems: PackingItem[]
   todoItems: TodoItem[]
+  shoppingItems?: ShoppingItem[]
   budgetItems: BudgetItem[]
   reservations: Reservation[]
   files: TripFile[]
@@ -121,6 +123,7 @@ async function syncTrip(tripId: number): Promise<void> {
   await upsertPlaces(bundle.places)
   await upsertPackingItems(bundle.packingItems)
   await upsertTodoItems(bundle.todoItems)
+  if (bundle.shoppingItems) await upsertShoppingItems(bundle.shoppingItems)
   await upsertBudgetItems(bundle.budgetItems)
   await upsertReservations(bundle.reservations)
   await upsertTripFiles(bundle.files)

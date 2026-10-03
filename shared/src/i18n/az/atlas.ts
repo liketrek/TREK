@@ -10,31 +10,23 @@ const atlas: TranslationStrings = {
   'atlas.placesNone': 'Uyğun məkan yoxdur',
 
   'atlas.unmark': 'Sil',
-  'atlas.confirmMark':
-    'Bu ölkə ziyarət edilmiş kimi işarələnsin?',
-  'atlas.confirmUnmark':
-    'Bu ölkə ziyarət etdiyiniz ölkələr siyahısından silinsin?',
-  'atlas.confirmUnmarkRegion':
-    'Bu region ziyarət etdiyiniz yerlər siyahısından silinsin?',
+  'atlas.confirmMark': 'Bu ölkə ziyarət edilmiş kimi işarələnsin?',
+  'atlas.confirmUnmark': 'Bu ölkə ziyarət etdiyiniz ölkələr siyahısından silinsin?',
+  'atlas.confirmUnmarkRegion': 'Bu region ziyarət etdiyiniz yerlər siyahısından silinsin?',
   'atlas.markVisited': 'Ziyarət edilib kimi işarələ',
-  'atlas.markVisitedHint':
-    'Bu ölkəni ziyarət etdiyiniz ölkələr siyahısına əlavə edin',
-  'atlas.markRegionVisitedHint':
-    'Bu regionu ziyarət etdiyiniz yerlər siyahısına əlavə edin',
+  'atlas.markVisitedHint': 'Bu ölkəni ziyarət etdiyiniz ölkələr siyahısına əlavə edin',
+  'atlas.markRegionVisitedHint': 'Bu regionu ziyarət etdiyiniz yerlər siyahısına əlavə edin',
 
   'atlas.addToBucket': 'Arzular siyahısına əlavə et',
   'atlas.addPoi': 'Məkan əlavə et',
   'atlas.searchCountry': 'Ölkə axtarın...',
   'atlas.searchPlaces': 'Məkanlar',
-  'atlas.bucketNamePlaceholder':
-    'Ad (ölkə, şəhər, məkan...)',
+  'atlas.bucketNamePlaceholder': 'Ad (ölkə, şəhər, məkan...)',
   'atlas.month': 'Ay',
   'atlas.year': 'İl',
-  'atlas.addToBucketHint':
-    'Ziyarət etmək istədiyiniz məkan kimi yadda saxlayın',
+  'atlas.addToBucketHint': 'Ziyarət etmək istədiyiniz məkan kimi yadda saxlayın',
   'atlas.removeFromBucket': 'Arzular siyahısından sil',
-  'atlas.removeFromBucketHint':
-    'Bu ölkəni arzular siyahınızdan çıxarın',
+  'atlas.removeFromBucketHint': 'Bu ölkəni arzular siyahınızdan çıxarın',
   'atlas.bucketWhen': 'Nə vaxt ziyarət etməyi planlaşdırırsınız?',
   'atlas.bucketDuplicate': 'Artıq arzular siyahınızdadır',
 
@@ -43,16 +35,14 @@ const atlas: TranslationStrings = {
   'atlas.addBucket': 'Arzular siyahısına əlavə et',
   'atlas.bucketNotesPlaceholder': 'Qeydlər (istəyə bağlı)',
   'atlas.bucketEmpty': 'Arzular siyahınız boşdur',
-  'atlas.bucketEmptyHint':
-    'Ziyarət etməyi arzuladığınız yerləri əlavə edin',
+  'atlas.bucketEmptyHint': 'Ziyarət etməyi arzuladığınız yerləri əlavə edin',
 
   'atlas.days': 'Gün',
   'atlas.visitedCountries': 'Ziyarət edilmiş ölkələr',
   'atlas.cities': 'Şəhərlər',
   'atlas.regions': 'Regionlar',
   'atlas.noData': 'Hələ səyahət məlumatı yoxdur',
-  'atlas.noDataHint':
-    'Dünya xəritənizi görmək üçün səyahət yaradın və məkanlar əlavə edin',
+  'atlas.noDataHint': 'Dünya xəritənizi görmək üçün səyahət yaradın və məkanlar əlavə edin',
 
   'atlas.nextTrip': 'Növbəti səyahət',
   'atlas.daysLeft': 'gün qalıb',

@@ -38,10 +38,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': 'Управление Atlas',
   'oauth.scope.atlas:write.description': 'Отмечать посещённые страны и регионы, управлять списком желаний',
   'oauth.scope.packing:read.label': 'Просмотр списков вещей',
-  'oauth.scope.packing:read.description': 'Чтение вещей, сумок и назначений категорий',
+  'oauth.scope.packing:read.description': 'Чтение вещей, сумок, назначений категорий и позиций списка покупок',
   'oauth.scope.packing:write.label': 'Управление списками вещей',
   'oauth.scope.packing:write.description':
-    'Добавление, обновление, удаление, отметка и переупорядочивание вещей и сумок',
+    'Добавление, обновление, удаление, отметка и переупорядочивание вещей, сумок и позиций списка покупок',
   'oauth.scope.todos:read.label': 'Просмотр списков задач',
   'oauth.scope.todos:read.description': 'Чтение задач поездки и назначений категорий',
   'oauth.scope.todos:write.label': 'Управление списками задач',
@@ -98,17 +98,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Файлы',
   'oauth.scope.group.settings': 'Настройки',
   'oauth.scope.files:read.label': 'Просмотр файлов поездки',
-  'oauth.scope.files:read.description': 'Список документов поездки: названия, размеры, кто их загрузил и с чем они связаны',
+  'oauth.scope.files:read.description':
+    'Список документов поездки: названия, размеры, кто их загрузил и с чем они связаны',
   'oauth.scope.files:write.label': 'Управление файлами поездки',
-  'oauth.scope.files:write.description': 'Переименование и описание файлов, привязка к бронированиям и местам, отметка и удаление в корзину',
+  'oauth.scope.files:write.description':
+    'Переименование и описание файлов, привязка к бронированиям и местам, отметка и удаление в корзину',
   'oauth.scope.files:content.label': 'Чтение содержимого файлов',
-  'oauth.scope.files:content.description': 'Чтение содержимого загруженного документа, например PDF бронирования или билета',
+  'oauth.scope.files:content.description':
+    'Чтение содержимого загруженного документа, например PDF бронирования или билета',
   'oauth.scope.settings:read.label': 'Просмотр ваших настроек',
-  'oauth.scope.settings:read.description': 'Чтение единиц измерения, формата времени, языка, валюты по умолчанию и стартовой страницы',
+  'oauth.scope.settings:read.description':
+    'Чтение единиц измерения, формата времени, языка, валюты по умолчанию и стартовой страницы',
   'oauth.scope.settings:write.label': 'Изменение ваших настроек',
-  'oauth.scope.settings:write.description': 'Изменение единиц измерения, формата времени, языка, валюты по умолчанию и стартовой страницы. Никогда сохранённых ключей API',
+  'oauth.scope.settings:write.description':
+    'Изменение единиц измерения, формата времени, языка, валюты по умолчанию и стартовой страницы. Никогда сохранённых ключей API',
   'oauth.scope.group.plugins': 'Плагины',
   'oauth.scope.plugins:use.label': 'Запуск инструментов плагинов',
-  'oauth.scope.plugins:use.description': 'Позволяет этому клиенту вызывать инструменты, которые предоставляют плагины, установленные и одобренные администратором. Каждый плагин действует с уже выданными ему правами, а не с областями доступа этого токена',
+  'oauth.scope.plugins:use.description':
+    'Позволяет этому клиенту вызывать инструменты, которые предоставляют плагины, установленные и одобренные администратором. Каждый плагин действует с уже выданными ему правами, а не с областями доступа этого токена',
 };
 export default oauth;

@@ -80,8 +80,7 @@ const storage: TranslationStrings = {
   // What each category stores — rendered under the label in the category map.
   'storage.categoryDesc.files':
     'Səyahətlərə yüklənən fayl əlavələri — biletlər, PDF-lər, rezervasiya təsdiqləri və səyahət çatında paylaşılan fayllar.',
-  'storage.categoryDesc.journey':
-    'Səyahət gündəliyi qeydlərinə əlavə edilmiş fotolar və kiçik təsvirlər.',
+  'storage.categoryDesc.journey': 'Səyahət gündəliyi qeydlərinə əlavə edilmiş fotolar və kiçik təsvirlər.',
   'storage.categoryDesc.covers':
     'Unsplash-dan əldə edilən üzlüklər daxil olmaqla, səyahət və kolleksiya üzlük şəkilləri.',
   'storage.categoryDesc.avatars': 'İstifadəçi hesablarının profil şəkilləri.',
@@ -101,8 +100,7 @@ const storage: TranslationStrings = {
   'storage.health.failureLine': '{backend} üzərində {key} üçün {op} uğursuz oldu: {error}',
   // Replicas-on-primary mirror UX (2026-08-20 spec)
   'storage.mirror.targets': 'Güzgü hədəfləri',
-  'storage.mirror.targetsHelp':
-    'Bu saxlama sisteminə edilən hər yazma əməliyyatı seçilmiş hər hədəfə də kopyalanır.',
+  'storage.mirror.targetsHelp': 'Bu saxlama sisteminə edilən hər yazma əməliyyatı seçilmiş hər hədəfə də kopyalanır.',
   'storage.mirror.latencyNote':
     'Hər yükləmə zamanı replikalar bir-birinin ardınca yazılır — yavaş və ya əlçatmaz hədəf bu saxlama sistemindəki bütün kateqoriyaların hər yükləməsini ləngidir.',
   'storage.mirror.mirroredTo': 'Güzgüləndiyi hədəflər: {targets}',
@@ -113,16 +111,14 @@ const storage: TranslationStrings = {
     'İkinci güzgü {primary} sistemini əhatə edir — panel yalnız birincini idarə edir; güzgüləməni {primary} üzərindən idarə etmək üçün bunu silin.',
   'storage.mirror.degenerate.env-primary':
     'Mühit dəyişəni ilə müəyyən edilmiş saxlama sistemini əhatə edir — burada redaktə edilə bilməz.',
-  'storage.mirror.degenerate.missing-primary':
-    'Artıq mövcud olmayan saxlama sisteminə istinad edir.',
+  'storage.mirror.degenerate.missing-primary': 'Artıq mövcud olmayan saxlama sisteminə istinad edir.',
   'storage.remove.usedAsReplicaBy': 'Bunlar tərəfindən replika kimi istifadə edilir: {primaries}',
   // Backfill + usage (backfill/stats/notifications spec)
   'storage.sync.now': 'İndi sinxronlaşdır',
   'storage.sync.running': 'Sinxronlaşdırılır… {done}/{total}',
   'storage.sync.counts': '{copied} kopyalandı · {skipped} ötürüldü · {failed} uğursuz oldu',
   'storage.sync.cancel': 'Sinxronlaşdırmanı ləğv et',
-  'storage.sync.done':
-    'Sinxronlaşdırma tamamlandı: {copied} kopyalandı, {deleted} silindi, {failed} uğursuz oldu',
+  'storage.sync.done': 'Sinxronlaşdırma tamamlandı: {copied} kopyalandı, {deleted} silindi, {failed} uğursuz oldu',
   'storage.sync.cancelled': 'Sinxronlaşdırma ləğv edildi',
   'storage.sync.error': 'Sinxronlaşdırma uğursuz oldu: {error}',
   'storage.sync.prompt': 'Mövcud obyektlərin replikası hələ yaradılmayıb — indi sinxronlaşdırılsın?',
@@ -135,26 +131,21 @@ const storage: TranslationStrings = {
   'storage.usage.legacyNote': 'köhnə foto kitabxanası daxildir',
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Mövcud obyektlər yeni saxlama sisteminə köçürülsün?',
-  'storage.migrate.promptLine':
-    '{category}: {from} sistemindən {to} sisteminə {objects} obyekt ({size})',
+  'storage.migrate.promptLine': '{category}: {from} sistemindən {to} sisteminə {objects} obyekt ({size})',
   'storage.migrate.promptLineUnknown':
     '{category}: {from} sistemindən {to} sisteminə naməlum ölçü (istifadə hələ skan edilməyib)',
   'storage.migrate.move': 'Mövcud obyektləri köçür',
   'storage.migrate.routeOnly': 'Yalnız yeni yazmaları yönləndir',
   'storage.migrate.running': '{category} köçürülür… {done}/{total}',
   'storage.migrate.done': 'Köçürmə tamamlandı: {copied} kopyalandı, {skipped} ötürüldü',
-  'storage.migrate.doneFailures':
-    '{failed} uğursuz oldu — həmin obyektlər yeni saxlama sisteminə kopyalanmadı',
-  'storage.migrate.failed':
-    'Köçürmə uğursuz oldu: {error} — kateqoriya dəyişdirilmədi',
+  'storage.migrate.doneFailures': '{failed} uğursuz oldu — həmin obyektlər yeni saxlama sisteminə kopyalanmadı',
+  'storage.migrate.failed': 'Köçürmə uğursuz oldu: {error} — kateqoriya dəyişdirilmədi',
   'storage.migrate.cancelled': 'Köçürmə ləğv edildi — heç nə dəyişdirilmədi',
-  'storage.migrate.reclaimable':
-    '{objects} obyekt ({size}) {from} üzərində qalıb — əl ilə geri qazanın',
+  'storage.migrate.reclaimable': '{objects} obyekt ({size}) {from} üzərində qalıb — əl ilə geri qazanın',
   'storage.migrate.cancel': 'Köçürməni ləğv et',
   'storage.migrate.promptCancel': 'Ləğv et',
   'storage.migrate.queued': 'Növbədədir: {categories}',
-  'storage.migrate.queueDropped':
-    'Növbəti köçürməni başlatmaq mümkün olmadı — qalan növbə təmizləndi: {categories}',
+  'storage.migrate.queueDropped': 'Növbəti köçürməni başlatmaq mümkün olmadı — qalan növbə təmizləndi: {categories}',
 };
 
 export default storage;
