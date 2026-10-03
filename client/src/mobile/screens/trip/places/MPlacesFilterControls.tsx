@@ -86,15 +86,19 @@ export function MCategoryFilterList({ categories, places }: { categories: Catego
   )
 }
 
-/** A minimum of stars, the same floors as the desktop list and the collections bar (#1435). */
-export function MRatingFloorChips() {
+/**
+ * A minimum of stars, the same floors as the desktop list and the collections bar
+ * (#1435). `onPick` runs after a floor is chosen: the places browser drops its
+ * selection then, as it does for a new pool.
+ */
+export function MRatingFloorChips({ onPick }: { onPick?: () => void } = {}) {
   const { t } = useTranslation()
   const ratingFilter = useTripStore(s => s.placesRatingFilter)
   const setRatingFilter = useTripStore(s => s.setPlacesRatingFilter)
   return (
     <div role="group" aria-label={t('places.filterByRating')} className="flex flex-wrap gap-[6px]">
       {RATING_FLOORS.map(floor => (
-        <MChip key={String(floor)} size="tap" pressable active={ratingFilter === floor} onClick={() => setRatingFilter(floor)}>
+        <MChip key={String(floor)} size="tap" pressable active={ratingFilter === floor} onClick={() => { setRatingFilter(floor); onPick?.() }}>
           {floor === 'all' ? t('common.all') : (
             <>
               <Star size={12} strokeWidth={2.2} fill="currentColor" className="flex-none" />

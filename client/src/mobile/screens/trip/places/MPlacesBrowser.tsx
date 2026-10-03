@@ -23,6 +23,7 @@ import MPlacesBulkCategorySheet from './MPlacesBulkCategorySheet'
 import MPlacesSaveToCollectionSheet from './MPlacesSaveToCollectionSheet'
 import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBrowserModel'
 import { MCategoryFilterList, MRatingFloorChips, SquareCheck } from './MPlacesFilterControls'
+import { countActivePlacesFilters } from '../../../../utils/placesFilter'
 
 /**
  * Fullscreen places pool (mode === 'browse'): All/Unplanned/Tracks filter
@@ -142,8 +143,10 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
     shell.openSheet('bract', { placeId: place.id, dayPicker: false })
   }
 
-  // The panel holds the categories and the rating floor; the badge counts both.
-  const panelFilterCount = categoryFilters.size + (ratingFilter === 'all' ? 0 : 1)
+  // The panel holds the categories and the rating floor; its badge counts them the
+  // way the map's Filters badge does (one per kind of filter). The pool is left out:
+  // its chips sit in plain sight above the panel.
+  const panelFilterCount = countActivePlacesFilters({ filter: 'all', categoryFilters, ratingFilter })
 
   return (
     <div className="flex h-full flex-col">
@@ -196,7 +199,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
             type="button"
             onClick={() => setCatOpen(v => !v)}
             aria-expanded={catOpen}
-            aria-label={t('places.allCategories')}
+            aria-label={t('places.filters')}
             className="relative flex w-[42px] flex-none items-center justify-center rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted"
           >
             <SlidersHorizontal size={15} strokeWidth={2} />
@@ -289,7 +292,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
         {catOpen && (
           <div className="mt-[6px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)]">
             <div className="border-b border-[color:var(--m-rowbr)] px-[13px] py-[10px]">
-              <MRatingFloorChips />
+              <MRatingFloorChips onPick={() => setSelectedIds(new Set())} />
             </div>
             <MCategoryFilterList categories={categories} places={places} />
           </div>
