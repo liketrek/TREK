@@ -56,15 +56,23 @@ describe('MPlacesFilterSheet', () => {
   it('FE-MOB-PFSHEET-003: picking a pool writes it to the trip store', async () => {
     renderSheet()
     await screen.findByRole('dialog', { name: 'Filters' })
-    fireEvent.click(within(group('Show')).getByRole('button', { name: 'Unplanned' }))
+    const show = group('Show')
+    expect(within(show).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(within(show).getByRole('button', { name: 'Unplanned' }))
     expect(useTripStore.getState().placesFilter).toBe('unplanned')
+    // The chosen chip says so to a screen reader, and only that one.
+    expect(within(show).getByRole('button', { name: 'Unplanned' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(show).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('FE-MOB-PFSHEET-004: picking a floor writes the rating filter to the trip store', async () => {
     renderSheet()
     await screen.findByRole('dialog', { name: 'Filters' })
-    fireEvent.click(within(group('Filter by rating')).getByRole('button', { name: '3+' }))
+    const floors = group('Filter by rating')
+    fireEvent.click(within(floors).getByRole('button', { name: '3+' }))
     expect(useTripStore.getState().placesRatingFilter).toBe(3)
+    expect(within(floors).getByRole('button', { name: '3+' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(floors).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('FE-MOB-PFSHEET-005: categories toggle in and out of the shared set, "no category" included', async () => {

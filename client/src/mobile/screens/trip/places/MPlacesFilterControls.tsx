@@ -94,7 +94,7 @@ export function MRatingFloorChips() {
   return (
     <div role="group" aria-label={t('places.filterByRating')} className="flex flex-wrap gap-[6px]">
       {RATING_FLOORS.map(floor => (
-        <MChip key={String(floor)} size="tap" active={ratingFilter === floor} onClick={() => setRatingFilter(floor)}>
+        <MChip key={String(floor)} size="tap" pressable active={ratingFilter === floor} onClick={() => setRatingFilter(floor)}>
           {floor === 'all' ? t('common.all') : (
             <>
               <Star size={12} strokeWidth={2.2} fill="currentColor" className="flex-none" />

@@ -178,6 +178,7 @@ describe('MPlacesBrowser', () => {
     const floors = screen.getByRole('group', { name: 'Filter by rating' })
     fireEvent.click(within(floors).getByRole('button', { name: '4+' }))
     expect(useTripStore.getState().placesRatingFilter).toBe(4)
+    expect(within(floors).getByRole('button', { name: '4+' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByText('Louvre')).toBeInTheDocument()
     expect(screen.queryByText('Eiffel Tower')).not.toBeInTheDocument()
     expect(screen.queryByText('Seine Track')).not.toBeInTheDocument()

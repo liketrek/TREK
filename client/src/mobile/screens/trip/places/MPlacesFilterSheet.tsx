@@ -61,7 +61,7 @@ export default function MPlacesFilterSheet({ open, onClose, places, categories }
           <SectionTitle>{t('places.filterShow')}</SectionTitle>
           <div role="group" aria-label={t('places.filterShow')} className="flex flex-wrap gap-[6px]">
             {pools.map(pool => (
-              <MChip key={pool.id} size="tap" active={filter === pool.id} onClick={() => setFilter(pool.id)}>
+              <MChip key={pool.id} size="tap" pressable active={filter === pool.id} onClick={() => setFilter(pool.id)}>
                 {pool.label}
               </MChip>
             ))}
