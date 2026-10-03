@@ -188,12 +188,9 @@ describe('usePlacesSidebar filtering', () => {
     expect(names()).toEqual(['GPX Track']);
   });
 
-  it('FE-PLANNER-PSHOOK-008: a tracks filter without any track falls back to "all"', async () => {
-    seedStore(useTripStore, { placesFilter: 'tracks' });
-    render(<Host {...makeProps({ places: [buildPlace({ name: 'Plain Spot' })] })} />);
-    await waitFor(() => expect(useTripStore.getState().placesFilter).toBe('all'));
-    expect(names()).toEqual(['Plain Spot']);
-  });
+  // FE-PLANNER-PSHOOK-008 (a tracks filter without any track falls back to "all")
+  // moved to useTripPlanner (FE-TP-HOOK-177): the fallback now lives there, so it
+  // also holds while no places list is mounted.
 
   it('FE-PLANNER-PSHOOK-009: a category filter keeps only that category', () => {
     const tagged = buildPlace({ name: 'Tagged', category_id: 4 });

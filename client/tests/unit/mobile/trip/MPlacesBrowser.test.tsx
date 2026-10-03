@@ -124,11 +124,11 @@ describe('MPlacesBrowser', () => {
     expect(screen.queryByText('Louvre')).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-PBROW-007: hides the tracks chip and falls back to all when the last track is gone', () => {
-    seedStore(useTripStore, { placesFilter: 'tracks' })
+  // The fall back to "all" once the last track is gone lives in useTripPlanner
+  // (FE-TP-HOOK-177), which stays mounted while this browser is not.
+  it('FE-MOB-PBROW-007: hides the tracks chip when no place carries a track', () => {
     renderBrowser(makePlanner({ places: [LOUVRE, EIFFEL] } as Partial<TripPlanner>))
     expect(screen.queryByRole('button', { name: 'places.filterTracks' })).not.toBeInTheDocument()
-    expect(useTripStore.getState().placesFilter).toBe('all')
     expect(screen.getByText('places.count:2')).toBeInTheDocument()
   })
 

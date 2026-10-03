@@ -768,6 +768,17 @@ export function useTripPlanner() {
     })
   }, [places, placesCategoryFilter, placesFilter, placesRatingFilter, assignments, expandedDayIds, selectedDayId, days, tripAccommodations, reservations, compactUnplanned])
 
+  // The "Tracks" pool is only offered while a place carries a track. When the last
+  // one goes (deleted here or by a collaborator), fall back to "all" — here, because
+  // this hook is mounted whatever is on screen: the lists that used to do it are not
+  // mounted while the phone map is in front, and the map would sit empty under a
+  // "Tracks" filter no control offers any more.
+  const setPlacesFilter = useTripStore((s) => s.setPlacesFilter)
+  const hasTracks = useMemo(() => places.some(p => p.route_geometry), [places])
+  useEffect(() => {
+    if (placesFilter === 'tracks' && !hasTracks) setPlacesFilter('all')
+  }, [placesFilter, hasTracks, setPlacesFilter])
+
   const { route, routeWalking, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
   // Road trip mode already draws the whole trip its own way, so the overview stands
   // down there rather than drawing a second set of lines over it.

@@ -259,8 +259,9 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const pickFilter = (next: PlacesFilter) => { setFilter(next); setSelectedIds(new Set()) }
 
   // Alle geplanten Ort-IDs abrufen (einem Tag zugewiesen)
+  // Whether to offer the "Tracks" tab. useTripPlanner moves the filter back to
+  // "all" once the last track is gone, whichever screen is in front.
   const hasTracks = useMemo(() => places.some(p => p.route_geometry), [places])
-  useEffect(() => { if (filter === 'tracks' && !hasTracks) setFilter('all') }, [hasTracks, filter])
 
   const plannedIds = useMemo(
     () => plannedPlaceIds({ assignments, accommodations, reservations }),

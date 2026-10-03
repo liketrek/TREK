@@ -1,4 +1,4 @@
-// FE-TP-HOOK-001 to FE-TP-HOOK-176
+// FE-TP-HOOK-001 to FE-TP-HOOK-177
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { TranslationProvider } from '../../i18n/TranslationContext'
@@ -642,6 +642,23 @@ describe('useTripPlanner — map derivations', () => {
     const { result } = await renderPlanner()
 
     expect(result.current.mapPlaces.map(p => p.id)).toEqual([2])
+  })
+
+  it('FE-TP-HOOK-177: losing the last track moves the "Tracks" filter back to all', async () => {
+    // The phone map has no places list mounted, so this hook is what keeps the
+    // filter from pointing at a pool no control offers any more.
+    seedTrip({
+      places: [geo(1), geo(2, { route_geometry: '[[1,2]]' })],
+      placesFilter: 'tracks',
+    })
+
+    const { result } = await renderPlanner()
+    expect(useTripStore.getState().placesFilter).toBe('tracks')
+
+    act(() => { useTripStore.setState({ places: [geo(1)] }) })
+
+    await waitFor(() => expect(useTripStore.getState().placesFilter).toBe('all'))
+    expect(result.current.mapPlaces.map(p => p.id)).toEqual([1])
   })
 
   it('FE-TP-HOOK-027: the category filter honours the uncategorized bucket', async () => {

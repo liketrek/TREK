@@ -63,10 +63,9 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
     if (shell.browseFromEdit) setFilter('unplanned')
   }, [shell.browseFromEdit, setFilter])
 
+  // Whether to offer the "Tracks" chip; useTripPlanner moves the filter back to
+  // "all" once the last track is gone.
   const hasTracks = useMemo(() => places.some(p => p.route_geometry), [places])
-  useEffect(() => {
-    if (filter === 'tracks' && !hasTracks) setFilter('all')
-  }, [filter, hasTracks, setFilter])
 
   // A hotel is linked through its stay and a venue through its booking; neither is
   // ever dragged onto a day, and the pool used to call both unplanned (#2072).
