@@ -46,7 +46,9 @@ export default function MPlacesFilterSheet({ open, onClose, places, categories }
   const hasCategoryChoice = categories.length > 0 || places.some(p => p.category_id == null)
 
   return (
-    <MSheet open={open} onClose={onClose} variant="bottom" ariaLabel={t('places.filters')}>
+    // Opaque: the sheet opens over the map, and the default bar glass let the map's
+    // place names show through the chips and category rows (seen at 390px wide).
+    <MSheet open={open} onClose={onClose} variant="bottom" material="opaque" ariaLabel={t('places.filters')}>
       <div className="flex flex-none items-center border-b border-[color:var(--m-rowbr)] px-[18px] pb-[11px] pt-4">
         <div className="min-w-0 flex-1 text-[1.03125rem] font-bold text-m-ink">{t('places.filters')}</div>
         <MIconBtn variant="neutral" size={34} onClick={onClose} ariaLabel={t('common.close')}>
