@@ -144,6 +144,18 @@ describe('placesBrowserModel — tracks pool', () => {
     expect(out.map(p => p.id)).toEqual([1])
   })
 
+  it('FE-MOB-PMODEL-015: the rating floor from the store narrows the pool like it narrows the map', () => {
+    const rated = [
+      mkPlace(1, { name: 'Top', rating_avg: 4.6 }),
+      mkPlace(2, { name: 'Fine', rating_avg: 3.2 }),
+      mkPlace(3, { name: 'Unrated' }),
+    ]
+    const out = filterPool(rated, { filter: 'all', categoryFilters: new Set(), ratingFilter: 3, search: '', plannedIds })
+    expect(out.map(p => p.id)).toEqual([1, 2])
+    const all = filterPool(rated, { filter: 'all', categoryFilters: new Set(), search: '', plannedIds })
+    expect(all.map(p => p.id)).toEqual([1, 2, 3])
+  })
+
   it('FE-MOB-PMODEL-013: poolCounts counts tracks on the category+search base set', () => {
     const c = poolCounts(places, new Set(['4']), '', plannedIds)
     expect(c.all).toBe(2)

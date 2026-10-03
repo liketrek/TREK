@@ -1,4 +1,4 @@
-// FE-PLANNER-PSHOOK-001 to FE-PLANNER-PSHOOK-059
+// FE-PLANNER-PSHOOK-001 to FE-PLANNER-PSHOOK-060
 import { http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
 import { render, screen, fireEvent, act, waitFor } from '../../../tests/helpers/render';
@@ -243,6 +243,17 @@ describe('usePlacesSidebar filtering', () => {
     expect(names()).toEqual(['Rated']);
     act(() => { S.setRatingFilter('all'); });
     expect(names()).toEqual(['Unrated', 'Rated']);
+  });
+
+  it('FE-PLANNER-PSHOOK-060: the star floor lives in the trip store, so the map and the phone list follow it', () => {
+    const places = [buildPlace({ name: 'Good', rating_avg: 4 }), buildPlace({ name: 'Meh', rating_avg: 2 })];
+    render(<Host {...makeProps({ places })} />);
+    act(() => { S.setRatingFilter(3); });
+    expect(useTripStore.getState().placesRatingFilter).toBe(3);
+    // And back: a floor picked elsewhere (the phone's filter sheet) narrows this list too.
+    act(() => { useTripStore.getState().setPlacesRatingFilter('all'); });
+    expect(S.ratingFilter).toBe('all');
+    expect(names()).toEqual(['Good', 'Meh']);
   });
 
   it('FE-PLANNER-PSHOOK-014: search and category filter combine', () => {

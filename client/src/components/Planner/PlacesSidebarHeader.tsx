@@ -9,6 +9,7 @@ import { tintOf } from './planParts'
 import { CategoryTile } from './PlacesBulkCategoryModal'
 import type { PlacesFilter, SidebarState } from './usePlacesSidebar'
 import { PLACES_SORTS, type PlacesSort } from './placesSort'
+import { RATING_FLOORS } from '../../utils/placesFilter'
 
 /**
  * Below this the two labels stop fitting side by side and both buttons fall back
@@ -47,8 +48,6 @@ function BandButton({ label, onClick, on = false, lit = false, ariaPressed, aria
     </Tooltip>
   )
 }
-
-const RATING_FLOORS = ['all', 5, 4, 3, 2, 1] as const
 
 export function PlacesDropOverlay({ t }: SidebarState) {
   return (

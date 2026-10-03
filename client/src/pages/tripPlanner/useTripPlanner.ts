@@ -81,6 +81,7 @@ import {
 } from '../../utils/connectionsVisibility'
 import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
 import { plannedPlaceIds, plannedPlaceIdsForDay } from '../../utils/plannedPlaces'
+import { matchesPlacesFilter } from '../../utils/placesFilter'
 import { pendingStayPlaceIds } from '../../utils/pendingStays'
 import { useDayDelete } from './useDayDelete'
 import { useDayAdd } from './useDayAdd'
@@ -711,6 +712,7 @@ export function useTripPlanner() {
   // switches can't desync the marker set from the filter UI (#1541).
   const placesFilter = useTripStore((s) => s.placesFilter)
   const placesCategoryFilter = useTripStore((s) => s.placesCategoryFilter)
+  const placesRatingFilter = useTripStore((s) => s.placesRatingFilter)
 
   const [expandedDayIds, setExpandedDayIds] = useState<Set<number> | null>(null)
 
@@ -749,28 +751,22 @@ export function useTripPlanner() {
 
     const compactIds = compactUnplanned ? plannedPlaceIds({ assignments, accommodations: tripAccommodations, reservations }) : null
     const pendingIds = pendingStayPlaceIds(tripAccommodations, reservations)
+    const filterState = { filter: placesFilter, categoryFilters: placesCategoryFilter, ratingFilter: placesRatingFilter }
     return places.filter(p => {
       if (!p.lat || !p.lng) return false
-      if (placesFilter === 'tracks' && !p.route_geometry) return false
-      if (placesCategoryFilter.size > 0) {
-        if (p.category_id == null) {
-          if (!placesCategoryFilter.has('uncategorized')) return false
-        } else if (!placesCategoryFilter.has(String(p.category_id))) return false
-      }
       // Collapsed-day declutter hides a day's stops on every filter EXCEPT 'planned':
       // there the user asked to see the whole plan on the map, so a collapsed day
       // must not drop its planned places.
       if (placesFilter !== 'planned' && hiddenPlaceIds.has(p.id)) return false
-      if (placesFilter === 'unplanned' && plannedIds && plannedIds.has(p.id)) return false
-      if (placesFilter === 'planned' && plannedIds && !plannedIds.has(p.id)) return false
-      return true
+      // Pool, categories and rating floor: the very matcher the lists use (#1541).
+      return matchesPlacesFilter(p, filterState, { plannedIds })
     }).map(p => {
       // How the map tells a place apart (#2024, #2281); untouched places keep their identity.
       const compact = !!compactIds && !compactIds.has(p.id)
       const pending = pendingIds.has(p.id)
       return compact || pending ? { ...p, _compact: compact, _pending: pending } : p
     })
-  }, [places, placesCategoryFilter, placesFilter, assignments, expandedDayIds, selectedDayId, days, tripAccommodations, reservations, compactUnplanned])
+  }, [places, placesCategoryFilter, placesFilter, placesRatingFilter, assignments, expandedDayIds, selectedDayId, days, tripAccommodations, reservations, compactUnplanned])
 
   const { route, routeWalking, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
   // Road trip mode already draws the whole trip its own way, so the overview stands

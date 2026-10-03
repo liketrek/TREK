@@ -1,4 +1,4 @@
-// FE-TP-HOOK-001 to FE-TP-HOOK-175
+// FE-TP-HOOK-001 to FE-TP-HOOK-176
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { TranslationProvider } from '../../i18n/TranslationContext'
@@ -656,6 +656,20 @@ describe('useTripPlanner — map derivations', () => {
 
     act(() => { useTripStore.setState({ placesCategoryFilter: new Set(['3']) }) })
     expect(result.current.mapPlaces.map(p => p.id)).toEqual([1])
+  })
+
+  it('FE-TP-HOOK-176: the rating floor the lists set also thins the markers', async () => {
+    seedTrip({
+      places: [geo(1, { rating_avg: 4.5 }), geo(2, { rating_avg: 3 }), geo(3, { rating_avg: null })],
+      placesRatingFilter: 4,
+    })
+
+    const { result } = await renderPlanner()
+
+    expect(result.current.mapPlaces.map(p => p.id)).toEqual([1])
+
+    act(() => { useTripStore.getState().setPlacesRatingFilter('all') })
+    expect(result.current.mapPlaces.map(p => p.id)).toEqual([1, 2, 3])
   })
 
   it('FE-TP-HOOK-028: the unplanned filter drops places that sit on a day', async () => {
