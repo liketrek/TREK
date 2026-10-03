@@ -7,7 +7,8 @@ import { useTranslation } from '../../../../i18n'
 /**
  * The phone map's way into the places filter: a round control in the right-hand
  * stack, lit and badged with how many filters are narrowing the markers. The sheet
- * it opens is the shell's 'placesFilter' sheet.
+ * it opens is the shell's 'placesFilter' sheet, so the button announces a dialog
+ * rather than a pressed state.
  */
 export function MPlacesFilterPill({ onOpen }: { onOpen: () => void }) {
   const { t } = useTranslation()
@@ -23,6 +24,7 @@ export function MPlacesFilterPill({ onOpen }: { onOpen: () => void }) {
       label={label}
       badge={count}
       testId="places-filter-pill"
+      opensDialog
       icon={<SlidersHorizontal size={17} strokeWidth={2} />}
     />
   )

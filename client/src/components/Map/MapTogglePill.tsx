@@ -6,7 +6,7 @@ import { MAP_CONTROL_SHADOW } from './mapControlShadow'
  * One round on/off control in the frosted shell every map control wears, so a new
  * one lines up with the compass, the layer switcher and the overview toggle.
  */
-export function MapTogglePill({ active, onToggle, label, icon, testId, tooltipPlacement = 'left', badge = 0 }: {
+export function MapTogglePill({ active, onToggle, label, icon, testId, tooltipPlacement = 'left', badge = 0, opensDialog = false }: {
   active: boolean
   onToggle: () => void
   label: string
@@ -16,6 +16,12 @@ export function MapTogglePill({ active, onToggle, label, icon, testId, tooltipPl
   tooltipPlacement?: 'left' | 'right'
   /** A count pinned to the top right corner while above zero (how many filters are on, say). */
   badge?: number
+  /**
+   * The control opens a dialog instead of switching something on and off (the phone
+   * map's places filter): it then announces the dialog, not a pressed state it
+   * does not have. `active` still lights it.
+   */
+  opensDialog?: boolean
 }) {
   return (
     <div style={{
@@ -33,7 +39,8 @@ export function MapTogglePill({ active, onToggle, label, icon, testId, tooltipPl
           type="button"
           onClick={onToggle}
           aria-label={label}
-          aria-pressed={active}
+          aria-pressed={opensDialog ? undefined : active}
+          aria-haspopup={opensDialog ? 'dialog' : undefined}
           data-testid={testId}
           className={active ? 'text-accent' : 'text-content-muted'}
           style={{
