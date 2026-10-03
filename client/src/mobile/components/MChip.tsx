@@ -10,16 +10,23 @@ interface MChipProps {
    * back what it can: the chips that start a search are the ones worth the height.
    */
   size?: 'sm' | 'tap'
+  /**
+   * The chip is one choice of a picker: announce `active` as `aria-pressed`, so a
+   * screen reader hears which one is on, not just its colour. Off by default, for
+   * chips that only run an action.
+   */
+  pressable?: boolean
   className?: string
   children: ReactNode
 }
 
 /** Small pill chip: --m-act when active, neutral --m-ic surface otherwise. */
-export default function MChip({ active = false, onClick, size = 'sm', className = '', children }: MChipProps) {
+export default function MChip({ active = false, onClick, size = 'sm', pressable = false, className = '', children }: MChipProps) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={pressable ? active : undefined}
       className={`inline-flex flex-none items-center gap-[6px] rounded-full font-semibold ${
         size === 'tap' ? 'px-[13px] py-[10px] text-[0.8125rem]' : 'px-3 py-[7px] text-[0.75rem]'
       } ${

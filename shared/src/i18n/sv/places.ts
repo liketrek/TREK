@@ -61,6 +61,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Filtrera efter land eller region',
   'places.allLocations': 'Alla länder',
   'places.filterShow': 'Visa',
+  'places.filters': 'Filter',
   'places.clearSearch': 'Rensa sökning',
   'places.yourRating': 'Ditt betyg',
   'places.notRated': 'Inte betygsatt ännu',

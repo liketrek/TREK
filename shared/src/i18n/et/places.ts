@@ -62,6 +62,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Filtreeri riigi või piirkonna järgi',
   'places.allLocations': 'Kõik riigid',
   'places.filterShow': 'Näita',
+  'places.filters': 'Filtrid',
   'places.clearSearch': 'Tühjenda otsing',
   'places.yourRating': 'Sinu hinnang',
   'places.notRated': 'Veel hindamata',

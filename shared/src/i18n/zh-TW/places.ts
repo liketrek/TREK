@@ -60,6 +60,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': '依國家或地區篩選',
   'places.allLocations': '所有國家',
   'places.filterShow': '顯示',
+  'places.filters': '篩選',
   'places.clearSearch': '清除搜尋',
   'places.yourRating': '你的評分',
   'places.notRated': '尚未評分',

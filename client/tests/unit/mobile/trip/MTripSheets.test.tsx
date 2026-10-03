@@ -10,9 +10,9 @@ import { useSettingsStore } from '../../../../src/store/settingsStore'
 import { useTripStore } from '../../../../src/store/tripStore'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
-import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
-// FE-MOB-SHOST-001 to FE-MOB-SHOST-029 and FE-MOB-SHOST-032 (030 and 031 live in MTripSheets.members.test.tsx)
+// FE-MOB-SHOST-001 to FE-MOB-SHOST-029, FE-MOB-SHOST-032 and FE-MOB-SHOST-033 (030 and 031 live in MTripSheets.members.test.tsx)
 //
 // Every child sheet is stubbed: this file is about the host — which sheet is
 // mounted for which shell.sheet id, and how the host's own callbacks wire the
@@ -235,6 +235,18 @@ describe('MTripSheets', () => {
     for (const other of hostRouted) {
       expect(screen.getByTestId(other)).toHaveAttribute('data-open', String(other === testid))
     }
+  })
+
+  it('FE-MOB-SHOST-033: the map\'s places filter opens for its own id and closes through the shell', async () => {
+    const { shell } = renderHost({}, { sheet: { id: 'placesFilter' } })
+    const sheet = await screen.findByRole('dialog', { name: 'Filters' })
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }))
+    expect(shell.closeSheet).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-MOB-SHOST-033b: no places filter while another sheet is open', () => {
+    renderHost({}, { sheet: { id: 'day' } })
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-SHOST-004: hands the note payload to the note sheet and only for that id', () => {

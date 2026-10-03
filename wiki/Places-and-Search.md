@@ -13,7 +13,7 @@ The right column of the Plan tab lists every place of the trip. Its head band ha
 3. The filters and the order:
    - **Show**: **All**, **Unplanned**, **Planned**, and **Tracks** once the trip has one, each with its count.
    - **Categories** (the tag icon): tick one or several categories, or **No Category**. A badge on the icon counts the categories in force, and **Clear filter** lifts them.
-   - **Filter by rating** (the star): **All**, or a floor from **5+** down to **1+**.
+   - **Filter by rating** (the star): **All**, or a floor from **5+** down to **1+**. The map's markers follow the floor too.
    - **Filter by country or region** (the globe): every country the trip's places lie in, with its regions underneath, each with the number of places in it. Pick a country or one region; **All countries** is the default and **Clear filter** goes back to it. The button only appears once the trip spans more than one country or region.
    - **Sort by**: newest first (**Recently added**, the default), **Oldest first**, by name, **Highest rated** or **Recently changed**. The order applies to the list only, not to the map, and your browser remembers it.
 
@@ -266,7 +266,7 @@ The footer holds **Add to Day** or **Remove from Day** for the selected day, **N
 
 Every trip member can rate a place from 1 to 5 stars, even when place editing is restricted to certain members. Open the place inspector: the **Rating** row shows the stars, the average with the number of votes in brackets, and the avatars of who voted; rest the pointer on it to see everyone's stars. Click a star to cast your vote, and click the same star again to clear it. A place nobody has rated reads **Not rated yet**.
 
-The average also sits beside the place's name in the places column and on a marker's hover card on the map; a marker that carries no order badge shows it as a small disc in its corner instead. To narrow the list, **Filter by rating** (the star in the places column) picks a floor from 1 to 5 stars and keeps only the places whose average reaches it.
+The average also sits beside the place's name in the places column and on a marker's hover card on the map; a marker that carries no order badge shows it as a small disc in its corner instead. To narrow the list, **Filter by rating** (the star in the places column) picks a floor from 1 to 5 stars and keeps only the places whose average reaches it. The map's markers follow the same floor, and on a phone it is set from the places list's filter panel or from **Filters** on the map, see [Filtering the places on the map](Map-Features#filtering-the-places-on-the-map).
 
 Saved places in [Collections](Collections) are rated the same way. Saving a trip place to a list or copying a list place into a trip carries the votes along, but only those of people who are members on both sides.
 

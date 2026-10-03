@@ -61,6 +61,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Filteren op land of regio',
   'places.allLocations': 'Alle landen',
   'places.filterShow': 'Tonen',
+  'places.filters': 'Filters',
   'places.clearSearch': 'Zoekopdracht wissen',
   'places.yourRating': 'Jouw beoordeling',
   'places.notRated': 'Nog niet beoordeeld',

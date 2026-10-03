@@ -4,6 +4,7 @@ import { MapCompassPill, type CompassMap } from '../../../../components/Map/MapC
 import { MAP_LAYER_SWITCHER_INSET, MAP_ROUND_CONTROL_SIZE } from '../../../../components/Map/MapLayerSwitcher'
 import { TripRouteOverviewPill, TripRouteOverviewPanel } from '../../../../components/Map/TripRouteOverview'
 import { DawarichTrailPill } from '../../../../components/Map/DawarichTrailPill'
+import { MPlacesFilterPill } from './MPlacesFilterPill'
 import PoiCategoryPill from '../../../../components/Map/PoiCategoryPill'
 import { usePoiExplore } from '../../../../components/Map/usePoiExplore'
 import { useMergedMapPois } from '../../../../components/Map/useMergedMapPois'
@@ -452,8 +453,11 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
           clear of the round-controls band below it and of the base-layer switcher and
           the compass, which both sit bottom left. The offset is Tailwind rather than
           inline because the compass band is identified by being the one element with
-          an inline --bottom-nav-h, and a second would make that ambiguous. */}
-      {mapActive && !onStage && (!planner.roadtripActive || planner.dawarichEnabled) && (
+          an inline --bottom-nav-h, and a second would make that ambiguous. The places
+          filter closes the stack, under the toggles, so the overview card stays
+          right above its own toggle: it decides which pins the plan map shows, so it is
+          there whatever else is; the stage draws its own pins and has no use for it. */}
+      {mapActive && !onStage && (
         <div className="pointer-events-none absolute left-3 right-3 z-[25] flex flex-col items-end gap-2 bottom-[calc(var(--bottom-nav-h,84px)+58px)]">
           {!planner.roadtripActive && planner.overviewActive && (
             <TripRouteOverviewPanel
@@ -478,6 +482,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
               onToggle={planner.toggleDawarichTrail}
             />
           )}
+          <MPlacesFilterPill onOpen={() => shell.openSheet('placesFilter')} />
         </div>
       )}
     </div>

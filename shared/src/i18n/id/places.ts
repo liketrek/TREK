@@ -60,6 +60,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Saring menurut negara atau wilayah',
   'places.allLocations': 'Semua negara',
   'places.filterShow': 'Tampilkan',
+  'places.filters': 'Filter',
   'places.clearSearch': 'Hapus pencarian',
   'places.yourRating': 'Rating kamu',
   'places.notRated': 'Belum dinilai',

@@ -60,6 +60,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': '국가 또는 지역으로 필터링',
   'places.allLocations': '모든 국가',
   'places.filterShow': '표시',
+  'places.filters': '필터',
   'places.clearSearch': '검색 지우기',
   'places.yourRating': '내 평점',
   'places.notRated': '아직 평점 없음',

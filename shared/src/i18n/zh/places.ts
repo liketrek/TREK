@@ -60,6 +60,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': '按国家或地区筛选',
   'places.allLocations': '所有国家',
   'places.filterShow': '显示',
+  'places.filters': '筛选',
   'places.clearSearch': '清除搜索',
   'places.yourRating': '你的评分',
   'places.notRated': '暂无评分',

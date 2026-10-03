@@ -61,6 +61,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Szűrés ország vagy régió szerint',
   'places.allLocations': 'Minden ország',
   'places.filterShow': 'Megjelenítés',
+  'places.filters': 'Szűrők',
   'places.clearSearch': 'Keresés törlése',
   'places.yourRating': 'Az értékelésed',
   'places.notRated': 'Még nincs értékelve',

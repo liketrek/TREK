@@ -121,6 +121,12 @@ On a phone the plan map shows one day at a time, so a booking you have switched 
 
 > **Tip:** Whether endpoint text labels appear on the endpoint markers is your own choice: the **Booking route labels** setting in Settings → General → Travel & map (`map_booking_labels`). It is off by default; with it off, the endpoint markers show only the transport icon.
 
+## Filtering the places on the map
+
+The trip's place markers follow the filters of the places list: **Show** (**All**, **Unplanned**, **Planned**, **Tracks**), the categories and **Filter by rating**. Whatever you pick in the list narrows the markers at once, and the other way round.
+
+On a phone you do not have to leave the map for it. The round **Filters** button at the foot of the plan map's right-hand stack opens a sheet with **Show**, **Filter by rating** (**All**, or a floor from **5+** down to **1+**), **Categories** (with **No Category** while a place has none) and **Reset**, which lifts them all. While a filter is on, the button lights up and a badge counts the filters in force. The places list's filter panel offers the same choices, and both write the same filters. The button is hidden on the road trip stage, which draws its own markers.
+
 ## Category buttons
 
 With **Explore places on the map** switched on (Settings > General > Travel & map), the trip map carries a row of category buttons such as **Restaurants**, **Sights** or **Nature & parks**, and [plugins](Plugins) can add buttons of their own, such as trailheads, EV chargers or drinking water. Click one to show that kind of place around the part of the map you are looking at, and click a marker to add it as a place. See [Exploring the map by category](Places-and-Search#exploring-the-map-by-category).

@@ -61,6 +61,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': '国または地域で絞り込む',
   'places.allLocations': 'すべての国',
   'places.filterShow': '表示',
+  'places.filters': 'フィルター',
   'places.clearSearch': '検索をクリア',
   'places.yourRating': 'あなたの評価',
   'places.notRated': '未評価',

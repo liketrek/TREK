@@ -61,9 +61,13 @@ const places: TranslationStrings = {
   'places.sortUpdated': 'Recently changed',
   'places.filterByLocation': 'Filter by country or region',
   'places.allLocations': 'All countries',
-  /** The button that opens the filter panel, and the panel's name. */
   /** Label over the all/unplanned/planned/tracks choice in the filter panel. */
   'places.filterShow': 'Show',
+  /**
+   * The button that opens the places filter panel, and the panel's name: the phone
+   * map's control and the title of its sheet, and the phone places list's panel button.
+   */
+  'places.filters': 'Filters',
   'places.clearSearch': 'Clear search',
   'places.yourRating': 'Your rating',
   'places.notRated': 'Not rated yet',

@@ -1,6 +1,9 @@
 import type { AssignmentsMap, Day, Place } from '../../../../types'
 import { placeMatchesSearch } from '../../../../utils/placeSearch'
 import {
+  matchesCategoryFilter, matchesPlacesFilter, type PlacesRatingFloor,
+} from '../../../../utils/placesFilter'
+import {
   plannedPlaceIds as sharedPlannedPlaceIds,
   type PlannedAccommodation, type PlannedReservation,
 } from '../../../../utils/plannedPlaces'
@@ -8,8 +11,10 @@ import {
 /**
  * Pure filter model of the mobile places browser. Mirrors the desktop
  * sidebar's semantics exactly (usePlacesSidebar + the map's mapPlaces memo):
- * the pool filter and category set come from the trip store, so the list here
- * and the map markers always agree (#1541).
+ * the pool filter, the category set and the rating floor come from the trip
+ * store and go through the same matcher (utils/placesFilter) as the map markers
+ * (#1541); the map's own exceptions (open day, collapsed days) are described
+ * there.
  */
 
 export function plannedPlaceIds(
@@ -38,12 +43,6 @@ export function firstPlannedDayNumbers(assignments: AssignmentsMap, days: Day[])
   return result
 }
 
-export function matchesCategoryFilter(place: Place, categoryFilters: Set<string>): boolean {
-  if (categoryFilters.size === 0) return true
-  if (place.category_id == null) return categoryFilters.has('uncategorized')
-  return categoryFilters.has(String(place.category_id))
-}
-
 export function matchesSearch(place: Place, search: string): boolean {
   return placeMatchesSearch(place, search)
 }
@@ -51,17 +50,14 @@ export function matchesSearch(place: Place, search: string): boolean {
 interface PoolFilterArgs {
   filter: string
   categoryFilters: Set<string>
+  /** Minimum average stars; omitted means every rating. */
+  ratingFilter?: PlacesRatingFloor
   search: string
   plannedIds: Set<number>
 }
 
-export function filterPool(places: Place[], { filter, categoryFilters, search, plannedIds }: PoolFilterArgs): Place[] {
-  return places.filter(p => {
-    if (filter === 'unplanned' && plannedIds.has(p.id)) return false
-    if (filter === 'planned' && !plannedIds.has(p.id)) return false
-    if (filter === 'tracks' && !p.route_geometry) return false
-    return matchesCategoryFilter(p, categoryFilters) && matchesSearch(p, search)
-  })
+export function filterPool(places: Place[], { filter, categoryFilters, ratingFilter = 'all', search, plannedIds }: PoolFilterArgs): Place[] {
+  return places.filter(p => matchesPlacesFilter(p, { filter, categoryFilters, ratingFilter }, { plannedIds }) && matchesSearch(p, search))
 }
 
 /** Chip counts run on the category+search base set, like the desktop tabs. */

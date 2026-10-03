@@ -51,6 +51,7 @@ const places: TranslationStrings = {
   'places.filterByLocation': 'Filtruj według kraju lub regionu',
   'places.allLocations': 'Wszystkie kraje',
   'places.filterShow': 'Pokaż',
+  'places.filters': 'Filtry',
   'places.clearSearch': 'Wyczyść wyszukiwanie',
   'places.yourRating': 'Twoja ocena',
   'places.notRated': 'Jeszcze nie oceniono',
