@@ -17,7 +17,7 @@ import { openLeg } from '../../../helpers/legAlternatives'
 import { RT_ALT_BAR_LIFT } from '../../../../src/mobile/screens/trip/roadtrip/useMRtAlternatives'
 import { corePoiCategories, pluginPoiCategories } from '../../../../src/components/Map/usePoiCategories'
 
-// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-048
+// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-049
 //
 // The stage's pins come out of the trip store rather than the planner's map list, so the
 // stage fixtures seed the store and leave `mapPlaces` to stand for what the plan tab shows.
@@ -974,6 +974,13 @@ describe('MMapArea — places filter', () => {
     expect(pill).toHaveAttribute('aria-haspopup', 'dialog')
     expect(pill).toHaveAccessibleName('Filters (2)')
     expect(screen.getByText('2')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('FE-MOB-MAPAREA-049: a road trip keeps the places filter on its plan map, Dawarich or not', () => {
+    // The stack used to stand down in road-trip mode unless Dawarich had a pill in
+    // it; the plan map still shows the trip's places there, so its filter stays.
+    renderArea({ trTab: 'plan' }, { roadtripActive: true, dawarichEnabled: false })
+    expect(screen.getByTestId('places-filter-pill')).toBeInTheDocument()
   })
 
   it('FE-MOB-MAPAREA-048: the stage draws its own pins, so it has no places filter, and neither has a covered map', () => {
