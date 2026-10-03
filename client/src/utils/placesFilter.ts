@@ -3,9 +3,11 @@ import type { Place } from '../types'
 /**
  * The trip's places filter, in one place: the pool (all / unplanned / planned /
  * tracks), the category set and the minimum rating. The desktop list, the phone
- * list and the map markers of both shells all filter through these helpers, on
- * the values held in the trip store, so the list and the map can never disagree
- * on which places are in view (#1541).
+ * list and the map markers of both shells apply this same predicate to the same
+ * values, held in the trip store (#1541). The map keeps two deliberate
+ * differences of its own: with a day open, "planned" shows that day's plan only
+ * (#2024), and the stops of collapsed days are left off the map (except under
+ * "planned").
  */
 
 /** A minimum of average stars: 'all', or a floor that unrated places fall through. */

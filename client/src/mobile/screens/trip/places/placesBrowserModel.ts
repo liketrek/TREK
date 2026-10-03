@@ -12,8 +12,9 @@ import {
  * Pure filter model of the mobile places browser. Mirrors the desktop
  * sidebar's semantics exactly (usePlacesSidebar + the map's mapPlaces memo):
  * the pool filter, the category set and the rating floor come from the trip
- * store and go through the same matcher (utils/placesFilter), so the list here
- * and the map markers always agree (#1541).
+ * store and go through the same matcher (utils/placesFilter) as the map markers
+ * (#1541); the map's own exceptions (open day, collapsed days) are described
+ * there.
  */
 
 /** Kept under this name for the browser's callers; the predicate itself lives in utils/placesFilter. */
