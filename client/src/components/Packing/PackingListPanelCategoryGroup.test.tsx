@@ -48,7 +48,7 @@ function setup(overrides: Partial<Props> = {}) {
 
 /** The category header owns the first MoreHorizontal; item rows render their own. */
 function openCategoryMenu(container: HTMLElement) {
-  const btn = container.querySelectorAll('svg.lucide-more-horizontal')[0].closest('button')!
+  const btn = container.querySelectorAll('svg.lucide-ellipsis')[0].closest('button')!
   fireEvent.click(btn)
   return btn
 }
@@ -303,7 +303,7 @@ describe('KategorieGruppe — bulk actions', () => {
 
   it('FE-W5CAT-015a: the menu trigger highlights on hover', () => {
     const { container } = setup()
-    const trigger = container.querySelectorAll('svg.lucide-more-horizontal')[0].closest('button')!
+    const trigger = container.querySelectorAll('svg.lucide-ellipsis')[0].closest('button')!
 
     fireEvent.mouseEnter(trigger)
     expect(trigger.style.color).toBe('var(--text-secondary)')

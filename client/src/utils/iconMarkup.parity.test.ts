@@ -14,9 +14,12 @@ import { renderIconMarkup } from './iconMarkup'
 
 type IconComponent = Parameters<typeof createElement>[0]
 
+// `Icon` is lucide's generic base component, not an icon: it renders whatever
+// `iconNode` it is handed and throws without one.
 const ICONS = Object.entries(lucide).filter(
   ([name, value]) =>
     /^[A-Z]/.test(name) &&
+    name !== 'Icon' &&
     typeof value === 'object' &&
     value !== null &&
     (value as { $$typeof?: symbol }).$$typeof === Symbol.for('react.forward_ref')

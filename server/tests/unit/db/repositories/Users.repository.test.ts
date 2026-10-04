@@ -1013,6 +1013,23 @@ describe('UsersRepository — feed tokens (Plan 3d Task 5, FD5-FD8/FD10)', () =>
     expect(await users.findUsernameEmail(user.id)).toEqual({ username: 'imm-user', email: 'imm@example.com' });
     expect(await users.findUsernameEmail(999999)).toBeUndefined();
   });
+
+  it('M1b: getImmichCredentials / getImmichConnectionPrefs carry immich_allow_insecure_tls (#2475), and the missing-user branch', async () => {
+    const { user } = createUser(testDb);
+    testDb
+      .prepare('UPDATE users SET immich_url = ?, immich_api_key = ?, immich_auto_upload = 1, immich_allow_insecure_tls = 1 WHERE id = ?')
+      .run('https://immich.test', 'key-1', user.id);
+
+    expect(await users.getImmichCredentials(user.id)).toEqual({
+      immich_url: 'https://immich.test',
+      immich_api_key: 'key-1',
+      immich_allow_insecure_tls: 1,
+    });
+    expect(await users.getImmichCredentials(999999)).toBeNull();
+
+    expect(await users.getImmichConnectionPrefs(user.id)).toEqual({ immich_auto_upload: 1, immich_allow_insecure_tls: 1 });
+    expect(await users.getImmichConnectionPrefs(999999)).toBeNull();
+  });
 });
 
 // Plan 3i Task 4 fix wave (should-land 5): admin's AD1-AD17 read methods

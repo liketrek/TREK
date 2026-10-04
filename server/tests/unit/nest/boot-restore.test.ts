@@ -1,5 +1,5 @@
 /**
- * BOOT-RESTORE-001..007 — restoring a backup on a first start (#1089).
+ * BOOT-RESTORE-001..008 — restoring a backup on a first start (#1089).
  *
  * Real files, a real archive and a real SQLite file: what is being protected is
  * the order of things on disk, and a mocked filesystem would only confirm the
@@ -128,5 +128,17 @@ describe('restoreOnFirstBoot', () => {
     await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir }))
       .rejects.toThrow(/escapes the archive root|not a valid SQLite database/);
     expect(fs.existsSync(dbFile)).toBe(false);
+  });
+
+  it('BOOT-RESTORE-008: an archive with only a database restores it, without inventing a key or an uploads tree', async () => {
+    const src = path.join(root, 'src.db');
+    trekDb(src);
+    const zipPath = await archive({ 'travel.db': { file: src } });
+
+    const out = await restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir });
+
+    expect(out).toEqual({ restored: true, uploads: null, staging: expect.stringContaining('restore-boot-') });
+    expect(fs.existsSync(dbFile)).toBe(true);
+    expect(fs.existsSync(path.join(dataDir, '.encryption_key'))).toBe(false);
   });
 });

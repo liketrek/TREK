@@ -50,12 +50,12 @@ export const spinner = (): SpinnerResult => clackSpinner({ output: OUT });
 // ── cancellation ─────────────────────────────────────────────────────────────
 
 /** Clack returns a symbol when the user hits Ctrl+C — turn that into a clean exit. */
-export function orCancel<T>(value: T | symbol): T {
+export function orCancel<T>(value: T): Exclude<T, symbol> {
   if (isCancel(value)) {
     clackCancel('Cancelled.', { output: OUT });
     process.exit(0);
   }
-  return value as T;
+  return value as Exclude<T, symbol>;
 }
 
 // ── prompts (cancel-checked, stderr-rendered) ────────────────────────────────

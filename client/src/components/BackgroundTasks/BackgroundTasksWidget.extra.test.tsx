@@ -290,8 +290,8 @@ describe('BackgroundTasksWidget: the mark on a finished job (#2477)', () => {
     const { baseElement } = render(<BackgroundTasksWidget />)
 
     expect(screen.getByText('No reservations could be extracted from the uploaded files.')).toBeInTheDocument()
-    expect(baseElement.querySelector('svg.lucide-alert-triangle')).toHaveAttribute('stroke', 'var(--warning)')
-    expect(baseElement.querySelector('svg.lucide-check-circle2')).toBeNull()
+    expect(baseElement.querySelector('svg.lucide-triangle-alert')).toHaveAttribute('stroke', 'var(--warning)')
+    expect(baseElement.querySelector('svg.lucide-circle-check')).toBeNull()
     expect(baseElement.querySelector('.animate-spin')).toBeNull()
   })
 
@@ -300,8 +300,8 @@ describe('BackgroundTasksWidget: the mark on a finished job (#2477)', () => {
     const { baseElement } = render(<BackgroundTasksWidget />)
 
     // The theme's own success colour, so it follows light and dark.
-    expect(baseElement.querySelector('svg.lucide-check-circle2')).toHaveAttribute('stroke', 'var(--success)')
-    expect(baseElement.querySelector('svg.lucide-alert-triangle')).toBeNull()
+    expect(baseElement.querySelector('svg.lucide-circle-check')).toHaveAttribute('stroke', 'var(--success)')
+    expect(baseElement.querySelector('svg.lucide-triangle-alert')).toBeNull()
   })
 })
 

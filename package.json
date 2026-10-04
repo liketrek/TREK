@@ -34,8 +34,8 @@
   },
   "comment:overrides": "Force a single React 19 across the workspace so the test renderer (@testing-library/react) and the app share one react-dom.",
   "overrides": {
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "multer": "^2.3.0"
   },
   "comment:optionalDependencies": "The lockfile is generated on glibc, so the musl builds the Alpine image needs never land in it on their own. Keep the @img/* pins on the same version as client's sharp — a mismatch nests the binary away from libvips and the image build dies in generate-icons.",
