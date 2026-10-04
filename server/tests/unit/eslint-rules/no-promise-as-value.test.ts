@@ -10,12 +10,17 @@ import path from 'path';
 // so the deliberately-broken snippets below never reach tsc or the lint gates.
 const fixtureRoot = path.resolve(__dirname, '../../../eslint-rules/fixtures');
 
+// With CI=true typescript-eslint switches to single-run mode, which builds the
+// program from the fixture file on disk and ignores the code each case hands
+// it: every invalid case then reports nothing. The tester must stay in the
+// per-file mode on CI as well.
 const ruleTester = new RuleTester({
   languageOptions: {
     parser: tsParser,
     parserOptions: {
       project: './tsconfig.json',
       tsconfigRootDir: fixtureRoot,
+      disallowAutomaticSingleRunInference: true,
     },
   },
 });
@@ -142,7 +147,11 @@ ruleTester.run('trek/no-promise-as-value', noPromiseAsValue as unknown as Rule.R
 const strictTester = new RuleTester({
   languageOptions: {
     parser: tsParser,
-    parserOptions: { project: './tsconfig.strict.json', tsconfigRootDir: fixtureRoot },
+    parserOptions: {
+      project: './tsconfig.strict.json',
+      tsconfigRootDir: fixtureRoot,
+      disallowAutomaticSingleRunInference: true,
+    },
   },
 });
 
