@@ -9,8 +9,8 @@ import { Migration } from '@mikro-orm/migrations';
  * never moved, but an entry left without a place on purpose should not grow one
  * either just because a picture was added.
  */
-export class Migration20200101041900_a_journey_that_puts_an_entry_on_the extends Migration {
-  override name = 'Migration20200101041900_a_journey_that_puts_an_entry_on_the';
+export class Migration20200101041900_a_journey_that_puts_an_entry_on extends Migration {
+  override name = 'Migration20200101041900_a_journey_that_puts_an_entry_on';
 
   override async up(): Promise<void> {
     await addColumnIfMissing(this, 'journeys', 'photo_location', `photo_location INTEGER NOT NULL DEFAULT 0`);

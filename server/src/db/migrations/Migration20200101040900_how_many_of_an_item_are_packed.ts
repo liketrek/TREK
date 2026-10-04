@@ -8,8 +8,8 @@ import { Migration } from '@mikro-orm/migrations';
  * the plain checkbox every item has had, and `checked` stays the answer to
  * "done?".
  */
-export class Migration20200101040900_how_many_of_an_item_are_packed_so extends Migration {
-  override name = 'Migration20200101040900_how_many_of_an_item_are_packed_so';
+export class Migration20200101040900_how_many_of_an_item_are_packed extends Migration {
+  override name = 'Migration20200101040900_how_many_of_an_item_are_packed';
 
   override async up(): Promise<void> {
     await addColumnIfMissing(this, 'packing_items', 'packed_quantity', `packed_quantity INTEGER`);

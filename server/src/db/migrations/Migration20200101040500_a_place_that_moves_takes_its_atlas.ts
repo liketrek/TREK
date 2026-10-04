@@ -23,8 +23,8 @@ import { Migration } from '@mikro-orm/migrations';
  * This is 244 on main (4.3.3) as well, so it sits here, ahead of Web Push.
  * Step 246 (`Migration20200101040700`) creates the same trigger once more.
  */
-export class Migration20200101040500_a_place_that_moves_takes_its_atlas_country extends Migration {
-  override name = 'Migration20200101040500_a_place_that_moves_takes_its_atlas_country';
+export class Migration20200101040500_a_place_that_moves_takes_its_atlas extends Migration {
+  override name = 'Migration20200101040500_a_place_that_moves_takes_its_atlas';
 
   override async up(): Promise<void> {
     await createPlaceRegionsFollowPlaceTrigger(this);

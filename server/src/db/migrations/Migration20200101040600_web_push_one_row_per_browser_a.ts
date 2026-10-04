@@ -17,8 +17,8 @@ import { Migration } from '@mikro-orm/migrations';
  * 4.3.3 install is already at 244 with the trigger and gets the table here; an
  * instance that ran this at 244 replays it as a no-op.
  */
-export class Migration20200101040600_web_push_one_row_per_browser_a_user extends Migration {
-  override name = 'Migration20200101040600_web_push_one_row_per_browser_a_user';
+export class Migration20200101040600_web_push_one_row_per_browser_a extends Migration {
+  override name = 'Migration20200101040600_web_push_one_row_per_browser_a';
 
   override async up(): Promise<void> {
     await this.execute(`

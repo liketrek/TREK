@@ -1,6 +1,6 @@
 /**
  * The Immich self-signed switch and the two settings rows (#2475), legacy step
- * 243, on the real `Migration20200101040400_immich_learns_the_switch_synology_airtrail_and_dawarich`.
+ * 243, on the real `Migration20200101040400_immich_learns_the_switch_synology_airtrail_and`.
  *
  * The legacy test rewound `schema_version` to just before the step and ran the
  * runner again. Here a replay runs the migration class directly a second time
@@ -8,15 +8,30 @@
  * install is the whole chain followed by the `PhotoProviderSeeder`, the order
  * `db/orm.ts` runs them in at boot.
  */
-import { afterEach, describe, expect, it } from 'vitest';
-import type { MikroORM } from '@mikro-orm/sqlite';
+import { Migration20200101040400_immich_learns_the_switch_synology_airtrail_and as TargetMigration } from '../../../src/db/migrations/Migration20200101040400_immich_learns_the_switch_synology_airtrail_and';
 import { PhotoProviderSeeder } from '../../../src/db/seeders/PhotoProviderSeeder';
-import { Migration20200101040400_immich_learns_the_switch_synology_airtrail_and_dawarich as TargetMigration } from '../../../src/db/migrations/Migration20200101040400_immich_learns_the_switch_synology_airtrail_and_dawarich';
-import { createMigrationOrm, migrateTo, migratorOf, pendingNames, rawExec, rawQuery, runMigrationDirect } from '../../helpers/migration-step';
+import {
+  createMigrationOrm,
+  migrateTo,
+  migratorOf,
+  pendingNames,
+  rawExec,
+  rawQuery,
+  runMigrationDirect,
+} from '../../helpers/migration-step';
+import type { MikroORM } from '@mikro-orm/sqlite';
 
-const TARGET = 'Migration20200101040400_immich_learns_the_switch_synology_airtrail_and_dawarich';
+import { afterEach, describe, expect, it } from 'vitest';
 
-type FieldRow = { field_key: string; input_type: string; settings_key: string | null; payload_key: string | null; sort_order: number };
+const TARGET = 'Migration20200101040400_immich_learns_the_switch_synology_airtrail_and';
+
+type FieldRow = {
+  field_key: string;
+  input_type: string;
+  settings_key: string | null;
+  payload_key: string | null;
+  sort_order: number;
+};
 
 function immichFields(orm: MikroORM): Promise<FieldRow[]> {
   return rawQuery<FieldRow>(
@@ -27,9 +42,27 @@ function immichFields(orm: MikroORM): Promise<FieldRow[]> {
 
 const EXPECTED_FIELDS: FieldRow[] = [
   { field_key: 'immich_url', input_type: 'url', settings_key: 'immich_url', payload_key: 'immich_url', sort_order: 0 },
-  { field_key: 'immich_api_key', input_type: 'password', settings_key: null, payload_key: 'immich_api_key', sort_order: 1 },
-  { field_key: 'immich_allow_insecure_tls', input_type: 'checkbox', settings_key: 'allow_insecure_tls', payload_key: 'allow_insecure_tls', sort_order: 2 },
-  { field_key: 'immich_auto_upload', input_type: 'checkbox', settings_key: 'auto_upload', payload_key: 'auto_upload', sort_order: 5 },
+  {
+    field_key: 'immich_api_key',
+    input_type: 'password',
+    settings_key: null,
+    payload_key: 'immich_api_key',
+    sort_order: 1,
+  },
+  {
+    field_key: 'immich_allow_insecure_tls',
+    input_type: 'checkbox',
+    settings_key: 'allow_insecure_tls',
+    payload_key: 'allow_insecure_tls',
+    sort_order: 2,
+  },
+  {
+    field_key: 'immich_auto_upload',
+    input_type: 'checkbox',
+    settings_key: 'auto_upload',
+    payload_key: 'auto_upload',
+    sort_order: 5,
+  },
 ];
 
 async function migrateToJustBefore(orm: MikroORM): Promise<void> {
@@ -54,7 +87,10 @@ describe('Immich provider fields and the self-signed switch (#2475)', () => {
     orm = await createMigrationOrm();
     await migratorOf(orm).up();
     // An existing user keeps the admin seeding out of this.
-    await rawExec(orm, "INSERT INTO users (username, email, password_hash) VALUES ('someone', 'someone@example.test', 'x')");
+    await rawExec(
+      orm,
+      "INSERT INTO users (username, email, password_hash) VALUES ('someone', 'someone@example.test', 'x')",
+    );
     await new PhotoProviderSeeder().run(orm.em);
 
     expect(await immichFields(orm)).toEqual(EXPECTED_FIELDS);
@@ -69,7 +105,10 @@ describe('Immich provider fields and the self-signed switch (#2475)', () => {
   it('the switch is off for every user until they turn it on', async () => {
     orm = await createMigrationOrm();
     await migratorOf(orm).up();
-    await rawExec(orm, "INSERT INTO users (username, email, password_hash) VALUES ('someone', 'someone@example.test', 'x')");
+    await rawExec(
+      orm,
+      "INSERT INTO users (username, email, password_hash) VALUES ('someone', 'someone@example.test', 'x')",
+    );
 
     expect(await rawQuery(orm, 'SELECT immich_allow_insecure_tls AS v FROM users')).toEqual([{ v: 0 }]);
   }, 30000);

@@ -1,6 +1,6 @@
 import { buildLegacyStepMap, migrateToHead } from '../../../src/db/legacy-baseline';
-import { Migration20200101040500_a_place_that_moves_takes_its_atlas_country as PlaceRegionsTrigger } from '../../../src/db/migrations/Migration20200101040500_a_place_that_moves_takes_its_atlas_country';
-import { Migration20200101040700_the_2527_trigger_once_more_for_an_instance as PlaceRegionsTriggerAgain } from '../../../src/db/migrations/Migration20200101040700_the_2527_trigger_once_more_for_an_instance';
+import { Migration20200101040500_a_place_that_moves_takes_its_atlas as PlaceRegionsTrigger } from '../../../src/db/migrations/Migration20200101040500_a_place_that_moves_takes_its_atlas';
+import { Migration20200101040700_the_2527_trigger_once_more_for_an as PlaceRegionsTriggerAgain } from '../../../src/db/migrations/Migration20200101040700_the_2527_trigger_once_more_for_an';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
 import {
   createMigrationOrm,
@@ -153,7 +153,7 @@ describe('place_regions follows the place it was resolved from (#2527)', () => {
       };
 
       expect(map.steps.get(PLACE_REGIONS_TRIGGER_VERSION)).toBe(
-        'Migration20200101040500_a_place_that_moves_takes_its_atlas_country',
+        'Migration20200101040500_a_place_that_moves_takes_its_atlas',
       );
       expect(sourceOf(PLACE_REGIONS_TRIGGER_VERSION)).toContain('await createPlaceRegionsFollowPlaceTrigger(this)');
       expect(sourceOf(WEB_PUSH_VERSION)).toContain('CREATE TABLE IF NOT EXISTS push_subscriptions');
@@ -197,7 +197,7 @@ describe('place_regions follows the place it was resolved from (#2527)', () => {
      * the legacy row, so the next boot sees exactly what an upgrade sees.
      */
     async function legacyInstallAt244(): Promise<void> {
-      await migrateTo(orm, 'Migration20200101040500_a_place_that_moves_takes_its_atlas_country');
+      await migrateTo(orm, 'Migration20200101040500_a_place_that_moves_takes_its_atlas');
       await rawExec(orm, 'DELETE FROM mikro_orm_migrations');
       await rawExec(orm, 'DROP TABLE IF EXISTS schema_version');
       await rawExec(orm, 'CREATE TABLE schema_version (version INTEGER NOT NULL)');
@@ -222,7 +222,7 @@ describe('place_regions follows the place it was resolved from (#2527)', () => {
 
       expect(await pushTable()).toEqual([{ name: 'idx_push_subscriptions_user' }, { name: 'push_subscriptions' }]);
       expect(await triggers()).toHaveLength(1);
-      expect(await recorded()).toContain('Migration20200101040700_the_2527_trigger_once_more_for_an_instance');
+      expect(await recorded()).toContain('Migration20200101040700_the_2527_trigger_once_more_for_an');
     }, 30000);
 
     it('gives an instance that ran Web Push at 244 the trigger and keeps its subscriptions', async () => {
@@ -269,7 +269,7 @@ describe('place_regions follows the place it was resolved from (#2527)', () => {
       expect(await rawQuery(orm, 'SELECT endpoint FROM push_subscriptions')).toEqual([
         { endpoint: 'https://push.example.test/1' },
       ]);
-      expect(await recorded()).toContain('Migration20200101040700_the_2527_trigger_once_more_for_an_instance');
+      expect(await recorded()).toContain('Migration20200101040700_the_2527_trigger_once_more_for_an');
       await rawExec(orm, 'UPDATE places SET lat = ?, lng = ? WHERE id = 1', [52.5163, 13.3777]);
       expect(await rawQuery(orm, 'SELECT country_code, region_code FROM place_regions WHERE place_id = 1')).toEqual([]);
       expect(await rawQuery(orm, 'SELECT country_code, region_code FROM place_regions WHERE place_id = 2')).toEqual([

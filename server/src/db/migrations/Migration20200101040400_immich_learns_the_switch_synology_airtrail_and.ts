@@ -16,8 +16,8 @@ import { Migration } from '@mikro-orm/migrations';
  * the same reason; here they reach the installs that already have the provider
  * row. Re-runnable.
  */
-export class Migration20200101040400_immich_learns_the_switch_synology_airtrail_and_dawarich extends Migration {
-  override name = 'Migration20200101040400_immich_learns_the_switch_synology_airtrail_and_dawarich';
+export class Migration20200101040400_immich_learns_the_switch_synology_airtrail_and extends Migration {
+  override name = 'Migration20200101040400_immich_learns_the_switch_synology_airtrail_and';
 
   override async up(): Promise<void> {
     await addColumnIfMissing(

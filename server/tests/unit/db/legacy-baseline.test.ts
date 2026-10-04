@@ -58,10 +58,8 @@ describe('the legacy step map', () => {
       const numbered = new Set(map.steps.values());
       expect(all.map((m) => m.name).filter((name) => !numbered.has(name))).toEqual(UNNUMBERED);
       expect(map.steps.get(242)).toBe('Migration20200101040300_a_booked_night_finally_took_the_seat_a_new');
-      expect(map.steps.get(243)).toBe(
-        'Migration20200101040400_immich_learns_the_switch_synology_airtrail_and_dawarich',
-      );
-      expect(map.steps.get(258)).toBe('Migration20200101041900_a_journey_that_puts_an_entry_on_the');
+      expect(map.steps.get(243)).toBe('Migration20200101040400_immich_learns_the_switch_synology_airtrail_and');
+      expect(map.steps.get(258)).toBe('Migration20200101041900_a_journey_that_puts_an_entry_on');
       expect(map.steps.get(26)).toBe('Migration20200101002600_day_assignments_add_assignment_time');
     } finally {
       await orm.close(true);
@@ -220,7 +218,7 @@ describe('planLegacyBaseline / migrateToHead', () => {
     await rawExec(orm, 'INSERT INTO schema_version (version) VALUES (250)');
     const planned = await baseline();
     expect(planned).toEqual(numbered.slice(0, 250));
-    expect(planned.at(-1)).toBe('Migration20200101041100_half_company_holidays_0_5_covers_the_morning');
+    expect(planned.at(-1)).toBe('Migration20200101041100_half_company_holidays_0_5_covers_the');
     expect(await recorded()).toEqual([]);
   });
 });
