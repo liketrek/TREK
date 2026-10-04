@@ -191,6 +191,10 @@ jobs:
         run: cd server && npm run check:entities
 
       - name: Lint
+        # Type-aware rules build the src + tests program, which outgrows
+        # Node's default ~4 GB heap on the runner.
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
         run: cd server && npm run lint:check
 
       - name: DB call-graph gate (no sync DB-touching methods, no raw transactions)
