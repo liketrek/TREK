@@ -58,7 +58,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'El complement Dawarich està desactivat en aquesta instància.',
   'dawarich.error.offline': 'Això necessita connexió: TREK ara és fora de línia.',
   'dawarich.error.invalid_url': 'TREK no pot fer servir aquesta adreça.',
-  'dawarich.warning.private_ip': 'Aquesta adreça apunta a una IP privada ({ip}). Comprova que és el que volies: el servidor pot necessitar ALLOW_INTERNAL_NETWORK=true per arribar-hi.',
+  'dawarich.warning.private_ip':
+    'Aquesta adreça apunta a una IP privada ({ip}). Comprova que és el que volies: el servidor pot necessitar ALLOW_INTERNAL_NETWORK=true per arribar-hi.',
   'dawarich.error.unknown': 'Alguna cosa ha anat malament en parlar amb Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────

@@ -38,10 +38,11 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': 'Quản lý bản đồ',
   'oauth.scope.atlas:write.description': 'Đánh dấu các quốc gia và khu vực đã ghé thăm, quản lý danh sách nhóm',
   'oauth.scope.packing:read.label': 'Xem danh sách đóng gói',
-  'oauth.scope.packing:read.description': 'Đọc các mặt hàng đóng gói, túi xách và người được giao danh mục',
+  'oauth.scope.packing:read.description':
+    'Đọc các mặt hàng đóng gói, túi xách, người được giao danh mục và mục trong danh sách mua sắm',
   'oauth.scope.packing:write.label': 'Quản lý danh sách đóng gói',
   'oauth.scope.packing:write.description':
-    'Thêm, cập nhật, xóa, chuyển đổi và sắp xếp lại các mặt hàng và túi đóng gói',
+    'Thêm, cập nhật, xóa, chuyển đổi và sắp xếp lại các mặt hàng, túi đóng gói và mục trong danh sách mua sắm',
   'oauth.scope.todos:read.label': 'Xem danh sách việc cần làm',
   'oauth.scope.todos:read.description': 'Đọc các mục việc cần làm trong chuyến đi và người được giao danh mục',
   'oauth.scope.todos:write.label': 'Quản lý danh sách việc cần làm',
@@ -100,17 +101,21 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Tệp',
   'oauth.scope.group.settings': 'Cài đặt',
   'oauth.scope.files:read.label': 'Xem tệp của chuyến đi',
-  'oauth.scope.files:read.description': 'Liệt kê tài liệu của chuyến đi: tên, kích thước, ai đã tải lên và chúng liên kết với gì',
+  'oauth.scope.files:read.description':
+    'Liệt kê tài liệu của chuyến đi: tên, kích thước, ai đã tải lên và chúng liên kết với gì',
   'oauth.scope.files:write.label': 'Quản lý tệp của chuyến đi',
-  'oauth.scope.files:write.description': 'Đổi tên và mô tả tệp, liên kết với đặt chỗ và địa điểm, gắn sao và chuyển vào thùng rác',
+  'oauth.scope.files:write.description':
+    'Đổi tên và mô tả tệp, liên kết với đặt chỗ và địa điểm, gắn sao và chuyển vào thùng rác',
   'oauth.scope.files:content.label': 'Đọc nội dung tệp',
   'oauth.scope.files:content.description': 'Đọc nội dung của tài liệu đã tải lên, chẳng hạn PDF đặt chỗ hoặc vé',
   'oauth.scope.settings:read.label': 'Xem tuỳ chọn của bạn',
   'oauth.scope.settings:read.description': 'Đọc đơn vị, định dạng giờ, ngôn ngữ, tiền tệ mặc định và trang khởi đầu',
   'oauth.scope.settings:write.label': 'Thay đổi tuỳ chọn của bạn',
-  'oauth.scope.settings:write.description': 'Thay đổi đơn vị, định dạng giờ, ngôn ngữ, tiền tệ mặc định và trang khởi đầu. Không bao giờ khoá API đã lưu',
+  'oauth.scope.settings:write.description':
+    'Thay đổi đơn vị, định dạng giờ, ngôn ngữ, tiền tệ mặc định và trang khởi đầu. Không bao giờ khoá API đã lưu',
   'oauth.scope.group.plugins': 'Tiện ích',
   'oauth.scope.plugins:use.label': 'Chạy công cụ của tiện ích',
-  'oauth.scope.plugins:use.description': 'Cho phép ứng dụng này gọi các công cụ do những tiện ích mà quản trị viên đã cài đặt và phê duyệt cung cấp. Mỗi tiện ích hoạt động với quyền đã được cấp trước đó, không phải với phạm vi của mã thông báo này',
+  'oauth.scope.plugins:use.description':
+    'Cho phép ứng dụng này gọi các công cụ do những tiện ích mà quản trị viên đã cài đặt và phê duyệt cung cấp. Mỗi tiện ích hoạt động với quyền đã được cấp trước đó, không phải với phạm vi của mã thông báo này',
 };
 export default oauth;

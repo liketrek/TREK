@@ -155,7 +155,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'Додати до списку',
   'collections.file.targetExistingHint': 'До списку, який уже є',
   'collections.file.searchLists': 'Пошук списків',
-  'collections.file.intoHint': 'Місця, які вже є у списку, лишаються без змін, як і його назва та колір. Мітки з файлу додаються.',
+  'collections.file.intoHint':
+    'Місця, які вже є у списку, лишаються без змін, як і його назва та колір. Мітки з файлу додаються.',
   'collections.file.confirmInto': 'Додати до списку',
   'collections.file.doneInto': '{count} місць додано до {name}',
   'collections.file.doneIntoDuplicates': '{count} додано до {name}, {duplicates} уже були там',

@@ -68,8 +68,7 @@ const backup: TranslationStrings = {
   'backup.restoreConfirmTitle': 'Ehtiyat nüsxə bərpa edilsin?',
   'backup.restoreWarning':
     'Bütün cari məlumatlar (səyahətlər, məkanlar, istifadəçilər və yükləmələr) daimi olaraq ehtiyat nüsxədəki məlumatlarla əvəz ediləcək. Bu əməliyyatı geri qaytarmaq mümkün deyil.',
-  'backup.restoreTip':
-    'Məsləhət: Bərpa etməzdən əvvəl cari vəziyyətin ehtiyat nüsxəsini yaradın.',
+  'backup.restoreTip': 'Məsləhət: Bərpa etməzdən əvvəl cari vəziyyətin ehtiyat nüsxəsini yaradın.',
   'backup.restoreConfirm': 'Bəli, bərpa et',
 };
 

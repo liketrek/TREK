@@ -92,6 +92,7 @@ vi.mock('../components/Trips/TripMembersModal', () => ({ default: stub('membersM
 vi.mock('../components/Packing/PackingListPanel', () => ({ default: stub('packingPanel', 'packing-list-panel') }))
 vi.mock('../components/Packing/ApplyTemplateButton', () => ({ default: stub('applyTemplate', 'apply-template') }))
 vi.mock('../components/Packing/PackingExportMenu', () => ({ default: stub('exportMenu', 'export-menu') }))
+vi.mock('../components/Shopping/ShoppingListPanel', () => ({ default: stub('shoppingPanel', 'shopping-list-panel') }))
 vi.mock('../components/Todo/TodoListPanel', () => ({ default: stub('todoPanel', 'todo-list-panel') }))
 vi.mock('../components/Files/FileManager', () => ({ default: stub('fileManager', 'file-manager') }))
 vi.mock('../components/Budget/CostsPanel', () => ({
@@ -123,6 +124,7 @@ function baseState(): HookState {
     places: [place],
     assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place, order_index: 0 })] },
     packingItems: [],
+    shoppingItems: [],
     todoItems: [],
     categories: [],
     reservations: [],
@@ -1173,6 +1175,16 @@ describe('TripPlannerPage — lists tab', () => {
 
     expect(await screen.findByTestId('todo-list-panel')).toBeInTheDocument()
     expect(sessionStorage.getItem('trip-lists-subtab-42')).toBe('todo')
+  })
+
+  it('FE-PAGE-TPW-039b: can switch to the shopping subtab and persist it', async () => {
+    renderPage({ activeTab: 'listen' })
+
+    expect(await screen.findByTestId('packing-list-panel')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Shopping'))
+
+    expect(await screen.findByTestId('shopping-list-panel')).toBeInTheDocument()
+    expect(sessionStorage.getItem('trip-lists-subtab-42')).toBe('shopping')
   })
 
   it('FE-PAGE-TPW-040: a persisted subtab wins over the packing default', async () => {

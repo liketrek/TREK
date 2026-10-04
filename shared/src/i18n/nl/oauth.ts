@@ -38,10 +38,11 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': 'Atlas beheren',
   'oauth.scope.atlas:write.description': "Landen en regio's markeren als bezocht, bucketlist beheren",
   'oauth.scope.packing:read.label': 'Paklijsten bekijken',
-  'oauth.scope.packing:read.description': 'Pakartikelen, tassen en categorietoewijzingen lezen',
+  'oauth.scope.packing:read.description':
+    'Pakartikelen, tassen, categorietoewijzingen en items op de boodschappenlijst lezen',
   'oauth.scope.packing:write.label': 'Paklijsten beheren',
   'oauth.scope.packing:write.description':
-    'Pakartikelen en tassen toevoegen, bijwerken, verwijderen, omschakelen en herordenen',
+    'Pakartikelen, tassen en items op de boodschappenlijst toevoegen, bijwerken, verwijderen, omschakelen en herordenen',
   'oauth.scope.todos:read.label': 'Takenlijsten bekijken',
   'oauth.scope.todos:read.description': 'Reistaakitems en categorietoewijzingen lezen',
   'oauth.scope.todos:write.label': 'Takenlijsten beheren',
@@ -99,17 +100,22 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Bestanden',
   'oauth.scope.group.settings': 'Instellingen',
   'oauth.scope.files:read.label': 'Reisbestanden bekijken',
-  'oauth.scope.files:read.description': 'De documenten van een reis tonen: namen, groottes, wie ze heeft geüpload en waaraan ze gekoppeld zijn',
+  'oauth.scope.files:read.description':
+    'De documenten van een reis tonen: namen, groottes, wie ze heeft geüpload en waaraan ze gekoppeld zijn',
   'oauth.scope.files:write.label': 'Reisbestanden beheren',
-  'oauth.scope.files:write.description': 'Bestanden hernoemen en beschrijven, koppelen aan boekingen en plaatsen, markeren en naar de prullenbak verplaatsen',
+  'oauth.scope.files:write.description':
+    'Bestanden hernoemen en beschrijven, koppelen aan boekingen en plaatsen, markeren en naar de prullenbak verplaatsen',
   'oauth.scope.files:content.label': 'Bestandsinhoud lezen',
-  'oauth.scope.files:content.description': 'De inhoud van een geüpload document lezen, zoals een boekings-PDF of een ticket',
+  'oauth.scope.files:content.description':
+    'De inhoud van een geüpload document lezen, zoals een boekings-PDF of een ticket',
   'oauth.scope.settings:read.label': 'Je voorkeuren bekijken',
   'oauth.scope.settings:read.description': 'Eenheden, tijdnotatie, taal, standaardvaluta en startpagina lezen',
   'oauth.scope.settings:write.label': 'Je voorkeuren wijzigen',
-  'oauth.scope.settings:write.description': 'Eenheden, tijdnotatie, taal, standaardvaluta en startpagina wijzigen. Nooit opgeslagen API-sleutels',
+  'oauth.scope.settings:write.description':
+    'Eenheden, tijdnotatie, taal, standaardvaluta en startpagina wijzigen. Nooit opgeslagen API-sleutels',
   'oauth.scope.group.plugins': 'Plug-ins',
   'oauth.scope.plugins:use.label': 'Plug-intools uitvoeren',
-  'oauth.scope.plugins:use.description': 'Laat deze client tools aanroepen die worden aangeboden door de plug-ins die een beheerder heeft geïnstalleerd en goedgekeurd. Elke plug-in handelt met de rechten die deze al had, niet met de scopes van dit token',
+  'oauth.scope.plugins:use.description':
+    'Laat deze client tools aanroepen die worden aangeboden door de plug-ins die een beheerder heeft geïnstalleerd en goedgekeurd. Elke plug-in handelt met de rechten die deze al had, niet met de scopes van dit token',
 };
 export default oauth;

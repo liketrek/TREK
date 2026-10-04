@@ -58,7 +58,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Doplněk Dawarich je v této instanci vypnutý.',
   'dawarich.error.offline': 'To vyžaduje připojení — TREK je právě offline.',
   'dawarich.error.invalid_url': 'TREK tuto adresu použít nemůže.',
-  'dawarich.warning.private_ip': 'Tato adresa míří na privátní IP ({ip}). Ověřte, že to tak má být — server k ní možná potřebuje ALLOW_INTERNAL_NETWORK=true.',
+  'dawarich.warning.private_ip':
+    'Tato adresa míří na privátní IP ({ip}). Ověřte, že to tak má být — server k ní možná potřebuje ALLOW_INTERNAL_NETWORK=true.',
   'dawarich.error.unknown': 'Při komunikaci s Dawarichem se něco pokazilo.',
 
   // ── The recorded route on the map ──────────────────────────────────────────

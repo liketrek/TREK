@@ -156,7 +156,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'Thêm vào một danh sách',
   'collections.file.targetExistingHint': 'Vào danh sách bạn đã có',
   'collections.file.searchLists': 'Tìm danh sách',
-  'collections.file.intoHint': 'Những địa điểm danh sách đã có vẫn giữ nguyên, tên và màu cũng vậy. Nhãn từ tệp sẽ được thêm vào.',
+  'collections.file.intoHint':
+    'Những địa điểm danh sách đã có vẫn giữ nguyên, tên và màu cũng vậy. Nhãn từ tệp sẽ được thêm vào.',
   'collections.file.confirmInto': 'Thêm vào danh sách',
   'collections.file.doneInto': 'Đã thêm {count} địa điểm vào {name}',
   'collections.file.doneIntoDuplicates': 'Đã thêm {count} vào {name}, {duplicates} đã có sẵn',

@@ -8,9 +8,11 @@ const dawarich: TranslationStrings = {
   'dawarich.url': 'Adres instancji',
   'dawarich.apiKey': 'Klucz API',
   'dawarich.apiKeyPlaceholder': 'Wklej swój klucz API Dawarich',
-  'dawarich.apiKeyHint': 'Znajdziesz go w Dawarich w Account → API key. Przechowywany w postaci zaszyfrowanej i nigdy więcej niepokazywany.',
+  'dawarich.apiKeyHint':
+    'Znajdziesz go w Dawarich w Account → API key. Przechowywany w postaci zaszyfrowanej i nigdy więcej niepokazywany.',
   'dawarich.allowInsecureTls': 'Zezwalaj na certyfikat z własnym podpisem',
-  'dawarich.allowInsecureTlsHint': 'Potrzebne tylko wtedy, gdy Twoja instancja używa certyfikatu, któremu Twój serwer nie ufa.',
+  'dawarich.allowInsecureTlsHint':
+    'Potrzebne tylko wtedy, gdy Twoja instancja używa certyfikatu, któremu Twój serwer nie ufa.',
   'dawarich.syncEnabled': 'Sprawdzaj nowe pobyty automatycznie',
   'dawarich.syncEnabledHint': 'Gdy wyłączone, TREK odczytuje Dawarich tylko na Twoje polecenie.',
   'dawarich.test.button': 'Testuj połączenie',
@@ -57,7 +59,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Dodatek Dawarich jest wyłączony w tej instancji.',
   'dawarich.error.offline': 'To wymaga połączenia — TREK jest teraz offline.',
   'dawarich.error.invalid_url': 'TREK nie może użyć tego adresu.',
-  'dawarich.warning.private_ip': 'Ten adres wskazuje na prywatny IP ({ip}). Sprawdź, czy o to chodziło — serwer może potrzebować ALLOW_INTERNAL_NETWORK=true, aby go osiągnąć.',
+  'dawarich.warning.private_ip':
+    'Ten adres wskazuje na prywatny IP ({ip}). Sprawdź, czy o to chodziło — serwer może potrzebować ALLOW_INTERNAL_NETWORK=true, aby go osiągnąć.',
   'dawarich.error.unknown': 'Coś poszło nie tak w komunikacji z Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────

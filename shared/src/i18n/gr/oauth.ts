@@ -39,10 +39,11 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': 'Διαχείριση Atlas',
   'oauth.scope.atlas:write.description': 'Σήμανση χωρών και περιοχών ως επισκεφθεισών, διαχείριση λίστας επιθυμιών',
   'oauth.scope.packing:read.label': 'Προβολή λιστών αποσκευών',
-  'oauth.scope.packing:read.description': 'Ανάγνωση αντικειμένων αποσκευών, τσαντών και αναθέσεων κατηγοριών',
+  'oauth.scope.packing:read.description':
+    'Ανάγνωση αντικειμένων αποσκευών, τσαντών, αναθέσεων κατηγοριών και ειδών της λίστας αγορών',
   'oauth.scope.packing:write.label': 'Διαχείριση λιστών αποσκευών',
   'oauth.scope.packing:write.description':
-    'Προσθήκη, ενημέρωση, διαγραφή, εναλλαγή και αναδιάταξη αντικειμένων και τσαντών',
+    'Προσθήκη, ενημέρωση, διαγραφή, εναλλαγή και αναδιάταξη αντικειμένων, τσαντών και ειδών της λίστας αγορών',
   'oauth.scope.todos:read.label': 'Προβολή λιστών εργασιών',
   'oauth.scope.todos:read.description': 'Ανάγνωση εργασιών ταξιδιού και αναθέσεων κατηγοριών',
   'oauth.scope.todos:write.label': 'Διαχείριση λιστών εργασιών',
@@ -102,17 +103,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Αρχεία',
   'oauth.scope.group.settings': 'Ρυθμίσεις',
   'oauth.scope.files:read.label': 'Προβολή αρχείων ταξιδιού',
-  'oauth.scope.files:read.description': 'Λίστα των εγγράφων ενός ταξιδιού: ονόματα, μεγέθη, ποιος τα ανέβασε και με τι συνδέονται',
+  'oauth.scope.files:read.description':
+    'Λίστα των εγγράφων ενός ταξιδιού: ονόματα, μεγέθη, ποιος τα ανέβασε και με τι συνδέονται',
   'oauth.scope.files:write.label': 'Διαχείριση αρχείων ταξιδιού',
-  'oauth.scope.files:write.description': 'Μετονομασία και περιγραφή αρχείων, σύνδεσή τους με κρατήσεις και τοποθεσίες, επισήμανση και διαγραφή',
+  'oauth.scope.files:write.description':
+    'Μετονομασία και περιγραφή αρχείων, σύνδεσή τους με κρατήσεις και τοποθεσίες, επισήμανση και διαγραφή',
   'oauth.scope.files:content.label': 'Ανάγνωση περιεχομένου αρχείων',
-  'oauth.scope.files:content.description': 'Ανάγνωση του περιεχομένου ενός ανεβασμένου εγγράφου, όπως ένα PDF κράτησης ή ένα εισιτήριο',
+  'oauth.scope.files:content.description':
+    'Ανάγνωση του περιεχομένου ενός ανεβασμένου εγγράφου, όπως ένα PDF κράτησης ή ένα εισιτήριο',
   'oauth.scope.settings:read.label': 'Προβολή προτιμήσεων',
-  'oauth.scope.settings:read.description': 'Ανάγνωση μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας',
+  'oauth.scope.settings:read.description':
+    'Ανάγνωση μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας',
   'oauth.scope.settings:write.label': 'Αλλαγή προτιμήσεων',
-  'oauth.scope.settings:write.description': 'Αλλαγή μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας. Ποτέ αποθηκευμένων κλειδιών API',
+  'oauth.scope.settings:write.description':
+    'Αλλαγή μονάδων, μορφής ώρας, γλώσσας, προεπιλεγμένου νομίσματος και αρχικής σελίδας. Ποτέ αποθηκευμένων κλειδιών API',
   'oauth.scope.group.plugins': 'Πρόσθετα',
   'oauth.scope.plugins:use.label': 'Εκτέλεση εργαλείων προσθέτων',
-  'oauth.scope.plugins:use.description': 'Επιτρέπει σε αυτήν την εφαρμογή να καλεί εργαλεία που δημοσιεύουν τα πρόσθετα που εγκατέστησε και ενέκρινε ένας διαχειριστής. Κάθε πρόσθετο ενεργεί με τα δικαιώματα που του έχουν ήδη δοθεί, όχι με τα εύρη αυτού του διακριτικού',
+  'oauth.scope.plugins:use.description':
+    'Επιτρέπει σε αυτήν την εφαρμογή να καλεί εργαλεία που δημοσιεύουν τα πρόσθετα που εγκατέστησε και ενέκρινε ένας διαχειριστής. Κάθε πρόσθετο ενεργεί με τα δικαιώματα που του έχουν ήδη δοθεί, όχι με τα εύρη αυτού του διακριτικού',
 };
 export default oauth;

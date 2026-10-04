@@ -36,9 +36,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': '管理足迹',
   'oauth.scope.atlas:write.description': '标记已访问国家和地区，管理心愿清单',
   'oauth.scope.packing:read.label': '查看行李清单',
-  'oauth.scope.packing:read.description': '读取行李物品、包袋和分类负责人',
+  'oauth.scope.packing:read.description': '读取行李物品、包袋、分类负责人和购物清单条目',
   'oauth.scope.packing:write.label': '管理行李清单',
-  'oauth.scope.packing:write.description': '添加、更新、删除、勾选和重新排列行李物品和包袋',
+  'oauth.scope.packing:write.description': '添加、更新、删除、勾选和重新排列行李物品、包袋和购物清单条目',
   'oauth.scope.todos:read.label': '查看待办清单',
   'oauth.scope.todos:read.description': '读取行程待办事项和分类负责人',
   'oauth.scope.todos:write.label': '管理待办清单',
@@ -106,6 +106,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:write.description': '更改单位、时间格式、语言、默认货币和起始页。绝不涉及已保存的 API 密钥',
   'oauth.scope.group.plugins': '插件',
   'oauth.scope.plugins:use.label': '运行插件工具',
-  'oauth.scope.plugins:use.description': '允许此客户端调用由管理员安装并批准的插件所发布的工具。每个插件都以其已获授予的权限运行，而不是以此令牌的权限范围运行',
+  'oauth.scope.plugins:use.description':
+    '允许此客户端调用由管理员安装并批准的插件所发布的工具。每个插件都以其已获授予的权限运行，而不是以此令牌的权限范围运行',
 };
 export default oauth;

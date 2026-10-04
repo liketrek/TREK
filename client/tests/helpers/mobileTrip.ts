@@ -16,9 +16,9 @@ import { buildTrip } from './factories';
 export function buildTripActions(): Record<string, ReturnType<typeof vi.fn>> {
   const names = [
     'addCategory', 'addDayNote', 'addFile', 'addPackingContributor', 'addPackingItem',
-    'addPlace', 'addReservation', 'addTodoItem', 'appendDatedDay', 'assignPlaceToDay', 'clonePackingItem',
+    'addPlace', 'addReservation', 'addShoppingItem', 'addTodoItem', 'appendDatedDay', 'assignPlaceToDay', 'clonePackingItem',
     'deleteBudgetItem', 'deleteDayNote', 'deleteFile', 'deletePackingItem', 'deletePlace',
-    'deleteDay', 'deletePlacesMany', 'deleteReservation', 'deleteTodoItem', 'insertDay', 'loadBudgetItems',
+    'deleteDay', 'deletePlacesMany', 'deleteReservation', 'deleteShoppingItem', 'deleteTodoItem', 'insertDay', 'loadBudgetItems',
     'loadFiles', 'loadReservations', 'loadTrip', 'moveAssignment', 'moveDayNote', 'ratePlace',
     'refreshDays', 'removeAssignment', 'removePackingContributor', 'reorderAssignments',
     'reorderDays', 'setAssignments', 'setPackedCount', 'setPackingItemSharing', 'setSelectedDay',
@@ -62,6 +62,7 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     // opened on up here, so every sheet test that edits a place needs the shape.
     storedAssignments: {},
     packingItems: [],
+    shoppingItems: [],
     todoItems: [],
     categories: [],
     reservations: [],

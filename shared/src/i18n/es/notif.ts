@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} ya está disponible',
   'notif.replica_failure.title': 'Fallo de réplica de almacenamiento',
   'notif.replica_failure.text': "Error al escribir en la réplica '{backend}': {op} de {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Error al escribir en la réplica '{backend}': {op} de {key} — {error}. Se suprimieron {suppressed} errores más desde la última notificación.",
+  'notif.replica_failure.textSuppressed':
+    "Error al escribir en la réplica '{backend}': {op} de {key} — {error}. Se suprimieron {suppressed} errores más desde la última notificación.",
   'notif.action.view_trip': 'Ver viaje',
   'notif.action.view_collab': 'Ver mensajes',
   'notif.action.view_packing': 'Ver equipaje',

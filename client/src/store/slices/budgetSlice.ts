@@ -7,6 +7,8 @@ import type { BudgetCreateItemRequest, BudgetFallbackFx, BudgetFreezeRatesRespon
 import { getApiErrorMessage } from '../../types'
 import { withFallbackFx } from '../../hooks/useExchangeRates'
 import { notify } from '../notify'
+import { unlinkShoppingFromBudget } from './shoppingSlice'
+import { unlinkCachedShoppingFromBudget } from '../../db/offlineDb'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -75,11 +77,16 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
 
   deleteBudgetItem: async (tripId, id) => {
     const prev = get().budgetItems
-    set(state => ({ budgetItems: state.budgetItems.filter(item => item.id !== id) }))
+    const prevShopping = get().shoppingItems
+    set(state => ({
+      budgetItems: state.budgetItems.filter(item => item.id !== id),
+      shoppingItems: unlinkShoppingFromBudget(state.shoppingItems, id),
+    }))
     try {
       await budgetApi.delete(tripId, id)
+      void unlinkCachedShoppingFromBudget(id).catch(() => {})
     } catch (err: unknown) {
-      set({ budgetItems: prev })
+      set({ budgetItems: prev, shoppingItems: prevShopping })
       throw new Error(getApiErrorMessage(err, 'Error deleting budget item'))
     }
   },

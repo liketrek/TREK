@@ -8,10 +8,8 @@ const planner: TranslationStrings = {
   'planner.dayPlan': 'Günlük plan',
   'planner.reservations': 'Rezervasiyalar',
 
-  'planner.minTwoPlaces':
-    'Koordinatları olan ən azı 2 məkan tələb olunur',
-  'planner.noGeoPlaces':
-    'Koordinatları olan heç bir məkan mövcud deyil',
+  'planner.minTwoPlaces': 'Koordinatları olan ən azı 2 məkan tələb olunur',
+  'planner.noGeoPlaces': 'Koordinatları olan heç bir məkan mövcud deyil',
   'planner.routeCalculated': 'Marşrut hesablandı',
   'planner.routeCalcFailed': 'Marşrutu hesablamaq mümkün olmadı',
   'planner.routeError': 'Marşrut hesablanarkən xəta baş verdi',
@@ -41,8 +39,7 @@ const planner: TranslationStrings = {
 
   'planner.notePlaceholder': 'Qeyd…',
   'planner.noteTimePlaceholder': 'Vaxt (istəyə bağlı)',
-  'planner.noteExamplePlaceholder':
-    'məs. saat 14:30-da mərkəzi stansiyadan S3, 7-ci körpüdən bərə, nahar fasiləsi…',
+  'planner.noteExamplePlaceholder': 'məs. saat 14:30-da mərkəzi stansiyadan S3, 7-ci körpüdən bərə, nahar fasiləsi…',
 
   'planner.totalCost': 'Ümumi xərc',
   'planner.searchPlaces': 'Məkanları axtarın…',
@@ -61,8 +58,7 @@ const planner: TranslationStrings = {
   'planner.openGoogleMaps': 'Google Maps-də aç',
   'planner.openCoMaps': 'CoMaps-də aç',
 
-  'planner.selectDayHint':
-    'Günlük planı görmək üçün soldakı siyahıdan bir gün seçin',
+  'planner.selectDayHint': 'Günlük planı görmək üçün soldakı siyahıdan bir gün seçin',
   'planner.noPlacesForDay': 'Bu gün üçün hələ heç bir məkan yoxdur',
   'planner.addPlacesLink': 'Məkanlar əlavə et →',
 
@@ -73,13 +69,11 @@ const planner: TranslationStrings = {
 
   'planner.overview': 'İcmal',
   'planner.noDays': 'Hələ heç bir gün yoxdur',
-  'planner.editTripToAddDays':
-    'Günlər əlavə etmək üçün səyahəti redaktə edin',
+  'planner.editTripToAddDays': 'Günlər əlavə etmək üçün səyahəti redaktə edin',
   'planner.dayCount': '{n} gün',
 
   'planner.clickToUnlock': 'Kilidi açmaq üçün klikləyin',
-  'planner.keepPosition':
-    'Marşrut optimallaşdırılarkən mövqeyi dəyişməz saxla',
+  'planner.keepPosition': 'Marşrut optimallaşdırılarkən mövqeyi dəyişməz saxla',
   'planner.dayDetails': 'Günün təfərrüatları',
   'planner.dayN': '{n}-ci gün',
 };

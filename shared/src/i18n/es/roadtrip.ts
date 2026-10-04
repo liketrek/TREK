@@ -283,7 +283,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.summary.partial': 'Aún se está calculando el resto del trayecto',
   'roadtrip.stay.releaseTitle': '¿Quitar la pernoctación?',
   'roadtrip.stay.releaseBody': 'Se quitará la noche en «{name}». La parada se mantiene en la ruta como pausa.',
-  'roadtrip.stay.releaseBookedBody': 'Se quitará la noche en «{name}» junto con la reserva «{booking}» y cualquier gasto vinculado. La parada se mantiene en la ruta como pausa.',
+  'roadtrip.stay.releaseBookedBody':
+    'Se quitará la noche en «{name}» junto con la reserva «{booking}» y cualquier gasto vinculado. La parada se mantiene en la ruta como pausa.',
   'roadtrip.stay.releaseAction': 'Convertir en pausa',
   'roadtrip.ride.departure': 'Salida {time}',
   'roadtrip.ride.arrival': 'Llegada {time}',

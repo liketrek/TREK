@@ -38,9 +38,10 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': 'Zarządzaj Atlasem',
   'oauth.scope.atlas:write.description': 'Oznaczaj kraje i regiony jako odwiedzone, zarządzaj listą marzeń',
   'oauth.scope.packing:read.label': 'Przeglądaj listy pakowania',
-  'oauth.scope.packing:read.description': 'Odczytuj przedmioty, torby i przypisania kategorii',
+  'oauth.scope.packing:read.description': 'Odczytuj przedmioty, torby, przypisania kategorii i pozycje listy zakupów',
   'oauth.scope.packing:write.label': 'Zarządzaj listami pakowania',
-  'oauth.scope.packing:write.description': 'Dodawaj, aktualizuj, usuwaj, zaznaczaj i porządkuj przedmioty i torby',
+  'oauth.scope.packing:write.description':
+    'Dodawaj, aktualizuj, usuwaj, zaznaczaj i porządkuj przedmioty, torby i pozycje listy zakupów',
   'oauth.scope.todos:read.label': 'Przeglądaj listy zadań',
   'oauth.scope.todos:read.description': 'Odczytuj zadania podróży i przypisania kategorii',
   'oauth.scope.todos:write.label': 'Zarządzaj listami zadań',
@@ -98,17 +99,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Pliki',
   'oauth.scope.group.settings': 'Ustawienia',
   'oauth.scope.files:read.label': 'Przeglądanie plików podróży',
-  'oauth.scope.files:read.description': 'Wyświetlanie dokumentów podróży: nazw, rozmiarów, kto je przesłał i z czym są powiązane',
+  'oauth.scope.files:read.description':
+    'Wyświetlanie dokumentów podróży: nazw, rozmiarów, kto je przesłał i z czym są powiązane',
   'oauth.scope.files:write.label': 'Zarządzanie plikami podróży',
-  'oauth.scope.files:write.description': 'Zmiana nazw i opisów plików, wiązanie ich z rezerwacjami i miejscami, oznaczanie i przenoszenie do kosza',
+  'oauth.scope.files:write.description':
+    'Zmiana nazw i opisów plików, wiązanie ich z rezerwacjami i miejscami, oznaczanie i przenoszenie do kosza',
   'oauth.scope.files:content.label': 'Odczyt zawartości plików',
-  'oauth.scope.files:content.description': 'Odczyt zawartości przesłanego dokumentu, na przykład PDF-u rezerwacji lub biletu',
+  'oauth.scope.files:content.description':
+    'Odczyt zawartości przesłanego dokumentu, na przykład PDF-u rezerwacji lub biletu',
   'oauth.scope.settings:read.label': 'Przeglądanie preferencji',
-  'oauth.scope.settings:read.description': 'Odczyt jednostek, formatu czasu, języka, waluty domyślnej i strony startowej',
+  'oauth.scope.settings:read.description':
+    'Odczyt jednostek, formatu czasu, języka, waluty domyślnej i strony startowej',
   'oauth.scope.settings:write.label': 'Zmiana preferencji',
-  'oauth.scope.settings:write.description': 'Zmiana jednostek, formatu czasu, języka, waluty domyślnej i strony startowej. Nigdy zapisanych kluczy API',
+  'oauth.scope.settings:write.description':
+    'Zmiana jednostek, formatu czasu, języka, waluty domyślnej i strony startowej. Nigdy zapisanych kluczy API',
   'oauth.scope.group.plugins': 'Wtyczki',
   'oauth.scope.plugins:use.label': 'Uruchamianie narzędzi wtyczek',
-  'oauth.scope.plugins:use.description': 'Pozwala temu klientowi wywoływać narzędzia udostępniane przez wtyczki zainstalowane i zatwierdzone przez administratora. Każda wtyczka działa z uprawnieniami, które już otrzymała, a nie z zakresami tego tokenu',
+  'oauth.scope.plugins:use.description':
+    'Pozwala temu klientowi wywoływać narzędzia udostępniane przez wtyczki zainstalowane i zatwierdzone przez administratora. Każda wtyczka działa z uprawnieniami, które już otrzymała, a nie z zakresami tego tokenu',
 };
 export default oauth;

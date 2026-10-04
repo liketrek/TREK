@@ -8,6 +8,7 @@ import { ReservationsService } from '../reservations/reservations.service';
 import { CollabService } from '../collab/collab.service';
 import { PlacesService } from '../places/places.service';
 import { TodoService } from '../todo/todo.service';
+import { ShoppingService } from '../shopping/shopping.service';
 import { FilesService } from '../files/files.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { withoutFeedToken } from '../trips/trips.service';
@@ -34,6 +35,7 @@ export class TripReadModelService {
     private readonly collab: CollabService,
     private readonly places: PlacesService,
     private readonly todo: TodoService,
+    private readonly shopping: ShoppingService,
     private readonly files: FilesService,
   ) {}
 
@@ -115,6 +117,7 @@ export class TripReadModelService {
       // (#858) never land in this viewer's offline cache.
       packingItems: this.packing.listItems(tripId, viewerId),
       todoItems: this.todo.listItems(tripId),
+      shoppingItems: this.shopping.listItems(tripId),
       budgetItems: this.budget.listBudgetItems(tripId),
       reservations: this.reservations.list(tripId),
       files: this.files.listFiles(tripId, false),

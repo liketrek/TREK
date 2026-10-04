@@ -34,6 +34,7 @@ import {
   type BudgetCreateItemRequest, type BudgetUpdateItemRequest,
   type PackingCreateItemRequest, type PackingUpdateItemRequest, type PackingSetSharingRequest,
   type TodoCreateItemRequest, type TodoUpdateItemRequest,
+  type ShoppingCreateItemRequest, type ShoppingUpdateItemRequest, type ShoppingReorderRequest,
   type AssignmentCreateRequest, type AssignmentNotesRequest, type AssignmentParticipantsRequest, type AssignmentRouteRequest, type AssignmentTimeRequest, type AssignmentTransportRequest,
   type PlaceBulkDeleteRequest,
   type PlaceBulkUpdateRequest,
@@ -566,6 +567,15 @@ export const todoApi = {
   reorder: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/todo/reorder`, { orderedIds } satisfies TodoReorderRequest).then(r => r.data),
   getCategoryAssignees: (tripId: number | string) => apiClient.get(`/trips/${tripId}/todo/category-assignees`).then(r => r.data),
   setCategoryAssignees: (tripId: number | string, categoryName: string, userIds: number[]) => apiClient.put(`/trips/${tripId}/todo/category-assignees/${encodeURIComponent(categoryName)}`, { user_ids: userIds } satisfies TodoCategoryAssigneesRequest).then(r => r.data),
+}
+
+export const shoppingApi = {
+  list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/shopping`).then(r => r.data),
+  create: (tripId: number | string, data: ShoppingCreateItemRequest) => apiClient.post(`/trips/${tripId}/shopping`, data).then(r => r.data),
+  update: (tripId: number | string, id: number, data: ShoppingUpdateItemRequest) => apiClient.put(`/trips/${tripId}/shopping/${id}`, data).then(r => r.data),
+  delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/shopping/${id}`).then(r => r.data),
+  reorder: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/shopping/reorder`, { orderedIds } satisfies ShoppingReorderRequest).then(r => r.data),
+  clearChecked: (tripId: number | string) => apiClient.post(`/trips/${tripId}/shopping/clear-checked`).then(r => r.data),
 }
 
 export const tagsApi = {

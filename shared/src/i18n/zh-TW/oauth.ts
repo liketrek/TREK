@@ -36,9 +36,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': '管理 Atlas',
   'oauth.scope.atlas:write.description': '標記已造訪的國家及地區，管理願望清單',
   'oauth.scope.packing:read.label': '檢視行李清單',
-  'oauth.scope.packing:read.description': '讀取行李物品、行李袋及類別負責人',
+  'oauth.scope.packing:read.description': '讀取行李物品、行李袋、類別負責人及購物清單項目',
   'oauth.scope.packing:write.label': '管理行李清單',
-  'oauth.scope.packing:write.description': '新增、更新、刪除、勾選及重新排序行李物品和行李袋',
+  'oauth.scope.packing:write.description': '新增、更新、刪除、勾選及重新排序行李物品、行李袋和購物清單項目',
   'oauth.scope.todos:read.label': '檢視待辦清單',
   'oauth.scope.todos:read.description': '讀取行程待辦事項及類別負責人',
   'oauth.scope.todos:write.label': '管理待辦清單',
@@ -106,6 +106,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:write.description': '更改單位、時間格式、語言、預設貨幣和起始頁。絕不涉及已儲存的 API 金鑰',
   'oauth.scope.group.plugins': '外掛',
   'oauth.scope.plugins:use.label': '執行外掛工具',
-  'oauth.scope.plugins:use.description': '允許此用戶端呼叫由管理員安裝並核准的外掛所發布的工具。每個外掛都以其已獲授予的權限運作，而非以此權杖的權限範圍運作',
+  'oauth.scope.plugins:use.description':
+    '允許此用戶端呼叫由管理員安裝並核准的外掛所發布的工具。每個外掛都以其已獲授予的權限運作，而非以此權杖的權限範圍運作',
 };
 export default oauth;

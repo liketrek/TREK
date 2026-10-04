@@ -57,7 +57,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Dawarich-tillägget är avstängt för den här instansen.',
   'dawarich.error.offline': 'Det här kräver en anslutning — TREK är offline just nu.',
   'dawarich.error.invalid_url': 'TREK kan inte använda den adressen.',
-  'dawarich.warning.private_ip': 'Adressen pekar på en privat IP ({ip}). Kontrollera att det är meningen — servern kan behöva ALLOW_INTERNAL_NETWORK=true för att nå den.',
+  'dawarich.warning.private_ip':
+    'Adressen pekar på en privat IP ({ip}). Kontrollera att det är meningen — servern kan behöva ALLOW_INTERNAL_NETWORK=true för att nå den.',
   'dawarich.error.unknown': 'Något gick fel i kommunikationen med Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -97,8 +98,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.bucket_list': 'Önskningen avbockad',
   'dawarich.suggestions.sourceChanged':
     'Den här vistelsen har ändrats i Dawarich sedan du använde den. Det du skrev i TREK är orört.',
-  'dawarich.suggestions.sourceMissing':
-    'Den här vistelsen finns inte längre i Dawarich. Det du skrev i TREK är orört.',
+  'dawarich.suggestions.sourceMissing': 'Den här vistelsen finns inte längre i Dawarich. Det du skrev i TREK är orört.',
   'dawarich.sourceStatus.suggested': 'Upptäckt, obekräftad',
   'dawarich.confidence.high': 'Säker upptäckt',
   'dawarich.confidence.medium': 'Ganska säker upptäckt',

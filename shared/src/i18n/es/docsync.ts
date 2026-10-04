@@ -70,7 +70,7 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': 'Eliminado en TREK',
   'docsync.state.scope_drift': 'Fuera de la carpeta',
 
-  'docsync.conflict.resolve': "Resolver {count}",
+  'docsync.conflict.resolve': 'Resolver {count}',
 
   'docsync.conflict.title': 'Las dos copias han cambiado',
   'docsync.conflict.keepTrek': 'Conservar la versión de TREK',
@@ -178,7 +178,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'La transferencia no se completó.',
 
   'docsync.error.unknown_provider': 'Este proveedor no está disponible en esta instancia.',
-  'docsync.error.provider_disabled': 'En pausa: un administrador ha desactivado este proveedor. La sincronización se reanuda en cuanto vuelva a activarse.',
+  'docsync.error.provider_disabled':
+    'En pausa: un administrador ha desactivado este proveedor. La sincronización se reanuda en cuanto vuelva a activarse.',
   'docsync.binding.reconnect': 'Volver a conectar',
 };
 

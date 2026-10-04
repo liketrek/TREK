@@ -38,9 +38,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': '地図を管理',
   'oauth.scope.atlas:write.description': '訪問済みの国・地域を管理、バケットリスト編集',
   'oauth.scope.packing:read.label': '持ち物リストを表示',
-  'oauth.scope.packing:read.description': '持ち物、バッグ、担当者を閲覧',
+  'oauth.scope.packing:read.description': '持ち物、バッグ、担当者、買い物リストの項目を閲覧',
   'oauth.scope.packing:write.label': '持ち物リストを管理',
-  'oauth.scope.packing:write.description': '持ち物やバッグの追加・編集・削除・並び替え',
+  'oauth.scope.packing:write.description': '持ち物、バッグ、買い物リストの項目の追加・編集・削除・並び替え',
   'oauth.scope.todos:read.label': 'ToDoリストを表示',
   'oauth.scope.todos:read.description': '旅行のToDoと担当者を閲覧',
   'oauth.scope.todos:write.label': 'ToDoリストを管理',
@@ -105,9 +105,11 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:read.label': '環境設定を表示',
   'oauth.scope.settings:read.description': '単位、時刻表示、言語、既定通貨、開始ページの読み取り',
   'oauth.scope.settings:write.label': '環境設定を変更',
-  'oauth.scope.settings:write.description': '単位、時刻表示、言語、既定通貨、開始ページの変更。保存されたAPIキーは対象外',
+  'oauth.scope.settings:write.description':
+    '単位、時刻表示、言語、既定通貨、開始ページの変更。保存されたAPIキーは対象外',
   'oauth.scope.group.plugins': 'プラグイン',
   'oauth.scope.plugins:use.label': 'プラグインのツールを実行',
-  'oauth.scope.plugins:use.description': '管理者がインストールして承認したプラグインが公開するツールを、このクライアントから呼び出せるようにします。各プラグインは、このトークンのスコープではなく、すでに付与されている権限で動作します',
+  'oauth.scope.plugins:use.description':
+    '管理者がインストールして承認したプラグインが公開するツールを、このクライアントから呼び出せるようにします。各プラグインは、このトークンのスコープではなく、すでに付与されている権限で動作します',
 };
 export default oauth;

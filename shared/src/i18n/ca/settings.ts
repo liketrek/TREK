@@ -15,7 +15,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Selecciona una plantilla...',
   'settings.mapDefaultHint': 'Deixa-ho buit per a OpenStreetMap (per defecte)',
   'settings.routingBase': 'Motor de rutes propi',
-  'settings.routingBaseHint': 'Una instància pròpia d’OSRM. Buit fa servir els servidors públics, que permeten aproximadament una petició per segon: prou per a un dia, just per a un viatge llarg. Té efecte després de reiniciar el servidor.',
+  'settings.routingBaseHint':
+    'Una instància pròpia d’OSRM. Buit fa servir els servidors públics, que permeten aproximadament una petició per segon: prou per a un dia, just per a un viatge llarg. Té efecte després de reiniciar el servidor.',
   'settings.valhallaBase': 'Instància Valhalla pròpia',
   'settings.valhallaBaseHint':
     'TREK utilitza per defecte la Valhalla pública de FOSSGIS per evitar peatges, autopistes i ferris. Introdueix aquí l’URL de la teva Valhalla per utilitzar-la en lloc de la pública. Si només hi ha una instància d’encaminament pròpia configurada, no s’utilitza la Valhalla pública. Després d’introduir una URL pròpia, reinicia el servidor i torna a carregar la pàgina.',
@@ -67,7 +68,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Primer dia de la setmana a tots els selectors de data. Vacay té la seva pròpia opció.',
   'settings.preferredNavApp': 'Obre els llocs a',
   'settings.preferredNavAppAsk': 'Pregunta cada vegada',
-  'settings.preferredNavAppHint': "Amb una app triada, el botó de navegació l'obre directament en lloc d'oferir totes les apps de mapes.",
+  'settings.preferredNavAppHint':
+    "Amb una app triada, el botó de navegació l'obre directament en lloc d'oferir totes les apps de mapes.",
   'settings.blurBookingCodes': 'Difumina els codis de reserva',
   'settings.optimizeFromAccommodation': "Optimitza la ruta des de l'allotjament",
   'settings.optimizeFromAccommodationHint':
@@ -523,7 +525,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'Sense connexió. Connecta’t per desar viatges fora de línia.',
   'settings.offline.notice.signedOut': 'La teva sessió ha caducat. Torna a iniciar la sessió per sincronitzar.',
   'settings.offline.notice.failed': 'La descàrrega no s’ha pogut completar. Comprova la connexió i torna-ho a provar.',
-  'settings.offline.notice.loadFailed': 'No s’ha pogut llegir l’emmagatzematge fora de línia d’aquest dispositiu. Normalment es resol buidant la memòria cau.',
+  'settings.offline.notice.loadFailed':
+    'No s’ha pogut llegir l’emmagatzematge fora de línia d’aquest dispositiu. Normalment es resol buidant la memòria cau.',
   'settings.offline.clear': 'Netejar memòria cau',
   'settings.offline.clearConfirm':
     'Vols netejar totes les dades de viatge fora de línia? Pots tornar a sincronitzar en qualsevol moment mentre estiguis connectat.',
@@ -609,28 +612,32 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Llista de desitjos',
   'settings.apiScopes.stats': 'Totals',
   'settings.apiKeys.title': 'Claus API',
-  'settings.apiKeys.description': 'Claus per a l\'API pública, perquè altres programes puguin llegir els teus viatges. Només lectura: una clau no pot canviar ni esborrar res.',
+  'settings.apiKeys.description':
+    "Claus per a l'API pública, perquè altres programes puguin llegir els teus viatges. Només lectura: una clau no pot canviar ni esborrar res.",
   'settings.apiKeys.create': 'Crea una clau',
-  'settings.apiKeys.empty': 'Encara no hi ha claus. Crea\'n una per connectar altres programes.',
+  'settings.apiKeys.empty': "Encara no hi ha claus. Crea'n una per connectar altres programes.",
   'settings.apiKeys.createdAt': 'creada',
   'settings.apiKeys.usedAt': 'últim ús',
   'settings.apiKeys.deleteTitle': 'Elimina la clau',
-  'settings.apiKeys.deleteMessage': 'Tot el que faci servir aquesta clau deixarà de funcionar immediatament. Això no es pot desfer.',
+  'settings.apiKeys.deleteMessage':
+    'Tot el que faci servir aquesta clau deixarà de funcionar immediatament. Això no es pot desfer.',
   'settings.apiKeys.deleted': 'Clau eliminada',
-  'settings.apiKeys.deleteFailed': 'No s\'ha pogut eliminar la clau',
-  'settings.apiKeys.createFailed': 'No s\'ha pogut crear la clau',
+  'settings.apiKeys.deleteFailed': "No s'ha pogut eliminar la clau",
+  'settings.apiKeys.createFailed': "No s'ha pogut crear la clau",
   'settings.apiKeys.copy': 'Copia',
   'settings.apiKeys.docsHint': 'Envia la clau com a "Authorization: Bearer ..." o "X-API-Key: ..." a /api/v1.',
   'settings.apiKeys.endpoint': 'Endpoint',
   'settings.apiKeys.neverUsed': 'mai utilitzada',
-  'settings.apiKeys.loadFailed': 'No s\'han pogut carregar les teves claus. Torna a carregar la pàgina per tornar-ho a provar.',
-  'settings.apiKeys.limitReached': 'Tens {max} claus, el màxim per compte. Esborra\'n una que ja no facis servir per crear-ne una altra.',
-  'settings.apiKeys.copyFailed': 'No s\'ha pogut copiar. Selecciona el text i copia\'l a mà.',
+  'settings.apiKeys.loadFailed':
+    "No s'han pogut carregar les teves claus. Torna a carregar la pàgina per tornar-ho a provar.",
+  'settings.apiKeys.limitReached':
+    "Tens {max} claus, el màxim per compte. Esborra'n una que ja no facis servir per crear-ne una altra.",
+  'settings.apiKeys.copyFailed': "No s'ha pogut copiar. Selecciona el text i copia'l a mà.",
   'settings.apiKeys.modal.createTitle': 'Crea una clau API',
   'settings.apiKeys.modal.name': 'Nom',
   'settings.apiKeys.modal.namePlaceholder': 'p. ex. Dawarich',
   'settings.apiKeys.modal.nameHint': 'Només per a tu, perquè reconeguis la clau més endavant.',
-  'settings.apiKeys.modal.creating': 'S\'està creant...',
+  'settings.apiKeys.modal.creating': "S'està creant...",
   'settings.apiKeys.modal.create': 'Crea',
   'settings.apiKeys.modal.createdTitle': 'Clau API creada',
   'settings.apiKeys.modal.createdWarning': 'Copia la clau ara. Només es mostra un cop i no es pot recuperar després.',

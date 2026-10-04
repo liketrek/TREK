@@ -120,6 +120,10 @@ vi.mock('../components/Packing/PackingListPanel', () => ({
   default: () => React.createElement('div', { 'data-testid': 'packing-list-panel' }),
 }));
 
+vi.mock('../components/Shopping/ShoppingListPanel', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'shopping-list-panel' }),
+}));
+
 vi.mock('../components/Todo/TodoListPanel', () => ({
   default: () => React.createElement('div', { 'data-testid': 'todo-list-panel' }),
 }));
@@ -237,6 +241,7 @@ function seedTripStore(overrides: { id?: number; tripName?: string; withMocks?: 
     places: [],
     assignments: {},
     packingItems: [],
+    shoppingItems: [],
     todoItems: [],
     categories: [],
     reservations: [],

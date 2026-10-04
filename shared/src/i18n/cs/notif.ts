@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} je nyní dostupný',
   'notif.replica_failure.title': 'Selhání repliky úložiště',
   'notif.replica_failure.text': "Zápis do repliky '{backend}' selhal: {op} u {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Zápis do repliky '{backend}' selhal: {op} u {key} — {error}. Od poslední notifikace bylo potlačeno {suppressed} dalších selhání.",
+  'notif.replica_failure.textSuppressed':
+    "Zápis do repliky '{backend}' selhal: {op} u {key} — {error}. Od poslední notifikace bylo potlačeno {suppressed} dalších selhání.",
   'notif.action.view_trip': 'Zobrazit výlet',
   'notif.action.view_collab': 'Zobrazit zprávy',
   'notif.action.view_packing': 'Zobrazit balení',

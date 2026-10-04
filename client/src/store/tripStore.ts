@@ -7,6 +7,7 @@ import { dayRepo } from '../repo/dayRepo'
 import { placeRepo } from '../repo/placeRepo'
 import { packingRepo } from '../repo/packingRepo'
 import { todoRepo } from '../repo/todoRepo'
+import { shoppingRepo } from '../repo/shoppingRepo'
 import { budgetRepo } from '../repo/budgetRepo'
 import { reservationRepo } from '../repo/reservationRepo'
 import { fileRepo } from '../repo/fileRepo'
@@ -17,12 +18,13 @@ import { createDaysSlice } from './slices/daysSlice'
 import { createDayNotesSlice } from './slices/dayNotesSlice'
 import { createPackingSlice } from './slices/packingSlice'
 import { createTodoSlice } from './slices/todoSlice'
+import { createShoppingSlice } from './slices/shoppingSlice'
 import { createBudgetSlice } from './slices/budgetSlice'
 import { createReservationsSlice } from './slices/reservationsSlice'
 import { createFilesSlice } from './slices/filesSlice'
 import { handleRemoteEvent } from './slices/remoteEventHandler'
 import type {
-  Trip, Day, Place, Assignment, DayNote, PackingItem, TodoItem,
+  Trip, Day, Place, Assignment, DayNote, PackingItem, TodoItem, ShoppingItem,
   Tag, Category, BudgetItem, TripFile, Reservation,
   AssignmentsMap, DayNotesMap, WebSocketEvent,
 } from '../types'
@@ -33,6 +35,7 @@ import type { DaysSlice } from './slices/daysSlice'
 import type { DayNotesSlice } from './slices/dayNotesSlice'
 import type { PackingSlice } from './slices/packingSlice'
 import type { TodoSlice } from './slices/todoSlice'
+import type { ShoppingSlice } from './slices/shoppingSlice'
 import type { BudgetSlice } from './slices/budgetSlice'
 import type { ReservationsSlice } from './slices/reservationsSlice'
 import type { FilesSlice } from './slices/filesSlice'
@@ -44,6 +47,7 @@ export interface TripStoreState
     DayNotesSlice,
     PackingSlice,
     TodoSlice,
+    ShoppingSlice,
     BudgetSlice,
     ReservationsSlice,
     FilesSlice {
@@ -54,6 +58,7 @@ export interface TripStoreState
   dayNotes: DayNotesMap
   packingItems: PackingItem[]
   todoItems: TodoItem[]
+  shoppingItems: ShoppingItem[]
   tags: Tag[]
   categories: Category[]
   budgetItems: BudgetItem[]
@@ -89,6 +94,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   dayNotes: {},
   packingItems: [],
   todoItems: [],
+  shoppingItems: [],
   tags: [],
   categories: [],
   budgetItems: [],
@@ -117,6 +123,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     dayNotes: {},
     packingItems: [],
     todoItems: [],
+    shoppingItems: [],
     budgetItems: [],
     files: [],
     reservations: [],
@@ -130,12 +137,13 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     get().resetTrip()
     set({ isLoading: true, error: null })
     try {
-      const [tripData, daysData, placesData, packingData, todoData, budgetData, reservationsData, filesData, tagsData, categoriesData] = await Promise.all([
+      const [tripData, daysData, placesData, packingData, todoData, shoppingData, budgetData, reservationsData, filesData, tagsData, categoriesData] = await Promise.all([
         tripRepo.get(tripId),
         dayRepo.list(tripId),
         placeRepo.list(tripId),
         packingRepo.list(tripId),
         todoRepo.list(tripId),
+        shoppingRepo.list(tripId).catch(() => ({ items: [] as ShoppingItem[] })),
         // Budget / reservations / files are hydrated here too so the offline
         // path is uniform (no separate tab-gated effects). Non-fatal: a failure
         // in any of these must not blank the whole trip.
@@ -165,6 +173,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
         dayNotes: dayNotesMap,
         packingItems: packingData.items,
         todoItems: todoData.items,
+        shoppingItems: shoppingData.items,
         budgetItems: budgetData.items,
         reservations: reservationsData.reservations,
         files: filesData.files,
@@ -189,6 +198,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
       placeRepo.list(tripId).then(d => set({ places: d.places })).catch(() => {}),
       packingRepo.list(tripId).then(d => set({ packingItems: d.items })).catch(() => {}),
       todoRepo.list(tripId).then(d => set({ todoItems: d.items })).catch(() => {}),
+      shoppingRepo.list(tripId).then(d => set({ shoppingItems: d.items })).catch(() => {}),
       get().loadBudgetItems(tripId),
       get().loadReservations(tripId),
       get().loadFiles(tripId),
@@ -269,6 +279,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   ...createDayNotesSlice(set, get),
   ...createPackingSlice(set, get),
   ...createTodoSlice(set, get),
+  ...createShoppingSlice(set, get),
   ...createBudgetSlice(set, get),
   ...createReservationsSlice(set, get),
   ...createFilesSlice(set, get),

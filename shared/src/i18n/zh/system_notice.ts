@@ -55,15 +55,18 @@ const system_notice: TranslationStrings = {
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': '更新已安装',
   'system_notice.release_notes.headline': 'TREK 现在能自己完成的四件事。',
-  'system_notice.release_notes.intro': '自有的地点 API、从头到尾规划的公路旅行、掌握在你手中的位置记录，以及保持同步的文档。',
+  'system_notice.release_notes.intro':
+    '自有的地点 API、从头到尾规划的公路旅行、掌握在你手中的位置记录，以及保持同步的文档。',
   'system_notice.release_notes.features_label': '本次重头戏',
   'system_notice.release_notes.features_aside': '远不止这些',
   'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': '首个拥有自有地点 API 的开源旅行规划器。7360 万个地点，无需密钥，没有配额。',
+  'system_notice.release_notes.feature_places_body':
+    '首个拥有自有地点 API 的开源旅行规划器。7360 万个地点，无需密钥，没有配额。',
   'system_notice.release_notes.feature_roadtrip_title': '公路旅行扩展',
   'system_notice.release_notes.feature_roadtrip_body': '自动规划行车：路线、距离、时长和停靠点。管理员开启前默认关闭。',
   'system_notice.release_notes.feature_dawarich_title': 'Dawarich 集成',
-  'system_notice.release_notes.feature_dawarich_body': 'Google Timeline 的自托管替代方案，现在可以直接在 TREK 里查看。TREK 只读取，仅此而已。',
+  'system_notice.release_notes.feature_dawarich_body':
+    'Google Timeline 的自托管替代方案，现在可以直接在 TREK 里查看。TREK 只读取，仅此而已。',
   'system_notice.release_notes.footnote': '除此之外，TREK 的其他部分还有一长串小改动。',
   'system_notice.release_notes.notes_label': '更新说明',
   'system_notice.release_notes.note_eyebrow': '来自维护者的话',
@@ -82,6 +85,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': '在 Ko-fi 上支持',
   'system_notice.release_notes.feature_docsync_title': '文档同步',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx、Papra、Nextcloud、OpenCloud 和 Synology Drive。行程的文档与你已在运行的存储双向流动。',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx、Papra、Nextcloud、OpenCloud 和 Synology Drive。行程的文档与你已在运行的存储双向流动。',
 };
 export default system_notice;

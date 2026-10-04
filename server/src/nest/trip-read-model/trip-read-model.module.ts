@@ -9,6 +9,7 @@ import { ReservationsModule } from '../reservations/reservations.module';
 import { CollabModule } from '../collab/collab.module';
 import { PlacesModule } from '../places/places.module';
 import { TodoModule } from '../todo/todo.module';
+import { ShoppingModule } from '../shopping/shopping.module';
 import { FilesModule } from '../files/files.module';
 import { TripMembersModule } from '../trip-members/trip-members.module';
 
@@ -17,7 +18,7 @@ import { TripMembersModule } from '../trip-members/trip-members.module';
 @Module({
   imports: [
     DatabaseModule, TripMembersModule, DaysModule, AccommodationsModule, BudgetModule,
-    PackingModule, ReservationsModule, CollabModule, PlacesModule, TodoModule, FilesModule,
+    PackingModule, ReservationsModule, CollabModule, PlacesModule, TodoModule, ShoppingModule, FilesModule,
   ],
   providers: [TripReadModelService],
   exports: [TripReadModelService],

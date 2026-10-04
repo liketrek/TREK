@@ -39,9 +39,11 @@ const oauth: TranslationStrings = {
   'oauth.scope.atlas:write.label': "Gérer l'Atlas",
   'oauth.scope.atlas:write.description': 'Marquer des pays et régions visités, gérer la liste de souhaits',
   'oauth.scope.packing:read.label': 'Voir les listes de bagages',
-  'oauth.scope.packing:read.description': 'Lire les articles, sacs et assignations de catégories',
+  'oauth.scope.packing:read.description':
+    'Lire les articles, sacs, assignations de catégories et articles de la liste de courses',
   'oauth.scope.packing:write.label': 'Gérer les listes de bagages',
-  'oauth.scope.packing:write.description': 'Ajouter, modifier, supprimer, cocher et réordonner les articles et sacs',
+  'oauth.scope.packing:write.description':
+    'Ajouter, modifier, supprimer, cocher et réordonner les articles, sacs et articles de la liste de courses',
   'oauth.scope.todos:read.label': 'Voir les listes de tâches',
   'oauth.scope.todos:read.description': 'Lire les tâches et assignations de catégories',
   'oauth.scope.todos:write.label': 'Gérer les listes de tâches',
@@ -100,17 +102,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Fichiers',
   'oauth.scope.group.settings': 'Paramètres',
   'oauth.scope.files:read.label': 'Voir les fichiers du voyage',
-  'oauth.scope.files:read.description': 'Lister les documents d’un voyage : noms, tailles, qui les a envoyés et ce à quoi ils sont liés',
+  'oauth.scope.files:read.description':
+    'Lister les documents d’un voyage : noms, tailles, qui les a envoyés et ce à quoi ils sont liés',
   'oauth.scope.files:write.label': 'Gérer les fichiers du voyage',
-  'oauth.scope.files:write.description': 'Renommer et décrire les fichiers, les lier aux réservations et aux lieux, les épingler et les mettre à la corbeille',
+  'oauth.scope.files:write.description':
+    'Renommer et décrire les fichiers, les lier aux réservations et aux lieux, les épingler et les mettre à la corbeille',
   'oauth.scope.files:content.label': 'Lire le contenu des fichiers',
-  'oauth.scope.files:content.description': 'Lire le contenu d’un document envoyé, par exemple un PDF de réservation ou un billet',
+  'oauth.scope.files:content.description':
+    'Lire le contenu d’un document envoyé, par exemple un PDF de réservation ou un billet',
   'oauth.scope.settings:read.label': 'Voir vos préférences',
-  'oauth.scope.settings:read.description': 'Lire les unités, le format horaire, la langue, la devise par défaut et la page d’accueil',
+  'oauth.scope.settings:read.description':
+    'Lire les unités, le format horaire, la langue, la devise par défaut et la page d’accueil',
   'oauth.scope.settings:write.label': 'Modifier vos préférences',
-  'oauth.scope.settings:write.description': 'Modifier les unités, le format horaire, la langue, la devise par défaut et la page d’accueil. Jamais les clés API enregistrées',
+  'oauth.scope.settings:write.description':
+    'Modifier les unités, le format horaire, la langue, la devise par défaut et la page d’accueil. Jamais les clés API enregistrées',
   'oauth.scope.group.plugins': 'Extensions',
-  'oauth.scope.plugins:use.label': 'Exécuter les outils d\'extension',
-  'oauth.scope.plugins:use.description': 'Autorise ce client à appeler les outils publiés par les extensions installées et approuvées par un administrateur. Chaque extension agit avec les accès qui lui ont déjà été accordés, et non avec les portées de ce jeton',
+  'oauth.scope.plugins:use.label': "Exécuter les outils d'extension",
+  'oauth.scope.plugins:use.description':
+    'Autorise ce client à appeler les outils publiés par les extensions installées et approuvées par un administrateur. Chaque extension agit avec les accès qui lui ont déjà été accordés, et non avec les portées de ce jeton',
 };
 export default oauth;

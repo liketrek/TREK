@@ -45,7 +45,7 @@ export type MTripView = 'plan' | 'map'
 export type MTripMode = 'go' | 'edit' | 'browse'
 /** The road trip tab's own two halves: the chain, or the same map showing the stage. */
 export type MRtView = 'list' | 'map'
-export type MTripListsTab = 'packing' | 'todo'
+export type MTripListsTab = 'packing' | 'shopping' | 'todo'
 export type MTripCollabTab = 'chat' | 'notes' | 'links' | 'polls'
 
 /**
@@ -204,7 +204,7 @@ export default function MTripShell({
   Sheets = MTripSheets,
 }: MTripShellProps) {
   const planner = useTripPlanner()
-  const { t, language, tripId, days, trip, navigate, packingItems, todoItems, isLoading } = planner
+  const { t, language, tripId, days, trip, navigate, packingItems, todoItems, shoppingItems, isLoading } = planner
 
   // Per-day colours from the dayTintProvider plugin hook — the mobile counterpart
   // of the desktop day-card wash, carried on the day chips. Empty without a plugin.
@@ -222,7 +222,7 @@ export default function MTripShell({
   const [sheet, setSheet] = useState<MTripSheetState | null>(null)
   const [listsTab, setListsTabState] = useState<MTripListsTab>(() => {
     const saved = sessionStorage.getItem(`trip-lists-subtab-${tripId}`)
-    return saved === 'todo' ? 'todo' : 'packing'
+    return saved === 'todo' ? 'todo' : saved === 'shopping' ? 'shopping' : 'packing'
   })
   const [collabTab, setCollabTab] = useState<MTripCollabTab>('chat')
   const [transportsCompact, setTransportsCompact] = useState(false)
@@ -426,6 +426,8 @@ export default function MTripShell({
   }
 
   const packedCount = packingItems.filter(i => i.checked).length
+  const shoppingItemsList = shoppingItems || []
+  const shoppingCheckedCount = shoppingItemsList.filter(i => i.checked).length
   const todoOpenCount = todoItems.filter(i => !i.checked).length
 
   // The stage header: the day on screen and what it costs, or the whole drive while
@@ -645,6 +647,7 @@ export default function MTripShell({
           <GlassSegment>
             {([
               { value: 'packing' as const, label: t('todo.subtab.packing'), count: `${packedCount}/${packingItems.length}` },
+              { value: 'shopping' as const, label: t('todo.subtab.shopping'), count: `${shoppingCheckedCount}/${shoppingItemsList.length}` },
               { value: 'todo' as const, label: t('todo.subtab.todo'), count: t('mobileTrip.todoOpenCount', { count: todoOpenCount }) },
             ]).map(seg => (
               <button

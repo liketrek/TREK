@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Wybierz szablon...',
   'settings.mapDefaultHint': 'Pozostaw puste dla OpenStreetMap (domyślnie)',
   'settings.routingBase': 'Własny silnik tras',
-  'settings.routingBaseHint': 'Własna instancja OSRM. Puste używa serwerów publicznych, które pozwalają na około jedno zapytanie na sekundę — wystarczy na dzień, mało na road trip. Działa po restarcie serwera.',
+  'settings.routingBaseHint':
+    'Własna instancja OSRM. Puste używa serwerów publicznych, które pozwalają na około jedno zapytanie na sekundę — wystarczy na dzień, mało na road trip. Działa po restarcie serwera.',
   'settings.valhallaBase': 'Własna instancja Valhalli',
   'settings.valhallaBaseHint':
     'TREK domyślnie używa publicznej Valhalli FOSSGIS do omijania opłat, autostrad i promów. Wpisz tutaj URL własnej Valhalli, aby używać jej zamiast publicznej. Jeśli skonfigurowano tylko własną instancję wyznaczania tras, publiczna Valhalla nie jest używana. Po wpisaniu własnego adresu URL uruchom ponownie serwer i odśwież stronę.',
@@ -80,7 +81,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Pierwszy dzień tygodnia we wszystkich wyborach daty. Vacay ma własne ustawienie.',
   'settings.preferredNavApp': 'Otwieraj miejsca w',
   'settings.preferredNavAppAsk': 'Pytaj za każdym razem',
-  'settings.preferredNavAppHint': 'Gdy wybrano aplikację, przycisk nawigacji od razu ją otwiera zamiast proponować wszystkie aplikacje map.',
+  'settings.preferredNavAppHint':
+    'Gdy wybrano aplikację, przycisk nawigacji od razu ją otwiera zamiast proponować wszystkie aplikacje map.',
   'settings.blurBookingCodes': 'Rozmyj kody rezerwacji',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -350,7 +352,8 @@ const settings: TranslationStrings = {
   'settings.currencyTrip': 'Waluta wyjazdu',
   'settings.placeLanguage': 'Nazwy miejsc',
   'settings.placeLanguageApp': 'Tak jak aplikacja',
-  'settings.placeLanguageHint': 'Język, w którym odpowiadają wyszukiwanie miejsc, podpowiedzi i adresy. Jeśli miejsce nie ma nazwy w tym języku, wyświetlana jest jego nazwa lokalna.',
+  'settings.placeLanguageHint':
+    'Język, w którym odpowiadają wyszukiwanie miejsc, podpowiedzi i adresy. Jeśli miejsce nie ma nazwy w tym języku, wyświetlana jest jego nazwa lokalna.',
   'settings.passkey.title': 'Klucze dostępu',
   'settings.passkey.description':
     'Loguj się szybciej i z odpornością na phishing za pomocą klucza dostępu — odcisku palca, twarzy, kodu PIN lub klucza sprzętowego. Twoje hasło pozostaje jako zapasowa opcja.',
@@ -500,8 +503,10 @@ const settings: TranslationStrings = {
   'settings.general.startup': 'Uruchamianie',
   'settings.dayDateFirst': 'Data na początku nagłówków dni',
   'settings.compactUnplanned': 'Kompaktowe znaczniki dla niezaplanowanych miejsc',
-  'settings.compactUnplannedHint': 'Miejsca niezaplanowane w żadnym dniu są wyświetlane jako małe znaczniki bez zdjęcia, aby zaplanowane przystanki się wyróżniały.',
-  'settings.dayDateFirstHint': 'Każdy dzień zaczyna się od daty w kalendarzu, a obok widać „Dzień 1” lub własny tytuł dnia.',
+  'settings.compactUnplannedHint':
+    'Miejsca niezaplanowane w żadnym dniu są wyświetlane jako małe znaczniki bez zdjęcia, aby zaplanowane przystanki się wyróżniały.',
+  'settings.dayDateFirstHint':
+    'Każdy dzień zaczyna się od daty w kalendarzu, a obok widać „Dzień 1” lub własny tytuł dnia.',
   'settings.startPage': 'Strona startowa',
   'settings.startPageDashboard': 'Panel',
   'settings.startPageActiveTrip': 'Aktywna podróż',
@@ -544,7 +549,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'Brak połączenia. Połącz się, aby zapisać podróże offline.',
   'settings.offline.notice.signedOut': 'Twoja sesja wygasła. Zaloguj się ponownie, aby zsynchronizować.',
   'settings.offline.notice.failed': 'Nie udało się ukończyć pobierania. Sprawdź połączenie i spróbuj ponownie.',
-  'settings.offline.notice.loadFailed': 'Nie udało się odczytać pamięci offline tego urządzenia. Zwykle pomaga wyczyszczenie pamięci podręcznej.',
+  'settings.offline.notice.loadFailed':
+    'Nie udało się odczytać pamięci offline tego urządzenia. Zwykle pomaga wyczyszczenie pamięci podręcznej.',
   'settings.offline.clear': 'Wyczyść pamięć podręczną',
   'settings.offline.clearConfirm':
     'Wyczyścić wszystkie dane podróży zapisane offline? Możesz je w każdej chwili zsynchronizować ponownie, będąc online.',
@@ -603,13 +609,15 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Lista marzeń',
   'settings.apiScopes.stats': 'Podsumowania',
   'settings.apiKeys.title': 'Klucze API',
-  'settings.apiKeys.description': 'Klucze do publicznego API, aby inne oprogramowanie mogło odczytywać Twoje podróże. Tylko odczyt: klucz niczego nie zmieni ani nie usunie.',
+  'settings.apiKeys.description':
+    'Klucze do publicznego API, aby inne oprogramowanie mogło odczytywać Twoje podróże. Tylko odczyt: klucz niczego nie zmieni ani nie usunie.',
   'settings.apiKeys.create': 'Utwórz klucz',
   'settings.apiKeys.empty': 'Brak kluczy. Utwórz jeden, aby połączyć inne oprogramowanie.',
   'settings.apiKeys.createdAt': 'utworzono',
   'settings.apiKeys.usedAt': 'ostatnio użyty',
   'settings.apiKeys.deleteTitle': 'Usuń klucz',
-  'settings.apiKeys.deleteMessage': 'Wszystko, co korzysta z tego klucza, natychmiast przestanie działać. Tej operacji nie można cofnąć.',
+  'settings.apiKeys.deleteMessage':
+    'Wszystko, co korzysta z tego klucza, natychmiast przestanie działać. Tej operacji nie można cofnąć.',
   'settings.apiKeys.deleted': 'Klucz usunięty',
   'settings.apiKeys.deleteFailed': 'Nie udało się usunąć klucza',
   'settings.apiKeys.createFailed': 'Nie udało się utworzyć klucza',
@@ -618,7 +626,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.endpoint': 'Endpoint',
   'settings.apiKeys.neverUsed': 'nigdy nieużywany',
   'settings.apiKeys.loadFailed': 'Nie udało się wczytać kluczy. Odśwież stronę, aby spróbować ponownie.',
-  'settings.apiKeys.limitReached': 'Masz {max} kluczy, czyli maksimum na konto. Usuń klucz, którego już nie używasz, aby utworzyć nowy.',
+  'settings.apiKeys.limitReached':
+    'Masz {max} kluczy, czyli maksimum na konto. Usuń klucz, którego już nie używasz, aby utworzyć nowy.',
   'settings.apiKeys.copyFailed': 'Nie udało się skopiować. Zaznacz tekst i skopiuj go ręcznie.',
   'settings.apiKeys.modal.createTitle': 'Utwórz klucz API',
   'settings.apiKeys.modal.name': 'Nazwa',
@@ -627,7 +636,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Tworzenie...',
   'settings.apiKeys.modal.create': 'Utwórz',
   'settings.apiKeys.modal.createdTitle': 'Klucz API utworzony',
-  'settings.apiKeys.modal.createdWarning': 'Skopiuj klucz teraz. Jest pokazywany tylko raz i później nie można go odzyskać.',
+  'settings.apiKeys.modal.createdWarning':
+    'Skopiuj klucz teraz. Jest pokazywany tylko raz i później nie można go odzyskać.',
   'settings.apiKeys.modal.done': 'Gotowe',
 };
 

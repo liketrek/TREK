@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import swc from 'unplugin-swc';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   // SWC transform so NestJS decorator metadata is emitted in tests
@@ -174,22 +175,24 @@ export default defineConfig({
       // MCP SDK's exports map uses extension-less wildcard targets that neither
       // Node nor Vite can resolve. Point directly at the CJS dist files.
       // Paths are relative to the monorepo root (packages are hoisted there).
-      '@modelcontextprotocol/sdk/server/mcp': new URL(
+      // fileURLToPath, not .pathname: the latter keeps %20 for a space in the
+      // checkout path and a leading slash before a Windows drive letter.
+      '@modelcontextprotocol/sdk/server/mcp': fileURLToPath(new URL(
           '../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.js',
-          import.meta.url
-      ).pathname,
-      '@modelcontextprotocol/sdk/server/streamableHttp': new URL(
+          import.meta.url,
+      )),
+      '@modelcontextprotocol/sdk/server/streamableHttp': fileURLToPath(new URL(
           '../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js',
-          import.meta.url
-      ).pathname,
-      '@modelcontextprotocol/sdk/inMemory': new URL(
+          import.meta.url,
+      )),
+      '@modelcontextprotocol/sdk/inMemory': fileURLToPath(new URL(
           '../node_modules/@modelcontextprotocol/sdk/dist/cjs/inMemory.js',
-          import.meta.url
-      ).pathname,
-      '@modelcontextprotocol/sdk/client/index': new URL(
+          import.meta.url,
+      )),
+      '@modelcontextprotocol/sdk/client/index': fileURLToPath(new URL(
           '../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/index.js',
-          import.meta.url
-      ).pathname,
+          import.meta.url,
+      )),
     },
   },
 });

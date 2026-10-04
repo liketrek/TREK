@@ -197,7 +197,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.manualOffRoute': '偏離路線 {distance}，請確認它屬於哪一段。',
   'roadtrip.poi.manualAppend': '目前尚無路線，因此會加在第 {number} 天的最後。',
   'roadtrip.poi.manualNoResults': '找不到地點。',
-  'roadtrip.poi.manualNoCoords': '沒有位置時，這個停靠點只會加入本行程的地點，不會排進某天的車程。請從上方的搜尋結果中選一個，或填入座標。',
+  'roadtrip.poi.manualNoCoords':
+    '沒有位置時，這個停靠點只會加入本行程的地點，不會排進某天的車程。請從上方的搜尋結果中選一個，或填入座標。',
   'roadtrip.summary.distance': '距離',
   'roadtrip.summary.driving': '駕駛時間',
   'roadtrip.alt.ask': '其他路線',
@@ -265,7 +266,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.summary.partial': '正在計算剩餘路程',
   'roadtrip.stay.releaseTitle': '取消這次過夜？',
   'roadtrip.stay.releaseBody': '將取消在「{name}」的過夜。該停靠點會作為休息保留在行程中。',
-  'roadtrip.stay.releaseBookedBody': '將取消在「{name}」的過夜，並同時刪除預訂「{booking}」及其關聯的費用。該停靠點會作為休息保留在行程中。',
+  'roadtrip.stay.releaseBookedBody':
+    '將取消在「{name}」的過夜，並同時刪除預訂「{booking}」及其關聯的費用。該停靠點會作為休息保留在行程中。',
   'roadtrip.stay.releaseAction': '改為休息',
   'roadtrip.ride.departure': '出發 {time}',
   'roadtrip.ride.arrival': '抵達 {time}',

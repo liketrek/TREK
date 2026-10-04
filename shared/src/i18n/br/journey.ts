@@ -200,11 +200,14 @@ const journey: TranslationStrings = {
   'journey.settings.showTripTracksHint': 'Desenha no mapa as rotas gravadas das viagens vinculadas.',
   'journey.settings.status': 'Status',
   'journey.settings.statusAuto': 'Automático',
-  'journey.settings.statusAutoHint': 'Segue as datas das viagens vinculadas. Sem viagem, a jornada continua como rascunho.',
-  'journey.settings.statusManualHint': 'Definido manualmente. As datas da viagem não o alteram até você voltar para automático.',
+  'journey.settings.statusAutoHint':
+    'Segue as datas das viagens vinculadas. Sem viagem, a jornada continua como rascunho.',
+  'journey.settings.statusManualHint':
+    'Definido manualmente. As datas da viagem não o alteram até você voltar para automático.',
   'journey.settings.photosSection': 'Fotos',
   'journey.settings.photoLocation': 'Localizar entradas pelas fotos',
-  'journey.settings.photoLocationHint': 'Uma entrada sem lugar recebe o ponto onde foi tirada sua primeira foto com GPS. Lugares definidos por você nunca são movidos.',
+  'journey.settings.photoLocationHint':
+    'Uma entrada sem lugar recebe o ponto onde foi tirada sua primeira foto com GPS. Lugares definidos por você nunca são movidos.',
   'journey.settings.endJourney': 'Arquivar Jornada',
   'journey.settings.reopenJourney': 'Restaurar Jornada',
   'journey.settings.archived': 'Jornada arquivada',
@@ -287,7 +290,8 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Acabamento',
   'journey.studio.exportMarks': 'Marcas de corte',
   'journey.studio.exportMarksHint': 'Acrescenta {bleed} mm de sangria em cada borda e marca onde cortar',
-  'journey.studio.exportNote': '{sheets} folhas de {width} × {height} mm. O navegador transforma a visualização em PDF.',
+  'journey.studio.exportNote':
+    '{sheets} folhas de {width} × {height} mm. O navegador transforma a visualização em PDF.',
   'journey.studio.exportOpen': 'Visualizar impressão',
   'journey.studio.exportSave': 'Salvar como PDF',
   'journey.studio.exportPreparing': 'Preparando',
@@ -298,12 +302,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Baixar esta página dupla',
-  'journey.studio.downloadSpreadHint': 'Salva o design desta página dupla como arquivo, sem as fotos, para compartilhar ou reutilizar',
+  'journey.studio.downloadSpreadHint':
+    'Salva o design desta página dupla como arquivo, sem as fotos, para compartilhar ou reutilizar',
   'journey.studio.importSpread': 'Importar',
   'journey.studio.importSpreadHint': 'Adiciona uma página dupla a partir de um arquivo de design baixado',
   'journey.studio.importSpreadFailed': 'Esse arquivo não é uma página do TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Montar um livro pede espaço de trabalho, então o Studio existe só no computador, e o PDF também. Todo o resto da sua viagem funciona aqui como sempre.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Montar um livro pede espaço de trabalho, então o Studio existe só no computador, e o PDF também. Todo o resto da sua viagem funciona aqui como sempre.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -367,7 +373,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -571,7 +578,8 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Buscar de novo',
   'journey.studio.roadsClear': 'Limpar',
   'journey.studio.roadsBusy': 'Consultando',
-  'journey.studio.roadsHint': 'Pede a um serviço de rotas o caminho percorrido em cada trecho. Os trechos longos ficam como estão.',
+  'journey.studio.roadsHint':
+    'Pede a um serviço de rotas o caminho percorrido em cada trecho. Os trechos longos ficam como estão.',
   'journey.studio.roadsHave': 'As estradas ficam salvas neste livro, então ele imprime a mesma linha offline.',
   'journey.studio.routeStyle': 'Aparência',
   'journey.studio.routePlain': 'Lisa',
@@ -585,8 +593,10 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Fotos',
   'journey.studio.pinPhotoNone': 'Ainda não há fotos nessas paradas, então elas aparecem como pontos.',
   'journey.studio.mapSourceSatellite': 'Satélite',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 sem nuvens, livre para impressão com o crédito. Nítido até o nível da rua.',
-  'journey.studio.mapSourceReliefHint': 'Relevo sombreado da NASA, livre para impressão. Ideal para um país ou um continente, grosseiro demais para uma cidade.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 sem nuvens, livre para impressão com o crédito. Nítido até o nível da rua.',
+  'journey.studio.mapSourceReliefHint':
+    'Relevo sombreado da NASA, livre para impressão. Ideal para um país ou um continente, grosseiro demais para uma cidade.',
   'journey.studio.mapPrintDpi': 'Imprime com cerca de',
   'journey.studio.mapPrintDpiLow': 'sem nitidez neste tamanho, use um enquadramento mais amplo ou outra origem',
   'journey.studio.mapPerTrip': 'Uma viagem por vez',

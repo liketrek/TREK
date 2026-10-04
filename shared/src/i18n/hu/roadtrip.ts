@@ -281,8 +281,10 @@ const roadtrip: TranslationStrings = {
   'roadtrip.alt.noFerry': 'Komp nélkül',
   'roadtrip.summary.partial': 'A hátralévő útszakasz számítása még folyamatban',
   'roadtrip.stay.releaseTitle': 'Elveted az éjszakázást?',
-  'roadtrip.stay.releaseBody': 'A(z) „{name}” helyen töltött éjszaka törlődik. A megálló szünetként az útvonalon marad.',
-  'roadtrip.stay.releaseBookedBody': 'A(z) „{name}” helyen töltött éjszaka a(z) „{booking}” foglalással és a hozzá kapcsolt kiadásokkal együtt törlődik. A megálló szünetként az útvonalon marad.',
+  'roadtrip.stay.releaseBody':
+    'A(z) „{name}” helyen töltött éjszaka törlődik. A megálló szünetként az útvonalon marad.',
+  'roadtrip.stay.releaseBookedBody':
+    'A(z) „{name}” helyen töltött éjszaka a(z) „{booking}” foglalással és a hozzá kapcsolt kiadásokkal együtt törlődik. A megálló szünetként az útvonalon marad.',
   'roadtrip.stay.releaseAction': 'Legyen szünet',
   'roadtrip.ride.departure': 'Indulás {time}',
   'roadtrip.ride.arrival': 'Érkezés {time}',

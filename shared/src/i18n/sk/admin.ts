@@ -50,7 +50,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNotificationsHint':
     'Nastavte, ktoré kanály doručujú oznámenia len pre administrátorov (napr. upozornenia na verzie).',
   'admin.notificationDefaults.title': 'Predvolené nastavenia pre používateľov',
-  'admin.notificationDefaults.hint': 'Takto začínajú upozornenia každého používateľa. „Vypnuté“ si používateľ môže sám zapnúť, „Blokované“ vypne pre všetkých a v ich nastaveniach sa zobrazí zamknuté. Platí pre každého, kto bunku sám nezmenil.',
+  'admin.notificationDefaults.hint':
+    'Takto začínajú upozornenia každého používateľa. „Vypnuté“ si používateľ môže sám zapnúť, „Blokované“ vypne pre všetkých a v ich nastaveniach sa zobrazí zamknuté. Platí pre každého, kto bunku sám nezmenil.',
   'admin.notificationDefaults.on': 'Zapnuté',
   'admin.notificationDefaults.off': 'Vypnuté',
   'admin.notificationDefaults.blocked': 'Blokované',
@@ -222,7 +223,8 @@ const admin: TranslationStrings = {
   'admin.placesGoogleOnly.otherProvider':
     'Vyžaduje Google ako poskytovateľa miest. Ak je zvolený Amap alebo OpenStreetMap, vyhľadávanie nikdy nejde do Google bez ohľadu na tento prepínač.',
   'admin.googleQuota.title': 'Denný limit volaní Google',
-  'admin.googleQuota.subtitle': 'Po dosiahnutí TREK prestane volať Google do ďalšieho dňa (UTC) a hľadá cez OpenStreetMap. Prázdne znamená bez limitu.',
+  'admin.googleQuota.subtitle':
+    'Po dosiahnutí TREK prestane volať Google do ďalšieho dňa (UTC) a hľadá cez OpenStreetMap. Prázdne znamená bez limitu.',
   'admin.googleQuota.placeholder': 'Bez limitu',
   'admin.googleQuota.usedToday': 'Dnes: {used}',
   'admin.googleQuota.usedOfLimit': 'Dnes: {used} z {limit}',
@@ -659,7 +661,7 @@ const admin: TranslationStrings = {
   'admin.addons.title': 'Doplnky',
   'admin.addons.subtitle': 'Zapnite alebo vypnite funkcie a prispôsobte si zážitok z TREKu.',
   'admin.addons.catalog.packing.name': 'Zoznamy',
-  'admin.addons.catalog.packing.description': 'Baliace zoznamy a úlohy pre vaše cesty',
+  'admin.addons.catalog.packing.description': 'Baliace zoznamy, nákupné zoznamy a úlohy pre vaše cesty',
   'admin.addons.catalog.budget.name': 'Náklady',
   'admin.addons.catalog.budget.description': 'Sledujte výdavky na cestu a rozdeľte ich medzi cestujúcich',
   'admin.addons.catalog.documents.name': 'Dokumenty',
@@ -693,7 +695,8 @@ const admin: TranslationStrings = {
   'admin.addons.llm.vision.on': 'Áno',
   'admin.addons.llm.vision.off': 'Nie',
   'admin.addons.llm.vision.hintLocal': 'Automaticky sa opýta servera Ollama, či tento model číta obrázky.',
-  'admin.addons.llm.vision.hintCloud': 'Pri cloudovom modeli znamená Automaticky nie. Zvoľte Áno, ak tento model číta obrázky.',
+  'admin.addons.llm.vision.hintCloud':
+    'Pri cloudovom modeli znamená Automaticky nie. Zvoľte Áno, ak tento model číta obrázky.',
   'admin.addons.enabled': 'Povolené',
   'admin.addons.disabled': 'Zakázané',
   'admin.addons.type.trip': 'Cesta',

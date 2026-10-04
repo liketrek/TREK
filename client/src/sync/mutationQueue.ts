@@ -22,6 +22,7 @@ function getTable(resource: string): Table | undefined {
     places:       offlineDb.places,
     packingItems: offlineDb.packingItems,
     todoItems:    offlineDb.todoItems,
+    shoppingItems:offlineDb.shoppingItems,
     budgetItems:  offlineDb.budgetItems,
     reservations: offlineDb.reservations,
     tripFiles:    offlineDb.tripFiles,

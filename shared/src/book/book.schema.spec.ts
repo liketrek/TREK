@@ -157,7 +157,12 @@ describe('the figures a stats element carries', () => {
 
 describe('the layouts a book keeps (#2316)', () => {
   const layout = (over: Record<string, unknown> = {}) => ({
-    id: 'l1', name: 'Two up', pageWidth: 210, pageHeight: 210, elements: [text({ id: 'a' })], ...over,
+    id: 'l1',
+    name: 'Two up',
+    pageWidth: 210,
+    pageHeight: 210,
+    elements: [text({ id: 'a' })],
+    ...over,
   });
 
   it('is optional, so a document from before reads unchanged', () => {
@@ -248,7 +253,9 @@ describe('normalizeBookDocument', () => {
   });
 
   it('drops an element parked a kilometre off the spread rather than the book', () => {
-    const out = normalizeBookDocument(doc([text({ id: 'a' }), text({ id: 'far', frame: { x: 1e9, y: 0, w: 60, h: 40 } })]));
+    const out = normalizeBookDocument(
+      doc([text({ id: 'a' }), text({ id: 'far', frame: { x: 1e9, y: 0, w: 60, h: 40 } })]),
+    );
 
     expect(out.spreads[0]!.elements.map((el) => el.id)).toEqual(['a']);
     expect(out.title).toBe('Iceland, end to end');

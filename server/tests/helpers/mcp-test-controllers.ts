@@ -48,6 +48,8 @@ import { ShareMcp } from '../../src/nest/share/share.mcp';
 import { ShareService } from '../../src/nest/share/share.service';
 import { TodoMcp } from '../../src/nest/todo/todo.mcp';
 import { TodoService } from '../../src/nest/todo/todo.service';
+import { ShoppingMcp } from '../../src/nest/shopping/shopping.mcp';
+import { ShoppingService } from '../../src/nest/shopping/shopping.service';
 import { TransitMcp } from '../../src/nest/transit/transit.mcp';
 import { GoogleTransitProvider } from '../../src/nest/transit/google-transit.provider';
 import { TransitService } from '../../src/nest/transit/transit.service';
@@ -155,6 +157,7 @@ export function createMcpTestRegistry(): McpRegistry {
   const queryHelpersService = new QueryHelpersService(dbService);
   const daysService = new DaysService(dbService, permissionsService, realtimeService, queryHelpersService);
   const todoService = new TodoService(dbService, permissionsService, realtimeService);
+  const shoppingService = new ShoppingService(dbService, permissionsService, realtimeService);
   const packingService = new PackingService(dbService, permissionsService, realtimeService, notificationsStub());
   const collabService = new CollabService(dbService, permissionsService, realtimeService, notificationsStub(), generalStorage, new RateLimitService());
   // Exactly one instance, shared by maps, places and share: its stampede guard
@@ -199,7 +202,7 @@ export function createMcpTestRegistry(): McpRegistry {
   );
   const readModelService = new TripReadModelService(
     dbService, membersService, daysService, accommodationsService, budgetService,
-    packingService, reservationsService, collabService, placesService, todoService,
+    packingService, reservationsService, collabService, placesService, todoService, shoppingService,
     new FilesService(dbService, permissionsService, realtimeService, new EphemeralTokenService(), generalStorage),
   );
   const calendarService = new CalendarService(dbService, reservationsService);
@@ -226,6 +229,7 @@ export function createMcpTestRegistry(): McpRegistry {
       new AirportsMcp(),
       new AuthMcp(),
       new TodoMcp(todoService, authService, addonsService, guards),
+      new ShoppingMcp(shoppingService, authService, addonsService, guards),
       new PackingMcp(packingService, authService, addonsService, guards),
       new BudgetMcp(budgetService, exchangeRatesService, dbService, new RuntimeEnvService(), new TripMembershipService(dbService), addonsService, guards),
       new ReservationsMcp(reservationsService, daysService, budgetService, authService, assignmentsService, guards),

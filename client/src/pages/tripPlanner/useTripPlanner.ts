@@ -118,6 +118,7 @@ export function useTripPlanner() {
   const allPlaces = useTripStore(s => s.places)
   const storedAssignments = useTripStore(s => s.assignments)
   const packingItems = useTripStore(s => s.packingItems)
+  const shoppingItems = useTripStore(s => s.shoppingItems)
   const todoItems = useTripStore(s => s.todoItems)
   const categories = useTripStore(s => s.categories)
   const reservations = useTripStore(s => s.reservations)
@@ -2945,7 +2946,7 @@ export function useTripPlanner() {
 
   return {
     tripId, navigate, toast, t, language, locale, settings, placesPhotosEnabled,
-    trip, days, places, assignments, storedAssignments, packingItems, todoItems, categories, reservations, budgetItems, files,
+    trip, days, places, assignments, storedAssignments, packingItems, shoppingItems, todoItems, categories, reservations, budgetItems, files,
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
