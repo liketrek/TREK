@@ -21,6 +21,9 @@ import { PlaceRegions } from '../../db/entities/PlaceRegions.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { Places } from '../../db/entities/Places.entity';
 import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { SchedulingModule } from '../scheduling/scheduling.module';
+import { PlaceRegionsRepairJob } from './place-regions-repair.job';
 
 /**
  * Atlas addon domain (L7 leaf module). Registered in AppModule. Exports
@@ -45,6 +48,9 @@ import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.ent
  * atlas-owned tables (`BucketList`/`HiddenCountries`/`HiddenRegions`/
  * `VisitedCountries`/`VisitedRegions`/`PlaceRegions`) plus the three it
  * reads additive methods on (`Trips`/`Places`/`ReservationEndpoints`).
+ *
+ * PlaceRegionsRepairJob puts right, once, the place_regions rows cached before #2527;
+ * `AppSettings` is in the feature list for the marker row it reads and writes.
  */
 @Module({
   imports: [
@@ -53,10 +59,11 @@ import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.ent
     AddonsModule,
     TokensModule,
     RateLimitModule,
-    MikroOrmModule.forFeature([BucketList, HiddenCountries, HiddenRegions, VisitedCountries, VisitedRegions, PlaceRegions, Trips, Places, ReservationEndpoints]),
+    SchedulingModule,
+    MikroOrmModule.forFeature([BucketList, HiddenCountries, HiddenRegions, VisitedCountries, VisitedRegions, PlaceRegions, Trips, Places, ReservationEndpoints, AppSettings]),
   ],
   controllers: [AtlasController, TravelStatsController, PublicStatsController],
-  providers: [AtlasService, AtlasMcp, AtlasRpc, ApiTokenGuard],
+  providers: [AtlasService, AtlasMcp, AtlasRpc, ApiTokenGuard, PlaceRegionsRepairJob],
   exports: [AtlasService],
 })
 export class AtlasModule {}

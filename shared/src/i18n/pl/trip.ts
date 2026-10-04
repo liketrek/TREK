@@ -14,6 +14,7 @@ const trip: TranslationStrings = {
   'trip.loading': 'Ładowanie podróży...',
   'trip.mobilePlan': 'Plan',
   'trip.mobilePlaces': 'Miejsca',
+  'trip.panelWidth': 'Szerokość panelu',
   'trip.toast.placeUpdated': 'Miejsce zostało zaktualizowane',
   'trip.toast.tripUpdated': 'Podróż zaktualizowana',
   'trip.toast.placeAdded': 'Miejsce zostało dodane',
@@ -88,7 +89,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'Przesiadki',
   'transit.walkLabel': 'Pieszo',
   'transit.searchHint': 'Wyszukaj prawdziwe połączenia i dodaj je od razu do dnia — dane z Transitous.',
-  'trip.confirm.deletePlaceNight': 'Nocleg zarezerwowany w „{name}” zniknie razem z miejscem.',
-  'trip.confirm.deletePlaceBooked': 'Nocleg zarezerwowany w „{name}” zniknie razem z miejscem, wraz z rezerwacją „{booking}” i powiązanymi wydatkami.',
+  'trip.confirm.deletePlaceNight': 'Zostanie też usunięty nocleg zarezerwowany w „{name}”.',
+  'trip.confirm.deletePlaceBooked':
+    'Zostaną też usunięte nocleg zarezerwowany w „{name}”, rezerwacja „{booking}” i powiązane wydatki.',
+  'trip.confirm.deletePlaceBookedSame':
+    'Zostaną też usunięte nocleg zarezerwowany w „{name}”, jego rezerwacja i powiązane wydatki.',
 };
 export default trip;

@@ -1,11 +1,11 @@
 import {
   FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship,
   Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle,
-  ShoppingBag, Bookmark, Hotel, Utensils, Users, Sailboat, Bike, CarTaxiFront, Route, TramFront,
+  ShoppingBag, Bookmark, Hotel, Utensils, Users, Sailboat, CableCar, Bike, CarTaxiFront, Route, TramFront,
   Wine, ParkingSquare, Fuel, Footprints, Mountain, Waves, Sun, Umbrella, Music, Landmark, Gift,
 } from 'lucide-react'
 
-export const RES_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, bus: Bus, ferry: Sailboat, bicycle: Bike, taxi: CarTaxiFront, transit: TramFront, transport_other: Route, event: Ticket, tour: Users, parking: ParkingSquare, other: FileText }
+export const RES_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, bus: Bus, ferry: Sailboat, cable_car: CableCar, bicycle: Bike, taxi: CarTaxiFront, transit: TramFront, transport_other: Route, event: Ticket, tour: Users, parking: ParkingSquare, other: FileText }
 
 export const NOTE_ICONS = [
   { id: 'FileText', Icon: FileText },
@@ -46,8 +46,8 @@ export function getNoteIcon(iconId) { return NOTE_ICON_MAP[iconId] || FileText }
 
 export const TYPE_ICONS = {
   flight: '✈️', hotel: '🏨', restaurant: '🍽️', train: '🚆',
-  car: '🚗', cruise: '🚢', bus: '🚌', ferry: '⛴️', bicycle: '🚲', taxi: '🚕',
+  car: '🚗', cruise: '🚢', bus: '🚌', ferry: '⛴️', cable_car: '🚡', bicycle: '🚲', taxi: '🚕',
   transport_other: '🧭', event: '🎫', parking: '🅿️', other: '📋',
 }
 
-export const TRANSPORT_DETAIL_COLORS = { flight: '#3b82f6', train: '#06b6d4', bus: '#059669', ferry: '#0d9488', bicycle: '#84cc16', taxi: '#ca8a04', car: '#6b7280', cruise: '#0ea5e9', transit: '#7c3aed', transport_other: '#6b7280' }
+export const TRANSPORT_DETAIL_COLORS = { flight: '#3b82f6', train: '#06b6d4', bus: '#059669', ferry: '#0d9488', cable_car: '#dc2626', bicycle: '#84cc16', taxi: '#ca8a04', car: '#6b7280', cruise: '#0ea5e9', transit: '#7c3aed', transport_other: '#6b7280' }

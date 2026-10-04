@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Отменить: {action}',
   'undo.assignPlace': 'Место добавлено в день',
   'undo.removeAssignment': 'Место удалено из дня',
+  'undo.clearDay': 'День очищен',
   'undo.reorder': 'Места переупорядочены',
   'undo.optimize': 'Маршрут оптимизирован',
   'undo.deletePlace': 'Место удалено',
@@ -19,6 +20,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Импорт из Naver Maps',
   'undo.addPlace': 'Место добавлено',
   'undo.done': 'Отменено: {action}',
+  'undo.failed': 'Не удалось отменить: {action}',
   'undo.importBooking': 'Импорт подтверждения бронирования',
 };
 export default undo;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Camera, Check, ChevronDown, ChevronUp, Compass, Copy, FileDown, Files, ImageIcon, LayoutTemplate,
+  Camera, Check, ChevronDown, ImagePlus, ChevronUp, Compass, Copy, FileDown, Files, ImageIcon, LayoutTemplate,
   Plus, Search, Shapes, Trash2, Upload, X,
 } from 'lucide-react'
 import type { BookElement, BookPageSetup, JourneyStats } from '@trek/shared'
@@ -19,6 +19,7 @@ import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDe
 import { PanelHead as Head } from './StudioPanelHead'
 import { StudioElementsPanel } from './StudioElementsPanel'
 import { StudioTravelPanel } from './StudioTravelPanel'
+import { StudioSavedLayouts } from './StudioSavedLayouts'
 import { MAX_SPREAD_FILE_BYTES, importSpread } from './spreadFile'
 import { StudioContentFilter } from './StudioContentFilter'
 import { emptyKeyFor, matchingEntries, matchingPhotos, photosFor, type PhotoFilter } from './photoFilter'
@@ -85,7 +86,7 @@ const THUMB_CHROME = (2 + 3) * 2
 
 export function StudioSidebar({
   page, pxPerMm, bookView, source, stats, path, t, locale,
-  canEdit, onUpload, onToggleStop,
+  canEdit, onUpload, onToggleStop, providers = [], onBrowseProvider,
 }: {
   page: BookPageSetup
   pxPerMm: number
@@ -103,6 +104,10 @@ export function StudioSidebar({
   onUpload: StudioUploader
   /** Switch a stop on or off in the figures. Resolves false when it did not land. */
   onToggleStop: (entryId: number, excluded: boolean) => Promise<boolean>
+  /** Photo providers connected for this user, each a way in next to the upload (#2271). */
+  providers?: { id: string; name: string }[]
+  /** Opens the provider picker; answers the photo ids that landed, none when closed. */
+  onBrowseProvider?: (provider: string, entryId: number | null) => Promise<number[]>
 }) {
   const [section, setSection] = useState<Section>('pages')
 
@@ -134,7 +139,8 @@ export function StudioSidebar({
       <aside className="st-panel st-side">
         {section === 'pages' && <PagesPanel page={page} pxPerMm={pxPerMm} bookView={bookView} t={t} />}
         {section === 'content' && (
-          <ContentPanel source={source} page={page} t={t} locale={locale} canEdit={canEdit} onUpload={onUpload} />
+          <ContentPanel source={source} page={page} t={t} locale={locale} canEdit={canEdit} onUpload={onUpload}
+            providers={providers} onBrowseProvider={onBrowseProvider} />
         )}
         {section === 'elements' && <StudioElementsPanel page={page} t={t} />}
         {section === 'travel' && (
@@ -336,7 +342,7 @@ function PagesPanel({
  * sees it the moment the panel does.
  */
 function ContentPanel({
-  source, page, t, locale, canEdit, onUpload,
+  source, page, t, locale, canEdit, onUpload, providers = [], onBrowseProvider,
 }: {
   source: JourneySource
   page: BookPageSetup
@@ -344,6 +350,8 @@ function ContentPanel({
   locale: string
   canEdit: boolean
   onUpload: StudioUploader
+  providers?: { id: string; name: string }[]
+  onBrowseProvider?: (provider: string, entryId: number | null) => Promise<number[]>
 }) {
   const [tab, setTab] = useState<'photos' | 'text'>('photos')
   const [query, setQuery] = useState('')
@@ -390,6 +398,19 @@ function ContentPanel({
     } finally {
       sending.current = false
       setUpload(null)
+    }
+  }
+
+  /**
+   * From a photo provider (#2271): into the same place an upload goes, and the
+   * new pictures shown the same way, under their own filter.
+   */
+  const pickFromProvider = async (provider: string) => {
+    if (!onBrowseProvider) return
+    const photoIds = await onBrowseProvider(provider, filter.kind === 'entry' ? filter.id : null)
+    if (photoIds.length) {
+      setFilter({ kind: 'recent', photoIds })
+      setQuery('')
     }
   }
 
@@ -586,6 +607,18 @@ function ContentPanel({
                   </span>
                 </button>
               )}
+              {canEdit && onBrowseProvider && providers.map(p => (
+                <button type="button"
+                  key={p.id}
+                  className="st-photo-cell is-upload"
+                  onClick={() => { void pickFromProvider(p.id) }}
+                  disabled={!!upload}
+                  title={t('journey.studio.fromProviderHint', { name: p.name })}
+                >
+                  <ImagePlus size={18} strokeWidth={1.6} />
+                  <span>{t('journey.studio.fromProvider', { name: p.name })}</span>
+                </button>
+              ))}
               {photos.map(p => (
                 <button type="button"
                   key={p.photoId}
@@ -776,6 +809,7 @@ function TemplatesPanel({
     <>
       <Head label={t('journey.studio.templates')} count={templates.length} />
       <div className="st-panel-scroll">
+        <StudioSavedLayouts page={page} width={CARD_W} pxPerMm={pxPerMm} t={t} />
         {(
           <div className="st-thumbs" ref={list.ref}>
             {templates.map(tpl => {

@@ -24,8 +24,9 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
 }));
 
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
-const svcOf = () => new MapsService({} as never, {} as never, {} as never, {} as never, {} as never);
+const svcOf = () => new MapsService({} as never, {} as never, {} as never, {} as never, {} as never, noGoogleQuota);
 
 const filePage = (over: Record<string, unknown> = {}) => ({
   pageid: 4711,

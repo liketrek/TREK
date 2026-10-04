@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeAll, afterAll } from 'vitest';
 import http from 'node:http';
 import net from 'node:net';
+import os from 'node:os';
 import type { AddressInfo } from 'node:net';
 
 // Only the resolver is stubbed. undici and net are the real thing, because the
@@ -11,9 +12,18 @@ vi.mock('dns/promises', () => ({
 }));
 
 import dns from 'dns/promises';
-import { safeFetchAdminConfigured } from '../../../src/utils/ssrfGuard';
+import { safeFetchAdminConfigured, SsrfBlockedError } from '../../../src/utils/ssrfGuard';
 
 const mockLookup = vi.mocked(dns.lookup);
+
+// Every address a socket dials, read off the socket itself rather than the
+// resolver: Node emits `connectionAttempt` once for each address it tries.
+const attempted: string[] = [];
+const realConnect = net.Socket.prototype.connect;
+function trackAttempts(this: net.Socket, ...args: unknown[]) {
+  this.on('connectionAttempt', (ip: string) => attempted.push(ip));
+  return (realConnect as (...a: unknown[]) => net.Socket).apply(this, args);
+}
 
 // RFC 6666 discard prefix and TEST-NET-1: routed nowhere on any sane machine,
 // so a connect attempt either fails at once or sits until the family timeout.
@@ -32,6 +42,7 @@ const listen = (server: http.Server, host: string) =>
   });
 
 beforeAll(async () => {
+  net.Socket.prototype.connect = trackAttempts as typeof realConnect;
   v4 = http.createServer((_req, res) => res.end('v4'));
   v4Port = await listen(v4, '127.0.0.1');
   const six = http.createServer((_req, res) => res.end('v6'));
@@ -44,12 +55,14 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  net.Socket.prototype.connect = realConnect;
   await new Promise((r) => v4.close(r));
   if (v6) await new Promise((r) => v6!.close(r));
 });
 
 afterEach(() => {
   mockLookup.mockReset();
+  attempted.length = 0;
 });
 
 describe('a dual-stack name where one family does not answer', () => {
@@ -95,5 +108,121 @@ describe('a dual-stack name where one family does not answer', () => {
 
     expect(res.status).toBe(200);
     expect(mockLookup).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('a name with link-local records next to a reachable address (#2506)', () => {
+  it('SEC-DUAL-104: an fe80:: record beside the IdP address no longer refuses the name', async () => {
+    // Loopback stands in for the LAN address, being the one address reachable
+    // here; the admin lane treats the two alike.
+    mockLookup.mockResolvedValue([
+      { address: 'fe80::1', family: 6 },
+      { address: '127.0.0.1', family: 4 },
+    ] as never);
+
+    const res = await safeFetchAdminConfigured(`http://idp.example:${v4Port}/`, { signal: AbortSignal.timeout(8000) });
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('v4');
+    expect(attempted).toEqual(['127.0.0.1']);
+  });
+
+  it('SEC-DUAL-105: the socket never dials a link-local or metadata address, not even one listed first', async () => {
+    mockLookup.mockResolvedValue([
+      { address: '169.254.169.254', family: 4 },
+      { address: 'fe80::1', family: 6 },
+      { address: '::ffff:169.254.169.254', family: 6 },
+      { address: '::169.254.169.254', family: 6 },
+      { address: 'fd00:ec2::254', family: 6 },
+      { address: '127.0.0.1', family: 4 },
+    ] as never);
+
+    const res = await safeFetchAdminConfigured(`http://idp.example:${v4Port}/`, { signal: AbortSignal.timeout(8000) });
+
+    expect(res.status).toBe(200);
+    expect(attempted).toEqual(['127.0.0.1']);
+  });
+
+  it('SEC-DUAL-106: with nothing else to offer the name is refused and no socket is opened', async () => {
+    mockLookup.mockResolvedValue([
+      { address: 'fe80::1', family: 6 },
+      { address: '169.254.169.254', family: 4 },
+    ] as never);
+
+    await expect(
+      safeFetchAdminConfigured(`http://idp.example:${v4Port}/`, { signal: AbortSignal.timeout(8000) }),
+    ).rejects.toThrow(SsrfBlockedError);
+    expect(attempted).toEqual([]);
+  });
+});
+
+describe('the strict guard, ALLOW_INTERNAL_NETWORK on, with metadata records in the answer (#2506)', () => {
+  // The strict guard refuses loopback, so the reachable address here is one of
+  // this machine's own interface addresses, with a server listening on it.
+  const lanIp = Object.values(os.networkInterfaces())
+    .flat()
+    .find((nic) => nic && nic.family === 'IPv4' && !nic.internal && !nic.address.startsWith('169.254.'))?.address;
+  let lan: http.Server | null = null;
+  let lanPort = 0;
+
+  beforeAll(async () => {
+    if (!lanIp) return;
+    const server = http.createServer((_req, res) => res.end('lan'));
+    try {
+      lanPort = await listen(server, lanIp);
+      lan = server;
+    } catch {
+      server.close();
+    }
+  });
+
+  afterAll(async () => {
+    if (lan) await new Promise((r) => lan!.close(r));
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  // The flag is read when the guard loads, so each case loads a fresh copy.
+  async function strictGuard() {
+    vi.stubEnv('ALLOW_INTERNAL_NETWORK', 'true');
+    vi.resetModules();
+    const guard = await import('../../../src/utils/ssrfGuard');
+    const lookup = vi.mocked((await import('dns/promises')).default.lookup);
+    return { guard, lookup };
+  }
+
+  it('SEC-DUAL-107: a metadata record next to an fe80:: one is refused and no socket is opened', async () => {
+    for (const answer of [
+      [{ address: 'fe80::1', family: 6 }, { address: 'fd00:ec2::254', family: 6 }],
+      [{ address: 'fe80::1', family: 6 }, { address: '100.100.100.200', family: 4 }],
+      [{ address: '::169.254.169.254', family: 6 }],
+    ]) {
+      const { guard, lookup } = await strictGuard();
+      lookup.mockResolvedValue(answer as never);
+
+      await expect(
+        guard.safeFetch(`http://photos.example:${v4Port}/`, { signal: AbortSignal.timeout(3000) }),
+      ).rejects.toThrow(guard.SsrfBlockedError);
+    }
+    expect(attempted).toEqual([]);
+  });
+
+  it('SEC-DUAL-108: the socket dials the LAN address and never the metadata ones listed ahead of it', async (ctx) => {
+    if (!lan || !lanIp) return ctx.skip();
+    const { guard, lookup } = await strictGuard();
+    lookup.mockResolvedValue([
+      { address: 'fd00:ec2::254', family: 6 },
+      { address: '100.100.100.200', family: 4 },
+      { address: '100.100.100.100', family: 4 },
+      { address: '::169.254.169.254', family: 6 },
+      { address: 'fe80::1', family: 6 },
+      { address: lanIp, family: 4 },
+    ] as never);
+
+    const res = await guard.safeFetch(`http://nas.example:${lanPort}/`, { signal: AbortSignal.timeout(8000) });
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('lan');
+    expect(attempted).toEqual([lanIp]);
   });
 });

@@ -57,6 +57,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Térképek és GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Napi terv exportálása PDF-be',
+  'dayplan.pdfMine': 'Saját tervem PDF-ként',
+  'dayplan.pdfMineSub': 'Csak azok a programok és foglalások, amelyekben részt vesz',
   'dayplan.gpxTooltip': 'Exportálás GPX-ként offline térképekhez és GPS-eszközökhöz',
   'dayplan.gpxAll': 'A teljes utazás',
   'dayplan.gpxPlaces': 'Csak a helyek',
@@ -78,8 +80,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Minden helyszín kiosztva',
   'dayplan.mobile.noMatch': 'Nincs találat',
   'dayplan.mobile.createNew': 'Új helyszín létrehozása',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Minden nap kibontása', // en-fallback
+  'dayplan.collapseAll': 'Minden nap összecsukása', // en-fallback
   'dayplan.reorderDays': 'Napok átrendezése',
   'dayplan.reorderTitle': 'Napok átrendezése',
   'dayplan.reorderHint': 'A nap helyei, jegyzetei és foglalásai együtt mozognak vele.',
@@ -89,5 +91,52 @@ const dayplan: TranslationStrings = {
   'dayplan.reorderUndo': 'Napok átrendezése',
   'dayplan.reorderError': 'Nem sikerült átrendezni a napokat',
   'dayplan.addDayError': 'Nem sikerült napot hozzáadni',
+  'dayplan.deleteDay': 'Nap törlése',
+  'dayplan.deleteDayTitle': '{day} törlése?',
+  'dayplan.deleteDayBody': 'A nap kikerül az utazásból. Ez nem vonható vissza.',
+  'dayplan.excludeFromRoute': 'Kihagyás az útvonalból',
+  'dayplan.includeInRoute': 'Visszavétel az útvonalba',
+  'dayplan.offRoute': 'Útvonalon kívül',
+  'dayplan.offRouteHint': 'A napon és a térképen marad, de az útvonal kihagyja',
+  'dayplan.clearDay': 'Nap kiürítése',
+  'dayplan.clearDayTitle': '{day} kiürítése?',
+  'dayplan.clearDayBody':
+    'Minden hely lekerül erről a napról. A helyek az utazásban maradnak, a nap pedig megtartja a jegyzeteit és foglalásait.',
+  'dayplan.deleteDayEmpty': 'Erre a napra nincs semmi tervezve.',
+  'dayplan.impactPlaces': 'Tervezett helyek: {count}',
+  'dayplan.impactPlacesHint': 'A helyek listájában maradnak.',
+  'dayplan.impactNotes': 'Jegyzetek: {count}',
+  'dayplan.impactTexts': 'Napcímek és leírások: {count}',
+  'dayplan.impactDeletedHint': 'Ezek is törlődnek.',
+  'dayplan.impactBookings': 'Foglalások: {count}',
+  'dayplan.impactStay': 'Szállás: {name}',
+  'dayplan.deleteDayBookingsHint': 'A Foglalások között maradnak, nap nélkül.',
+  'dayplan.deleteDayStayHint':
+    'A bejelentkezés vagy a kijelentkezés erre a napra esik, ezért a szállás lemondásra kerül.',
+  'dayplan.deleteDayStayBookedHint':
+    'A bejelentkezés vagy a kijelentkezés erre a napra esik, ezért a szállás lemondásra kerül a(z) „{booking}” foglalással és annak kiadásával együtt.',
+  'dayplan.deleteDayStayBookingHint':
+    'A bejelentkezés vagy a kijelentkezés erre a napra esik, ezért a szállás lemondásra kerül a(z) „{booking}” foglalással együtt.',
+  'dayplan.deleteDayStayPaidHint':
+    'A bejelentkezés vagy a kijelentkezés erre a napra esik, ezért a szállás lemondásra kerül a(z) „{booking}” foglalással és annak {amount} összegű kiadásával együtt.',
+  'dayplan.deleteDayShift': 'Későbbi napok: {count}',
+  'dayplan.deleteDayShiftHint': 'Mindegyik egy dátummal előrébb kerül.',
+  'dayplan.deleteDayShiftBookingsHint': 'Mindegyik egy dátummal előrébb kerül. Velük együtt mozgó foglalások: {count}',
+  'dayplan.deleteDayShrink': 'Az utazás mostantól ekkor ér véget: {date}',
+  'dayplan.deleteDayShrinkHint': 'Nincs dátum nélküli nap, amely átvehetné az utolsó dátumot.',
+  'dayplan.impactStayShorter': 'Szállás: {name}, eggyel kevesebb éjszaka',
+  'dayplan.deleteDayStayShorterHint': 'Átnyúlik ezen a napon, a kijelentkezés most {date}.',
+  'dayplan.deleteDayStayShorterUndatedHint': 'Átnyúlik ezen a napon, és most egy nappal korábban ér véget.',
+  'dayplan.deleteDaySpareDated': 'A(z) {day} új dátuma: {date}',
+  'dayplan.deleteDaySpareDatedHint': 'Ez az első dátum nélküli nap, és megkapja az utazás utolsó dátumát.',
+  'dayplan.deleteDayLast': 'Egy utazáshoz legalább egy nap kell',
+  'dayplan.daysOffline': 'A napok módosításához kapcsolat szükséges',
+  'dayplan.deleteDaySuccess': 'Nap törölve',
+  'dayplan.deleteDayError': 'Nem sikerült törölni a napot',
+  'dayplan.addUndatedDay': 'Dátum nélkül',
+  'dayplan.addUndatedDayHint': 'Egy dátum nélküli napot ad a végéhez. Az utazás dátumai nem változnak.',
+  'dayplan.addDatedDay': '{date} hozzáadása',
+  'dayplan.addDatedDayHint': 'Egy nappal meghosszabbítja az utazást. Új utolsó nap: {date}.',
+  'dayplan.tripExtended': 'Nap hozzáadva. Az utazás egy nappal tovább tart, utolsó napja most: {date}.',
 };
 export default dayplan;

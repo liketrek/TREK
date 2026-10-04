@@ -40,17 +40,28 @@ const utcOffsetMinutes = looseNumber;
 
 // ── Immich ────────────────────────────────────────────────────────────────
 
+/**
+ * Trust a self-signed certificate on the Immich server (#2475). Absent means
+ * "leave the stored choice as it is", so a client that predates the switch
+ * cannot turn it off by saving. A plain boolean: the field is new, and the
+ * settings form has always sent its checkboxes as booleans, so none of the
+ * string leniency `synology_skip_ssl` carries is owed here.
+ */
+const immichAllowInsecureTls = z.boolean().optional();
+
 export const immichSettingsSchema = z.looseObject({
   immich_url: optionalText,
   immich_api_key: optionalText,
   // Applied only when it is a real boolean (`typeof auto_upload === 'boolean'`),
   // so anything else is accepted and ignored, exactly as before.
   auto_upload: z.unknown().optional(),
+  allow_insecure_tls: immichAllowInsecureTls,
 });
 
 export const immichTestSchema = z.looseObject({
   immich_url: optionalText,
   immich_api_key: optionalText,
+  allow_insecure_tls: immichAllowInsecureTls,
 });
 
 export const immichSearchSchema = z.looseObject({
@@ -63,6 +74,20 @@ export const immichSearchSchema = z.looseObject({
   // the day is answered from the photo rather than from the reader's zone.
   utc_offset_minutes: utcOffsetMinutes,
 });
+
+/**
+ * How far the journey photo picker pages a date-bounded search (#1587): its
+ * first page and at most this many after it, so it never asks for a page past
+ * PROVIDER_SELECT_ALL_MAX_PAGES + 1. At the picker's 200 a page that is 50,200
+ * photos.
+ *
+ * An absolute page rather than a count per run: whether "Select all" loads the
+ * pages or they are scrolled into view, and however often it is pressed, page
+ * 251 is the last. Shared because both ends size against it: the picker stops
+ * there, and the Immich search keeps its absolute scan ceiling deep enough that
+ * this last page is still answered in full.
+ */
+export const PROVIDER_SELECT_ALL_MAX_PAGES = 250;
 
 // ── Synology ──────────────────────────────────────────────────────────────
 

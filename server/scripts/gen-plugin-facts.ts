@@ -22,12 +22,19 @@ import {
   EVENTS_PERMISSION, JOBS_PERMISSION, USER_DATA_PERMISSION, HTTP_OUTBOUND_PREFIX,
 } from '../src/nest/plugins/protocol/envelope';
 import { SNAPSHOT_GRANT, ENTITY_ID_KEYS } from '../src/plugin-event-sink';
+// A relative import of the shared SOURCE, not @trek/shared: the plugin-facts CI job
+// installs only the server, so shared's dist does not exist there. The file has no
+// imports of its own for exactly this reason.
+import {
+  PLUGIN_POI_ICONS, PLUGIN_POI_LABEL_MAX, PLUGIN_POI_MAX_CATEGORIES,
+} from '../../shared/src/plugins/plugin-poi-facts';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 const HEADER = [
   '// GENERATED — do not edit by hand.',
   '// Source: server/src/nest/plugins/protocol/envelope.ts + server/src/plugin-event-sink.ts',
+  '//         + shared/src/plugins/plugin-poi-facts.ts',
   '// Regenerate: node --import tsx server/scripts/gen-plugin-facts.ts',
   '',
 ].join('\n');
@@ -82,6 +89,17 @@ ${list(EVENT_FAMILIES)}
 export const EVENT_SNAPSHOT_GRANT: Readonly<Record<string, string>> = {
 ${pairs(SNAPSHOT_GRANT)}
 };
+
+/**
+ * \`capabilities.poiCategories\` (#1781): the lucide icons a category may use, how many
+ * categories one plugin may declare, and the longest label.
+ */
+export const POI_CATEGORY_ICONS: string[] = [
+${list(PLUGIN_POI_ICONS)}
+];
+
+export const POI_CATEGORY_MAX = ${PLUGIN_POI_MAX_CATEGORIES};
+export const POI_CATEGORY_LABEL_MAX = ${PLUGIN_POI_LABEL_MAX};
 `;
 
 const SHARED_FACTS = `${HEADER}

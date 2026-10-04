@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { calculateRouteWithLegs } from '../Map/RouteCalculator'
 import { lineLengthKm, parseTrack, planTrack, trackGapKm, type FollowTrackPlan } from './followTrack'
 import type { LatLng } from './corridor'
+import { isStoredStop } from '@trek/shared/roadtrip'
 import type { RoadtripRoutes } from './useRoadtripRoutes'
 import type { RoadtripVias } from './useRoadtripVias'
 
@@ -99,13 +100,20 @@ export function useFollowTrack(
   const [outcome, setOutcome] = useState<FollowTrackOutcome | null>(null)
   const abort = useRef<AbortController | null>(null)
 
-  const day = useMemo(() => routes.days.find(d => d.dayId === dayId), [routes.days, dayId])
-  const stops = useMemo<LatLng[]>(() => {
-    const original = day?.automaticSchedule
-      ? routes.days.flatMap(d => d.stops).filter(s => !s.automaticNight && s.ownerDayId === dayId).sort((a, b) => a.ownerIndex - b.ownerIndex)
-      : day?.stops ?? []
-    return original.map(s => ({ lat: s.lat, lng: s.lng }))
-  }, [day, routes.days, dayId])
+  /**
+   * The day's stored stops, in their stored order, wherever the cards draw them.
+   *
+   * A via is filed behind a stored stop, by its index (`legs` in the plan is that index),
+   * so the track is fitted between those and nothing else: not the markers a day window
+   * adds, not a terminal and not the hotel a day starts or ends at, each of which would
+   * shift every via behind it one leg on. Read across every card because a night drive
+   * draws some of them on the next one.
+   */
+  const stops = useMemo<LatLng[]>(() => routes.days
+    .flatMap(d => d.stops)
+    .filter(s => isStoredStop(s) && s.ownerDayId === dayId)
+    .sort((a, b) => a.ownerIndex - b.ownerIndex)
+    .map(s => ({ lat: s.lat, lng: s.lng })), [routes.days, dayId])
 
   /**
    * Parsed only while the dialog is open.

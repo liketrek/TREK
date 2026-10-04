@@ -39,6 +39,10 @@ const dashboard: TranslationStrings = {
   'dashboard.copySuffix': 'copie',
   'dashboard.restore': 'Restaurer',
   'dashboard.archived': 'Archivé',
+  'dashboard.search.placeholder': 'Rechercher voyages ou lieux',
+  'dashboard.search.label': 'Rechercher tous les voyages par titre, date ou lieu',
+  'dashboard.search.clear': 'Effacer la recherche',
+  'dashboard.search.empty': 'Aucun voyage ne correspond à « {query} »',
   'dashboard.status.ongoing': 'En cours',
   'dashboard.status.today': "Aujourd'hui",
   'dashboard.status.tomorrow': 'Demain',
@@ -100,7 +104,24 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAllDesc':
     "L'itinéraire entier suit les nouvelles dates, y compris les réservations et hébergements.",
   'dashboard.dateShiftHint':
-    "Astuce : pour ne décaler qu'une partie de votre itinéraire, utilisez plutôt « Ajouter un jour » dans le planificateur.",
+    "Astuce : pour ne décaler qu'une partie de votre itinéraire, ouvrez « Réorganiser les jours » dans le planificateur, ajoutez le jour qui suit la fin du voyage avec le bouton qui affiche sa date, puis placez ce jour là où l'écart doit se créer.",
+  'dashboard.shrinkTitle': 'Retirer des jours ?',
+  'dashboard.shrinkIntro': 'En enregistrant les nouvelles dates, ces jours sont retirés :',
+  'dashboard.shrinkMoreDays': '+{count} de plus',
+  'dashboard.shrinkLastDays': 'Ce sont les derniers jours qui partent, pas les premiers',
+  'dashboard.shrinkLastDaysHint':
+    'Les programmes des jours suivent les nouvelles dates : ce sont donc toujours les derniers jours de votre plan qui sont retirés, même quand le début a changé.',
+  'dashboard.shrinkBookingsHint':
+    'Elles restent dans Réservations. Celles dont la date fait encore partie du voyage reviennent sur ce jour.',
+  'dashboard.shrinkBookingsShiftHint': 'Elles restent dans Réservations, sans jour.',
+  'dashboard.shrinkStayHint': "L'arrivée ou le départ tombe un jour retiré, le séjour entier est donc retiré.",
+  'dashboard.shrinkStayBookedHint':
+    "L'arrivée ou le départ tombe un jour retiré, le séjour entier est donc retiré. Sa réservation « {booking} » et sa dépense restent dans Réservations.",
+  'dashboard.shrinkStayBookingHint':
+    "L'arrivée ou le départ tombe un jour retiré, le séjour entier est donc retiré. Sa réservation « {booking} » reste dans Réservations.",
+  'dashboard.shrinkConfirm': 'Retirer les jours et enregistrer',
+  'dashboard.shrinkUnknown':
+    "Les jours de ce voyage n'ont pas pu être vérifiés. Si les nouvelles dates comptent moins de jours, l'enregistrement retire les derniers jours et tout ce qui y est prévu.",
   'dashboard.greeting.morning': 'Bonjour,',
   'dashboard.greeting.afternoon': 'Bon après-midi,',
   'dashboard.greeting.evening': 'Bonsoir,',

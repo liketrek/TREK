@@ -49,21 +49,27 @@ export class TripPromptsMcp {
     }
     const { trip, budget } = await summary;
     const currency = trip?.currency || 'EUR';
-    const byCategory = (budget?.items || []).reduce((acc: Record<string, number>, item: { category?: string; total_price?: number }) => {
-      const cat = item.category || 'Uncategorized';
-      acc[cat] = (acc[cat] || 0) + (item.total_price || 0);
-      return acc;
-    }, {} as Record<string, number>);
-    const total = Object.values(byCategory).reduce((sum, v) => sum + v, 0);
+    // The summary's own totals, each row in the trip currency at the rate it was booked
+    // at (#2525). Adding total_price up here printed a dollar bill as that many euros.
+    const byCategory: Record<string, number> = {};
+    for (const [cat, amount] of Object.entries(budget?.by_category || {})) {
+      const key = cat || 'Uncategorized';
+      byCategory[key] = Math.round(((byCategory[key] || 0) + amount) * 100) / 100;
+    }
+    const total = budget?.total || 0;
     const lines = Object.entries(byCategory)
       .sort(([, a], [, b]) => b - a)
       .map(([cat, amount]) => `- ${cat}: ${amount} ${currency}`)
       .join('\n');
     const memberCount = Math.max(1, [summary.members?.owner, ...(summary.members?.collaborators || [])].filter(Boolean).length);
     const perPerson = (total / memberCount).toFixed(2);
+    // Rows no rate could convert are in none of the figures above; say so rather than
+    // let the total pass for the whole trip.
+    const uncounted = budget?.unconverted_item_ids?.length || 0;
+    const uncountedLine = uncounted > 0 ? `\n\n${uncounted} expense(s) not counted yet: no exchange rate.` : '';
     return {
       description: `Budget overview for "${trip?.title || tripId}"`,
-      messages: [{ role: 'user' as const, content: { type: 'text' as const, text: `# Budget: ${trip?.title || 'Trip'}\n\n**Total: ${total} ${currency}** (${perPerson} ${currency} per person)\n\n${lines || 'No expenses recorded.'}` } }],
+      messages: [{ role: 'user' as const, content: { type: 'text' as const, text: `# Budget: ${trip?.title || 'Trip'}\n\n**Total: ${total} ${currency}** (${perPerson} ${currency} per person)\n\n${lines || 'No expenses recorded.'}${uncountedLine}` } }],
     };
   }
 
@@ -94,7 +100,9 @@ export class TripPromptsMcp {
     const lines = Object.entries(grouped).map(([cat, catItems]) =>
       `## ${cat}\n${(catItems as { checked?: unknown; name?: string }[]).map((i) => `- [${i.checked ? 'x' : ' '}] ${i.name}`).join('\n')}`
     ).join('\n\n');
-    const { trip } = await this.readModel.getTripSummary(tripId, ctx.userId) || {};
+    // Only the title is needed. The whole summary also adds up the budget, which can
+    // wait on a rates fetch for a row that never froze its rate.
+    const trip = await this.trips.getRaw(tripId);
     return {
       description: `Packing list for "${trip?.title || tripId}"`,
       messages: [{ role: 'user' as const, content: { type: 'text' as const, text: `# Packing List: ${trip?.title || 'Trip'}\n\n${lines}\n\n_${items.length} items across ${Object.keys(grouped).length} categories_` } }],

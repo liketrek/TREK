@@ -42,6 +42,8 @@ export interface PlaceRow {
   fill_percent: number | null;
   amap_poi_id: string | null;
   source: string | null;
+  email: string | null;
+  opening_hours: string | null;
 }
 
 const _placeRowKeys: AssertRowKeys<PlaceRow, Places> = true;
@@ -51,6 +53,17 @@ export interface PlaceWithCategoryRow extends PlaceRow {
   category_name: string | null;
   category_color: string | null;
   category_icon: string | null;
+}
+
+/** {@link PlacesRepository.listForTrip}'s row: the category join plus the atlas' cached region (#2537), null when none resolved yet. */
+export interface PlaceListRow extends PlaceWithCategoryRow {
+  country_code: string | null;
+  region_name: string | null;
+}
+
+/** {@link PlacesRepository.findActiveTripFile}'s narrow `trip_files` shape. */
+interface PlacesTripFileKyselyDB {
+  trip_files: { id: number; trip_id: number; filename: string; original_name: string; mime_type: string | null; file_size: number | null; deleted_at: string | null };
 }
 
 /**
@@ -310,7 +323,7 @@ export class PlacesRepository extends TrekRepository<Places> {
   }
 
   /**
-   * PL4 — the 25-column `INSERT INTO places (...)` the service's `create`
+   * PL4 — the 27-column `INSERT INTO places (...)` the service's `create`
    * builds. Every value here is already fully coerced by the caller (the
    * `?? null` vs `|| null` split PL4's own legacy comment documents — 0 is
    * legitimate for `lat`/`lng`/`price`/`fill_percent`, and
@@ -345,6 +358,8 @@ export class PlacesRepository extends TrekRepository<Places> {
     route_color: string | null;
     stop_type: string | null;
     fill_percent: number | null;
+    email: string | null;
+    opening_hours: string | null;
   }): Promise<number> {
     return await this.insert({
       trip: input.trip_id,
@@ -372,6 +387,8 @@ export class PlacesRepository extends TrekRepository<Places> {
       route_color: input.route_color,
       stop_type: input.stop_type,
       fill_percent: input.fill_percent,
+      email: input.email,
+      opening_hours: input.opening_hours,
     });
   }
 
@@ -380,12 +397,13 @@ export class PlacesRepository extends TrekRepository<Places> {
    * lat = ?, lng = ?, address = ?, category_id = ?, price = ?, currency =
    * COALESCE(?, currency), place_time = ?, end_time = ?, duration_minutes =
    * ?, notes = ?, image_url = ?, google_place_id = ?, google_ftid = ?,
-   * osm_id = ?, amap_poi_id = ?, website = ?, phone = ?, transport_mode =
-   * COALESCE(?, transport_mode), route_color = ?, stop_type = ?,
-   * fill_percent = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?` — ONE
+   * osm_id = ?, amap_poi_id = ?, website = ?, phone = ?, email = ?,
+   * opening_hours = ?, transport_mode = COALESCE(?, transport_mode),
+   * route_color = ?, stop_type = ?, fill_percent = ?,
+   * updated_at = CURRENT_TIMESTAMP WHERE id = ?` — ONE
    * `nativeUpdate` with a typed full partial (the ruling): the SQL
    * `COALESCE(?, col)` keep-if-null semantics (`name`/`currency`/
-   * `transport_mode`) and the twenty `!== undefined ? x : existing.x`
+   * `transport_mode`) and the twenty-two `!== undefined ? x : existing.x`
    * pre-image fallbacks are both already resolved to their FINAL value by
    * the caller (`PlacesService.applyUpdate`, which reads the pre-image via
    * `findInTrip` first) — this method writes exactly what it is handed,
@@ -420,6 +438,8 @@ export class PlacesRepository extends TrekRepository<Places> {
     route_color: string | null;
     stop_type: string | null;
     fill_percent: number | null;
+    email: string | null;
+    opening_hours: string | null;
   }): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate({ id }, {
@@ -446,6 +466,8 @@ export class PlacesRepository extends TrekRepository<Places> {
       route_color: write.route_color,
       stop_type: write.stop_type,
       fill_percent: write.fill_percent,
+      email: write.email,
+      opening_hours: write.opening_hours,
       updated_at: currentTimestamp(platform),
     });
   }
@@ -622,10 +644,15 @@ export class PlacesRepository extends TrekRepository<Places> {
     category?: string;
     tag?: string;
     assignment?: 'all' | 'unassigned' | 'assigned';
-  }): Promise<PlaceWithCategoryRow[]> {
+  }): Promise<PlaceListRow[]> {
     const qb = this.qb('p')
       .leftJoin('p.category', 'c')
-      .select(['p.*', 'c.name as category_name', 'c.color as category_color', 'c.icon as category_icon'], true)
+      // #2537: the atlas' cached region rides along (`LEFT JOIN place_regions pr ON pr.place_id = p.id`).
+      .leftJoin('p.place_regions', 'pr')
+      .select([
+        'p.*', 'c.name as category_name', 'c.color as category_color', 'c.icon as category_icon',
+        'pr.country_code as country_code', 'pr.region_name as region_name',
+      ], true)
       .where('p.trip_id = ?', [trip_id]);
 
     if (filters.searchPattern) {
@@ -654,7 +681,23 @@ export class PlacesRepository extends TrekRepository<Places> {
 
     qb.orderBy({ 'p.created_at': 'desc' });
 
-    return qb.execute<PlaceWithCategoryRow[]>('all', false);
+    return qb.execute<PlaceListRow[]>('all', false);
+  }
+
+  /**
+   * PL53 (`PlacesService.setImageFromFile`, #1242) — `SELECT filename,
+   * original_name, mime_type, file_size FROM trip_files WHERE id = ? AND
+   * trip_id = ? AND deleted_at IS NULL`: the attachment a place takes its
+   * picture from, trash excluded.
+   */
+  async findActiveTripFile(id: number, trip_id: number): Promise<{ filename: string; original_name: string; mime_type: string | null; file_size: number | null } | undefined> {
+    return await this.kysely<PlacesTripFileKyselyDB>()
+      .selectFrom('trip_files')
+      .select(['filename', 'original_name', 'mime_type', 'file_size'])
+      .where('id', '=', id)
+      .where('trip_id', '=', trip_id)
+      .where('deleted_at', 'is', null)
+      .executeTakeFirst();
   }
 
   // ---------------------------------------------------------------------------
@@ -1165,7 +1208,7 @@ export class PlacesRepository extends TrekRepository<Places> {
    * name, description, lat, lng, address, category_id, price, currency,
    * notes, image_url, google_place_id, google_ftid, website, phone,
    * osm_id) VALUES (...)` — a genuinely NARROWER 16-column insert than
-   * {@link insertPlace}'s full 25-column shape (no `place_time`/`end_time`/
+   * {@link insertPlace}'s full 27-column shape (no `place_time`/`end_time`/
    * `duration_minutes`/`transport_mode`/`route_geometry`/`route_color`/
    * `stop_type`/`fill_percent`/`amap_poi_id`): the legacy statement leaves
    * those to the table's own `DEFAULT` clauses

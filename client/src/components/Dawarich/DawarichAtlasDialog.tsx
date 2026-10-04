@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useId, useState } from 'react'
 import { Building2, Check, CalendarDays, Globe2, Hourglass, Info, Loader2, MapPin, RefreshCw, Star } from 'lucide-react'
 import type { DawarichAtlasSuggestions, DawarichBucketScan } from '@trek/shared'
 import { DAWARICH_BUCKET_MATCH_MIN_MINUTES, DAWARICH_BUCKET_MATCH_RADIUS_M } from '@trek/shared'
@@ -6,7 +6,7 @@ import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { Skeleton } from '../shared/Skeleton'
 import { SlidingTabs } from '../shared/SlidingTabs'
-import Modal from '../shared/Modal'
+import { DialogFooter, DialogHeader, DialogShell, NEUTRAL_TINT } from '../shared/DialogShell'
 import MSheet from '../../mobile/components/MSheet'
 import { FormSheetHeader } from '../../mobile/screens/trip/sheets/PlSheetChrome'
 import { useIsPhone } from '../../mobile/useIsPhone'
@@ -49,6 +49,7 @@ export default function DawarichAtlasDialog({
   const { t, locale } = useTranslation()
   const toast = useToast()
   const phone = useIsPhone()
+  const labelId = useId()
   const [tab, setTab] = useState<Tab>(initialTab)
 
   const [scan, setScan] = useState<DawarichBucketScan | null>(null)
@@ -320,7 +321,7 @@ export default function DawarichAtlasDialog({
       className={
         phone
           ? 'inline-flex h-[38px] items-center gap-2 rounded-full bg-m-act px-4 text-[0.8125rem] font-bold text-m-actfg disabled:opacity-40'
-          : 'inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-caption font-semibold text-accent-text hover:bg-accent-hover disabled:opacity-40'
+          : 'inline-flex items-center gap-1.5 rounded-[10px] bg-accent px-4 py-2 text-body font-medium text-accent-text hover:opacity-90 disabled:opacity-40'
       }
     >
       <Check className="w-3.5 h-3.5" />
@@ -338,7 +339,7 @@ export default function DawarichAtlasDialog({
       className={
         phone
           ? 'inline-flex h-[38px] items-center gap-2 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 text-[0.8125rem] font-bold text-m-muted disabled:opacity-50'
-          : 'inline-flex items-center gap-2 rounded-lg border border-edge px-3 py-2 text-caption font-medium text-content-secondary hover:bg-surface-hover disabled:opacity-50'
+          : 'inline-flex items-center gap-1.5 rounded-[10px] bg-surface-card px-3.5 py-2 text-body font-medium text-content shadow-sm ring-1 ring-edge-faint hover:bg-surface-secondary disabled:opacity-50'
       }
     >
       {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
@@ -377,40 +378,38 @@ export default function DawarichAtlasDialog({
   }
 
   return (
-    <Modal
-      isOpen={isOpen}
+    <DialogShell
+      open={isOpen}
       onClose={onClose}
-      size="xl"
-      title={
-        <span className="flex items-center gap-2.5">
-          {/* Rounded, like every other avatar-sized mark in TREK: the logo is a
-              square badge and a hard corner beside a rounded dialog reads as a
-              pasted-in image. */}
-          <span className="flex-shrink-0 overflow-hidden rounded-lg">
-            <DawarichIcon size={26} />
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-subtitle font-semibold text-content">{t('dawarich.title')}</span>
-            <span className="block truncate text-caption font-normal text-content-muted">
-              {t('dawarich.atlas.dialogSubtitle')}
-            </span>
-          </span>
-        </span>
-      }
-      footer={
-        <div className="flex w-full items-center justify-between gap-3">
-          <span className="text-caption text-content-muted">
+      labelledBy={labelId}
+      width="editor"
+      // The answer replaces the pitch below the tabs, so the upper edge stays put.
+      align="top"
+      header={(
+        <DialogHeader
+          // The mark fills its tile, rounded like the phone's: a small logo in a
+          // grey square reads as a placeholder.
+          tile={<span className="flex h-[46px] w-[46px] flex-none overflow-hidden rounded-[14px] shadow-sm"><DawarichIcon size={46} /></span>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={onClose}
+          title={t('dawarich.title')}
+          sub={t('dawarich.atlas.dialogSubtitle')}
+        />
+      )}
+      // Before the first answer the pitch carries its own button, so there is no bar to show.
+      footer={againButton || confirmButton ? (
+        <DialogFooter>
+          <span className="min-w-0 flex-1 truncate text-caption text-content-muted">
             {selected > 0 ? t('dawarich.selected', { count: selected }) : ''}
           </span>
-          <div className="flex items-center gap-2">
-            {againButton}
-            {confirmButton}
-          </div>
-        </div>
-      }
+          {againButton}
+          {confirmButton}
+        </DialogFooter>
+      ) : undefined}
     >
       {body}
-    </Modal>
+    </DialogShell>
   )
 }
 

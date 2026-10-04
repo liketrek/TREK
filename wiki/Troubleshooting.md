@@ -147,6 +147,21 @@ Keep the proxy's `client_max_body_size` at or above `BACKUP_UPLOAD_LIMIT_MB`. No
 
 ---
 
+## File upload refused: "File is too large"
+
+**Cause:** A file uploaded to a trip, a booking or a collab note is capped at 50 MB by default. The Files tab refuses a bigger file before the upload starts with `File is too large (max 50 MB)`, and the server answers the same check with `400 File is too large`. Videos have their own 500 MB cap, and trip covers and place images 20 MB. If the upload instead fails with a `413` or without any message, your reverse proxy refused the request body before TREK saw it.
+
+**Fix:** Raise the limit with `FILE_UPLOAD_LIMIT_MB` and restart:
+
+```yaml
+environment:
+  - FILE_UPLOAD_LIMIT_MB=200   # in MB (default: 50)
+```
+
+Keep the proxy's body limit (`client_max_body_size` on nginx) at or above that value. On Helm the chart does not pass this variable through, so patch it onto the Deployment. See [Environment Variables](Environment-Variables#storage--paths) and [Reverse Proxy](Reverse-Proxy).
+
+---
+
 ## "Cannot find module" on startup
 
 **Likely cause:** A volume is mounted at `/app`, which hides the application code (`node_modules` and `dist`) shipped inside the image. Mount only the data and uploads directories — `-v ./data:/app/data -v ./uploads:/app/uploads` — never `/app` itself. Current images detect this before Node starts and print `FATAL: TREK application files are missing from the image.` instead of the bare module error.
@@ -269,6 +284,8 @@ Set `OIDC_ISSUER` to that exact string.
 
 **Cause:** Not the SSRF guard, despite what it looks like. All four OIDC calls (discovery, token, userinfo, JWKS) go through the admin-configured fetch path, which deliberately **allows** loopback and private/LAN targets: a Keycloak or Authentik on `192.168.x` or `10.x` is a supported setup and needs no extra variable. `ALLOW_INTERNAL_NETWORK` belongs to the guard on *user*-supplied URLs and changes nothing about OIDC. The only addresses that path refuses are link-local and cloud-metadata ones (`169.254.0.0/16`, `fe80::/10`), which fail with `Requests to link-local / cloud-metadata addresses are not allowed`. A provider behind the host gateway of a rootless Podman container resolves to `169.254.1.2` and fails exactly like that; list that address in `ALLOW_LINK_LOCAL_IPS`, see [Internal-Network-Access](Internal-Network-Access#a-link-local-address-you-need).
 
+Versions 4.3.0 to 4.3.2 also failed like that when the provider's hostname had an IPv6 link-local (`fe80::`) record next to its LAN address, which many LAN DNS servers hand out. From 4.3.3 on, TREK leaves such an address out and connects over the LAN address, so only a hostname that resolves to nothing but link-local or metadata addresses still fails.
+
 **Fix:** Look for the reasons an internal provider actually fails. A failed discovery fetch answers `500 { "error": "OIDC login failed" }` and logs the real message as `[OIDC] Login error: …`, so start there:
 
 ```bash
@@ -332,7 +349,7 @@ docker logs <container> 2>&1 | grep -E "SMTP test email (sent|failed)|SMTP test 
 
 ## CORS error — API requests blocked in the browser
 
-**Cause:** If `ALLOWED_ORIGINS` is set, only those origins are permitted. Any request from a different origin is rejected with a CORS error visible in the browser console.
+**Cause:** If `ALLOWED_ORIGINS` is set, only those origins are permitted, plus the host the request was sent to (the address in the browser's address bar is never cross-origin to itself). A request from any other origin is refused with `403 Not allowed by CORS`, and the server logs a `CORS: refused origin ...` warning naming the origin to add.
 
 **Fix:** Add your origin to the comma-separated list:
 
@@ -365,13 +382,15 @@ If `ALLOWED_ORIGINS` is not set, the default is **same-origin only** — cross-o
 
 **Cause:** The browser Clipboard API (`navigator.clipboard`) is only available in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts), so on plain HTTP at a non-localhost address it is undefined.
 
-TREK works around this where it matters most. The share-link and invite-link buttons in the trip **Members** dialog, the journey share link, and the calendar-subscribe URLs fall back to a hidden textarea plus the deprecated `document.execCommand('copy')`, which is not secure-context gated — **those keep working over plain HTTP**, on desktop and mobile alike.
+TREK works around this where it matters most. The share-link and invite-link buttons in the trip's **Share Trip** and **Members** dialogs, the journey share link, and the calendar-subscribe URLs fall back to a hidden textarea plus the deprecated `document.execCommand('copy')`, which is not secure-context gated, so **those keep working over plain HTTP**, on desktop and mobile alike.
 
 The remaining copy buttons call `navigator.clipboard` directly and have no fallback:
 
 - **Settings > Integrations (MCP)** — the MCP endpoint URL, the JSON client config, a newly created MCP token, and OAuth client IDs, client secrets and rotated secrets. These fail with no message at all, because the click handler throws before any toast is shown.
 - **Settings > Account** — the 2FA backup codes. This one shows a generic error toast. Use the **Download** button next to it as a workaround; it does not need a secure context.
-- **Admin Panel > Users & Invites** — the registration invite link, both on create ("create and copy") and via the copy button on an existing invite.
+- **Admin Panel > Users** (the **Invite Links** card): the registration invite link, both on create ("create and copy") and via the copy button on an existing invite.
+- The copy button next to a booking's confirmation code in the booking's detail popup. It shows `Could not copy`.
+- The webhook URL of a [Document-Sync](Document-Sync) connection in the Files tab.
 
 **Fix:** For those buttons, one of:
 

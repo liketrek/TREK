@@ -27,7 +27,7 @@ function insertPlan(ownerId: number): number {
 }
 
 describe('VacayCompanyHolidaysRepository.listForPlan (VC29/67)', () => {
-  it('VACAYCOHOLREPO-001: matches SELECT date, note FROM vacay_company_holidays WHERE plan_id = ? run raw, note both NULL and SET', async () => {
+  it('VACAYCOHOLREPO-001: matches SELECT date, note, fraction FROM vacay_company_holidays WHERE plan_id = ? run raw, note both NULL and SET', async () => {
     const { user } = createUser(testDb);
     const planId = insertPlan(user.id);
     const other = insertPlan(createUser(testDb).user.id);
@@ -35,7 +35,7 @@ describe('VacayCompanyHolidaysRepository.listForPlan (VC29/67)', () => {
     testDb.prepare('INSERT INTO vacay_company_holidays (plan_id, date, note) VALUES (?, ?, ?)').run(planId, '2026-01-01', null);
     testDb.prepare('INSERT INTO vacay_company_holidays (plan_id, date, note) VALUES (?, ?, ?)').run(other, '2026-07-04', 'Not mine');
 
-    const legacy = testDb.prepare('SELECT date, note FROM vacay_company_holidays WHERE plan_id = ?').all(planId);
+    const legacy = testDb.prepare('SELECT date, note, fraction FROM vacay_company_holidays WHERE plan_id = ?').all(planId);
     const rows = await repo.listForPlan(planId);
 
     expect(rows).toEqual(legacy);

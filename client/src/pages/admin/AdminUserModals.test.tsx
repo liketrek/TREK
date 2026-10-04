@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../../tests/helpers/msw/server';
-import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { buildAdminHook, buildAdminUser, type AdminHook } from '../../../tests/helpers/mobileAdmin';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { useTranslation } from '../../i18n';
@@ -50,6 +50,13 @@ function EditFormHarness() {
   });
   const admin = buildAdminHook({ editingUser: alice, editForm, setEditForm });
   return <AdminUserModals admin={admin} t={t} />;
+}
+
+/** Answers the confirm dialog: its button repeats the label and sits last in the document. */
+function confirmPasskeyReset() {
+  expect(screen.getByText('Remove all passkeys for alice?')).toBeInTheDocument();
+  const buttons = screen.getAllByRole('button', { name: /reset passkeys/i });
+  fireEvent.click(buttons[buttons.length - 1]);
 }
 
 const editing = {
@@ -183,18 +190,31 @@ describe('AdminUserModals', () => {
     expect(admin.handleSaveUser).toHaveBeenCalledTimes(1);
   });
 
-  it('FE-ADMMOD-012: resetting passkeys is skipped when the confirm is declined', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+  it('FE-ADMMOD-012: resetting passkeys is skipped when the confirm is cancelled', async () => {
+    let calls = 0;
+    server.use(
+      http.delete('/api/admin/users/:id/passkeys', () => {
+        calls += 1;
+        return HttpResponse.json({ deleted: 1 });
+      })
+    );
     const admin = renderModals(editing);
 
     fireEvent.click(screen.getByRole('button', { name: /reset passkeys/i }));
+    expect(screen.getByText('Remove all passkeys for alice?')).toBeInTheDocument();
 
-    expect(window.confirm).toHaveBeenCalledWith('Remove all passkeys for alice?');
+    // The edit dialog has its own Cancel; the question's Cancel is the last one.
+    const cancels = screen.getAllByRole('button', { name: /^cancel$/i });
+    fireEvent.click(cancels[cancels.length - 1]);
+
+    expect(screen.queryByText('Remove all passkeys for alice?')).not.toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(calls).toBe(0);
     expect(admin.toast.success).not.toHaveBeenCalled();
+    expect(admin.setEditingUser).not.toHaveBeenCalled();
   });
 
   it('FE-ADMMOD-013: a confirmed passkey reset reports how many were removed', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     let deletedFor: string | undefined;
     server.use(
       http.delete('/api/admin/users/:id/passkeys', ({ params }) => {
@@ -205,17 +225,18 @@ describe('AdminUserModals', () => {
     const admin = renderModals(editing);
 
     fireEvent.click(screen.getByRole('button', { name: /reset passkeys/i }));
+    confirmPasskeyReset();
 
     await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('Removed 3 passkey(s)'));
     expect(deletedFor).toBe('2');
   });
 
   it('FE-ADMMOD-014: a failing passkey reset toasts the generic error', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     server.use(http.delete('/api/admin/users/:id/passkeys', () => HttpResponse.json({}, { status: 500 })));
     const admin = renderModals(editing);
 
     fireEvent.click(screen.getByRole('button', { name: /reset passkeys/i }));
+    confirmPasskeyReset();
 
     await waitFor(() => expect(admin.toast.error).toHaveBeenCalledWith('Error'));
   });
@@ -259,7 +280,10 @@ describe('AdminUserModals', () => {
   it('FE-ADMMOD-018: the update popup closes from the Close button', () => {
     const admin = renderModals({ showUpdateModal: true, updateInfo: buildUpdateInfo() });
 
-    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    // The head band's X and the footer's Close button both close it.
+    const closeButtons = screen.getAllByRole('button', { name: /^close$/i });
+    expect(closeButtons).toHaveLength(2);
+    fireEvent.click(closeButtons[closeButtons.length - 1]);
 
     expect(admin.setShowUpdateModal).toHaveBeenCalledWith(false);
   });
@@ -267,11 +291,14 @@ describe('AdminUserModals', () => {
   it('FE-ADMMOD-019: the update popup closes on backdrop click but not on inner click', () => {
     const admin = renderModals({ showUpdateModal: true, updateInfo: buildUpdateInfo() });
 
-    const inner = screen.getByText('How to Update').closest<HTMLElement>('div[style*="max-width"]')!;
+    const inner = screen.getByRole('dialog');
+    fireEvent.mouseDown(inner);
     fireEvent.click(inner);
     expect(admin.setShowUpdateModal).not.toHaveBeenCalled();
 
-    fireEvent.click(inner.parentElement!);
+    const backdrop = inner.parentElement!;
+    fireEvent.mouseDown(backdrop);
+    fireEvent.click(backdrop);
     expect(admin.setShowUpdateModal).toHaveBeenCalledWith(false);
   });
 
@@ -330,10 +357,8 @@ describe('AdminUserModals', () => {
   it('FE-ADMMOD-025: the modal X button closes the create-user modal', () => {
     const admin = renderModals({ showCreateUser: true });
 
-    const header = screen
-      .getByRole('heading', { name: 'Create User' })
-      .closest<HTMLElement>('div.flex.items-center.justify-between')!;
-    fireEvent.click(within(header).getByRole('button'));
+    expect(screen.getByRole('heading', { name: 'Create User' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
 
     expect(admin.setShowCreateUser).toHaveBeenCalledWith(false);
   });
@@ -341,10 +366,8 @@ describe('AdminUserModals', () => {
   it('FE-ADMMOD-026: the modal X button closes the edit-user modal', () => {
     const admin = renderModals(editing);
 
-    const header = screen
-      .getByRole('heading', { name: 'Edit User' })
-      .closest<HTMLElement>('div.flex.items-center.justify-between')!;
-    fireEvent.click(within(header).getByRole('button'));
+    expect(screen.getByRole('heading', { name: 'Edit User' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
 
     expect(admin.setEditingUser).toHaveBeenCalledWith(null);
   });
@@ -352,10 +375,8 @@ describe('AdminUserModals', () => {
   it('FE-ADMMOD-027: the modal X button closes the rotate-JWT modal', () => {
     const admin = renderModals({ showRotateJwtModal: true });
 
-    const header = screen
-      .getByRole('heading', { name: 'Rotate JWT Secret' })
-      .closest<HTMLElement>('div.flex.items-center.justify-between')!;
-    fireEvent.click(within(header).getByRole('button'));
+    expect(screen.getByRole('heading', { name: 'Rotate JWT Secret' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
 
     expect(admin.setShowRotateJwtModal).toHaveBeenCalledWith(false);
   });

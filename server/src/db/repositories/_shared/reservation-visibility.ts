@@ -66,7 +66,7 @@ import { coalesceParam } from '../../dialect/sql-functions';
  * `ReservationVisibilityKyselyDB` structurally can pass its `eb` straight
  * through, extending its interface with `& ReservationVisibilityKyselyDB`
  * if needed (the same additive-intersection shape
- * `DayAssignmentsKyselyDB`/`AssignmentTimeSortKyselyDB` already use for
+ * `AssignmentTimeSortKyselyDB`/`RoadtripVisitsKyselyDB` already use for
  * their own narrow, per-query interfaces) — proven end-to-end (not just
  * typechecked) by this file's own test and by the string-vs-predicate
  * parity harness (`tests/unit/db/repositories/_shared/reservation-visibility.test.ts`),
@@ -121,7 +121,7 @@ export function publicReservationExpr<DB, TB extends keyof DB>(
 /**
  * `reservations`/`day_accommodations`'s REAL table names, the shape
  * `publicStayExists` needs. A consumer's own local Kysely `DB` interface
- * (the `DayAssignmentsKyselyDB`/`AssignmentTimeSortKyselyDB`/
+ * (the `AssignmentTimeSortKyselyDB`/`RoadtripVisitsKyselyDB`/
  * `TripSelectKyselyDB` per-query-interface precedent) satisfies this by
  * structural extension — declaring `day_accommodations`/`reservations`
  * with at least these columns is enough; `Kysely<DB>` typed against it and

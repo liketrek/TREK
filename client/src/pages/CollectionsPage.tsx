@@ -1,7 +1,7 @@
 import React from 'react'
 import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckCheck, X, Trash2, Copy, CopyPlus, FolderInput, Plus, Tags, DownloadCloud } from 'lucide-react'
 import Navbar from '../components/Layout/Navbar'
-import Modal from '../components/shared/Modal'
+import ConfirmDialog from '../components/shared/ConfirmDialog'
 import ListsRail from '../components/Collections/ListsRail'
 import ListEditorModal from '../components/Collections/ListEditorModal'
 import CollectionHero from '../components/Collections/CollectionHero'
@@ -20,12 +20,18 @@ import BulkAssignLabelModal from '../components/Collections/BulkAssignLabelModal
 import { useCollections } from './collections/useCollections'
 import EmptyState from '../components/shared/EmptyState'
 import '../styles/dashboard.css'
+import HelpAnchor from '../components/Help/HelpAnchor'
 import '../styles/collections.css'
 
 export default function CollectionsPage(): React.ReactElement {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
   // chunk of its own instead of a dead limb in this one.
-  return <CollectionsPageDesktop />
+  return (
+    <>
+      <HelpAnchor id="collections" />
+      <CollectionsPageDesktop />
+    </>
+  )
 }
 
 function CollectionsPageDesktop(): React.ReactElement {
@@ -45,12 +51,16 @@ function CollectionsPageDesktop(): React.ReactElement {
   const isRealList = !c.isAllSaved && typeof c.activeId === 'number'
   const canManageLabels = isRealList && c.canEdit
 
-  // Selecting a place toggles it, so clicking it again — or the map background —
-  // clears it. Below the desktop breakpoint the list and map are separate views;
-  // above it the list view is a split with a persistent map that pans to the
-  // selection (the map stays mounted across the list↔map toggle so it animates).
+  // Selecting a place from the list toggles it, so clicking the row again clears
+  // it, as does the map background. A marker click always shows the place: a second
+  // click on the marker of the place that is open read as "the details do not open"
+  // rather than as "close them" (#2431). Below the desktop breakpoint the list and
+  // map are separate views; above it the list view is a split with a persistent map
+  // that pans to the selection (the map stays mounted across the list↔map toggle so
+  // it animates).
   const mappable = c.mappable
   const openPlace = (id: number) => c.setSelectedPlaceId(c.selectedPlaceId === id ? null : id)
+  const showPlace = (id: number) => c.setSelectedPlaceId(id)
   const deselect = () => c.setSelectedPlaceId(null)
   const toggleView = () => {
     // Going to the full-map view closes the (list-docked) detail sheet.
@@ -59,7 +69,7 @@ function CollectionsPageDesktop(): React.ReactElement {
   }
   // Clicking a marker in the full-map view drops back to the split so the list
   // + detail come into view alongside the map.
-  const onMapSelect = (id: number) => { openPlace(id); if (c.view === 'map') c.setView('list') }
+  const onMapSelect = (id: number) => { showPlace(id); if (c.view === 'map') c.setView('list') }
 
   const desktopSplit = c.isWide && c.hasMappable
   const mapShown = c.hasMappable && (c.view === 'map' || c.isWide)
@@ -436,24 +446,15 @@ function CollectionsPageDesktop(): React.ReactElement {
       )}
 
       {/* Delete-list confirm */}
-      <Modal
+      <ConfirmDialog
         isOpen={c.confirmDeleteList != null}
         onClose={() => c.setConfirmDeleteList(null)}
+        onConfirm={c.handleDeleteList}
         title={t('collections.deleteList')}
-        size="sm"
-        footer={
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => c.setConfirmDeleteList(null)} className="px-3 py-1.5 rounded-lg border border-edge text-content-secondary text-[13px] hover:bg-surface-hover">
-              {t('common.cancel')}
-            </button>
-            <button type="button" onClick={c.handleDeleteList} className="px-3 py-1.5 rounded-lg bg-danger text-white text-[13px] font-semibold hover:opacity-90">
-              {t('common.delete')}
-            </button>
-          </div>
-        }
-      >
-        <p className="text-[13px] text-content-secondary">{t('collections.deleteListConfirm')}</p>
-      </Modal>
+        message={t('collections.deleteListConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+      />
     </>
   )
 }

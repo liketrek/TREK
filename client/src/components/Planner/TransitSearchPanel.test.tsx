@@ -7,7 +7,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { buildUser, buildDay, buildPlace } from '../../../tests/helpers/factories'
 import type { Accommodation, Day } from '../../types'
-import TransitSearchPanel from './TransitSearchPanel'
+import TransitSearchPanel, { buildQuickPicks, dayBookingStops } from './TransitSearchPanel'
 
 const { transitApiMock, toastErrors } = vi.hoisted(() => ({
   transitApiMock: { geocode: vi.fn(), plan: vi.fn() },
@@ -287,6 +287,52 @@ describe('TransitSearchPanel', () => {
     expect(screen.getAllByText('Fernsehturm')).toHaveLength(1)
     expect(screen.queryByText('Unlocated Inn')).not.toBeInTheDocument()
     expect(screen.queryByText('No coords')).not.toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-TRANSIT-010b: the stay the day starts or ends in survives a day full of stops (#2538)', async () => {
+    const user = userEvent.setup()
+    const prev = buildDay({ id: 9, trip_id: 1, day_number: 1, date: '2025-05-31' })
+    const today = buildDay({ id: 10, trip_id: 1, day_number: 2, date: '2025-06-01', title: 'Berlin Day' })
+    const next = buildDay({ id: 11, trip_id: 1, day_number: 3, date: '2025-06-02' })
+    const stay = (id: number, name: string, start: number, end: number, lat: number) =>
+      ({ id, trip_id: 1, place_id: 100 + id, start_day_id: start, end_day_id: end, place_name: name, place_lat: lat, place_lng: 13.38 }) as Accommodation
+    const accommodations = [
+      stay(2, 'Later Hostel', 11, 11, 52.3),
+      stay(1, 'Hotel Adlon', 9, 11, 52.5163),
+    ]
+    // Nine located stops: the old list kept the first eight places and cut every stay.
+    const places = Array.from({ length: 9 }, (_, i) => buildPlace({ id: i + 1, name: `Stop ${i + 1}`, lat: 52.4 + i / 100, lng: 13.4 }))
+    render(<TransitSearchPanel {...makeProps({ day: today, days: [prev, today, next], places, accommodations })} />)
+
+    const [fromInput, toInput] = screen.getAllByPlaceholderText('Search stop or station…')
+    await user.click(fromInput)
+    const picks = (await screen.findAllByRole('button', { name: /Hotel Adlon|Stop \d|Hostel/ })).map(b => b.textContent)
+    expect(picks[0]).toBe('Hotel Adlon')
+    expect(picks.slice(1)).toEqual(['Stop 1', 'Stop 2', 'Stop 3', 'Stop 4', 'Stop 5', 'Stop 6', 'Stop 7', 'Stop 8'])
+
+    await user.click(screen.getByRole('button', { name: 'Hotel Adlon' }))
+    expect(fromInput).toHaveValue('Hotel Adlon')
+    await user.click(toInput)
+    expect(await screen.findByRole('button', { name: 'Hotel Adlon' })).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-TRANSIT-010c: a transfer day offers the stay it leaves and the one it arrives at, then the other stays', async () => {
+    const user = userEvent.setup()
+    const d1 = buildDay({ id: 9, trip_id: 1, day_number: 1, date: '2025-05-31' })
+    const d2 = buildDay({ id: 10, trip_id: 1, day_number: 2, date: '2025-06-01', title: 'Berlin Day' })
+    const d3 = buildDay({ id: 11, trip_id: 1, day_number: 3, date: '2025-06-02' })
+    const d4 = buildDay({ id: 12, trip_id: 1, day_number: 4, date: '2025-06-03' })
+    const stay = (id: number, name: string, start: number, end: number, lat: number) =>
+      ({ id, trip_id: 1, place_id: 100 + id, start_day_id: start, end_day_id: end, place_name: name, place_lat: lat, place_lng: 13.38 }) as Accommodation
+    const accommodations = [
+      stay(3, 'Final Inn', 12, 12, 52.2),
+      stay(2, 'Arrival Hotel', 10, 11, 52.3),
+      stay(1, 'Departure Hotel', 9, 10, 52.5),
+    ]
+    render(<TransitSearchPanel {...makeProps({ day: d2, days: [d1, d2, d3, d4], accommodations })} />)
+    await user.click(screen.getAllByPlaceholderText('Search stop or station…')[0])
+    const picks = (await screen.findAllByRole('button', { name: /Hotel|Inn|Fernsehturm/ })).map(b => b.textContent)
+    expect(picks).toEqual(['Departure Hotel', 'Arrival Hotel', 'Fernsehturm', 'Final Inn'])
   })
 
   it('FE-PLANNER-TRANSIT-011: hovering a quick pick and a geocode result toggles the row background', async () => {
@@ -617,3 +663,39 @@ describe('TransitSearchPanel', () => {
     expect(screen.getByText('Aachen, Bushof')).toBeInTheDocument()
   })
 })
+
+describe('quick picks from the bookings of the day (#1506)', () => {
+  const day = buildDay({ id: 2, date: '2026-07-08' }) as Day
+  const flight = {
+    id: 5, type: 'flight', day_id: 2, end_day_id: 2, status: 'confirmed', title: 'LH 190',
+    endpoints: [
+      { role: 'from', name: 'FRA', lat: 50.03, lng: 8.56, local_date: '2026-07-08', local_time: '09:00', sequence: 0 },
+      { role: 'to', name: 'BER Airport', lat: 52.36, lng: 13.5, local_date: '2026-07-08', local_time: '10:10', sequence: 1 },
+    ],
+  }
+  const nextDayTrain = {
+    id: 6, type: 'train', day_id: 3, end_day_id: 3, status: 'confirmed', title: 'ICE',
+    endpoints: [{ role: 'from', name: 'Berlin Hbf', lat: 52.52, lng: 13.37, local_date: '2026-07-09', local_time: null, sequence: 0 }],
+  }
+  const undatedFerry = {
+    id: 7, type: 'ferry', day_id: 1, end_day_id: 2, status: 'confirmed', title: 'Ferry',
+    endpoints: [
+      { role: 'from', name: 'Kiel', lat: 54.3, lng: 10.1, local_date: null, local_time: null, sequence: 0 },
+      { role: 'to', name: 'Oslo', lat: 59.9, lng: 10.7, local_date: null, local_time: null, sequence: 1 },
+    ],
+  }
+  const taxi = { id: 8, type: 'taxi', day_id: 2, status: 'confirmed', title: 'Taxi', endpoints: [{ role: 'from', name: 'Home', lat: 1, lng: 1, local_date: '2026-07-08', sequence: 0 }] }
+
+  it('FE-PLANNER-TRANSIT-031: the airports and stations of the day are offered, other days and non-carriers are not', () => {
+    const stops = dayBookingStops(day, [flight, nextDayTrain, undatedFerry, taxi] as any)
+    expect(stops.map(s => s.name)).toEqual(['FRA', 'BER Airport', 'Oslo'])
+  })
+
+  it('FE-PLANNER-TRANSIT-032: they come right after the stays and are never cut by the cap', () => {
+    const places = Array.from({ length: 12 }, (_, i) => buildPlace({ id: 100 + i, name: `P${i}`, lat: 52 + i / 100, lng: 13 }))
+    const picks = buildQuickPicks(day, [day], places as any, [], dayBookingStops(day, [flight] as any))
+    expect(picks.slice(0, 2).map(p => p.name)).toEqual(['FRA', 'BER Airport'])
+    expect(picks).toHaveLength(2 + 8)
+  })
+})
+

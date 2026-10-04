@@ -1,4 +1,4 @@
-// FE-COMP-PHOTOPROVIDERS-001 to FE-COMP-PHOTOPROVIDERS-024
+// FE-COMP-PHOTOPROVIDERS-001 to FE-COMP-PHOTOPROVIDERS-026
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -468,5 +468,58 @@ describe('PhotoProvidersSection – checkbox fields and failures', () => {
 
     await waitFor(() => expect(probed).toBe(true));
     await screen.findByText('Connected to Immich');
+  });
+});
+
+// ── The Immich self-signed switch, as the server describes it (025, 026) ─────
+
+/** The Immich card exactly as the provider rows seed it (#2475). */
+const immichProvider = {
+  ...fakeProvider,
+  fields: [
+    { key: 'immich_url', label: 'providerUrl', input_type: 'url', placeholder: 'https://immich.example.com', required: true, secret: false, settings_key: 'immich_url', payload_key: 'immich_url', sort_order: 0 },
+    { key: 'immich_api_key', label: 'providerApiKey', input_type: 'password', placeholder: 'API Key', required: true, secret: true, settings_key: null, payload_key: 'immich_api_key', sort_order: 1 },
+    { key: 'immich_allow_insecure_tls', label: 'skipSSLVerification', input_type: 'checkbox', placeholder: null, required: false, secret: false, settings_key: 'allow_insecure_tls', payload_key: 'allow_insecure_tls', sort_order: 2 },
+  ],
+};
+
+describe('PhotoProvidersSection: Immich self-signed certificates', () => {
+  it('FE-COMP-PHOTOPROVIDERS-025: a stored switch shows as on under its Synology wording', async () => {
+    server.use(
+      http.get('/api/addons/immich/settings', () =>
+        HttpResponse.json({ immich_url: 'https://immich.lan', connected: true, auto_upload: false, allow_insecure_tls: true }),
+      ),
+    );
+    seedMemoriesEnabled([immichProvider]);
+    render(<PhotoProvidersSection />);
+
+    expect(await screen.findByText('Skip SSL certificate verification')).toBeInTheDocument();
+    await waitFor(() => expect(checkboxToggle()).toHaveAttribute('aria-pressed', 'true'));
+  });
+
+  it('FE-COMP-PHOTOPROVIDERS-026: turning it on sends it with the connection test, as a boolean', async () => {
+    const user = userEvent.setup();
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/addons/immich/settings', () =>
+        HttpResponse.json({ immich_url: 'https://immich.lan', connected: false, auto_upload: false, allow_insecure_tls: false }),
+      ),
+      http.post('/api/addons/immich/test', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ connected: true });
+      }),
+    );
+    seedMemoriesEnabled([immichProvider]);
+    render(<PhotoProvidersSection />);
+
+    await screen.findByDisplayValue('https://immich.lan');
+    await waitFor(() => expect(checkboxToggle()).toHaveAttribute('aria-pressed', 'false'));
+    await user.type(screen.getByPlaceholderText('API Key'), 'secret-key');
+    await user.click(checkboxToggle());
+    await user.click(screen.getByRole('button', { name: /test connection/i }));
+
+    await waitFor(() =>
+      expect(body).toEqual({ immich_url: 'https://immich.lan', immich_api_key: 'secret-key', allow_insecure_tls: true }),
+    );
   });
 });

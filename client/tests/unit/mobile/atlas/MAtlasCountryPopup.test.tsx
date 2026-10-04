@@ -230,7 +230,7 @@ describe('MAtlasCountryPopup', () => {
     fireEvent.click(screen.getByText('atlas.addToBucket'));
 
     await waitFor(() => expect(atlas.setConfirmAction).toHaveBeenCalledWith(null));
-    expect(body).toEqual({ name: 'Germany', country_code: 'DE', target_date: '2027-05' });
+    expect(body).toMatchObject({ name: 'Germany', country_code: 'DE', target_date: '2027-05' });
     expect(atlas.bucketList).toEqual([
       { id: 42, name: 'Germany', country_code: 'DE', lat: null, lng: null, notes: null, target_date: '2027-05' },
     ]);

@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'أوشكنا على الوصول...',
   'trip.mobilePlan': 'الخطة',
   'trip.mobilePlaces': 'الأماكن',
+  'trip.panelWidth': 'عرض اللوحة',
   'trip.toast.placeUpdated': 'تم تحديث المكان',
   'trip.toast.tripUpdated': 'تم تحديث الرحلة',
   'trip.toast.placeAdded': 'تمت إضافة المكان',
@@ -88,7 +89,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'التحويلات',
   'transit.walkLabel': 'المشي',
   'transit.searchHint': 'ابحث عن رحلات فعلية وأضفها مباشرة إلى اليوم — البيانات عبر Transitous.',
-  'trip.confirm.deletePlaceNight': 'ستُحذف الليلة المحجوزة في "{name}" مع المكان.',
-  'trip.confirm.deletePlaceBooked': 'ستُحذف الليلة المحجوزة في "{name}" مع المكان، ومعها الحجز "{booking}" وأي مصروف مرتبط به.',
+  'trip.confirm.deletePlaceNight': 'سيؤدي ذلك أيضًا إلى حذف الإقامة المحجوزة في "{name}".',
+  'trip.confirm.deletePlaceBooked':
+    'سيؤدي ذلك أيضًا إلى حذف الإقامة المحجوزة في "{name}" والحجز "{booking}" وأي مصروف مرتبط به.',
+  'trip.confirm.deletePlaceBookedSame':
+    'سيؤدي ذلك أيضًا إلى حذف الإقامة المحجوزة في "{name}" وحجزها وأي مصروف مرتبط به.',
 };
 export default trip;

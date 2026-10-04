@@ -25,6 +25,8 @@ const collab: TranslationStrings = {
   'collab.links.delete': 'Smazat odkaz',
   'collab.links.edit': 'Upravit odkaz',
   'collab.links.open': 'Otevřít odkaz',
+  'collab.links.confirmDeleteTitle': 'Smazat odkaz?',
+  'collab.links.confirmDeleteBody': 'Tento odkaz bude trvale smazán.',
   'collab.whatsNext.title': 'Co následuje',
   'collab.whatsNext.today': 'Dnes',
   'collab.whatsNext.tomorrow': 'Zítra',

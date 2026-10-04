@@ -42,3 +42,17 @@ describe('collectionGpxReadRequestSchema (#2301)', () => {
     expect(accepts({})).toBe(false);
   });
 });
+
+describe('collectionFilePlaceSchema website (#2483)', () => {
+  // The importer stores the parsed place, so the completed form is the one that
+  // lands; a link that is no page is still dropped rather than costing the place.
+  it('SHARED-COLLFILE-2483-01: a bare host arrives with https, a script link as null', () => {
+    const place = (website: unknown) => collectionFilePlaceSchema.parse({ name: 'Chapelle', website });
+    expect(place('fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët').website).toBe(
+      'https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
+    );
+    expect(place('https://example.fr').website).toBe('https://example.fr');
+    expect(place('javascript:alert(1)').website).toBeNull();
+    expect(place('Chapelle').website).toBeNull();
+  });
+});

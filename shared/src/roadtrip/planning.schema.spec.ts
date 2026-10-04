@@ -20,6 +20,17 @@ describe('Roadtrip MCP contracts', () => {
   ])('rejects invalid driving preferences %j', (settings) => {
     expect(roadtripPreferencesUpdateSchema.safeParse(settings).success).toBe(false);
   });
+  it('takes the switch that starts and ends each day at the stay as a boolean, and nothing else', () => {
+    expect(roadtripPreferencesUpdateSchema.parse({ roadtrip_hotel_bookends: true })).toEqual({
+      roadtrip_hotel_bookends: true,
+    });
+    expect(roadtripPreferencesUpdateSchema.parse({ roadtrip_hotel_bookends: false })).toEqual({
+      roadtrip_hotel_bookends: false,
+    });
+    for (const value of ['true', 1, null, 'on']) {
+      expect(roadtripPreferencesUpdateSchema.safeParse({ roadtrip_hotel_bookends: value }).success).toBe(false);
+    }
+  });
   it('allows clearing settings and preserves manual controls', () => {
     expect(
       roadtripPreferencesUpdateSchema.parse({

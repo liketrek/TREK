@@ -2,9 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { ArrowRight, ArrowRightLeft, Bold, Clock, Code, Footprints, Heading2, Italic, Link2, List, ListChecks, MoveRight, Pencil, RefreshCw, Strikethrough, TramFront, Trash2 } from 'lucide-react'
+import { ArrowRight, ArrowRightLeft, Bold, CalendarDays, Clock, Code, Footprints, Heading2, Italic, Link2, List, ListChecks, MoveRight, Pencil, RefreshCw, Strikethrough, TramFront, Trash2 } from 'lucide-react'
 import Modal from '../shared/Modal'
 import ConfirmDialog from '../shared/ConfirmDialog'
+import { DialogShell, DialogSection, DialogFooter, FooterSpacer, DialogButton, DeleteButton, PILL, fs } from '../shared/DialogShell'
+import { Segmented, TEXTAREA } from '../shared/dialogParts'
+import { Tooltip } from '../shared/Tooltip'
+import { BookingDialogHeader, TypePill } from './bookings/BookingDialogShell'
+import { TransitLegs } from './bookings/transitParts'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
@@ -136,6 +141,121 @@ export default function TransitJourneyModal({ reservation, onClose, onSave, onDe
     { Icon: ArrowRightLeft, value: String(transit.transfers ?? 0), label: t('transit.transfersLabel') },
     { Icon: Footprints, value: transit.walk_seconds > 59 ? t('transit.min', { count: Math.round(transit.walk_seconds / 60) }) : '—', label: t('transit.walkLabel') },
   ] : []
+
+  if (!isMobile) {
+    const titleId = `transit-journey-${res.id}`
+    const timeText = time ? `${formatTime(time, locale, timeFormat)}${endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}` : ''
+    const header = (
+      <BookingDialogHeader
+        tone="transit"
+        type="transit"
+        labelId={titleId}
+        onClose={onClose}
+        title={<TransitTitle title={title} iconSize={16} />}
+        onTitleClick={canEdit ? () => setEditingTitle(true) : undefined}
+        titleTooltip={t('reservations.rename')}
+        titleInput={editingTitle ? {
+          value: title,
+          onChange: setTitle,
+          label: t('reservations.titleLabel'),
+          autoFocus: true,
+          onBlur: () => setEditingTitle(false),
+          onKeyDown: e => {
+            if (e.key === 'Enter') setEditingTitle(false)
+            // Spent here, so the dialog stays open and only the rename is dropped.
+            if (e.key === 'Escape') { e.preventDefault(); setTitle(res.title || ''); setEditingTitle(false) }
+          },
+        } : undefined}
+        pills={(
+          <>
+            <TypePill type="transit" />
+            {dateStr && <span className={PILL}><CalendarDays size={13} strokeWidth={2.2} className="text-content-faint" />{dateStr}</span>}
+            {timeText && <span className={PILL}><Clock size={13} strokeWidth={2.2} className="text-content-faint" /><span className="tabular-nums">{timeText}</span></span>}
+          </>
+        )}
+      />
+    )
+    const footer = (
+      <DialogFooter>
+        {canEdit && <DialogButton onClick={onChangeRoute} icon={<RefreshCw size={14} strokeWidth={2} />}>{t('transit.changeRoute')}</DialogButton>}
+        {canEdit && onEditDetails && <DialogButton onClick={onEditDetails} icon={<Pencil size={14} strokeWidth={2} />}>{t('transit.editDetails')}</DialogButton>}
+        <FooterSpacer />
+        {canEdit && <DeleteButton onClick={() => setConfirmDelete(true)} />}
+        {canEdit
+          ? <DialogButton variant="primary" onClick={save} disabled={saving || !title.trim() || !dirty}>{saving ? t('common.saving') : t('common.save')}</DialogButton>
+          : <DialogButton variant="primary" onClick={onClose}>{t('common.close')}</DialogButton>}
+      </DialogFooter>
+    )
+    const noteTools = canEdit && (
+      <span className="flex items-center gap-2">
+        {notesTab === 'write' && (
+          <span className="flex gap-px rounded-[10px] bg-surface-tertiary p-[3px]">
+            {MD_TOOLS.map(({ Icon, label, action }) => (
+              <Tooltip key={label} label={label} placement="top">
+                <button type="button" onClick={() => applyMd(action)} aria-label={label}
+                  className="grid h-7 w-7 place-items-center rounded-[8px] text-content-muted hover:bg-surface-card hover:text-content">
+                  <Icon size={13} strokeWidth={2} />
+                </button>
+              </Tooltip>
+            ))}
+          </span>
+        )}
+        <Segmented<'write' | 'preview'>
+          value={notesTab}
+          onChange={setNotesTab}
+          label={t('reservations.notes')}
+          options={[{ value: 'write', label: t('common.edit') }, { value: 'preview', label: t('common.preview') }]}
+        />
+      </span>
+    )
+    return (
+      <>
+        <DialogShell onClose={onClose} labelledBy={titleId} blocked={confirmDelete} header={header} footer={footer}>
+          {transit && (
+            <div className="flex gap-2">
+              {statTiles.map(({ value, label }) => (
+                <div key={label} className="min-w-0 flex-1 rounded-[12px] bg-surface-tertiary px-3 py-2.5 text-center">
+                  <div className="truncate font-bold tabular-nums tracking-[-0.01em] text-content" style={fs(18, 'subtitle')}>{value}</div>
+                  <div className="mt-0.5 truncate font-geist text-content-faint" style={fs(10.5)}>{label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {transit && transit.legs.length > 0 && (
+            <DialogSection label={t('transit.itinerary')}>
+              <TransitLegs legs={transit.legs as TransitLegMeta[]} />
+            </DialogSection>
+          )}
+          <DialogSection label={t('reservations.notes')} action={noteTools}>
+            {canEdit && notesTab === 'write' ? (
+              <textarea
+                ref={notesRef}
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder={t('reservations.notesPlaceholder')}
+                aria-label={t('reservations.notes')}
+                className={TEXTAREA}
+                style={{ minHeight: 130, resize: 'vertical', lineHeight: 1.55 }}
+              />
+            ) : (
+              <div className={`rounded-[10px] border border-edge-faint bg-surface-card px-3.5 py-3 ${canEdit ? 'min-h-[130px]' : ''}`}>
+                {notes.trim()
+                  ? <div className="collab-note-md break-words text-content" style={fs(13, 'body')}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{notes}</Markdown></div>
+                  : <span className="text-content-faint" style={fs(12.5, 'body')}>{t('reservations.notesPlaceholder')}</span>}
+              </div>
+            )}
+          </DialogSection>
+        </DialogShell>
+        <ConfirmDialog
+          isOpen={confirmDelete}
+          onClose={() => setConfirmDelete(false)}
+          onConfirm={async () => { setConfirmDelete(false); await onDelete(); onClose() }}
+          title={t('reservations.confirm.deleteTitle')}
+          message={t('reservations.confirm.deleteBody', { name: res.title })}
+        />
+      </>
+    )
+  }
 
   return (
     <Modal

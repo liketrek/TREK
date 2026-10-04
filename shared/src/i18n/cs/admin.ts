@@ -135,6 +135,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'API klíč Amap (高德地图)',
   'admin.amapKeyHint':
     'Pro hledání míst v kontinentální Číně, kde Google není dostupný a OpenStreetMap má málo dat. Vyžaduje klíč typu „Web 服务" (webová služba), nikoli klíč JS API. Získáte na console.amap.com.',
+  'admin.keyFromEnv': 'Nastaveno přes {name}',
   'admin.placesProvider.title': 'Poskytovatel hledání míst',
   'admin.placesProvider.subtitle':
     'Vlastní index TREKu a OpenStreetMap odpovídají na každé hledání. Zde se volí, koho se zeptat navíc, když nic nenajdou: Automaticky upřednostní Google, pokud je klíč, pak Amap.',
@@ -175,6 +176,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Obohacení míst',
   'admin.placesEnrich.subtitle':
     'Zobrazí obrázky a popis při přidávání místa. Wikipedie a OpenStreetMap se používají vždy; Google se přidá, když jsou zapnuté Fotky míst nebo Detaily míst.',
+  'admin.placesGoogleOnly.title': 'Hledat pouze přes Google',
+  'admin.placesGoogleOnly.subtitle': 'Každé hledání a každý návrh jde do Google Places. Vypnuto: nejprve odpovídá index TREK a OpenStreetMap, Google se ptáme jen tehdy, když nic nenajdou.',
+  'admin.placesGoogleOnly.missingKey': 'Vyžaduje klíč Google Maps API. Bez něj hledání běží přes index TREK a OpenStreetMap bez ohledu na tento přepínač.',
+  'admin.placesGoogleOnly.otherProvider': 'Vyžaduje Google jako poskytovatele míst. Při zvoleném Amapu nebo OpenStreetMap nejde na Google žádné hledání, ať je tento přepínač nastaven jakkoli.',
+  'admin.googleQuota.title': 'Denní limit volání Google',
+  'admin.googleQuota.subtitle': 'Po dosažení přestane TREK volat Google až do dalšího dne (UTC) a hledá přes OpenStreetMap. Prázdné znamená bez limitu.',
+  'admin.googleQuota.placeholder': 'Bez limitu',
+  'admin.googleQuota.usedToday': 'Dnes: {used}',
+  'admin.googleQuota.usedOfLimit': 'Dnes: {used} z {limit}',
+  'admin.googleQuota.reached': 'Limit dosažen ({used}), Google pozastaven do zítřka',
+  'admin.googleQuota.saved': 'Denní limit uložen',
   'admin.transitProvider.title': 'Poskytovatel veřejné dopravy',
   'admin.transitProvider.subtitle': 'Která služba odpovídá na vyhledávání veřejné dopravy.',
   'admin.transitProvider.transitous': 'Transitous (zdarma)',
@@ -377,6 +389,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Poskytovat události do kalendáře',
   'admin.plugins.perm.hook:place-detail-provider': 'Přidávat další podrobnosti (recenze, hodnocení, odkazy) k místu',
   'admin.plugins.perm.hook:search-provider': 'Odpovídat na vyhledávání míst z vlastního indexu, vedle výsledků TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Přidávat vlastní kategorie míst do „Objevovat místa na mapě“; výběrem některé z nich doplněk obdrží oblast mapy, kterou si právě prohlížíte',
   'admin.plugins.perm.hook:trip-warning-provider': 'Vyvolávat ověřovací upozornění u cesty (zobrazená v plánovači)',
   'admin.plugins.perm.hook:table-contributor': 'Přidávat sloupce a akce do zobrazení cesty (rezervace, místa, dny)',
   'admin.plugins.perm.hook:map-marker-provider': 'Přidávat značky na mapu cesty (např. zobrazit rezervace nebo POI)',
@@ -390,6 +404,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Zveřejňuje AI nástroje',
   'admin.plugins.mcpToolsTitle': 'Zveřejněné AI nástroje',
   'admin.plugins.mcpToolsHint': 'Asistent je může spustit jménem uživatele. Každý jedná s oprávněními udělenými výše.',
+  'admin.plugins.poiCategoriesTitle': 'Kategorie mapy, které přidává',
   'admin.plugins.perm.mcp:tools':
     'Zveřejňovat nástroje, které může AI asistent spustit vaším jménem (jedná s oprávněními, která zde pluginu udělíte, ne se svými)',
   'admin.plugins.perm.geolocation:read':
@@ -530,6 +545,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Poskytuje události kalendáře',
   'admin.plugins.cap.placeDetails': 'Obohacuje místa',
   'admin.plugins.cap.search': 'Odpovídá na vyhledávání',
+  'admin.plugins.cap.poiCategories': 'Přidává kategorie na mapu',
   'admin.plugins.cap.warnings': 'Označuje problémy',
   'admin.plugins.cap.mapLayers': 'Kreslí na mapě',
   'admin.plugins.cap.routing': 'Nabízí trasování',
@@ -599,6 +615,11 @@ const admin: TranslationStrings = {
     'Načtěte návštěvy a zaznamenané trasy z instance Dawarich, kterou si každý čtenář připojí sám',
   'admin.addons.catalog.llm_parsing.name': 'Analýza pomocí AI',
   'admin.addons.catalog.llm_parsing.description': 'Přečte rezervace, které vestavěný analyzátor nezvládne, pomocí zvoleného modelu AI',
+  'admin.addons.llm.vision.auto': 'Automaticky',
+  'admin.addons.llm.vision.on': 'Ano',
+  'admin.addons.llm.vision.off': 'Ne',
+  'admin.addons.llm.vision.hintLocal': 'Automaticky se zeptá serveru Ollama, zda tento model čte obrázky.',
+  'admin.addons.llm.vision.hintCloud': 'Automaticky znamená u cloudového modelu ne. Zvolte Ano, pokud tento model čte obrázky.',
   'admin.addons.catalog.roadtrip.name': 'Cesta autem',
   'admin.addons.catalog.roadtrip.description': 'Plánujte jízdy se zastávkami – doby jízdy a časy příjezdu se přepočítají samy',
   'admin.addons.enabled': 'Povoleno',
@@ -704,6 +725,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': 'Oprávnění',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Umožňuje uživatelům přijímat oznámení na telefonech a počítačích přes prohlížeč, i když je TREK zavřený. Vyžaduje HTTPS; na iPhonu a iPadu musí být TREK přidán na plochu.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint': 'In-app oznámení jsou vždy aktivní a nelze je globálně vypnout.',
   'admin.notifications.adminWebhookPanel.title': 'Admin webhook',
@@ -737,6 +761,12 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Admin Ntfy odesílá vždy, když je nakonfigurováno téma',
   'admin.notifications.adminNotificationsHint':
     'Nastavte, které kanály doručují admin oznámení (např. upozornění na verze). Webhook odesílá automaticky, pokud je nastavena URL admin webhooku.',
+  'admin.notificationDefaults.title': 'Výchozí nastavení pro uživatele',
+  'admin.notificationDefaults.hint': 'Jak začínají oznámení každého uživatele. „Vypnuto“ si uživatel může sám zapnout, „Blokováno“ vypne pro všechny a v jejich nastavení se zobrazí zamčené. Platí pro každého, kdo buňku sám nezměnil.',
+  'admin.notificationDefaults.on': 'Zapnuto',
+  'admin.notificationDefaults.off': 'Vypnuto',
+  'admin.notificationDefaults.blocked': 'Blokováno',
+  'admin.notificationDefaults.cycle': 'Kliknutím přepnete na: {next}',
   'admin.notifications.tripReminders.title': 'Připomínky výletů',
   'admin.notifications.tripReminders.hint':
     'Odešle upozornění před začátkem výletu (vyžaduje nastavené dny připomínky na výletu).',

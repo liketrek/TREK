@@ -25,6 +25,8 @@ const collab: TranslationStrings = {
   'collab.links.delete': 'Διαγραφή συνδέσμου',
   'collab.links.edit': 'Επεξεργασία συνδέσμου',
   'collab.links.open': 'Άνοιγμα συνδέσμου',
+  'collab.links.confirmDeleteTitle': 'Διαγραφή συνδέσμου;',
+  'collab.links.confirmDeleteBody': 'Αυτός ο σύνδεσμος θα διαγραφεί οριστικά.',
   'collab.whatsNext.title': 'Τι Επόμενο',
   'collab.whatsNext.today': 'Σήμερα',
   'collab.whatsNext.tomorrow': 'Αύριο',

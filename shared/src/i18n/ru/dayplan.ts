@@ -57,6 +57,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Карты и GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Экспортировать план дня в PDF',
+  'dayplan.pdfMine': 'Мой план в PDF',
+  'dayplan.pdfMineSub': 'Только занятия и бронирования, в которых вы участвуете',
   'dayplan.gpxTooltip': 'Экспорт в GPX для офлайн-карт и GPS-устройств',
   'dayplan.gpxAll': 'Вся поездка',
   'dayplan.gpxPlaces': 'Только места',
@@ -78,8 +80,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Все места распределены',
   'dayplan.mobile.noMatch': 'Нет совпадений',
   'dayplan.mobile.createNew': 'Создать новое место',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Развернуть все дни', // en-fallback
+  'dayplan.collapseAll': 'Свернуть все дни', // en-fallback
   'dayplan.reorderDays': 'Изменить порядок дней',
   'dayplan.reorderTitle': 'Изменить порядок дней',
   'dayplan.reorderHint': 'Места, заметки и бронирования дня перемещаются вместе с ним.',
@@ -89,5 +91,52 @@ const dayplan: TranslationStrings = {
   'dayplan.reorderUndo': 'Изменить порядок дней',
   'dayplan.reorderError': 'Не удалось изменить порядок дней',
   'dayplan.addDayError': 'Не удалось добавить день',
+  'dayplan.deleteDay': 'Удалить день',
+  'dayplan.deleteDayTitle': 'Удалить {day}?',
+  'dayplan.deleteDayBody': 'День будет удалён из поездки. Это действие нельзя отменить.',
+  'dayplan.excludeFromRoute': 'Исключить из маршрута',
+  'dayplan.includeInRoute': 'Вернуть в маршрут',
+  'dayplan.offRoute': 'Вне маршрута',
+  'dayplan.offRouteHint': 'Остаётся в дне и на карте, но маршрут его пропускает',
+  'dayplan.clearDay': 'Очистить день',
+  'dayplan.clearDayTitle': 'Очистить {day}?',
+  'dayplan.clearDayBody':
+    'Все места будут убраны из этого дня. Сами места останутся в поездке, а заметки и бронирования дня сохранятся.',
+  'dayplan.deleteDayEmpty': 'На этот день ничего не запланировано.',
+  'dayplan.impactPlaces': 'Запланированные места: {count}',
+  'dayplan.impactPlacesHint': 'Они останутся в списке мест.',
+  'dayplan.impactNotes': 'Заметки: {count}',
+  'dayplan.impactTexts': 'Названия и описания дня: {count}',
+  'dayplan.impactDeletedHint': 'Тоже будут удалены.',
+  'dayplan.impactBookings': 'Бронирования: {count}',
+  'dayplan.impactStay': 'Проживание в {name}',
+  'dayplan.deleteDayBookingsHint': 'Они останутся в Бронированиях, без дня.',
+  'dayplan.deleteDayStayHint': 'Заезд или выезд приходится на этот день, поэтому проживание отменяется.',
+  'dayplan.deleteDayStayBookedHint':
+    'Заезд или выезд приходится на этот день, поэтому проживание отменяется вместе с бронированием «{booking}» и его расходом.',
+  'dayplan.deleteDayStayBookingHint':
+    'Заезд или выезд приходится на этот день, поэтому проживание отменяется вместе с бронированием «{booking}».',
+  'dayplan.deleteDayStayPaidHint':
+    'Заезд или выезд приходится на этот день, поэтому проживание отменяется вместе с бронированием «{booking}» и его расходом на {amount}.',
+  'dayplan.deleteDayShift': 'Последующие дни: {count}',
+  'dayplan.deleteDayShiftHint': 'Каждый сдвигается на одну дату раньше.',
+  'dayplan.deleteDayShiftBookingsHint':
+    'Каждый сдвигается на одну дату раньше. Бронирования, которые сдвигаются вместе с ними: {count}',
+  'dayplan.deleteDayShrink': 'Теперь поездка заканчивается {date}',
+  'dayplan.deleteDayShrinkHint': 'Нет дня без даты, который мог бы занять последнюю дату.',
+  'dayplan.impactStayShorter': 'Проживание в {name}: на одну ночь меньше',
+  'dayplan.deleteDayStayShorterHint': 'Выезд теперь {date}, потому что оно проходит через этот день.',
+  'dayplan.deleteDayStayShorterUndatedHint': 'Оно проходит через этот день и теперь заканчивается на день раньше.',
+  'dayplan.deleteDaySpareDated': '{day} получает дату {date}',
+  'dayplan.deleteDaySpareDatedHint': 'Это первый день без даты, и он получает последнюю дату поездки.',
+  'dayplan.deleteDayLast': 'В поездке должен быть хотя бы один день',
+  'dayplan.daysOffline': 'Для изменения дней нужно подключение',
+  'dayplan.deleteDaySuccess': 'День удалён',
+  'dayplan.deleteDayError': 'Не удалось удалить день',
+  'dayplan.addUndatedDay': 'Без даты',
+  'dayplan.addUndatedDayHint': 'Добавляет в конец день без даты. Даты поездки не меняются.',
+  'dayplan.addDatedDay': 'Добавить {date}',
+  'dayplan.addDatedDayHint': 'Добавляет {date} и продлевает поездку на один день.',
+  'dayplan.tripExtended': 'День добавлен. Теперь поездка заканчивается {date}, на день позже.',
 };
 export default dayplan;

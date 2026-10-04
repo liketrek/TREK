@@ -1,4 +1,4 @@
-// FE-DOCSYNC-PANEL-001 to FE-DOCSYNC-PANEL-022
+// FE-DOCSYNC-PANEL-001 to FE-DOCSYNC-PANEL-023
 
 /**
  * The document-sync dialog shell (#2391).
@@ -45,6 +45,27 @@ vi.mock('../../../api/client', async (importOriginal) => {
       items: (tripId: number | string, state?: string) => items(tripId, state),
       resolve: (tripId: number | string, itemId: number, keep: string) => resolve(tripId, itemId, keep),
       saveConnection: (tripId: number | string, data: unknown) => saveConnection(tripId, data),
+    },
+  }
+})
+
+/** Set by the one test that needs a render slower than React's time slice. */
+let slowCard = false
+
+vi.mock('./DocSyncBinding', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./DocSyncBinding')>()
+  const Card = actual.default
+  return {
+    ...actual,
+    default: function SlowableBinding(props: Parameters<typeof Card>[0]) {
+      // Busy for longer than the scheduler's 5 ms slice, so the commit that
+      // shows the card leaves its effects for a later task, as a loaded CI
+      // runner does.
+      if (slowCard) {
+        const end = performance.now() + 20
+        while (performance.now() < end) { /* busy */ }
+      }
+      return <Card {...props} />
     },
   }
 })
@@ -142,6 +163,7 @@ const confirmUnlink = () => {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  slowCard = false
   serverHas({})
   deleteLink.mockResolvedValue({})
   updateLink.mockResolvedValue({})
@@ -300,6 +322,39 @@ describe('DocSyncPanel: the store list', () => {
     expect(within(binding()).queryByText('Paperless-ngx')).not.toBeInTheDocument()
     expect(second).toHaveAttribute('aria-current', 'true')
     expect(within(sidebar()).getByRole('button', { name: /Paperless-ngx/ })).not.toHaveAttribute('aria-current')
+  })
+
+  it('FE-DOCSYNC-PANEL-023: a store picked before the list-following effect has run stays picked', async () => {
+    serverHas({
+      providers: [provider('paperless', 'Paperless-ngx'), provider('nextcloud', 'Nextcloud')],
+      links: [link(1, 'paperless'), link(2, 'nextcloud')],
+    })
+    slowCard = true
+
+    render(<DocSyncPanel tripId={7} canManage onClose={onClose} />)
+
+    // Outside act, as during the wait inside findBy*: React commits the card on
+    // its own scheduler, and the click lands the moment the card is in the DOM,
+    // before the effect that follows the list has had its turn.
+    const env = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+    const previous = env.IS_REACT_ACT_ENVIRONMENT
+    env.IS_REACT_ACT_ENVIRONMENT = false
+    try {
+      await new Promise<void>(resolve => {
+        const observer = new MutationObserver(() => {
+          if (!document.querySelector('article')) return
+          observer.disconnect()
+          fireEvent.click(within(sidebar()).getByRole('button', { name: /Nextcloud/ }))
+          resolve()
+        })
+        observer.observe(document.body, { childList: true, subtree: true })
+      })
+    } finally {
+      env.IS_REACT_ACT_ENVIRONMENT = previous
+    }
+
+    expect(within(binding()).getByText('Folder 2')).toBeInTheDocument()
+    expect(within(binding()).queryByText('Folder 1')).not.toBeInTheDocument()
   })
 })
 

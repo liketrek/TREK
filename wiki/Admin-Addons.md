@@ -1,6 +1,6 @@
 # Admin: Addons
 
-The **Addons** tab lets you enable or disable optional features for the entire TREK instance. Toggling an addon affects all users immediately: disabling one hides its UI elements and blocks its API routes instance-wide.
+The **Addons** tab (in the **Configuration** group of the admin side navigation) lets you enable or disable optional features for the entire TREK instance. Toggling an addon affects all users immediately: disabling one hides its UI elements and blocks its API routes instance-wide.
 
 ![Addon overview](assets/Addons-Overview.png)
 
@@ -10,13 +10,13 @@ Each addon toggle controls a feature set. When you disable an addon, users lose 
 
 ## Addon categories
 
-Addons are grouped into three categories, shown as labeled sections.
+Addons are grouped into three columns side by side: **Trip**, **Global** and **Integration**. Each column's head names the type with a short hint and counts how many of its addons are on, and the head of the **Addons** card shows the total as a pill (for example `9/14`; hover it for **{enabled} of {total} enabled**). Each addon is a tile with its icon, name, description and switch; its sub-toggles or settings open underneath the tile while it is on.
 
 ### Trip addons
 
 Trip addons add per-trip feature panels. They appear in every trip where the addon is enabled.
 
-The default trip addons are: **Lists**, **Costs**, **Documents** and **Collab** (all enabled by default), and **Road trip** (disabled by default). The exact list is determined by what is registered in your TREK database.
+The trip addons are: **Lists**, **Costs**, **Documents** and **Collab** (all enabled by default), and **Road trip** (disabled by default). The exact list is determined by what is registered in your TREK database.
 
 **Sub-toggles on trip addons:**
 
@@ -54,11 +54,11 @@ Integration addons connect TREK to external services. Most of them need addition
 - The **Naver List Import** addon imports the places of a shared Naver Maps list into a trip. **Enabled by default.** It needs no key.
 - The **AirTrail** addon syncs flights from a self-hosted AirTrail instance. **Disabled by default.** The toggle here is the instance-wide switch only; each user connects their own instance (URL + API key) in **Settings → Integrations**.
 - The **Dawarich** addon reads the stays and recorded routes of a self-hosted Dawarich instance and offers them as suggestions. **Disabled by default.** The toggle here is the instance-wide switch only; each user connects their own instance (address + API key) in **Settings → Integrations**. A Dawarich on your local network also needs `ALLOW_INTERNAL_NETWORK=true`. See [Dawarich](Dawarich).
-- The **AI Parsing** addon is the LLM fallback for booking imports KItinerary cannot read. **Disabled by default.** When enabled, its provider, base URL, API key, and model fields appear inline underneath the addon row. Filling them in sets the instance-wide config for all users; leaving them blank lets each user configure their own provider in **Settings → Integrations**. See [AI-Booking-Import](AI-Booking-Import).
+- The **AI Parsing** addon is the LLM fallback for booking imports KItinerary cannot read. **Disabled by default.** When enabled, its provider, base URL, API key, and model fields appear inline underneath the addon row, with **Model reads images** (**Automatic**, **Yes** or **No**). Automatic asks a local Ollama server whether the model reads images and means no for a cloud provider. When it resolves to yes, the booking import takes photos (JPG, PNG, WEBP) and scanned PDFs are read page by page, and Costs offers **Scan receipt**. Filling the fields in sets the instance-wide config for all users; leaving them blank lets each user configure their own provider in **Settings → Integrations**. See [AI-Booking-Import](AI-Booking-Import) and [Budget-Tracking](Budget-Tracking#scanning-a-receipt).
 
 ## Enabling or disabling an addon
 
-Click the toggle switch on any addon row. The change is applied immediately; no save button is needed. A brief success toast confirms the update.
+Click the switch on any addon tile. The change is applied immediately; no save button is needed. A brief success toast confirms the update.
 
 If a toggle fails (e.g., network error), it rolls back to its previous state.
 

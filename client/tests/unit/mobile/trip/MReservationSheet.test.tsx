@@ -2,12 +2,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MReservationSheet from '../../../../src/mobile/screens/trip/sheets/MReservationSheet'
 import { useAddonStore } from '../../../../src/store/addonStore'
 import { useTripStore } from '../../../../src/store/tripStore'
+import { useAuthStore } from '../../../../src/store/authStore'
+import { server } from '../../../helpers/msw/server'
+import { http, HttpResponse } from 'msw'
+import { buildBudgetItem, buildUser } from '../../../helpers/factories'
+import { useSettingsStore } from '../../../../src/store/settingsStore'
+import { isBlurred } from '../../../helpers/bookingCodeBlur'
 import type { Accommodation, Assignment, Day, Place, Reservation, TripMember } from '../../../../src/types'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { resetAllStores } from '../../../helpers/store'
-import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-RESSH-001 to FE-MOB-RESSH-051
+// FE-MOB-RESSH-001 to FE-MOB-RESSH-068 (plus 037b)
 
 // Date/time/select pickers have their own suites — here they only have to be
 // addressable, so they render as plain controls.
@@ -262,11 +268,72 @@ describe('MReservationSheet', () => {
       { id: 5, trip_id: 5, reservation_id: 99, original_name: 'other.pdf', url: '/uploads/other.pdf', deleted_at: null },
       { id: 6, trip_id: 5, linked_reservation_ids: [71], original_name: 'linked.pdf', url: '/uploads/linked.pdf', deleted_at: null },
     ]
-    setup(makePlanner({ editingReservation: linked, files }))
+    // The sheet reads the trip's files from the store (useReservationFiles), like the desktop dialog.
+    useTripStore.setState({ files: files as never })
+    setup(makePlanner({ editingReservation: linked }))
 
     expect(screen.getByText('voucher.pdf')).toBeInTheDocument()
     expect(screen.getByText('linked.pdf')).toBeInTheDocument()
     expect(screen.queryByText('other.pdf')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-RESSH-064: a saved booking can take a file the trip already has (#2084)', async () => {
+    const linked = { ...DINNER, id: 72 } as unknown as Reservation
+    const files = [
+      { id: 8, trip_id: 5, reservation_id: 72, original_name: 'menu.pdf', url: '/uploads/menu.pdf', deleted_at: null },
+      { id: 9, trip_id: 5, original_name: 'city-map.pdf', url: '/uploads/city-map.pdf', deleted_at: null },
+    ]
+    useAuthStore.setState({ user: buildUser({ id: 1 }) })
+    useTripStore.setState({ trip: { id: 5, user_id: 1 } as never, files: files as never })
+    let body: unknown = null
+    server.use(
+      http.post('/api/trips/5/files/9/link', async ({ request }) => {
+        body = await request.json()
+        return HttpResponse.json({ success: true })
+      }),
+      http.get('/api/trips/5/files', () => HttpResponse.json({ files })),
+    )
+    setup(makePlanner({ editingReservation: linked }))
+
+    // Only the other file is offered; the menu is already on the booking.
+    expect(screen.queryByText('city-map.pdf')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'files.link' }))
+    fireEvent.click(screen.getByText('city-map.pdf'))
+    await waitFor(() => expect(body).toEqual({ reservation_id: 72 }))
+    // A successful link folds the list away.
+    await waitFor(() => expect(screen.queryByText('city-map.pdf')).not.toBeInTheDocument())
+  })
+
+  it('FE-MOB-RESSH-065: without upload permission a booking still lists its files, just without the picker', () => {
+    const linked = { ...DINNER, id: 73 } as unknown as Reservation
+    useTripStore.setState({
+      files: [{ id: 10, trip_id: 5, reservation_id: 73, original_name: 'pass.pdf', url: '/uploads/pass.pdf', deleted_at: null }] as never,
+    })
+    setup(makePlanner({ editingReservation: linked, canUploadFiles: false }))
+    expect(screen.getByText('pass.pdf')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'files.attach' })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-RESSH-066: without upload permission and without files the file block stays away', () => {
+    setup(makePlanner({ editingReservation: DINNER, canUploadFiles: false }))
+    expect(screen.queryByText('files.title')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-RESSH-067: the booking lists its linked expenses and opens one for editing', () => {
+    const deposit = buildBudgetItem({ id: 80, trip_id: 5, name: 'Deposit', total_price: 50, reservation_id: 55 })
+    useTripStore.setState({ trip: { id: 5, currency: 'EUR' } as never, budgetItems: [deposit] })
+    const { onOpenExpense } = setup(makePlanner({ editingReservation: DINNER }))
+    expect(screen.getByText('Linked expenses')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Deposit'))
+    expect(onOpenExpense).toHaveBeenCalledWith({ editItem: deposit })
+  })
+
+  it('FE-MOB-RESSH-068: a saved booking offers the unlinked expenses of the trip', () => {
+    const loose = buildBudgetItem({ id: 81, trip_id: 5, name: 'Tram tickets', total_price: 9 })
+    useTripStore.setState({ trip: { id: 5, currency: 'EUR' } as never, budgetItems: [loose] })
+    setup(makePlanner({ editingReservation: DINNER }))
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }))
+    expect(screen.getByText('Tram tickets')).toBeInTheDocument()
   })
 
   it('FE-MOB-RESSH-007: the type chips switch the form between event and hotel layout', () => {
@@ -396,7 +463,7 @@ describe('MReservationSheet', () => {
     type(dates()[0], '2026-05-02')
     type(times()[0], '19:30')
     type(dates()[1], '2026-05-01')
-    fireEvent.click(screen.getByRole('button', { name: 'reservations.createExpense' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create expense' }))
 
     await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('reservations.validation.endBeforeStart'))
     expect(planner.handleSaveReservation).not.toHaveBeenCalled()
@@ -465,6 +532,20 @@ describe('MReservationSheet', () => {
     expect(screen.getByPlaceholderText('15:00')).toHaveValue('15:00')
     expect(screen.getByPlaceholderText('11:00')).toHaveValue('11:00')
     expect(screen.getByPlaceholderText('reservations.locationPlaceholder')).toHaveValue('Philharmonikerstrasse 4')
+  })
+
+  it('FE-MOB-RESSH-062: an imported track is not offered as the place of a stay', () => {
+    const track = { id: 103, name: 'Donauradweg', address: null, route_geometry: '[[48.2,16.3],[48.3,16.4]]' }
+    setup(makePlanner({ places: [...PLACES, track], editingReservation: HOTEL }))
+    const hotelOptions = [...screen.getByLabelText('reservations.meta.pickHotel').querySelectorAll('option')].map(o => o.textContent)
+    expect(hotelOptions).toContain('Hotel Sacher')
+    expect(hotelOptions).not.toContain('Donauradweg')
+  })
+
+  it('FE-MOB-RESSH-063: a stay already at a track keeps that track selected', () => {
+    const track = { id: 103, name: 'Donauradweg', address: null, route_geometry: '[[48.2,16.3],[48.3,16.4]]' }
+    setup(makePlanner({ places: [...PLACES, track], tripAccommodations: [{ ...ACCOMMODATIONS[0], place_id: 103 }], editingReservation: HOTEL }))
+    expect(screen.getByLabelText('reservations.meta.pickHotel')).toHaveAttribute('data-value', '103')
   })
 
   it('FE-MOB-RESSH-023: a hotel without an accommodation falls back to the booking location', () => {
@@ -643,8 +724,22 @@ describe('MReservationSheet', () => {
     expect((fd.get('file') as File).name).toBe('a.pdf')
   })
 
-  it('FE-MOB-RESSH-037: files are not re-uploaded when an existing booking is edited', async () => {
-    const { planner } = setup(makePlanner({ editingReservation: DINNER }))
+  it('FE-MOB-RESSH-037: files attached while editing a booking are uploaded against it (#2534)', async () => {
+    const { planner } = setup(makePlanner({ editingReservation: DINNER, handleSaveReservation: vi.fn(async () => DINNER) }))
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(['a'], 'a.pdf'), new File(['b'], 'b.pdf')] } })
+    fireEvent.click(submitBtn())
+
+    await waitFor(() => expect(planner.tripActions.addFile).toHaveBeenCalledTimes(2))
+    const [tripId, fd] = vi.mocked(planner.tripActions.addFile).mock.calls[1] as [number, FormData]
+    expect(tripId).toBe(5)
+    expect(fd.get('reservation_id')).toBe('55')
+    expect(fd.get('description')).toBe('Dinner')
+    expect((fd.get('file') as File).name).toBe('b.pdf')
+  })
+
+  it('FE-MOB-RESSH-037b: a failed edit keeps the attached files off the server', async () => {
+    const { planner } = setup(makePlanner({ editingReservation: DINNER, handleSaveReservation: vi.fn(async () => undefined) }))
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
     fireEvent.change(input, { target: { files: [new File(['a'], 'a.pdf')] } })
     fireEvent.click(submitBtn())
@@ -661,7 +756,7 @@ describe('MReservationSheet', () => {
     const { planner, onOpenExpense } = setup()
     fireEvent.click(screen.getByRole('button', { name: 'reservations.type.restaurant' }))
     type(titleField(), 'Dinner')
-    fireEvent.click(screen.getByRole('button', { name: 'reservations.createExpense' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create expense' }))
 
     await waitFor(() => expect(onOpenExpense).toHaveBeenCalled())
     expect(planner.handleSaveReservation).toHaveBeenCalledTimes(1)
@@ -681,7 +776,7 @@ describe('MReservationSheet', () => {
   it('FE-MOB-RESSH-041: without the budget addon there is no costs section', () => {
     useAddonStore.setState({ addons: [], loaded: true })
     setup()
-    expect(screen.queryByRole('button', { name: 'reservations.createExpense' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Create expense' })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-RESSH-042: a failing save surfaces the error message and unlocks the form', async () => {
@@ -806,5 +901,47 @@ describe('MReservationSheet', () => {
     pick(screen.getByLabelText('reservations.meta.pickHotel') as HTMLSelectElement, 102)
     expect(titleField()).toHaveValue('Cafe Central')
     expect(screen.getByPlaceholderText('reservations.locationPlaceholder')).toHaveValue('Manual 3')
+  })
+
+  // ── Blur booking codes in the edit sheet (#2457) ───────────────────────────
+
+  describe('blur booking codes (#2457)', () => {
+    /** Both sources the phone reads the preference from: the settings store and planner.settings. */
+    function plannerWithBlur(on: boolean, overrides: Record<string, unknown> = {}) {
+      useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, blur_booking_codes: on } })
+      return makePlanner({
+        settings: { time_format: '24h', date_format: 'DD.MM.YYYY', default_currency: 'EUR', distance_unit: 'km', blur_booking_codes: on },
+        ...overrides,
+      })
+    }
+    const codeField = () => screen.getByPlaceholderText('reservations.confirmationPlaceholder') as HTMLInputElement
+
+    it('FE-MOB-RESSH-058: the booking code field is blurred while the setting is on', () => {
+      setup(plannerWithBlur(true, { editingReservation: DINNER }))
+      expect(codeField()).toHaveValue('C1')
+      expect(isBlurred(codeField())).toBe(true)
+    })
+
+    it('FE-MOB-RESSH-059: focusing the field reveals the code for editing, leaving it hides it again', () => {
+      setup(plannerWithBlur(true, { editingReservation: DINNER }))
+      const field = codeField()
+      expect(isBlurred(field)).toBe(true)
+      act(() => field.focus())
+      expect(isBlurred(field)).toBe(false)
+      act(() => field.blur())
+      expect(isBlurred(field)).toBe(true)
+    })
+
+    it('FE-MOB-RESSH-060: with the setting off the code stays plain', () => {
+      setup(plannerWithBlur(false, { editingReservation: DINNER }))
+      expect(isBlurred(codeField())).toBe(false)
+    })
+
+    it('FE-MOB-RESSH-061: a blurred code still saves unchanged', async () => {
+      const { planner } = setup(plannerWithBlur(true, { editingReservation: DINNER }))
+      fireEvent.click(submitBtn())
+      await waitFor(() => expect(planner.handleSaveReservation).toHaveBeenCalled())
+      expect(savedPayload(planner).confirmation_number).toBe('C1')
+    })
   })
 })

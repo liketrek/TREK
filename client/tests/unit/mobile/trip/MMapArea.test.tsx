@@ -9,12 +9,15 @@ import { MAP_LAYER_SWITCHER_INSET, MAP_ROUND_CONTROL_SIZE } from '../../../../sr
 import { useSettingsStore } from '../../../../src/store/settingsStore'
 import { useTripStore } from '../../../../src/store/tripStore'
 import { seedStore } from '../../../helpers/store'
-import type { Place } from '../../../../src/types'
+import type { Day, Place, Reservation } from '../../../../src/types'
+import { visibleRouteReservations, type RouteVisibilityOptions } from '../../../../src/utils/reservationRoutes'
 import type { AlternativeOverlay } from '../../../../src/components/Roadtrip/alternativeOverlays'
 import type { LegAlternatives } from '../../../../src/components/Roadtrip/useRouteAlternatives'
+import { openLeg } from '../../../helpers/legAlternatives'
 import { RT_ALT_BAR_LIFT } from '../../../../src/mobile/screens/trip/roadtrip/useMRtAlternatives'
+import { corePoiCategories, pluginPoiCategories } from '../../../../src/components/Map/usePoiCategories'
 
-// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-035
+// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-049
 //
 // The stage's pins come out of the trip store rather than the planner's map list, so the
 // stage fixtures seed the store and leave `mapPlaces` to stand for what the plan tab shows.
@@ -143,7 +146,7 @@ const DRAWN = ['places', 'route', 'routeColors', 'accessLines', 'focusPoints'] a
 /** A picker open on leg 0 of day 3, with or without roads back yet. */
 function withPicker(overlays: AlternativeOverlay[], over: Partial<TripPlanner> = {}): Partial<TripPlanner> {
   const base = buildPlanner()
-  const open: LegAlternatives = { dayId: 3, index: 0, routes: [], loading: overlays.length === 0, error: false }
+  const open: LegAlternatives = openLeg({ dayId: 3, drive: { kind: 'leg', index: 0 }, loading: overlays.length === 0 })
   return {
     routeAlternatives: { ...base.routeAlternatives, open },
     alternativeOverlays: overlays,
@@ -175,11 +178,12 @@ beforeEach(() => {
   mocks.glMap = COMPASS
   mocks.prefs = {}
   mocks.poi = {
+    categories: { core: corePoiCategories(key => key), plugin: [] },
     active: new Set<string>(), pois: [], loadingKeys: new Set<string>(), errorKeys: new Set<string>(),
     moved: false, toggle: vi.fn(), searchArea: vi.fn(), onViewportChange: vi.fn(),
   }
   useSettingsStore.setState(s => ({ settings: { ...s.settings, map_poi_pill_enabled: true } }))
-  seedStore(useTripStore, { places: [], placesFilter: 'all', placesCategoryFilter: new Set<string>() })
+  seedStore(useTripStore, { places: [], placesFilter: 'all', placesCategoryFilter: new Set<string>(), placesRatingFilter: 'all' })
 })
 
 describe('MMapArea', () => {
@@ -190,15 +194,12 @@ describe('MMapArea', () => {
     expect(segment.style.flexGrow).toBe('1')
   })
 
-  it('FE-MOB-MAPAREA-002: the compass rides the same bottom offset as the locate button', () => {
+  it('FE-MOB-MAPAREA-002: the compass stands on top of the base-layer switcher', () => {
     const { container } = renderArea()
 
-    // LocationButton hard-codes `right: 12` off the same variable, so matching
-    // the offset here is what keeps the two round controls on one line.
-    expect(compassBand(container)?.style.bottom).toBe('calc(var(--bottom-nav-h, 84px) + 12px)')
-    // Beside the base-layer switcher both engines draw in the corner: its inset, its
-    // size and one gap. In the corner itself it lay under the switcher's frosted shell.
-    expect(compassBand(container)?.style.left).toBe(`${MAP_LAYER_SWITCHER_INSET + MAP_ROUND_CONTROL_SIZE + 8}px`)
+    // The switcher's band, raised by its size and one gap, on the switcher's own left edge.
+    expect(compassBand(container)?.style.bottom).toBe(`calc(var(--bottom-nav-h, 84px) + ${12 + MAP_ROUND_CONTROL_SIZE + 8}px)`)
+    expect(compassBand(container)?.style.left).toBe(`${MAP_LAYER_SWITCHER_INSET}px`)
     expect(compassBand(container)?.className).not.toContain('left-3')
   })
 
@@ -313,6 +314,21 @@ describe('MMapArea', () => {
     expect(planner.handlePoiClick).not.toHaveBeenCalled()
   })
 
+  it('FE-MOB-MAPAREA-045: a plugin POI is drawn from the search and tapped into the place form like any other', () => {
+    const trailhead = {
+      osm_id: 'plugin:trail-finder:th-1', name: 'Trailhead', lat: 53.3, lng: 9.6, category: 'plugin:trail-finder/trailheads',
+      source: 'plugin:trail-finder', pluginId: 'trail-finder', icon: 'Signpost', color: '#2f855a',
+      details: [{ label: 'Length', value: '12 km' }],
+    }
+    mocks.poi = { ...mocks.poi, pois: [trailhead] }
+    const { planner } = renderArea({ trTab: 'plan' }, { selectedDayId: 5 })
+
+    // Handed to the renderer whole, so the pin and the hover card can read its look and rows.
+    expect(mocks.props.pois).toEqual([trailhead])
+    ;(mocks.props.onPoiClick as (m: unknown) => void)(trailhead)
+    expect(planner.openAddPlaceFromPoi).toHaveBeenCalledWith(trailhead, 5)
+  })
+
   it('FE-MOB-MAPAREA-012: a focused hit takes the camera; with nothing pending the stage frames itself', () => {
     const focused = renderArea({ trTab: 'roadtrip' }, { mapFocusPoints: [[53.5, 9.8]] })
     expect(mocks.props.focusPoints).toEqual([[53.5, 9.8]])
@@ -328,8 +344,8 @@ describe('MMapArea', () => {
     for (const shellOver of [{ trTab: 'plan' }, { trTab: 'roadtrip', mapFront: true }] as Partial<MTripShellApi>[]) {
       const { container, unmount } = renderArea(shellOver)
 
-      expect(parseFloat(compassBand(container)?.style.left ?? '0'))
-        .toBeGreaterThanOrEqual(MAP_LAYER_SWITCHER_INSET + MAP_ROUND_CONTROL_SIZE)
+      // Above the switcher: raised past its full height, so the two never overlap.
+      expect(compassBand(container)?.style.bottom).toContain(`+ ${12 + MAP_ROUND_CONTROL_SIZE + 8}px`)
       // With the renderer mocked, the compass is still the one element in this layer
       // that sets --bottom-nav-h inline; its left offset joined the same style object.
       expect(container.querySelectorAll('[style*="--bottom-nav-h"]')).toHaveLength(1)
@@ -763,5 +779,214 @@ describe('MMapArea', () => {
 
     expect((mocks.props.places as Place[]).map(p => p.id)).toEqual([11, 20, 21])
     expect(mocks.props.places).not.toBe(planner.roadtripMapPlaces)
+  })
+
+  it('FE-MOB-MAPAREA-037: on the stage a seamed ride draws as its booking, whether or not it was toggled on', () => {
+    // The ride's own leg carries no geometry (carrierLeg), so the booking's arc is the
+    // only thing that joins the two terminals on the map. The planner folds the seamed
+    // bookings into `roadtripConnections`; the stage has to read that list, not the
+    // plan tab's toggles, or the road ends at the departure gate and picks up again at
+    // the arrival with nothing between.
+    const base = stagePlanner(3)
+    const [hamburg] = stageDay().stops
+    const terminal = (role: 'departure' | 'arrival') => ({
+      ...hamburg,
+      assignmentId: role === 'departure' ? -3000000140 : -3000000141,
+      placeId: -70,
+      name: role === 'departure' ? 'Hamburg Airport' : 'Munich Airport',
+      carrier: { reservationId: 70, type: 'flight', role, title: 'LH 2020', code: null, at: null },
+    })
+    const seamed = { ...stageDay(), stops: [hamburg, terminal('departure'), terminal('arrival')] } as unknown as RoadtripDay
+    const planner = {
+      ...base,
+      roadtripRoutes: { ...base.roadtripRoutes, days: [seamed] },
+      visibleConnections: [],
+      roadtripConnections: [70],
+    } as TripPlanner
+    const shell = stageShell()
+    const { rerender } = render(<MMapArea planner={planner} shell={shell} />)
+
+    expect(mocks.props.visibleConnectionIds).toEqual([70])
+    // A seamed ride joins the road whatever day it was booked on, so the stage does not
+    // hold bookings to the selected day the way the plan map does.
+    expect(mocks.props.scopeConnectionsToDay).toBe(false)
+
+    // The plan tab keeps the traveller's own toggles, as the desktop does off road trip mode.
+    rerender(<MMapArea planner={planner} shell={{ ...shell, trTab: 'plan' }} />)
+    expect(mocks.props.visibleConnectionIds).toBe(planner.visibleConnections)
+    expect(mocks.props.visibleConnectionIds).toEqual([])
+    expect(mocks.props.scopeConnectionsToDay).toBe(true)
+  })
+})
+
+/**
+ * #2456: the phone map is one day's picture. A day chip frames the day, draws its route
+ * and drops the other days' pins (MTripShell.selectDayOnMap), and the automated
+ * transports ride the day since #2019. A booking switched on through its own toggle
+ * ("On map") stayed on every day's map, though, because the per-booking branch of
+ * visibleRouteReservations is trip-wide.
+ *
+ * The renderer is mocked here, so what it WOULD draw is worked out the way both engines
+ * work it out: MapView and MapViewGL hand their own props to visibleRouteReservations.
+ * The whole prop bag goes in, so a day-scoping option added to the renderers under the
+ * util's own name is picked up as well as a filtered id list is.
+ */
+describe('MMapArea booking routes on the day-scoped plan map (#2456)', () => {
+  const DAYS = [
+    { id: 10, trip_id: 1, day_number: 1, date: '2026-05-01' },
+    { id: 11, trip_id: 1, day_number: 2, date: '2026-05-02' },
+    { id: 12, trip_id: 1, day_number: 3, date: '2026-05-03' },
+  ] as Day[]
+
+  function flight(over: Partial<Reservation> = {}): Reservation {
+    return {
+      id: 7, trip_id: 1, type: 'flight', title: 'FRA → LIS', status: 'confirmed',
+      day_id: 10, end_day_id: 10,
+      reservation_time: '2026-05-01T09:00', reservation_end_time: '2026-05-01T11:00',
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'Frankfurt', code: 'FRA', lat: 50.03, lng: 8.57, timezone: null, local_time: null, local_date: null },
+        { role: 'to', sequence: 1, name: 'Lisbon', code: 'LIS', lat: 38.77, lng: -9.13, timezone: null, local_time: null, local_date: null },
+      ],
+      ...over,
+    } as unknown as Reservation
+  }
+
+  /** The plan tab's map in front, a booking switched on, and the given day on the chips. */
+  function renderPlanMap(selectedDayId: number | null, booking: Reservation = flight()) {
+    const planner = buildPlanner({
+      days: DAYS,
+      selectedDayId,
+      reservations: [booking],
+      visibleConnections: [booking.id],
+      transitRoutesShown: false,
+    } as unknown as Partial<TripPlanner>)
+    render(<MMapArea planner={planner} shell={buildShell({ view: 'map', mapFront: true, trTab: 'plan' })} />)
+  }
+
+  /** The booking ids either renderer would draw a route for, from the props it was handed. */
+  const drawnBookingIds = () => visibleRouteReservations(
+    (mocks.props.reservations as Reservation[]) ?? [],
+    mocks.props as unknown as RouteVisibilityOptions,
+  ).map(r => r.id)
+
+  it('FE-MOB-MAPAREA-038: a booking switched on for day 1 is not drawn on the map of day 3', () => {
+    renderPlanMap(12)
+
+    expect(drawnBookingIds()).toEqual([])
+  })
+
+  it('FE-MOB-MAPAREA-039: the booking stays drawn on the day it runs on', () => {
+    renderPlanMap(10)
+
+    expect(drawnBookingIds()).toEqual([7])
+  })
+
+  it('FE-MOB-MAPAREA-040: an overnight booking is drawn on both of its days and on no other', () => {
+    const overnight = flight({ day_id: 10, end_day_id: 11 })
+
+    renderPlanMap(11, overnight)
+    expect(drawnBookingIds()).toEqual([7])
+
+    renderPlanMap(12, overnight)
+    expect(drawnBookingIds()).toEqual([])
+  })
+
+  it('FE-MOB-MAPAREA-041: the all days view keeps every switched-on booking', () => {
+    renderPlanMap(null)
+
+    expect(drawnBookingIds()).toEqual([7])
+  })
+
+  it('FE-MOB-MAPAREA-042: a booking bound to no day keeps drawing on every day', () => {
+    renderPlanMap(12, flight({ day_id: null, end_day_id: null }))
+
+    expect(drawnBookingIds()).toEqual([7])
+  })
+})
+
+describe('MMapArea and a booked night at the edge of the stage', () => {
+  it('FE-MOB-MAPAREA-043: a pin at the hotel opens its stored stop, never the bookend in front of it, else the inspector', () => {
+    const base = drivePlanner(3)
+    const [before, loop] = base.roadtripRoutes.days
+    const hotel = (placeId: number) => ({
+      ...loop.stops[0],
+      assignmentId: -6_000_000_006,
+      placeId,
+      ownerIndex: 0,
+      stopType: 'hotel',
+      bookend: { phase: 'morning', accommodationId: 5, reservationId: null, checkingOut: false, checkingIn: false, checkOut: null },
+    })
+    const withBookend = (placeId: number) => ({
+      ...base,
+      roadtripRoutes: { ...base.roadtripRoutes, days: [before, { ...loop, stops: [hotel(placeId), ...loop.stops] }] },
+    }) as TripPlanner
+    const shell = stageShell()
+    const { unmount } = render(<MMapArea planner={withBookend(11)} shell={shell} />)
+    tapPin(11)
+    expect(shell.openSheet).toHaveBeenLastCalledWith('rtstop', { dayId: 3, assignmentId: 31 })
+    unmount()
+
+    // A hotel the drive has as its bookend only: the road trip has no stop to open.
+    const only = withBookend(99)
+    const other = stageShell()
+    render(<MMapArea planner={only} shell={other} />)
+    tapPin(99)
+    expect(other.openSheet).not.toHaveBeenCalled()
+    expect(only.handleMarkerClick).toHaveBeenCalledWith(99)
+  })
+
+  it('FE-MOB-MAPAREA-044: the POI bar offers the plugin categories after its divider, without shrinking a segment', () => {
+    const plugin = pluginPoiCategories([{
+      id: 'trail-finder', name: 'Trail finder', type: 'integration', icon: null,
+      poiCategories: [{ id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' }],
+    }], 'en')
+    mocks.poi = { ...mocks.poi, categories: { core: corePoiCategories(key => key), plugin } }
+    renderArea()
+
+    const divider = screen.getByRole('separator')
+    const trailheads = screen.getByRole('button', { name: 'Trailheads' })
+    expect(divider.nextElementSibling).toBe(trailheads)
+    expect(trailheads.style.minWidth).toBe('34px')
+    expect((divider.parentElement as HTMLElement).style.overflowX).toBe('auto')
+    trailheads.click()
+    expect(mocks.poi.toggle).toHaveBeenCalledWith('plugin:trail-finder/trailheads')
+  })
+})
+
+describe('MMapArea — places filter', () => {
+  it('FE-MOB-MAPAREA-046: the plan map offers the places filter, and a tap opens its sheet', () => {
+    const { shell } = renderArea({ trTab: 'plan' })
+    const pill = screen.getByTestId('places-filter-pill')
+    expect(pill).toHaveAccessibleName('Filters')
+    // It opens a sheet: a dialog to announce, not an on/off state.
+    expect(pill).toHaveAttribute('aria-haspopup', 'dialog')
+    expect(pill).not.toHaveAttribute('aria-pressed')
+    act(() => { pill.click() })
+    expect(shell.openSheet).toHaveBeenCalledWith('placesFilter')
+  })
+
+  it('FE-MOB-MAPAREA-047: the pill lights up and counts the filters narrowing the pins', () => {
+    seedStore(useTripStore, { placesFilter: 'unplanned', placesRatingFilter: 4 })
+    renderArea({ trTab: 'plan' })
+    const pill = screen.getByTestId('places-filter-pill')
+    expect(pill).toHaveClass('text-accent')
+    expect(pill).not.toHaveAttribute('aria-pressed')
+    expect(pill).toHaveAttribute('aria-haspopup', 'dialog')
+    expect(pill).toHaveAccessibleName('Filters (2)')
+    expect(screen.getByText('2')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('FE-MOB-MAPAREA-049: a road trip keeps the places filter on its plan map, Dawarich or not', () => {
+    // The stack used to stand down in road-trip mode unless Dawarich had a pill in
+    // it; the plan map still shows the trip's places there, so its filter stays.
+    renderArea({ trTab: 'plan' }, { roadtripActive: true, dawarichEnabled: false })
+    expect(screen.getByTestId('places-filter-pill')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-MAPAREA-048: the stage draws its own pins, so it has no places filter, and neither has a covered map', () => {
+    renderArea({ trTab: 'roadtrip', mapFront: true })
+    expect(screen.queryByTestId('places-filter-pill')).not.toBeInTheDocument()
+    renderArea({ view: 'plan', mapFront: false })
+    expect(screen.queryByTestId('places-filter-pill')).not.toBeInTheDocument()
   })
 })

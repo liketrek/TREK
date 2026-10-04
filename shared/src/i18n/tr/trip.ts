@@ -1,7 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const trip: TranslationStrings = {
-  'trip.tabs.plan': 'Planı',
+  'trip.tabs.plan': 'Plan',
   'trip.tabs.transports': 'Ulaşım',
   'trip.tabs.reservations': 'Rezervasyonlar',
   'trip.tabs.reservationsShort': 'Rezerv.',
@@ -16,8 +16,9 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.pack': 'Bavullar toplanıyor...',
   'trip.loadingSteps.road': 'Yola çıkılıyor...',
   'trip.loadingSteps.arrive': 'Az kaldı...',
-  'trip.mobilePlan': 'Planı',
+  'trip.mobilePlan': 'Plan',
   'trip.mobilePlaces': 'Yerler',
+  'trip.panelWidth': 'Panel genişliği',
   'trip.toast.placeUpdated': 'Yer güncellendi',
   'trip.toast.tripUpdated': 'Gezi güncellendi',
   'trip.toast.placeAdded': 'Yer eklendi',
@@ -89,7 +90,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'Aktarma',
   'transit.walkLabel': 'Yürüyüş',
   'transit.searchHint': 'Gerçek bağlantıları ara ve doğrudan güne ekle — veriler Transitous üzerinden.',
-  'trip.confirm.deletePlaceNight': '“{name}” için ayrılan gece yerle birlikte silinir.',
-  'trip.confirm.deletePlaceBooked': '“{name}” için ayrılan gece, “{booking}” rezervasyonu ve ona bağlı tüm harcamalarla birlikte yerle beraber silinir.',
+  'trip.confirm.deletePlaceNight': '“{name}” için ayrılan konaklama da silinir.',
+  'trip.confirm.deletePlaceBooked':
+    '“{name}” için ayrılan konaklama, “{booking}” rezervasyonu ve ona bağlı tüm harcamalar da silinir.',
+  'trip.confirm.deletePlaceBookedSame':
+    '“{name}” için ayrılan konaklama, rezervasyonu ve ona bağlı tüm harcamalar da silinir.',
 };
 export default trip;

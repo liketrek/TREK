@@ -21,6 +21,7 @@ import { TodoService } from '../../src/nest/todo/todo.service';
 import { PackingService } from '../../src/nest/packing/packing.service';
 import { DayNotesService } from '../../src/nest/day-notes/day-notes.service';
 import { DaysService } from '../../src/nest/days/days.service';
+import { DayRemovalService } from '../../src/nest/days/day-removal.service';
 import { AssignmentsService } from '../../src/nest/assignments/assignments.service';
 import { LlmConfigResolver } from '../../src/nest/llm-parse/llm-config.resolver';
 import { SettingsService } from '../../src/nest/settings/settings.service';
@@ -89,6 +90,7 @@ import {
   createTestReservationDayPositionsRepo,
   createTestDayAccommodationsRepo,
   createTestUsersRepo,
+  createTestRoadtripDayBoundariesRepo,
 } from './test-uow';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { Addons } from '../../src/db/entities/Addons.entity';
@@ -137,6 +139,7 @@ import {
   createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
 } from './journey-repos';
 import { createTestJourneyShareTokensRepo } from './journey-share-repos';
+import { noGoogleQuota } from './google-quota';
 
 /**
  * Hand-wired counterpart of the PluginsModule DI graph for no-Nest tests
@@ -207,6 +210,8 @@ export async function createPluginRpcHostFactory(db: Database.Database): Promise
     await createTestReservationsRepo(db),
     await createTestReservationEndpointsRepo(db),
     await createTestDayAccommodationsRepo(db),
+    await createTestRoadtripViasRepo(db),
+    await createTestRoadtripDayBoundariesRepo(db),
   );
   const photoCache = new PlacePhotoCacheService(makeStorageFixture('photos/google/').storage, await createTestGooglePlacePhotoMetaRepo(db), await createTestPlacesRepo(db), await createTestCollectionPlacesRepo(db));
   const unsplash = new UnsplashService(appSettings, usersRepo, new RuntimeEnvService(), generalStorage);
@@ -246,7 +251,7 @@ export async function createPluginRpcHostFactory(db: Database.Database): Promise
     await createTestHiddenRegionsRepo(db), await createTestVisitedCountriesRepo(db),
     await createTestVisitedRegionsRepo(db), await createTestPlaceRegionsRepo(db),
     await createTestTripsRepo(db), await createTestPlacesRepo(db),
-    await createTestReservationEndpointsRepo(db), await createTestUnitOfWork(db),
+    await createTestReservationEndpointsRepo(db), await createTestUnitOfWork(db), (await sharedTestOrm(db)).orm,
   );
   const dayNotes = new DayNotesService(await createTestTripsRepo(db), permissions, realtime, await createTestDayNotesRepo(db), await createTestDaysRepo(db));
   const assignments = new AssignmentsService(
@@ -278,7 +283,7 @@ export async function createPluginRpcHostFactory(db: Database.Database): Promise
   );
   // After it: deleting a place cancels the nights booked at it through this one.
   const places = new PlacesService(
-    permissions, realtime, new MapsService(photoCache, appSettings, usersRepo, await createTestPlaceDetailsCacheRepo(db), await createTestPlacesRepo(db)), queryHelpers, unsplash, photoCache, journey, generalStorage, accommodations, await createTestUnitOfWork(db),
+    permissions, realtime, new MapsService(photoCache, appSettings, usersRepo, await createTestPlaceDetailsCacheRepo(db), await createTestPlacesRepo(db), noGoogleQuota), queryHelpers, unsplash, photoCache, journey, generalStorage, accommodations, await createTestUnitOfWork(db),
     await createTestPlacesRepo(db),
     await createTestTagsRepo(db),
     await createTestPlaceRatingsRepo(db),
@@ -291,7 +296,7 @@ export async function createPluginRpcHostFactory(db: Database.Database): Promise
   );
   // After accommodations: a hotel booking writes the stay's day stop through it.
   const reservations = new ReservationsService(permissions, budget, realtime, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(db), await createTestReservationEndpointsRepo(db), await createTestReservationTravelersRepo(db)), accommodations, await createTestUnitOfWork(db), await createTestReservationsRepo(db), await createTestReservationEndpointsRepo(db), await createTestReservationTravelersRepo(db), await createTestReservationDayPositionsRepo(db), await createTestDayAccommodationsRepo(db), await createTestDaysRepo(db), await createTestPlacesRepo(db), await createTestDayAssignmentsRepo(db), await createTestTripMembersRepo(db), await createTestUsersRepo(db), await createTestTripsRepo(db), await createTestBudgetItemsRepo(db));
-  const trips = new TripsService(reservations, days, permissions, budget, vacay, realtime, unsplash, generalStorage, await createTestUnitOfWork(db), (await sharedTestOrm(db)).em);
+  const trips = new TripsService(reservations, days, permissions, budget, vacay, realtime, unsplash, generalStorage, await createTestUnitOfWork(db), (await sharedTestOrm(db)).em, new SettingsService(await createTestUnitOfWork(db), appSettings, await createTestSettingsRepo(db)));
   // Plan 4 Task 4: UserCleanupService's UC1 now goes through a directly-injected
   // EntityManager (MaintenanceRepository.deletePluginUserData), not DatabaseService.
   const members = new TripMembersService(budget, new UserCleanupService((await sharedTestOrm(db)).em, budget, await createTestUnitOfWork(db), usersRepo, await createTestTripMembersRepo(db), await createTestBudgetItemsRepo(db), await createTestJourneyShareTokensRepo(db), await createTestJourneysRepo(db), await createTestJourneyEntriesRepo(db), await createTestJourneyContributorsRepo(db), await createTestShareTokensRepo(db), await createTestPluginsRepo(db), await createTestPluginUserErasureQueueRepo(db)), permissions, realtime, notificationsStub(), await createTestUnitOfWork(db), await createTestTripsRepo(db), await createTestTripMembersRepo(db), usersRepo);
@@ -312,7 +317,10 @@ export async function createPluginRpcHostFactory(db: Database.Database): Promise
     new PackingRpc(packing, realtime, guards),
     new FilesRpc(files, realtime, usersRepo, guards, generalStorage),
     new PlacesRpc(places, journey, realtime, guards),
-    new DaysRpc(days, realtime, guards),
+    new DaysRpc(days, realtime, guards, new DayRemovalService(
+      days, accommodations, assignments, await createTestUnitOfWork(db),
+      await createTestDaysRepo(db), await createTestDayAccommodationsRepo(db), await createTestRoadtripDayBoundariesRepo(db), await createTestTripsRepo(db),
+    )),
     new AccommodationsRpc(accommodations, realtime, guards),
     new ItineraryRpc(assignments, realtime, guards),
     new TripsRpc(trips, reservations, days, membership, realtime, guards, accommodations, members, (await sharedTestOrm(db)).em),
@@ -326,7 +334,7 @@ export async function createPluginRpcHostFactory(db: Database.Database): Promise
     // SV8 (Plan 3i, R-survivors) — JournalRpc's demo-mode gate (addEntryPhoto)
     // now injects DemoService, the same shared primitive mcp-test-controllers.ts
     // wires into the 4 *.mcp.ts survivor sites.
-    new JournalRpc(journey, guards, generalStorage, { get: () => '*' } as never, { schedule: () => {} } as never, new DemoService(new RuntimeEnvService(), (await sharedTestOrm(db)).em)),
+    new JournalRpc(journey, guards, generalStorage, { get: () => '*' } as never, { scheduleUpload: () => {} } as never, new DemoService(new RuntimeEnvService(), (await sharedTestOrm(db)).em)),
     new CollectionsRpc(collections, guards),
     new DbRpc(new PluginUserSettingsService(pluginOrm.repo(PluginSettingsFields), pluginOrm.repo(PluginUserConfig))),
     // Plan 3j Task 5 — MetaRpc's own MR1–MR9 conversion: PluginEntityMetadata plus

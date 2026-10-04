@@ -9,6 +9,7 @@ export class VacayCompanyHolidays {
   plan_id!: number;
   date!: string;
   note?: string | null = '';
+  fraction!: number & Opt;
 }
 
 export const VacayCompanyHolidaysSchema = defineEntity({
@@ -21,5 +22,6 @@ export const VacayCompanyHolidaysSchema = defineEntity({
     plan_id: p.integer().persist(false),
     date: p.text(),
     note: p.text().nullable(),
+    fraction: p.double().defaultRaw(`1`),
   },
 });

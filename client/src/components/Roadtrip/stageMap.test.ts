@@ -3,7 +3,7 @@ import { dayColor } from './dayColors'
 import { stageMapData, stagePlaceIds, stagePoints } from './stageMap'
 import type { AccessSpur, RoadtripDay, RoadtripRoutes, RoadtripStop } from '@trek/shared/roadtrip'
 
-// FE-RTSTAGE-001 to FE-RTSTAGE-015
+// FE-RTSTAGE-001 to FE-RTSTAGE-021
 
 function stop(name: string, over: Partial<RoadtripStop> = {}): RoadtripStop {
   return {
@@ -246,5 +246,24 @@ describe('stagePoints', () => {
       [51.31, 9.49],
       [50.55, 9.68],
     ])
+  })
+})
+
+describe('a stage that starts or ends at a booked night', () => {
+  it('FE-RTSTAGE-021: the hotel is on the stage, pin, fit and walk from the road, when only its bookend stands there', () => {
+    const hotel = stop('Hotel Alpenblick', {
+      assignmentId: -6_000_000_014,
+      placeId: 900,
+      lat: 47.2,
+      lng: 11.4,
+      stopType: 'hotel',
+      bookend: { phase: 'morning', accommodationId: 5, reservationId: null, checkingOut: false, checkingIn: false, checkOut: null },
+    })
+    const stage = day([hotel, stop('Kassel', { placeId: 11, lat: 51.31, lng: 9.49 })])
+    const walk = spur(keyFor(hotel))
+    const data = stageMapData(routes({ lines: [[[47.2, 11.4], [51.31, 9.49]]], lineDays: [2], lineJoins: [false], accessLines: [walk] }), stage, false)
+    expect([...data.placeIds]).toEqual([900, 11])
+    expect(data.focusPoints[0]).toEqual([47.2, 11.4])
+    expect(data.accessLines).toEqual([walk])
   })
 })

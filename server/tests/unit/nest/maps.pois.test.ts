@@ -27,6 +27,7 @@ vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KE
 
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 
@@ -115,7 +116,7 @@ afterEach(() => {
 function make(enabled = true) {
   if (enabled) delete process.env.TREK_PLACES_ENABLED;
   else process.env.TREK_PLACES_ENABLED = 'false';
-  return new MapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never);
+  return new MapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
 }
 
 // Overpass is the one network call this file must never make; stubbing it is
@@ -240,6 +241,20 @@ describe('MapsService.pois answered from the index', () => {
       cuisine: null,
       source: 'trek-places',
     });
+  });
+
+  // #2483: the index keeps websites the way the operator typed them.
+  it('MAPS-POIS-015: a website without a scheme gains https, one that is no website becomes null', async () => {
+    mockNearby.mockResolvedValue([
+      { ...FULL, contact: { ...FULL.contact, website: 'cafecentral.wien/de' } },
+      { ...FULL, gers: 'a-2', contact: { ...FULL.contact, website: 'javascript:alert(1)' } },
+    ]);
+    const svc = make();
+    stubOverpass(svc);
+
+    const out = await svc.pois('cafe', BOX);
+
+    expect(out.pois.map((p) => p.website)).toEqual(['https://cafecentral.wien/de', null]);
   });
 
   it('MAPS-POIS-004: asks the index for the categories behind the pill, around the viewport centre', async () => {

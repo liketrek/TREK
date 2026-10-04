@@ -29,7 +29,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { TripAccessGuard } from '../permissions/trip-access.guard';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import { Trip } from '../permissions/trip.decorator';
-import { MAX_FILE_SIZE, BLOCKED_EXTENSIONS, isVideoExtension } from './files.constants';
+import { MAX_FILE_SIZE, BLOCKED_EXTENSIONS, isUploadTypeAllowed, isVideoExtension } from './files.constants';
 import { FileUploadDto, FileUpdateDto, FileLinkDto } from './files.dto';
 import { AllowedFileTypesService } from './allowed-file-types.service';
 import { logError } from '../audit/audit-log.logger';
@@ -61,15 +61,14 @@ export function filesUploadFileFilter(allowedTypes: AllowedFileTypesService): Op
     // await is wrapped in try/catch; a throw from cb() itself lands in the
     // trailing .catch, which logs it and answers multer one final time.
     (async () => {
-      let allowed: string[];
+      let allowedList: string;
       try {
-        allowed = (await allowedTypes.get()).split(',').map((e) => e.trim().toLowerCase());
+        allowedList = await allowedTypes.get();
       } catch {
         return reject();
       }
-      const fileExt = ext.replace('.', '');
-      // Video is accepted as media regardless of the admin doc-types allowlist (#823).
-      if (allowed.includes(fileExt) || isVideoExtension(fileExt) || (allowed.includes('*') && !BLOCKED_EXTENSIONS.includes(ext))) return cb(null, true);
+      // Shared with the MCP upload tool (#1566): blocked/SVG never, video always (#823).
+      if (isUploadTypeAllowed(file.originalname, file.mimetype, allowedList)) return cb(null, true);
       reject();
     })().catch((err: unknown) => {
       logError(`files upload fileFilter: ${err instanceof Error ? err.message : String(err)}`);

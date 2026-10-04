@@ -8,7 +8,7 @@ export const todoRepo = {
     return onlineThenCache(
       async () => {
         const result = await todoApi.list(tripId)
-        upsertTodoItems(result.items)
+        void upsertTodoItems(result.items)
         return result
       },
       async () => ({

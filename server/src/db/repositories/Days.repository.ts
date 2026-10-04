@@ -1,7 +1,4 @@
 import type { Days } from '../entities/Days.entity';
-import { DayAssignments } from '../entities/DayAssignments.entity';
-import { DayNotes } from '../entities/DayNotes.entity';
-import { DayAccommodations } from '../entities/DayAccommodations.entity';
 import { columnRef } from '../dialect/sql-functions';
 import { toRow, type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
@@ -39,6 +36,22 @@ export interface PlanDayRow {
   date: string | null;
   title: string | null;
   default_transport_mode: string | null;
+}
+
+/** TP77's projection: a day as the shared planDayGrid reads it. `has_plan_items` is SQLite's 0/1. */
+export interface DayGridReadRow {
+  id: number;
+  day_number: number;
+  date: string | null;
+  has_plan_items: number;
+}
+
+/** The narrow table shape TP77/TP78 read (`this.kysely()`'s typed `DB` argument). */
+interface DayGridKyselyDB {
+  days: { id: number; trip_id: number; day_number: number; date: string | null };
+  day_assignments: { id: number; day_id: number };
+  day_notes: { id: number; day_id: number };
+  day_accommodations: { id: number; start_day_id: number; end_day_id: number };
 }
 
 export class DaysRepository extends TrekRepository<Days> {
@@ -293,61 +306,49 @@ export class DaysRepository extends TrekRepository<Days> {
   // file-ownership rule ("additive methods on Days/Places/Users repositories").
   // ---------------------------------------------------------------------------
 
-  /** TP3 — `UPDATE days SET date = NULL WHERE id = ?` (nullifies rather than deletes: assignments/notes/accommodations survive). */
-  async clearDate(id: number): Promise<void> {
-    await this.nativeUpdate({ id }, { date: null });
+  /**
+   * TP77 (`trips.service.ts::generateDays`, the shared planDayGrid input) —
+   * `SELECT d.id, d.day_number, d.date, EXISTS (SELECT 1 FROM day_assignments
+   * da WHERE da.day_id = d.id) OR EXISTS (SELECT 1 FROM day_notes dn WHERE
+   * dn.day_id = d.id) AS has_plan_items FROM days d WHERE d.trip_id = ?`.
+   * Ordered by `day_number` here where the legacy statement has no `ORDER BY`:
+   * harmless, the plan sorts by `day_number` itself. `$castTo` for the same
+   * reason `DayAssignmentsRepository.listForTimeSort` gives: Kysely types the
+   * `eb.or(...)` column as its own `SqlBool`, not the `0`/`1` SQLite returns.
+   */
+  async listForDayGrid(trip_id: number): Promise<DayGridReadRow[]> {
+    return await this.kysely<DayGridKyselyDB>()
+      .selectFrom('days as d')
+      .select(['d.id', 'd.day_number', 'd.date'])
+      .select((eb) =>
+        eb.or([
+          eb.exists(eb.selectFrom('day_assignments as da').select('da.id').whereRef('da.day_id', '=', 'd.id')),
+          eb.exists(eb.selectFrom('day_notes as dn').select('dn.id').whereRef('dn.day_id', '=', 'd.id')),
+        ]).as('has_plan_items'),
+      )
+      .where('d.trip_id', '=', trip_id)
+      .orderBy('d.day_number', 'asc')
+      .$castTo<DayGridReadRow>()
+      .execute();
   }
 
   /**
-   * TP12 (`trips.service.ts::generateDays`'s `isEmptyDay`) — the legacy
-   * statement is `SELECT NOT EXISTS(...) AND NOT EXISTS(...) AND NOT
-   * EXISTS(...) AS empty` with no `FROM` clause and `@id` named params, the
-   * single most dialect-specific statement in the cluster (inventory §17b).
-   * Expressed here as three `count()`s (R6's own "three counts" alternative
-   * to a Kysely `selectNoFrom`), one per table the legacy statement's three
-   * `NOT EXISTS` correlate against — `day_assignments` and `day_notes` are
-   * this plan's own tables; `day_accommodations` is Plan 3d's, read (never
-   * written) here through the entity's already-generated `TrekRepository`
-   * (`this.getEntityManager().getRepository(DayAccommodations)`, the same
-   * cross-repository-read shape `TripMembersRepository.rosterUserIds`
-   * documents for `Trips`) — no domain method of `days`' own is added to
-   * that repository, so ownership of `day_accommodations`' write logic
-   * stays with Plan 3d.
+   * TP78 (`trips.service.ts::generateDays`) — `SELECT dac.start_day_id,
+   * dac.end_day_id FROM day_accommodations dac WHERE dac.start_day_id IN
+   * (SELECT id FROM days WHERE trip_id = ?) OR dac.end_day_id IN (SELECT id
+   * FROM days WHERE trip_id = ?)`: every stay touching one of the trip's days.
    */
-  async isEmptyDay(day_id: number): Promise<boolean> {
-    const em = this.getEntityManager();
-    const [assignments, notes, accommodations] = await Promise.all([
-      em.getRepository(DayAssignments).count({ day: day_id }),
-      em.getRepository(DayNotes).count({ day: day_id }),
-      em.getRepository(DayAccommodations).count({ $or: [{ startDay: day_id }, { endDay: day_id }] }),
-    ]);
-    return assignments === 0 && notes === 0 && accommodations === 0;
-  }
-
-  /**
-   * TP6 (`trips.service.ts::generateDays`'s trailing-empty trim) — the
-   * legacy statement orders candidate days `ORDER BY d.day_number DESC` and
-   * takes the first `limit` that pass all three `NOT EXISTS` checks (§17b).
-   * Reproduced here by reading every day of the trip in the same
-   * `day_number DESC` order and filtering with {@link isEmptyDay} per row,
-   * stopping once `limit` matches are collected — same result set as the
-   * single correlated statement (both examine days in day_number-descending
-   * order and take the first N that are empty), documented per R6 as the
-   * "three counts, comment which" alternative to a Kysely `selectNoFrom`.
-   */
-  async listTrailingEmptyIds(trip_id: number, limit: number): Promise<number[]> {
-    if (limit <= 0) return [];
-    const candidates = await this.qb('d')
-      .select(['d.id'])
-      .where({ trip: trip_id })
-      .orderBy({ day_number: 'desc' })
-      .execute<{ id: number }[]>('all', false);
-    const empty: number[] = [];
-    for (const c of candidates) {
-      if (empty.length >= limit) break;
-      if (await this.isEmptyDay(c.id)) empty.push(c.id);
-    }
-    return empty;
+  async listDayGridStays(trip_id: number): Promise<{ start_day_id: number; end_day_id: number }[]> {
+    return await this.kysely<DayGridKyselyDB>()
+      .selectFrom('day_accommodations as dac')
+      .select(['dac.start_day_id', 'dac.end_day_id'])
+      .where((eb) =>
+        eb.or([
+          eb('dac.start_day_id', 'in', eb.selectFrom('days').select('id').where('trip_id', '=', trip_id)),
+          eb('dac.end_day_id', 'in', eb.selectFrom('days').select('id').where('trip_id', '=', trip_id)),
+        ]),
+      )
+      .execute();
   }
 
   // ---------------------------------------------------------------------------

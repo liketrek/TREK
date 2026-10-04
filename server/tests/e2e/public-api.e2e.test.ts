@@ -144,6 +144,7 @@ const STATS = {
     totalDistanceKm: 1234,
   }),
   lastTrip: () => null,
+  nextTrip: () => null,
 };
 
 describe('Public API v1 e2e (real guard + real SQL)', () => {

@@ -14,15 +14,17 @@ An invite link lets a person register a new TREK account without requiring the s
 
 > **Admin:** invite link management is available in [Admin-Users-and-Invites](Admin-Users-and-Invites). Only admins can create invite links.
 
-When creating an invite link you set two parameters:
+Invite links live in the **Invite Links** card under **Admin > Users**. Click **Create Link** and set:
 
-**Max uses** — how many times the link can be used to register an account. Choose from preset buttons: **1×, 2×, 3×, 4×, 5×**, or **∞** (unlimited).
+**Max. Uses**: how many times the link can be used to register an account. Choose from preset buttons: **1×, 2×, 3×, 4×, 5×**, or **∞** (unlimited).
 
-**Expiry** — how long until the link stops working. Choose from preset buttons: **1d, 3d, 7d, 14d**, or **∞** (no expiry).
+**Expires after**: how long until the link stops working. Choose from preset buttons: **1d, 3d, 7d, 14d**, or **∞** (no expiry).
 
-**Add to trip (optional)** — bind the invite to any trip on the instance, not just your own. When someone registers through the link, they are automatically added to that trip as a member. Leave it on **No trip** for a plain registration invite. The selector only appears when at least one trip exists.
+**Add to trip (optional)**: bind the invite to any trip on the instance, not just your own. When someone registers through the link, they are automatically added to that trip as a member. Leave it on **No trip** for a plain registration invite. The selector only appears when at least one trip exists.
 
-Once created, a 32-character hexadecimal token is generated and the URL is automatically copied to your clipboard.
+**Create & Copy** generates a 32-character hexadecimal token and copies the URL to your clipboard.
+
+Each link in the list shows whether it is **Active**, **Expired** or **Used up**, how often it was used out of its limit, when it expires, the trip it adds to, and who created it. The copy button (**Copy link**) copies its URL again.
 
 ## Sharing the link
 

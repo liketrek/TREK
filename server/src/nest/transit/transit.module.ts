@@ -12,6 +12,7 @@ import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { Users } from '../../db/entities/Users.entity';
 import { Trips } from '../../db/entities/Trips.entity';
+import { GoogleQuotaModule } from '../google-quota/google-quota.module';
 
 /**
  * Transit domain (#1065) — the Transitous/MOTIS proxy, with the optional
@@ -29,7 +30,7 @@ import { Trips } from '../../db/entities/Trips.entity';
  */
 @Module({
   // DaysModule + ReservationsModule: TransitMcp's create_transit_journey injects both.
-  imports: [McpSharedModule, RateLimitModule, DaysModule, ReservationsModule, AuthModule, MikroOrmModule.forFeature([AppSettings, Users, Trips])],
+  imports: [McpSharedModule, RateLimitModule, DaysModule, ReservationsModule, AuthModule, MikroOrmModule.forFeature([AppSettings, Users, Trips]), GoogleQuotaModule],
   controllers: [TransitController],
   providers: [TransitService, TransitMcp, GoogleTransitProvider],
   exports: [TransitService],

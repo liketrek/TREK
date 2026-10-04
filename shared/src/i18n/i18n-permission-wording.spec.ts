@@ -24,4 +24,14 @@ describe('canonical permission wording', () => {
     // It has to say where the position does come from, or it explains nothing.
     expect(copy).toMatch(/permission/i);
   });
+
+  it('I18N-PERM-002: the POI category permission says the plugin is sent the map area', () => {
+    // Unlike a search provider, which only sees words the user typed, this hook is
+    // handed the viewport every time one of its chips is picked. An admin reading the
+    // consent line has to learn that there, not from the plugin's own documentation.
+    const copy = admin['admin.plugins.perm.hook:poi-category-provider'];
+
+    expect(copy).toBeTruthy();
+    expect(copy).toMatch(/map area/i);
+  });
 });

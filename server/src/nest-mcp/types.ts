@@ -126,8 +126,9 @@ export interface McpZodSchema {
 }
 
 /**
- * Mirrors the SDK's `registerTool` config. `inputSchema` is passed straight
- * through — the SDK does the parsing/validation.
+ * Mirrors the SDK's `registerTool` config. A shape `inputSchema` is registered
+ * as a strict object (see registry.ts); a whole schema is passed as written. The
+ * SDK does the parsing/validation either way.
  * `annotations`/`_meta` are kept structural so the package's public d.ts
  * never imports deep SDK subpaths.
  */

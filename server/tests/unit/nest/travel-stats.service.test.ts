@@ -26,7 +26,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vites
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createPlace, createReservation, addTripMember } from '../../helpers/factories';
 import { AtlasService } from '../../../src/nest/atlas/atlas.service';
-import { createTestUnitOfWork, createTestTripsRepo, createTestPlacesRepo, createTestReservationEndpointsRepo } from '../../helpers/test-uow';
+import { createTestUnitOfWork, createTestTripsRepo, createTestPlacesRepo, createTestReservationEndpointsRepo, sharedTestOrm } from '../../helpers/test-uow';
 import {
   createTestBucketListRepo,
   createTestHiddenCountriesRepo,
@@ -50,6 +50,7 @@ beforeAll(async () => {
     await createTestPlacesRepo(testDb),
     await createTestReservationEndpointsRepo(testDb),
     await createTestUnitOfWork(testDb),
+    (await sharedTestOrm(testDb)).orm,
   );
 });
 beforeEach(() => { resetTestDb(testDb); vi.clearAllMocks(); });

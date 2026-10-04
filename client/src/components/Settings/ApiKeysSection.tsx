@@ -1,12 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useId, useRef, useState } from 'react'
 import {
   KeyRound, Plus, Trash2, Copy, Check, AlertTriangle, Briefcase, CalendarDays, MapPin,
   StickyNote, Ticket, Hotel, Users, Star, BarChart3, type LucideIcon,
 } from 'lucide-react'
 import { PUBLIC_API_SCOPES, type PublicApiScope } from '@trek/shared'
 import Section from './Section'
-import Modal from '../shared/Modal'
 import ConfirmDialog from '../shared/ConfirmDialog'
+import { Tooltip } from '../shared/Tooltip'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
+import { EditorField, GRID_2, INPUT, LABEL } from '../shared/dialogParts'
+import { SETTINGS_BUTTON_PRIMARY, SETTINGS_ICON_BUTTON, SettingsHint, StatusPill } from './settingsKit'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { authApi } from '../../api/client'
@@ -69,7 +72,7 @@ function withCode(text: string): React.ReactNode[] {
   return text.split(/("[^"]+"|\/api\/v1)/).map((part, i) => {
     if (i % 2 === 0) return part
     return (
-      <code key={i} className="rounded px-1 py-px font-mono bg-surface-hover text-content-secondary">
+      <code key={i} className="rounded-[5px] bg-surface-tertiary px-1 py-px font-geist text-content-secondary">
         {part.replace(/^"|"$/g, '')}
       </code>
     )
@@ -79,6 +82,7 @@ function withCode(text: string): React.ReactNode[] {
 export default function ApiKeysSection(): React.ReactElement {
   const { t, locale } = useTranslation()
   const toast = useToast()
+  const dialogLabelId = useId()
   const [keys, setKeys] = useState<ApiKey[]>([])
   /** A failed load must not read as "you have no keys": that sends people off minting duplicates. */
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'failed'>('loading')
@@ -201,149 +205,171 @@ export default function ApiKeysSection(): React.ReactElement {
     })
   }
 
+  const header = (
+    <DialogHeader
+      tile={<DialogTile><KeyRound size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+      tint={NEUTRAL_TINT}
+      labelId={dialogLabelId}
+      // Once the key is on screen the cross does what Done does: it is a deliberate
+      // click, unlike the Escape and backdrop the shell ignores below.
+      onClose={closeModal}
+      title={created ? t('settings.apiKeys.modal.createdTitle') : t('settings.apiKeys.modal.createTitle')}
+    />
+  )
+
+  const footer = created ? (
+    <DialogFooter>
+      <FooterSpacer />
+      <DialogButton variant="primary" onClick={closeModal}>{t('settings.apiKeys.modal.done')}</DialogButton>
+    </DialogFooter>
+  ) : (
+    <DialogFooter>
+      <FooterSpacer />
+      <DialogButton onClick={closeModal}>{t('common.cancel')}</DialogButton>
+      <DialogButton variant="primary" onClick={handleCreate} disabled={!canCreate}
+        icon={creating ? <span aria-hidden className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : undefined}>
+        {creating ? t('settings.apiKeys.modal.creating') : t('settings.apiKeys.modal.create')}
+      </DialogButton>
+    </DialogFooter>
+  )
+
   return (
     <>
-      <Section title={t('settings.apiKeys.title')} icon={KeyRound}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-          <p className="text-body text-content-secondary">{t('settings.apiKeys.description')}</p>
-          <button type="button" onClick={openModal} disabled={atLimit}
-            className="inline-flex flex-shrink-0 items-center gap-1.5 self-start rounded-lg px-3.5 py-2 text-body font-medium transition-colors bg-accent text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50">
-            <Plus className="w-4 h-4" /> {t('settings.apiKeys.create')}
+      <Section
+        title={t('settings.apiKeys.title')}
+        icon={KeyRound}
+        badge={keys.length > 0 ? <StatusPill>{keys.length}/{MAX_KEYS}</StatusPill> : undefined}
+        action={(
+          <button type="button" onClick={openModal} disabled={atLimit} className={SETTINGS_BUTTON_PRIMARY} style={fs(12.5, 'body')}>
+            <Plus size={14} /> {t('settings.apiKeys.create')}
           </button>
-        </div>
+        )}
+      >
+        <SettingsHint>{t('settings.apiKeys.description')}</SettingsHint>
 
         {atLimit && (
-          <p className="text-caption text-content-muted">{t('settings.apiKeys.limitReached', { max: MAX_KEYS })}</p>
+          <div className="flex gap-2.5 rounded-[12px] bg-warning-soft px-3.5 py-2.5 text-content" style={fs(12.5, 'body')}>
+            <AlertTriangle size={15} className="mt-px flex-none text-warning" />
+            <p className="m-0 leading-snug">{t('settings.apiKeys.limitReached', { max: MAX_KEYS })}</p>
+          </div>
+        )}
+
+        {loadState === 'loading' && (
+          <div aria-hidden className="flex flex-col gap-2">
+            <div className="h-[62px] animate-pulse rounded-[12px] bg-surface-tertiary" />
+          </div>
         )}
 
         {loadState === 'failed' && (
-          <p role="alert" className="rounded-lg px-3 py-2.5 text-caption bg-danger-soft text-danger">
+          <p role="alert" className="m-0 rounded-[12px] bg-danger-soft px-3.5 py-2.5 text-danger" style={fs(12.5, 'body')}>
             {t('settings.apiKeys.loadFailed')}
           </p>
         )}
 
         {loadState === 'ready' && keys.length === 0 && (
-          <div className="flex flex-col items-center gap-2.5 rounded-lg border border-dashed px-4 py-6 text-center border-edge">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-hover">
-              <KeyRound className="w-5 h-5 text-content-muted" />
+          <div className="flex flex-col items-center gap-2.5 rounded-[12px] border border-dashed border-edge bg-surface-card px-4 py-6 text-center">
+            <span className="grid h-10 w-10 place-items-center rounded-[12px] bg-surface-tertiary text-content-muted">
+              <KeyRound size={18} strokeWidth={1.9} />
             </span>
-            <p className="text-body text-content-muted">{t('settings.apiKeys.empty')}</p>
+            <p className="m-0 text-content-muted" style={fs(12.5, 'body')}>{t('settings.apiKeys.empty')}</p>
           </div>
         )}
 
         {keys.length > 0 && (
-          <ul className="m-0 list-none space-y-2 p-0">
+          <ul className="m-0 list-none divide-y divide-edge-faint overflow-hidden rounded-[12px] border border-edge-faint bg-surface-card p-0">
             {keys.map(key => (
               <ApiKeyRow key={key.id} apiKey={key} locale={locale} onDelete={() => setDeleteId(key.id)} />
             ))}
           </ul>
         )}
 
-        <div className="space-y-2 border-t pt-4 border-edge-secondary">
-          <span className="block text-caption font-medium text-content-secondary">{t('settings.apiKeys.endpoint')}</span>
+        <div className="flex flex-col gap-2 border-t border-edge-faint pt-4">
+          <span className={LABEL + ' !mb-0'}>{t('settings.apiKeys.endpoint')}</span>
           <div className="flex items-center gap-2">
-            <code className="min-w-0 flex-1 truncate rounded-lg border px-3 py-2 font-mono text-caption border-edge bg-surface-secondary text-content">
+            <code className="block min-w-0 flex-1 truncate rounded-[10px] border border-edge-faint bg-surface-card px-3 py-2 font-geist text-content" style={fs(12.5, 'body')}>
               {endpoint}
             </code>
-            <button type="button" onClick={() => handleCopy(endpoint, 'endpoint')}
-              className="flex-shrink-0 rounded-lg border p-2 transition-colors border-edge text-content-secondary hover:bg-surface-hover"
-              title={t('common.copy')} aria-label={t('common.copy')}>
-              {copied === 'endpoint' ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
-            </button>
+            <Tooltip label={t('common.copy')}>
+              <button type="button" onClick={() => handleCopy(endpoint, 'endpoint')}
+                className={`${SETTINGS_ICON_BUTTON} !h-9 !w-9`}
+                aria-label={t('common.copy')}>
+                {copied === 'endpoint' ? <Check size={15} className="text-success" /> : <Copy size={15} />}
+              </button>
+            </Tooltip>
           </div>
-          <p className="text-caption text-content-muted">{withCode(t('settings.apiKeys.docsHint'))}</p>
+          <SettingsHint>{withCode(t('settings.apiKeys.docsHint'))}</SettingsHint>
         </div>
       </Section>
 
-      <Modal
-        isOpen={modalOpen}
+      <DialogShell
+        open={modalOpen}
         // Once the key is on screen, Done is the only way out: a stray Escape or
         // backdrop click would throw away the one copy there will ever be.
         onClose={created ? () => {} : closeModal}
-        hideCloseButton={!!created}
-        size="lg"
-        title={created ? t('settings.apiKeys.modal.createdTitle') : t('settings.apiKeys.modal.createTitle')}
-        footer={created ? (
-          <div className="flex justify-end">
-            <button type="button" onClick={closeModal}
-              className="rounded-lg px-4 py-2 text-body font-medium transition-colors bg-accent text-accent-text hover:bg-accent-hover">
-              {t('settings.apiKeys.modal.done')}
-            </button>
-          </div>
-        ) : (
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={closeModal}
-              className="rounded-lg border px-4 py-2 text-body font-medium transition-colors border-edge text-content-secondary hover:bg-surface-hover">
-              {t('common.cancel')}
-            </button>
-            <button type="button" onClick={handleCreate} disabled={!canCreate}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-body font-medium transition-colors bg-accent text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50">
-              {creating && <span aria-hidden className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />}
-              {creating ? t('settings.apiKeys.modal.creating') : t('settings.apiKeys.modal.create')}
-            </button>
-          </div>
-        )}
+        blocked={!!created}
+        labelledBy={dialogLabelId}
+        width="detail"
+        header={header}
+        footer={footer}
       >
         {created ? (
-          <div className="space-y-4">
-            <div className="flex items-start gap-2.5 rounded-lg p-3 bg-warning-soft">
-              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
-              <p className="text-caption text-content">{t('settings.apiKeys.modal.createdWarning')}</p>
+          <>
+            <div className="flex items-start gap-2.5 rounded-[12px] bg-warning-soft px-3.5 py-3">
+              <AlertTriangle size={15} className="mt-px flex-none text-warning" />
+              <p className="m-0 text-content" style={fs(12.5, 'body')}>{t('settings.apiKeys.modal.createdWarning')}</p>
             </div>
-            <div className="flex items-stretch overflow-hidden rounded-lg border border-edge bg-surface-secondary">
-              <code className="min-w-0 flex-1 select-all break-all px-3 py-2.5 font-mono text-caption text-content">{created}</code>
+            <div className="flex items-stretch overflow-hidden rounded-[12px] border border-edge-faint bg-surface-secondary">
+              <code className="min-w-0 flex-1 select-all break-all px-3.5 py-3 font-geist text-content" style={fs(12.5, 'body')}>{created}</code>
               <button type="button" onClick={() => handleCopy(created, 'key')} title={t('settings.apiKeys.copy')}
-                className="flex flex-shrink-0 items-center gap-1.5 border-l px-3 text-caption font-medium transition-colors border-edge text-content-secondary hover:bg-surface-hover">
-                {copied === 'key' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+                className="flex flex-none items-center gap-1.5 border-l border-edge-faint bg-surface-card px-3.5 font-medium text-content-secondary transition-colors hover:text-content"
+                style={fs(12.5, 'body')}>
+                {copied === 'key' ? <Check size={14} className="text-success" /> : <Copy size={14} />}
                 {copied === 'key' ? t('common.copied') : t('settings.apiKeys.copy')}
               </button>
             </div>
-          </div>
+          </>
         ) : (
-          <div className="space-y-6">
-            <div>
-              <label htmlFor="api-key-name" className="mb-1.5 block text-caption font-medium text-content-secondary">
-                {t('settings.apiKeys.modal.name')}
-              </label>
+          <>
+            <EditorField label={t('settings.apiKeys.modal.name')} htmlFor="api-key-name" hint={t('settings.apiKeys.modal.nameHint')}>
               <input id="api-key-name" type="text" value={newName} onChange={e => setNewName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
+                onKeyDown={e => { if (e.key === 'Enter') void handleCreate() }}
                 placeholder={t('settings.apiKeys.modal.namePlaceholder')}
                 maxLength={100}
-                className="w-full rounded-lg border px-3 py-2.5 text-body focus:outline-none focus:ring-2 ring-accent border-edge bg-surface-input text-content"
+                className={INPUT}
                 autoFocus />
-              <p className="mt-1.5 text-caption text-content-muted">{t('settings.apiKeys.modal.nameHint')}</p>
-            </div>
+            </EditorField>
 
-            <div role="group" aria-labelledby="api-key-scopes-title">
-              <div className="mb-1 flex items-baseline justify-between gap-3">
-                <span id="api-key-scopes-title" className="text-caption font-medium text-content-secondary">
+            <section role="group" aria-labelledby="api-key-scopes-title">
+              <div className="mb-2 flex items-center gap-2">
+                <span id="api-key-scopes-title" className="font-geist font-bold uppercase tracking-[.08em] text-content-faint" style={fs(9.5)}>
                   {t('settings.apiScopes.title')}
                 </span>
                 <button type="button"
                   onClick={() => setNewScopes(allSelected ? new Set() : new Set(PUBLIC_API_SCOPES))}
-                  className="flex-shrink-0 text-caption font-medium transition-colors text-content-muted hover:text-content">
+                  className="ml-auto flex-none rounded-full px-2 py-0.5 font-semibold text-content-muted transition-colors hover:bg-surface-tertiary hover:text-content"
+                  style={fs(11.5, 'body')}>
                   {allSelected ? t('common.deselectAll') : t('common.selectAll')}
                 </button>
               </div>
-              <p className="mb-3 text-caption text-content-muted">{t('settings.apiScopes.hint')}</p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <SettingsHint className="mb-3">{t('settings.apiScopes.hint')}</SettingsHint>
+              <div className={GRID_2}>
                 {PUBLIC_API_SCOPES.map(scope => (
                   <ScopeOption key={scope} icon={SCOPE_ICONS[scope]} label={t(`settings.apiScopes.${scope}`)}
                     checked={newScopes.has(scope)} onToggle={() => toggleScope(scope)} />
                 ))}
               </div>
               {newScopes.size === 0 && (
-                <p className="mt-2 text-caption text-danger">{t('settings.apiScopes.noneSelected')}</p>
+                <p className="m-0 mt-2 text-danger" style={fs(11.5)}>{t('settings.apiScopes.noneSelected')}</p>
               )}
-            </div>
-          </div>
+            </section>
+          </>
         )}
-      </Modal>
+      </DialogShell>
 
       <ConfirmDialog
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
-        onConfirm={() => { if (deleteId !== null) handleDelete(deleteId) }}
+        onConfirm={() => { if (deleteId !== null) void handleDelete(deleteId) }}
         title={t('settings.apiKeys.deleteTitle')}
         message={t('settings.apiKeys.deleteMessage')}
         confirmLabel={t('settings.apiKeys.deleteTitle')}
@@ -356,18 +382,18 @@ function ApiKeyRow({ apiKey, locale, onDelete }: { apiKey: ApiKey; locale: strin
   const { t } = useTranslation()
   const scopes = apiKey.scope_mode === 'limited' ? apiKey.scopes : undefined
   return (
-    <li className="flex items-start gap-3 rounded-lg border p-3 border-edge">
-      <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-surface-hover">
-        <KeyRound className="w-4 h-4 text-content-secondary" />
+    <li className="flex items-start gap-3 px-3.5 py-3">
+      <span className="grid h-9 w-9 flex-none place-items-center rounded-[10px] bg-surface-tertiary text-content-secondary">
+        <KeyRound size={16} strokeWidth={1.9} />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="truncate text-body font-medium text-content">{apiKey.name}</span>
-          <code className="rounded px-1.5 py-0.5 font-mono text-caption bg-surface-hover text-content-muted">
+          <span className="min-w-0 max-w-full truncate font-semibold text-content" style={fs(13, 'body')}>{apiKey.name}</span>
+          <code className="rounded-full border border-edge-faint bg-surface-secondary px-2 py-[1px] font-geist text-content-muted" style={fs(11)}>
             {apiKey.token_prefix}…
           </code>
         </div>
-        <p className="mt-0.5 text-caption text-content-faint first-letter:uppercase">
+        <p className="m-0 mt-0.5 tabular-nums text-content-faint first-letter:uppercase" style={fs(11.5)}>
           {t('settings.apiKeys.createdAt')} {formatStamp(apiKey.created_at, locale)}
           {' · '}
           {apiKey.last_used_at
@@ -381,23 +407,22 @@ function ApiKeyRow({ apiKey, locale, onDelete }: { apiKey: ApiKey; locale: strin
           {scopes ? scopes.map(scope => {
             const Icon = SCOPE_ICONS[scope]
             return (
-              <span key={scope} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption bg-surface-hover text-content-secondary">
-                {Icon && <Icon className="w-3 h-3" />}
+              <StatusPill key={scope} icon={Icon ? <Icon size={11} strokeWidth={2.2} /> : undefined}>
                 {t(`settings.apiScopes.${scope}`)}
-              </span>
+              </StatusPill>
             )
           }) : (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption bg-surface-hover text-content-secondary">
-              {t('settings.apiScopes.all')}
-            </span>
+            <StatusPill tone="success">{t('settings.apiScopes.all')}</StatusPill>
           )}
         </div>
       </div>
-      <button type="button" onClick={onDelete}
-        className="flex-shrink-0 rounded-lg p-1.5 transition-colors text-content-faint hover:bg-danger-soft hover:text-danger"
-        title={t('settings.apiKeys.deleteTitle')}>
-        <Trash2 className="w-4 h-4" />
-      </button>
+      <Tooltip label={t('settings.apiKeys.deleteTitle')}>
+        <button type="button" onClick={onDelete}
+          className={`${SETTINGS_ICON_BUTTON} hover:!bg-danger-soft hover:!text-danger`}
+          aria-label={t('settings.apiKeys.deleteTitle')}>
+          <Trash2 size={14} />
+        </button>
+      </Tooltip>
     </li>
   )
 }
@@ -414,17 +439,17 @@ function ScopeOption({ icon: Icon, label, checked, onToggle }: {
 }): React.ReactElement {
   return (
     <button type="button" role="checkbox" aria-checked={checked} onClick={onToggle}
-      className={`flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors border-edge ${
-        checked ? 'bg-accent-subtle' : 'hover:bg-surface-hover'
+      className={`flex w-full min-w-0 items-center gap-2.5 rounded-[10px] border px-3 py-2.5 text-left transition-colors ${
+        checked ? 'border-[color:var(--text-primary)] bg-surface-card shadow-sm' : 'border-edge-faint bg-surface-secondary hover:bg-surface-card'
       }`}>
       <span aria-hidden
-        className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded transition-colors ${
+        className={`grid h-4 w-4 flex-none place-items-center rounded-[5px] transition-colors ${
           checked ? 'bg-accent' : 'border-[1.5px] border-edge'
         }`}>
-        {checked && <Check className="w-2.5 h-2.5 text-accent-text" strokeWidth={3} />}
+        {checked && <Check size={10} strokeWidth={3} className="text-accent-text" />}
       </span>
-      <Icon aria-hidden className={`w-4 h-4 flex-shrink-0 ${checked ? 'text-content-secondary' : 'text-content-faint'}`} />
-      <span className={`min-w-0 truncate text-body ${checked ? 'text-content' : 'text-content-muted'}`}>{label}</span>
+      <Icon aria-hidden size={15} className={`flex-none ${checked ? 'text-content-secondary' : 'text-content-faint'}`} />
+      <span className={`min-w-0 truncate font-medium ${checked ? 'text-content' : 'text-content-muted'}`} style={fs(12.5, 'body')}>{label}</span>
     </button>
   )
 }

@@ -12,6 +12,7 @@ import {
   groupByDay,
   groupLedgerByDay,
   isUnfinished,
+  lineOf,
   memberShareOf,
   myPaidOf,
   myShareOf,
@@ -32,6 +33,7 @@ const ctx: CostsCtx = {
   me: 1,
   // lower case on purpose — currencyOf has to normalise it
   tripCurrency: 'eur',
+  displayCurrency: 'EUR',
   convert: (amount, currency) => amount * (RATES[(currency || 'EUR').toUpperCase()] ?? 1),
 };
 
@@ -303,6 +305,86 @@ describe('costsModel — list filters and grouping', () => {
     const a = settlement({ id: 1, settled_at: '2026-07-05', created_at: '2026-07-01T09:00:00Z' });
     expect(filterSettlements([a], filters({ dayKey: '2026-07-05' }), 1).map(s => s.id)).toEqual([1]);
     expect(filterSettlements([a], filters({ dayKey: '2026-07-01' }), 1)).toEqual([]);
+  });
+});
+
+describe('costsModel: a bill entered in the display currency (#2525)', () => {
+  // A euro trip read in dollars, converted with the euro's own quote the way
+  // useExchangeRates(base, tripCurrency) converts: one euro buys 1.1551 dollars today.
+  const usdCtx: CostsCtx = {
+    me: 1,
+    tripCurrency: 'EUR',
+    displayCurrency: 'usd',
+    convert: (amount, currency) => {
+      const perEuro = ({ USD: 1.1551, EUR: 1, SEK: 10 } as Record<string, number>)[(currency || 'USD').toUpperCase()] ?? 1
+      return (amount / perEuro) * 1.1551
+    },
+  };
+  const hotel = (rate = 1.17) => expense({
+    total_price: 801.76, currency: 'USD', exchange_rate: rate,
+    payers: [payer(1, 801.76)], members: [member(1), member(2)],
+  });
+
+  it('FE-MOB-CMOD-038: a bill booked at a rate that has moved since counts as its euros at today\'s rate', () => {
+    // 685.26 EUR, which the balances net and settle-up offers; the row, the payer's
+    // figure and the share read the same, or a payback of the row's half reopens the trip.
+    expect(baseTotal(hotel(), usdCtx)).toBeCloseTo(791.55, 2);
+    expect(myPaidOf(hotel(), usdCtx)).toBeCloseTo(791.55, 2);
+    expect(myShareOf(hotel(), usdCtx)).toBeCloseTo(395.77, 2);
+    // Under it, what was entered and the euros it was booked at, no third step.
+    const line = lineOf(801.76, hotel(), usdCtx, baseTotal(hotel(), usdCtx))!;
+    expect(line.entered).toEqual({ amount: 801.76, currency: 'USD' });
+    expect(line.into.currency).toBe('EUR');
+    expect(line.into.amount).toBeCloseTo(685.26, 2);
+  });
+
+  it('FE-MOB-CMOD-039: booked at today\'s rate, the bill reads exactly as typed and needs no line', () => {
+    const big = expense({ total_price: 12345.67, currency: 'USD', exchange_rate: 1.1551, payers: [payer(1, 12345.67)], members: [member(1), member(2)] });
+    const unpaid = expense({ total_price: 250, currency: 'USD', exchange_rate: 1.1551 });
+    expect(Math.round(baseTotal(big, usdCtx) * 100)).toBe(1234567);
+    expect(Math.round(baseTotal(unpaid, usdCtx) * 100)).toBe(25000);
+    expect(lineOf(12345.67, big, usdCtx, baseTotal(big, usdCtx))).toBeNull();
+    const t = computeTotals([big, unpaid], [], usdCtx);
+    expect(Math.round(t.totalSpend * 100)).toBe(1259567);
+    expect(Math.round(t.outstanding * 100)).toBe(25000);
+  });
+
+  it('FE-MOB-CMOD-040: other currencies go through the trip currency at their booked rate', () => {
+    // 1000 SEK booked at 10 per euro is 100 euro, and 100 euro is 115.51 dollars today.
+    const sek = expense({ total_price: 1000, currency: 'SEK', exchange_rate: 10 })
+    expect(baseTotal(sek, usdCtx)).toBeCloseTo(115.51, 2);
+    expect(lineOf(1000, sek, usdCtx, baseTotal(sek, usdCtx))).toEqual({ entered: { amount: 1000, currency: 'SEK' }, into: { amount: 100, currency: 'EUR' } });
+    // A row in the trip currency goes straight to the dollars.
+    const eur = expense({ total_price: 100, currency: null })
+    expect(baseTotal(eur, usdCtx)).toBeCloseTo(115.51, 2);
+    expect(lineOf(100, eur, usdCtx, 115.51)).toEqual({ entered: { amount: 100, currency: 'EUR' }, into: { amount: 115.51, currency: 'USD' } });
+  });
+
+  it('FE-MOB-CMOD-041: there is nothing to explain when nothing was converted', () => {
+    // An amount of 0, a row written before the freeze, and any row when the viewer
+    // reads the trip currency itself.
+    const zero = expense({ total_price: 0, currency: 'USD', exchange_rate: 1.17 });
+    expect(lineOf(0, zero, usdCtx, 0)).toBeNull();
+    const legacy = expense({ total_price: 50, currency: 'USD', exchange_rate: 1 });
+    expect(baseTotal(legacy, usdCtx)).toBe(50);
+    expect(lineOf(50, legacy, usdCtx, 50)).toBeNull();
+    const inEur = { ...usdCtx, displayCurrency: 'EUR', convert: (a: number) => a };
+    expect(lineOf(801.76, hotel(), inEur, 685.26)).toEqual({ entered: { amount: 801.76, currency: 'USD' }, into: { amount: 685.26, currency: 'EUR' } });
+  });
+
+  it('FE-MOB-CMOD-042: the CSV adds what each row counts as in the trip currency', () => {
+    const t = ((key: string) => key) as unknown as Parameters<typeof buildCostsCsv>[1]['t'];
+    const items = [
+      hotel(),
+      expense({ name: 'Old taxi', total_price: 115.51, currency: 'USD', exchange_rate: 1, expense_date: '2026-07-20' }),
+    ].map((e, i) => ({ ...e, name: e.name || 'Hotel', expense_date: e.expense_date || '2026-07-19', id: i + 1 }));
+    const inUsd = buildCostsCsv(items, { base: 'USD', ctx: usdCtx, locale: 'en-US', tripTitle: 'Trip', t }).content.split('\r\n');
+    expect(inUsd[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Amount (USD);Note');
+    expect(inUsd[1]).toMatch(/;801\.76;USD;685\.26;791\.55;$/);
+    // Never booked, so counted at today's rate, as the server counts it.
+    expect(inUsd[2]).toMatch(/;115\.51;USD;100\.00;115\.51;$/);
+    const inEur = buildCostsCsv(items, { base: 'EUR', ctx: { ...usdCtx, displayCurrency: 'EUR' }, locale: 'en-US', tripTitle: 'Trip', t }).content.split('\r\n');
+    expect(inEur[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Note');
   });
 });
 

@@ -1,0 +1,94 @@
+/* Help center: the floating panel and its lightbox. Colors and sizes come from
+   the appearance tokens; this file only holds motion and the few shapes
+   Tailwind cannot express tidily. */
+
+@keyframes trek-help-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes trek-help-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(10px) scale(0.985); }
+}
+@keyframes trek-help-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes trek-help-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes trek-help-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes trek-help-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.trek-help-backdrop[data-state='open'] {
+  animation: trek-help-fade 180ms ease-out;
+}
+.trek-help-backdrop[data-state='closing'] {
+  animation: trek-help-fade-out 160ms ease-in forwards;
+}
+.trek-help-backdrop[data-state='open'] > .trek-help-dialog {
+  animation: trek-help-in 280ms var(--ease-out-quint);
+}
+.trek-help-backdrop[data-state='closing'] > .trek-help-dialog {
+  animation: trek-help-out 160ms ease-in forwards;
+}
+
+.trek-help-menu {
+  animation: trek-help-pop 160ms var(--ease-out-quint);
+  transform-origin: top center;
+}
+
+/* Views slide up softly when the reader moves between home, search and a guide. */
+.trek-help-view {
+  animation: trek-help-rise 220ms var(--ease-out-quint);
+}
+
+.trek-help-lightbox {
+  animation: trek-help-fade 160ms ease-out;
+}
+.trek-help-lightbox > .trek-help-lightbox-card {
+  animation: trek-help-pop 220ms var(--ease-out-quint);
+}
+
+/* Step pictures: a hairline frame so light screenshots keep an edge on light
+   surfaces, and a gentle lift on hover to say "click to enlarge". */
+.trek-help-shot {
+  transition: transform 200ms var(--ease-out-quint), box-shadow 200ms var(--ease-out-quint);
+}
+.trek-help-shot:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-elevated);
+}
+
+/* A thin scrollbar inside the panel, matching the app's own. */
+.trek-help-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+[data-reduce-motion] .trek-help-backdrop,
+[data-reduce-motion] .trek-help-backdrop > .trek-help-dialog,
+[data-reduce-motion] .trek-help-view,
+[data-reduce-motion] .trek-help-menu,
+[data-reduce-motion] .trek-help-lightbox,
+[data-reduce-motion] .trek-help-lightbox > .trek-help-lightbox-card {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .trek-help-backdrop,
+  .trek-help-backdrop > .trek-help-dialog,
+  .trek-help-view,
+  .trek-help-menu,
+  .trek-help-lightbox,
+  .trek-help-lightbox > .trek-help-lightbox-card {
+    animation: none;
+  }
+  .trek-help-shot { transition: none; }
+}

@@ -1,20 +1,20 @@
 # Trip Members and Sharing
 
-![Trip Members](assets/Share.png)
+![The Share dialog: the trip's name and the number of people in the head band, members and guests on the left, the public link and the invite link on the right](assets/Share.png)
 
 ## Opening the Members Panel
 
 - From the **trip planner**: click the Share button in the top navigation bar.
 - On **mobile**: open the trip, then **More** → **Share Trip**.
 
-When you have the `share_manage` permission the modal opens to a two-column layout on wider screens (members on the left, share link on the right). Without that permission only the members column is shown. On narrow screens the columns always stack.
+The dialog carries the trip's name in its head band, with the number of people on the trip and, once there are any, of its guests. When you have the `share_manage` permission it opens in two columns (members and guests on the left, the two links on the right). Without that permission only the members column is shown. On a narrow window the columns stack.
 
 ## Members List
 
 The left column lists everyone who has access to the trip.
 
-- The **trip owner** is marked with a crown badge.
-- Your own entry is labeled **(you)**.
+- The **trip owner** is marked with an **Owner** badge and a crown.
+- Your own entry carries a **you** badge (on the phone it reads **(you)**).
 - A remove button appears on your own row, and on every non-owner row if you have the `member_manage` permission.
 
 ### Inviting Members
@@ -23,15 +23,15 @@ If you have the `member_manage` permission (default: trip owner), an invite cont
 
 ### Removing a Member
 
-Click the remove icon next to any member's name. A confirmation prompt appears before the member is removed.
+Click the remove icon next to any member's name (**Remove access**). TREK asks first, in a dialog over the Share dialog, and removes the member only on **Confirm**.
 
-If you click the remove icon next to **your own** name, the action is labeled **Leave trip** and uses a "log out" icon. Leaving reloads the page and returns you to the dashboard.
+If you click the remove icon next to **your own** name, the action is labeled **Leave trip**, and the same dialog asks *Leave trip? You will lose access.* before anything happens. Leaving reloads the page and returns you to the dashboard.
 
 The trip owner cannot be removed through this panel.
 
 ### Transferring Ownership
 
-Only the current owner sees a crown button next to each non-owner member. Click it and confirm the prompt — that member becomes the trip owner, you drop to a regular member, and the page reloads so the new permissions take effect everywhere.
+Only the current owner sees a crown button (**Make owner**) next to each non-owner member. Click it and press **Confirm** in the dialog that asks *Transfer ownership to (name)? You will become a regular member.*; on confirm that member becomes the trip owner, you drop to a regular member, and the page reloads so the new permissions take effect everywhere.
 
 Guests are never listed among the members, and the server refuses to hand ownership to one.
 
@@ -74,7 +74,7 @@ These limits are enforced on the server, not just hidden in the UI.
 
 ### Renaming and removing
 
-In the owner's Guests section, each guest row has a **Rename** (pencil) and a **Remove access** (trash) button. Removing a guest is **destructive and cascading**:
+In the owner's Guests section, each guest row has a **Rename** (pencil) and a **Remove access** (trash) button. Rename turns the name into a field: Enter saves, Escape leaves it as it was. Removing a guest is **destructive and cascading**, so TREK asks in a dialog before it deletes, and removes the guest only on **Delete**:
 
 > Remove this guest? Their assignments and cost shares will be removed too.
 
@@ -111,6 +111,8 @@ Before or after creating the link, you can control what the link exposes. Toggle
 | **Chat** | Off | Read-only view of the trip chat (collab notes and polls are never shared) |
 
 Changes to toggles take effect immediately for an existing link.
+
+Under **Options**, two more switches narrow what the link shows: **Travel & stays only** (only transport and accommodation, without activities, day notes and empty days) and **Without photos** (the place photos are left out of the shared page). See [Public-Share-Links](Public-Share-Links#options).
 
 ### Deleting a Link
 

@@ -103,16 +103,32 @@ export class TrekPhotosRepository extends TrekRepository<TrekPhotos> {
   /**
    * PH9 — `COALESCE`d capture metadata write. The service computes the final
    * `taken_at`/`lat`/`lng` (the all-empty early return, the pair-or-neither
-   * coordinate guard) before calling this; this method only issues the
-   * three-column `COALESCE(col, ?)` UPDATE unconditionally.
+   * coordinate guard) before calling this.
+   *
+   * Legacy SQL (#1587):
+   * `UPDATE trek_photos SET taken_at = COALESCE(taken_at, ?), lat = COALESCE(lat, ?), lng = COALESCE(lng, ?)
+   *   WHERE id = ? AND ((taken_at IS NULL AND ? IS NOT NULL) OR (lat IS NULL AND ? IS NOT NULL) OR (lng IS NULL AND ? IS NOT NULL))`.
+   *
+   * Answers whether the row learned anything. The guard is what makes that
+   * answer mean something: SQLite counts a matched row as changed even when
+   * every COALESCE kept the old value, and the caller broadcasts a journey
+   * refresh on it. The `? IS NOT NULL` halves are known here, so the guard is
+   * built as an `$or` over just the columns that bring a value; with none of
+   * them there is nothing to learn and no statement is issued.
    */
-  async patchCaptureMetadata(id: number, taken_at: string | null, lat: number | null, lng: number | null): Promise<void> {
+  async patchCaptureMetadata(id: number, taken_at: string | null, lat: number | null, lng: number | null): Promise<boolean> {
+    const learns: Array<{ taken_at: null } | { lat: null } | { lng: null }> = [];
+    if (taken_at != null) learns.push({ taken_at: null });
+    if (lat != null) learns.push({ lat: null });
+    if (lng != null) learns.push({ lng: null });
+    if (learns.length === 0) return false;
     const platform = this.getEntityManager().getPlatform();
-    await this.nativeUpdate({ id }, {
+    const changed = await this.nativeUpdate({ id, $or: learns }, {
       taken_at: coalesceParam(platform, 'taken_at', taken_at),
       lat: coalesceParam(platform, 'lat', lat),
       lng: coalesceParam(platform, 'lng', lng),
     });
+    return changed > 0;
   }
 
   /** PH11 — `DELETE FROM trek_photos WHERE id = ? AND provider != 'local'`; local photos are never auto-reclaimed here. */

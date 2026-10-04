@@ -1,3 +1,4 @@
+import { QueryFlag } from '@mikro-orm/core';
 import type { Trips } from '../entities/Trips.entity';
 import { coalesceParam, currentTimestamp, nowDateOffset } from '../dialect/sql-functions';
 import type { AssertRowKeys } from './_shared/rows';
@@ -176,6 +177,40 @@ export class TripsRepository extends TrekRepository<Trips> {
     await this.nativeUpdate({ id }, { end_date });
   }
 
+  /**
+   * DY38/DY42 (`DaysService.appendDated`, `DayRemovalService.renumber`) —
+   * `UPDATE trips SET end_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id
+   * = ?`: a day added after the last date, or a deleted day that took the last
+   * date along, moves the trip's end and stamps it.
+   */
+  async setEndDateTouched(id: number, end_date: string): Promise<void> {
+    const platform = this.getEntityManager().getPlatform();
+    await this.nativeUpdate({ id }, { end_date, updated_at: currentTimestamp(platform) });
+  }
+
+  /**
+   * TP79 (`trips.service.ts::searchPlaces`, #2190) — `SELECT p.trip_id,
+   * p.name FROM places p JOIN trips t ON t.id = p.trip_id LEFT JOIN
+   * trip_members m ON m.trip_id = t.id AND m.user_id = :userId WHERE
+   * (t.user_id = :userId OR m.user_id IS NOT NULL) AND (p.name LIKE :like
+   * ESCAPE '\' OR p.address LIKE :like ESCAPE '\') ORDER BY p.trip_id, p.name
+   * LIMIT 500`. `likePattern` arrives pre-escaped (`%…%`, the service's job),
+   * as in PlacesRepository.listForTrip.
+   */
+  async searchPlaceNames(user_id: number, likePattern: string): Promise<{ trip_id: number; name: string }[]> {
+    return await this.accessibleTripsQuery(user_id)
+      .join('t.places_collection', 'p')
+      .select(['p.trip', 'p.name'])
+      .andWhere("(p.name LIKE ? ESCAPE '\\' OR p.address LIKE ? ESCAPE '\\')", [likePattern, likePattern])
+      .orderBy([{ 'p.trip': 'asc' }, { 'p.name': 'asc' }])
+      .limit(500)
+      // The limit is on the joined place rows, like the legacy statement's.
+      // Without the flag MikroORM moves a limit over a to-many join into a
+      // subquery on trips and drops the LIKE filter from the outer select.
+      .setFlag(QueryFlag.DISABLE_PAGINATE)
+      .execute<{ trip_id: number; name: string }[]>('all', false);
+  }
+
   /** `SELECT id FROM trips WHERE id = ? AND user_id = ?` */
   async isOwner(trip_id: number | string, user_id: number): Promise<boolean> {
     const row = await this.qb('t')
@@ -347,7 +382,7 @@ export class TripsRepository extends TrekRepository<Trips> {
   // Plan 3c Task 7 (`TripsService`) — `TRIP_SELECT` (inventory §11a) becomes
   // ONE builder here (`tripSelectQuery`), expressed through `this.kysely()`
   // (a typed one-table-plus-joins DB interface, the same escape hatch
-  // `DayAssignmentsRepository.reanchorToDay`/`DayAssignmentsRepository
+  // `DayAssignmentsRepository.effectiveStart`/`DayAssignmentsRepository
   // .listForTimeSort` use): three correlated scalar `COUNT(*)` subqueries a
   // QueryBuilder select list cannot express, a `CASE WHEN` projected column,
   // and `NULL AS feed_token` placed AFTER `t.*` (via `.selectAll('t')` then
@@ -381,6 +416,18 @@ export class TripsRepository extends TrekRepository<Trips> {
         'u.username as owner_username',
         eb.selectFrom('trip_members as tm').select((eb2) => eb2.fn.countAll<number>().as('c')).whereRef('tm.trip_id', '=', 't.id').as('shared_count'),
       ]);
+  }
+
+  /**
+   * DY37 (`DaysService.getTripForViewer`) — `TRIP_SELECT
+   * WHERE t.id = :tripId`, with no access join: a day write that changed the
+   * trip (its end date, its day count) re-reads it in list shape for its own
+   * caller, who already holds access, and the rows of every viewer are the
+   * same apart from `is_owner`.
+   */
+  async findListShapeById(trip_id: number | string, user_id: number): Promise<TripSelectRow | undefined> {
+    const row = await this.tripSelectQuery(user_id).where('t.id', '=', trip_id).executeTakeFirst();
+    return row as TripSelectRow | undefined;
   }
 
   /**
@@ -899,6 +946,30 @@ export class TripsRepository extends TrekRepository<Trips> {
   }
 
   /**
+   * AT47 (`AtlasService#nextTrip`, #2542) — `SELECT t.id, t.title,
+   * t.start_date, t.end_date FROM trips t LEFT JOIN trip_members tm ON t.id =
+   * tm.trip_id WHERE (t.user_id = ? OR tm.user_id = ?) AND t.start_date IS NOT
+   * NULL AND t.start_date > date('now') ORDER BY t.start_date ASC, t.id ASC
+   * LIMIT 1`. `today` is bound like {@link lastStartedTrip}'s; the legacy
+   * `days_until` column (`CAST(julianday(start_date) - julianday(date('now'))
+   * AS INTEGER)`) is computed by the caller from the same `today`.
+   */
+  async nextUpcomingTrip(user_id: number, today: string): Promise<{ id: number; title: string; start_date: string; end_date: string | null } | undefined> {
+    const row = await this.kysely<LastStartedTripKyselyDB>()
+      .selectFrom('trips as t')
+      .leftJoin('trip_members as tm', 'tm.trip_id', 't.id')
+      .select(['t.id', 't.title', 't.start_date', 't.end_date'])
+      .where((eb) => eb.or([eb('t.user_id', '=', user_id), eb('tm.user_id', '=', user_id)]))
+      .where('t.start_date', 'is not', null)
+      .where('t.start_date', '>', today)
+      .orderBy('t.start_date', 'asc')
+      .orderBy('t.id', 'asc')
+      .limit(1)
+      .executeTakeFirst();
+    return row as { id: number; title: string; start_date: string; end_date: string | null } | undefined;
+  }
+
+  /**
    * AT42 (`AtlasService#getTravelStats`) — `SELECT COUNT(DISTINCT t.id) as
    * trips, COUNT(DISTINCT d.id) as days FROM trips t LEFT JOIN days d ON
    * d.trip_id = t.id LEFT JOIN trip_members tm ON t.id = tm.trip_id WHERE
@@ -985,7 +1056,7 @@ interface TripIdTitleKyselyDB {
   trips: { id: number; title: string };
 }
 
-/** {@link TripsRepository.lastStartedTrip}'s narrow `trips`/`trip_members` shape. */
+/** {@link TripsRepository.lastStartedTrip}'s and {@link TripsRepository.nextUpcomingTrip}'s narrow `trips`/`trip_members` shape. */
 interface LastStartedTripKyselyDB {
   trips: { id: number; title: string; start_date: string | null; end_date: string | null; user_id: number };
   trip_members: { trip_id: number; user_id: number };

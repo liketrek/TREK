@@ -24,6 +24,8 @@ export class Journeys {
   show_verdict: number & Opt = 1;
   show_mood: number & Opt = 1;
   show_weather: number & Opt = 1;
+  status_override?: string | null;
+  photo_location: number & Opt = 0;
   journey_books_collection = new Collection<JourneyBooks>(this);
   journey_contributors_collection = new Collection<JourneyContributors>(this);
   journey_entries_collection = new Collection<JourneyEntries>(this);
@@ -50,6 +52,8 @@ export const JourneysSchema = defineEntity({
     show_verdict: p.integer().default(1),
     show_mood: p.integer().default(1),
     show_weather: p.integer().default(1),
+    status_override: p.text().nullable(),
+    photo_location: p.integer().default(0),
     journey_books_collection: () => p.oneToMany(JourneyBooks).mappedBy('journey').hidden(),
     journey_contributors_collection: () => p.oneToMany(JourneyContributors).mappedBy('journey').hidden(),
     journey_entries_collection: () => p.oneToMany(JourneyEntries).mappedBy('journey').hidden(),

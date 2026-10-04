@@ -69,11 +69,13 @@ describe('AssignModal shell', () => {
 
   it('FE-W5ASG-002: the backdrop closes the modal but the card swallows the click', () => {
     render(<AssignModal {...state()} />)
-    const card = screen.getByText('files.assignTitle').closest('div[style*="border-radius: 16px"]') as HTMLElement
+    const card = screen.getByRole('dialog')
 
     fireEvent.click(card)
     expect(setAssignFileId).not.toHaveBeenCalled()
 
+    // A press that starts and ends on the backdrop closes it.
+    fireEvent.mouseDown(card.parentElement!)
     fireEvent.click(card.parentElement!)
     expect(setAssignFileId).toHaveBeenCalledWith(null)
   })

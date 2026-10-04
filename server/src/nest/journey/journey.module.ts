@@ -7,6 +7,7 @@ import { JourneyBookService } from './journey-book.service';
 import { AddonsModule } from '../addons/addons.module';
 import { MemoriesModule } from '../memories/memories.module';
 import { JourneyDomainModule } from './journey-domain.module';
+import { JourneyPhotoCaptureModule } from './journey-photo-capture.module';
 import { JourneyMcp } from './journey.mcp';
 import { AuthModule } from '../auth/auth.module';
 import { MulterModule } from '@nestjs/platform-express';
@@ -36,7 +37,7 @@ import { JourneyBooks } from '../../db/entities/JourneyBooks.entity';
         }),
     }),
     StorageModule,
-    AuthModule, AddonsModule, MemoriesModule, JourneyDomainModule,
+    AuthModule, AddonsModule, MemoriesModule, JourneyDomainModule, JourneyPhotoCaptureModule,
     // Plan 3g Task 3: `JourneyService` (JV1, `UsersRepository.getImmichAutoUpload`)
     // and `JourneyBookService` (JB1-JB7, `JourneyBooksRepository`) both
     // constructed HERE — `@InjectRepository` resolves from this module's own

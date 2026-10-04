@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'تراجع: {action}',
   'undo.assignPlace': 'تم تعيين المكان لليوم',
   'undo.removeAssignment': 'تم إزالة المكان من اليوم',
+  'undo.clearDay': 'تم إفراغ اليوم',
   'undo.reorder': 'تمت إعادة ترتيب الأماكن',
   'undo.optimize': 'تم تحسين المسار',
   'undo.deletePlace': 'تم حذف المكان',
@@ -19,6 +20,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'استيراد خرائط Naver',
   'undo.addPlace': 'تمت إضافة المكان',
   'undo.done': 'تم التراجع: {action}',
+  'undo.failed': 'تعذر التراجع: {action}',
   'undo.importBooking': 'استيراد تأكيد الحجز',
 };
 export default undo;

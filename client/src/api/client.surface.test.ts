@@ -1,4 +1,4 @@
-// FE-APISURF-001 to FE-APISURF-057
+// FE-APISURF-001 to FE-APISURF-060
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { AxiosResponse } from 'axios'
 import { http, HttpResponse } from 'msw'
@@ -455,6 +455,7 @@ describe('client > endpoint wiring', () => {
       { n: 'createSettlement', r: () => budgetApi.createSettlement(1, { from_user_id: 4, to_user_id: 5, amount: 10 }), e: 'POST /api/trips/1/budget/settlements' },
       { n: 'updateSettlement', r: () => budgetApi.updateSettlement(1, 6, { from_user_id: 4, to_user_id: 5, amount: 12 }), e: 'PUT /api/trips/1/budget/settlements/6' },
       { n: 'deleteSettlement', r: () => budgetApi.deleteSettlement(1, 6), e: 'DELETE /api/trips/1/budget/settlements/6' },
+      { n: 'freezeRates', r: () => budgetApi.freezeRates(1, {}), e: 'POST /api/trips/1/budget/freeze-rates' },
       { n: 'reorderItems', r: () => budgetApi.reorderItems(1, [2, 3]), e: 'PUT /api/trips/1/budget/reorder/items' },
       { n: 'reorderCategories', r: () => budgetApi.reorderCategories(1, ['Food']), e: 'PUT /api/trips/1/budget/reorder/categories' },
     ])
@@ -572,6 +573,19 @@ describe('client > request payloads', () => {
     expect((await traceOne(() => journeyApi.reorderEntries(2, [8, 7]))).body).toEqual({ orderedIds: [8, 7] })
   })
 
+  it('FE-APISURF-060: the settlement carries the display rate only when the caller has one', async () => {
+    expect((await traceOne(() => budgetApi.settlement(1, 'EUR', 0.61))).url).toBe('/api/trips/1/budget/settlement?base=EUR&base_rate=0.61')
+    expect((await traceOne(() => budgetApi.settlement(1, 'EUR', null))).url).toBe('/api/trips/1/budget/settlement?base=EUR')
+    expect((await traceOne(() => budgetApi.settlement(1))).url).toBe('/api/trips/1/budget/settlement')
+    const lent = { fallback_fx: { base: 'AUD', rates: { VND: 18241.3 } } }
+    expect((await traceOne(() => budgetApi.freezeRates(1, lent))).body).toEqual(lent)
+  })
+
+  it('FE-APISURF-058: a dated day is asked for with the dated flag alone', async () => {
+    const rec = await traceOne(() => daysApi.create(1, { dated: true }))
+    expect(rec).toMatchObject({ method: 'POST', url: '/api/trips/1/days', body: { dated: true } })
+  })
+
   it('FE-APISURF-023: user-id collections are sent as user_ids', async () => {
     expect((await traceOne(() => assignmentsApi.setParticipants(1, 7, [4, 5]))).body).toEqual({ user_ids: [4, 5] })
     expect((await traceOne(() => budgetApi.setMembers(1, 2, [4]))).body).toEqual({ user_ids: [4] })
@@ -638,6 +652,41 @@ describe('client > request payloads', () => {
       .toEqual({ provider: 'immich', asset_ids: ['a1'], caption: 'cap' })
     expect((await traceOne(() => journeyApi.addProviderPhotos(9, 'immich', ['a1'], 'cap', 'secret', ['image', 'video']))).body)
       .toEqual({ provider: 'immich', asset_ids: ['a1'], caption: 'cap', passphrase: 'secret', media_types: ['image', 'video'] })
+  })
+
+  it('FE-APISURF-059: a provider-photo add past the batch size goes out in batches and answers as one (#1587)', async () => {
+    const bodies: Array<{ url: string; body: Record<string, unknown> }> = []
+    server.use(http.post(/\/provider-photos$/, async ({ request }) => {
+      const body = await request.json() as { asset_ids: string[] }
+      bodies.push({ url: new URL(request.url).pathname, body })
+      return HttpResponse.json({ photos: body.asset_ids.map(id => ({ asset_id: id })), added: body.asset_ids.length })
+    }))
+    const ids = Array.from({ length: 1001 }, (_, i) => `a${i}`)
+    const types = ids.map((_, i) => (i % 3 === 0 ? 'video' : 'image'))
+
+    const entry = await journeyApi.addProviderPhotos(9, 'immich', ids, 'cap', 'pw', types)
+
+    // One request of 2,180 Immich ids already hit the 100 kB body limit.
+    expect(bodies.map(b => (b.body.asset_ids as string[]).length)).toEqual([500, 500, 1])
+    for (const { url, body } of bodies) {
+      expect(url).toBe('/api/journeys/entries/9/provider-photos')
+      expect(body).toMatchObject({ provider: 'immich', caption: 'cap', passphrase: 'pw' })
+      // Each id keeps its own media type across the cut.
+      const sent = body.asset_ids as string[]
+      expect(body.media_types).toEqual(sent.map(id => types[Number(id.slice(1))]))
+    }
+    expect(bodies.flatMap(b => b.body.asset_ids as string[])).toEqual(ids)
+    expect(entry.added).toBe(1001)
+    expect(entry.photos).toHaveLength(1001)
+
+    bodies.length = 0
+    const gallery = await journeyApi.addProviderPhotosToGallery(2, 'immich', ids.slice(0, 501))
+    expect(bodies.map(b => b.url)).toEqual(['/api/journeys/2/gallery/provider-photos', '/api/journeys/2/gallery/provider-photos'])
+    expect(bodies.map(b => b.body)).toEqual([
+      { provider: 'immich', asset_ids: ids.slice(0, 500) },
+      { provider: 'immich', asset_ids: ids.slice(500, 501) },
+    ])
+    expect(gallery.added).toBe(501)
   })
 
   it('FE-APISURF-030: adminApi.pluginActivate only sends consent when granted', async () => {

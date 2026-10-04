@@ -1,7 +1,7 @@
 import React from 'react'
 import { AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react'
 import { useTranslation } from '../../i18n'
-import { isChunkLoadError, reloadOnceForChunk } from '../../utils/chunkReload'
+import { isChunkLoadError, reloadOnceForChunk, reloadOntoCurrentBuild } from '../../utils/chunkReload'
 
 /**
  * The app had none of these, so a single throw during render unmounted the whole
@@ -95,6 +95,16 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
   }
 }
 
+/**
+ * The fallback's Reload button. After a dead chunk a plain reload can come back
+ * to this very screen, because the service worker answers it with the shell it
+ * already failed to load (#2524), so that case goes through the chunk recovery.
+ */
+function reloadPage(isChunkError: boolean) {
+  if (isChunkError) reloadOntoCurrentBuild()
+  else window.location.reload()
+}
+
 interface FallbackProps extends FallbackState {
   level: Level
   variant: 'desktop' | 'mobile'
@@ -161,7 +171,7 @@ export function ErrorFallback({ error, reset, isChunkError, level, variant, labe
         {(!isPanel || isChunkError) && (
           <button
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={() => reloadPage(isChunkError)}
             className={[
               'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-caption font-medium',
               mobile ? 'border-[color:var(--m-rowbr)] text-m-ink' : 'border-edge text-content',
@@ -201,7 +211,7 @@ export function RootErrorFallback({ error, isChunkError }: FallbackState) {
       {message && <code className="max-w-full truncate text-caption text-content-faint">{message}</code>}
       <button
         type="button"
-        onClick={() => window.location.reload()}
+        onClick={() => reloadPage(isChunkError)}
         className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-caption font-medium text-white"
       >
         <RefreshCw size={14} aria-hidden />

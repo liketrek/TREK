@@ -26,8 +26,32 @@ export const mapsSearchRequestSchema = z.object({
   // foreign-region queries. z.number() is finite-only (zod v4), matching the
   // legacy Number.isFinite() check; radius was never validated beyond "number".
   locationBias: latLng.extend({ radius: z.number().optional() }).optional(),
+  /**
+   * Ask one provider alone for this search. The index and OpenStreetMap answer
+   * first by default and Google is only asked when they find nothing; a caller
+   * whose results were not the place they meant can send the same query to
+   * Google instead. Ignored unless Google holds the keyed slot: without a
+   * Google key, or with Amap or OpenStreetMap picked as the places provider,
+   * the index and OpenStreetMap answer as usual.
+   */
+  provider: z.enum(['google']).optional(),
 });
 export type MapsSearchRequest = z.infer<typeof mapsSearchRequestSchema>;
+
+/**
+ * Places of any kind around a point, nearest first (#976). No category and no
+ * box: the circle is the question. Both are capped, because the Google path
+ * bills per call and a city centre has more named places than anyone reads.
+ */
+export const mapsNearbyRequestSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  /** Metres, 500 when left out. */
+  radius: z.number().int().min(50).max(5000).optional(),
+  /** How many places, 20 when left out. */
+  limit: z.number().int().min(1).max(20).optional(),
+});
+export type MapsNearbyRequest = z.infer<typeof mapsNearbyRequestSchema>;
 
 export const mapsAutocompleteRequestSchema = z.object({
   input: z.string().min(1).max(200),
@@ -39,7 +63,10 @@ export const mapsAutocompleteRequestSchema = z.object({
    * characters; anything else is dropped rather than forwarded, so a bad token
    * degrades to per-request billing instead of failing the search.
    */
-  sessionToken: z.string().regex(/^[A-Za-z0-9_-]{1,36}$/).optional(),
+  sessionToken: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,36}$/)
+    .optional(),
 });
 export type MapsAutocompleteRequest = z.infer<typeof mapsAutocompleteRequestSchema>;
 

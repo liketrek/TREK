@@ -56,7 +56,7 @@ export default function MSaveToCollectionSheet() {
     let cancelled = false
     setLoading(true)
     setMembership(null)
-    Promise.all([
+    void Promise.all([
       collectionsApi.list().catch(() => ({ collections: [], incomingInvites: [] })),
       membershipQuery
         ? collectionsApi.membership(membershipQuery).catch(() => ({ saved: false, lists: [] as CollectionMembership['lists'] }))

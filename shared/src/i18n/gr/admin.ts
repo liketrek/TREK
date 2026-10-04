@@ -19,6 +19,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfyFailed': 'Η δοκιμή ntfy απέτυχε',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Επιτρέπει στους χρήστες να λαμβάνουν ειδοποιήσεις στα τηλέφωνα και τους υπολογιστές τους μέσω του προγράμματος περιήγησης, ακόμη και όταν το TREK είναι κλειστό. Απαιτεί HTTPS· σε iPhone και iPad το TREK πρέπει να προστεθεί στην οθόνη Αφετηρίας.',
   'admin.notifications.inappPanel.title': 'Εντός εφαρμογής',
   'admin.notifications.inappPanel.hint':
     'Οι ειδοποιήσεις εντός εφαρμογής είναι πάντα ενεργές και δεν μπορούν να απενεργοποιηθούν καθολικά.',
@@ -49,6 +52,12 @@ const admin: TranslationStrings = {
     'Το ntfy διαχειριστή ενεργοποιείται πάντα όταν έχει διαμορφωθεί ένα θέμα',
   'admin.notifications.adminNotificationsHint':
     'Διαμορφώστε ποια κανάλια παραδίδουν ειδοποιήσεις μόνο για διαχειριστές (π.χ. ειδοποιήσεις έκδοσης).',
+  'admin.notificationDefaults.title': 'Προεπιλογές για χρήστες',
+  'admin.notificationDefaults.hint': 'Πώς ξεκινούν οι ειδοποιήσεις κάθε χρήστη. Το «Ανενεργό» μπορεί να το ενεργοποιήσει ο ίδιος, το «Αποκλεισμένο» το απενεργοποιεί για όλους και εμφανίζεται κλειδωμένο στις ρυθμίσεις τους. Ισχύει για όσους δεν άλλαξαν το κελί.',
+  'admin.notificationDefaults.on': 'Ενεργό',
+  'admin.notificationDefaults.off': 'Ανενεργό',
+  'admin.notificationDefaults.blocked': 'Αποκλεισμένο',
+  'admin.notificationDefaults.cycle': 'Κλικ για: {next}',
   'admin.notifications.tripReminders.title': 'Υπενθυμίσεις Ταξιδιού',
   'admin.notifications.tripReminders.hint':
     'Αποστολή ειδοποίησης υπενθύμισης πριν την έναρξη ενός ταξιδιού (απαιτεί να έχουν οριστεί ημέρες υπενθύμισης στο ταξίδι).',
@@ -182,6 +191,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Κλειδί API του Amap (高德地图)',
   'admin.amapKeyHint':
     'Για αναζήτηση τοποθεσιών στην ηπειρωτική Κίνα, όπου το Google δεν είναι προσβάσιμο και το OpenStreetMap έχει ελάχιστα δεδομένα. Χρειάζεται κλειδί τύπου «Web 服务» (υπηρεσία web), όχι κλειδί JS API. Διαθέσιμο στο console.amap.com.',
+  'admin.keyFromEnv': 'Ορίζεται μέσω {name}',
   'admin.placesProvider.title': 'Πάροχος αναζήτησης τοποθεσιών',
   'admin.placesProvider.subtitle':
     'Το δικό του ευρετήριο του TREK και το OpenStreetMap απαντούν σε κάθε αναζήτηση. Εδώ επιλέγεται ποιος άλλος ρωτιέται όταν δεν βρίσκουν τίποτα: το Αυτόματο προτιμά τη Google αν υπάρχει κλειδί, μετά το Amap.',
@@ -223,6 +233,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Εμπλουτισμός τοποθεσιών',
   'admin.placesEnrich.subtitle':
     'Εμφανίζει εικόνες και περιγραφή κατά την προσθήκη τοποθεσίας. Η Wikipedia και το OpenStreetMap χρησιμοποιούνται πάντα· η Google προστίθεται όταν είναι ενεργές οι Φωτογραφίες ή οι Λεπτομέρειες τοποθεσίας.',
+  'admin.placesGoogleOnly.title': 'Αναζήτηση μόνο με Google',
+  'admin.placesGoogleOnly.subtitle': 'Κάθε αναζήτηση και κάθε πρόταση πηγαίνει στο Google Places. Απενεργοποιημένο, απαντούν πρώτα το ευρετήριο του TREK και το OpenStreetMap, και το Google ρωτιέται μόνο αν δεν βρουν τίποτα.',
+  'admin.placesGoogleOnly.missingKey': 'Χρειάζεται κλειδί Google Maps API. Χωρίς αυτό η αναζήτηση τρέχει στο ευρετήριο του TREK και στο OpenStreetMap, όπως κι αν είναι ο διακόπτης.',
+  'admin.placesGoogleOnly.otherProvider': 'Χρειάζεται το Google ως πάροχο τοποθεσιών. Με επιλεγμένο Amap ή OpenStreetMap καμία αναζήτηση δεν πηγαίνει στο Google, ό,τι κι αν λέει αυτός ο διακόπτης.',
+  'admin.googleQuota.title': 'Ημερήσιο όριο κλήσεων Google',
+  'admin.googleQuota.subtitle': 'Όταν συμπληρωθεί, το TREK σταματά τις κλήσεις στη Google ως την επόμενη μέρα (UTC) και αναζητά με το OpenStreetMap. Κενό σημαίνει χωρίς όριο.',
+  'admin.googleQuota.placeholder': 'Χωρίς όριο',
+  'admin.googleQuota.usedToday': 'Σήμερα: {used}',
+  'admin.googleQuota.usedOfLimit': 'Σήμερα: {used} από {limit}',
+  'admin.googleQuota.reached': 'Το όριο συμπληρώθηκε ({used}), η Google σε παύση ως αύριο',
+  'admin.googleQuota.saved': 'Το ημερήσιο όριο αποθηκεύτηκε',
   'admin.transitProvider.title': 'Πάροχος μέσων μεταφοράς',
   'admin.transitProvider.subtitle': 'Ποια υπηρεσία απαντά στην αναζήτηση μέσων μεταφοράς.',
   'admin.transitProvider.transitous': 'Transitous (δωρεάν)',
@@ -433,6 +454,8 @@ const admin: TranslationStrings = {
     'Συνεισφορά επιπλέον λεπτομερειών (κριτικές, βαθμολογίες, σύνδεσμοι) σε ένα μέρος',
   'admin.plugins.perm.hook:search-provider':
     'Απάντηση σε αναζητήσεις τοποθεσιών από δικό του ευρετήριο, δίπλα στα αποτελέσματα του TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Προσθήκη δικών του κατηγοριών τοποθεσιών στην «Εξερεύνηση μερών στον χάρτη»· όταν επιλέγετε μία, το πρόσθετο λαμβάνει την περιοχή του χάρτη που βλέπετε',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Εμφάνιση προειδοποιήσεων επικύρωσης σε ένα ταξίδι (εμφανίζονται στον σχεδιαστή)',
   'admin.plugins.perm.hook:table-contributor':
@@ -449,6 +472,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Δημοσιεύει εργαλεία AI',
   'admin.plugins.mcpToolsTitle': 'Δημοσιευμένα εργαλεία AI',
   'admin.plugins.mcpToolsHint': 'Ένας βοηθός μπορεί να τα εκτελέσει εκ μέρους ενός χρήστη. Καθένα ενεργεί με τα δικαιώματα που δόθηκαν παραπάνω.',
+  'admin.plugins.poiCategoriesTitle': 'Κατηγορίες χάρτη που προσθέτει',
   'admin.plugins.perm.mcp:tools':
     'Δημοσίευση εργαλείων που μπορεί να εκτελέσει ένας βοηθός AI εκ μέρους σας (ενεργεί με τα δικαιώματα που δίνετε εδώ στο πρόσθετο, όχι με τα δικά του)',
   'admin.plugins.perm.geolocation:read':
@@ -593,6 +617,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Παρέχει συμβάντα ημερολογίου',
   'admin.plugins.cap.placeDetails': 'Εμπλουτίζει μέρη',
   'admin.plugins.cap.search': 'Απαντά σε αναζητήσεις',
+  'admin.plugins.cap.poiCategories': 'Προσθέτει κατηγορίες στον χάρτη',
   'admin.plugins.cap.warnings': 'Επισημαίνει ζητήματα',
   'admin.plugins.cap.mapLayers': 'Σχεδιάζει στον χάρτη',
   'admin.plugins.cap.routing': 'Παρέχει δρομολόγηση',
@@ -673,6 +698,11 @@ const admin: TranslationStrings = {
     'Ανάγνωση επισκέψεων και καταγεγραμμένων διαδρομών από μια εγκατάσταση Dawarich που συνδέει ο κάθε χρήστης μόνος του',
   'admin.addons.catalog.llm_parsing.name': 'Ανάλυση με τεχνητή νοημοσύνη',
   'admin.addons.catalog.llm_parsing.description': 'Διαβάζει κρατήσεις που δεν καταλαβαίνει ο ενσωματωμένος αναλυτής, με μοντέλο ΤΝ της επιλογής σας',
+  'admin.addons.llm.vision.auto': 'Αυτόματα',
+  'admin.addons.llm.vision.on': 'Ναι',
+  'admin.addons.llm.vision.off': 'Όχι',
+  'admin.addons.llm.vision.hintLocal': 'Η επιλογή Αυτόματα ρωτά τον διακομιστή Ollama αν αυτό το μοντέλο διαβάζει εικόνες.',
+  'admin.addons.llm.vision.hintCloud': 'Για μοντέλο στο cloud, η επιλογή Αυτόματα σημαίνει όχι. Επιλέξτε Ναι αν αυτό το μοντέλο διαβάζει εικόνες.',
   'admin.addons.enabled': 'Ενεργοποιημένο',
   'admin.addons.disabled': 'Απενεργοποιημένο',
   'admin.addons.type.trip': 'Ταξίδι',

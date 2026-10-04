@@ -36,7 +36,7 @@ const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
 // Constructor-injected since the budget fold (was a path mock of the deleted
 // services/budgetService).
-const budget = { createBudgetItem: vi.fn(), updateBudgetItem: vi.fn(), deleteBudgetItem: vi.fn(), linkBudgetItemToReservation: vi.fn() };
+const budget = { createBudgetItem: vi.fn(), updateBudgetItem: vi.fn(), deleteBudgetItem: vi.fn(), linkBudgetItemToReservation: vi.fn(), freezeForeignRate: vi.fn() };
 
 const { notif } = vi.hoisted(() => ({ notif: { send: vi.fn().mockResolvedValue(undefined) } }));
 
@@ -286,6 +286,7 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       expect(result.deleted).toMatchObject({ id: res.id, title: 'Hotel', type: 'hotel' });
       expect(result.accommodationDeleted).toBe(true);
       expect(result.deletedBudgetItemId).toBe(item.id);
+      expect(result.deletedBudgetItemIds).toEqual([item.id]);
       expect(testDb.prepare('SELECT COUNT(*) as c FROM reservations WHERE id = ?').get(res.id)).toEqual({ c: 0 });
       expect(testDb.prepare('SELECT COUNT(*) as c FROM day_accommodations WHERE id = ?').get(acc.id)).toEqual({ c: 0 });
       expect(testDb.prepare('SELECT COUNT(*) as c FROM budget_items WHERE id = ?').get(item.id)).toEqual({ c: 0 });
@@ -293,7 +294,34 @@ describe('ReservationsService (DI-native, real SQL)', () => {
 
     it('RESV-SVC-012: returns the empty shape when the reservation is missing', async () => {
       const { trip } = ownerTrip();
-      expect(await svc.remove('999', String(trip.id))).toEqual({ deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null });
+      expect(await svc.remove('999', String(trip.id))).toEqual({ deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] });
+    });
+
+    it('RESV-SVC-037: takes every linked expense with it and reports each one (#2084)', async () => {
+      const { trip } = ownerTrip();
+      const res = createReservation(testDb, trip.id, { title: 'Flight', type: 'flight' });
+      const fare = createBudgetItem(testDb, trip.id, { name: 'Fare' });
+      const luggage = createBudgetItem(testDb, trip.id, { name: 'Luggage' });
+      const unlinked = createBudgetItem(testDb, trip.id, { name: 'Coffee' });
+      testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(res.id, fare.id, luggage.id);
+
+      const result = await svc.remove(String(res.id), String(trip.id));
+
+      expect(result.deletedBudgetItemIds).toEqual([fare.id, luggage.id]);
+      // The single-id field stays for older readers, as the first of them.
+      expect(result.deletedBudgetItemId).toBe(fare.id);
+      expect(testDb.prepare('SELECT id FROM budget_items WHERE trip_id = ? ORDER BY id').all(trip.id)).toEqual([{ id: unlinked.id }]);
+    });
+
+    it('RESV-SVC-038: a booking without expenses reports none and deletes no expense', async () => {
+      const { trip } = ownerTrip();
+      const res = createReservation(testDb, trip.id);
+      const unlinked = createBudgetItem(testDb, trip.id);
+
+      const result = await svc.remove(String(res.id), String(trip.id));
+
+      expect(result).toMatchObject({ accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] });
+      expect(testDb.prepare('SELECT id FROM budget_items WHERE id = ?').get(unlinked.id)).toEqual({ id: unlinked.id });
     });
   });
 
@@ -531,6 +559,37 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       budget.linkBudgetItemToReservation.mockImplementation(() => { throw new Error('boom'); });
       expect(() => svc.syncBudgetOnCreate('5', 9, 'Hotel', undefined, { total_price: 50 }, 'sock')).not.toThrow();
     });
+
+    // #2525: an imported booking quoted in dollars became a cost of that many euros.
+    it('links the cost in the currency and at the rate it arrives with', async () => {
+      budget.linkBudgetItemToReservation.mockReturnValue({ id: 7 });
+      await svc.syncBudgetOnCreate('5', 9, 'Hotel', 'hotel', { total_price: 801.76, currency: 'USD', exchange_rate: 1.17 }, 'sock');
+      expect(budget.linkBudgetItemToReservation).toHaveBeenCalledWith('5', 9, {
+        name: 'Hotel', category: 'hotel', total_price: 801.76, currency: 'USD', exchange_rate: 1.17,
+      });
+    });
+  });
+
+  describe('withFrozenRate (#2525)', () => {
+    it('keeps a quoted currency and freezes a rate for it', async () => {
+      budget.freezeForeignRate.mockImplementation(async (_tripId: unknown, data: { exchange_rate?: number }) => { data.exchange_rate = 1.17; });
+      expect(await svc.withFrozenRate('5', { total_price: 801.76, category: 'hotel', currency: ' usd ' })).toEqual({
+        total_price: 801.76, category: 'hotel', currency: 'USD', exchange_rate: 1.17,
+      });
+      expect(budget.freezeForeignRate).toHaveBeenCalledWith('5', { currency: 'USD', exchange_rate: 1.17 });
+    });
+
+    it('leaves the rate off when none could be frozen, so the cost converts live', async () => {
+      budget.freezeForeignRate.mockResolvedValue(undefined);
+      expect(await svc.withFrozenRate('5', { total_price: 10, currency: 'EUR' })).toEqual({ total_price: 10, currency: 'EUR' });
+    });
+
+    it('drops a currency that is not a code, and never takes a rate from the caller', async () => {
+      expect(await svc.withFrozenRate('5', { total_price: 10, currency: 'dollars', exchange_rate: 99 })).toEqual({ total_price: 10 });
+      expect(await svc.withFrozenRate('5', { total_price: 10, exchange_rate: 99 })).toEqual({ total_price: 10 });
+      expect(budget.freezeForeignRate).not.toHaveBeenCalled();
+      expect(await svc.withFrozenRate('5', undefined)).toBeUndefined();
+    });
   });
 
   describe('syncBudgetOnUpdate', () => {
@@ -563,6 +622,69 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       await svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'other', undefined, 'sock');
       expect(budget.updateBudgetItem).toHaveBeenCalledWith(item.id, String(trip.id), { category: 'flights' });
       expect(broadcast).toHaveBeenCalledWith(String(trip.id), 'budget:updated', { item: { id: item.id, category: 'flights' } }, 'sock');
+    });
+
+    it('RESV-SVC-039: a type change re-files every linked expense still on the derived category, one broadcast each (#2084)', async () => {
+      const { trip, res, item: fare } = linkedItem({ name: 'Fare', category: 'transport' });
+      const luggage = createBudgetItem(testDb, trip.id, { name: 'Luggage', category: 'transport' });
+      const picked = createBudgetItem(testDb, trip.id, { name: 'Lounge', category: 'food' });
+      testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id IN (?, ?)').run(res.id, luggage.id, picked.id);
+      budget.updateBudgetItem.mockImplementation((id: number) => ({ id, category: 'flights' }));
+
+      // train -> flight: transport -> flights.
+      await svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'train', undefined, 'sock');
+
+      expect(budget.updateBudgetItem.mock.calls).toEqual([
+        [fare.id, String(trip.id), { category: 'flights' }],
+        [luggage.id, String(trip.id), { category: 'flights' }],
+      ]);
+      // The hand-picked category survives.
+      expect(budget.updateBudgetItem).not.toHaveBeenCalledWith(picked.id, expect.anything(), expect.anything());
+      expect(broadcast).toHaveBeenCalledWith(String(trip.id), 'budget:updated', { item: { id: fare.id, category: 'flights' } }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith(String(trip.id), 'budget:updated', { item: { id: luggage.id, category: 'flights' } }, 'sock');
+      expect(broadcast).toHaveBeenCalledTimes(2);
+    });
+
+    it('RESV-SVC-041: with several expenses linked, the booking price field touches none of them (#2084)', async () => {
+      const { trip, res, item: fare } = linkedItem({ name: 'Fare', total_price: 100 });
+      const seat = createBudgetItem(testDb, trip.id, { name: 'Seat', total_price: 20 });
+      testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(res.id, seat.id);
+
+      // A price speaks for one expense; with two there is no telling which, so
+      // neither a new figure nor a clear may land on an arbitrary one of them.
+      await svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'flight', { total_price: 500 }, 'sock');
+      await svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'flight', { total_price: 0 }, 'sock');
+
+      expect(budget.updateBudgetItem).not.toHaveBeenCalled();
+      expect(budget.deleteBudgetItem).not.toHaveBeenCalled();
+      expect(budget.createBudgetItem).not.toHaveBeenCalled();
+      expect(broadcast).not.toHaveBeenCalled();
+      expect(testDb.prepare('SELECT id, total_price FROM budget_items WHERE reservation_id = ? ORDER BY id').all(res.id))
+        .toEqual([{ id: fare.id, total_price: 100 }, { id: seat.id, total_price: 20 }]);
+    });
+
+    it('RESV-SVC-042: the type-change re-file still runs when several expenses stop the price path', async () => {
+      const { trip, res, item: fare } = linkedItem({ name: 'Fare', category: 'transport' });
+      const seat = createBudgetItem(testDb, trip.id, { name: 'Seat', category: 'transport' });
+      testDb.prepare('UPDATE budget_items SET reservation_id = ? WHERE id = ?').run(res.id, seat.id);
+      budget.updateBudgetItem.mockImplementation((id: number) => ({ id, category: 'flights' }));
+
+      await svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'train', { total_price: 500 }, 'sock');
+
+      // Only the two category writes, never the price.
+      expect(budget.updateBudgetItem.mock.calls).toEqual([
+        [fare.id, String(trip.id), { category: 'flights' }],
+        [seat.id, String(trip.id), { category: 'flights' }],
+      ]);
+      expect(budget.createBudgetItem).not.toHaveBeenCalled();
+    });
+
+    it('RESV-SVC-040: a type change that keeps the derived category touches no linked expense', async () => {
+      const { trip, res } = linkedItem({ category: 'transport' });
+      // train -> bus: both file under transport.
+      await svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'bus', 'X', 'train', undefined, 'sock');
+      expect(budget.updateBudgetItem).not.toHaveBeenCalled();
+      expect(broadcast).not.toHaveBeenCalled();
     });
 
     it('updates an existing linked item when a price is provided', async () => {
@@ -1356,6 +1478,40 @@ describe('the day stop a hotel booking implies', () => {
     expect(stopsOn(days[0].id)).toEqual([{ id: Number(own.lastInsertRowid), place_id: place.id, accommodation_id: null }]);
     await svc.remove(String(reservation.id), String(trip.id));
     expect(stopsOn(days[0].id)).toHaveLength(1);
+  });
+
+  it('RESV-STAY-008: a save from the booking form re-seats the night only when its check-in changed', async () => {
+    // The form sends the whole stay on every save, check-in included, so this is the
+    // door a title edit on a hotel booking comes through. Its own reading of "the
+    // check-in changed" (the prior row, read before the write) decides whether a night
+    // the traveller dragged is left alone or seated afresh, the way ACC-022g pins it
+    // for the stay route.
+    const { trip, days } = tripWithDays();
+    const [harbour, market, hotel] = ['Hafen', 'Markt', 'Rostock'].map(name => createPlace(testDb, trip.id, { name }));
+    createDayAssignment(testDb, days[0].id, harbour.id);
+    createDayAssignment(testDb, days[0].id, market.id);
+    const stay = (check_in: string) => ({ place_id: hotel.id, start_day_id: days[0].id, end_day_id: days[0].id, check_in });
+    const { reservation } = await svc.create(String(trip.id), { title: 'Hotel', type: 'hotel', create_accommodation: stay('15:00') });
+    const order = () => stopsOn(days[0].id).map(s => s.place_id);
+    expect(order()).toEqual([hotel.id, harbour.id, market.id]);
+
+    // Dragged to the end of the day by hand.
+    const own = stopsOn(days[0].id).find(s => s.place_id === hotel.id)!;
+    testDb.prepare('UPDATE day_assignments SET order_index = order_index - 1 WHERE day_id = ? AND order_index > 0').run(days[0].id);
+    testDb.prepare('UPDATE day_assignments SET order_index = 2 WHERE id = ?').run(own.id);
+    expect(order()).toEqual([harbour.id, market.id, hotel.id]);
+
+    vi.clearAllMocks();
+    let current = (await svc.getReservation(String(reservation.id), String(trip.id)))!;
+    await svc.update(String(reservation.id), String(trip.id), { title: 'Hotel, late arrival', type: 'hotel', create_accommodation: stay('15:00') } as never, current);
+    expect(order()).toEqual([harbour.id, market.id, hotel.id]);
+    expect(broadcast).not.toHaveBeenCalledWith(String(trip.id), 'assignment:moved', expect.anything());
+
+    current = (await svc.getReservation(String(reservation.id), String(trip.id)))!;
+    await svc.update(String(reservation.id), String(trip.id), { type: 'hotel', create_accommodation: stay('10:00') } as never, current);
+    expect(order()).toEqual([hotel.id, harbour.id, market.id]);
+    expect(stopsOn(days[0].id).map(s => s.id)).toContain(own.id);
+    expect(broadcast).toHaveBeenCalledWith(String(trip.id), 'assignment:moved', expect.objectContaining({ assignment: expect.objectContaining({ id: own.id }) }));
   });
 
   it('RESV-STAY-007: a foreign accommodation_id reaches no stop on the other trip', async () => {

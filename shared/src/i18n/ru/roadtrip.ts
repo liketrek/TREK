@@ -116,6 +116,9 @@ const roadtrip: TranslationStrings = {
   'roadtrip.line.connect': 'Соединить дни',
   'roadtrip.line.dayColors': 'Цвет на день',
   'roadtrip.line.hint': 'Также считает участок между двумя днями и относит его ко дню прибытия.',
+  'roadtrip.line.hotelBookends': 'Начинать и заканчивать каждый день в месте проживания',
+  'roadtrip.line.hotelBookendsHint':
+    'После забронированной ночи день начинается в этом жилье, а перед ней заканчивается в жилье, забронированном на эту ночь.',
   'roadtrip.avoid.section': 'Избегать по возможности',
   'roadtrip.avoid.toll': 'Платные дороги',
   'roadtrip.avoid.motorway': 'Автомагистрали',
@@ -223,6 +226,18 @@ const roadtrip: TranslationStrings = {
   'roadtrip.alt.slower': 'на {time} дольше',
   'roadtrip.alt.quicker': 'на {time} быстрее',
   'roadtrip.alt.otherEngine': 'Время посчитал маршрутизатор обхода, не основной.',
+  'roadtrip.alt.notHeld': 'Маршрутизатор поездки не поведёт по этому пути, поэтому он не сохранён.',
+  'roadtrip.alt.ferryNotHeld':
+    'Этот путь проходит на пароме. Добавьте паром как бронирование транспорта, и маршрут пойдёт по нему. Если он прибывает на следующий день, перенесите остановки на другом берегу на этот день.',
+  'roadtrip.alt.legChanged': 'Участок изменился во время проверки, поэтому ничего не сохранено.',
+  'roadtrip.alt.offline': 'Другие пути сохраняются только онлайн. Подключитесь снова, чтобы выбрать этот.',
+  'roadtrip.alt.otherEngineStandard':
+    'Время посчитал основной маршрутизатор, а не тот, которым планируется этот участок.',
+  'roadtrip.alt.avoidNotHeld':
+    'Поездка пойдёт этим путём, только если в её настройках в разделе «{setting}» отмечено «{class}».',
+  'roadtrip.alt.checking': 'Маршрутизатор поездки проверяет этот путь…',
+  'roadtrip.alt.standIn':
+    'Маршрутизатор обхода не ответил для этого участка, поэтому его нарисовал основной маршрутизатор. Маршрутизатор обхода запрашивается снова.',
   'roadtrip.day': 'День {number}',
   'roadtrip.quietDay.empty': 'Остановок пока нет — перетащите сюда',
   'roadtrip.quietDay.one': 'Пока только {name} — перетащите сюда остановку',
@@ -237,6 +252,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stop.fillDefault': 'Взять моё значение по умолчанию',
   'roadtrip.stop.fillSet': 'Задать, насколько заправляться на этой остановке',
   'roadtrip.leg.pending': 'Нет маршрута',
+  'roadtrip.leg.arrivingFrom': 'Отправление: {name}',
   'roadtrip.stop.addTitle': 'Добавить как остановку',
   'roadtrip.stop.kind': 'Тип остановки',
   'roadtrip.stop.landsOn': 'День {day}, остановка {position}',
@@ -270,5 +286,41 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stay.releaseBody': 'Ночёвка в «{name}» будет удалена. Остановка останется на маршруте как пауза.',
   'roadtrip.stay.releaseBookedBody': 'Ночёвка в «{name}» будет удалена вместе с бронированием «{booking}» и связанными с ним расходами. Остановка останется на маршруте как пауза.',
   'roadtrip.stay.releaseAction': 'Сделать паузой',
+  'roadtrip.ride.departure': 'Отправление {time}',
+  'roadtrip.ride.arrival': 'Прибытие {time}',
+  'roadtrip.ride.pickup': 'Получение {time}',
+  'roadtrip.ride.return': 'Возврат {time}',
+  'roadtrip.ride.open': 'Открыть бронирование',
+  'roadtrip.ride.undated':
+    'Бронирование {title} не относится ни к одному дню этой поездки, поэтому маршрут его не учитывает.',
+  'roadtrip.bookings.loose': 'Также забронировано в этот день',
+  'roadtrip.ride.departureFlight': 'Вылет {time}',
+  'roadtrip.ride.duration': 'Длительность по бронированию',
+  'roadtrip.ride.checkIn': 'Регистрация',
+  'roadtrip.ride.boarding': 'Посадка',
+  'roadtrip.ride.missed': 'Опоздание',
+  'roadtrip.ride.lateBy': 'опоздание {time}',
+  'roadtrip.ride.reachedAt': 'только в {time}',
+  'roadtrip.ride.hintFlight': '{title} вылетает в {departs}, регистрация до {pin}.',
+  'roadtrip.ride.hintShip': '{title} отплывает в {departs}, регистрация до {pin}.',
+  'roadtrip.ride.hintBoarding': '{title} отправляется в {departs}, посадка до {pin}.',
+  'roadtrip.ride.lateHintFlight':
+    '{place}: прибытие только в {time}. {title} вылетает в {departs}, регистрация до {pin}.',
+  'roadtrip.ride.lateHintShip':
+    '{place}: прибытие только в {time}. {title} отплывает в {departs}, регистрация до {pin}.',
+  'roadtrip.ride.lateHintBoarding':
+    '{place}: прибытие только в {time}. {title} отправляется в {departs}, посадка до {pin}.',
+  'roadtrip.day.rideMissed.flight': 'Опоздание на рейс',
+  'roadtrip.day.rideMissed.train': 'Опоздание на поезд',
+  'roadtrip.day.rideMissed.ferry': 'Опоздание на паром',
+  'roadtrip.day.rideMissed.cruise': 'Опоздание на круиз',
+  'roadtrip.day.rideMissed.bus': 'Опоздание на автобус',
+  'roadtrip.bookend.checkOut': 'Выезд',
+  'roadtrip.bookend.from': 'Начало дня',
+  'roadtrip.bookend.back': 'Ночёвка',
+  'roadtrip.bookend.checkIn': 'Заезд',
+  'roadtrip.bookend.afterCheckOut': 'Отъезд позже расчётного часа',
+  'roadtrip.bookend.noVia':
+    'На маршрут до места проживания или от него нельзя поставить промежуточную точку. Добавьте там остановку.',
 };
 export default roadtrip;

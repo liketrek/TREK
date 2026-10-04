@@ -23,6 +23,7 @@ import { DayNotesMcp } from '../../src/nest/day-notes/day-notes.mcp';
 import { DayNotesService } from '../../src/nest/day-notes/day-notes.service';
 import { DaysMcp } from '../../src/nest/days/days.mcp';
 import { DaysService } from '../../src/nest/days/days.service';
+import { DayRemovalService } from '../../src/nest/days/day-removal.service';
 import { MapsMcp } from '../../src/nest/maps/maps.mcp';
 import { WeatherMcp } from '../../src/nest/weather/weather.mcp';
 import { WeatherService } from '../../src/nest/weather/weather.service';
@@ -89,6 +90,8 @@ import { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service
 import { makeNotificationsService, makeNotificationPreferencesService } from './notifications';
 import { createTestAddonsService } from './test-addons';
 import { RoadtripMcp } from '../../src/nest/roadtrip/roadtrip.mcp';
+import { RoadtripPreferencesMcp } from '../../src/nest/roadtrip/roadtrip-preferences.mcp';
+import { RoadtripPreferencesService } from '../../src/nest/roadtrip/roadtrip-preferences.service';
 import { RoadtripService } from '../../src/nest/roadtrip/roadtrip.service';
 import { notificationsStub } from './notifications';
 import { EphemeralTokenService } from '../../src/nest/auth/ephemeral-token.service';
@@ -98,6 +101,7 @@ import { ImmichService } from '../../src/nest/memories/immich.service';
 import { SynologyService } from '../../src/nest/memories/synology.service';
 import { MemoriesAccessService } from '../../src/nest/memories/memories-access.service';
 import { PhotoCaptureBackfillService } from '../../src/nest/memories/photo-capture-backfill.service';
+import { JourneyPhotoCaptureService } from '../../src/nest/journey/journey-photo-capture.service';
 import { PhotoResolverService } from '../../src/nest/memories/photo-resolver.service';
 import { ThumbnailService } from '../../src/nest/memories/thumbnail.service';
 import { TrekPhotoCacheService } from '../../src/nest/memories/trek-photo-cache.service';
@@ -111,6 +115,8 @@ import { makeStorageFixture } from './storage-fixture';
 // PluginHooks.prototype to play the provider fan-out.
 import { TripWarningsMcp } from '../../src/nest/plugins/contributions/trip-warnings.mcp';
 import { PluginSearchMcp } from '../../src/nest/plugins/contributions/plugin-search.mcp';
+import { PluginPoisMcp } from '../../src/nest/plugins/contributions/plugin-pois.mcp';
+import { PluginPoisService } from '../../src/nest/plugins/contributions/plugin-pois.service';
 import { PluginHooks } from '../../src/nest/plugins/plugin-hooks.service';
 import type { PluginRuntimeService } from '../../src/nest/plugins/plugin-runtime.service';
 import { AirtrailMcp } from '../../src/nest/integrations/airtrail.mcp';
@@ -126,6 +132,7 @@ import {
   createTestTripMembersRepo, createTestTripInviteTokensRepo, createTestPlaceRatingsRepo, createTestAssignmentParticipantsRepo,
   createTestGooglePlacePhotoMetaRepo, createTestPlacesRepo, createTestRoadtripViasRepo, createTestRoadtripDayTracksRepo,
   createTestPlaceDetailsCacheRepo,
+  createTestRoadtripPreferencesRepo, createTestRoadtripDayBoundariesRepo,
   createTestReservationsRepo,
   createTestReservationEndpointsRepo,
   createTestReservationTravelersRepo,
@@ -134,6 +141,7 @@ import {
   createTestUsersRepo,
   createTestCollectionsRepo, createTestCollectionMembersRepo, createTestCollectionLabelsRepo,
   createTestCollectionPlacesRepo, createTestCollectionPlaceRatingsRepo,
+  sharedTestOrm,
 } from './test-uow';
 import { createTestOrm } from './test-orm';
 import { createTestTripFilesRepo, createTestFileLinksRepo, createTestBudgetItemsRepo } from './files-repos';
@@ -176,6 +184,8 @@ import { McpTokens } from '../../src/db/entities/McpTokens.entity';
 import { OauthTokens } from '../../src/db/entities/OauthTokens.entity';
 import { WebauthnCredentials } from '../../src/db/entities/WebauthnCredentials.entity';
 import { PasswordResetTokens } from '../../src/db/entities/PasswordResetTokens.entity';
+import { noGoogleQuota } from './google-quota';
+import { createTestPushSubscriptionsRepo } from './notifications-repos';
 
 /**
  * Hand-wired counterpart of the boot-time discovery in McpRegistryService,
@@ -225,6 +235,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
     new EphemeralTokenService(),
     new AllowedFileTypesService(appSettings), await createTestUnitOfWork(db),
     appSettings, usersRepo, inviteTokensRepo, mcpTokensRepoForAuth, oauthTokensRepo, webauthnCredentialsRepoForAuth, passwordResetTokensRepo,
+    await createTestPushSubscriptionsRepo(db),
   );
   const queryHelpersService = new QueryHelpersService(await createTestTagsRepo(db), await createTestPlaceRatingsRepo(db), await createTestAssignmentParticipantsRepo(db));
   const daysService = new DaysService(
@@ -239,6 +250,8 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
     await createTestReservationsRepo(db),
     await createTestReservationEndpointsRepo(db),
     await createTestDayAccommodationsRepo(db),
+    await createTestRoadtripViasRepo(db),
+    await createTestRoadtripDayBoundariesRepo(db),
   );
   const todoService = new TodoService(permissionsService, realtimeService, await createTestUnitOfWork(db), await createTestTodoItemsRepo(db), await createTestTodoCategoryAssigneesRepo(db), await createTestTripsRepo(db), await createTestTripMembersRepo(db));
   const packingService = new PackingService(
@@ -256,7 +269,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
   // Exactly one instance, shared by maps, places and share: its stampede guard
   // and its on-disk set only work if all three readers see the same maps.
   const placePhotoCache = new PlacePhotoCacheService(makeStorageFixture('photos/google/').storage, await createTestGooglePlacePhotoMetaRepo(db), await createTestPlacesRepo(db), await createTestCollectionPlacesRepo(db));
-  const mapsService = new MapsService(placePhotoCache, appSettings, usersRepo, await createTestPlaceDetailsCacheRepo(db), await createTestPlacesRepo(db));
+  const mapsService = new MapsService(placePhotoCache, appSettings, usersRepo, await createTestPlaceDetailsCacheRepo(db), await createTestPlacesRepo(db), noGoogleQuota);
   const journeyDomain = new JourneyDomainService(
     realtimeService, new TrekPhotoRegistrationService(mcpOrm.repo(TrekPhotos), mcpOrm.repo(TripPhotos), await createTestJourneyPhotosRepo(db)), await createTestUnitOfWork(db),
     // Plan 3g Task 1 — the constructor-ripple fix (R9): four journey-owned
@@ -319,6 +332,11 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
   );
   // Built after it: a hotel booking writes the stay's day stop through this one.
   const reservationsService = new ReservationsService(permissionsService, budgetService, realtimeService, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(db), await createTestReservationEndpointsRepo(db), await createTestReservationTravelersRepo(db)), accommodationsService, await createTestUnitOfWork(db), await createTestReservationsRepo(db), await createTestReservationEndpointsRepo(db), await createTestReservationTravelersRepo(db), await createTestReservationDayPositionsRepo(db), await createTestDayAccommodationsRepo(db), await createTestDaysRepo(db), await createTestPlacesRepo(db), await createTestDayAssignmentsRepo(db), await createTestTripMembersRepo(db), await createTestUsersRepo(db), await createTestTripsRepo(db), await createTestBudgetItemsRepo(db));
+  // Deleting a day cancels the stays on it through the same accommodations service.
+  const dayRemovalService = new DayRemovalService(
+    daysService, accommodationsService, assignmentsService, await createTestUnitOfWork(db),
+    await createTestDaysRepo(db), await createTestDayAccommodationsRepo(db), await createTestRoadtripDayBoundariesRepo(db), await createTestTripsRepo(db),
+  );
   const membersService = new TripMembersService(budgetService, new UserCleanupService(mcpOrm.em, budgetService, await createTestUnitOfWork(db), usersRepo, await createTestTripMembersRepo(db), await createTestBudgetItemsRepo(db), await createTestJourneyShareTokensRepo(db), await createTestJourneysRepo(db), await createTestJourneyEntriesRepo(db), await createTestJourneyContributorsRepo(db), await createTestShareTokensRepo(db), await createTestPluginsRepo(db), await createTestPluginUserErasureQueueRepo(db)), permissionsService, realtimeService, notificationsStub(), await createTestUnitOfWork(db), await createTestTripsRepo(db), await createTestTripMembersRepo(db), usersRepo);
   const tripsService = new TripsService(
     reservationsService,
@@ -339,6 +357,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
     generalStorage,
     await createTestUnitOfWork(db),
     mcpOrm.em,
+    new SettingsService(await createTestUnitOfWork(db), appSettings, await createTestSettingsRepo(db)),
   );
   // Plan 3e Task 1 (files): FilesService now also takes uow + the repositories
   // its R2 transactions and R12 cross-object trip-scoping guard need. Built
@@ -396,7 +415,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
       new BudgetMcp(budgetService, exchangeRatesService, new RuntimeEnvService(), new TripMembershipService(await createTestTripsRepo(db), await createTestTripMembersRepo(db)), addonsService, guards, await createTestUnitOfWork(db), await createTestPlacesRepo(db), await createTestTripsRepo(db), demoService, await createTestTripMembersRepo(db)),
       new ReservationsMcp(reservationsService, daysService, budgetService, authService, assignmentsService, guards),
       new DayNotesMcp(new DayNotesService(await createTestTripsRepo(db), permissionsService, realtimeService, await createTestDayNotesRepo(db), await createTestDaysRepo(db)), authService, guards),
-      new DaysMcp(daysService, authService, guards),
+      new DaysMcp(daysService, authService, guards, dayRemovalService),
       new RoadtripMcp(
         new RoadtripService(
           realtimeService,
@@ -411,7 +430,11 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
         authService,
         addonsService,
       ),
-      new FilesMcp(filesService, authService, guards),
+      new RoadtripPreferencesMcp(
+        new RoadtripPreferencesService(realtimeService, await createTestUnitOfWork(db), await createTestRoadtripPreferencesRepo(db)),
+        authService, addonsService, await createTestTripsRepo(db), guards,
+      ),
+      new FilesMcp(filesService, authService, guards, new AllowedFileTypesService(appSettings)),
       new AccommodationsMcp(accommodationsService, placesService, authService, guards, await createTestUnitOfWork(db)),
       new AssignmentsMcp(assignmentsService, daysService, authService, guards),
       new CollabMcp(collabService, authService, addonsService, guards),
@@ -464,13 +487,13 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
         // (`findUsernameEmail`, UM11's precedent) added in its place.
         usersRepo, authService, addonsService,
       ),
-      new TransitMcp(new TransitService(new GoogleTransitProvider(appSettings, usersRepo)), daysService, reservationsService, await createTestTripsRepo(db), authService, guards),
+      new TransitMcp(new TransitService(new GoogleTransitProvider(appSettings, usersRepo, noGoogleQuota)), daysService, reservationsService, await createTestTripsRepo(db), authService, guards),
       new AtlasMcp(new AtlasService(
         await createTestBucketListRepo(db), await createTestHiddenCountriesRepo(db),
         await createTestHiddenRegionsRepo(db), await createTestVisitedCountriesRepo(db),
         await createTestVisitedRegionsRepo(db), await createTestPlaceRegionsRepo(db),
         await createTestTripsRepo(db), await createTestPlacesRepo(db),
-        await createTestReservationEndpointsRepo(db), await createTestUnitOfWork(db),
+        await createTestReservationEndpointsRepo(db), await createTestUnitOfWork(db), (await sharedTestOrm(db)).orm,
       ), addonsService, authService),
       new JourneyMcp(journeyDomain, new JourneyShareService(
         journeyDomain,
@@ -484,7 +507,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
         // + `JourneyEntryPhotosRepository` (JS14), relocated off
         // `JourneyShareTokensRepository`'s own fallback stub.
         await createTestJourneyEntriesRepo(db), await createTestJourneyEntryPhotosRepo(db),
-      ), addonsService, authService, captureBackfill),
+      ), addonsService, authService, new JourneyPhotoCaptureService(captureBackfill, journeyDomain, { reverseGeocode: async () => ({ name: null, address: null }) } as never, mcpOrm.orm)),
       new MemoriesMcp(immichService, synologyService, addonsService, mcpOrm.repo(PhotoProviders)),
       new NotificationsMcp(await makeNotificationsService(db, realtimeService), authService),
       new AirtrailMcp(new AirtrailService(usersRepo, new AuditService(auditLogRepo, usersRepo), new AirtrailClient()), addonsService),
@@ -496,6 +519,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
       new HelpMcp(), new AddonsMcp(addonsService),
       new TripWarningsMcp(new PluginHooks({ providersOf: () => [], invokeHook: async () => [] } as unknown as PluginRuntimeService), await createTestTripsRepo(db)),
       new PluginSearchMcp(new PluginHooks({ providersOf: () => [], invokeHook: async () => [] } as unknown as PluginRuntimeService)),
+      new PluginPoisMcp(new PluginPoisService(new PluginHooks({ providersOf: () => [], invokeHook: async () => [] } as unknown as PluginRuntimeService), await createTestPluginsRepo(db))),
     ],
     { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess },
   );

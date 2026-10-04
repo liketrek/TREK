@@ -1,8 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, NotFoundException } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import path from 'node:path';
 import { readEnv } from '../../app-config';
-import { PUBLIC_DIR } from './platform.routes';
+import { answerUnmatchedGet } from './platform.routes';
 
 /**
  * Serves the built SPA (index.html) for any request the NestJS router did not
@@ -17,6 +16,9 @@ import { PUBLIC_DIR } from './platform.routes';
  * client) keeps the standard TREK `{ error }` 404 envelope. The `@Catch(NotFoundException)`
  * is more specific than the global TrekExceptionFilter, so Nest routes 404s here
  * while every other error still flows through TrekExceptionFilter.
+ *
+ * A GET for a build file that is not on disk (a chunk of the previous release,
+ * say) is not a page and gets the 404 envelope too, never index.html (#2524).
  */
 @Catch(NotFoundException)
 export class SpaFallbackFilter implements ExceptionFilter {
@@ -27,8 +29,7 @@ export class SpaFallbackFilter implements ExceptionFilter {
 
     // Case-sensitive on purpose (legacy parity).
     if (readEnv().app.nodeEnv === 'production' && req.method === 'GET') {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+      answerUnmatchedGet(req, res, exception.message || 'Not Found');
       return;
     }
 

@@ -1,8 +1,8 @@
-// FE-TSLICE-DAYS-001 to FE-TSLICE-DAYS-008 (whole-day reorder + insert, #589)
+// FE-TSLICE-DAYS-001 to FE-TSLICE-DAYS-013 (whole-day reorder + insert, #589; delete; dated append)
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildDay, buildReservation } from '../../../tests/helpers/factories';
+import { buildAssignment, buildDay, buildDayNote, buildReservation, buildTrip } from '../../../tests/helpers/factories';
 import { useTripStore } from '../tripStore';
 import type { Day } from '../../types';
 
@@ -175,6 +175,124 @@ describe('daysSlice', () => {
 
       await expect(useTripStore.getState().insertDay(1, 2)).rejects.toThrow('Trip is locked');
       // The insert never writes optimistically, so a failure needs no rollback.
+      expect(useTripStore.getState().days.map(d => d.id)).toEqual([1, 2, 3]);
+    });
+  });
+
+  describe('deleteDay', () => {
+    const seedDayContent = () => seedStore(useTripStore, {
+      trip: buildTrip({ id: 1, start_date: '2025-06-01', end_date: '2025-06-03' }),
+      days: datedDays(),
+      assignments: { '1': [], '2': [buildAssignment({ day_id: 2 })], '3': [] },
+      dayNotes: { '1': [], '2': [buildDayNote({ day_id: 2 })], '3': [] },
+      selectedDayId: 2,
+    });
+
+    it('FE-TSLICE-DAYS-009: closes the gap at once, keeps the dates on their slots and takes the trip it is answered with', async () => {
+      seedDayContent();
+      const serverDays = [
+        buildDay({ id: 1, trip_id: 1, day_number: 1, date: '2025-06-01', title: 'Arrival' }),
+        buildDay({ id: 3, trip_id: 1, day_number: 2, date: '2025-06-02', title: 'Departure' }),
+      ];
+      let optimistic: ReturnType<typeof useTripStore.getState> | null = null;
+      server.use(
+        http.delete('/api/trips/1/days/2', () => {
+          optimistic = useTripStore.getState();
+          return HttpResponse.json({ success: true, trip: buildTrip({ id: 1, start_date: '2025-06-01', end_date: '2025-06-02' }) });
+        }),
+        http.get('/api/trips/1/days', () => HttpResponse.json({ days: serverDays })),
+        http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [buildReservation({ id: 5, trip_id: 1, title: 'Let go' })] })),
+      );
+
+      await useTripStore.getState().deleteDay(1, 2);
+
+      const during = optimistic as unknown as ReturnType<typeof useTripStore.getState>;
+      expect(during.days.map(d => [d.id, d.day_number, d.date])).toEqual([[1, 1, '2025-06-01'], [3, 2, '2025-06-02']]);
+      expect('2' in during.assignments).toBe(false);
+      expect('2' in during.dayNotes).toBe(false);
+      const after = useTripStore.getState();
+      expect(after.trip?.end_date).toBe('2025-06-02');
+      expect(after.days.map(d => d.id)).toEqual([1, 3]);
+      expect(after.reservations.map(r => r.title)).toEqual(['Let go']);
+    });
+
+    it('FE-TSLICE-DAYS-010: a refusal puts every field back and throws the server sentence', async () => {
+      seedDayContent();
+      server.use(http.delete('/api/trips/1/days/2', () => HttpResponse.json({ error: 'A trip needs at least one day.' }, { status: 400 })));
+
+      await expect(useTripStore.getState().deleteDay(1, 2)).rejects.toThrow('A trip needs at least one day.');
+
+      const state = useTripStore.getState();
+      expect(state.days.map(d => d.id)).toEqual([1, 2, 3]);
+      expect(state.assignments['2']).toHaveLength(1);
+      expect(state.dayNotes['2']).toHaveLength(1);
+      expect(state.selectedDayId).toBe(2);
+      expect(state.trip?.end_date).toBe('2025-06-03');
+    });
+
+    it('FE-TSLICE-DAYS-011: a selection on the deleted day clears, one on another day stays', async () => {
+      seedDayContent();
+      server.use(
+        http.delete('/api/trips/1/days/:id', () => HttpResponse.json({ success: true })),
+        http.get('/api/trips/1/days', () => HttpResponse.json({ days: datedDays() })),
+        http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [] })),
+      );
+
+      await useTripStore.getState().deleteDay(1, 2);
+      expect(useTripStore.getState().selectedDayId).toBeNull();
+
+      seedDayContent();
+      await useTripStore.getState().deleteDay(1, 3);
+      expect(useTripStore.getState().selectedDayId).toBe(2);
+      // Answered without a trip, the store keeps the one it has.
+      expect(useTripStore.getState().trip?.end_date).toBe('2025-06-03');
+    });
+  });
+
+  describe('appendDatedDay', () => {
+    it('FE-TSLICE-DAYS-012: asks for the next date, takes the grown trip and pulls the days, but not the bookings', async () => {
+      seedStore(useTripStore, {
+        trip: buildTrip({ id: 1, start_date: '2025-06-01', end_date: '2025-06-03' }),
+        days: datedDays(),
+      });
+      const created = buildDay({ id: 4, trip_id: 1, day_number: 4, date: '2025-06-04' });
+      const grown = buildTrip({ id: 1, start_date: '2025-06-01', end_date: '2025-06-04', day_count: 4 });
+
+      let body: Record<string, unknown> = {};
+      let reservationsLoaded = false;
+      server.use(
+        http.post('/api/trips/1/days', async ({ request }) => {
+          body = await request.json() as Record<string, unknown>;
+          return HttpResponse.json({ day: created, trip: grown }, { status: 201 });
+        }),
+        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [...datedDays(), created] })),
+        http.get('/api/trips/1/reservations', () => {
+          reservationsLoaded = true;
+          return HttpResponse.json({ reservations: [] });
+        }),
+      );
+
+      const day = await useTripStore.getState().appendDatedDay(1);
+
+      expect(body).toEqual({ dated: true });
+      expect(day).toMatchObject({ id: 4, date: '2025-06-04' });
+      expect(useTripStore.getState().trip).toMatchObject({ end_date: '2025-06-04', day_count: 4 });
+      expect(useTripStore.getState().days.map(d => d.id)).toEqual([1, 2, 3, 4]);
+      expect(reservationsLoaded).toBe(false);
+    });
+
+    it('FE-TSLICE-DAYS-013: a refusal leaves the trip and the days as they were and throws the server sentence', async () => {
+      seedStore(useTripStore, {
+        trip: buildTrip({ id: 1, start_date: '2025-06-01', end_date: '2025-06-03' }),
+        days: datedDays(),
+      });
+      server.use(
+        http.post('/api/trips/1/days', () => HttpResponse.json({ error: 'A trip can span at most 999 days' }, { status: 400 })),
+      );
+
+      await expect(useTripStore.getState().appendDatedDay(1)).rejects.toThrow('A trip can span at most 999 days');
+
+      expect(useTripStore.getState().trip?.end_date).toBe('2025-06-03');
       expect(useTripStore.getState().days.map(d => d.id)).toEqual([1, 2, 3]);
     });
   });

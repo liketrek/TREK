@@ -27,7 +27,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const MIGRATIONS = path.join(__dirname, '../../../src/db/migrations');
 const BASELINE = 'Migration20200101000000_baseline_schema';
-const LEGACY_FINAL_STEP = 242;
+/** The migrations that carry no legacy step: the baseline, and the post-legacy ones every upgrade runs. */
+const UNNUMBERED = [BASELINE, 'Migration20200101040200_trek_photo_cache_meta_cache_key_not_null'];
+// The last step the positional runner ever had; planLegacyBaseline refuses a
+// schema_version past it.
+const LEGACY_FINAL_STEP = 258;
 
 /** Synthetic migrations whose "source" is the text given, for the fail-closed cases. */
 function fake(sources: Array<[string, string]>): { list: MigrationInfo[]; read: (p: string) => string } {
@@ -39,7 +43,7 @@ function fake(sources: Array<[string, string]>): { list: MigrationInfo[]; read: 
 }
 
 describe('the legacy step map', () => {
-  it('LEGACYMAP-001: every numbered migration maps to exactly one step, steps 1..242 are all present, in order, behind the baseline', async () => {
+  it('LEGACYMAP-001: every numbered migration maps to exactly one step, steps 1..258 are all present, in order, behind the baseline', async () => {
     const orm = await createMigrationOrm();
     try {
       const all = await migratorOf(orm).getPending();
@@ -52,11 +56,12 @@ describe('the legacy step map', () => {
       // The unnumbered ones: the baseline, and the post-legacy migrations that
       // must always run on an upgraded install.
       const numbered = new Set(map.steps.values());
-      expect(all.map((m) => m.name).filter((name) => !numbered.has(name))).toEqual([
-        BASELINE,
-        'Migration20200101040200_trek_photo_cache_meta_cache_key_not_null',
-      ]);
+      expect(all.map((m) => m.name).filter((name) => !numbered.has(name))).toEqual(UNNUMBERED);
       expect(map.steps.get(242)).toBe('Migration20200101040300_a_booked_night_finally_took_the_seat_a_new');
+      expect(map.steps.get(243)).toBe(
+        'Migration20200101040400_immich_learns_the_switch_synology_airtrail_and_dawarich',
+      );
+      expect(map.steps.get(258)).toBe('Migration20200101041900_a_journey_that_puts_an_entry_on_the');
       expect(map.steps.get(26)).toBe('Migration20200101002600_day_assignments_add_assignment_time');
     } finally {
       await orm.close(true);
@@ -173,7 +178,7 @@ describe('planLegacyBaseline / migrateToHead', () => {
     await rawExec(orm, 'CREATE TABLE schema_version (version INTEGER NOT NULL)');
     await rawExec(orm, `INSERT INTO schema_version (version) VALUES (${LEGACY_FINAL_STEP + 1})`);
     await expect(baseline()).rejects.toThrow(
-      `[DB] Refusing to boot: schema_version 243 is newer than the last legacy step this release knows (242)`,
+      `[DB] Refusing to boot: schema_version 259 is newer than the last legacy step this release knows (258)`,
     );
     expect(await recorded()).toEqual([]);
   });
@@ -205,6 +210,17 @@ describe('planLegacyBaseline / migrateToHead', () => {
 
     // Nothing half-done: the next boot still sees a legacy install and plans the same steps.
     await expect(baseline()).resolves.toEqual(all.filter((name) => name !== BASELINE).slice(0, 241));
+    expect(await recorded()).toEqual([]);
+  });
+
+  it('LEGACYBASE-007: an install the positional runner left past step 242 is baselined to its step, never refused or replayed', async () => {
+    const all = await pendingNames(orm);
+    const numbered = all.filter((name) => !UNNUMBERED.includes(name));
+    await rawExec(orm, 'CREATE TABLE schema_version (version INTEGER NOT NULL)');
+    await rawExec(orm, 'INSERT INTO schema_version (version) VALUES (250)');
+    const planned = await baseline();
+    expect(planned).toEqual(numbered.slice(0, 250));
+    expect(planned.at(-1)).toBe('Migration20200101041100_half_company_holidays_0_5_covers_the_morning');
     expect(await recorded()).toEqual([]);
   });
 });

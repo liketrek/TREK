@@ -2,17 +2,32 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MBookingsTab from '../../../../src/mobile/screens/trip/tabs/MBookingsTab'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { openFile } from '../../../../src/utils/fileDownload'
+import { formatMoney } from '../../../../src/utils/formatters'
 import type { Day, Reservation, TripFile } from '../../../../src/types'
+import { usePluginStore } from '../../../../src/store/pluginStore'
 import { buildSettings } from '../../../helpers/factories'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
+import { seedStore } from '../../../helpers/store'
 
-// FE-MOB-BKTAB-001 to FE-MOB-BKTAB-018
+// FE-MOB-BKTAB-001 to FE-MOB-BKTAB-023
+
+// A card shows a price the way formatMoney writes it; getByText collapses the
+// no-break space Intl puts between amount and symbol, so the expectation does too.
+const money = (amount: number, currency: string) => formatMoney(amount, currency, 'en').replace(/\s/g, ' ')
 
 vi.mock('../../../../src/utils/fileDownload', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../src/utils/fileDownload')>()),
   openFile: vi.fn(),
 }))
+
+vi.mock('../../../../src/components/Plugins/PluginFrame', () => ({
+  default: ({ pluginId, tripId, reservationId, surface }: { pluginId: string; tripId: string | null; reservationId?: string | null; surface?: string }) => (
+    <div data-testid="plugin-frame" data-plugin={pluginId} data-trip={String(tripId)} data-reservation={String(reservationId)} data-surface={surface} />
+  ),
+}))
+
+const SEAT_MAP = { id: 'seat-map', name: 'Seat Map', type: 'widget', icon: null, slot: 'reservation-detail' } as const
 
 const DAYS = [
   { id: 1, trip_id: 7, day_number: 1, date: '2026-05-01', title: null },
@@ -93,6 +108,7 @@ function cardOf(title: string): HTMLElement {
 describe('MBookingsTab', () => {
   beforeEach(() => {
     vi.mocked(openFile).mockClear()
+    seedStore(usePluginStore, { plugins: [] })
   })
 
   it('FE-MOB-BKTAB-001: keeps only the non-transport reservations, split by status', () => {
@@ -180,7 +196,8 @@ describe('MBookingsTab', () => {
     const card = cardOf('Bamboo walk')
     expect(within(card).queryByText('reservations.meta.from')).not.toBeInTheDocument()
     expect(within(card).getByText('reservations.price')).toBeInTheDocument()
-    expect(within(card).getByText('30 JPY')).toBeInTheDocument()
+    // Formatted as money in the booking's own currency.
+    expect(within(card).getByText(money(30, 'JPY'))).toBeInTheDocument()
     expect(within(card).getAllByText('—')).toHaveLength(2)
   })
 
@@ -284,5 +301,30 @@ describe('MBookingsTab', () => {
     expect(within(card).getByText('Hakone')).toBeInTheDocument()
     // the check-in cell and the time field both read 09:00
     expect(within(card).getAllByText('09:00')).toHaveLength(2)
+  })
+
+  it('FE-MOB-BKTAB-022: mounts a reservation-detail plugin on every booking card, scoped to that booking (#2440)', () => {
+    seedStore(usePluginStore, {
+      plugins: [SEAT_MAP, { id: 'dash-widget', name: 'Dash', type: 'widget', icon: null, slot: 'sidebar' }],
+    })
+    const { planner: p } = renderTab()
+    const frame = within(cardOf('Hotel Granvia')).getByTestId('plugin-frame')
+    expect(frame).toHaveAttribute('data-plugin', 'seat-map')
+    expect(frame).toHaveAttribute('data-trip', '7')
+    expect(frame).toHaveAttribute('data-reservation', '201')
+    expect(frame).toHaveAttribute('data-surface', 'detail-slot')
+    // the slot sits outside the card's body button: a tap in it opens no editor
+    fireEvent.click(frame)
+    expect(p.setShowReservationModal).not.toHaveBeenCalled()
+    expect(within(cardOf('Bamboo walk')).getByTestId('plugin-frame')).toHaveAttribute('data-reservation', '204')
+    expect(screen.getAllByTestId('plugin-frame')).toHaveLength(4)
+    expect(document.querySelector('[data-plugin="dash-widget"]')).toBeNull()
+  })
+
+  it('FE-MOB-BKTAB-023: compact mode drops the plugin frames with the rest of the body', () => {
+    seedStore(usePluginStore, { plugins: [SEAT_MAP] })
+    renderTab(planner(), buildShell({ bookingsCompact: true }))
+    expect(screen.getByText('Hotel Granvia')).toBeInTheDocument()
+    expect(screen.queryByTestId('plugin-frame')).not.toBeInTheDocument()
   })
 })

@@ -19,6 +19,7 @@ vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KE
 
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 
@@ -44,7 +45,7 @@ const PLACE = {
 };
 
 function make(osmTags: Record<string, string> | null) {
-  const svc = new MapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never);
+  const svc = new MapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
   vi.spyOn(svc, 'resolveOsmIdentity').mockResolvedValue(
     osmTags ? { tags: osmTags, osmUrl: 'https://www.openstreetmap.org/node/1', matchedName: "L'Osteria" } : null,
   );
@@ -109,7 +110,7 @@ describe('MapsService.getPlaceDetails for a gers: id', () => {
     // only adds what OSM knows about the same building. Letting its failure
     // through would turn a working answer into an error for the one user whose
     // details request happened to land while Overpass was unreachable.
-    const svc = new MapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never);
+    const svc = new MapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
     vi.spyOn(svc, 'resolveOsmIdentity').mockRejectedValue(new Error('overpass down'));
     mockById.mockResolvedValue({ ...PLACE, hours: { osm: 'Mo-Su 12:00-22:00' } });
 
@@ -123,6 +124,19 @@ describe('MapsService.getPlaceDetails for a gers: id', () => {
     });
     // The index's own hours survive: they came with the record, not from OSM.
     expect(out.place?.opening_hours).toBeTruthy();
+  });
+
+  // #2483: the place from the issue, whose index record carries its website
+  // without a scheme. Both halves of the merge hand it over completed.
+  it('MAPS-GERS-010: the merged website has its scheme, from the index or else from OSM', async () => {
+    const site = 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët';
+    mockById.mockResolvedValue({ ...PLACE, gers: 'ceba0e62-172b-4343-bb3b-78b915a18383', contact: { ...PLACE.contact, website: site } });
+    expect((await make(null).getPlaceDetails(1, 'gers:ceba0e62-172b-4343-bb3b-78b915a18383')).place?.website).toBe(`https://${site}`);
+    expect((await make({ website: 'www.example.fr' }).getPlaceDetails(1, 'gers:ceba0e62-172b-4343-bb3b-78b915a18383')).place?.website).toBe(`https://${site}`);
+
+    mockById.mockResolvedValue({ ...PLACE, contact: { ...PLACE.contact, website: 'javascript:alert(1)' } });
+    expect((await make({ website: 'www.example.fr' }).getPlaceDetails(1, 'gers:abc-123')).place?.website).toBe('https://www.example.fr');
+    expect((await make(null).getPlaceDetails(1, 'gers:abc-123')).place?.website).toBeNull();
   });
 
   it('MAPS-GERS-009: with the index switched off, opening a saved place asks nobody', async () => {

@@ -36,21 +36,24 @@ import { OauthTokens } from '../../db/entities/OauthTokens.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { Places } from '../../db/entities/Places.entity';
 import { TripFiles } from '../../db/entities/TripFiles.entity';
+import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
 
 /**
- * MikroOrmModule.forFeature registers the ten repositories `AdminService`'s
+ * MikroOrmModule.forFeature registers the repositories `AdminService`'s
  * `@InjectRepository` constructor needs (Plan 3i Task 1 — AD1-AD40's
  * conversion off `DatabaseService`): `Users`/`AuditLog`/`AppSettings` for the
  * user-CRUD + audit-log + instance-settings surface, `Addons`/
  * `PhotoProviders`/`PhotoProviderFields`/`DocumentProviders` for the addon
  * shelf, `McpTokens`/`OauthTokens` for the password-reset session revoke, and
  * `Trips`/`Places`/`TripFiles` (owned by other domains, 3c/3e) for
- * `getStats`'s three bare cross-domain counts — the same forFeature +
- * @InjectRepository wiring pattern `AddonsModule` already uses.
+ * `getStats`'s three bare cross-domain counts, and `PushSubscriptions` (owned
+ * by notifications) so a password reset also forgets the user's push devices
+ * — the same forFeature + @InjectRepository wiring pattern `AddonsModule`
+ * already uses.
  */
 @Module({
   imports: [
-    MikroOrmModule.forFeature([Users, AuditLog, AppSettings, Addons, PhotoProviders, PhotoProviderFields, DocumentProviders, McpTokens, OauthTokens, Trips, Places, TripFiles]),
+    MikroOrmModule.forFeature([Users, AuditLog, AppSettings, Addons, PhotoProviders, PhotoProviderFields, DocumentProviders, McpTokens, OauthTokens, Trips, Places, TripFiles, PushSubscriptions]),
     AppConfigModule, PluginsRuntimeModule, SettingsModule, AuditModule, AddonsModule, AuthModule, NotificationsModule, PackingModule, PermissionsModule, TokensModule, OauthModule, SchedulingModule, KitineraryExtractorModule,
   ],
   controllers: [AdminController],

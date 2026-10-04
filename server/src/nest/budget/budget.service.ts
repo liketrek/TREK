@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import type { BudgetParticipantFinal, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import type { BudgetFallbackFx, BudgetParticipantFinal, BudgetUnconverted, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
+import { byCodeUnit } from '../common/compare';
 import type { User, BudgetItem, BudgetItemMember, BudgetItemPayer, BudgetItemReceipt } from '../../types';
 import { ExchangeRatesService } from './exchange-rates.service';
 import { UnitOfWork } from '../database/unit-of-work';
@@ -31,10 +32,16 @@ type Trip = TripAccess;
 type SettlementRow = {
   id: number; trip_id: number; from_user_id: number; to_user_id: number;
   amount: number; currency: string | null; exchange_rate: number | null;
-  created_at: string; settled_at: string | null; created_by_user_id: number | null;
+  created_at: string; settled_at: string | null; note?: string | null; created_by_user_id: number | null;
   from_username: string; from_avatar: string | null;
   to_username: string; to_avatar: string | null;
 };
+
+/** A settle-up note as stored (#2340): trimmed, and nothing at all when blank. */
+function settlementNote(note: string | null | undefined): string | null {
+  const trimmed = (note ?? '').trim();
+  return trimmed ? trimmed : null;
+}
 
 /** How the costs UI used to smuggle an itemized receipt through the note field. */
 const LEGACY_TICKET_PREFIX = 'TICKETJSON:';
@@ -105,6 +112,58 @@ function allocateDisplayCents(cents: number[], factor: number, total = Math.roun
     .sort((a, b) => b.frac - a.frac || a.i - b.i);
   for (let k = 0; k < drift && k < byFraction.length; k++) out[byFraction[k].i] += 1;
   return out;
+}
+
+/**
+ * What `exchange_rate` holds on a row whose rate was never frozen. The column is
+ * `REAL NOT NULL DEFAULT 1`, so without a migration 1 is the only way to store "no
+ * rate". It is read in exactly two places, isFrozenRate and the repositories'
+ * unfrozen predicate (BG89-BG92); nothing else in this file compares a rate with 1.
+ */
+const NOT_FROZEN_RATE = 1;
+
+/** Whether a stored rate is one that was frozen, rather than the "not frozen" sentinel. */
+function isFrozenRate(rate: number | null | undefined): rate is number {
+  return rate != null && Number.isFinite(rate) && rate > 0 && rate !== NOT_FROZEN_RATE;
+}
+
+/**
+ * How an amount of a row, in the row's own currency, becomes trip currency, or null when
+ * nothing can convert it. The rate frozen when the row was entered wins (#1335), so a
+ * booked expense keeps the value it was booked at. A row written before the freeze
+ * existed (no frozen rate) converts through today's `rates`, units of each currency per
+ * 1 of their base. Pre-rework rows store currency = NULL, which means the trip's own.
+ *
+ * A foreign row with neither is left out by every caller and reported, rather than read
+ * as if it were already in the trip currency: 8,920,000 VND counted as that many dollars
+ * swamps every balance on the trip.
+ *
+ * The settlement nets with it and every trip total adds up with it, so the two can never
+ * read the same rows differently.
+ */
+function tripConverter(
+  itemCurrency: string | null | undefined,
+  itemRate: number | null | undefined,
+  tripCurrency: string,
+  rates: Record<string, number> | null,
+): ((amount: number) => number) | null {
+  const cur = (itemCurrency || tripCurrency).toUpperCase();
+  if (cur === tripCurrency) return amount => amount;
+  if (isFrozenRate(itemRate)) return amount => amount / itemRate;
+  const rCur = rates?.[cur];
+  const rTrip = rates?.[tripCurrency];
+  if (rCur && rCur > 0 && rTrip && rTrip > 0) return amount => (amount / rCur) * rTrip;
+  return null;
+}
+
+/**
+ * Units of `to` per 1 `from`, from a set of rates quoted against any base (each rate is
+ * units of that currency per 1 base). Null when either quote is missing.
+ */
+function quoteRatio(rates: Record<string, number> | null, to: string, from: string): number | null {
+  const rTo = rates?.[to];
+  const rFrom = rates?.[from];
+  return rTo && rTo > 0 && rFrom && rFrom > 0 ? rTo / rFrom : null;
 }
 
 /**
@@ -324,11 +383,15 @@ export class BudgetService {
    * "units of the item/display currency per 1 trip currency" — the settlement
    * converts with it via `amount / rate`.
    *
-   * Only freezes for a foreign currency with no explicit rate; degrades to live
-   * rates if the fetch fails. On update it (re)freezes only when the currency
-   * changes (checked against `budget_items`), so an unrelated edit never moves
-   * money. Callers must invoke this *before* the (synchronous) DB write — the raw
-   * create/update stay sync because better-sqlite3 transactions can't await.
+   * Only freezes for a foreign currency with no explicit rate. The server's own rate
+   * comes first; `fallback_fx`, rates the caller lent for this write, only fills a
+   * currency the server cannot quote (resolveRate). With neither, a new row is
+   * stored unfrozen and left out of every figure until a rate turns up. On update it
+   * (re)freezes only when the currency changes (checked against `budget_items`), so
+   * an unrelated edit never moves money, and a change with no rate at all resets the
+   * row to unfrozen instead of keeping the old currency's rate. `fallback_fx` is taken
+   * off `data` either way, so it never reaches the write. Callers invoke this *before*
+   * the DB write, outside its transaction: the rate fetch is network I/O.
    */
   /**
    * `existingItemId?: number` (Plan 4 Task 8b, U6 — the program's gate-level
@@ -338,10 +401,12 @@ export class BudgetService {
    */
   async freezeForeignRate(
     tripId: string | number,
-    data: { currency?: string | null; exchange_rate?: number },
+    data: { currency?: string | null; exchange_rate?: number; fallback_fx?: BudgetFallbackFx },
     existingItemId?: number,
     existingCurrency?: string | null,
   ): Promise<void> {
+    const fallback = data.fallback_fx;
+    delete data.fallback_fx;
     if (data.exchange_rate != null) return; // an explicit rate from the caller wins
     const cur = (data.currency || '').toUpperCase();
     if (!cur) return; // currency not being set in this request
@@ -352,16 +417,103 @@ export class BudgetService {
     if (existingCurrency !== undefined) {
       prior = (existingCurrency || '').toUpperCase();
     } else if (existingItemId != null) {
-      const existing = await this.budgetItemsRepo.getCurrency(existingItemId);
+      const existing = await this.budgetItemsRepo.getCurrency(existingItemId, tripId);
       if (existing !== undefined) prior = (existing || '').toUpperCase();
     }
     if (prior !== undefined && prior === cur) return; // currency unchanged
-    const tripCurrency = await this.tripsRepo.getCurrency(tripId);
-    const tripCur = (tripCurrency || 'EUR').toUpperCase();
+    const tripCur = await this.tripCurrency(tripId);
     if (cur === tripCur) return; // same as the trip currency → no conversion to freeze
-    const rates = await this.exchangeRates.getRates(tripCur);
-    const r = rates?.[cur];
-    if (r && r > 0) data.exchange_rate = r;
+    const rate = this.resolveRate(tripCur, cur, await this.exchangeRates.getRates(tripCur), fallback);
+    if (rate !== null) data.exchange_rate = rate;
+    // The update SQL keeps the stored rate when none is sent, which left the old
+    // currency's rate on the row (a USD 1.08 on a VND bill) and counted it as frozen.
+    else if (prior !== undefined) data.exchange_rate = NOT_FROZEN_RATE;
+  }
+
+  /** The trip's currency, upper case, EUR when it has none (the default the app reads). */
+  private async tripCurrency(tripId: string | number): Promise<string> {
+    const currency = await this.tripsRepo.getCurrency(tripId);
+    return (currency || 'EUR').toUpperCase();
+  }
+
+  /**
+   * The rate to freeze `cur` at on a `tripCur` trip: the server's own quote, else the one
+   * the caller lent, but only while the lent table is quoted against the trip currency
+   * (a table against the old currency after a switch would freeze the wrong figure).
+   * A result that is not a usable frozen rate, exactly 1 among them, counts as none.
+   */
+  private resolveRate(
+    tripCur: string,
+    cur: string,
+    serverRates: Record<string, number> | null,
+    fallback: BudgetFallbackFx | undefined,
+  ): number | null {
+    const own = serverRates?.[cur];
+    if (isFrozenRate(own)) return own;
+    const lent = fallback && fallback.base.toUpperCase() === tripCur ? fallback.rates[cur] : undefined;
+    return isFrozenRate(lent) ? lent : null;
+  }
+
+  /**
+   * Freeze a rate onto every expense and transfer in a foreign currency that never
+   * froze one: the rows the settlement lists as `unconverted`, and also those it still
+   * converts at today's live rate. Today's server rate first, `fallback` (rates the
+   * caller holds) for what the server cannot quote. A row that is frozen, in the trip
+   * currency or without a currency is never touched, so a second call heals nothing.
+   *
+   * The write is a compare-and-set in one transaction: only rows that are still
+   * unfrozen are updated, and nothing is written when the trip currency changed while
+   * the rates were fetched (null, so the caller can say so). A healthy trip with
+   * nothing pending returns before any fetch.
+   */
+  async freezeMissingRates(
+    tripId: string | number,
+    fallback?: BudgetFallbackFx,
+  ): Promise<{ items: BudgetItem[]; settlements: NonNullable<Awaited<ReturnType<BudgetService['getSettlement']>>>[]; unresolved: string[] } | null> {
+    const tripCur = await this.tripCurrency(tripId);
+    // The legacy statement was one UNION of both tables, ORDER BY cur.
+    const pending = [...new Set([
+      ...(await this.budgetItemsRepo.listUnfrozenForeignCurrencies(tripId, tripCur)),
+      ...(await this.budgetSettlementsRepo.listUnfrozenForeignCurrencies(tripId, tripCur)),
+    ])].sort(byCodeUnit);
+    if (pending.length === 0) return { items: [], settlements: [], unresolved: [] };
+
+    const serverRates = await this.exchangeRates.getRates(tripCur);
+    const resolved: [string, number][] = [];
+    const unresolved: string[] = [];
+    for (const cur of pending) {
+      const rate = this.resolveRate(tripCur, cur, serverRates, fallback);
+      if (rate === null) unresolved.push(cur);
+      else resolved.push([cur, rate]);
+    }
+    if (resolved.length === 0) return { items: [], settlements: [], unresolved };
+
+    const written = await this.uow.transactional(async () => {
+      if ((await this.tripCurrency(tripId)) !== tripCur) return null;
+      const ids = { budget_items: [] as number[], budget_settlements: [] as number[] };
+      for (const [cur, rate] of resolved) {
+        ids.budget_items.push(...(await this.budgetItemsRepo.listUnfrozenIdsForCurrency(tripId, cur)));
+        await this.budgetItemsRepo.freezeUnfrozenForCurrency(tripId, cur, rate);
+      }
+      for (const [cur, rate] of resolved) {
+        ids.budget_settlements.push(...(await this.budgetSettlementsRepo.listUnfrozenIdsForCurrency(tripId, cur)));
+        await this.budgetSettlementsRepo.freezeUnfrozenForCurrency(tripId, cur, rate);
+      }
+      return ids;
+    });
+    if (!written) return null;
+
+    const items: BudgetItem[] = [];
+    for (const id of written.budget_items.sort((a, b) => a - b)) {
+      const item = await this.getBudgetItem(id, tripId);
+      if (item !== null) items.push(item);
+    }
+    const settlements: NonNullable<Awaited<ReturnType<BudgetService['getSettlement']>>>[] = [];
+    for (const id of written.budget_settlements.sort((a, b) => a - b)) {
+      const settlement = await this.getSettlement(id, tripId);
+      if (settlement !== null) settlements.push(settlement);
+    }
+    return { items, settlements, unresolved };
   }
 
   /**
@@ -543,7 +695,7 @@ export class BudgetService {
   async linkBudgetItemToReservation(
     tripId: string | number,
     reservationId: number,
-    data: { name: string; category?: string; total_price: number },
+    data: { name: string; category?: string; total_price: number; currency?: string | null; exchange_rate?: number },
   ) {
     // createBudgetItem accepts reservation_id directly — the legacy separate
     // UPDATE after the insert was redundant (and non-atomic).
@@ -567,6 +719,8 @@ export class BudgetService {
       persons?: number | null; days?: number | null; note?: string | null; sort_order?: number; expense_date?: string | null;
       ticket_json?: string | null;
       receipt_file_ids?: number[];
+      reservation_id?: number | null;
+      place_id?: number | null;
     },
   ) {
     return await this.uow.transactional(async () => {
@@ -595,6 +749,8 @@ export class BudgetService {
         ticket_json: [ticketTouched, ticketTouched ? (ticket as string | null) : null],
         sort_order: [data.sort_order !== undefined, data.sort_order !== undefined ? data.sort_order : 0],
         expense_date: [data.expense_date !== undefined, data.expense_date !== undefined ? (data.expense_date || null) : null],
+        reservation_id: [data.reservation_id !== undefined, data.reservation_id ?? null],
+        place_id: [data.place_id !== undefined, data.place_id ?? null],
       });
 
       // Optional inline payer/member replacement (the edit modal saves all at once).
@@ -704,13 +860,72 @@ export class BudgetService {
       await this.unlinkReceipts(id);
       await this.budgetItemsRepo.deleteById(id);
 
-      // The booking keeps a copy of this expense's total in its metadata, and
-      // the reservation update path preserves that copy across edits. With the
-      // expense gone there is nothing left to mirror, so drop it here rather
-      // than leave a price on the card that no longer has anything behind it.
-      if (item.reservation_id) await this.clearReservationPrice(tripId, item.reservation_id);
+      // The booking keeps a copy of its expenses' total in its metadata, and
+      // the reservation update path preserves that copy across edits. With this
+      // expense gone the copy is worked out again from what is still linked, and
+      // dropped when nothing is, rather than leave a price on the card that no
+      // longer has anything behind it.
+      if (item.reservation_id) await this.resyncReservationPrice(tripId, item.reservation_id);
       return true;
     });
+  }
+
+  /**
+   * After an update, the bookings whose mirrored price may have moved: the one
+   * the expense is linked to when its total changed, and on a re-link both the
+   * booking it left and the one it joined.
+   */
+  async resyncLinkedPrices(
+    tripId: string | number,
+    previousReservationId: number | null | undefined,
+    updated: { reservation_id?: number | null },
+    data: { total_price?: number; reservation_id?: number | null },
+    socketId?: string,
+  ): Promise<void> {
+    const affected = new Set<number>();
+    if (data.reservation_id !== undefined && previousReservationId) affected.add(previousReservationId);
+    // Not only a new total: the currency and the payers (which derive the total)
+    // move the booking's price as well, so any edit of a linked expense resyncs.
+    if (updated.reservation_id) affected.add(updated.reservation_id);
+    for (const reservationId of affected) await this.resyncReservationPrice(tripId, reservationId, socketId);
+  }
+
+  /**
+   * Why a link from an expense can't be made, or null when it can: a booking or
+   * a place it points at has to exist on the same trip (#2084). REST and MCP
+   * both ask this before they write, so neither can reach into another trip.
+   */
+  async linkRefusal(tripId: string | number, data: { reservation_id?: number | null; place_id?: number | null }): Promise<string | null> {
+    if (data.reservation_id != null && (await this.reservationsRepo.findTripId(data.reservation_id)) !== Number(tripId)) {
+      return 'reservation_id does not belong to this trip.';
+    }
+    if (data.place_id != null && (await this.placesRepo.findTripId(data.place_id)) !== Number(tripId)) {
+      return 'place_id does not belong to this trip.';
+    }
+    return null;
+  }
+
+  /**
+   * Works the booking's mirrored price out again from every expense linked to
+   * it (#2084): their sum while they share one currency, the first one's total
+   * when they don't (a sum across currencies would be meaningless), and no
+   * price at all once none is linked. One expense gives exactly the old mirror.
+   */
+  async resyncReservationPrice(tripId: string | number, reservationId: number, socketId?: string): Promise<void> {
+    const linked = await this.budgetItemsRepo.listLinkedToReservation(tripId, reservationId);
+    if (linked.length === 0) {
+      await this.clearReservationPrice(tripId, reservationId);
+      return;
+    }
+    // No currency means the trip's, and a code is a code whatever its case, so
+    // an expense in EUR and one without a currency on a EUR trip do add up.
+    const tripCurrency = ((await this.tripsRepo.getCurrency(tripId)) || '').toUpperCase();
+    const codeOf = (currency: string | null) => (currency || tripCurrency).toUpperCase();
+    const oneCurrency = new Set(linked.map(row => codeOf(row.currency))).size === 1;
+    const total = oneCurrency ? sumMoney(linked.map(row => row.total_price || 0)) : (linked[0].total_price || 0);
+    // Either way the figure is in the first expense's currency; none means the trip's.
+    const allInTripCurrency = oneCurrency && linked.every(row => !row.currency);
+    await this.syncReservationPrice(String(tripId), reservationId, total, socketId, allInTripCurrency ? null : codeOf(linked[0].currency) || null);
   }
 
   /**
@@ -810,9 +1025,94 @@ export class BudgetService {
   // Per-person summary
   // -------------------------------------------------------------------------
 
-  async getPerPersonSummary(tripId: string | number) {
-    const summary = await this.budgetItemsRepo.getPerPersonSummary(tripId);
-    return summary.map(s => ({ ...s, avatar_url: avatarUrl(s) }));
+  /**
+   * What each member is down for across the trip (`total_assigned`), and how much of
+   * that is marked paid (`total_paid`), in the trip currency.
+   *
+   * Each share is converted to trip cents the way the settlement converts it, at the
+   * rate frozen when the expense was entered, and an equal split is a largest-remainder
+   * split of those cents (#2525). The SQL this replaces summed raw amounts across
+   * currencies and divided them in floats, so a bill of 801.76 USD counted as 801.76 of
+   * the trip's euros and a third of 100 came out as 33.333…
+   */
+  async getPerPersonSummary(tripId: string | number, rates: Record<string, number> | null = null) {
+    const tripCurrency = await this.tripCurrency(tripId);
+    const items = await this.budgetItemsRepo.listMoneyRows(tripId);
+    const members = await this.budgetItemMembersRepo.listForTripWithUsersAndPaid(tripId);
+    const people = new Map<number, { user_id: number; username: string; avatar: string | null; assigned: number; paid: number; items_count: number }>();
+    for (const item of items) {
+      const own = members.filter(m => m.budget_item_id === item.id);
+      if (own.length === 0) continue;
+      // A foreign row nothing can convert counts for nobody, as in the settlement.
+      const convert = tripConverter(item.currency, item.exchange_rate, tripCurrency, rates);
+      if (!convert) continue;
+      const toTripCents = (amount: number) => Math.round(convert(amount) * 100);
+      // A member with an amount of their own owes exactly that; the rest split the
+      // total evenly, as the query this replaces did.
+      const equal = this.splitEqualShares(toTripCents(item.total_price || 0), own, item.id);
+      for (const m of own) {
+        const share = m.amount !== null && m.amount !== undefined ? toTripCents(m.amount) : (equal[m.user_id] || 0);
+        let p = people.get(m.user_id);
+        if (!p) {
+          p = { user_id: m.user_id, username: m.username, avatar: m.avatar, assigned: 0, paid: 0, items_count: 0 };
+          people.set(m.user_id, p);
+        }
+        p.assigned += share;
+        if (m.paid === 1) p.paid += share;
+        p.items_count += 1;
+      }
+    }
+
+    return [...people.values()]
+      .sort((a, b) => a.user_id - b.user_id)
+      .map(p => ({
+        user_id: p.user_id, username: p.username, avatar: p.avatar,
+        total_assigned: p.assigned / 100, total_paid: p.paid / 100, items_count: p.items_count,
+        currency: tripCurrency,
+        avatar_url: avatarUrl(p),
+      }));
+  }
+
+  /**
+   * What the trip's expenses add up to in the trip currency, overall and per category
+   * (#2525). Every row is converted once, the way the settlement converts it, and
+   * rounded to a whole cent before anything is added. Summing total_price as stored adds
+   * dollars to euros and labels the result with the trip currency. A foreign row nothing
+   * can convert is left out and its id listed under `unconverted`.
+   */
+  async tripTotals(tripId: string | number, tripCurrency: string, rates: Record<string, number> | null = null): Promise<{ total: number; byCategory: Record<string, number>; unconverted: number[] }> {
+    const trip = (tripCurrency || 'EUR').toUpperCase();
+    const rows = await this.budgetItemsRepo.listMoneyRows(tripId);
+    let total = 0;
+    const byCategory: Record<string, number> = {};
+    const unconverted: number[] = [];
+    for (const r of rows) {
+      const convert = tripConverter(r.currency, r.exchange_rate, trip, rates);
+      if (!convert) {
+        unconverted.push(r.id);
+        continue;
+      }
+      const cents = Math.round(convert(r.total_price || 0) * 100);
+      total += cents;
+      const cat = r.category || '';
+      byCategory[cat] = (byCategory[cat] || 0) + cents;
+    }
+    return {
+      total: total / 100,
+      byCategory: Object.fromEntries(Object.entries(byCategory).map(([cat, cents]) => [cat, cents / 100])),
+      unconverted,
+    };
+  }
+
+  /**
+   * Today's rates against the trip currency, for the totals above. Fetched only when a
+   * row in another currency never froze a rate of its own: every other row converts
+   * without them, so a trip whose rows were all booked never waits on the network.
+   */
+  async ratesForTripTotals(tripId: string | number, tripCurrency: string): Promise<Record<string, number> | null> {
+    const trip = (tripCurrency || 'EUR').toUpperCase();
+    const unbooked = await this.budgetItemsRepo.hasUnfrozenForeign(tripId, trip);
+    return unbooked ? this.exchangeRates.getRates(trip) : null;
   }
 
   /**
@@ -864,13 +1164,19 @@ export class BudgetService {
    * behind each figure (`sources`) travel with it, in the same display cents: an
    * expense list converted again on the client with today's rate would not add up
    * to a figure that was booked at the rate frozen on entry.
+   *
+   * A row nothing can convert (a foreign currency with no frozen rate and no live
+   * one) is left out whole and listed under `unconverted`, so Σ balances stays 0.
+   * `currency` says what the amounts are in: the display currency when there is a
+   * quote for it (the rates, else `baseRate`, the caller's own units of display
+   * currency per 1 trip currency), otherwise the trip currency.
    */
   async calculateSettlement(
     tripId: string | number,
-    opts: { base?: string; rates?: Record<string, number> | null; tripCurrency?: string } = {},
+    opts: { base?: string; rates?: Record<string, number> | null; tripCurrency?: string; baseRate?: number } = {},
   ) {
-    const base = (opts.base || opts.tripCurrency || 'EUR').toUpperCase();
-    const tripCurrency = (opts.tripCurrency || base).toUpperCase();
+    const requested = (opts.base || opts.tripCurrency || 'EUR').toUpperCase();
+    const tripCurrency = (opts.tripCurrency || requested).toUpperCase();
     const rates = opts.rates ?? null;
     // Net the whole settlement in the trip's canonical currency and convert the final
     // totals to the display currency once, instead of netting in the (moving) display
@@ -880,47 +1186,48 @@ export class BudgetService {
     // is the identity, so behaviour is unchanged.
     // rates[X] = units of X per 1 base; the frozen exchange_rate is units of item-currency
     // per 1 trip-currency. Pre-rework rows store currency = NULL = "the trip's own currency".
-    const toTrip = (amount: number, itemCurrency: string | null | undefined, itemRate?: number | null): number => {
-      const cur = (itemCurrency || tripCurrency).toUpperCase();
-      if (cur === tripCurrency) return amount;
-      // Prefer the FX rate frozen at entry time (#1335): a settled expense keeps the rate
-      // it was booked at, so a later live-rate drift doesn't re-open it with a residual.
-      if (itemRate != null && itemRate > 0 && itemRate !== 1) return amount / itemRate;
-      // Legacy rows without a frozen rate: convert via base with live rates.
-      if (!rates) return amount;
-      const rCur = rates[cur];
-      const rTrip = rates[tripCurrency];
-      if (rCur && rCur > 0 && rTrip && rTrip > 0) return (amount / rCur) * rTrip;
-      return amount;
-    };
+    // Prefer the FX rate frozen at entry time (#1335): a settled expense keeps the rate
+    // it was booked at, so a later live-rate drift doesn't re-open it with a residual.
+    // Legacy rows without a frozen rate convert via base with live rates.
+    const converterFor = (itemCurrency: string | null | undefined, itemRate?: number | null) =>
+      tripConverter(itemCurrency, itemRate, tripCurrency, rates);
     // trip-currency → display currency, applied once to the final netted totals.
     // Held as a plain factor so it is exactly linear: the balances are converted as
     // one set (allocateDisplayCents) rather than one at a time, which is what keeps
     // them adding up to zero in whatever currency the viewer picked (#1382).
-    const displayFactor = base === tripCurrency
-      ? 1
-      : (rates && rates[tripCurrency] > 0 ? 1 / rates[tripCurrency] : 1);
+    //
+    // `rates` may be quoted against any base; the ratio of the two quotes is the
+    // factor either way. Callers pass the trip currency's own quote (see settlement()),
+    // the one freezeForeignRate froze every entry rate from, so a bill entered today in
+    // the display currency converts back to exactly what was typed (#2525). Taken the
+    // other way round, from the display currency's quote, the two quotes are not exact
+    // inverses and 12,345.67 USD came back as 12,346.06.
+    //
+    // Without a quote, the caller's own figure for the pair (`baseRate`) stands in for
+    // the missing display quote, and for nothing else: a row with a currency of its own
+    // is never converted with it. Like a live quote, it also reads a legacy transfer
+    // without a currency, which is taken to be in the display currency. With neither,
+    // the answer stays in the trip currency and says so, rather than printing trip cents
+    // as the display currency.
+    const baseRate = opts.baseRate != null && Number.isFinite(opts.baseRate) && opts.baseRate > 0 ? opts.baseRate : null;
+    const quoted = requested === tripCurrency ? 1 : (quoteRatio(rates, requested, tripCurrency) ?? baseRate);
+    const currency = quoted === null ? tripCurrency : requested;
+    const displayFactor = quoted ?? 1;
     // A recorded settle-up amount is entered in whatever display currency the payer
     // was viewing. New rows capture that currency and the rate frozen at settle time
     // (#1445), so a settled position stays balanced when live rates drift — mirroring
-    // toTrip for expenses. Legacy rows (currency = NULL) have no frozen rate, so fall
-    // back to the old behaviour: assume they were entered in the current display base
-    // and convert with live rates.
-    const settleToTrip = (amount: number, sCurrency?: string | null, sRate?: number | null): number => {
-      if (sCurrency) {
-        const cur = sCurrency.toUpperCase();
-        if (cur === tripCurrency) return amount;
-        if (sRate != null && sRate > 0 && sRate !== 1) return amount / sRate;
-        // Frozen currency but no usable rate (fetch failed at settle time): live fallback.
-        if (rates) {
-          const rCur = rates[cur];
-          const rTrip = rates[tripCurrency];
-          if (rCur && rCur > 0 && rTrip && rTrip > 0) return (amount / rCur) * rTrip;
-        }
-        return amount;
-      }
-      return base === tripCurrency ? amount : (rates && rates[tripCurrency] > 0 ? amount * rates[tripCurrency] : amount);
-    };
+    // the expenses; a frozen currency without a usable rate falls back to live rates,
+    // and without those the transfer is left out like an expense. Legacy rows
+    // (currency = NULL) have no frozen rate, so fall back to the old behaviour: assume
+    // they were entered in the current display base and convert with live rates.
+    const settleConverterFor = (sCurrency?: string | null, sRate?: number | null) =>
+      sCurrency
+        ? tripConverter(sCurrency, sRate, tripCurrency, rates)
+        // The inverse of the display factor, so such a transfer reads back as entered.
+        : (amount: number) => amount / displayFactor;
+    const unconvertedItems: number[] = [];
+    const unconvertedSettlements: number[] = [];
+    const unconvertedCurrencies = new Set<string>();
 
     const items = (await this.budgetItemsRepo.listAllForTrip(tripId)).map(r => this.toBudgetItem(r));
     const allMembers = await this.budgetItemMembersRepo.listForTripWithUsers(tripId);
@@ -931,8 +1238,6 @@ export class BudgetService {
     // and rounded to a cent once, at the boundary — from there on the ledger is
     // integer arithmetic, so Σ(balances) is exactly 0 and no sub-cent residual can
     // build up behind the two-decimal figures the user sees (#1382).
-    const toTripCents = (amount: number, itemCurrency: string | null | undefined, itemRate?: number | null): number =>
-      Math.round(toTrip(amount, itemCurrency, itemRate) * 100);
     const balances: Record<number, { user_id: number; username: string; avatar_url: string | null; cents: number }> = {};
     const ensure = (id: number, src: { username?: string; avatar?: string | null }) => {
       if (!balances[id]) balances[id] = { user_id: id, username: src.username || '', avatar_url: avatarUrl(src), cents: 0 };
@@ -949,8 +1254,23 @@ export class BudgetService {
     // cents rather than converting the expense list a second time on the client.
     const frontedRows: Record<number, { item_id: number; cents: number }[]> = {};
     const movedRows: Record<number, { settlement_id: number; from_user_id: number; to_user_id: number; cents: number }[]> = {};
+    // Read in the trip currency, those figures are the ledger's own trip cents. Read in
+    // another one, they are built from each row's unrounded trip amount instead: a trip
+    // cent is worth more than a dollar cent on a euro trip, so a bill of 12,345.67 USD
+    // rounded to 10,831.44 EUR first came back as 12,345.68 (#2525). The balances, and
+    // with them settle-up, still net whole trip cents.
+    const finalUnit = (exactTripCents: number) => (displayFactor === 1 ? Math.round(exactTripCents) : exactTripCents);
 
     for (const item of items) {
+      // Before anything else, planning-only and unpaid rows included: a row no rate can
+      // convert is reported whole and moves nothing, credits and shares alike.
+      const convert = converterFor(item.currency, item.exchange_rate);
+      if (!convert) {
+        unconvertedItems.push(item.id);
+        unconvertedCurrencies.add((item.currency || '').toUpperCase());
+        continue;
+      }
+      const toTripCents = (amount: number): number => Math.round(convert(amount) * 100);
       const members = allMembers.filter(m => m.budget_item_id === item.id);
       const payers = allPayers.filter(p => p.budget_item_id === item.id);
       if (members.length === 0) continue; // planning-only entry → doesn't affect balances
@@ -978,10 +1298,11 @@ export class BudgetService {
       // refund (#2176) — is debited by the same arithmetic: their credit is negative.
       let creditCents = 0;
       for (const p of payers) {
-        const paid = toTripCents(p.amount, item.currency, item.exchange_rate);
+        const exact = convert(p.amount) * 100;
+        const paid = Math.round(exact);
         ensure(p.user_id, p).cents += paid;
-        frontedCents[p.user_id] = (frontedCents[p.user_id] || 0) + paid;
-        if (paid !== 0) (frontedRows[p.user_id] ??= []).push({ item_id: item.id, cents: paid });
+        frontedCents[p.user_id] = (frontedCents[p.user_id] || 0) + finalUnit(exact);
+        if (paid !== 0) (frontedRows[p.user_id] ??= []).push({ item_id: item.id, cents: finalUnit(exact) });
         creditCents += paid;
       }
       // …and each split participant owes their share — a custom per-member amount
@@ -999,7 +1320,7 @@ export class BudgetService {
       const equalShares = !hasCustomSplit ? this.splitEqualShares(creditCents, members, item.id) : {};
       for (const m of members) {
         const memberShare = hasCustomSplit && m.amount !== null && m.amount !== undefined
-          ? toTripCents(m.amount, item.currency, item.exchange_rate)
+          ? toTripCents(m.amount)
           : (equalShares[m.user_id] || 0);
         ensure(m.user_id, m).cents -= memberShare;
       }
@@ -1016,19 +1337,27 @@ export class BudgetService {
       return balances[id];
     };
     for (const s of settlements) {
+      const convert = settleConverterFor(s.currency, s.exchange_rate);
+      if (!convert) {
+        unconvertedSettlements.push(s.id);
+        unconvertedCurrencies.add((s.currency || '').toUpperCase());
+        continue;
+      }
       // Rounded to a trip cent per transfer, so recording one in a display currency
       // can't leave a sliver of a cent behind to accumulate over a trip's lifetime.
-      const inTrip = Math.round(settleToTrip(s.amount, s.currency, s.exchange_rate) * 100);
+      const exact = convert(s.amount) * 100;
+      const inTrip = Math.round(exact);
       ensureSettled(s.from_user_id, s.from_username, s.from_avatar_url).cents += inTrip;
       ensureSettled(s.to_user_id, s.to_username, s.to_avatar_url).cents -= inTrip;
       // Net of the transfers in both directions: sending one back is a reimbursement
       // received in reverse, and netting them is what keeps the final budget's
       // subtraction equal to the balance it is taken from.
-      reimbursedCents[s.to_user_id] = (reimbursedCents[s.to_user_id] || 0) + inTrip;
-      reimbursedCents[s.from_user_id] = (reimbursedCents[s.from_user_id] || 0) - inTrip;
+      const shown = finalUnit(exact);
+      reimbursedCents[s.to_user_id] = (reimbursedCents[s.to_user_id] || 0) + shown;
+      reimbursedCents[s.from_user_id] = (reimbursedCents[s.from_user_id] || 0) - shown;
       const moved = { settlement_id: s.id, from_user_id: s.from_user_id, to_user_id: s.to_user_id };
-      (movedRows[s.to_user_id] ??= []).push({ ...moved, cents: inTrip });
-      (movedRows[s.from_user_id] ??= []).push({ ...moved, cents: -inTrip });
+      (movedRows[s.to_user_id] ??= []).push({ ...moved, cents: shown });
+      (movedRows[s.from_user_id] ??= []).push({ ...moved, cents: -shown });
     }
 
     // Into the display currency as one set, then simplify — balances and flows are
@@ -1108,6 +1437,12 @@ export class BudgetService {
           },
         };
       }) satisfies BudgetParticipantFinal[],
+      currency,
+      unconverted: {
+        item_ids: unconvertedItems,
+        settlement_ids: unconvertedSettlements,
+        currencies: [...unconvertedCurrencies].sort(byCodeUnit),
+      } satisfies BudgetUnconverted,
     };
   }
 
@@ -1124,7 +1459,7 @@ export class BudgetService {
       id: r.id, trip_id: r.trip_id,
       from_user_id: r.from_user_id, to_user_id: r.to_user_id,
       amount: r.amount, currency: r.currency ?? null, exchange_rate: r.exchange_rate ?? 1,
-      created_at: r.created_at, settled_at: r.settled_at ?? null, created_by_user_id: r.created_by_user_id,
+      created_at: r.created_at, settled_at: r.settled_at ?? null, note: r.note ?? null, created_by_user_id: r.created_by_user_id,
       from_username: r.from_username, from_avatar_url: avatarUrl({ avatar: r.from_avatar }),
       to_username: r.to_username, to_avatar_url: avatarUrl({ avatar: r.to_avatar }),
     };
@@ -1149,7 +1484,7 @@ export class BudgetService {
   /** Raw settlement insert (no FX freeze) — the REST path wraps it in createSettlement. */
   async insertSettlement(
     tripId: string | number,
-    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number; settled_at?: string | null },
+    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number; settled_at?: string | null; note?: string | null },
     createdByUserId?: number,
   ) {
     const newId = await this.budgetSettlementsRepo.insertSettlement({
@@ -1158,6 +1493,7 @@ export class BudgetService {
       currency: data.currency ? data.currency.toUpperCase() : null,
       exchange_rate: data.exchange_rate != null ? data.exchange_rate : 1,
       settled_at: data.settled_at || null,
+      note: settlementNote(data.note),
       created_by_user_id: createdByUserId ?? null,
     });
     return await this.getSettlement(newId, tripId);
@@ -1172,7 +1508,7 @@ export class BudgetService {
   async applySettlementUpdate(
     id: number,
     tripId: string | number,
-    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number; settled_at?: string | null },
+    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number; settled_at?: string | null; note?: string | null },
   ) {
     const row = await this.budgetSettlementsRepo.findGuard(id, tripId);
     if (!row) return null;
@@ -1181,6 +1517,7 @@ export class BudgetService {
       currency: [data.currency !== undefined, data.currency ? data.currency.toUpperCase() : null],
       exchange_rate: [data.exchange_rate !== undefined, data.exchange_rate !== undefined ? data.exchange_rate : 1],
       settled_at: [data.settled_at !== undefined, data.settled_at || null],
+      note: [data.note !== undefined, settlementNote(data.note)],
     });
     return await this.getSettlement(id, tripId);
   }
@@ -1201,23 +1538,36 @@ export class BudgetService {
     return await this.listBudgetItems(tripId);
   }
 
-  async perPersonSummary(tripId: string) {
-    return await this.getPerPersonSummary(tripId);
+  async perPersonSummary(tripId: string | number) {
+    const currency = await this.tripsRepo.getCurrency(tripId);
+    return await this.getPerPersonSummary(tripId, await this.ratesForTripTotals(tripId, currency || 'EUR'));
   }
 
-  async settlement(tripId: string, base: string | undefined, tripCurrency: string) {
-    const effectiveBase = (base || tripCurrency || 'EUR').toUpperCase();
-    const rates = await this.exchangeRates.getRates(effectiveBase);
-    return await this.calculateSettlement(tripId, { base: effectiveBase, rates, tripCurrency });
+  /**
+   * The settlement in the viewer's currency, for REST and MCP alike. Converted with the
+   * trip currency's own quote, the one every entry rate was frozen from, so a same-day
+   * amount in the display currency round-trips to the cent and paying what settle-up
+   * offers closes the balance (#2525). The display currency's quote only stands in when
+   * the trip's cannot be fetched, and `baseRate` (the caller's own units of display
+   * currency per 1 trip currency) only when neither can. It only stands in for that
+   * missing display quote, which also reads a legacy transfer without a currency (taken
+   * to be in the display currency, as with a live quote).
+   */
+  async settlement(tripId: string | number, base: string | undefined, tripCurrency: string, baseRate?: number) {
+    const trip = (tripCurrency || 'EUR').toUpperCase();
+    const effectiveBase = (base || trip).toUpperCase();
+    const rates = (await this.exchangeRates.getRates(trip))
+      ?? (effectiveBase === trip ? null : await this.exchangeRates.getRates(effectiveBase));
+    return await this.calculateSettlement(tripId, { base: effectiveBase, rates, tripCurrency: trip, baseRate });
   }
 
-  async create(tripId: string, data: Parameters<BudgetService['createBudgetItem']>[1]) {
+  async create(tripId: string, data: Parameters<BudgetService['createBudgetItem']>[1] & { fallback_fx?: BudgetFallbackFx }) {
     await this.freezeForeignRate(tripId, data);
     return await this.createBudgetItem(tripId, data);
   }
 
   /** `id: number` — Plan 4 Task 8b (U6): `BudgetController.update`/the `costs.update` RPC method both parse/hand this a real row id now (`toRowId`/`num()`). */
-  async update(id: number, tripId: string | number, data: Parameters<BudgetService['updateBudgetItem']>[2]) {
+  async update(id: number, tripId: string | number, data: Parameters<BudgetService['updateBudgetItem']>[2] & { fallback_fx?: BudgetFallbackFx }) {
     await this.freezeForeignRate(tripId, data, id);
     return await this.updateBudgetItem(id, tripId, data);
   }
@@ -1245,7 +1595,7 @@ export class BudgetService {
     return roster.has(data.from_user_id) && roster.has(data.to_user_id);
   }
 
-  async createSettlement(tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null }, userId: number) {
+  async createSettlement(tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null; note?: string | null; fallback_fx?: BudgetFallbackFx }, userId: number) {
     if (!(await this.settlementPartiesOnTrip(tripId, data))) return null;
     // Freeze the FX rate for the display currency the amount was entered in so the
     // transfer keeps cancelling its expense when live rates drift (#1445).
@@ -1254,7 +1604,7 @@ export class BudgetService {
   }
 
   /** `id: number` — Plan 4 Task 8b (U6): `BudgetController.updateSettlement` parses `:settlementId` via `toRowId` and threads the number here; the MCP tool's Zod-typed `settlementId` was already a number. */
-  async updateSettlement(id: number, tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null }) {
+  async updateSettlement(id: number, tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null; note?: string | null; fallback_fx?: BudgetFallbackFx }) {
     // Pass the settlement's stored currency so an edit that doesn't change it keeps
     // the already-frozen rate (#1445) — otherwise a live-rate drift would re-open a
     // settled position on an unrelated edit.
@@ -1285,7 +1635,7 @@ export class BudgetService {
    * total_price changes, write it into the reservation's metadata and broadcast
    * reservation:updated. Non-fatal — a failure here never breaks the budget update.
    */
-  async syncReservationPrice(tripId: string, reservationId: number, totalPrice: number, socketId: string | undefined): Promise<void> {
+  async syncReservationPrice(tripId: string, reservationId: number, totalPrice: number, socketId: string | undefined, currency?: string | null): Promise<void> {
     try {
       const reservation = await this.reservationsRepo.getIdAndMetadata(reservationId, tripId);
       if (!reservation) return;
@@ -1294,6 +1644,12 @@ export class BudgetService {
       // it is linked to — and so a row stamped before #1964 heals on the next
       // edit. The panels print this string as it stands.
       meta.price = String(Math.round(totalPrice * 100) / 100);
+      // The card names the currency beside the figure (#2084). An expense in the
+      // trip's own currency carries none, and neither does its mirror then.
+      if (currency !== undefined) {
+        if (currency) meta.priceCurrency = currency.toUpperCase();
+        else delete meta.priceCurrency;
+      }
       await this.reservationsRepo.setMetadata(reservation.id, JSON.stringify(meta));
       const updatedRes = await this.reservationsRepo.getFull(reservation.id);
       this.realtime.broadcast(tripId, 'reservation:updated', { reservation: updatedRes }, socketId);

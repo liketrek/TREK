@@ -1,4 +1,4 @@
-// FE-JRN-DETWIRE-001 to FE-JRN-DETWIRE-028
+// FE-JRN-DETWIRE-001 to FE-JRN-DETWIRE-041
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '../../tests/helpers/render';
 import { journeyApi } from '../api/client';
@@ -112,6 +112,7 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     loadJourney: vi.fn(), updateEntry: vi.fn(async () => {}), deleteEntry: vi.fn(async () => {}),
     reorderEntries: vi.fn(async () => {}), uploadPhotos: vi.fn(async () => ({ succeeded: [], failed: [] })),
     deletePhoto: vi.fn(async () => {}),
+    addPickedProviderPhotos: vi.fn(async () => {}), addEntryProviderPhotos: vi.fn(async () => {}),
     ...over,
   };
 }
@@ -300,6 +301,8 @@ describe('JourneyDetailPage wiring', () => {
 
     (mocks.captured.gallery.onRefresh as () => void)();
     expect(hook.loadJourney).toHaveBeenCalledWith(7);
+    // The picker's Add is the hook's, the one the phone screen uses too (#1587).
+    expect(mocks.captured.gallery.onAddProviderPhotos).toBe(hook.addPickedProviderPhotos);
   });
 
   it('FE-JRN-DETWIRE-016: the entry editor creates a new entry and updates an existing one', async () => {
@@ -311,11 +314,9 @@ describe('JourneyDetailPage wiring', () => {
     await (mocks.captured.editor.onUploadPhotos as (id: number, f: File[]) => Promise<unknown>)(88, []);
     expect(hook.uploadPhotos).toHaveBeenCalledWith(88, [], undefined);
 
-    const addProvider = vi.spyOn(journeyApi, 'addProviderPhotos').mockResolvedValue({ added: 1 });
-    await (mocks.captured.editor.onAddProviderPhotos as (id: number, g: Record<string, unknown>) => Promise<void>)(
-      88, { provider: 'immich', assetIds: ['a1'], passphrase: 'pw', mediaTypes: ['image'] },
-    );
-    expect(addProvider).toHaveBeenCalledWith(88, 'immich', ['a1'], undefined, 'pw', ['image']);
+    // Shared with the phone entry sheet, so a group that fails part way is
+    // handled once for both shells (#1587).
+    expect(mocks.captured.editor.onAddProviderPhotos).toBe(hook.addEntryProviderPhotos);
 
     (mocks.captured.editor.onDone as () => void)();
     expect(hook.setEditingEntry).toHaveBeenCalledWith(null);

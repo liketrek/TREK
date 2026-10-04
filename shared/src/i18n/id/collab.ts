@@ -25,6 +25,8 @@ const collab: TranslationStrings = {
   'collab.links.delete': 'Hapus tautan',
   'collab.links.edit': 'Edit tautan',
   'collab.links.open': 'Buka tautan',
+  'collab.links.confirmDeleteTitle': 'Hapus tautan?',
+  'collab.links.confirmDeleteBody': 'Tautan ini akan dihapus secara permanen.',
   'collab.whatsNext.title': 'Berikutnya',
   'collab.whatsNext.today': 'Hari ini',
   'collab.whatsNext.tomorrow': 'Besok',

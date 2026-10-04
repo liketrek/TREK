@@ -387,18 +387,33 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
 
   /**
    * DY20 (`DaysService.resyncAccommodationDays`) — `SELECT id,
-   * start_day_id, end_day_id FROM day_accommodations WHERE trip_id = ?`.
-   * `start_day_id`/`end_day_id` are `persist(false)` mirrors of the
-   * `startDay`/`endDay` relations — a bare select would drop them (the
+   * start_day_id, end_day_id, check_in FROM day_accommodations WHERE trip_id
+   * = ?`. `check_in` seats the stay's stop on the day it is carried to
+   * (night-seat.ts). `start_day_id`/`end_day_id` are `persist(false)` mirrors
+   * of the `startDay`/`endDay` relations — a bare select would drop them (the
    * `RoadtripDayBoundariesRepository` trap, Task 1's report), so both go
    * through `columnRef`.
    */
-  async listForResync(trip_id: number): Promise<{ id: number; start_day_id: number; end_day_id: number }[]> {
+  async listForResync(trip_id: number): Promise<{ id: number; start_day_id: number; end_day_id: number; check_in: string | null }[]> {
     const platform = this.getEntityManager().getPlatform();
     return await this.qb('a')
-      .select(['a.id', columnRef(platform, 'a.start_day_id').as('start_day_id'), columnRef(platform, 'a.end_day_id').as('end_day_id')])
+      .select(['a.id', columnRef(platform, 'a.start_day_id').as('start_day_id'), columnRef(platform, 'a.end_day_id').as('end_day_id'), 'a.check_in'])
       .where({ trip: trip_id })
-      .execute<{ id: number; start_day_id: number; end_day_id: number }[]>('all', false);
+      .execute<{ id: number; start_day_id: number; end_day_id: number; check_in: string | null }[]>('all', false);
+  }
+
+  /**
+   * DY41 (`DayRemovalService.cancelStays`) — `SELECT id FROM
+   * day_accommodations WHERE trip_id = ? AND (start_day_id = ? OR end_day_id
+   * = ?) ORDER BY id`: the stays that check in or out on a day being deleted.
+   */
+  async listIdsCheckingInOrOutOn(trip_id: number, day_id: number): Promise<number[]> {
+    const rows = await this.qb('a')
+      .select(['a.id'])
+      .where({ trip: trip_id, $or: [{ startDay: day_id }, { endDay: day_id }] })
+      .orderBy({ id: 'asc' })
+      .execute<{ id: number }[]>('all', false);
+    return rows.map((r) => r.id);
   }
 
   /** DY22 (`DaysService.resyncAccommodationDays`) — `UPDATE day_accommodations SET start_day_id = ?, end_day_id = ? WHERE id = ?`. */
@@ -439,4 +454,87 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
       .where({ trip: trip_id })
       .execute<DayAccommodationRow[]>('all', false);
   }
+
+  // ---------------------------------------------------------------------------
+  // RoadtripPlanService.context (`stays` read) — RPL3
+  // ---------------------------------------------------------------------------
+
+  /**
+   * RPL3 (`RoadtripPlanService.context`'s `stays` read) — `SELECT a.id,
+   * a.place_id, a.start_day_id, a.end_day_id, a.check_in, a.check_out,
+   * p.name AS place_name, p.lat AS place_lat, p.lng AS place_lng, (SELECT
+   * MIN(r.id) FROM reservations r WHERE r.accommodation_id = a.id) AS
+   * reservation_id FROM day_accommodations a LEFT JOIN places p ON p.id =
+   * a.place_id WHERE a.trip_id = ? ORDER BY a.id`. Every stay of the trip in
+   * id order, the order the night-bookend rule reads them in. Kysely for the
+   * same reason as AC3: `reservations.accommodation_id` has no relation to
+   * this table (see {@link DayAccommodationListKyselyDB}).
+   */
+  async listRoadtripStays(trip_id: number): Promise<RoadtripStayRow[]> {
+    const rows = await this.kysely<RoadtripStaysKyselyDB>()
+      .selectFrom('day_accommodations as a')
+      .leftJoin('places as p', 'p.id', 'a.place_id')
+      .select((eb) => [
+        'a.id as id',
+        'a.place_id as place_id',
+        'a.start_day_id as start_day_id',
+        'a.end_day_id as end_day_id',
+        'a.check_in as check_in',
+        'a.check_out as check_out',
+        'p.name as place_name',
+        'p.lat as place_lat',
+        'p.lng as place_lng',
+        eb
+          .selectFrom('reservations as r')
+          .select((eb2) => eb2.fn.min<number | null>('r.id').as('m'))
+          .whereRef('r.accommodation_id', '=', 'a.id')
+          .as('reservation_id'),
+      ])
+      .where('a.trip_id', '=', trip_id)
+      .orderBy('a.id', 'asc')
+      .execute();
+    return rows as RoadtripStayRow[];
+  }
+}
+
+/**
+ * RPL3's row: a booked night as the road trip reads it, the stay, the days it spans,
+ * where it is and the earliest booking linked to it. The rule reads these for the hotel
+ * at the edges of the days around the night (`seatNightBookends`, as a `BookendStay`);
+ * get_roadtrip_context reports them as they are, with the check-in beside the check-out.
+ */
+export interface RoadtripStayRow {
+  id: number;
+  place_id: number | null;
+  start_day_id: number;
+  end_day_id: number;
+  check_in: string | null;
+  check_out: string | null;
+  place_name: string | null;
+  place_lat: number | null;
+  place_lng: number | null;
+  reservation_id: number | null;
+}
+
+/** Kysely typing for RPL3 (`listRoadtripStays`). */
+interface RoadtripStaysKyselyDB {
+  day_accommodations: {
+    id: number;
+    trip_id: number;
+    place_id: number | null;
+    start_day_id: number;
+    end_day_id: number;
+    check_in: string | null;
+    check_out: string | null;
+  };
+  places: {
+    id: number;
+    name: string;
+    lat: number | null;
+    lng: number | null;
+  };
+  reservations: {
+    id: number;
+    accommodation_id: string | null;
+  };
 }

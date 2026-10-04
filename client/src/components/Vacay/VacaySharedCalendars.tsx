@@ -1,11 +1,11 @@
-import { createPortal } from 'react-dom'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Share2, Eye, EyeOff, Loader2, X } from 'lucide-react'
 import { useVacayStore } from '../../store/vacayStore'
 import { useTranslation } from '../../i18n'
 import { getApiErrorMessage } from '../../types'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import apiClient from '../../api/client'
 import VacayBadge from './VacayBadge'
 
@@ -23,6 +23,7 @@ export default function VacaySharedCalendars() {
   const [availableUsers, setAvailableUsers] = useState<{ id: number; username: string }[]>([])
   const [selectedUser, setSelectedUser] = useState<number | null>(null)
   const [sharing, setSharing] = useState(false)
+  const shareLabelId = useId()
 
   const loadAvailable = async () => {
     try {
@@ -55,13 +56,15 @@ export default function VacaySharedCalendars() {
     removeShare(id).catch((err: unknown) => toast.error(getApiErrorMessage(err, t('vacay.shareFailed'))))
   }
 
+  const closeShare = () => setShowShare(false)
+
   const empty = incomingShares.length === 0 && outgoingShares.length === 0
 
   return (
     <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
       <div className="flex items-center justify-between mb-2">
         <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--vg-ink3)' }}>{t('vacay.sharedCalendars')}</span>
-        <button type="button" onClick={() => { setShowShare(true); loadAvailable() }}
+        <button type="button" onClick={() => { setShowShare(true); void loadAvailable() }}
           className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
           style={{ color: 'var(--vg-ink3)' }}
           title={t('vacay.shareCalendar')}>
@@ -132,48 +135,47 @@ export default function VacaySharedCalendars() {
         </div>
       )}
 
-      {/* Share Modal — Portal to body to avoid z-index issues */}
-      {showShare && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
-          role="presentation"
-          onClick={() => setShowShare(false)}>
-          <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm bg-surface-card"
-            role="presentation"
-            onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-edge-secondary">
-              <h2 className="text-base font-semibold text-content">{t('vacay.shareCalendar')}</h2>
-              <button type="button" onClick={() => setShowShare(false)} className="p-1.5 rounded-lg transition-colors text-content-faint">
-                <X size={16} />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <p className="text-xs text-content-muted">{t('vacay.shareCalendarHint')}</p>
-              {availableUsers.length === 0 ? (
-                <p className="text-xs text-center py-4 text-content-faint">{t('vacay.noUsersAvailable')}</p>
-              ) : (
-                <CustomSelect
-                  value={selectedUser}
-                  onChange={v => setSelectedUser(Number(v))}
-                  options={availableUsers.map(u => ({ value: u.id, label: u.username }))}
-                  placeholder={t('vacay.selectUser')}
-                  searchable
-                />
-              )}
-              <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={() => setShowShare(false)} className="px-4 py-2 text-sm rounded-lg text-content-muted border border-edge">
-                  {t('common.cancel')}
-                </button>
-                <button type="button" onClick={handleShare} disabled={!selectedUser || sharing}
-                  className="px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-40 bg-content text-surface-card">
-                  {sharing && <Loader2 size={13} className="animate-spin" />}
-                  {t('vacay.share')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <DialogShell
+        open={showShare}
+        onClose={closeShare}
+        labelledBy={shareLabelId}
+        width="narrow"
+        header={(
+          <DialogHeader
+            tile={<DialogTile><Share2 size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+            tint={NEUTRAL_TINT}
+            labelId={shareLabelId}
+            onClose={closeShare}
+            title={t('vacay.shareCalendar')}
+            sub={t('vacay.shareCalendarHint')}
+            subWraps
+          />
+        )}
+        footer={(
+          <DialogFooter>
+            <FooterSpacer />
+            <DialogButton onClick={closeShare}>{t('common.cancel')}</DialogButton>
+            <DialogButton variant="primary" onClick={handleShare} disabled={!selectedUser || sharing}
+              icon={sharing ? <Loader2 size={14} className="animate-spin" /> : undefined}>
+              {t('vacay.share')}
+            </DialogButton>
+          </DialogFooter>
+        )}
+      >
+        {availableUsers.length === 0 ? (
+          <p className="m-0 rounded-[12px] bg-surface-secondary px-4 py-5 text-center text-content-faint" style={fs(12.5, 'body')}>
+            {t('vacay.noUsersAvailable')}
+          </p>
+        ) : (
+          <CustomSelect
+            value={selectedUser}
+            onChange={v => setSelectedUser(Number(v))}
+            options={availableUsers.map(u => ({ value: u.id, label: u.username }))}
+            placeholder={t('vacay.selectUser')}
+            searchable
+          />
+        )}
+      </DialogShell>
     </div>
   )
 }

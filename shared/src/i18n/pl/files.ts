@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Połącz plik',
   'files.linkEmpty': 'Brak miejsc lub rezerwacji do połączenia',
   'files.menu': 'Więcej opcji',
-  'files.uploadErrorSize': 'Plik jest zbyt duży (maks. 50 MB)',
+  'files.uploadErrorSize': 'Plik jest zbyt duży (maks. {max} MB)',
   'files.title': 'Pliki',
   'files.pageTitle': 'Pliki i dokumenty',
   'files.subtitle': '{count} plików dla {trip}',

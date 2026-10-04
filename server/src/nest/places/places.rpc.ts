@@ -30,8 +30,11 @@ function capUrls(input: Record<string, unknown>): void {
     throw new BadParams('invalid place: image_url must be an uploaded path, a photo-proxy path, an inline image or an https URL');
   }
   const website = input.website;
-  if (website !== undefined && website !== null && website !== '' && !placeWebsiteSchema.safeParse(website).success) {
-    throw new BadParams('invalid place: website must be an http or https URL');
+  if (website !== undefined && website !== null && website !== '') {
+    const parsed = placeWebsiteSchema.safeParse(website);
+    if (!parsed.success) throw new BadParams('invalid place: website must be an http or https URL');
+    // Stored in its parsed form, like the REST route: a bare host gains https.
+    input.website = parsed.data;
   }
 }
 

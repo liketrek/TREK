@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Αναίρεση: {action}',
   'undo.assignPlace': 'Η τοποθεσία ανατέθηκε στην ημέρα',
   'undo.removeAssignment': 'Η τοποθεσία αφαιρέθηκε από την ημέρα',
+  'undo.clearDay': 'Η ημέρα εκκαθαρίστηκε',
   'undo.reorder': 'Οι τοποθεσίες αναδιατάχθηκαν',
   'undo.optimize': 'Η διαδρομή βελτιστοποιήθηκε',
   'undo.deletePlace': 'Η τοποθεσία διαγράφηκε',
@@ -19,6 +20,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Εισαγωγή Naver Maps',
   'undo.addPlace': 'Η τοποθεσία προστέθηκε',
   'undo.done': 'Αναιρέθηκε: {action}',
+  'undo.failed': 'Η αναίρεση απέτυχε: {action}',
   'undo.importBooking': 'Εισαγωγή επιβεβαίωσης κράτησης',
 };
 export default undo;

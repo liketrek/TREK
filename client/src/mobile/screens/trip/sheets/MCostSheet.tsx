@@ -8,14 +8,14 @@ import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } 
 import { useTranslation } from '../../../../i18n'
 import { useToast } from '../../../../components/shared/Toast'
 import { useTripStore } from '../../../../store/tripStore'
-import { useExchangeRates } from '../../../../hooks/useExchangeRates'
 import { formatMoney, localizeAmountInput, amountToInputString } from '../../../../utils/formatters'
 import { openFile } from '../../../../utils/fileDownload'
 import { saveWithReceipts } from '../../../../components/Budget/receiptUploads'
+import { splitShareLabel, useExpenseFx } from '../../../../components/Budget/expenseFx'
 import { SYMBOLS, SPLIT_COLORS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
 import { localToday } from '../../../../components/Planner/today'
-import { amountPattern, calculateTicketShares, hasTicketSplit, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
+import { amountPattern, calculateTicketShares, hasTicketSplit, newExpenseSeed, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
 import { payersBalanced, rebalancePayers } from '../../../../components/Budget/CostsPanel.helpers'
 import GuestBadge from '../../../../components/shared/GuestBadge'
@@ -58,8 +58,9 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const { t, locale } = useTranslation()
   const toast = useToast()
   const { addBudgetItem, updateBudgetItem, deleteBudgetItem } = useTripStore()
-  const { convert } = useExchangeRates(base)
   const sym = (c: string) => SYMBOLS[c] || (c + ' ')
+  // A saved expense without a currency opens in the trip's own (#2525), as on desktop.
+  const { tripCurrency: tripCur, editingCurrency, preview } = useExpenseFx(base, editing)
 
   // Internal open flag so the exit animation still plays even though the parent
   // unmounts us on close.
@@ -75,15 +76,14 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : (prefill?.category || 'food'))
   const [catOpen, setCatOpen] = useState(false)
   const [note, setNote] = useState(() => readUserNote(editing))
-  const [currency, setCurrency] = useState((editing?.currency || base).toUpperCase())
-  const [day, setDay] = useState(editing?.expense_date || localToday())
+  const [seed] = useState(() => newExpenseSeed(prefill, base, people.map(p => p.id), localToday()))
+  const [currency, setCurrency] = useState(editing ? editingCurrency : seed.currency)
+  const [day, setDay] = useState(editing ? (editing.expense_date || localToday()) : seed.day)
   // Edit and prefill seeds are padded to the currency's decimals (#2175), same
-  // as the desktop modal: a saved 4,90 must reopen as "4,90", not "4,9". A
-  // prefill has no currency of its own and is read as `base`.
+  // as the desktop modal: a saved 4,90 must reopen as "4,90", not "4,9".
   const [total, setTotal] = useState<string>(() => {
-    if (editing) return editing.total_price ? amountToInputString(editing.total_price, (editing.currency || base).toUpperCase()) : ''
-    if (prefill?.amount != null) return amountToInputString(prefill.amount, base)
-    return ''
+    if (editing) return editing.total_price ? amountToInputString(editing.total_price, editingCurrency) : ''
+    return seed.total
   })
   const [participants, setParticipants] = useState<Set<number>>(() =>
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
@@ -114,7 +114,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     return 'equally'
   })
 
-  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => readTicketItems(editing))
+  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => editing ? readTicketItems(editing) : seed.ticketItems)
 
   const [customAmounts, setCustomAmounts] = useState<Record<number, string>>(() => {
     const m: Record<number, string> = {}
@@ -127,7 +127,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   })
 
   const [receipts, setReceipts] = useState<BudgetItemReceipt[]>(() => editing?.receipts || [])
-  const [pendingReceiptFiles, setPendingReceiptFiles] = useState<File[]>([])
+  const [pendingReceiptFiles, setPendingReceiptFiles] = useState<File[]>(() => editing ? [] : seed.receiptFiles)
   const [uploadingReceipt, setUploadingReceipt] = useState(false)
   const [previewReceipts, setPreviewReceipts] = useState<{ receipts: BudgetItemReceipt[]; initialIndex: number } | null>(null)
 
@@ -151,6 +151,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const ticketInfo = useMemo(() => calculateTicketShares(ticketItems), [ticketItems])
 
   const totalNum = isTicketMode ? ticketInfo.total : (Number.parseFloat(total) || 0)
+  const fx = preview(totalNum, currency)
   const splitSum = [...participants].reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0)
   const customBalanced = Math.round(splitSum * 100) === Math.round(totalNum * 100)
   const each = participants.size > 0 ? totalNum / participants.size : 0
@@ -191,11 +192,11 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   }, [totalNum])
 
   const enableMultiPayer = () => {
-    const seed = payerIds.size > 0 ? new Set(payerIds) : new Set<number>([payerId > 0 ? payerId : me])
+    const startPayers = payerIds.size > 0 ? new Set(payerIds) : new Set<number>([payerId > 0 ? payerId : me])
     const pinned = new Set<number>()
-    setPayerIds(seed)
+    setPayerIds(startPayers)
     setPinnedPayers(pinned)
-    setPayerAmounts(prev => rebalancePayers(prev, pinned, seed, totalNum))
+    setPayerAmounts(prev => rebalancePayers(prev, pinned, startPayers, totalNum))
     setMultiPayer(true)
   }
 
@@ -404,12 +405,18 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
         </div>
 
         {/* CONVERSION HINT */}
-        {currency !== base && totalNum !== 0 && (
+        {fx && (
           <div className="mt-2 flex flex-wrap items-center gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px] text-[0.71875rem] text-m-muted">
             <span>{formatMoney(totalNum, currency, locale)}</span>
-            <span className="text-m-faint">≈</span>
-            <span className="font-semibold text-m-ink">{formatMoney(convert(totalNum, currency), base, locale)}</span>
-            <span className="text-m-faint">· {t('costs.liveRate')}</span>
+            {fx.inTrip != null && <>
+              <span className="text-m-faint">→</span>
+              <span className={fx.shown == null ? 'font-semibold text-m-ink' : undefined}>{formatMoney(fx.inTrip, tripCur, locale)}</span>
+            </>}
+            {fx.shown != null && <>
+              <span className="text-m-faint">≈</span>
+              <span className="font-semibold text-m-ink">{formatMoney(fx.shown, base, locale)}</span>
+              <span className="text-m-faint">· {t('costs.liveRate')}</span>
+            </>}
           </div>
         )}
 
@@ -646,12 +653,12 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
             <div className="mt-2 text-[0.71875rem]">
               {splitMode === 'equally' ? (
                 <span className="text-m-faint">
-                  {participants.size > 0 && t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })}
+                  {participants.size > 0 && t('costs.splitSummary', { count: participants.size, amount: splitShareLabel(each, currency, fx, participants.size, base, sym, locale) })}
                 </span>
               ) : (
                 <span className={`font-semibold ${customBalanced ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}>
                   {customBalanced
-                    ? t('costs.splitSummary', { count: participants.size, amount: sym(currency) + each.toFixed(2) })
+                    ? t('costs.splitSummary', { count: participants.size, amount: splitShareLabel(each, currency, fx, participants.size, base, sym, locale) })
                     : `${sym(currency)}${splitSum.toFixed(2)} / ${sym(currency)}${totalNum.toFixed(2)}`}
                 </span>
               )}

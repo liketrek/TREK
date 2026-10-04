@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '../../../helpers/render'
+import { fireEvent, render, screen, within } from '../../../helpers/render'
 import {
-  RtAutoRow, RtDryRow, RtLegRow, RtSpillRow, RtStopRow, type RowChrome,
+  RtAutoRow, RtBookendRow, RtBookingChips, RtDryRow, RtLegRow, RtRideRow, RtSpillRow, RtStopRow, type RowChrome,
 } from '../../../../src/mobile/screens/trip/roadtrip/MRoadtripRows'
-import type { StopRow } from '../../../../src/components/Roadtrip/roadtripRowModel'
-import type { RouteSegment, ScheduleWarning } from '@trek/shared/roadtrip'
-import type { TranslationFn } from '../../../../src/types'
+import type { BookendReading, RoadtripRow, StopRow } from '../../../../src/components/Roadtrip/roadtripRowModel'
+import type { CarrierTerminal, RouteSegment, ScheduleWarning } from '@trek/shared/roadtrip'
+import type { Reservation, TranslationFn } from '../../../../src/types'
 import type { RefuelSearch } from '../../../../src/components/Roadtrip/useRefuelSearch'
 import type { RefuelCandidate } from '../../../../src/components/Roadtrip/refuelSuggestion'
 
-// FE-MOB-RTROW-001 to FE-MOB-RTROW-049
+// FE-MOB-RTROW-001 to FE-MOB-RTROW-065
 
 // Same echo strategy as tests/helpers/mobileTrip: assertions stay on keys, not copy.
 const t: TranslationFn = (key, params) =>
@@ -46,6 +46,16 @@ const SEG: RouteSegment = {
 }
 
 describe('RtStopRow', () => {
+  it('FE-MOB-RTROW-065: the own stop of a stay on its check-in day carries the check-in hour, other stops do not', () => {
+    const hotel = { ...stopRow().stop, name: 'Gasthof Post', stopType: 'hotel', night: true, checkInTime: '15:00' }
+    const first = render(<RtStopRow row={stopRow({ stop: hotel, service: true, number: null })} chrome={chrome} onOpen={vi.fn()} />)
+    expect(screen.getByText('roadtrip.bookend.checkIn').parentElement).toHaveTextContent('15:00')
+    first.unmount()
+
+    render(<RtStopRow row={stopRow()} chrome={chrome} onOpen={vi.fn()} />)
+    expect(screen.queryByText('roadtrip.bookend.checkIn')).toBeNull()
+  })
+
   it('FE-MOB-RTROW-001: gives a destination its number and no kind icon', () => {
     const { container } = render(<RtStopRow row={stopRow()} chrome={chrome} onOpen={vi.fn()} />)
 
@@ -230,12 +240,217 @@ describe('RtStopRow', () => {
     expect(screen.getByText('14:05')).toBeInTheDocument()
   })
 
+  it('FE-MOB-RTROW-064: lateness reads in hours and minutes, and leaving after the time set is marked the same way', () => {
+    const late = render(<RtStopRow row={stopRow({ warning: { index: 1, code: 'late', minutes: 579 } })} chrome={chrome} onOpen={vi.fn()} />)
+    expect(screen.getByText('+9 h 39 min')).toBeInTheDocument()
+    late.unmount()
+
+    const { container } = render(<RtStopRow row={stopRow({ warning: { index: 1, code: 'missedLeave', minutes: 20 } })} chrome={chrome} onOpen={vi.fn()} />)
+    expect(screen.getByText('+20 min')).toBeInTheDocument()
+    expect(container.querySelector('.lucide-alert-triangle')).not.toBeNull()
+    // It used to fall through to the night's word.
+    expect(screen.queryByText('roadtrip.warn.overnight')).toBeNull()
+  })
+
   it('FE-MOB-RTROW-013: writes an overnight warning as a word, since it has no figure', () => {
     const warning: ScheduleWarning = { index: 1, code: 'overnight' }
     const { container } = render(<RtStopRow row={stopRow({ warning })} chrome={chrome} onOpen={vi.fn()} />)
 
     expect(screen.getByText('roadtrip.warn.overnight')).toBeInTheDocument()
     expect(container.querySelector('.lucide-moon')).not.toBeNull()
+  })
+
+  it('FE-MOB-RTROW-050: a hire desk is a row on the road: the booking\'s clock under it, no number, and a disc nobody can turn into a pump', () => {
+    const onPickKind = vi.fn()
+    const desk = stopRow({
+      number: null,
+      time: '09:00',
+      stop: { ...stopRow().stop, assignmentId: -3000000180, placeId: -90, name: 'Sixt Hauptbahnhof', carrier: carrier('pickup') },
+    })
+    const { container } = render(<RtStopRow row={desk} chrome={chrome} onOpen={vi.fn()} onPickKind={onPickKind} />)
+
+    expect(screen.getByText('Sixt Hauptbahnhof')).toBeInTheDocument()
+    // Which desk it is under the name, and the booking's clock once, on the right.
+    expect(screen.getByText('reservations.span.pickup')).toBeInTheDocument()
+    expect(screen.getAllByText('09:00')).toHaveLength(1)
+    expect(screen.getByText('roadtrip.ride.pickup:09:00')).toHaveClass('sr-only')
+    expect(screen.queryByText('2')).toBeNull()
+    // The booking's own icon on the disc, and the disc is not a control even for an
+    // editor: nobody turns a rental desk into a petrol station.
+    expect(container.querySelector('.lucide-car')).not.toBeNull()
+    expect(screen.queryByRole('button', { name: 'roadtrip.stop.makeService' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'roadtrip.stop.kind' })).toBeNull()
+    expect(screen.getAllByRole('button')).toHaveLength(1)
+  })
+})
+
+/** One end of a flight, or one desk of a hire car, as the routing round seams it in. */
+function carrier(role: CarrierTerminal['role'], over: Partial<CarrierTerminal> = {}): CarrierTerminal {
+  const car = role === 'pickup' || role === 'return'
+  return {
+    reservationId: car ? 90 : 70,
+    type: car ? 'car' : 'flight',
+    role,
+    title: car ? 'Sixt Hamburg' : 'LH 2020',
+    code: role === 'departure' ? 'HAM' : role === 'arrival' ? 'MUC' : null,
+    at: { departure: '13:20', arrival: '14:30', pickup: '09:00', return: '11:30' }[role],
+    ...over,
+  }
+}
+
+const FLIGHT_SEG = { ...SEG, distance: 0, duration: 4200, distanceText: '', durationText: '1 h 10 min' }
+
+/**
+ * One end of LH 2020 as its row carries it: the departure pinned an hour ahead of the
+ * timetable for the check-in, and `late` minutes past that pin when the drive gets there late.
+ */
+const rideEnd = (role: 'departure' | 'arrival', late?: number): StopRow => stopRow({
+  number: null,
+  time: role === 'departure' ? '12:20' : '14:30',
+  pinned: true,
+  warning: late ? { index: 1, code: 'late', minutes: late } : null,
+  stop: {
+    ...stopRow().stop,
+    assignmentId: role === 'departure' ? -3000000140 : -3000000141,
+    placeId: -70,
+    name: role === 'departure' ? 'Hamburg Airport' : 'Munich Airport',
+    time: role === 'departure' ? '12:20' : '14:30',
+    carrier: carrier(role),
+  },
+})
+
+function rideRow(over: Partial<Extract<RoadtripRow, { kind: 'ride' }>> = {}, late?: number): Extract<RoadtripRow, { kind: 'ride' }> {
+  return { kind: 'ride', index: 1, carrier: carrier('departure'), seg: FLIGHT_SEG, departure: rideEnd('departure', late), arrival: rideEnd('arrival'), ...over }
+}
+
+describe('RtRideRow', () => {
+  it('FE-MOB-RTROW-051: a ride is one block in four lines: the booking and its minutes, both codes with their timetable, the places, the check-in', () => {
+    render(<RtRideRow row={rideRow()} chrome={chrome} />)
+
+    expect(screen.getByText('LH 2020')).toBeInTheDocument()
+    expect(screen.getByText('1 h 10 min')).toBeInTheDocument()
+    expect(screen.queryByText(/·/)).toBeNull()
+    // Each code and each timetable clock once, the words for the clocks for a screen reader only.
+    expect(screen.getAllByText('HAM')).toHaveLength(1)
+    expect(screen.getAllByText('MUC')).toHaveLength(1)
+    expect(screen.getAllByText('13:20')).toHaveLength(1)
+    expect(screen.getAllByText('14:30')).toHaveLength(1)
+    expect(screen.getByText('roadtrip.ride.departureFlight:13:20')).toHaveClass('sr-only')
+    expect(screen.getByText('roadtrip.ride.arrival:14:30')).toHaveClass('sr-only')
+    expect(screen.getByText('Hamburg Airport')).toBeInTheDocument()
+    expect(screen.getByText('Munich Airport')).toBeInTheDocument()
+    // The check-in, with its hour in the pill inside it and its sentence for a screen reader.
+    const checkIn = screen.getByRole('img', { name: 'roadtrip.ride.hintFlight:LH 2020,13:20,12:20' })
+    expect(checkIn).toHaveTextContent('roadtrip.ride.checkIn')
+    expect(within(checkIn).getByText('12:20')).toBeInTheDocument()
+    // The terminals take no number: Hamburg is 1 and Munich is 2 either side of them.
+    expect(screen.queryByText('2')).toBeNull()
+  })
+
+  it('FE-MOB-RTROW-052: the block is one tap target that opens the booking, and plain without a handler', () => {
+    const onOpen = vi.fn()
+    const opens = render(<RtRideRow row={rideRow()} chrome={chrome} onOpen={onOpen} />)
+
+    // One control for the whole ride, not one per terminal.
+    expect(screen.getAllByRole('button')).toHaveLength(1)
+    fireEvent.click(screen.getByText('Hamburg Airport'))
+    fireEvent.click(screen.getByText('LH 2020'))
+    expect(onOpen).toHaveBeenCalledTimes(2)
+    opens.unmount()
+
+    render(<RtRideRow row={rideRow()} chrome={chrome} />)
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getByText('Munich Airport')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-RTROW-053: a ride the timetable gives no minutes for is still the booking, and its clocks follow the twelve hour setting', () => {
+    render(<RtRideRow row={rideRow({ seg: undefined })} chrome={{ ...chrome, is12h: true }} />)
+
+    expect(screen.getByText('LH 2020')).toBeInTheDocument()
+    expect(screen.queryByText('1 h 10 min')).toBeNull()
+    expect(screen.getByText('1:20 PM')).toBeInTheDocument()
+    expect(screen.getByText('roadtrip.ride.departureFlight:1:20 PM')).toBeInTheDocument()
+    expect(screen.getByText('12:20 PM')).toBeInTheDocument()
+    expect(screen.queryByText('13:20')).toBeNull()
+  })
+
+  it('FE-MOB-RTROW-060: a flight the drive reaches after take-off is missed, says when the drive gets there, and edges the block', () => {
+    render(<RtRideRow row={rideRow({}, 579)} chrome={chrome} onOpen={vi.fn()} />)
+
+    const mark = screen.getByRole('img', { name: 'roadtrip.ride.lateHintFlight:LH 2020,13:20,12:20,Hamburg Airport,21:59' })
+    expect(mark).toHaveTextContent('roadtrip.ride.missed')
+    expect(within(mark).getByText('roadtrip.ride.reachedAt:21:59')).toBeInTheDocument()
+    expect(mark.querySelector('.lucide-alert-triangle')).not.toBeNull()
+    expect(screen.getByRole('button').className).toContain('border-[color:var(--m-st-pending)]')
+  })
+
+  it('FE-MOB-RTROW-061: late for the check-in but in time for the flight says by how much, on the check-in word', () => {
+    const { container } = render(<RtRideRow row={rideRow({}, 25)} chrome={chrome} />)
+
+    const mark = screen.getByRole('img', { name: /^roadtrip\.ride\.lateHintFlight:/ })
+    expect(mark).toHaveTextContent('roadtrip.ride.checkIn')
+    expect(within(mark).getByText('roadtrip.ride.lateBy:25 min')).toBeInTheDocument()
+    expect(container.querySelector('.border-transparent')).not.toBeNull()
+  })
+
+  it('FE-MOB-RTROW-062: a departure on a row of its own reads the block\'s pieces, and its lateness once, on the check-in', () => {
+    const row = stopRow({
+      number: null,
+      time: '12:20',
+      pinned: true,
+      warning: { index: 1, code: 'late', minutes: 579 },
+      stop: { ...stopRow().stop, assignmentId: -3000000140, placeId: -70, name: 'Hamburg (HAM)', time: '12:20', carrier: carrier('departure') },
+    })
+    render(<RtStopRow row={row} chrome={chrome} onOpen={vi.fn()} />)
+
+    expect(screen.getByText('HAM')).toBeInTheDocument()
+    expect(screen.getByText('Hamburg')).toBeInTheDocument()
+    // The timetable on the right, not the pin with a glyph calling it a time somebody set.
+    expect(screen.getByText('13:20')).toBeInTheDocument()
+    expect(screen.queryByLabelText('roadtrip.stop.pinned')).toBeNull()
+    expect(screen.getByRole('img', { name: /^roadtrip\.ride\.lateHintFlight:/ })).toHaveTextContent('roadtrip.ride.missed')
+    expect(screen.queryByText('+9 h 39 min')).toBeNull()
+  })
+})
+
+describe('RtBookingChips', () => {
+  const booking = (over: Partial<Reservation> = {}): Reservation =>
+    ({ id: 11, trip_id: 1, title: 'Tisch Bullerei', type: 'restaurant', status: 'confirmed', day_id: 2, reservation_time: '2026-10-05T19:30', ...over }) as Reservation
+
+  it('FE-MOB-RTROW-054: a chip per booking with its name and its clock, each opening its booking, and plain without a handler', () => {
+    const onOpen = vi.fn()
+    const bookings = [booking(), booking({ id: 13, title: 'Elbphilharmonie', type: 'event', reservation_time: null })]
+    const opens = render(<RtBookingChips bookings={bookings} chrome={{ ...chrome, is12h: true }} canEdit onOpen={onOpen} />)
+
+    expect(screen.getByText('Tisch Bullerei')).toBeInTheDocument()
+    // The clock in the reader's own format, and none at all for a booking without one.
+    expect(screen.getByText('7:30 PM')).toBeInTheDocument()
+    expect(screen.queryByText('19:30')).toBeNull()
+    expect(screen.getByText('Elbphilharmonie')).toBeInTheDocument()
+    expect(screen.getAllByRole('button')).toHaveLength(2)
+    fireEvent.click(screen.getByText('Tisch Bullerei'))
+    expect(onOpen).toHaveBeenCalledWith(bookings[0])
+    opens.unmount()
+
+    render(<RtBookingChips bookings={bookings} chrome={chrome} canEdit />)
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getByText('19:30')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-RTROW-055: a reader who may not edit bookings gets a plain table chip and a transport chip that still opens', () => {
+    const onOpen = vi.fn()
+    const bookings = [booking(), booking({ id: 16, title: 'Taxi to the pier', type: 'taxi', reservation_time: null })]
+    render(<RtBookingChips bookings={bookings} chrome={chrome} canEdit={false} onOpen={onOpen} />)
+
+    // A transport has a detail view anybody may look at; a table has only its editor,
+    // so the chip stays a chip rather than a button that does nothing (#2012).
+    expect(screen.getByText('Tisch Bullerei').closest('button')).toBeNull()
+    fireEvent.click(screen.getByText('Tisch Bullerei'))
+    expect(onOpen).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByText('Taxi to the pier'))
+    expect(onOpen).toHaveBeenCalledWith(bookings[1])
+    expect(screen.getAllByRole('button')).toHaveLength(1)
   })
 })
 
@@ -353,6 +568,20 @@ describe('RtLegRow', () => {
     expect(open.className).toContain('text-m-ink')
     // A filled chip in a column of quiet rows reads as a button pressed and stuck.
     expect(open.className).not.toContain('bg-m-act')
+  })
+
+  it('FE-MOB-RTROW-056: the drive in from the day before names where it leaves, above its pill', () => {
+    // The stop it leaves is on the card before, so the chain would open on a drive from
+    // nowhere without it. Only a leg given an origin says one.
+    const onAlternatives = vi.fn()
+    render(<RtLegRow seg={SEG} mode="driving" origin="Hakone" chrome={chrome} onAlternatives={onAlternatives} />)
+
+    const origin = screen.getByText('roadtrip.leg.arrivingFrom:Hakone')
+    const drive = screen.getByText('roadtrip.leg.driveText:210 km,2 h 40 min')
+    expect(origin.compareDocumentPosition(drive) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(origin.closest('button')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'roadtrip.alt.ask' }))
+    expect(onAlternatives).toHaveBeenCalledTimes(1)
   })
 
   it('FE-MOB-RTROW-040: offline the button keeps its place but does nothing', () => {
@@ -648,5 +877,78 @@ describe('RtSpillRow', () => {
 
     expect(screen.getByText('roadtrip.spill.departs:9:30 PM')).toBeInTheDocument()
     expect(screen.queryByText('roadtrip.spill.departs:21:30')).toBeNull()
+  })
+})
+
+describe('RtBookendRow', () => {
+  const reading = (over: Partial<BookendReading> = {}): BookendReading => ({
+    phase: 'morning',
+    variant: 'checkOut',
+    name: 'Hotel Alpenblick',
+    until: '10:00',
+    from: null,
+    reservationId: 41,
+    accommodationId: 5,
+    placeId: 900,
+    ...over,
+  })
+  const row = (over: Partial<StopRow> = {}) =>
+    stopRow({ number: null, service: true, time: '08:40', stop: { ...stopRow().stop, name: 'Hotel Alpenblick', stopType: 'hotel' }, ...over })
+
+  it('FE-MOB-RTROW-057: says which night it is on the bed a stay wears, with no number, and opens on a tap', () => {
+    const onOpen = vi.fn()
+    const { container } = render(<RtBookendRow row={row()} bookend={reading()} chrome={chrome} onOpen={onOpen} />)
+
+    // The hotel is the name; the edge of the stay and its hour sit in one badge under it.
+    expect(screen.getByText('Hotel Alpenblick')).toBeInTheDocument()
+    expect(screen.getByText('roadtrip.bookend.checkOut').parentElement).toHaveTextContent('10:00')
+    expect(screen.queryByText(/·/)).toBeNull()
+    expect(screen.getByText('08:40')).toBeInTheDocument()
+    expect(container.querySelector('.lucide-bed-double')).not.toBeNull()
+    expect(screen.queryByText('2')).toBeNull()
+    fireEvent.click(screen.getByRole('button'))
+    fireEvent.keyDown(screen.getByRole('button'), { key: 'Enter' })
+    expect(onOpen).toHaveBeenCalledTimes(2)
+  })
+
+  it('FE-MOB-RTROW-058: an evening says nothing under its name but what the drive into it ran over', () => {
+    const warning: ScheduleWarning = { index: 3, code: 'leg', overMinutes: 30 }
+    const quiet = render(<RtBookendRow row={row({ time: null })} bookend={reading({ phase: 'evening', variant: 'back', until: null })} chrome={chrome} onOpen={vi.fn()} />)
+    expect(screen.getByText('Hotel Alpenblick')).toBeInTheDocument()
+    expect(screen.getByText('roadtrip.bookend.back')).toBeInTheDocument()
+    expect(screen.queryByText('10:00')).toBeNull()
+    expect(screen.queryByText('08:40')).toBeNull()
+    quiet.unmount()
+
+    render(<RtBookendRow row={row({ warning, time: '19:10' })} bookend={reading({ phase: 'evening', variant: 'back', until: null })} chrome={{ ...chrome, is12h: true }} onOpen={vi.fn()} />)
+    expect(screen.getByText('30 min')).toBeInTheDocument()
+    expect(screen.getByText('7:10 PM')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-RTROW-063: the hotel wears the hotel stop\'s own disc, not a terminal\'s', () => {
+    const edge = render(<RtBookendRow row={row()} bookend={reading()} chrome={chrome} onOpen={vi.fn()} />)
+    const bookendDisc = edge.container.querySelector('.lucide-bed-double')!.parentElement as HTMLElement
+    const bookendFace = [bookendDisc.style.background, bookendDisc.style.color]
+    edge.unmount()
+
+    const stay = render(<RtStopRow row={row({ number: null, service: true })} chrome={chrome} onOpen={vi.fn()} />)
+    const stopDisc = stay.container.querySelector('.lucide-bed-double')!.parentElement as HTMLElement
+    expect(bookendFace[0]).not.toBe('')
+    expect(bookendFace[0]).toBe(stopDisc.style.background)
+    // White on it, as the stop's bed is.
+    expect(bookendFace[1]).toBe('rgb(255, 255, 255)')
+    expect(stopDisc).toHaveClass('text-white')
+  })
+
+  it('FE-MOB-RTROW-059: a check-out morning the drive leaves after the room is handed back is marked', () => {
+    const entry = (arrival: string) => ({ arrival, departure: arrival, anchored: false, dayOffset: 0 })
+    const late = render(<RtBookendRow row={row({ time: '12:27', entry: entry('12:27') })} bookend={reading()} chrome={chrome} onOpen={vi.fn()} />)
+    // The check-out badge itself turns and says why, instead of a second mark beside it.
+    expect(screen.getByLabelText('roadtrip.bookend.checkOut 10:00 roadtrip.bookend.afterCheckOut')).toBeInTheDocument()
+    late.unmount()
+
+    render(<RtBookendRow row={row({ entry: entry('08:40') })} bookend={reading()} chrome={chrome} onOpen={vi.fn()} />)
+    expect(screen.queryByLabelText(/roadtrip\.bookend\.afterCheckOut/)).toBeNull()
+    expect(screen.getByText('roadtrip.bookend.checkOut')).toBeInTheDocument()
   })
 })

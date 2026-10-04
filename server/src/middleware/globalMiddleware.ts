@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { readEnv, type AppEnv } from '../app-config';
 import { logDebug, logWarn, logError } from '../nest/audit/audit-log.logger';
+import { isSameHostOrigin } from '../nest/common/same-origin';
 
 /**
  * Field names redacted from request-log query/body dumps (case-insensitive —
@@ -28,6 +29,11 @@ export const SENSITIVE_KEYS = new Set([
   'code',
   'smtp_pass',
   'secretaccesskey',
+  // A Web Push subscription's keys: whoever holds them together with the
+  // endpoint can encrypt messages for that browser. No other request body has
+  // either field, and an `auth` anywhere else would be a credential as well.
+  'p256dh',
+  'auth',
 ]);
 
 /**
@@ -43,7 +49,26 @@ function isSensitiveName(name: string): boolean {
   return SENSITIVE_KEYS.has(lower) || SENSITIVE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
 }
 
-/** Deep-redacts every key in `SENSITIVE_KEYS` (case-insensitive) from a request-log value. */
+/**
+ * The fields PushSubscription.toJSON() puts next to `endpoint`. Either one is
+ * enough to know the object is a subscription, so a body that arrives without
+ * its keys (which the route then refuses) still keeps its endpoint out of the log.
+ */
+const PUSH_SUBSCRIPTION_FIELDS = new Set(['keys', 'expirationtime']);
+
+/**
+ * A Web Push endpoint is a capability URL: anyone holding it can post to that
+ * browser's push service. It arrives inside a subscription, or on its own in
+ * the body that forgets a device. Anywhere else `endpoint` is an ordinary
+ * setting (the S3 backend's URL, for one) and stays readable.
+ */
+function isPushEndpoint(entries: Record<string, unknown>, name: string): boolean {
+  if (name.toLowerCase() !== 'endpoint') return false;
+  const siblings = Object.keys(entries).filter((k) => k !== name);
+  return siblings.length === 0 || siblings.some((k) => PUSH_SUBSCRIPTION_FIELDS.has(k.toLowerCase()));
+}
+
+/** Deep-redacts every key in `SENSITIVE_KEYS` (case-insensitive) and every Web Push endpoint from a request-log value. */
 export function redact(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   if (Array.isArray(value)) return (value as unknown[]).map(redact);
@@ -54,7 +79,8 @@ export function redact(value: unknown): unknown {
   const namedSecret = typeof entries.key === 'string' && isSensitiveName(entries.key);
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(entries)) {
-    out[k] = isSensitiveName(k) || (namedSecret && k === 'value') ? '[REDACTED]' : redact(v);
+    const hidden = isSensitiveName(k) || (namedSecret && k === 'value') || isPushEndpoint(entries, k);
+    out[k] = hidden ? '[REDACTED]' : redact(v);
   }
   return out;
 }
@@ -137,17 +163,28 @@ export function applyGlobalMiddleware(
 
   const allowedOrigins = http.corsOrigins;
 
-  let corsOrigin: cors.CorsOptions['origin'];
-  if (allowedOrigins) {
-    corsOrigin = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-      else callback(new Error('Not allowed by CORS'));
-    };
-  } else if (isProduction) {
-    corsOrigin = false;
-  } else {
-    corsOrigin = true;
-  }
+  // With ALLOWED_ORIGINS set, a request from anywhere else is refused outright.
+  // Two things keep that from hitting the instance's own pages (#2543): a request
+  // whose Origin is the host it was sent to is same-origin and always passes, and
+  // a refusal is a 403 naming the cause instead of an unhandled error, which the
+  // exception filter turned into a bare 500 on the login screen.
+  const warnedOrigins = new Set<string>();
+  const corsOptions: cors.CorsOptions | cors.CorsOptionsDelegate<Request> = allowedOrigins
+    ? (req: Request, callback: (err: Error | null, options?: cors.CorsOptions) => void) => {
+        const origin = req.headers.origin;
+        if (!origin || allowedOrigins.includes(origin) || isSameHostOrigin(origin, req.headers.host)) {
+          callback(null, { origin: true, credentials: true });
+          return;
+        }
+        if (!warnedOrigins.has(origin) && warnedOrigins.size < 50) {
+          warnedOrigins.add(origin);
+          logWarn(
+            `CORS: refused origin ${origin} for host ${req.headers.host ?? '(none)'}; add it to ALLOWED_ORIGINS if it is yours`,
+          );
+        }
+        callback(Object.assign(new Error('Not allowed by CORS'), { statusCode: 403 }));
+      }
+    : { origin: isProduction ? false : true, credentials: true };
 
   const shouldForceHttps = http.forceHttps;
   // HSTS is worth enabling any time we're serving production traffic,
@@ -200,7 +237,7 @@ export function applyGlobalMiddleware(
       }
     },
   );
-  app.use(cors({ origin: corsOrigin, credentials: true }));
+  app.use(cors(corsOptions));
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -265,6 +302,13 @@ export function applyGlobalMiddleware(
         ],
         workerSrc: ["'self'", "blob:"],
         childSrc: ["'self'", "blob:"],
+        // blob: because a picked clip is previewed and its poster frame grabbed
+        // through a <video> on an object URL, before any byte reaches the server.
+        // Unset, this fell back to default-src, which refuses blob: outright: the
+        // editor showed nothing and every clip landed without a poster, so its
+        // thumbnail answered 404 (#2341). Invisible in dev, where Vite serves the
+        // document without this header.
+        mediaSrc: ["'self'", "blob:"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         // 'self' so same-origin file previews can embed PDFs via <object>/<embed>
         // (Firefox/Chrome enforce object-src; 'none' broke inline PDF previews there).

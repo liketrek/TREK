@@ -39,6 +39,10 @@ const dashboard: TranslationStrings = {
   'dashboard.copySuffix': 'cópia',
   'dashboard.restore': 'Restaurar',
   'dashboard.archived': 'Arquivada',
+  'dashboard.search.placeholder': 'Buscar viagens ou lugares',
+  'dashboard.search.label': 'Buscar em todas as viagens por título, data ou lugar',
+  'dashboard.search.clear': 'Limpar busca',
+  'dashboard.search.empty': 'Nenhuma viagem corresponde a “{query}”',
   'dashboard.status.ongoing': 'Em andamento',
   'dashboard.status.today': 'Hoje',
   'dashboard.status.tomorrow': 'Amanhã',
@@ -95,7 +99,25 @@ const dashboard: TranslationStrings = {
     'Os planos diários acompanham as novas datas, enquanto reservas e hospedagens permanecem nas datas originais, desde que ainda façam parte da viagem.',
   'dashboard.dateShiftAll': 'Mover tudo',
   'dashboard.dateShiftAllDesc': 'Todo o itinerário acompanha as novas datas, incluindo reservas e hospedagens.',
-  'dashboard.dateShiftHint': 'Dica: para mover apenas parte do itinerário, use "Adicionar dia" no planejador.',
+  'dashboard.dateShiftHint':
+    'Dica: para mover apenas parte do itinerário, abra “Reordenar dias” no planejador, adicione o dia seguinte ao fim da viagem pelo botão que mostra a data dele e mova esse dia para onde a lacuna deve ficar.',
+  'dashboard.shrinkTitle': 'Remover dias?',
+  'dashboard.shrinkIntro': 'Ao salvar as novas datas, estes dias serão removidos:',
+  'dashboard.shrinkMoreDays': '+{count} outros',
+  'dashboard.shrinkLastDays': 'Saem os últimos dias, não os primeiros',
+  'dashboard.shrinkLastDaysHint':
+    'Os planos de cada dia acompanham as novas datas, por isso são sempre os últimos dias do plano que saem, mesmo quando o início mudou.',
+  'dashboard.shrinkBookingsHint':
+    'Elas continuam em Reservas. Uma cuja data ainda faz parte da viagem volta para esse dia.',
+  'dashboard.shrinkBookingsShiftHint': 'Elas continuam em Reservas, sem dia.',
+  'dashboard.shrinkStayHint': 'O check-in ou o check-out é em um dia removido, então a hospedagem inteira é removida.',
+  'dashboard.shrinkStayBookedHint':
+    'O check-in ou o check-out é em um dia removido, então a hospedagem inteira é removida. A reserva “{booking}” e a despesa dela continuam em Reservas.',
+  'dashboard.shrinkStayBookingHint':
+    'O check-in ou o check-out é em um dia removido, então a hospedagem inteira é removida. A reserva “{booking}” continua em Reservas.',
+  'dashboard.shrinkConfirm': 'Remover dias e salvar',
+  'dashboard.shrinkUnknown':
+    'Não foi possível verificar os dias desta viagem. Se as novas datas tiverem menos dias, salvar remove os últimos dias e tudo o que está planejado neles.',
   'dashboard.greeting.morning': 'Bom dia,',
   'dashboard.greeting.afternoon': 'Boa tarde,',
   'dashboard.greeting.evening': 'Boa noite,',

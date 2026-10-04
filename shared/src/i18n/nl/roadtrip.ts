@@ -117,6 +117,9 @@ const roadtrip: TranslationStrings = {
   'roadtrip.line.connect': 'Dagen verbinden',
   'roadtrip.line.dayColors': 'Een kleur per dag',
   'roadtrip.line.hint': 'Berekent ook het stuk tussen twee dagen en telt het bij de aankomstdag.',
+  'roadtrip.line.hotelBookends': 'Elke dag bij je verblijf beginnen en eindigen',
+  'roadtrip.line.hotelBookendsHint':
+    'Na een geboekte nacht begint de dag bij dat verblijf, en vóór een geboekte nacht eindigt hij bij het verblijf dat voor die nacht is geboekt.',
   'roadtrip.avoid.section': 'Vermijden waar het kan',
   'roadtrip.avoid.toll': 'Tolwegen',
   'roadtrip.avoid.motorway': 'Snelwegen',
@@ -223,6 +226,17 @@ const roadtrip: TranslationStrings = {
   'roadtrip.alt.slower': '{time} langzamer',
   'roadtrip.alt.quicker': '{time} sneller',
   'roadtrip.alt.otherEngine': 'Tijd van de vermijdingsrouter, niet van de hoofdrouter.',
+  'roadtrip.alt.notHeld': 'De routeserver van de roadtrip volgt deze route niet, dus die is niet opgeslagen.',
+  'roadtrip.alt.ferryNotHeld':
+    'Deze route gaat met de veerboot. Voeg de veerboot toe als vervoersboeking en de rit volgt hem. Komt hij pas de volgende dag aan, zet de stops aan de overkant dan op die dag.',
+  'roadtrip.alt.legChanged': 'Dit traject veranderde tijdens de controle, dus er is niets opgeslagen.',
+  'roadtrip.alt.offline': 'Andere routes worden alleen online opgeslagen. Maak opnieuw verbinding om deze te kiezen.',
+  'roadtrip.alt.otherEngineStandard': 'Tijd van de hoofdrouter, niet van de router waarmee dit traject gepland wordt.',
+  'roadtrip.alt.avoidNotHeld':
+    'De roadtrip rijdt deze route alleen als ‘{class}’ is aangevinkt onder ‘{setting}’ in de instellingen.',
+  'roadtrip.alt.checking': 'Deze route wordt gecontroleerd met de router van de roadtrip…',
+  'roadtrip.alt.standIn':
+    'De vermijdingsrouter gaf voor dit traject geen antwoord, dus de hoofdrouter heeft het getekend. De vermijdingsrouter wordt opnieuw gevraagd.',
   'roadtrip.day': 'Dag {number}',
   'roadtrip.quietDay.empty': 'Nog geen stops — laat er hier een vallen',
   'roadtrip.quietDay.one': 'Voorlopig alleen {name} — laat hier een stop vallen',
@@ -237,6 +251,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stop.fillDefault': 'Mijn standaard gebruiken',
   'roadtrip.stop.fillSet': 'Instellen hoe vol er hier wordt getankt',
   'roadtrip.leg.pending': 'Geen route',
+  'roadtrip.leg.arrivingFrom': 'Vanaf {name}',
   'roadtrip.stop.addTitle': 'Als stop toevoegen',
   'roadtrip.stop.kind': 'Soort stop',
   'roadtrip.stop.landsOn': 'Dag {day}, als stop {position}',
@@ -270,5 +285,41 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stay.releaseBody': 'De nacht bij ‘{name}’ wordt verwijderd. De stop blijft als pauze op de route.',
   'roadtrip.stay.releaseBookedBody': 'De nacht bij ‘{name}’ wordt verwijderd, samen met de boeking ‘{booking}’ en elke gekoppelde uitgave. De stop blijft als pauze op de route.',
   'roadtrip.stay.releaseAction': 'Maak er een pauze van',
+  'roadtrip.ride.departure': 'Vertrek {time}',
+  'roadtrip.ride.arrival': 'Aankomst {time}',
+  'roadtrip.ride.pickup': 'Ophalen {time}',
+  'roadtrip.ride.return': 'Inleveren {time}',
+  'roadtrip.ride.open': 'Boeking openen',
+  'roadtrip.ride.undated':
+    'De boeking {title} valt op geen enkele dag van deze reis, dus de rit houdt er geen rekening mee.',
+  'roadtrip.bookings.loose': 'Ook geboekt op deze dag',
+  'roadtrip.ride.departureFlight': 'Vertrek {time}',
+  'roadtrip.ride.duration': 'Duur volgens de boeking',
+  'roadtrip.ride.checkIn': 'Inchecken',
+  'roadtrip.ride.boarding': 'Instappen',
+  'roadtrip.ride.missed': 'Gemist',
+  'roadtrip.ride.lateBy': '{time} te laat',
+  'roadtrip.ride.reachedAt': 'pas om {time}',
+  'roadtrip.ride.hintFlight': '{title} vertrekt om {departs}, inchecken tot {pin}.',
+  'roadtrip.ride.hintShip': '{title} vaart af om {departs}, inchecken tot {pin}.',
+  'roadtrip.ride.hintBoarding': '{title} vertrekt om {departs}, instappen tot {pin}.',
+  'roadtrip.ride.lateHintFlight':
+    'De rit bereikt {place} pas om {time}. {title} vertrekt om {departs}, inchecken tot {pin}.',
+  'roadtrip.ride.lateHintShip':
+    'De rit bereikt {place} pas om {time}. {title} vaart af om {departs}, inchecken tot {pin}.',
+  'roadtrip.ride.lateHintBoarding':
+    'De rit bereikt {place} pas om {time}. {title} vertrekt om {departs}, instappen tot {pin}.',
+  'roadtrip.day.rideMissed.flight': 'Vlucht gemist',
+  'roadtrip.day.rideMissed.train': 'Trein gemist',
+  'roadtrip.day.rideMissed.ferry': 'Veerboot gemist',
+  'roadtrip.day.rideMissed.cruise': 'Cruise gemist',
+  'roadtrip.day.rideMissed.bus': 'Bus gemist',
+  'roadtrip.bookend.checkOut': 'Uitchecken',
+  'roadtrip.bookend.from': 'Dagstart',
+  'roadtrip.bookend.back': 'Overnachting',
+  'roadtrip.bookend.checkIn': 'Inchecken',
+  'roadtrip.bookend.afterCheckOut': 'Vertrek na het uitchecken',
+  'roadtrip.bookend.noVia':
+    'Geen tussenpunt op de rit naar of van je verblijf. Voeg daar in plaats daarvan een stop toe.',
 };
 export default roadtrip;

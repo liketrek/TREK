@@ -512,3 +512,73 @@ describe('Regions geo', () => {
     expect(res.body).toHaveProperty('type', 'FeatureCollection');
   });
 });
+
+describe('A place that moves takes its Atlas country with it (#2527)', () => {
+  // The region cache is filled by a background task that GET /regions only starts,
+  // so wait for the row the way the next Atlas load would find it.
+  async function regionRowOf(placeId: number): Promise<{ country_code: string; region_code: string } | undefined> {
+    for (let i = 0; i < 100; i++) {
+      const row = testDb.prepare('SELECT country_code, region_code FROM place_regions WHERE place_id = ?').get(placeId) as
+        | { country_code: string; region_code: string }
+        | undefined;
+      if (row) return row;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    return undefined;
+  }
+
+  async function atlasCountries(userId: number): Promise<string[]> {
+    const res = await request(app).get('/api/addons/atlas/stats').set('Cookie', authCookie(userId));
+    expect(res.status).toBe(200);
+    return (res.body.countries as { code: string }[]).map((c) => c.code);
+  }
+
+  it('ATLAS-015: correcting a place from France to Germany moves it on the Atlas', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Wrongly imported', start_date: '2025-05-01', end_date: '2025-05-05' });
+    const place = testDb
+      .prepare('INSERT INTO places (trip_id, name, lat, lng, address) VALUES (?, ?, ?, ?, ?) RETURNING id')
+      .get(trip.id, 'Hotel', 48.8566, 2.3522, 'Rue de Rivoli, Paris, France') as { id: number };
+
+    // The place is seen on the Atlas once, which caches France for it.
+    await request(app).get('/api/addons/atlas/regions').set('Cookie', authCookie(user.id));
+    expect((await regionRowOf(place.id))?.country_code).toBe('FR');
+    expect(await atlasCountries(user.id)).toEqual(['FR']);
+
+    // The user fixes the location in the trip.
+    const put = await request(app)
+      .put(`/api/trips/${trip.id}/places/${place.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ lat: 52.5163, lng: 13.3777, address: 'Pariser Platz, Berlin, Germany' });
+    expect(put.status).toBe(200);
+
+    expect(await atlasCountries(user.id)).toEqual(['DE']);
+
+    // And the regions follow on the next load, with nothing left in France.
+    await request(app).get('/api/addons/atlas/regions').set('Cookie', authCookie(user.id));
+    expect((await regionRowOf(place.id))?.country_code).toBe('DE');
+    const regions = await request(app).get('/api/addons/atlas/regions').set('Cookie', authCookie(user.id));
+    expect(Object.keys(regions.body.regions)).toEqual(['DE']);
+    expect(await atlasCountries(user.id)).toEqual(['DE']);
+  });
+
+  it('ATLAS-015: an edit that leaves the location alone keeps the cached country', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris', start_date: '2025-05-01', end_date: '2025-05-05' });
+    const place = testDb
+      .prepare('INSERT INTO places (trip_id, name, lat, lng, address) VALUES (?, ?, ?, ?, ?) RETURNING id')
+      .get(trip.id, 'Louvre', 48.8606, 2.3376, 'Rue de Rivoli, Paris, France') as { id: number };
+    await request(app).get('/api/addons/atlas/regions').set('Cookie', authCookie(user.id));
+    const cached = await regionRowOf(place.id);
+    expect(cached?.country_code).toBe('FR');
+
+    // The place editor sends the whole form back, location included, for a notes edit.
+    const put = await request(app)
+      .put(`/api/trips/${trip.id}/places/${place.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ notes: 'Closed on Tuesdays', lat: 48.8606, lng: 2.3376, address: 'Rue de Rivoli, Paris, France' });
+    expect(put.status).toBe(200);
+
+    expect(testDb.prepare('SELECT country_code, region_code FROM place_regions WHERE place_id = ?').get(place.id)).toEqual(cached);
+  });
+});

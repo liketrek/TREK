@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Plus, X, MapPin } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import type { Place, AssignmentsMap } from '../../types'
+import { placeMatchesSearch } from '../../utils/placeSearch'
 
 export function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onAddNew }: {
   dayId: number
@@ -17,9 +18,7 @@ export function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onA
   // Find places not assigned to this day
   const assignedToDay = new Set((assignments[String(dayId)] || []).map(a => a.place_id))
   const available = places.filter(p => !assignedToDay.has(p.id))
-  const filtered = search.trim()
-    ? available.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
-    : available
+  const filtered = available.filter(p => placeMatchesSearch(p, search))
 
   return (
     <div className="md:hidden" style={{ padding: '8px 12px 12px' }}>

@@ -15,6 +15,7 @@ import {
   detectFlightNumbers,
   fixArrivalDate,
   routeExtraction,
+  routeImageExtraction,
 } from '../../../../src/nest/llm-parse/router/extraction-router';
 
 const CTX = { baseUrl: 'http://ollama:11434/v1', model: 'qwen3:8b' };
@@ -255,5 +256,66 @@ describe('printed 12-hour clocks and unreadable types (#2094, #2076)', () => {
     const flats = mapToKi.mock.calls[0][0];
     expect(flats[0].type).toBe('event');
     expect(flats[0].type_guessed).toBeUndefined();
+  });
+});
+
+describe('routeImageExtraction', () => {
+  it('makes one enforced call with the photo attached and lets the model pick the type', async () => {
+    extractEnforced.mockResolvedValue({ type: 'train', from_name: 'Lyon', to_name: 'Paris', price: '42', currency: 'EUR' });
+    const out = await routeImageExtraction([Buffer.from('photo')], CTX);
+    expect(out).toEqual({ kiItems: [{ '@type': 'Mock' }], warnings: [] });
+    expect(extractEnforced).toHaveBeenCalledTimes(1);
+    const call = extractEnforced.mock.calls[0][0];
+    expect(call.images).toEqual([Buffer.from('photo').toString('base64')]);
+    expect(call.numCtx).toBe(16384);
+    expect(call.user).not.toMatch(/Document:/);
+    expect(mapToKi.mock.calls[0][0][0]).toMatchObject({ type: 'train', from_name: 'Lyon', price: '42', currency: 'EUR' });
+  });
+
+  it('tells the model what each type\'s fields mean, since a photo has no keyword to pick a schema', async () => {
+    extractEnforced.mockResolvedValue({ type: 'train' });
+    await routeImageExtraction([Buffer.from('photo')], CTX);
+    const system = extractEnforced.mock.calls[0][0].system;
+    expect(system).toMatch(/from_name\/to_name = stations/);
+    expect(system).toMatch(/full ISO/);
+  });
+
+  it('reads a price the model wrapped as an object inside the string', async () => {
+    extractEnforced.mockResolvedValue({ type: 'train', price: '{"amount": 49.00, "currency": "EUR"}' });
+    await routeImageExtraction([Buffer.from('photo')], CTX);
+    expect(mapToKi.mock.calls[0][0][0]).toMatchObject({ price: '49', currency: 'EUR' });
+
+    mapToKi.mockClear();
+    extractEnforced.mockResolvedValue({ type: 'train', price: '{"amount": "12,50"}', currency: 'CHF' });
+    await routeImageExtraction([Buffer.from('photo')], CTX);
+    expect(mapToKi.mock.calls[0][0][0]).toMatchObject({ price: '12,50', currency: 'CHF' });
+
+    mapToKi.mockClear();
+    extractEnforced.mockResolvedValue({ type: 'train', price: '{"note": "see below"}' });
+    await routeImageExtraction([Buffer.from('photo')], CTX);
+    expect(mapToKi.mock.calls[0][0][0]).not.toHaveProperty('price');
+  });
+
+  it('leaves a plain price, or one that only looks like an object, as it came', async () => {
+    for (const price of ['49,00 EUR', '{not json']) {
+      mapToKi.mockClear();
+      extractEnforced.mockResolvedValue({ type: 'train', price });
+      await routeImageExtraction([Buffer.from('photo')], CTX);
+      expect(mapToKi.mock.calls[0][0][0].price).toBe(price);
+    }
+  });
+
+  it('attaches every page of a scanned PDF to the one call', async () => {
+    extractEnforced.mockResolvedValue({ type: 'hotel' });
+    await routeImageExtraction([Buffer.from('p1'), Buffer.from('p2')], CTX);
+    expect(extractEnforced).toHaveBeenCalledTimes(1);
+    expect(extractEnforced.mock.calls[0][0].images).toEqual([Buffer.from('p1').toString('base64'), Buffer.from('p2').toString('base64')]);
+  });
+
+  it('degrades to a warning when the call throws', async () => {
+    extractEnforced.mockRejectedValue(new Error('timeout'));
+    const out = await routeImageExtraction([Buffer.from('photo')], CTX);
+    expect(out.kiItems).toEqual([]);
+    expect(out.warnings[0]).toMatch(/timeout/);
   });
 });

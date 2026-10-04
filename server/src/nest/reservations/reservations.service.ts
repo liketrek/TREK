@@ -39,7 +39,7 @@ import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.re
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
 
 type Trip = TripAccess;
-type BudgetEntry = { total_price?: number; category?: string } | undefined;
+type BudgetEntry = { total_price?: number; category?: string; currency?: string | null; exchange_rate?: number } | undefined;
 
 export interface ReservationEndpoint {
   id?: number;
@@ -1055,7 +1055,7 @@ export class ReservationsService {
 
   /** The accommodation + budget-item + reservation deletes are one logical
    *  cascade — all-or-nothing. */
-  async remove(id: string | number, tripId: string | number): Promise<{ deleted: { id: number; title: string; type: string | null; accommodation_id: string | null } | undefined; accommodationDeleted: boolean; deletedBudgetItemId: number | null }> {
+  async remove(id: string | number, tripId: string | number): Promise<{ deleted: { id: number; title: string; type: string | null; accommodation_id: string | null } | undefined; accommodationDeleted: boolean; deletedBudgetItemId: number | null; deletedBudgetItemIds: number[] }> {
     // M4, Plan 3d Task 7 review: parsed ONCE here with `toRowId` (rule 21),
     // not `rowIdNum` — `rowIdNum`'s `Number(...)` fallback let a hex/exponent
     // id (`0x1`, `1e1`) reach `findHeaderInTrip` and delete a real row where
@@ -1064,12 +1064,12 @@ export class ReservationsService {
     const idNum = toRowId(id);
     const tripIdNum = toRowId(tripId);
     if (idNum === null || tripIdNum === null) {
-      return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null };
+      return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] };
     }
     const removed = await this.uow.transactional(async () => {
       // RS45
       const reservation = await this.reservationsRepo.findHeaderInTrip(idNum, tripIdNum);
-      if (!reservation) return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, stayMirror: noStayMirror() };
+      if (!reservation) return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [], stayMirror: noStayMirror() };
 
       let accommodationDeleted = false;
       let stayMirror = noStayMirror();
@@ -1098,20 +1098,38 @@ export class ReservationsService {
         }
       }
 
-      // RS48/RS49 — Plan 3e Task 2, converted: `BudgetItemsRepository.findIdByReservationInTrip`/`deleteById`.
+      // RS48/RS49: a booking can carry several expenses (#2084); every one of them goes with it.
       // Same `toRowId`-parsed ids the gate above (`findHeaderInTrip`) used (rule 21).
-      const linkedBudget = await this.budgetItemsRepo.findIdByReservationInTrip(tripIdNum, idNum);
-      if (linkedBudget) {
-        await this.budgetItemsRepo.deleteById(linkedBudget.id);
-      }
+      const deletedBudgetItemIds = (await this.budgetItemsRepo.listIdAndCategoryByReservation(tripIdNum, idNum)).map(item => item.id);
+      await this.budgetItemsRepo.deleteByIds(deletedBudgetItemIds);
 
       // RS50
       await this.reservationsRepo.deleteById(idNum);
-      return { deleted: reservation, accommodationDeleted, deletedBudgetItemId: linkedBudget ? linkedBudget.id : null, stayMirror };
+      return { deleted: reservation, accommodationDeleted, deletedBudgetItemId: deletedBudgetItemIds[0] ?? null, deletedBudgetItemIds, stayMirror };
     });
     const { stayMirror, ...answer } = removed;
     await this.announceStayMirror(tripId, stayMirror);
     return answer;
+  }
+
+  /**
+   * The linked cost a new booking's price becomes, in the currency the price was quoted
+   * in and at the rate frozen for it now (#2525). An imported booking previewed its
+   * $801.76 in dollars, then stored 801.76 in the trip's own currency, because only the
+   * amount travelled. The rate is resolved here, before the writes and outside their
+   * transaction (the fetch is network I/O, and `UnitOfWork.transactional` holds the
+   * connection), the way the direct booking import and the Costs routes resolve it.
+   * A currency that is not a three-letter code is dropped, which leaves the price in
+   * the trip currency as before, and a rate is never taken from the caller.
+   */
+  async withFrozenRate(tripId: string | number, entry: BudgetEntry): Promise<BudgetEntry> {
+    if (!entry || typeof entry !== 'object') return entry;
+    const { currency: rawCurrency, exchange_rate: _callerRate, ...rest } = entry;
+    const currency = typeof rawCurrency === 'string' ? rawCurrency.trim().toUpperCase() : '';
+    if (!/^[A-Z]{3}$/.test(currency)) return rest;
+    const priced: { currency?: string | null; exchange_rate?: number } = { currency };
+    await this.budget.freezeForeignRate(tripId, priced);
+    return { ...rest, currency, ...(priced.exchange_rate != null ? { exchange_rate: priced.exchange_rate } : {}) };
   }
 
   /** POST side effect: auto-create a linked budget item when a price is provided. */
@@ -1122,6 +1140,8 @@ export class ReservationsService {
         name: title,
         category: entry.category || type || 'Other',
         total_price: entry.total_price!,
+        ...(entry.currency ? { currency: entry.currency } : {}),
+        ...(entry.exchange_rate != null ? { exchange_rate: entry.exchange_rate } : {}),
       });
       this.realtime.broadcast(tripId, 'budget:created', { item }, socketId);
     } catch (err) {
@@ -1135,15 +1155,13 @@ export class ReservationsService {
     // but only if it still carries the auto-derived category (so a manual pick in
     // the Costs editor is preserved). Runs regardless of create_budget_entry.
     if (type && currentType && type !== currentType) {
-      // RS51 — Plan 3e Task 2, converted.
-      const linked = await this.budgetItemsRepo.findIdAndCategoryByReservation(tripId, id);
-      if (linked) {
-        const oldCat = typeToCostCategory(currentType);
-        const newCat = typeToCostCategory(type);
-        if (oldCat !== newCat && linked.category === oldCat) {
-          const updated = await this.budget.updateBudgetItem(linked.id, tripId, { category: newCat });
-          this.realtime.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
-        }
+      const oldCat = typeToCostCategory(currentType);
+      const newCat = typeToCostCategory(type);
+      // RS51. Every linked expense (#2084), each only while it still has the derived category.
+      const linked = oldCat === newCat ? [] : await this.budgetItemsRepo.listIdAndCategoryByReservation(tripId, id);
+      for (const item of linked.filter(i => i.category === oldCat)) {
+        const updated = await this.budget.updateBudgetItem(item.id, tripId, { category: newCat });
+        this.realtime.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
       }
     }
 
@@ -1151,6 +1169,10 @@ export class ReservationsService {
     // expense, so leave any linked item alone. Expenses are managed from the
     // booking's Costs section / the Costs tab, not by re-saving the booking.
     if (!entry) return;
+    // The price field speaks for a single expense. With several linked (#2084)
+    // it has none to mean, so they are managed from the Costs block only.
+    // RS51
+    if ((await this.budgetItemsRepo.listIdAndCategoryByReservation(tripId, id)).length > 1) return;
 
     if (!(Number(entry.total_price) > 0)) {
       // Explicit clear (total_price 0/empty) — drop the linked item. RS52 — Plan 3e Task 2, converted.

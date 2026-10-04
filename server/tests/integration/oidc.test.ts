@@ -171,6 +171,27 @@ describe('GET /api/auth/oidc/callback', () => {
     expect(res.headers.location).toContain('/login?oidc_code=');
   });
 
+  it('OIDC-004b: a successful login writes the user.login row every other method writes (#2417)', async () => {
+    const { user } = createUser(testDb, { email: 'audited@example.com' });
+    mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
+    mockExchangeCode.mockResolvedValueOnce({ access_token: 'test-access-token', id_token: 'fake.id.token', _ok: true, _status: 200 });
+    mockVerifyIdToken.mockResolvedValueOnce({ ok: true, claims: { sub: 'sub-audited-1' } });
+    mockGetUserInfo.mockResolvedValueOnce({ sub: 'sub-audited-1', email: 'audited@example.com', name: 'Audited', email_verified: true });
+    const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
+
+    const res = await request(app).get(`/api/auth/oidc/callback?code=authcode123&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+
+    expect(res.status).toBe(302);
+    // The query from the report, against the same table.
+    const rows = testDb.prepare('SELECT user_id, action, details FROM audit_log WHERE user_id = ? ORDER BY id DESC').all(user.id) as
+      { user_id: number; action: string; details: string | null }[];
+    expect(rows.map(r => r.action)).toContain('user.login');
+    const login = rows.find(r => r.action === 'user.login')!;
+    expect(JSON.parse(login.details || '{}')).toEqual({ method: 'oidc' });
+    const counted = testDb.prepare('SELECT login_count FROM users WHERE id = ?').get(user.id) as { login_count: number };
+    expect(counted.login_count).toBe(1);
+  });
+
   it('OIDC-005: new user gets created when registration is open', async () => {
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
     mockExchangeCode.mockResolvedValueOnce({ access_token: 'new-token', id_token: 'fake.id.token', _ok: true, _status: 200 });
@@ -189,8 +210,14 @@ describe('GET /api/auth/oidc/callback', () => {
     expect(res.headers.location).toContain('/login?oidc_code=');
 
     // Verify user was created in DB
-    const newUser = testDb.prepare("SELECT * FROM users WHERE email = 'newuser@example.com'").get();
+    const newUser = testDb.prepare("SELECT * FROM users WHERE email = 'newuser@example.com'").get() as { id: number; username: string; role: string } | undefined;
     expect(newUser).toBeDefined();
+    // Registered, the way the audit log reports a password signup, and then logged in:
+    // an admin reading user.register for who got an account sees the SSO ones too.
+    const rows = testDb.prepare('SELECT action, details FROM audit_log WHERE user_id = ? ORDER BY id').all(newUser!.id) as
+      { action: string; details: string | null }[];
+    expect(rows.map(r => r.action)).toEqual(['user.register', 'user.login']);
+    expect(JSON.parse(rows[0].details || '{}')).toEqual({ username: newUser!.username, email: 'newuser@example.com', role: newUser!.role, method: 'oidc' });
   });
 
   it('OIDC-006: invalid state → redirects with invalid_state error', async () => {

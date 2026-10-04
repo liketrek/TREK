@@ -1,6 +1,7 @@
 import React from 'react'
 import { CalendarDays, Route } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
+import { NEUTRAL_TINT } from '../shared/DialogShell'
 
 interface RoadtripModeSwitchProps {
   active: boolean
@@ -10,7 +11,8 @@ interface RoadtripModeSwitchProps {
 /**
  * Switches the plan view's left rail between the day plan and the road trip reading of
  * the same trip. Only rendered while the road trip addon is on, so a trip that isn't
- * driven anywhere never grows a control it has no use for.
+ * driven anywhere never grows a control it has no use for. It opens the rail's tinted
+ * head band, so with the day plan's tools below it the two read as one band.
  */
 export default function RoadtripModeSwitch({ active, onChange }: RoadtripModeSwitchProps): React.ReactElement {
   const { t } = useTranslation()
@@ -19,10 +21,11 @@ export default function RoadtripModeSwitch({ active, onChange }: RoadtripModeSwi
     [true, t('roadtrip.mode.roadtrip'), Route],
   ]
   return (
+    <div className="flex-none px-3 pb-1 pt-3" style={{ background: NEUTRAL_TINT }}>
     <div
       role="tablist"
       aria-label={t('roadtrip.mode.label')}
-      className="mx-3.5 mb-0 mt-3 flex gap-1 rounded-xl border border-edge-faint bg-surface-tertiary p-1"
+      className="flex gap-1 rounded-xl border border-edge-faint bg-surface-tertiary p-1"
     >
       {options.map(([value, label, Icon]) => {
         const selected = active === value
@@ -47,6 +50,7 @@ export default function RoadtripModeSwitch({ active, onChange }: RoadtripModeSwi
           </button>
         )
       })}
+    </div>
     </div>
   )
 }

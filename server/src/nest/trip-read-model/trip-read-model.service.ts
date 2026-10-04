@@ -55,11 +55,18 @@ export class TripReadModelService {
     const accommodations = await this.accommodations.list(tripId);
 
     const budgetItems = await this.budget.listBudgetItems(tripId);
+    // In the trip currency, each row at the rate it was booked at (#2525). A raw sum of
+    // total_price added a dollar bill to the euros and called the result euros.
+    const tripCurrency = String(trip.currency || 'EUR');
+    const totals = await this.budget.tripTotals(tripId, tripCurrency, await this.budget.ratesForTripTotals(tripId, tripCurrency));
     const budget = {
       items: budgetItems,
       item_count: budgetItems.length,
-      total: budgetItems.reduce((sum, i) => sum + (i.total_price || 0), 0),
+      total: totals.total,
+      by_category: totals.byCategory,
       currency: trip.currency,
+      // Rows in a foreign currency with no rate to convert them: in no total above.
+      unconverted_item_ids: totals.unconverted,
     };
 
     // Thread the viewer so another member's private/personal packing items (#858)

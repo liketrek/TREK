@@ -26,7 +26,7 @@ The following addons are registered in the system (defined in `server/src/db/see
 | `collections` | global | A personal, server-wide library of saved places in named lists, with idea/want/visited status, categories, and fusion sharing with per-member roles. See [Collections](Collections). |
 | `airtrail` | integration | Sync flights from your self-hosted AirTrail instance into trips. |
 | `dawarich` | integration | Read the stays and recorded routes of each user's own Dawarich instance, offered as suggestions to confirm. Read-only, nothing is written back. See [Dawarich](Dawarich). |
-| `llm_parsing` | integration | **AI Parsing**: an LLM fallback that extracts bookings from confirmation files KDE Itinerary can't read. See [AI-Booking-Import](AI-Booking-Import). |
+| `llm_parsing` | integration | **AI Parsing**: an LLM fallback that extracts bookings from confirmation files KDE Itinerary can't read. With a model that reads images it also takes photos and scanned PDFs, and Costs gets **Scan receipt**. See [AI-Booking-Import](AI-Booking-Import) and [Budget-Tracking](Budget-Tracking#scanning-a-receipt). |
 | `naver_list_import` | integration | Import places from shared Naver Maps lists directly into a trip. |
 
 

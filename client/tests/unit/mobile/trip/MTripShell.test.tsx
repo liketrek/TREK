@@ -202,6 +202,24 @@ describe('MTripShell', () => {
     expect(screen.queryByRole('button', { name: 'Sat 2' })).not.toBeInTheDocument()
   })
 
+  it('FE-MOB-SHELL-007b: re-seeds after re-entering the same trip from the dashboard', () => {
+    const { planner, rerenderShell } = renderShell()
+    expect(planner.tripActions.setSelectedDay).not.toHaveBeenCalled()
+
+    // The dashboard leaves the previous trip snapshot in the store. loadTrip
+    // clears that selection while it reloads the same trip.
+    planner.isLoading = true
+    planner.days = []
+    planner.selectedDayId = null
+    rerenderShell()
+
+    planner.isLoading = false
+    planner.days = DAYS
+    rerenderShell()
+
+    expect(planner.tripActions.setSelectedDay).toHaveBeenCalledWith(11)
+  })
+
   it('FE-MOB-SHELL-008: the back button leaves for the dashboard', () => {
     const { planner } = renderShell()
     fireEvent.click(screen.getByRole('button', { name: 'common.back' }))
@@ -578,6 +596,47 @@ describe('MTripShell', () => {
       }) as unknown as MediaQueryList)
       renderShell({ selectedDayId: 12 } as Partial<TripPlanner>)
       expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', inline: 'center', block: 'nearest' })
+    })
+  })
+
+  // #2392 — on the road the phone plan is used one day at a time, and finding today
+  // again meant scrolling the rail; today is marked and one tap away.
+  describe('today on the day rail (#2392)', () => {
+    const shift = (days: number) => {
+      const d = new Date()
+      d.setDate(d.getDate() + days)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    const running = () => [
+      { id: 21, day_number: 1, date: shift(-1) },
+      { id: 22, day_number: 2, date: todayIso() },
+      { id: 23, day_number: 3, date: shift(1) },
+    ] as unknown as Day[]
+    const jump = () => screen.getByRole('button', { name: 'mobileTrip.jumpToToday' })
+
+    it('FE-MOB-SHELL-090: marks today and jumps back to it from another day', () => {
+      const { planner, container } = renderShell({ days: running(), selectedDayId: 21 } as Partial<TripPlanner>)
+      const marked = container.querySelectorAll('[data-today]')
+      expect(marked).toHaveLength(1)
+      expect(marked[0].className).toContain('ring-inset')
+      expect(marked[0]).toHaveTextContent('mobileTrip.today')
+
+      expect(jump()).toBeEnabled()
+      fireEvent.click(jump())
+      expect(planner.handleSelectDay).toHaveBeenLastCalledWith(22, true)
+    })
+
+    it('FE-MOB-SHELL-091: with today open the button stays, dimmed, so the rail does not move', () => {
+      const { container } = renderShell({ days: running(), selectedDayId: 22 } as Partial<TripPlanner>)
+      expect(jump()).toBeDisabled()
+      // The active chip keeps its own look; the dot still says which day is today.
+      expect(container.querySelector('[data-today]')?.className).not.toContain('ring-inset')
+    })
+
+    it('FE-MOB-SHELL-092: outside the trip dates there is no today and no button', () => {
+      const { container } = renderShell()
+      expect(container.querySelector('[data-today]')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'mobileTrip.jumpToToday' })).toBeNull()
     })
   })
 

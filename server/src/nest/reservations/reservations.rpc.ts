@@ -39,10 +39,12 @@ export class ReservationsRpc {
     this.requireValidEndpoints(input.endpoints);
     await this.guards.requireTripEdit(tripId, actor, RESERVATION_EDIT_ACTION);
     await this.requireOwnReferences(tripId, input);
+    const i = input as { title?: string; type?: string; create_budget_entry?: unknown };
+    // Same as the REST route: the price keeps its currency, at a rate frozen now (#2525).
+    const budgetEntry = await this.reservations.withFrozenRate(tripId, i.create_budget_entry as never);
     const { reservation, accommodationCreated } = await this.reservations.create(String(tripId), input as never);
     if (accommodationCreated) this.realtime.broadcast(tripId, 'accommodation:created', {}, undefined);
-    const i = input as { title?: string; type?: string; create_budget_entry?: unknown };
-    await this.reservations.syncBudgetOnCreate(String(tripId), reservation.id, i.title ?? '', i.type, i.create_budget_entry as never, undefined);
+    await this.reservations.syncBudgetOnCreate(String(tripId), reservation.id, i.title ?? '', i.type, budgetEntry, undefined);
     this.realtime.broadcast(tripId, 'reservation:created', { reservation }, undefined);
     await this.notifyBooking(actor, tripId, i.title ?? '', i.type ?? '');
     return reservation;
@@ -77,10 +79,10 @@ export class ReservationsRpc {
     const reservationId = num(params.reservationId, 'reservationId');
     const actor = this.guards.requireActor(ctx, 'reservation');
     await this.guards.requireTripEdit(tripId, actor, RESERVATION_EDIT_ACTION);
-    const { deleted, accommodationDeleted, deletedBudgetItemId } = await this.reservations.remove(String(reservationId), String(tripId));
+    const { deleted, accommodationDeleted, deletedBudgetItemIds } = await this.reservations.remove(String(reservationId), String(tripId));
     if (!deleted) throw new ForbiddenResource(`no reservation ${reservationId} on trip ${tripId}`);
     if (accommodationDeleted) this.realtime.broadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id }, undefined);
-    if (deletedBudgetItemId) this.realtime.broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, undefined);
+    for (const itemId of deletedBudgetItemIds) this.realtime.broadcast(tripId, 'budget:deleted', { itemId }, undefined);
     this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId }, undefined);
     await this.notifyBooking(actor, tripId, deleted.title, deleted.type || '');
     return { deleted: true };

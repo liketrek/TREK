@@ -51,6 +51,7 @@ import { db } from '../../src/db/database';
 import { NotificationsService } from '../../src/nest/notifications/notifications.service';
 import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { ExchangeRatesService } from '../../src/nest/budget/exchange-rates.service';
 
 describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real reservation SQL)', () => {
   let server: Server;
@@ -61,6 +62,10 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
     const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, ReservationsModule, AccommodationsModule] })
       .overrideProvider(NotificationsService)
       .useValue({ send: notificationSend })
+      // A price quoted in a foreign currency freezes the rate of the day; this is that
+      // day's table, so no case ever reaches the network.
+      .overrideProvider(ExchangeRatesService)
+      .useValue({ getRates: async (base: string) => (base.toUpperCase() === 'EUR' ? { EUR: 1, USD: 1.17 } : null) })
       .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -131,6 +136,31 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
     } finally {
       db.prepare("INSERT INTO trips (id, user_id, title) VALUES (?, 1, 'E2E Trip')").run(tripId);
     }
+  });
+
+  it('201 create keeps an imported price in the currency it was quoted in, at a frozen rate (#2525)', async () => {
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/reservations`)
+      .set('Cookie', sessionCookie(1))
+      .send({
+        title: 'Aparthotel Silver', type: 'hotel',
+        metadata: { price: '801.76', priceCurrency: 'USD' },
+        create_budget_entry: { total_price: 801.76, category: 'accommodation', currency: 'USD' },
+      });
+    expect(res.status).toBe(201);
+    // It used to land as 801.76 with no currency, which is 801.76 of the trip's euros.
+    const item = db.prepare('SELECT total_price, currency, exchange_rate FROM budget_items WHERE reservation_id = ?').get(res.body.reservation.id);
+    expect(item).toEqual({ total_price: 801.76, currency: 'USD', exchange_rate: 1.17 });
+  });
+
+  it('201 create leaves a price without a currency in the trip currency, as before', async () => {
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/reservations`)
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Museum', type: 'event', create_budget_entry: { total_price: 20, currency: 'not a code' } });
+    expect(res.status).toBe(201);
+    const item = db.prepare('SELECT total_price, currency, exchange_rate FROM budget_items WHERE reservation_id = ?').get(res.body.reservation.id);
+    expect(item).toEqual({ total_price: 20, currency: null, exchange_rate: 1 });
   });
 
   it('201 create reservation (real insert + booking notification), 400 without title', async () => {

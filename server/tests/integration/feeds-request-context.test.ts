@@ -5,10 +5,10 @@
  * `GET /api/feed/trip/:token.ics` and `GET /api/feed/user/:token.ics`
  * (`feeds.controller.ts`'s `FeedsPublicController`, class-level `@Public`)
  * are ordinary Nest routes reached by an anonymous caller with no session —
- * `@Public()` exempts only the auth guard, and `@mikro-orm/nestjs`'s
- * `MikroOrmMiddleware` (registered by `MikroOrmModule.forRoot` at its
- * default, `forRoutes({ path: '*', method: ALL })`) runs ahead of every
- * route including these two, the same argument `nest-mcp/registry.ts`'s own
+ * `@Public()` exempts only the auth guard, and the per-request EntityManager
+ * fork `buildApp()` mounts as a pathless middleware (bootstrap.ts's
+ * `mikroOrmRequestContext`) runs ahead of every route including these two,
+ * the same argument `nest-mcp/registry.ts`'s own
  * middleware wiring makes for `/mcp`. No existing test pinned this before
  * this file (inventory §12): the e2e feeds harness builds its own module
  * graph, not `buildApp()`'s real production wiring, and `FeedsService`'s own

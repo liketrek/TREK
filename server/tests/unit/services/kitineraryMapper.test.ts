@@ -166,3 +166,39 @@ describe('kitinerary mapper — a recognised type that cannot be mapped (#2375)'
     expect(warnings).toEqual(['Unknown type "RocketLaunchReservation" in mars.eml[0] — skipped']);
   });
 });
+
+/**
+ * The node a schema-bound provider writes once `reservationFor` has declared
+ * fields: the venue inside it, times and price at the root, as the prompt asks.
+ * Synthetic data in the shape of a Booking.com print (#2477).
+ */
+describe('kitinerary mapper: a prompt-shaped AI lodging (#2477)', () => {
+  it('maps a LodgingReservation with reservationFor.name to one hotel with its stay and price', () => {
+    const { items, warnings } = mapReservations([
+      {
+        '@type': 'LodgingReservation',
+        checkinTime: '2026-09-06T13:00:00',
+        checkoutTime: '2026-09-07T11:00:00',
+        price: 89.35,
+        priceCurrency: 'EUR',
+        reservationFor: {
+          name: 'Harbour View Inn',
+          address: 'Example Road 1, 1000 Sample Town',
+          telephone: '+00 000 000 000',
+        },
+      },
+    ] as Parameters<typeof mapReservations>[0], 'Bestätigung_1.pdf');
+
+    expect(warnings).toEqual([]);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      type: 'hotel',
+      title: 'Harbour View Inn',
+      location: 'Example Road 1, 1000 Sample Town',
+      _venue: { name: 'Harbour View Inn', phone: '+00 000 000 000' },
+      _accommodation: { check_in: '2026-09-06T13:00', check_out: '2026-09-07T11:00' },
+      metadata: { check_in_time: '13:00', check_out_time: '11:00', price: 89.35, priceCurrency: 'EUR' },
+      source: { fileName: 'Bestätigung_1.pdf', index: 0 },
+    });
+  });
+});

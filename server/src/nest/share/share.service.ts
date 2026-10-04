@@ -29,6 +29,7 @@ import { Categories } from '../../db/entities/Categories.entity';
 import type { CategoriesRepository } from '../../db/repositories/Categories.repository';
 import { CollabMessages } from '../../db/entities/CollabMessages.entity';
 import type { CollabMessagesRepository } from '../../db/repositories/CollabMessages.repository';
+import { travelOnly, withoutImages } from './share-view.helpers';
 
 type Trip = TripAccess;
 
@@ -55,6 +56,8 @@ export interface SharePermissions {
   share_packing?: boolean;
   share_budget?: boolean;
   share_collab?: boolean;
+  share_travel_only?: boolean;
+  share_hide_images?: boolean;
 }
 
 export interface ShareTokenInfo {
@@ -65,6 +68,8 @@ export interface ShareTokenInfo {
   share_packing: boolean;
   share_budget: boolean;
   share_collab: boolean;
+  share_travel_only: boolean;
+  share_hide_images: boolean;
 }
 
 /**
@@ -207,6 +212,8 @@ export class ShareService {
       share_packing = false,
       share_budget = false,
       share_collab = false,
+      share_travel_only = false,
+      share_hide_images = false,
     } = permissions;
 
     const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
@@ -219,6 +226,8 @@ export class ShareService {
           share_packing: share_packing ? 1 : 0,
           share_budget: share_budget ? 1 : 0,
           share_collab: share_collab ? 1 : 0,
+          share_travel_only: share_travel_only ? 1 : 0,
+          share_hide_images: share_hide_images ? 1 : 0,
           expires_at: expiresAt,
         });
         return { token: existing.token, created: false };
@@ -234,6 +243,8 @@ export class ShareService {
         share_packing: share_packing ? 1 : 0,
         share_budget: share_budget ? 1 : 0,
         share_collab: share_collab ? 1 : 0,
+        share_travel_only: share_travel_only ? 1 : 0,
+        share_hide_images: share_hide_images ? 1 : 0,
         expires_at: expiresAt,
       });
       return { token, created: true };
@@ -254,6 +265,8 @@ export class ShareService {
       share_packing: !!row.share_packing,
       share_budget: !!row.share_budget,
       share_collab: !!row.share_collab,
+      share_travel_only: !!row.share_travel_only,
+      share_hide_images: !!row.share_hide_images,
     };
   }
 
@@ -306,6 +319,8 @@ export class ShareService {
       share_packing: !!shareRow.share_packing,
       share_budget: !!shareRow.share_budget,
       share_collab: !!shareRow.share_collab,
+      share_travel_only: !!shareRow.share_travel_only,
+      share_hide_images: !!shareRow.share_hide_images,
     };
 
     // Itinerary — days with assignments/notes, and the place pool
@@ -444,10 +459,18 @@ export class ShareService {
     const ownerCartoKey = ownerSettings['carto_api_key'];
     const cartoApiKey = typeof ownerCartoKey === 'string' ? ownerCartoKey.trim() : '';
 
+    // The owner's narrowing options (#1712) apply last, over what the flags
+    // above already let through.
+    let view = { assignments, dayNotes, places, reservations };
+    if (permissions.share_travel_only) {
+      const stayPlaceIds = new Set(await this.reservationsRepo.listPublicStayPlaceIdsForShare(tripId));
+      view = travelOnly(view, stayPlaceIds);
+    }
+    if (permissions.share_hide_images) view = withoutImages(view);
+
     return {
       trip, baseCurrency, cartoApiKey, categories, permissions,
-      days, assignments, dayNotes, places,
-      reservations, accommodations,
+      days, ...view, accommodations,
       packing, budget,
       collab: collabMessages,
     };
@@ -465,6 +488,8 @@ export class ShareService {
   async getSharedPlacePhotoKey(token: string, placeId: string): Promise<string | null> {
     const shareRow = await this.shareTokens.findTripAndShareMapByToken(token);
     if (!shareRow) return null;
+    // A link that leaves the photos out (#1712) does not serve them either.
+    if (shareRow.share_hide_images) return null;
     // Place photos belong to the map/itinerary section — withhold them when the
     // owner disabled the map, matching getSharedTripData which no longer returns
     // the places (and thus their ids) in that case.

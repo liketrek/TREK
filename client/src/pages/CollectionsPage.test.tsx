@@ -25,7 +25,13 @@ vi.mock('../components/Collections/CollectionFilterBar', () => ({
       ? <button type="button" onClick={props.onAddPlace}>collections.addPlace</button>
       : <div />,
 }))
-vi.mock('../components/Collections/CollectionMapPanel', () => ({ default: () => <div data-testid="map" /> }))
+const mapPanelProps = vi.hoisted(() => ({ current: null as null | { onSelect: (id: number) => void; onDeselect: () => void } }))
+vi.mock('../components/Collections/CollectionMapPanel', () => ({
+  default: (props: { onSelect: (id: number) => void; onDeselect: () => void }) => {
+    mapPanelProps.current = props
+    return <div data-testid="map" />
+  },
+}))
 vi.mock('../components/Collections/CopyToTripModal', () => ({ default: () => null }))
 vi.mock('../components/Collections/MoveToListModal', () => ({ default: () => null }))
 vi.mock('../components/Collections/ShareCollectionModal', () => ({ default: () => null }))
@@ -145,5 +151,19 @@ describe('CollectionsPage — the map survives a filter that matches nothing', (
     mockUseCollections.mockReturnValue(makeHook({ mappable: [], hasMappable: false }))
     render(<CollectionsPage />)
     expect(screen.queryByTestId('map')).toBeNull()
+  })
+})
+
+describe('CollectionsPage: a marker click shows the place (#2431)', () => {
+  it('selects the place a marker stands for, even when that place is already selected', () => {
+    const setSelectedPlaceId = vi.fn()
+    mockUseCollections.mockReturnValue(makeHook({ selectedPlaceId: 10, setSelectedPlaceId }))
+    render(<CollectionsPage />)
+    // A second click on the marker of the open place used to toggle it away, which
+    // read as the details refusing to open. The map background is what clears.
+    mapPanelProps.current!.onSelect(10)
+    expect(setSelectedPlaceId).toHaveBeenLastCalledWith(10)
+    mapPanelProps.current!.onDeselect()
+    expect(setSelectedPlaceId).toHaveBeenLastCalledWith(null)
   })
 })

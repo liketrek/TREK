@@ -25,6 +25,8 @@ const collab: TranslationStrings = {
   'collab.links.delete': '링크 삭제',
   'collab.links.edit': '링크 편집',
   'collab.links.open': '링크 열기',
+  'collab.links.confirmDeleteTitle': '링크를 삭제할까요?',
+  'collab.links.confirmDeleteBody': '이 링크는 영구적으로 삭제됩니다.',
   'collab.whatsNext.title': '다음 할 일',
   'collab.whatsNext.today': '오늘',
   'collab.whatsNext.tomorrow': '내일',

@@ -227,6 +227,34 @@ export class ReservationEndpointsRepository extends TrekRepository<ReservationEn
       .orderBy('re.sequence', 'asc')
       .execute();
   }
+
+  /**
+   * RPL6 (`RoadtripPlanService.withTerminals`) — `SELECT e.reservation_id,
+   * e.role, e.sequence, e.name, e.code, e.lat, e.lng FROM
+   * reservation_endpoints e JOIN reservations r ON r.id = e.reservation_id
+   * WHERE r.trip_id = ? ORDER BY e.reservation_id, e.sequence`. Same join and
+   * order as {@link listForTrip} (RS3) but its own column list, per D4.
+   */
+  async listRoadtripTerminals(trip_id: number): Promise<RoadtripTerminalRow[]> {
+    const platform = this.getEntityManager().getPlatform();
+    return this.qb('e')
+      .join('e.reservation', 'r')
+      .select([columnRef(platform, 'e.reservation_id').as('reservation_id'), 'e.role', 'e.sequence', 'e.name', 'e.code', 'e.lat', 'e.lng'])
+      .where({ 'r.trip': trip_id })
+      .orderBy({ 'e.reservation': 'asc', 'e.sequence': 'asc' })
+      .execute<RoadtripTerminalRow[]>('all', false);
+  }
+}
+
+/** RPL6's row: a terminal of a booking the road trip's seam reads, keyed by its reservation. */
+export interface RoadtripTerminalRow {
+  reservation_id: number;
+  role: string;
+  sequence: number;
+  name: string;
+  code: string | null;
+  lat: number;
+  lng: number;
 }
 
 /** AT6/AT45's shared projection — `EndpointRow`'s own shape in `atlas.service.ts` (kept independent here so this repository doesn't import a `nest/` type). */

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import { NOTIFICATION_DEFAULTS, type NotificationDefault } from '@trek/shared';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { NotificationChannelPreferences } from '../../db/entities/NotificationChannelPreferences.entity';
@@ -26,7 +27,19 @@ export interface PreferencesMatrix {
   event_types: NotifEventType[];
   implemented_combos: Record<string, NotifChannel[]>;
   defaults?: { ntfyServer: string | null };
+  /** Cells the admin switched off for everyone (#1536), event → channels. User scope only. */
+  locked?: Partial<Record<NotifEventType, NotifChannel[]>>;
 }
+
+/** The admin's per-cell defaults for user notifications, with the matrix to draw them in (#1536). */
+export interface InstanceDefaultsMatrix {
+  defaults: Partial<Record<NotifEventType, Partial<Record<NotifChannel, NotificationDefault>>>>;
+  channels: ChannelDescriptor[];
+  event_types: NotifEventType[];
+  implemented_combos: Record<string, NotifChannel[]>;
+}
+
+const DEFAULT_KEY = (event: string, channel: string) => `notif_default_${event}_${channel}`;
 
 /**
  * Who gets which notification over which channel: the admin's channel switches,
@@ -94,6 +107,16 @@ export class NotificationPreferencesService {
     return channel.source === 'plugin' || (await this.getActiveChannels()).includes(channel.id);
   }
 
+  /**
+   * Is the channel offered to users at all right now? Switched on, and for a
+   * channel that says so, ready on this instance too: Web Push without a usable
+   * key pair is off for everyone, whatever the admin switch says.
+   */
+  private async isChannelOffered(channel: ExternalChannel): Promise<boolean> {
+    if (!(await this.isChannelActive(channel))) return false;
+    return !channel.hiddenWhileInstanceUnconfigured || (await channel.isInstanceConfigured?.()) !== false;
+  }
+
   // ── Per-user preference checks ─────────────────────────────────────────────
 
   /**
@@ -101,8 +124,58 @@ export class NotificationPreferencesService {
    * Default (no row) = enabled. Only returns false if there's an explicit disabled row.
    */
   async isEnabledForEvent(userId: number, eventType: NotifEventType, channel: NotifChannel): Promise<boolean> {
+    const fallback = await this.instanceDefault(eventType, channel);
+    if (fallback === 'blocked') return false;
     const row = await this.channelPrefs.findEnabled(userId, eventType, channel);
-    return row === null || row.enabled === 1;
+    return row === null ? fallback === 'on' : row.enabled === 1;
+  }
+
+  // ── Instance defaults (#1536) ──────────────────────────────────────────────
+
+  /**
+   * What a cell is for a user who never touched it. Admin-scoped events keep
+   * their own global switches and are never affected; an unknown stored value
+   * means the old behaviour, on.
+   */
+  async instanceDefault(eventType: NotifEventType, channel: NotifChannel): Promise<NotificationDefault> {
+    if (ADMIN_SCOPED_EVENTS.has(eventType)) return 'on';
+    const raw = await this.appSettings.getValue(DEFAULT_KEY(eventType, channel));
+    return (NOTIFICATION_DEFAULTS as readonly string[]).includes(raw ?? '') ? (raw as NotificationDefault) : 'on';
+  }
+
+  private userEventTypes(): NotifEventType[] {
+    return ALL_EVENT_TYPES.filter(e => !ADMIN_SCOPED_EVENTS.has(e));
+  }
+
+  async getInstanceDefaults(adminId: number): Promise<InstanceDefaultsMatrix> {
+    const event_types = this.userEventTypes();
+    const implemented_combos = await this.allCombos();
+    const defaults: InstanceDefaultsMatrix['defaults'] = {};
+    for (const event of event_types) {
+      defaults[event] = {};
+      for (const channel of implemented_combos[event]) defaults[event]![channel] = await this.instanceDefault(event, channel);
+    }
+    return { defaults, channels: await this.describeChannels(adminId, 'user'), event_types, implemented_combos };
+  }
+
+  /** Stores the cells given; `on` removes the row, so the table only holds what differs. Unknown cells are skipped. */
+  async setInstanceDefaults(defaults: Partial<Record<string, Partial<Record<string, NotificationDefault>>>>): Promise<void> {
+    const userEvents = new Set<string>(this.userEventTypes());
+    // The channel set is read before the transaction opens: listChannels() may
+    // ask the plugin runtime, which is no work to hold the connection for.
+    const combos = await this.allCombos();
+    await this.uow.transactional(async () => {
+      for (const [event, channels] of Object.entries(defaults)) {
+        if (!userEvents.has(event) || !channels) continue;
+        const allowed = new Set(combos[event] ?? []);
+        for (const [channel, value] of Object.entries(channels)) {
+          if (!allowed.has(channel) || !value) continue;
+          // `DELETE FROM app_settings WHERE key = ?` / `INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)`
+          if (value === 'on') await this.appSettings.deleteValue(DEFAULT_KEY(event, channel));
+          else await this.appSettings.upsertOrReplace(DEFAULT_KEY(event, channel), value);
+        }
+      }
+    });
   }
 
   // ── Preferences matrix ─────────────────────────────────────────────────────
@@ -134,8 +207,10 @@ export class NotificationPreferencesService {
       const hasAdminNtfy = !!(await this.appSettings.getValue('admin_ntfy_topic'));
       const adminActive: Record<string, boolean> = { email: hasSmtp, webhook: hasAdminWebhook, ntfy: hasAdminNtfy };
       for (const channel of await listChannels()) {
-        // Plugin channels are user-scoped only — they never carry admin-global events.
-        if (channel.source !== 'builtin') continue;
+        // Only the channels with an admin-global copy. Plugin channels and push are
+        // user-scoped: they never carry an admin-scoped event, so a column for them
+        // here could never be switched on.
+        if (channel.source !== 'builtin' || !isAdminGlobalChannel(channel.id)) continue;
         const active = adminActive[channel.id] ?? false;
         out.push({
           id: channel.id,
@@ -158,7 +233,7 @@ export class NotificationPreferencesService {
         settingsPath: channel.settingsPath,
         // A live plugin channel is always a column. `configured` tells the user whether
         // they still need to enter credentials — it does not hide the channel from them.
-        active: await this.isChannelActive(channel),
+        active: await this.isChannelOffered(channel),
         configured: await channel.isConfiguredFor(userId),
       });
     }
@@ -182,8 +257,10 @@ export class NotificationPreferencesService {
 
     const implemented_combos = await this.allCombos();
 
-    // Build the full matrix with defaults (true when no row exists)
+    // Build the full matrix with defaults: the admin's instance default when no
+    // row exists (on unless set otherwise), and off for a cell the admin blocked.
     const preferences: Partial<Record<NotifEventType, Partial<Record<NotifChannel, boolean>>>> = {};
+    const locked: Partial<Record<NotifEventType, NotifChannel[]>> = {};
 
     for (const eventType of ALL_EVENT_TYPES) {
       preferences[eventType] = {};
@@ -191,8 +268,14 @@ export class NotificationPreferencesService {
         // Admin-scoped events use global settings for the built-in external channels
         if (scope === 'admin' && ADMIN_SCOPED_EVENTS.has(eventType) && isAdminGlobalChannel(channel)) {
           preferences[eventType]![channel] = await this.getAdminGlobalPref(eventType, channel);
+          continue;
+        }
+        const fallback = await this.instanceDefault(eventType, channel);
+        if (fallback === 'blocked') {
+          preferences[eventType]![channel] = false;
+          (locked[eventType] ??= []).push(channel);
         } else {
-          preferences[eventType]![channel] = stored[eventType]?.[channel] ?? true;
+          preferences[eventType]![channel] = stored[eventType]?.[channel] ?? fallback === 'on';
         }
       }
     }
@@ -207,7 +290,7 @@ export class NotificationPreferencesService {
       channels: await this.describeChannels(userId, scope),
       event_types,
       implemented_combos,
-      ...(scope === 'user' && { defaults: { ntfyServer: (await this.appSettings.getValue('admin_ntfy_server')) || null } }),
+      ...(scope === 'user' && { defaults: { ntfyServer: (await this.appSettings.getValue('admin_ntfy_server')) || null }, locked }),
     };
   }
 
@@ -237,12 +320,13 @@ export class NotificationPreferencesService {
     for (const [eventType, channels] of Object.entries(prefs)) {
       if (!channels) continue;
       for (const [channel, enabled] of Object.entries(channels)) {
-        if (enabled) {
-          // Remove explicit row — default is enabled
-          await this.channelPrefs.deletePreference(userId, eventType, channel);
-        } else {
-          await this.channelPrefs.upsertPreference(userId, eventType, channel, 0);
-        }
+        const fallback = await this.instanceDefault(eventType as NotifEventType, channel);
+        // A cell the admin blocked stays off whatever is sent (#1536).
+        if (fallback === 'blocked') continue;
+        // A value that matches the instance default is stored as no row, so a later
+        // change of the default reaches everybody who never chose otherwise.
+        if (enabled === (fallback === 'on')) await this.channelPrefs.deletePreference(userId, eventType, channel);
+        else await this.channelPrefs.upsertPreference(userId, eventType, channel, enabled ? 1 : 0);
       }
     }
   }

@@ -9,6 +9,8 @@ import { MAP_MAX_ZOOM } from '../../constants/mapDefaults'
 import { useAuthStore } from '../../store/authStore'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import * as photoService from '../../services/photoService'
+import { Coffee, MapPin, Mountain, Signpost, type LucideIcon } from 'lucide-react'
+import { renderIconMarkup } from '../../utils/iconMarkup'
 
 const mapMock = vi.hoisted(() => ({
   getContainer: vi.fn(() => document.createElement('div')),
@@ -599,6 +601,32 @@ describe('MapView', () => {
     expect(screen.getAllByTestId('polyline').length).toBeGreaterThan(0)
   })
 
+  it('FE-COMP-MAPVIEW-082: a booking switched on for another day keeps drawing unless the map is held to the day', () => {
+    // The desktop passes no scope, so a booking switched on stays drawn on every day.
+    // Only a caller that asks for it drops the booking from a day it does not run on.
+    const days = [{ id: 10, trip_id: 1, day_number: 1 }, { id: 11, trip_id: 1, day_number: 2 }]
+    const reservation = buildReservation({
+      id: 44,
+      type: 'flight',
+      day_id: 10,
+      end_day_id: 10,
+      endpoints: [
+        { role: 'from', sequence: 0, name: 'A', code: 'AAA', lat: 1, lng: 2, timezone: null, local_time: null, local_date: null },
+        { role: 'to', sequence: 1, name: 'B', code: 'BBB', lat: 3, lng: 4, timezone: null, local_time: null, local_date: null },
+      ],
+    })
+    const reservations = [reservation]
+    const ids = [44]
+    const { rerender } = render(<MapView reservations={reservations} visibleConnectionIds={ids} days={days} selectedDayId={11} />)
+    expect(screen.getAllByTestId('polyline').length).toBeGreaterThan(0)
+
+    rerender(<MapView reservations={reservations} visibleConnectionIds={ids} days={days} selectedDayId={11} scopeConnectionsToDay />)
+    expect(screen.queryByTestId('polyline')).not.toBeInTheDocument()
+
+    rerender(<MapView reservations={reservations} visibleConnectionIds={ids} days={days} selectedDayId={10} scopeConnectionsToDay />)
+    expect(screen.getAllByTestId('polyline').length).toBeGreaterThan(0)
+  })
+
   it('FE-COMP-MAPVIEW-073: a category icon that throws leaves the marker circle intact', () => {
     // Icon components come from a lookup table a plugin can extend; one that
     // throws must not take the whole map down, only its own glyph.
@@ -726,6 +754,84 @@ describe('MapView explore POIs', () => {
     const poiIcons = L.divIcon.mock.calls.filter(c => JSON.stringify((c[0] as { iconSize: number[] }).iconSize) === '[26,26]')
     expect(markersWithZ('500')).toHaveLength(2)
     expect(poiIcons).toHaveLength(1)
+  })
+
+  const pinGlyph = (Icon: LucideIcon) => React.createElement(Icon, { size: 13, color: 'white', strokeWidth: 2.5 })
+  const poiPinHtmls = async () => (await leafletMock()).divIcon.mock.calls
+    .filter(c => JSON.stringify((c[0] as { iconSize: number[] }).iconSize) === '[26,26]')
+    .map(c => (c[0] as { html: string }).html)
+
+  it('FE-COMP-MAPVIEW-084: a core POI pin is the disc it always was', () => {
+    render(<MapView pois={[buildPoi({ osm_id: 'node/20' })]} />)
+    expect(iconHtmlOf(markersWithZ('500')[0])).toBe(
+      '<div style="position:relative;width:26px;height:26px;border-radius:50%;background:#B45309;border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;">'
+      + `${renderIconMarkup(pinGlyph(Coffee))}</div>`,
+    )
+  })
+
+  it('FE-COMP-MAPVIEW-085: a plugin POI pin takes the colour and icon its POI carries, checked first', () => {
+    render(<MapView pois={[
+      buildPoi({ osm_id: 'plugin:trail-finder:1', category: 'plugin:trail-finder/pins-085', color: '#2f855a', icon: 'Signpost' }),
+      buildPoi({ osm_id: 'plugin:trail-finder:2', category: 'plugin:trail-finder/bad-085', color: 'red;background:url(https://evil.example/x)', icon: '<img src=x onerror=alert(1)>' }),
+    ]} />)
+    const [good, bad] = markersWithZ('500').map(iconHtmlOf)
+    expect(good).toContain('background:#2f855a;')
+    expect(good).toContain(renderIconMarkup(pinGlyph(Signpost)))
+    expect(bad).toContain('background:#6b7280;')
+    expect(bad).toContain(renderIconMarkup(pinGlyph(MapPin)))
+    expect(bad).not.toContain('evil.example')
+    expect(bad).not.toContain('<img')
+  })
+
+  it('FE-COMP-MAPVIEW-086: two plugin looks never share a cached pin, one look is built once', async () => {
+    const trail = { category: 'plugin:trail-finder/trails-086', color: '#2f855a', icon: 'Signpost' }
+    const { rerender } = render(<MapView pois={[
+      buildPoi({ osm_id: 'plugin:trail-finder:a', ...trail }),
+      buildPoi({ osm_id: 'plugin:trail-finder:b', ...trail, lat: 48.3 }),
+      buildPoi({ osm_id: 'plugin:water:c', category: 'plugin:water/wells-086', color: '#3182ce', icon: 'Mountain' }),
+    ]} />)
+    expect(await poiPinHtmls()).toHaveLength(2)
+    const [first, second, well] = markersWithZ('500').map(iconHtmlOf)
+    expect(second).toBe(first)
+    expect(first).toContain('#2f855a')
+    expect(well).toContain('#3182ce')
+    expect(well).toContain(renderIconMarkup(pinGlyph(Mountain)))
+    // The plugin changed its colour in an update: the same category gets a new pin.
+    rerender(<MapView pois={[buildPoi({ osm_id: 'plugin:trail-finder:a', ...trail, color: '#c53030' })]} />)
+    expect(iconHtmlOf(markersWithZ('500')[0])).toContain('background:#c53030;')
+  })
+
+  it('FE-COMP-MAPVIEW-087: a plugin POI tooltip lists its detail rows as text, a core one stays the bare name', () => {
+    render(<MapView pois={[
+      buildPoi({ osm_id: 'node/30', name: 'Café Central' }),
+      buildPoi({
+        osm_id: 'plugin:trail-finder:3', category: 'plugin:trail-finder/pins-087', color: '#2f855a', icon: 'Signpost',
+        name: '<img src=x onerror=alert(1)>',
+        details: [{ label: 'Length', value: '12.4 km' }, { label: '<b onclick=alert(2)>Fee</b>', value: '"><svg onload=alert(3)>' }],
+      }),
+    ]} />)
+    const [core, plugin] = markersWithZ('500')
+    expect(core.querySelector('[data-testid="poi-details"]')).toBeNull()
+    const details = plugin.querySelector('[data-testid="poi-details"]')!
+    expect([...details.querySelectorAll('span')].map(el => el.textContent)).toEqual([
+      'Length', '12.4 km', '<b onclick=alert(2)>Fee</b>', '"><svg onload=alert(3)>',
+    ])
+    expect(plugin.textContent).toContain('<img src=x onerror=alert(1)>')
+    expect(plugin.querySelectorAll('img, b, svg')).toHaveLength(0)
+    // Sized by its content up to the cap, since the 0px tooltip pane gives it nothing to fill.
+    expect([...(details.parentElement as HTMLElement).classList]).toEqual(expect.arrayContaining(['w-max', 'max-w-56']))
+  })
+
+  it('FE-COMP-MAPVIEW-088: a long tooltip label wraps inside a capped column and leaves its value the wider share', () => {
+    render(<MapView pois={[buildPoi({
+      osm_id: 'plugin:trail-finder:4', category: 'plugin:trail-finder/pins-088', color: '#2f855a', icon: 'Signpost',
+      details: [{ label: 'Wheelchair accessible toilet, ground fl', value: 'Step-free via the side door on the left' }],
+    })]} />)
+    const details = markersWithZ('500')[0].querySelector('[data-testid="poi-details"]')!
+    expect(details.classList).toContain('grid-cols-[fit-content(45%)_1fr]')
+    const [label, value] = [...details.querySelectorAll('span')]
+    expect(label.classList).toContain('[overflow-wrap:anywhere]')
+    expect(value.classList).toContain('[overflow-wrap:anywhere]')
   })
 })
 
@@ -920,6 +1026,14 @@ describe('MapView selection panning (#921)', () => {
     expect(mapMock.panTo).toHaveBeenCalledWith([48, 2], { animate: true })
   })
 
+  it('FE-COMP-MAPVIEW-083: pans to a selected stay whose pin a filter keeps off the map', () => {
+    const places = [buildMapPlace({ id: 9, lat: 48, lng: 2 })]
+    const stay = buildMapPlace({ id: 11, lat: 50, lng: 4 })
+    const { rerender } = render(<MapView places={places} selectedPlaceId={null} />)
+    rerender(<MapView places={places} selectedPlaceId={11} selectedPlace={stay} />)
+    expect(mapMock.panTo).toHaveBeenCalledWith([50, 4], { animate: true })
+  })
+
   it('FE-COMP-MAPVIEW-053: a selected place without coordinates is not panned to', () => {
     const places = [buildMapPlace({ id: 10, lat: null, lng: null })]
     const { rerender } = render(<MapView places={places} selectedPlaceId={null} />)
@@ -1028,6 +1142,26 @@ describe('MapView live location', () => {
     render(<MapView />)
     fireEvent.click(screen.getByRole('button', { name: 'Follow my location' }))
     expect(geoMock.cycleMode).toHaveBeenCalled()
+  })
+
+  it('FE-COMP-MAPVIEW-064b: turning the phone sideways and back takes the button with it', () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 420 })
+    geoMock.mode = 'off'
+    render(<MapView />)
+    expect(screen.getByRole('button', { name: 'Show my location' })).toBeInTheDocument()
+
+    // landscape crosses the 768px cut without remounting the map
+    act(() => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 844 })
+      window.dispatchEvent(new Event('resize'))
+    })
+    expect(screen.queryByRole('button', { name: 'Show my location' })).toBeNull()
+
+    act(() => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 420 })
+      window.dispatchEvent(new Event('resize'))
+    })
+    expect(screen.getByRole('button', { name: 'Show my location' })).toBeInTheDocument()
   })
 
   it('FE-COMP-MAPVIEW-077: the map draws no credit control of its own, on either width', () => {

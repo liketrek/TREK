@@ -43,7 +43,8 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 86400;
-        # Documents are capped at 50 MB and photos/covers at 20 MB, but video
+        # Documents are capped at 50 MB by default (FILE_UPLOAD_LIMIT_MB) and
+        # photos/covers at 20 MB, but video
         # uploads go up to 500 MB — both journey gallery clips and videos in a
         # trip's file manager. Backup restore ZIPs can include the full uploads
         # directory and may exceed even that (see BACKUP_UPLOAD_LIMIT_MB, default
@@ -65,7 +66,7 @@ server {
 
 Key lines:
 - `proxy_read_timeout 86400` — keeps WebSocket connections alive (86400 s = 24 h).
-- `client_max_body_size 500m` — allows large backup restore uploads; set in both locations.
+- `client_max_body_size 500m`: allows large backup restore uploads and video uploads; set in both locations. If you raise `FILE_UPLOAD_LIMIT_MB` or `BACKUP_UPLOAD_LIMIT_MB` above 500, raise this as well.
 - `X-Forwarded-Proto $scheme` — tells TREK whether the original request was HTTPS; required for `FORCE_HTTPS` redirect and cookie security to work correctly.
 
 ## Caddy
@@ -137,7 +138,7 @@ Five variables control how TREK behaves behind a proxy. They work as a group:
 | `HSTS_INCLUDE_SUBDOMAINS` | When `true`: adds the `includeSubDomains` directive to the HSTS header, extending HTTPS enforcement to all subdomains. Only effective while HSTS is active. Leave `false` if you run other services on sibling subdomains over plain HTTP. | `false` |
 | `TRUST_PROXY` | Number of trusted proxy hops. Lets Express read the real client IP from `X-Forwarded-For`. Automatically set to `1` in production even if not explicitly configured. | `1` (production), off (development) |
 | `COOKIE_SECURE` | Controls the `secure` flag on `trek_session`. Auto-derived as `true` when `NODE_ENV=production`, when `FORCE_HTTPS=true`, or when the request itself arrived over TLS — Express sets `req.secure` once your proxy sends `X-Forwarded-Proto: https` and `TRUST_PROXY` is configured. Set to `false` explicitly to allow cookies over plain HTTP (e.g. LAN testing without TLS). | auto |
-| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (e.g. `https://trek.example.com`). In production without this set, all cross-origin requests are blocked. In development without this set, all origins are allowed. | blocked in prod, open in dev |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (e.g. `https://trek.example.com`). The address TREK is opened under is always allowed, even when the list does not name it; a request from any other origin gets `403 Not allowed by CORS` and a `CORS: refused origin ...` line in the log. In production without this set, all cross-origin requests are blocked. In development without this set, all origins are allowed. | blocked in prod, open in dev |
 
 > **Note on HSTS:** The `max-age=31536000` header goes out whenever `FORCE_HTTPS=true` **or** `NODE_ENV=production`, and `NODE_ENV=production` is the default in the Docker image, the compose file and the Helm chart — so a standard install sends HSTS even with `FORCE_HTTPS` unset. Browsers ignore the header on a plain-HTTP response, so an instance you only ever reach over HTTP is unaffected. Once a browser has seen it over HTTPS, though, it refuses plain HTTP to that hostname for a year, so don't plan on falling back to `http://` for a hostname you have already served over HTTPS.
 

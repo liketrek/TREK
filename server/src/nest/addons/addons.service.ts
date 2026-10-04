@@ -204,6 +204,15 @@ export class AddonsService {
   async updatePlaceShadow(enabled: boolean) { return this.writeFlag('place_shadow_enabled', enabled); }
 
   /**
+   * Search and suggestions from Google alone, skipping the index and
+   * OpenStreetMap. Fail-closed for the same reason as the shadow log: nobody had
+   * this before it existed, so an absent row correctly means off. MapsService
+   * reads the same key the same way, and only once Google holds the key slot.
+   */
+  async getPlacesGoogleOnly() { return this.readFlag('places_google_only'); }
+  async updatePlacesGoogleOnly(enabled: boolean) { return this.writeFlag('places_google_only', enabled); }
+
+  /**
    * Enrichment reads fail-OPEN, unlike the three switches above.
    *
    * Those needed migration 185 to backfill 'true' precisely because they read

@@ -4,8 +4,65 @@ import type { AutomaticNight } from './dayWindow';
 import type { SpillMark } from './nightSpill';
 import type { Schedule, ScheduleWarning, DayWarning, DryPoint } from './roadtripModel';
 
+/**
+ * A point a booking puts on the drive: the airport, station or port a flight, train,
+ * ferry, cruise or bus leaves from or lands at, or the desk a hire car is picked up at
+ * or handed back at.
+ *
+ * For a ride the drive ends at the departure terminal and starts again at the arrival
+ * one; what happens in between is the booking's business, not the road's, and the leg
+ * between the two carries the ride's minutes and nothing else. A hire car's pick-up and
+ * return are points ON the road: the drive runs through them, it just starts or ends
+ * there.
+ */
+export interface CarrierTerminal {
+  reservationId: number;
+  /** flight | train | ferry | cruise | bus for a ride, car for a hire car. */
+  type: string;
+  role: 'departure' | 'arrival' | 'pickup' | 'return';
+  /** The booking's title, which is what the rail prints on the ride. */
+  title: string;
+  /** IATA code or station code, when the booking carries one. */
+  code: string | null;
+  /** The timetable's clock at this terminal, 'HH:mm' local, null when the booking names none. */
+  at: string | null;
+}
+
+/** Which end of a day a booked night stands at: the stay slept in, or tonight's. */
+export type BookendPhase = 'morning' | 'evening';
+
+/**
+ * A booked night standing at one end of a day it is no stop of: in the morning the stay
+ * the traveller woke up in, in the evening the one they sleep in (`seatNightBookends`).
+ *
+ * The stay's own place, not an assignment: nothing about it can be moved, timed or given a
+ * via point, and what it opens is the booking behind the night, or the stay itself when
+ * nothing was booked for it.
+ */
+export interface NightBookend {
+  phase: BookendPhase;
+  accommodationId: number;
+  /** The booking behind the night, the one a tap opens. Null for a stay entered without one. */
+  reservationId: number | null;
+  /** A morning on the day the stay is handed back. */
+  checkingOut: boolean;
+  /** An evening on the day the stay begins. */
+  checkingIn: boolean;
+  /**
+   * The latest the room has to be handed back, on the morning it is: a label for the row,
+   * never a time the drive leaves at (#2357).
+   */
+  checkOut: string | null;
+  /** From when the room is ready, on the evening the stay begins. A label like `checkOut`. */
+  checkIn?: string | null;
+}
+
 export interface RoadtripStop {
   automaticNight?: AutomaticNight;
+  /** Set on the two ends of a carrier ride. Such a stop is no place and belongs to no assignment. */
+  carrier?: CarrierTerminal;
+  /** Set on a booked night standing at the start or the end of a day. Belongs to no assignment. */
+  bookend?: NightBookend;
   assignmentId: number;
 
   ownerDayId: number;
@@ -27,6 +84,13 @@ export interface RoadtripStop {
   checkInTime?: string | null;
   /** A booked night's stop on its check-in day, whether or not the booking names an hour. */
   night?: boolean;
+  /**
+   * The stay whose booking wrote this stop (`day_assignments.accommodation_id`), rather
+   * than the traveller placing the hotel on the day. Days hides such a stop and draws the
+   * stay at the day's edges instead; `seatNightBookends` does the same once it seats that
+   * stay at the end of the day.
+   */
+  bookedNightId?: number | null;
   endDay?: boolean;
 
   legMode: string | null;
@@ -109,6 +173,17 @@ export interface RoadtripDay {
   legs: (RouteSegment | undefined)[];
 
   /**
+   * The road each of `legs` is drawn on, parallel to it: the very line the map shows for
+   * that leg, vias included.
+   *
+   * Kept per leg because a surface that talks about ONE leg has to show the road the rail
+   * actually drives there. `geometry` is the whole card in one line and cannot be cut back
+   * into its legs without measuring it again, which is how the picker of other ways once
+   * offered a road the rail was not on as the one it was.
+   */
+  legLines?: ([number, number][] | undefined)[];
+
+  /**
    * The drive from where the day before ended to where this one starts.
    *
    * Only when the days are connected, and only when no stop actually crossed over —
@@ -118,6 +193,9 @@ export interface RoadtripDay {
    * like it began out of nowhere.
    */
   arrivingLeg?: RouteSegment;
+
+  /** The road `arrivingLeg` is drawn on. Present exactly when `arrivingLeg` is. */
+  arrivingLine?: [number, number][];
 
   /**
    * The stop the drive at the head of this card's `geometry` sets off from, when the

@@ -1,4 +1,7 @@
-import { ExternalLink, FileText } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
+import { useTranslation } from '../../i18n'
+import { fs } from '../../components/shared/DialogShell'
+import { BOX, Block } from '../../components/Planner/bookings/bookingParts'
 import { isHttpUrl, linkHost } from './sharedTripModel'
 
 /**
@@ -16,29 +19,25 @@ import { isHttpUrl, linkHost } from './sharedTripModel'
  * to have done it.
  */
 export function SharedBookingDetails({ notes, url }: { notes?: string | null; url?: string | null }) {
+  const { t } = useTranslation()
   const note = notes?.trim() || null
   const link = isHttpUrl(url) ? url.trim() : null
   if (!note && !link) return null
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 4 }}>
+    <>
       {note && (
-        <div className="text-[#374151]" style={{ fontSize: 'calc(11px * var(--fs-scale-body, 1))', display: 'flex', alignItems: 'flex-start', gap: 4, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}> {/* theme-lint-disable — public page, no user theme */}
-          <FileText size={10} style={{ flexShrink: 0, marginTop: 2 }} />
-          <span>{note}</span>
-        </div>
+        <Block label={t('reservations.notes')}>
+          <div className={`${BOX} whitespace-pre-wrap px-[10px] py-2 text-content-secondary [overflow-wrap:anywhere]`} style={fs(12, 'body')}>{note}</div>
+        </Block>
       )}
       {link && (
-        <a
-          href={link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[#2563eb]" // theme-lint-disable — public page, no user theme
-          style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none', width: 'fit-content' }}
-        >
-          <ExternalLink size={10} />
-          {linkHost(link)}
-        </a>
+        <Block label={t('reservations.urlLabel')}>
+          <a href={link} target="_blank" rel="noopener noreferrer" className={`${BOX} flex items-center gap-1.5 px-[10px] py-[7px] font-semibold text-content hover:bg-surface-hover`} style={fs(12.5, 'body')}>
+            <ExternalLink size={12} strokeWidth={2} className="flex-none text-content-muted" />
+            <span className="truncate">{linkHost(link)}</span>
+          </a>
+        </Block>
       )}
-    </div>
+    </>
   )
 }

@@ -82,4 +82,16 @@ describe('ReservationEndpointsRepository — fully seeded world', () => {
     expect(typed).toEqual(legacy);
     expect(typed.every((r) => r.local_date === '2026-09-01')).toBe(true);
   });
+
+  it('RPL6 listRoadtripTerminals — matches the legacy JOIN reservations statement, ordered by reservation then sequence, scoped by trip', async () => {
+    const { trip, flight, otherFlight } = seed();
+    const legacy = testDb.prepare(`
+      SELECT e.reservation_id, e.role, e.sequence, e.name, e.code, e.lat, e.lng FROM reservation_endpoints e
+      JOIN reservations r ON r.id = e.reservation_id WHERE r.trip_id = ? ORDER BY e.reservation_id, e.sequence`).all(trip.id);
+    const typed = await repo.listRoadtripTerminals(trip.id);
+    expect(typed).toEqual(legacy);
+    expect(typed.map((e) => [e.reservation_id, e.sequence])).toEqual([
+      [flight.id, 0], [flight.id, 1], [otherFlight.id, 0],
+    ]);
+  });
 });

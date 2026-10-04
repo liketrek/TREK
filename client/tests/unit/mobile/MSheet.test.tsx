@@ -249,4 +249,47 @@ describe('MSheet', () => {
     );
     expect(document.body.style.overflow).toBe('');
   });
+
+  it('FE-MOB-SHEET-016: Escape closes only the sheet on top, the one under it on the next press', () => {
+    const onCloseBase = vi.fn();
+    const onCloseTop = vi.fn();
+    const { rerender } = render(
+      <>
+        <MSheet open onClose={onCloseBase} ariaLabel="Trip"><span>Trip form</span></MSheet>
+        <MSheet open onClose={onCloseTop} ariaLabel="Remove days?"><span>Question</span></MSheet>
+      </>,
+    );
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onCloseTop).toHaveBeenCalledTimes(1);
+    expect(onCloseBase).not.toHaveBeenCalled();
+
+    rerender(
+      <>
+        <MSheet open onClose={onCloseBase} ariaLabel="Trip"><span>Trip form</span></MSheet>
+        <MSheet open={false} onClose={onCloseTop} ariaLabel="Remove days?"><span>Question</span></MSheet>
+      </>,
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onCloseBase).toHaveBeenCalledTimes(1);
+    expect(onCloseTop).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-SHEET-017: a sheet re-rendered with a fresh onClose stays under the one opened after it', () => {
+    const onCloseTop = vi.fn();
+    const baseCalls: number[] = [];
+    const renderBoth = (round: number) => (
+      <>
+        <MSheet open onClose={() => baseCalls.push(round)} ariaLabel="Trip"><span>Trip form {round}</span></MSheet>
+        <MSheet open onClose={onCloseTop} ariaLabel="Remove days?"><span>Question</span></MSheet>
+      </>
+    );
+    const { rerender } = render(renderBoth(1));
+    // Typing into the form under the question re-renders it with a new handler.
+    rerender(renderBoth(2));
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onCloseTop).toHaveBeenCalledTimes(1);
+    expect(baseCalls).toEqual([]);
+  });
 });

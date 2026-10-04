@@ -16,31 +16,14 @@ export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; l
 }
 
 /**
- * Beyond this straight-line distance a leg of a day's route is not a drive anyone
- * makes between two stops — it is a booking endpoint that landed next to a local
- * stop, and the road router answers such a pair with NoRoute (#2133). The same
- * 2000 km useTransportRoutes has always used for booking geometry.
- *
- * Deliberately only ever applied to a leg that touches a TRANSPORT endpoint. Two
- * real places 2000 km apart are a long drive someone planned; an airport 2000 km
- * from the stop before it never is.
- */
-export const MAX_DRIVE_KM = 2000
-
-/** Whether two points are close enough to plausibly be joined by a road leg. */
-export function withinDriveRange(a: { lat: number; lng: number }, b: { lat: number; lng: number }): boolean {
-  return haversineKm(a, b) <= MAX_DRIVE_KM
-}
-
-/**
  * How far a day out of a hotel and back plausibly reaches, straight-line.
  *
  * Consulted where a stay records no check-in/check-out time and the shape of the day is
  * therefore a guess (#2157): a stop inside this radius is somewhere the hotel sent you out
  * to for the day, a stop outside it is where you travelled from or to. It has to be a
- * road-day radius rather than the booking-geometry MAX_DRIVE_KM above: 2000 km spans the
- * whole of Europe, so every car journey on the continent passed as a day trip and kept the
- * phantom hotel leg the issue reported.
+ * road-day radius rather than the booking-geometry MAX_DRIVE_KM in @trek/shared: 2000 km
+ * spans the whole of Europe, so every car journey on the continent passed as a day trip
+ * and kept the phantom hotel leg the issue reported.
  */
 export const MAX_DAY_TRIP_KM = 150
 

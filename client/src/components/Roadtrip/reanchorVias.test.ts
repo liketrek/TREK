@@ -175,3 +175,73 @@ describe('reanchorAfterReorder', () => {
     expect(plan.vias).toEqual([])
   })
 })
+
+/**
+ * A via behind a day's last stop shapes the drive into the next day, on a trip with
+ * connected days or a night drive: the map files a point dropped on that drive there, and
+ * a way chosen for it is written there. It is no leg of its own day, so the arithmetic
+ * above has to be told what it is (`carriedSeam`) or it takes it for one leading nowhere.
+ */
+describe('the drive into the next day (#2461)', () => {
+  it('FE-REANCHOR-023: a wholesale reorder that leaves the last stop last keeps the drive behind it', () => {
+    // Stops 10, 20, 30, 40; the via behind 40 is the join. Swapping the first two used to
+    // delete it, because a last stop has no leg.
+    const plan = reanchorByStopOrder([via(1, 0), via(9, 3)], [10, 20, 30, 40], [20, 10, 30, 40])
+    expect(anchors(plan.vias)).toEqual({ 1: 1 })
+    expect(plan.remove).toEqual([])
+    expect(isEmptyReanchoring(reanchorByStopOrder([via(9, 3)], [10, 20, 30, 40], [10, 20, 30, 40]))).toBe(true)
+  })
+
+  it('FE-REANCHOR-024: taking out the last stop takes the drive out of it along, instead of leaving it on no stop', () => {
+    const plan = reanchorAfterRemove([via(2, 2), via(9, 3)], 3, 4)
+    expect(plan.remove).toEqual([2, 9])
+    expect(plan.vias).toEqual([])
+  })
+
+  it('FE-REANCHOR-025: taking out any other stop leaves it behind the same last stop, one number down', () => {
+    expect(anchors(reanchorAfterRemove([via(9, 3)], 1, 4).vias)).toEqual({ 9: 2 })
+    expect(anchors(reanchorAfterRemove([via(9, 3)], 0, 4).vias)).toEqual({ 9: 2 })
+    // A day left with one stop has no leg, but still the drive out of it.
+    const single = reanchorAfterRemove([via(1, 0), via(9, 1)], 0, 2)
+    expect(anchors(single.vias)).toEqual({ 9: 0 })
+    expect(single.remove).toEqual([1])
+  })
+
+  it('FE-REANCHOR-026: a last stop dragged up the day takes its drive along, and so does a stop dragged behind it', () => {
+    // Left alone, the via sat at an index past the end of the day.
+    const up = reanchorAfterReorder([via(1, 0), via(9, 3)], 3, 1, 4)
+    expect(up.remove).toEqual([9])
+    expect(anchors(up.vias)).toEqual({})
+    // Behind the old last stop now comes the moved one. The point lay on the road into the
+    // next day, not on the way to the stop that took its place, so it goes as well.
+    const behind = reanchorAfterReorder([via(9, 3)], 1, 3, 4)
+    expect(behind.remove).toEqual([9])
+    expect(behind.vias).toEqual([])
+    // Anything moved in front of the last stop leaves it where it was.
+    expect(isEmptyReanchoring(reanchorAfterReorder([via(9, 3)], 0, 2, 4))).toBe(true)
+  })
+
+  it('FE-REANCHOR-027: a stop appended behind the last one keeps the point on the road to it', () => {
+    expect(isEmptyReanchoring(reanchorAfterInsert([via(9, 3)], 4, () => true))).toBe(true)
+  })
+
+  it('FE-REANCHOR-028: two stops swapped keep their leg, and the drive out of the one that is first now goes', () => {
+    for (const [from, to] of [[0, 1], [1, 0]] as const) {
+      const plan = reanchorAfterReorder([via(1, 0), via(9, 1)], from, to, 2)
+      expect(plan.remove, `${from}->${to}`).toEqual([9])
+      expect(plan.vias, `${from}->${to}`).toEqual([])
+    }
+  })
+
+  it('FE-REANCHOR-029: under Days and in the server’s sort, a last stop moved up the day takes its drive along too', () => {
+    // It followed its stop instead, and the drive from 40 to 20 inside the day went
+    // through a point on the road to tomorrow, for everybody on the trip.
+    const up = reanchorByStopOrder([via(1, 0), via(9, 3)], [10, 20, 30, 40], [10, 40, 20, 30])
+    expect(up.remove).toEqual([9])
+    expect(anchors(up.vias)).toEqual({})
+    const front = reanchorByStopOrder([via(9, 2)], [10, 20, 30], [30, 10, 20])
+    expect(front).toEqual({ vias: [], remove: [9] })
+    // Two stops swapped: the drive out of the one that is first now goes here as well.
+    expect(reanchorByStopOrder([via(9, 1)], [10, 20], [20, 10])).toEqual({ vias: [], remove: [9] })
+  })
+})

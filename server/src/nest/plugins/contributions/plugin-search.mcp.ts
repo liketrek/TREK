@@ -3,12 +3,11 @@ import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext, ty
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import {
+  collectHits,
   interleave,
   limitFrom,
   MAX_QUERY,
   nearFrom,
-  normalizeSearchHits,
-  type SearchHit,
 } from './plugin-search.helpers';
 
 /**
@@ -35,7 +34,7 @@ export class PluginSearchMcp {
     description: 'Search for a place in the search indexes installed plugins provide, which are the ones TREK does not ship itself. Use it alongside search_place, never instead of it: search_place is TREK\'s own index and OpenStreetMap, this is whatever else the instance owner installed, and only these results can carry a rating — open data has none, so a question like "the best rated hotel near here" can only be answered from this list. Results have the same shape search_place returns, plus a `rating` and the `pluginId` that found them. Returns an empty list when no plugin provides a search index, which is the normal case.',
     inputSchema: {
       query: z.string().min(1).max(MAX_QUERY).describe('Place name or address to search for'),
-      near: z.object({ lat: z.number(), lng: z.number() })
+      near: z.strictObject({ lat: z.number(), lng: z.number() })
         .optional()
         .describe('Centre the search on a coordinate. Pass it whenever the trip has a destination: a bare name like "Central Station" otherwise resolves wherever the provider guesses'),
       lang: z.string().max(20).optional().describe('BCP 47 language for the result names, e.g. "de" or "ja"'),
@@ -63,15 +62,7 @@ export class PluginSearchMcp {
       lang,
       near: nearFrom(near?.lat, near?.lng),
     };
-    const results = await Promise.all(
-      ids.map(async (id): Promise<SearchHit[]> => {
-        try {
-          return normalizeSearchHits(id, await this.hooks.searchPlaces(id, request, ctx.userId));
-        } catch {
-          return []; // a slow or failing provider contributes nothing, it does not fail the tool
-        }
-      }),
-    );
-    return ok({ places: interleave(results) });
+    // A slow or failing provider contributes nothing, it does not fail the tool.
+    return ok({ places: interleave(await collectHits(ids, (id) => this.hooks.searchPlaces(id, request, ctx.userId))) });
   }
 }

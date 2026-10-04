@@ -20,8 +20,6 @@ import {
   matchesFileFilter, sortFilesStarredFirst, type FileFilterId,
 } from './filesModel'
 
-const MAX_UPLOAD_BYTES = 50 * 1024 * 1024
-
 /**
  * Tab 5 — Dateien. Real `planner.files` (already non-deleted, §7.2), the
  * filter grid + starred-first sort from filesModel.ts, and a row per file
@@ -40,6 +38,7 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
   const [menuFileId, setMenuFileId] = useState<number | null>(null)
   const [linkFileId, setLinkFileId] = useState<number | null>(null)
   const currentUser = useAuthStore(st => st.user)
+  const maxUploadMb = useAuthStore(st => st.maxUploadMb)
   const [trashOpen, setTrashOpen] = useState(false)
   const [docSyncOpen, setDocSyncOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -60,9 +59,10 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
   }, [shell.uploadFilesSignal])
 
   const uploadFiles = async (list: File[]) => {
-    const tooBig = list.filter(f => f.size > MAX_UPLOAD_BYTES)
-    const okFiles = list.filter(f => f.size <= MAX_UPLOAD_BYTES)
-    if (tooBig.length > 0) planner.toast.error(t('files.uploadErrorSize'))
+    const maxBytes = maxUploadMb * 1024 * 1024
+    const tooBig = list.filter(f => f.size > maxBytes)
+    const okFiles = list.filter(f => f.size <= maxBytes)
+    if (tooBig.length > 0) planner.toast.error(t('files.uploadErrorSize', { max: maxUploadMb }))
     if (okFiles.length === 0) return
     setUploading(true)
     let uploaded = 0

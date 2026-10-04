@@ -1,7 +1,7 @@
 // FE-COMP-COLIMPORT-001 to FE-COMP-COLIMPORT-007
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -65,11 +65,12 @@ describe('ImportFromTripModal', () => {
   it('FE-COMP-COLIMPORT-001: lists the trips with their place count and a localized date range', async () => {
     render(<Harness />);
     await waitFor(() => expect(screen.getByText('Rome 2026')).toBeInTheDocument());
-    // The count is a compact badge; the full wording stays as its title.
-    expect(screen.getByTitle('3 places')).toHaveTextContent('3');
+    // The count is a compact badge; the full wording is in its tooltip.
+    fireEvent.mouseEnter(screen.getByText('3'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('3 places');
     // Formatted through the shared formatter, never the raw ISO string.
-    const dateBadge = screen.getByTitle(/May/);
-    expect(dateBadge.textContent).toMatch(/May 1.*–.*May 8/);
+    const dateBadge = screen.getByText(/May/);
+    expect(dateBadge.textContent).toMatch(/May 1.*→.*May 8/);
     expect(dateBadge.textContent).not.toMatch(/2026-05-01/);
     expect(screen.getByText('Lisbon')).toBeInTheDocument();
   });

@@ -56,7 +56,7 @@ describe('useResetPassword', () => {
     search = new URLSearchParams();
     const { result } = renderHook(() => useResetPassword());
 
-    await submit(result, 'longenough1');
+    await submit(result, 'Longenough1!');
     expect(authApi.resetPassword).not.toHaveBeenCalled();
   });
 
@@ -64,14 +64,14 @@ describe('useResetPassword', () => {
     const { result } = renderHook(() => useResetPassword());
 
     await submit(result, 'short1');
-    expect(result.current.error).toBe('login.passwordMinLength');
+    expect(result.current.error).toBe('settings.passwordTooShort');
     expect(authApi.resetPassword).not.toHaveBeenCalled();
   });
 
   it('FE-PAGE-RESET-005: rejects a mismatched confirmation', async () => {
     const { result } = renderHook(() => useResetPassword());
 
-    await submit(result, 'longenough1', 'longenough2');
+    await submit(result, 'Longenough1!', 'Longenough2!');
     expect(result.current.error).toBe('login.passwordsDontMatch');
     expect(authApi.resetPassword).not.toHaveBeenCalled();
   });
@@ -79,9 +79,9 @@ describe('useResetPassword', () => {
   it('FE-PAGE-RESET-006: sends token and password and reports success', async () => {
     const { result } = renderHook(() => useResetPassword());
 
-    await submit(result, 'longenough1');
+    await submit(result, 'Longenough1!');
 
-    expect(authApi.resetPassword).toHaveBeenCalledWith({ token: 'abc123', new_password: 'longenough1' });
+    expect(authApi.resetPassword).toHaveBeenCalledWith({ token: 'abc123', new_password: 'Longenough1!' });
     expect(result.current.success).toBe(true);
     expect(result.current.isLoading).toBe(false);
   });
@@ -90,7 +90,7 @@ describe('useResetPassword', () => {
     vi.mocked(authApi.resetPassword).mockResolvedValueOnce({ mfa_required: true } as never);
     const { result } = renderHook(() => useResetPassword());
 
-    await submit(result, 'longenough1');
+    await submit(result, 'Longenough1!');
 
     expect(result.current.mfaRequired).toBe(true);
     expect(result.current.success).toBe(false);
@@ -100,13 +100,13 @@ describe('useResetPassword', () => {
   it('FE-PAGE-RESET-008: sends the trimmed MFA code on the second attempt', async () => {
     vi.mocked(authApi.resetPassword).mockResolvedValueOnce({ mfa_required: true } as never);
     const { result } = renderHook(() => useResetPassword());
-    await submit(result, 'longenough1');
+    await submit(result, 'Longenough1!');
 
     act(() => result.current.setMfaCode('  123456  '));
     await act(() => result.current.handleSubmit(submitEvent()));
 
     expect(authApi.resetPassword).toHaveBeenLastCalledWith({
-      token: 'abc123', new_password: 'longenough1', mfa_code: '123456',
+      token: 'abc123', new_password: 'Longenough1!', mfa_code: '123456',
     });
     expect(result.current.success).toBe(true);
   });
@@ -114,10 +114,10 @@ describe('useResetPassword', () => {
   it('FE-PAGE-RESET-009: omits the MFA field while the code is still empty', async () => {
     vi.mocked(authApi.resetPassword).mockResolvedValueOnce({ mfa_required: true } as never);
     const { result } = renderHook(() => useResetPassword());
-    await submit(result, 'longenough1');
+    await submit(result, 'Longenough1!');
 
     await act(() => result.current.handleSubmit(submitEvent()));
-    expect(authApi.resetPassword).toHaveBeenLastCalledWith({ token: 'abc123', new_password: 'longenough1' });
+    expect(authApi.resetPassword).toHaveBeenLastCalledWith({ token: 'abc123', new_password: 'Longenough1!' });
   });
 
   it('FE-PAGE-RESET-010: surfaces the server error message', async () => {
@@ -126,7 +126,7 @@ describe('useResetPassword', () => {
     });
     const { result } = renderHook(() => useResetPassword());
 
-    await submit(result, 'longenough1');
+    await submit(result, 'Longenough1!');
 
     expect(result.current.error).toBe('This link has expired');
     expect(result.current.success).toBe(false);
@@ -136,7 +136,7 @@ describe('useResetPassword', () => {
     vi.mocked(authApi.resetPassword).mockRejectedValueOnce(new Error('Network Error'));
     const { result } = renderHook(() => useResetPassword());
 
-    await submit(result, 'longenough1');
+    await submit(result, 'Longenough1!');
     expect(result.current.error).toBe('Network Error');
   });
 
@@ -144,7 +144,7 @@ describe('useResetPassword', () => {
     vi.mocked(authApi.resetPassword).mockRejectedValueOnce('nope');
     const { result } = renderHook(() => useResetPassword());
 
-    await submit(result, 'longenough1');
+    await submit(result, 'Longenough1!');
     expect(result.current.error).toBe('login.resetPasswordFailed');
   });
 
@@ -152,7 +152,7 @@ describe('useResetPassword', () => {
     vi.mocked(authApi.resetPassword).mockResolvedValueOnce({ success: false } as never);
     const { result } = renderHook(() => useResetPassword());
 
-    await submit(result, 'longenough1');
+    await submit(result, 'Longenough1!');
     expect(result.current.success).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });
@@ -164,7 +164,7 @@ describe('useResetPassword', () => {
     );
 
     const { result } = renderHook(() => useResetPassword());
-    act(() => { result.current.setPw('longenough1'); result.current.setPw2('longenough1'); });
+    act(() => { result.current.setPw('Longenough1!'); result.current.setPw2('Longenough1!'); });
 
     let first: Promise<void>;
     act(() => { first = result.current.handleSubmit(submitEvent()) as Promise<void>; });

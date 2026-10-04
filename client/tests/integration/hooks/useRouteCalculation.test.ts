@@ -2,9 +2,10 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useRouteCalculation } from '../../../src/hooks/useRouteCalculation';
 import { useTripStore } from '../../../src/store/tripStore';
+import { hotelLegsForDay } from '../../../src/mobile/screens/trip/plan/planTimelineModel';
 import { buildAssignment, buildPlace } from '../../helpers/factories';
 import type { TripStoreState } from '../../../src/store/tripStore';
-import type { RouteSegment } from '../../../src/types';
+import type { Day, RouteSegment } from '../../../src/types';
 
 vi.mock('../../../src/components/Map/RouteCalculator', async (importActual) => {
   const actual = await importActual<typeof import('../../../src/components/Map/RouteCalculator')>();
@@ -965,5 +966,160 @@ describe('useRouteCalculation', () => {
     expect(legs).not.toContainEqual([`${hotel.lat},${hotel.lng}`, `${home.lat},${home.lng}`]);
     // Tonight's hotel is still where the day ends.
     expect(legs).toContainEqual([`${home.lat},${home.lng}`, `${hotel.lat},${hotel.lng}`]);
+  });
+
+  it('FE-HOOK-ROUTE-035: #2476 a moving day with a flight saved without airports draws no hotel → hotel drive', async () => {
+    // FE-HOOK-ROUTE-016 with the flight the day was actually travelled on. It carries
+    // no coordinates, so nothing is left to draw, and the fallback drive from one
+    // hotel to the other is exactly the stretch that was flown.
+    const hotelA = { lat: 48.137, lng: 11.575 };
+    const hotelB = { lat: 53.551, lng: 9.993 };
+    const accommodations = [
+      { id: 1, start_day_id: 1, end_day_id: 2, place_lat: hotelA.lat, place_lng: hotelA.lng },
+      { id: 2, start_day_id: 2, end_day_id: 3, place_lat: hotelB.lat, place_lng: hotelB.lng },
+    ];
+    const flight = {
+      id: 80, type: 'flight', title: 'LH 2078', day_id: 2, end_day_id: 2,
+      reservation_time: '2026-11-04T15:15', reservation_end_time: '2026-11-04T17:20', endpoints: [],
+    };
+    const store = { assignments: {} } as unknown as TripStoreState;
+    useTripStore.setState({
+      assignments: {},
+      reservations: [flight],
+      days: [{ id: 1, day_number: 1 }, { id: 2, day_number: 2 }, { id: 3, day_number: 3 }],
+    } as unknown as Partial<TripStoreState>);
+
+    const { result } = renderHook(() =>
+      useRouteCalculation(store, 2, true, 'driving', accommodations as unknown as Parameters<typeof useRouteCalculation>[4])
+    );
+    await act(async () => {});
+
+    expect(result.current.route).toBeNull();
+    expect(calculateRouteWithLegs).not.toHaveBeenCalled();
+  });
+
+  describe('hotel bookend legs are tagged on the segments (#2501)', () => {
+    // Every request answers one leg per neighbouring waypoint pair, echoing the
+    // waypoints the way OSRM's legs do.
+    const echoLegs = () => (calculateRouteWithLegs as ReturnType<typeof vi.fn>).mockImplementation(
+      (waypoints: { lat: number; lng: number }[]) => Promise.resolve({
+        coordinates: [] as [number, number][],
+        distance: 0,
+        duration: 0,
+        legs: waypoints.slice(0, -1).map((w, i) => ({
+          ...MOCK_SEGMENTS[0],
+          from: [w.lat, w.lng] as [number, number],
+          to: [waypoints[i + 1].lat, waypoints[i + 1].lng] as [number, number],
+        })),
+      }),
+    );
+    const tagsOf = (segments: RouteSegment[]) =>
+      segments.map(s => [`${s.from[0]},${s.from[1]} > ${s.to[0]},${s.to[1]}`, s.hotelBookend ?? null]);
+
+    it('FE-HOOK-ROUTE-036: a day out of the hotel tags the drive out and the drive back, nothing else', async () => {
+      echoLegs();
+      const hotel = { lat: 41.39, lng: 2.16 };
+      const actA = buildPlace({ lat: 41.38, lng: 2.17 });
+      const actB = buildPlace({ lat: 41.40, lng: 2.19 });
+      const store = { assignments: { '2': [
+        buildAssignment({ day_id: 2, order_index: 0, place: actA }),
+        buildAssignment({ day_id: 2, order_index: 1, place: actB }),
+      ] } } as unknown as TripStoreState;
+      useTripStore.setState({
+        assignments: store.assignments,
+        reservations: [],
+        days: [{ id: 1, day_number: 1 }, { id: 2, day_number: 2 }, { id: 3, day_number: 3 }],
+      } as unknown as Partial<TripStoreState>);
+      const accommodations = [{ id: 1, start_day_id: 1, end_day_id: 3, place_lat: hotel.lat, place_lng: hotel.lng }];
+
+      const { result } = renderHook(() =>
+        useRouteCalculation(store, 2, true, 'driving', accommodations as unknown as Parameters<typeof useRouteCalculation>[4])
+      );
+      await act(async () => {});
+
+      expect(tagsOf(result.current.routeSegments)).toEqual([
+        [`${hotel.lat},${hotel.lng} > ${actA.lat},${actA.lng}`, 'morning'],
+        [`${actA.lat},${actA.lng} > ${actB.lat},${actB.lng}`, null],
+        [`${actB.lat},${actB.lng} > ${hotel.lat},${hotel.lng}`, 'evening'],
+      ]);
+    });
+
+    it('FE-HOOK-ROUTE-037: a hotel stop of your own after landing is no morning bookend', async () => {
+      // The reported day: fly in, drive to the hotel you put on the day yourself, then
+      // on to the town hall. Only the drive back to the hotel tonight is a bookend.
+      echoLegs();
+      const hotel = { lat: 53.5465, lng: 9.9727 };
+      const ams = { lat: 52.3105, lng: 4.7683 };
+      const ham = { lat: 53.6304, lng: 9.9882 };
+      const hotelStop = buildPlace({ lat: hotel.lat, lng: hotel.lng });
+      const townHall = buildPlace({ lat: 53.5503, lng: 9.9937 });
+      const flight = {
+        id: 90, type: 'flight', day_id: 1, end_day_id: 1, day_plan_position: -0.5,
+        reservation_time: '2026-10-19T10:00', reservation_end_time: '2026-10-19T13:00',
+        endpoints: [
+          { role: 'from', sequence: 0, lat: ams.lat, lng: ams.lng },
+          { role: 'to', sequence: 1, lat: ham.lat, lng: ham.lng },
+        ],
+      };
+      const store = { assignments: { '1': [
+        buildAssignment({ day_id: 1, order_index: 0, place: hotelStop }),
+        buildAssignment({ day_id: 1, order_index: 1, place: townHall }),
+      ] } } as unknown as TripStoreState;
+      useTripStore.setState({
+        assignments: store.assignments,
+        reservations: [flight],
+        days: [{ id: 1, day_number: 1 }, { id: 2, day_number: 2 }, { id: 3, day_number: 3 }],
+      } as unknown as Partial<TripStoreState>);
+      const accommodations = [{ id: 1, start_day_id: 1, end_day_id: 3, check_in: '15:00', check_out: '11:00', place_lat: hotel.lat, place_lng: hotel.lng }];
+
+      const { result } = renderHook(() =>
+        useRouteCalculation(store, 1, true, 'driving', accommodations as unknown as Parameters<typeof useRouteCalculation>[4])
+      );
+      await act(async () => {});
+
+      expect(tagsOf(result.current.routeSegments)).toEqual([
+        [`${ham.lat},${ham.lng} > ${hotel.lat},${hotel.lng}`, null],
+        [`${hotel.lat},${hotel.lng} > ${townHall.lat},${townHall.lng}`, null],
+        [`${townHall.lat},${townHall.lng} > ${hotel.lat},${hotel.lng}`, 'evening'],
+      ]);
+    });
+
+    it('FE-HOOK-ROUTE-038: after a day switch the last day\'s bookends are no legs of the new day\'s hotel', async () => {
+      // Day 1 sleeps in Munich, day 3 in Hamburg. The segments of day 1 stay in place
+      // until day 3 has routed, and that request may take a while or never answer.
+      echoLegs();
+      const days = [1, 2, 3, 4].map(n => ({ id: n, trip_id: 1, day_number: n, date: `2026-05-0${n}`, title: null }));
+      const munich = { id: 1, trip_id: 1, place_name: 'Munich Inn', place_lat: 48.137, place_lng: 11.575, start_day_id: 1, end_day_id: 2 };
+      const hamburg = { id: 2, trip_id: 1, place_name: 'Hamburg Inn', place_lat: 53.551, place_lng: 9.993, start_day_id: 2, end_day_id: 4 };
+      const stays = [munich, hamburg] as unknown as Parameters<typeof useRouteCalculation>[4];
+      const store = { assignments: {
+        '1': [
+          buildAssignment({ day_id: 1, order_index: 0, place: buildPlace({ lat: 48.14, lng: 11.58 }) }),
+          buildAssignment({ day_id: 1, order_index: 1, place: buildPlace({ lat: 48.15, lng: 11.59 }) }),
+        ],
+        '3': [
+          buildAssignment({ day_id: 3, order_index: 0, place: buildPlace({ lat: 53.56, lng: 9.99 }) }),
+          buildAssignment({ day_id: 3, order_index: 1, place: buildPlace({ lat: 53.57, lng: 10.0 }) }),
+        ],
+      } } as unknown as TripStoreState;
+      useTripStore.setState({ assignments: store.assignments, reservations: [], days } as unknown as Partial<TripStoreState>);
+      const legsOf = (dayId: number, segments: RouteSegment[]) =>
+        hotelLegsForDay(days[dayId - 1] as unknown as Day, days as unknown as Day[], stays, segments);
+
+      const { result, rerender } = renderHook(
+        ({ dayId }: { dayId: number }) => useRouteCalculation(store, dayId, true, 'driving', stays),
+        { initialProps: { dayId: 1 } },
+      );
+      await act(async () => {});
+      expect(legsOf(1, result.current.routeSegments)).toMatchObject({ top: { name: 'Munich Inn' }, bottom: { name: 'Munich Inn' } });
+
+      (calculateRouteWithLegs as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}));
+      rerender({ dayId: 3 });
+      await act(async () => {});
+
+      // Day 1's legs are still there, and Hamburg shows none of them.
+      expect(result.current.routeSegments.some(s => s.hotelBookend)).toBe(true);
+      expect(legsOf(3, result.current.routeSegments)).toEqual({ top: null, bottom: null });
+    });
   });
 });

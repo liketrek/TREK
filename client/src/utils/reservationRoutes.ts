@@ -22,10 +22,17 @@ export interface RouteVisibilityOptions {
   selectedDayId?: number | null
   /** The trip's days, needed to order them — day ids are not monotonic once days have been reordered. */
   days?: Day[]
+  /**
+   * Hold the per-item toggle to the selected day as well. Off unless asked for: the desktop
+   * keeps a booking it was told to draw on every day, since switching it on is a deliberate
+   * act (#2019). The phone's plan map shows one day at a time, and a flight from another
+   * day drawn across it reads as part of that day.
+   */
+  scopeConnectionsToDay?: boolean
 }
 
 /**
- * Does this transit journey actually run on the selected day? `showTransitRoutes` is one
+ * Does this journey actually run on the selected day? `showTransitRoutes` is one
  * day's toggle but the reservation list is trip-wide, so without this every automated
  * transport in the trip drew its geometry as soon as any day's route was switched on (#2019).
  *
@@ -34,7 +41,11 @@ export interface RouteVisibilityOptions {
  * A journey bound to no day keeps drawing; hiding something that legitimately belongs
  * to today is the worse failure.
  */
-function transitRunsOnDay(r: Reservation, selectedDayId: number | null | undefined, days: Day[]): boolean {
+export function runsOnDay(
+  r: Pick<Reservation, 'day_id' | 'end_day_id'>,
+  selectedDayId: number | null | undefined,
+  days: Day[],
+): boolean {
   if (selectedDayId == null) return true
   const startDayId = r.day_id ?? r.end_day_id
   if (startDayId == null) return true
@@ -45,11 +56,11 @@ function transitRunsOnDay(r: Reservation, selectedDayId: number | null | undefin
 
 /** Which reservations should draw a route on the map, combining the two independent toggles above. */
 export function visibleRouteReservations(reservations: Reservation[], options: RouteVisibilityOptions): Reservation[] {
-  const { visibleConnectionIds, showTransitRoutes, selectedDayId, days } = options
+  const { visibleConnectionIds, showTransitRoutes, selectedDayId, days, scopeConnectionsToDay } = options
   const set = new Set(visibleConnectionIds || [])
   return reservations.filter(r =>
-    (r.type === 'transit' && showTransitRoutes && transitRunsOnDay(r, selectedDayId, days || [])) ||
-    set.has(r.id)
+    (r.type === 'transit' && showTransitRoutes && runsOnDay(r, selectedDayId, days || [])) ||
+    (set.has(r.id) && (!scopeConnectionsToDay || runsOnDay(r, selectedDayId, days || [])))
   )
 }
 

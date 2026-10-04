@@ -35,7 +35,7 @@ describe('VacayCompanyHolidaysRepository — note ?? null (VC29/VC67/VC112)', ()
     const planId = makePlan(user.id);
     testDb.prepare('INSERT INTO vacay_company_holidays (plan_id, date, note) VALUES (?, ?, NULL)').run(planId, '2026-12-25');
 
-    expect(await repo.listForPlan(planId)).toEqual([{ date: '2026-12-25', note: null }]);
+    expect(await repo.listForPlan(planId)).toEqual([{ date: '2026-12-25', note: null, fraction: 1 }]);
     expect(await repo.listForRange(planId, '2026-12-01', '2027-01-01')).toMatchObject([{ date: '2026-12-25', note: null }]);
   });
 });

@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'Snart framme...',
   'trip.mobilePlan': 'Plan',
   'trip.mobilePlaces': 'Platser',
+  'trip.panelWidth': 'Panelens bredd',
   'trip.toast.placeUpdated': 'Plats uppdaterad',
   'trip.toast.tripUpdated': 'Resan uppdaterad',
   'trip.toast.placeAdded': 'Plats tillagd',
@@ -88,7 +89,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'Byten',
   'transit.walkLabel': 'Gång',
   'transit.searchHint': 'Sök verkliga förbindelser och lägg till dem direkt i dagen – data via Transitous.',
-  'trip.confirm.deletePlaceNight': 'Natten som är bokad på ”{name}” försvinner med platsen.',
-  'trip.confirm.deletePlaceBooked': 'Natten som är bokad på ”{name}” försvinner med platsen, tillsammans med bokningen ”{booking}” och alla utgifter som hör till den.',
+  'trip.confirm.deletePlaceNight': 'Då raderas även vistelsen som är bokad på ”{name}”.',
+  'trip.confirm.deletePlaceBooked':
+    'Då raderas även vistelsen som är bokad på ”{name}”, bokningen ”{booking}” och alla utgifter som hör till den.',
+  'trip.confirm.deletePlaceBookedSame':
+    'Då raderas även vistelsen som är bokad på ”{name}”, dess bokning och alla utgifter som hör till den.',
 };
 export default trip;

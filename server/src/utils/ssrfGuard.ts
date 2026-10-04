@@ -1,5 +1,5 @@
 import dns from 'node:dns/promises';
-import { Agent } from 'undici';
+import { Agent, ProxyAgent, type Dispatcher } from 'undici';
 import { readEnv } from '../app-config';
 import { embeddedTransitionIpv4, expandIpv6 } from './ipv6';
 
@@ -9,12 +9,18 @@ const ALLOW_INTERNAL_NETWORK = readEnv().net.allowInternalNetwork;
 // host gateway being the reason (#2400). The parser never lets a cloud metadata
 // address in, so the rest of 169.254.0.0/16 stays blocked. Frozen the same way.
 const ALLOWED_LINK_LOCAL = new Set(readEnv().net.allowLinkLocalIps);
+// HTTP_PROXY / HTTPS_PROXY / NO_PROXY (#1754). Frozen like the two above.
+const PROXY = readEnv().net.proxy;
 
 export interface SsrfResult {
   allowed: boolean;
   /** The first of `resolvedIps`, kept for the callers that name one address. */
   resolvedIp?: string;
-  /** Every address the name resolves to, each one checked, IPv4 first. */
+  /**
+   * The addresses a connection to the name may use, IPv4 first: every address
+   * it resolves to, less the ones the guard never connects to. On a refusal,
+   * every address it resolved to.
+   */
   resolvedIps?: string[];
   isPrivate: boolean;
   error?: string;
@@ -27,11 +33,11 @@ export interface SsrfResult {
  * the resolver lists first, on Node 22 in the resolver's own order, and a
  * dual-stack name whose AAAA comes first then pinned the connection to an IPv6
  * that many hosts cannot reach on port 443 while the A record would have
- * answered at once. The whole list goes to the socket, where Node tries the
- * addresses in turn (autoSelectFamily, the default since Node 20), so an
- * unreachable family costs a quarter of a second instead of the caller's whole
- * timeout. IPv4 leads because that is the family that is reachable from the
- * containers and LXCs TREK usually runs in.
+ * answered at once. Every address the guard allows goes to the socket, where
+ * Node tries the addresses in turn (autoSelectFamily, the default since Node
+ * 20), so an unreachable family costs a quarter of a second instead of the
+ * caller's whole timeout. IPv4 leads because that is the family that is
+ * reachable from the containers and LXCs TREK usually runs in.
  */
 async function resolveAll(hostname: string): Promise<{ address: string; family: number }[]> {
   const result = await dns.lookup(hostname, { all: true });
@@ -49,16 +55,23 @@ async function resolveAll(hostname: string): Promise<{ address: string; family: 
 }
 
 /**
- * The IPv4 an IPv4-mapped address (`::ffff:a.b.c.d`) stands for, or null.
+ * The IPv4 an IPv4-mapped (`::ffff:a.b.c.d`) or IPv4-compatible (`::a.b.c.d`)
+ * address stands for, or null.
  *
  * Taken from the hextets rather than from the text, because `::ffff:127.0.0.1`
  * and `::ffff:7f00:1` are one address in two spellings and `dns.lookup` picks
  * which one comes back. The prefix regexes this replaces covered the dotted
- * spelling of two ranges; every other mapped address walked past them.
+ * spelling of two ranges; every other mapped address walked past them. The
+ * compatible form is deprecated but still parsed, and Node prints an AAAA
+ * record of `::a9fe:a9fe` as `::169.254.169.254`. `::` and `::1` are left to
+ * the IPv6 checks, being the unspecified and loopback addresses themselves.
  */
-function mappedIpv4(hextets: number[]): string | null {
+function carriedIpv4(hextets: number[]): string | null {
   const g = hextets;
-  if (g[0] || g[1] || g[2] || g[3] || g[4] || g[5] !== 0xffff) return null;
+  if (g[0] || g[1] || g[2] || g[3] || g[4]) return null;
+  const mapped = g[5] === 0xffff;
+  const compatible = g[5] === 0 && (g[6] !== 0 || g[7] > 1);
+  if (!mapped && !compatible) return null;
   return `${g[6] >> 8}.${g[6] & 0xff}.${g[7] >> 8}.${g[7] & 0xff}`;
 }
 
@@ -72,9 +85,12 @@ function isAlwaysBlocked(ip: string): boolean {
   if (addr.startsWith('127.') || addr === '::1') return true;
   // Unspecified
   if (addr.startsWith('0.')) return true;
-  // Link-local / cloud metadata, apart from an address listed in ALLOW_LINK_LOCAL_IPS,
-  // which isPrivateNetwork then treats as the internal network it is.
-  if (addr.startsWith('169.254.') && !ALLOWED_LINK_LOCAL.has(addr)) return true;
+  // Link-local and cloud metadata: everything the admin lane refuses, apart from
+  // an address listed in ALLOW_LINK_LOCAL_IPS, which isPrivateNetwork then treats
+  // as the internal network it is. The AWS IMDSv6 and Alibaba addresses sit in
+  // ULA and CGNAT space, so without this ALLOW_INTERNAL_NETWORK would open them
+  // to a URL any user can type.
+  if (isLinkLocal(addr)) return true;
 
   const hextets = expandIpv6(addr);
   if (hextets) {
@@ -83,11 +99,13 @@ function isAlwaysBlocked(ip: string): boolean {
     // (`::`, `::0`, `0:0:0:0:0:0:0:0`) that only the expanded hextets settle it.
     // The `0.` check above never saw any of them: they begin with a colon.
     if (hextets.every(h => h === 0)) return true;
+    // Loopback in any spelling, not only the `::1` a resolver prints.
+    if (hextets.slice(0, 7).every(h => h === 0) && hextets[7] === 1) return true;
     // fe80::/10 spans fe80: through febf:, not just the four characters 'fe80'.
     if ((hextets[0] & 0xffc0) === 0xfe80) return true;
-    // A mapped address inherits the verdict of the IPv4 it carries.
-    const mapped = mappedIpv4(hextets);
-    if (mapped) return isAlwaysBlocked(mapped);
+    // A mapped or compatible address inherits the verdict of the IPv4 it carries.
+    const carried = carriedIpv4(hextets);
+    if (carried) return isAlwaysBlocked(carried);
   }
   // IPv6 transition addresses (NAT64/6to4/Teredo) embedding a hard-blocked IPv4.
   const embedded = embeddedTransitionIpv4(addr);
@@ -111,12 +129,12 @@ function isPrivateNetwork(ip: string): boolean {
   if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(addr)) return true;
   // IPv6 ULA (fc00::/7)
   if (/^f[cd]/i.test(addr)) return true;
-  // A mapped address inherits the verdict of the IPv4 it carries. Deciding on the
-  // hextets rather than on three `::ffff:`-prefix regexes also covers the hex
-  // spelling and the CGNAT range those regexes never listed.
+  // A mapped or compatible address inherits the verdict of the IPv4 it carries.
+  // Deciding on the hextets rather than on three `::ffff:`-prefix regexes also
+  // covers the hex spelling and the CGNAT range those regexes never listed.
   const hextets = expandIpv6(addr);
-  const mapped = hextets && mappedIpv4(hextets);
-  if (mapped) return isPrivateNetwork(mapped);
+  const carried = hextets && carriedIpv4(hextets);
+  if (carried) return isPrivateNetwork(carried);
   // IPv6 transition addresses (NAT64/6to4/Teredo) embedding a private IPv4.
   const embedded = embeddedTransitionIpv4(addr);
   if (embedded) return isPrivateNetwork(embedded);
@@ -143,10 +161,7 @@ export async function checkSsrf(rawUrl: string, bypassInternalIpAllowed: boolean
 
   const hostname = url.hostname.toLowerCase();
 
-  // Resolve the name to every address it has. Each one is judged on its own,
-  // and a single blocked address blocks the name: the socket may end up on any
-  // of them, so a list that mixes a public and a private address is a private
-  // target with a public alibi.
+  // Resolve the name to every address it has and judge each one on its own.
   let resolvedIps: string[];
   try {
     resolvedIps = (await resolveAll(hostname)).map((entry) => entry.address);
@@ -154,20 +169,27 @@ export async function checkSsrf(rawUrl: string, bypassInternalIpAllowed: boolean
     const code = error_ instanceof Error && 'code' in error_ ? String(error_.code) : 'unknown';
     return { allowed: false, isPrivate: false, error: `Could not resolve hostname (${code})` };
   }
-  const resolvedIp = resolvedIps[0];
 
-  const blocked = resolvedIps.find((ip) => isAlwaysBlocked(ip));
-  if (blocked) {
+  // An address the guard never connects to is left out of the list the socket
+  // gets, rather than refusing the name. A LAN DNS server commonly hands out a
+  // host's fe80:: address next to its IPv4, and refusing the name for it locked
+  // out every such host (#2506). Only a name with nothing else left is refused.
+  const usableIps = resolvedIps.filter((ip) => !isAlwaysBlocked(ip));
+  if (usableIps.length === 0) {
     return {
       allowed: false,
       isPrivate: true,
-      resolvedIp: blocked,
+      resolvedIp: resolvedIps[0],
       resolvedIps,
       error: 'Requests to loopback and link-local addresses are not allowed',
     };
   }
+  const resolvedIp = usableIps[0];
 
-  const privateIp = resolvedIps.find((ip) => isPrivateNetwork(ip));
+  // A private address among the rest decides for the whole name: the socket
+  // may end up on any address it is handed, so a list that mixes a public and a
+  // private address is a private target with a public alibi.
+  const privateIp = usableIps.find((ip) => isPrivateNetwork(ip));
   if (privateIp || isInternalHostname(hostname)) {
     if (!ALLOW_INTERNAL_NETWORK || bypassInternalIpAllowed) {
       return {
@@ -179,10 +201,10 @@ export async function checkSsrf(rawUrl: string, bypassInternalIpAllowed: boolean
           'Requests to private/internal network addresses are not allowed. Set ALLOW_INTERNAL_NETWORK=true to permit this for self-hosted setups.',
       };
     }
-    return { allowed: true, isPrivate: true, resolvedIp: privateIp ?? resolvedIp, resolvedIps };
+    return { allowed: true, isPrivate: true, resolvedIp: privateIp ?? resolvedIp, resolvedIps: usableIps };
   }
 
-  return { allowed: true, isPrivate: false, resolvedIp, resolvedIps };
+  return { allowed: true, isPrivate: false, resolvedIp, resolvedIps: usableIps };
 }
 
 /** Link-local / cloud-metadata addresses — never a legitimate model host. */
@@ -191,17 +213,23 @@ function isLinkLocal(ip: string): boolean {
   // IPv4 link-local — AWS, GCP, Azure and OpenStack all serve credentials from 169.254.169.254.
   // An address listed in ALLOW_LINK_LOCAL_IPS is the exception; those never include it.
   if (addr.startsWith('169.254.')) return !ALLOWED_LINK_LOCAL.has(addr);
-  // IPv4-mapped (::ffff:169.254.x) and IPv4-compatible (::a9fe:xxxx = ::169.254.x) spellings.
-  if (/^::ffff:169\.254\./.test(addr) || /^::(ffff:)?a9fe:/.test(addr)) return true;
   // IPv6 link-local fe80::/10 — the whole range (fe80: … febf:), not just the fe80: prefix.
   if (/^fe[89ab][0-9a-f]:/.test(addr)) return true;
-  // AWS IMDSv6 sits in a fixed ULA slot; block it specifically while leaving the rest of
-  // fc00::/7 reachable (a self-hosted model server may legitimately sit on a ULA address).
-  if (addr === 'fd00:ec2::254' || addr.startsWith('fd00:ec2:')) return true;
+  // AWS IMDSv6 sits in a fixed ULA slot (fd00:ec2::/32); block it specifically while
+  // leaving the rest of fc00::/7 reachable (a self-hosted model server may
+  // legitimately sit on a ULA address). Read off the hextets, so every spelling counts.
+  const hextets = expandIpv6(addr);
+  if (hextets && hextets[0] === 0xfd00 && hextets[1] === 0x0ec2) return true;
   // Alibaba Cloud ECS metadata (100.100.100.200, and .100) lives in CGNAT space
   // (100.64.0.0/10), which safeFetchLlm otherwise allows for a LAN model server —
   // so block the specific metadata IPs directly rather than the whole range.
   if (addr === '100.100.100.200' || addr === '100.100.100.100') return true;
+  // An IPv4-mapped or IPv4-compatible address, dotted or hex, is the IPv4 it
+  // carries. So 169.254.169.254 cannot come back as ::ffff:a9fe:a9fe, or as the
+  // ::169.254.169.254 Node prints for a compatible AAAA record, and an address
+  // listed in ALLOW_LINK_LOCAL_IPS keeps its exception in every spelling.
+  const carried = hextets && carriedIpv4(hextets);
+  if (carried) return isLinkLocal(carried);
   // NAT64/6to4/Teredo embedding one of the above link-local/metadata IPs — extract
   // the embedded IPv4 and re-check. A transition address to a public or LAN IPv4
   // stays allowed (safeFetchLlm deliberately permits private/loopback targets).
@@ -257,11 +285,15 @@ export async function safeFetchAdminConfigured(
       const code = error_ instanceof Error && 'code' in error_ ? String(error_.code) : 'unknown';
       throw new SsrfBlockedError(`Could not resolve hostname (${code})`);
     }
-    if (resolvedIps.some((ip) => isLinkLocal(ip))) {
+    // As in checkSsrf: a link-local or metadata address is left out of the list
+    // the socket gets, and only a name with nothing else left is refused. An
+    // fe80:: record beside an IdP's LAN address refused every OIDC login (#2506).
+    const usableIps = resolvedIps.filter((ip) => !isLinkLocal(ip));
+    if (usableIps.length === 0) {
       throw new SsrfBlockedError('Requests to link-local / cloud-metadata addresses are not allowed');
     }
 
-    const dispatcher = createPinnedDispatcher(resolvedIps, true, responseTimeoutMs);
+    const dispatcher = createOutboundDispatcher(currentUrl, usableIps, true, responseTimeoutMs);
     const response = await fetch(currentUrl, { ...hopInit, redirect: 'manual', dispatcher } as any);
 
     // Only a 3xx WITH a Location header is a redirect we follow; anything else
@@ -414,8 +446,8 @@ export interface SafeFetchFollowOptions extends SafeFetchOptions {
   keepCredentialsOnRedirect?: boolean;
   /**
    * When true, private/internal IPs that ALLOW_INTERNAL_NETWORK would normally
-   * permit are still blocked (matches `checkSsrf(url, true)`). Loopback and
-   * link-local are always blocked regardless. Defaults to false.
+   * permit are still blocked (matches `checkSsrf(url, true)`). Loopback,
+   * link-local and cloud metadata are always blocked regardless. Defaults to false.
    */
   bypassInternalIpAllowed?: boolean;
 }
@@ -455,7 +487,7 @@ export async function safeFetchFollow(
       throw new SsrfBlockedError(ssrf.error ?? 'Request blocked by SSRF guard');
     }
 
-    const dispatcher = createPinnedDispatcher(ssrf.resolvedIps ?? [ssrf.resolvedIp!], rejectUnauthorized);
+    const dispatcher = createOutboundDispatcher(currentUrl, ssrf.resolvedIps ?? [ssrf.resolvedIp!], rejectUnauthorized);
     const response = await fetch(currentUrl, {
       ...hopInit,
       redirect: 'manual',
@@ -491,13 +523,63 @@ export async function safeFetchFollow(
 }
 
 /**
+ * The proxy a guarded request to this URL goes through, or null (#1754).
+ *
+ * The guarded fetches below use their own dispatcher, so they never saw the
+ * environment proxy Node applies to everything else, and on a server that can
+ * only reach the internet through a proxy every place photo, link preview and
+ * webhook simply failed. NO_PROXY works the way curl and Node read it: `*`
+ * matches every host, an entry matches the host itself and its subdomains
+ * (a leading dot is optional), and `host:port` narrows it to one port.
+ */
+export function proxyFor(rawUrl: string, proxy = PROXY): string | null {
+  let url: URL;
+  try { url = new URL(rawUrl); } catch { return null; }
+  const target = url.protocol === 'https:' ? proxy.https ?? proxy.http : proxy.http;
+  if (!target) return null;
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const port = url.port || (url.protocol === 'https:' ? '443' : '80');
+  const bypass = proxy.noProxy.some((entry) => {
+    if (entry === '*') return true;
+    const [name, entryPort] = entry.replace(/(?:^\[)|(?:\](?=:|$))/g, '').split(/:(?=\d+$)/);
+    if (entryPort && entryPort !== port) return false;
+    const bare = name.replace(/^\*?\./, '');
+    return host === bare || host.endsWith(`.${bare}`);
+  });
+  return bypass ? null : target;
+}
+
+/**
+ * The dispatcher one guarded hop goes out through. Without a proxy it is the
+ * pinned agent below. With one, the proxy makes the connection, so the address
+ * cannot be pinned on our side: the guard has already refused a private or
+ * loopback target before this point, and the proxy the operator chose is the
+ * network boundary from there on.
+ */
+export function createOutboundDispatcher(
+  url: string,
+  resolved: string | readonly string[],
+  rejectUnauthorized = true,
+  responseTimeoutMs?: number,
+): Dispatcher {
+  const proxy = proxyFor(url);
+  if (!proxy) return createPinnedDispatcher(resolved, rejectUnauthorized, responseTimeoutMs);
+  return new ProxyAgent({
+    uri: proxy,
+    requestTls: { rejectUnauthorized },
+    ...(responseTimeoutMs ? { headersTimeout: responseTimeoutMs, bodyTimeout: responseTimeoutMs } : {}),
+  });
+}
+
+/**
  * Returns an undici Agent whose connect.lookup is pinned to the already-validated
  * addresses. This prevents DNS rebinding (TOCTOU) by ensuring the outbound
  * connection goes to an address we checked, not a re-resolved one.
  *
- * Given the whole checked list, in the order `resolveAll` put it, the socket
- * gets every address at once: Node asks for `all: true` and walks the list
- * itself, moving on after its attempt timeout when one family does not answer.
+ * Given the vetted list, in the order `resolveAll` put it, the socket gets
+ * every address on it at once and never one the guard left out: Node asks for
+ * `all: true` and walks the list itself, moving on after its attempt timeout
+ * when one family does not answer.
  * A caller that still names one address gets exactly the old behaviour.
  */
 export function createPinnedDispatcher(

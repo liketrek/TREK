@@ -40,6 +40,8 @@ function spyService(calls: string[], name: string) {
         if (prop === 'votePoll' || prop === 'createMessage') return { error: null, poll: {}, message: {} };
         if (prop === 'listEntries') return [];
         if (prop === 'getActivePlanId') return 1;
+        // A cost write asks whether its links may be made; null is "yes" (#2084).
+        if (prop === 'linkRefusal') return null;
         // collections.deletePlace is async in production (it deletes a storage
         // object); a promise-returning double here pins the fix that awaits it —
         // an un-awaited call would leave an unhandled rejection unnoticed by every
@@ -75,7 +77,7 @@ function build(addonOn: boolean) {
     new JournalRpc(spyService(calls, 'journey'), guards,
       { put: async () => undefined, delete: async () => undefined } as never,
       { get: () => '*' } as never,
-      { schedule: () => undefined } as never,
+      { scheduleUpload: () => undefined } as never,
       // SV8 — Plan 3i: DemoService.isDemoUserId, the shared demo-gate primitive.
       { isDemoUserId: async () => false } as never),
     new CollectionsRpc(spyService(calls, 'collections'), guards),

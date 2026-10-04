@@ -90,6 +90,19 @@ describe('TrekPhotoRegistrationService.recordCaptureMetadata', () => {
 
     expect(read(id)).toEqual({ taken_at: '2026-03-15T10:20:00Z', lat: 48.8584, lng: 2.2945 });
   });
+
+  it('TREKPHOTO-006: says whether the row learned anything, so a refresh is only sent for news', async () => {
+    const id = await makePhoto();
+
+    expect(await repo.recordCaptureMetadata(id, { takenAt: '2026-03-15T10:20:00Z' })).toBe(true);
+    // Same answer again: every COALESCE keeps what is there.
+    expect(await repo.recordCaptureMetadata(id, { takenAt: '2020-01-01T00:00:00Z' })).toBe(false);
+    // Half a pair is dropped, so there is nothing new in it either.
+    expect(await repo.recordCaptureMetadata(id, { lat: 48.8584, lng: null })).toBe(false);
+    expect(await repo.recordCaptureMetadata(id, { lat: 48.8584, lng: 2.2945 })).toBe(true);
+    expect(await repo.recordCaptureMetadata(id, {})).toBe(false);
+    expect(await repo.recordCaptureMetadata(999999, { takenAt: '2026-03-15T10:20:00Z' })).toBe(false);
+  });
 });
 
 describe('TrekPhotoRegistrationService.getOrCreate (PH1-3)', () => {

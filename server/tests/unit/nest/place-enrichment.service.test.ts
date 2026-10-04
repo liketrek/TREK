@@ -746,6 +746,14 @@ describe('collectFacts', () => {
     ]);
   });
 
+  // #2483: an OSM menu tag is written the way people type a website. The link
+  // the client gets is the completed one, never the bare text.
+  it('ENRICH-052e: completes a menu_url without a scheme to https', () => {
+    expect(collectFacts(osm({ menu_url: 'www.example.org/speisekarte' }))).toEqual([
+      { kind: 'menu', value: null, url: 'https://www.example.org/speisekarte' },
+    ]);
+  });
+
   it('ENRICH-053: takes no chips at all from a Google place', () => {
     expect(collectFacts(null)).toEqual([]);
     // cuisine/outdoor_seating are OSM tagging and never appear on a Google blob;

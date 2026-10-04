@@ -242,7 +242,7 @@ describe('ImmichMemoriesController (parity with /api/integrations/memories/immic
       const svc = makeService({ immichSaveSettings, immichSetAutoUpload });
       const res = makeRes();
       await new ImmichMemoriesController(svc).putSettings(user, { immich_url: 'x', immich_api_key: 'k', auto_upload: true }, req, res);
-      expect(immichSaveSettings).toHaveBeenCalledWith(7, 'x', 'k', '1.2.3.4');
+      expect(immichSaveSettings).toHaveBeenCalledWith(7, 'x', 'k', '1.2.3.4', undefined);
       expect(immichSetAutoUpload).toHaveBeenCalledWith(7, true);
       expect(res.json).toHaveBeenCalledWith({ success: true });
     });
@@ -253,6 +253,24 @@ describe('ImmichMemoriesController (parity with /api/integrations/memories/immic
       const svc = makeService({ immichSaveSettings, immichSetAutoUpload });
       await new ImmichMemoriesController(svc).putSettings(user, { auto_upload: 'yes' as unknown as boolean }, req, makeRes());
       expect(immichSetAutoUpload).not.toHaveBeenCalled();
+    });
+
+    it('hands the self-signed switch to the save both ways (#2475)', async () => {
+      const immichSaveSettings = vi.fn().mockResolvedValue({ success: true });
+      const svc = makeService({ immichSaveSettings });
+      const controller = new ImmichMemoriesController(svc);
+
+      await controller.putSettings(user, { immich_url: 'x', immich_api_key: 'k', allow_insecure_tls: true }, req, makeRes());
+      await controller.putSettings(user, { immich_url: 'x', immich_api_key: 'k', allow_insecure_tls: false }, req, makeRes());
+
+      expect(immichSaveSettings.mock.calls.map((call) => call[4])).toEqual([true, false]);
+    });
+
+    it('leaves the switch undefined when the body does not carry it, so the stored choice stays', async () => {
+      const immichSaveSettings = vi.fn().mockResolvedValue({ success: true });
+      const svc = makeService({ immichSaveSettings });
+      await new ImmichMemoriesController(svc).putSettings(user, { immich_url: 'x', immich_api_key: 'k' }, req, makeRes());
+      expect(immichSaveSettings).toHaveBeenCalledWith(7, 'x', 'k', '1.2.3.4', undefined);
     });
 
     it('returns the warning when the save carries one', async () => {
@@ -289,7 +307,19 @@ describe('ImmichMemoriesController (parity with /api/integrations/memories/immic
       const immichTestConnection = vi.fn().mockResolvedValue({ connected: true });
       const svc = makeService({ immichTestConnection });
       expect(await new ImmichMemoriesController(svc).test({ immich_url: 'u', immich_api_key: 'k' })).toEqual({ connected: true });
-      expect(immichTestConnection).toHaveBeenCalledWith('u', 'k');
+      // No switch in the body tests with the certificate check on.
+      expect(immichTestConnection).toHaveBeenCalledWith('u', 'k', false);
+    });
+
+    it('tests with the self-signed switch the form carries (#2475)', async () => {
+      const immichTestConnection = vi.fn().mockResolvedValue({ connected: true });
+      const svc = makeService({ immichTestConnection });
+      const controller = new ImmichMemoriesController(svc);
+
+      await controller.test({ immich_url: 'u', immich_api_key: 'k', allow_insecure_tls: true });
+      await controller.test({ immich_url: 'u', immich_api_key: 'k', allow_insecure_tls: false });
+
+      expect(immichTestConnection.mock.calls.map((call) => call[2])).toEqual([true, false]);
     });
   });
 

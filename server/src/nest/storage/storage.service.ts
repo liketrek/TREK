@@ -253,9 +253,10 @@ export class StorageService {
     }
 
     const tmp = path.join(this.tempDir(), randomUUID());
-    const { stream } = await driver.getStream(key);
-    await pipeline(stream, fs.createWriteStream(tmp));
     try {
+      const { stream } = await driver.getStream(key);
+      // Inside the try, so a download cut short does not leave its part behind.
+      await pipeline(stream, fs.createWriteStream(tmp));
       return await fn(tmp);
     } finally {
       await fs.promises.rm(tmp, { force: true });

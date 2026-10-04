@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react'
-import { Map, Save, Layers, Box, ChevronDown, Check, Globe2 } from 'lucide-react'
+import React, { useState, useEffect, useMemo, useRef, useId, Suspense, type ReactNode } from 'react'
+import { Map, Save, Layers, Box, ChevronDown, Check, Globe2, type LucideIcon } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
+import { fs } from '../shared/DialogShell'
+import { EditorField, INPUT } from '../shared/dialogParts'
+import { POPOVER } from '../Packing/packingPopoverStyles'
 import { MapView } from '../Map/MapView'
 // The preview loads on demand, and paired with a single engine — a Leaflet-only
 // install pays for neither, and a GL install pays for one instead of both.
@@ -11,6 +14,7 @@ import ErrorBoundary from '../shared/ErrorBoundary'
 import { GlMapPreviewMapbox, GlMapPreviewMaplibre } from '../Map/glLazy'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
+import { SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill } from './settingsKit'
 import { withTileApiKey } from '../../utils/tileUrl'
 import { AMAP_ROAD, AMAP_SATELLITE } from '../../constants/mapDefaults'
 import type { Place } from '../../types'
@@ -48,30 +52,13 @@ const MAP_PRESETS: MapPreset[] = [
   { name: '高德卫星 (Amap Satellite)', url: AMAP_SATELLITE },
 ]
 
-// Tag → chip color mapping. Keeps the dropdown readable at a glance so a
-// user scanning the list can spot 3D / Satellite / Apple-like styles.
-const TAG_STYLES: Record<string, string> = {
-  '3D': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300',
-  '2D': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-  'Satellite': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
-  'Apple-like': 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
-  'Modern': 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
-  'Dark': 'bg-zinc-800 text-zinc-100 dark:bg-zinc-900 dark:text-zinc-300',
-  'Minimal': 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-  'Hillshading': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  'Terrain': 'bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300',
-  'Realistic': 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300',
-  'Navigation': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  'Classic': 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300',
-  'Hybrid': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300',
-  'No labels': 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300',
-  'OpenFreeMap': 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
-}
+/** A field holding a URL, token or key: the box look in Geist, so the characters read apart. */
+const CODE_INPUT = `${INPUT} font-geist`
 
+/** A style's tag (3D, Satellite, Terrain…): a small quiet chip, so a scan of the list finds the kind of map. */
 function TagChip({ tag }: { tag: string }) {
-  const cls = TAG_STYLES[tag] || 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
   return (
-    <span className={`text-[9px] font-semibold tracking-wide uppercase px-1.5 py-[3px] rounded leading-none ${cls}`}>
+    <span className="flex-none rounded-[5px] bg-surface-tertiary px-1.5 py-[3px] font-geist font-bold uppercase leading-none tracking-[.06em] text-content-muted" style={fs(9)}>
       {tag}
     </span>
   )
@@ -102,22 +89,24 @@ function StyleDropdown({ value, provider, onChange }: { value: string; provider:
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 hover:border-slate-400 focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-2 rounded-[10px] border border-edge bg-surface-input px-3 py-2 text-left hover:border-content-faint focus:outline-none focus:ring-2 focus:ring-[color:var(--text-primary)]"
+        style={fs(13, 'body')}
       >
-        <span className="flex items-center gap-2 min-w-0">
-          <span className="text-slate-900 dark:text-white truncate">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className={`truncate ${selected ? 'font-medium text-content' : 'text-content-faint'}`}>
             {selected ? selected.name : placeholder}
           </span>
           {selected && (
-            <span className="flex items-center gap-1 flex-shrink-0">
+            <span className="flex flex-none items-center gap-1">
               {(selected.tags || []).map(t => <TagChip key={t} tag={t} />)}
             </span>
           )}
         </span>
-        <ChevronDown size={14} className="flex-shrink-0 text-slate-400" />
+        <ChevronDown size={14} className={`flex-none text-content-faint transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute z-20 mt-1 w-full max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1">
+        <div className="absolute inset-x-0 top-[calc(100%+4px)] z-20 max-h-64 overflow-y-auto" style={POPOVER}>
           {presets.map(preset => {
             const isActive = preset.url === value
             return (
@@ -125,19 +114,50 @@ function StyleDropdown({ value, provider, onChange }: { value: string; provider:
                 key={preset.url}
                 type="button"
                 onClick={() => { onChange(preset.url); setOpen(false) }}
-                className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800 ${isActive ? 'bg-slate-50 dark:bg-slate-800' : ''}`}
+                className={`flex w-full items-center justify-between gap-2 rounded-[9px] px-2.5 py-2 text-left hover:bg-surface-tertiary ${isActive ? 'bg-surface-tertiary' : ''}`}
+                style={fs(12.5, 'body')}
               >
-                <span className="flex items-center gap-2 flex-wrap">
-                  <span className="text-slate-900 dark:text-white font-medium">{preset.name}</span>
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <span className="font-medium text-content">{preset.name}</span>
                   {(preset.tags || []).map(t => <TagChip key={t} tag={t} />)}
                 </span>
-                {isActive && <Check size={14} className="flex-shrink-0 text-slate-900 dark:text-white" />}
+                {isActive && <Check size={13} className="flex-none text-content-muted" />}
               </button>
             )
           })}
         </div>
       )}
     </div>
+  )
+}
+
+/** One engine to pick: an icon tile, its name and what it is, outlined while chosen. */
+function ProviderTile({ active, onClick, icon: Icon, name, subtitle, badge }: {
+  active: boolean
+  onClick: () => void
+  icon: LucideIcon
+  name: ReactNode
+  subtitle: string
+  badge?: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex min-w-0 items-start gap-3 rounded-[12px] border bg-surface-card p-3 text-left transition-colors ${active ? 'border-[color:var(--text-primary)] shadow-sm' : 'border-edge hover:border-content-faint'}`}
+    >
+      <span className={`grid h-8 w-8 flex-none place-items-center rounded-[10px] ${active ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-secondary'}`}>
+        <Icon size={15} strokeWidth={2} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <span className="font-semibold text-content" style={fs(13, 'body')}>{name}</span>
+          {badge}
+        </span>
+        <span className="mt-0.5 hidden leading-snug text-content-faint sm:block" style={fs(11.5)}>{subtitle}</span>
+      </span>
+    </button>
   )
 }
 
@@ -183,6 +203,8 @@ export default function MapSettingsTab(): React.ReactElement {
   const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true)
   // One chunk per engine — see components/Map/glLazy.tsx.
   const GlMapPreview = provider === 'maplibre-gl' ? GlMapPreviewMaplibre : GlMapPreviewMapbox
+  // Ties each eyebrow label to its field, so a click on the label focuses it.
+  const fieldId = useId()
 
   useEffect(() => {
     const nextProvider = normalizeProvider(settings.map_provider)
@@ -248,262 +270,239 @@ export default function MapSettingsTab(): React.ReactElement {
   }
   // Only CARTO burns a watermark into keyless tiles, so the nudge is scoped to its hosts.
   const cartoNeedsKey = mapTileUrl.includes('basemaps.cartocdn.com') && !cartoKey.trim()
+  const link = 'font-medium text-content-secondary underline decoration-edge underline-offset-2 hover:text-content'
 
   return (
     <Section title={t('settings.map')} icon={Map}>
-      {/* Provider picker — big cards so the choice is obvious */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">{t('settings.mapProvider')}</label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => changeProvider('leaflet')}
-            className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-colors ${
-              provider === 'leaflet'
-                ? 'border-slate-900 bg-slate-50 dark:bg-slate-800 dark:border-slate-200'
-                : 'border-slate-200 hover:border-slate-400 dark:border-slate-700'
-            }`}
-          >
-            <Layers size={18} className="mt-0.5 flex-shrink-0 text-slate-700 dark:text-slate-300" />
-            <div>
-              <div className="text-sm font-medium text-slate-900 dark:text-white">Leaflet</div>
-              <div className="hidden sm:block text-xs text-slate-500 mt-0.5">{t('settings.mapLeafletSubtitle')}</div>
-            </div>
-          </button>
-          <button
-            type="button"
-            onClick={() => changeProvider('mapbox-gl')}
-            className={`relative flex items-start gap-3 p-3 rounded-lg border text-left transition-colors ${
-              provider === 'mapbox-gl'
-                ? 'border-slate-900 bg-slate-50 dark:bg-slate-800 dark:border-slate-200'
-                : 'border-slate-200 hover:border-slate-400 dark:border-slate-700'
-            }`}
-          >
-            <Box size={18} className="mt-0.5 flex-shrink-0 text-slate-700 dark:text-slate-300" />
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-slate-900 dark:text-white">
-                <span className="sm:hidden">Mapbox</span>
-                <span className="hidden sm:inline">Mapbox GL</span>
-              </div>
-              <div className="hidden sm:block text-xs text-slate-500 mt-0.5">{t('settings.mapMapboxSubtitle')}</div>
-            </div>
-            {/* Experimental badge only on ≥sm; on mobile there's no room next to the title. */}
-            <span className="hidden sm:inline-block absolute top-2 right-2 text-[9px] font-semibold tracking-wide uppercase px-1.5 py-[3px] rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 leading-none">
-              {t('settings.mapExperimental')}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => changeProvider('maplibre-gl')}
-            className={`relative flex items-start gap-3 p-3 rounded-lg border text-left transition-colors ${
-              provider === 'maplibre-gl'
-                ? 'border-slate-900 bg-slate-50 dark:bg-slate-800 dark:border-slate-200'
-                : 'border-slate-200 hover:border-slate-400 dark:border-slate-700'
-            }`}
-          >
-            <Globe2 size={18} className="mt-0.5 flex-shrink-0 text-slate-700 dark:text-slate-300" />
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-slate-900 dark:text-white">
-                <span className="sm:hidden">MapLibre</span>
-                <span className="hidden sm:inline">MapLibre GL</span>
-              </div>
-              <div className="hidden sm:block text-xs text-slate-500 mt-0.5">{t('settings.mapMapLibreSubtitle')}</div>
-            </div>
-          </button>
-        </div>
-        <p className="text-xs text-slate-400 mt-2">
-          {t('settings.mapProviderHint')}
-        </p>
-      </div>
+      {/* Provider picker — big tiles so the choice is obvious */}
+      <SettingRows>
+        <SettingRow label={t('settings.mapProvider')} hint={t('settings.mapProviderHint')} stacked>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <ProviderTile
+              active={provider === 'leaflet'}
+              onClick={() => changeProvider('leaflet')}
+              icon={Layers}
+              name="Leaflet"
+              subtitle={t('settings.mapLeafletSubtitle')}
+            />
+            <ProviderTile
+              active={provider === 'mapbox-gl'}
+              onClick={() => changeProvider('mapbox-gl')}
+              icon={Box}
+              name={<><span className="sm:hidden">Mapbox</span><span className="hidden sm:inline">Mapbox GL</span></>}
+              subtitle={t('settings.mapMapboxSubtitle')}
+              // Only on ≥sm; on a narrow window there's no room next to the title.
+              badge={<span className="hidden sm:inline-flex"><StatusPill tone="warning">{t('settings.mapExperimental')}</StatusPill></span>}
+            />
+            <ProviderTile
+              active={provider === 'maplibre-gl'}
+              onClick={() => changeProvider('maplibre-gl')}
+              icon={Globe2}
+              name={<><span className="sm:hidden">MapLibre</span><span className="hidden sm:inline">MapLibre GL</span></>}
+              subtitle={t('settings.mapMapLibreSubtitle')}
+            />
+          </div>
+        </SettingRow>
+      </SettingRows>
 
       {/* Leaflet settings */}
       {provider === 'leaflet' && (
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.mapTemplate')}</label>
-          <CustomSelect
-            value={mapTileUrl}
-            onChange={(value: string) => { if (value) setMapTileUrl(value) }}
-            placeholder={t('settings.mapTemplatePlaceholder.select')}
-            options={MAP_PRESETS.map(p => ({ value: p.url, label: p.name }))}
-            size="sm"
-            style={{ marginBottom: 8 }}
-          />
-          <input
-            type="text"
-            value={mapTileUrl}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMapTileUrl(e.target.value)}
-            placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-          />
-          <p className="text-xs text-slate-400 mt-1">{t('settings.mapDefaultHint')}</p>
-        </div>
+        <EditorField label={t('settings.mapTemplate')} htmlFor={`${fieldId}-tile`} hint={t('settings.mapDefaultHint')}>
+          <div className="flex flex-col gap-2">
+            <CustomSelect
+              value={mapTileUrl}
+              onChange={(value: string) => { if (value) setMapTileUrl(value) }}
+              placeholder={t('settings.mapTemplatePlaceholder.select')}
+              options={MAP_PRESETS.map(p => ({ value: p.url, label: p.name }))}
+            />
+            <input
+              id={`${fieldId}-tile`}
+              type="text"
+              value={mapTileUrl}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMapTileUrl(e.target.value)}
+              placeholder="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              className={CODE_INPUT}
+            />
+          </div>
+        </EditorField>
       )}
 
       {/* Same deal as the Mapbox token: a managed install brings its own key. */}
       {provider === 'leaflet' && !managed && (
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.mapCartoKey')}</label>
+        <EditorField
+          label={t('settings.mapCartoKey')}
+          htmlFor={`${fieldId}-carto`}
+          hint={
+            <>
+              {t('settings.mapCartoKeyHint')}{' '}
+              <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noreferrer" className={link}>
+                {t('settings.mapCartoKeyLink')}
+              </a>
+              {cartoNeedsKey && (
+                <span className="mt-1 block font-medium text-warning">{t('settings.mapCartoKeyMissing')}</span>
+              )}
+            </>
+          }
+        >
           <input
+            id={`${fieldId}-carto`}
             type="text"
             value={cartoKey}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCartoKey(e.target.value)}
             spellCheck={false}
             autoComplete="off"
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+            className={CODE_INPUT}
           />
-          <p className="text-xs text-slate-400 mt-1">
-            {t('settings.mapCartoKeyHint')}{' '}
-            <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noreferrer" className="underline">
-              {t('settings.mapCartoKeyLink')}
-            </a>
-          </p>
-          {cartoNeedsKey && (
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{t('settings.mapCartoKeyMissing')}</p>
-          )}
-        </div>
+        </EditorField>
       )}
 
       {/* GL settings */}
       {provider !== 'leaflet' && (
-        <div className="space-y-3">
+        <>
           {/* The token comes with the instance on a managed install, injected when the
               settings are read. A field here would only let somebody save a worse one. */}
           {provider === 'mapbox-gl' && !managed && (
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.mapMapboxToken')}</label>
-            <input
-              type="text"
-              value={mapboxToken}
-              onChange={(e) => setMapboxToken(e.target.value)}
-              placeholder="pk.eyJ1Ijoi..."
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-            />
-            <p className="text-xs text-slate-400 mt-1">
-              {t('settings.mapMapboxTokenHint')}{' '}
-              <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noreferrer" className="underline">
-                {t('settings.mapMapboxTokenLink')}
-              </a>
-            </p>
-          </div>
+            <EditorField
+              label={t('settings.mapMapboxToken')}
+              htmlFor={`${fieldId}-token`}
+              hint={
+                <>
+                  {t('settings.mapMapboxTokenHint')}{' '}
+                  <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noreferrer" className={link}>
+                    {t('settings.mapMapboxTokenLink')}
+                  </a>
+                </>
+              }
+            >
+              <input
+                id={`${fieldId}-token`}
+                type="text"
+                value={mapboxToken}
+                onChange={(e) => setMapboxToken(e.target.value)}
+                placeholder="pk.eyJ1Ijoi..."
+                className={CODE_INPUT}
+              />
+            </EditorField>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.mapStyle')}</label>
-            <div className="mb-2">
+          <EditorField
+            label={t('settings.mapStyle')}
+            htmlFor={`${fieldId}-style`}
+            hint={provider === 'maplibre-gl' ? t('settings.mapOpenFreeMapStyleHint') : t('settings.mapStyleHint')}
+          >
+            <div className="flex flex-col gap-2">
               <StyleDropdown value={mapboxStyle} provider={provider} onChange={setMapboxStyle} />
+              <input
+                id={`${fieldId}-style`}
+                type="text"
+                value={mapboxStyle}
+                onChange={(e) => setMapboxStyle(e.target.value)}
+                placeholder={defaultStyleForProvider(provider)}
+                className={CODE_INPUT}
+              />
             </div>
-            <input
-              type="text"
-              value={mapboxStyle}
-              onChange={(e) => setMapboxStyle(e.target.value)}
-              placeholder={defaultStyleForProvider(provider)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-            />
-            <p className="text-xs text-slate-400 mt-1">
-              {provider === 'maplibre-gl' ? t('settings.mapOpenFreeMapStyleHint') : t('settings.mapStyleHint')}
-            </p>
-          </div>
+          </EditorField>
 
           {provider === 'mapbox-gl' && (
-          <>
-          <div className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-            supports3d
-              ? 'border-slate-200 dark:border-slate-700'
-              : 'border-slate-200 opacity-60 dark:border-slate-700'
-          }`}>
-            <div className="flex-1">
-              <div className="text-sm font-medium text-slate-900 dark:text-white">{t('settings.map3dBuildings')}</div>
-              <div className="text-xs text-slate-500 mt-0.5">
-                {t('settings.map3dHint')}
-              </div>
-            </div>
-            <ToggleSwitch
-              on={mapbox3d && supports3d}
-              onToggle={() => { if (supports3d) setMapbox3d(!mapbox3d) }}
-            />
-          </div>
+            <>
+              <SettingRows>
+                <SettingRow
+                  label={t('settings.map3dBuildings')}
+                  hint={t('settings.map3dHint')}
+                  dimmed={!supports3d}
+                  control={
+                    <ToggleSwitch
+                      on={mapbox3d && supports3d}
+                      onToggle={() => { if (supports3d) setMapbox3d(!mapbox3d) }}
+                      label={t('settings.map3dBuildings')}
+                    />
+                  }
+                />
+                <SettingRow
+                  label={
+                    <span className="inline-flex flex-wrap items-center gap-2">
+                      <span>{t('settings.mapHighQuality')}</span>
+                      <StatusPill tone="warning">{t('settings.mapExperimental')}</StatusPill>
+                    </span>
+                  }
+                  hint={
+                    <>
+                      {t('settings.mapHighQualityHint')}{' '}
+                      <span className="text-warning">{t('settings.mapHighQualityWarning')}</span>
+                    </>
+                  }
+                  control={<ToggleSwitch on={mapboxQuality} onToggle={() => setMapboxQuality(!mapboxQuality)} label={t('settings.mapHighQuality')} />}
+                />
+              </SettingRows>
 
-          <div className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-            <div className="flex-1">
-              <div className="text-sm font-medium text-slate-900 dark:text-white flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
-                <span className="order-2 sm:order-1">{t('settings.mapHighQuality')}</span>
-                <span className="order-1 sm:order-2 text-[9px] font-semibold tracking-wide uppercase px-1.5 py-[3px] rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 leading-none">
-                  {t('settings.mapExperimental')}
-                </span>
+              <div className="rounded-[12px] border border-edge-faint bg-surface-card px-3.5 py-3">
+                <SettingsHint>
+                  <strong className="font-semibold text-content-secondary">{t('settings.mapTipLabel')}</strong> {t('settings.mapTip')}
+                </SettingsHint>
               </div>
-              <div className="text-xs text-slate-500 mt-0.5">
-                {t('settings.mapHighQualityHint')}{' '}
-                <span className="text-amber-600 dark:text-amber-400">{t('settings.mapHighQualityWarning')}</span>
-              </div>
-            </div>
-            <ToggleSwitch on={mapboxQuality} onToggle={() => setMapboxQuality(!mapboxQuality)} />
-          </div>
-
-          <div className="text-xs text-slate-400 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-            <strong className="text-slate-600 dark:text-slate-300">{t('settings.mapTipLabel')}</strong> {t('settings.mapTip')}
-          </div>
-          </>
+            </>
           )}
-        </div>
+        </>
       )}
 
-      <div>
-        <div style={{ position: 'relative', inset: 0, height: '200px', width: '100%' }}>
-          {provider !== 'leaflet' ? (
-            /* A net of its own: the preview is the one place a user flips providers
-               live, so it is the likeliest chunk to fail — and a broken preview must
-               not take the rest of the settings tab with it. */
-            <ErrorBoundary boundaryId="settings:map-preview" resetKeys={[provider]} fallback={<div className="h-full w-full bg-surface-secondary" />}>
-            <Suspense fallback={<div className="h-full w-full bg-surface-secondary animate-pulse" />}>
-              <GlMapPreview
-                provider={provider}
-                token={mapboxToken}
-                style={mapboxStyle}
-                lat={PREVIEW_CENTER[0]}
-                lng={PREVIEW_CENTER[1]}
-                // Zoom in close so the style's character (3D buildings,
-                // satellite texture, label density) is immediately visible.
-                zoom={PREVIEW_ZOOM}
-                enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
-                quality={provider === 'mapbox-gl' && mapboxQuality}
-              />
-            </Suspense>
-            </ErrorBoundary>
-          ) : (
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            React.createElement(MapView as any, {
-              places: previewPlaces,
-              dayPlaces: [],
-              route: null,
-              routeSegments: null,
-              selectedPlaceId: null,
-              onMarkerClick: null,
-              onMapClick: null,
-              onMapContextMenu: null,
-              // With the key on it, or the preview resolves the template as a
-              // keyless CARTO one and quietly shows the app default instead of
-              // the basemap being configured. The fields hold what the user is
-              // editing rather than what useTileUrl already resolved, so the key
-              // has to be put back on here.
-              tileUrl: withTileApiKey(mapTileUrl, cartoKey),
-              fitKey: null,
-              dayOrderMap: [],
-              leftWidth: 0,
-              rightWidth: 0,
-              hasInspector: false,
-            })
-          )}
-        </div>
+      <div className="relative h-[200px] w-full overflow-hidden rounded-[14px] border border-edge-faint bg-surface-tertiary">
+        {provider !== 'leaflet' ? (
+          /* A net of its own: the preview is the one place a user flips providers
+             live, so it is the likeliest chunk to fail — and a broken preview must
+             not take the rest of the settings tab with it. */
+          <ErrorBoundary boundaryId="settings:map-preview" resetKeys={[provider]} fallback={<div className="h-full w-full bg-surface-secondary" />}>
+          <Suspense fallback={<div className="h-full w-full animate-pulse bg-surface-secondary" />}>
+            <GlMapPreview
+              provider={provider}
+              token={mapboxToken}
+              style={mapboxStyle}
+              lat={PREVIEW_CENTER[0]}
+              lng={PREVIEW_CENTER[1]}
+              // Zoom in close so the style's character (3D buildings,
+              // satellite texture, label density) is immediately visible.
+              zoom={PREVIEW_ZOOM}
+              enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
+              quality={provider === 'mapbox-gl' && mapboxQuality}
+            />
+          </Suspense>
+          </ErrorBoundary>
+        ) : (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          React.createElement(MapView as any, {
+            places: previewPlaces,
+            dayPlaces: [],
+            route: null,
+            routeSegments: null,
+            selectedPlaceId: null,
+            onMarkerClick: null,
+            onMapClick: null,
+            onMapContextMenu: null,
+            // With the key on it, or the preview resolves the template as a
+            // keyless CARTO one and quietly shows the app default instead of
+            // the basemap being configured. The fields hold what the user is
+            // editing rather than what useTileUrl already resolved, so the key
+            // has to be put back on here.
+            tileUrl: withTileApiKey(mapTileUrl, cartoKey),
+            fitKey: null,
+            dayOrderMap: [],
+            leftWidth: 0,
+            rightWidth: 0,
+            hasInspector: false,
+          })
+        )}
       </div>
 
-      <button type="button"
-        onClick={saveMapSettings}
-        disabled={saving}
-        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700 disabled:bg-slate-400"
-      >
-        {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-        {t('settings.saveMap')}
-      </button>
+      <div className="flex justify-end">
+        <button type="button"
+          onClick={saveMapSettings}
+          disabled={saving}
+          className={SETTINGS_BUTTON_PRIMARY}
+          style={fs(13, 'body')}
+        >
+          {saving ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Save size={14} strokeWidth={2} />}
+          {t('settings.saveMap')}
+        </button>
+      </div>
     </Section>
   )
 }

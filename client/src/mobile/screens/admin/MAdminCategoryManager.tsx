@@ -29,7 +29,7 @@ export default function MAdminCategoryManager() {
   const toast = useToast()
   const { t } = useTranslation()
 
-  useEffect(() => { loadCategories() }, [])
+  useEffect(() => { void loadCategories() }, [])
 
   const loadCategories = async () => {
     setIsLoading(true)

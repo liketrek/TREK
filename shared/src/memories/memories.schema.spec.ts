@@ -1,8 +1,10 @@
 import {
+  PROVIDER_SELECT_ALL_MAX_PAGES,
   addTripPhotosSchema,
   createAlbumLinkSchema,
   immichSearchSchema,
   immichSettingsSchema,
+  immichTestSchema,
   setTripPhotoSharingSchema,
   synologySearchSchema,
   synologySettingsSchema,
@@ -29,6 +31,32 @@ describe('immich contracts', () => {
     }
   });
 
+  it('accepts the self-signed switch as a boolean, on save and on test (#2475)', () => {
+    for (const allow_insecure_tls of [true, false]) {
+      expect(immichSettingsSchema.safeParse({ allow_insecure_tls }).success).toBe(true);
+      expect(
+        immichTestSchema.safeParse({
+          immich_url: 'https://immich.example.org',
+          immich_api_key: 'k',
+          allow_insecure_tls,
+        }).success,
+      ).toBe(true);
+    }
+  });
+
+  it('leaves the switch optional, since an older client never sends it', () => {
+    const parsed = immichSettingsSchema.safeParse({ immich_url: 'https://immich.example.org', immich_api_key: 'k' });
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.allow_insecure_tls).toBeUndefined();
+  });
+
+  it('refuses a switch value that is not a boolean, its string included', () => {
+    for (const allow_insecure_tls of ['true', 'yes', 1, null]) {
+      expect(immichSettingsSchema.safeParse({ allow_insecure_tls }).success).toBe(false);
+      expect(immichTestSchema.safeParse({ allow_insecure_tls }).success).toBe(false);
+    }
+  });
+
   it('accepts search paging as numbers OR strings (the controller does Number(x) || fallback)', () => {
     expect(immichSearchSchema.safeParse({ page: 2, size: 50 }).success).toBe(true);
     expect(immichSearchSchema.safeParse({ page: '2', size: '50' }).success).toBe(true);
@@ -43,6 +71,12 @@ describe('immich contracts', () => {
     expect(immichSearchSchema.safeParse({ from: '2026-03-15', utc_offset_minutes: 600 }).success).toBe(true);
     expect(immichSearchSchema.safeParse({ utc_offset_minutes: '-480' }).success).toBe(true);
     expect(immichSearchSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('pins how deep the picker pages a search, which the server scan ceiling is sized from (#1587)', () => {
+    // Page 251 of 200 ends at photo 50,200. Raising it deepens the server's scan
+    // ceiling with it, since that ceiling is derived from this number.
+    expect(PROVIDER_SELECT_ALL_MAX_PAGES).toBe(250);
   });
 });
 

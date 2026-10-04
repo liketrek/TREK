@@ -24,6 +24,7 @@ export class PackingItems {
   is_private: number & Opt = 0;
   owner?: Ref<Users> | null;
   owner_id?: number | null;
+  packed_quantity?: number | null;
   packing_item_contributors = new Collection<Users>(this);
   packing_item_recipients = new Collection<Users>(this);
   packing_item_contributors_collection = new Collection<PackingItemContributors>(this);
@@ -49,6 +50,7 @@ export const PackingItemsSchema = defineEntity({
     is_private: p.integer().default(0),
     owner: () => p.manyToOne(Users).ref().nullable().hidden(),
     owner_id: p.integer().nullable().persist(false),
+    packed_quantity: p.integer().nullable(),
     packing_item_contributors: () => p.manyToMany(Users).pivotTable('packing_item_contributors').pivotEntity(() => PackingItemContributors).joinColumn('item_id').inverseJoinColumn('user_id').hidden(),
     packing_item_recipients: () => p.manyToMany(Users).pivotTable('packing_item_recipients').joinColumn('item_id').inverseJoinColumn('user_id').hidden(),
     packing_item_contributors_collection: () => p.oneToMany(PackingItemContributors).mappedBy('item').hidden(),

@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
-import { rtlTextAlias } from './rtlTextAlias.js';
+import { rtlTextAlias, plyrSpriteAlias } from './rtlTextAlias.js';
 import { readFileSync } from 'node:fs';
 
 // The version this bundle is built as, baked in at build time. The release image
@@ -51,6 +51,13 @@ export default defineConfig(({ mode }) => ({
         navigateFallback: undefined,
       },
       workbox: {
+        // The Web Push handlers (push, notificationclick, pushsubscriptionchange).
+        // Workbox writes importScripts('sw-push.js') at the top of the generated
+        // worker, in dev too. The file lives in public/: were it missing,
+        // importScripts would get no script (the server answers a missing build
+        // file with a 404) and the new worker would fail to install, which
+        // tests/unit/pwa/swPush.test.ts guards against.
+        importScripts: ['sw-push.js'],
         // Anything above this is dropped from the precache manifest. The build does
         // not fail over it, it only prints "won't be precached", so the ceiling has
         // to sit close to the real bundle or an accidental heavyweight goes
@@ -259,7 +266,7 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ].filter(Boolean),
-  resolve: { alias: [rtlTextAlias] },
+  resolve: { alias: [rtlTextAlias, plyrSpriteAlias] },
   build: {
     // Pin the output level instead of inheriting whatever the current Vite default
     // is, so a toolchain bump can't silently change which browsers still work.

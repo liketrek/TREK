@@ -18,6 +18,7 @@ export const TRANSPORT_TYPE_COLOR: Record<string, string> = {
   bicycle: '#84cc16',
   cruise: '#0ea5e9',
   ferry: '#0d9488',
+  cable_car: '#dc2626',
   transit: '#7c3aed',
   transport_other: '#6b7280',
 }

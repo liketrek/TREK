@@ -9,10 +9,10 @@ import { asPayload, num } from '../plugins/host/rpc-params';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
 import { ADDON_IDS } from '../../addons';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
-import { PhotoCaptureBackfillService } from '../memories/photo-capture-backfill.service';
 import { StorageService } from '../storage/storage.service';
 import { DemoService } from '../common/demo.service';
 import { JourneyDomainService } from './journey-domain.service';
+import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
 
 /** 10MB decoded, the same cap the file surface applies to plugin uploads. */
 const PHOTO_CONTENT_MAX = 10 * 1024 * 1024;
@@ -43,7 +43,7 @@ export class JournalRpc {
     private readonly guards: PluginGuards,
     private readonly storage: StorageService,
     private readonly allowedTypes: AllowedFileTypesService,
-    private readonly captureBackfill: PhotoCaptureBackfillService,
+    private readonly photoCapture: JourneyPhotoCaptureService,
     // SV8 (R-survivors) — Plan 3i: DemoService.isDemoUserId replaces the inline
     // env + email lookup + isDemoEmail check (3g's own JR1 conversion of the
     // SELECT onto UsersRepository.getEmail still duplicated the demo-gating
@@ -180,9 +180,10 @@ export class JournalRpc {
       await this.storage.delete('journey', filename).catch(() => {});
       throw new ForbiddenResource(`no editable journal entry ${entryId} for this user`);
     }
-    // Best-effort, exactly as the REST route does it: reads EXIF so the photo
-    // carries its capture date.
-    this.captureBackfill.schedule([photo.photo_id].filter((id): id is number => typeof id === 'number'), userId);
+    // Best-effort, exactly as the REST upload does it: reads EXIF so the photo
+    // carries its capture date. One photo per call, so no journey refresh, or a
+    // plugin importing a folder would reload every open client once per photo.
+    this.photoCapture.scheduleUpload([photo], userId);
     return photo;
   }
 

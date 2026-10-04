@@ -89,6 +89,24 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     });
   });
 
+  describe('file import enrichment (#2536)', () => {
+    const file = { buffer: Buffer.from('gpx'), originalname: 'r.gpx' } as Express.Multer.File;
+    it('hands the imported places to the Google pass only when asked', async () => {
+      const enrichImportedFilePlaces = vi.fn();
+      const s = svc({
+        importGpx: vi.fn().mockReturnValue({ places: [{ id: 1 }], count: 1, skipped: 0 }),
+        importMapFile: vi.fn().mockResolvedValue({ places: [{ id: 2 }], count: 1, summary: { totalPlacemarks: 1 } }),
+        broadcast: vi.fn(), enrichImportedFilePlaces,
+      } as Partial<PlacesService>);
+      const c = new PlacesController(s, new RuntimeEnvService(), storageStub);
+      await c.importGpx(user, '5', file, {});
+      expect(enrichImportedFilePlaces).not.toHaveBeenCalled();
+      await c.importGpx(user, '5', file, { enrich: 'true' });
+      await c.importMap(user, '5', file, { enrich: 'true' });
+      expect(enrichImportedFilePlaces.mock.calls).toEqual([['5', user.id, [{ id: 1 }]], ['5', user.id, [{ id: 2 }]]]);
+    });
+  });
+
   describe('POST /import/map', () => {
     const file = { buffer: Buffer.from('<kml/>'), originalname: 'm.kml' } as Express.Multer.File;
     it('400 without a file', async () => {
@@ -422,7 +440,9 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
 
     it('400s a website that window.open would not treat as a page', async () => {
       const canEdit = vi.fn().mockReturnValue(false);
-      for (const website of ['javascript:fetch("/api/trips")', 'data:text/html,x', 'louvre.fr', 42]) {
+      // 'louvre' rather than 'louvre.fr': a bare host is completed since #2483,
+      // a single word is still no address.
+      for (const website of ['javascript:fetch("/api/trips")', 'data:text/html,x', 'mailto:info@louvre.fr', 'louvre', 42]) {
         expect(await thrownAsync(() => ctl({ canEdit }).update(user, '5', '9', { website }))).toEqual(siteErr);
       }
       expect(canEdit).not.toHaveBeenCalled();
@@ -432,7 +452,22 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const update = vi.fn().mockReturnValue({ id: 9 });
       for (const website of ['https://louvre.fr', 'http://pension.at', '', null]) {
         expect(await ctl({ update } as Partial<PlacesService>).update(user, '5', '9', { website })).toEqual({ place: { id: 9 } });
+        expect(update).toHaveBeenLastCalledWith('5', '9', { website }, undefined);
       }
+    });
+
+    // #2483: the value that reaches the service is the parsed one, on both write
+    // routes. The MCP tools parse the same schema (tools-places.test.ts), so an
+    // agent and the web app store the same string for the same input.
+    it('PLACES-CTRL-2483-01: hands the service a bare host with https, on create and on update', async () => {
+      const site = 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët';
+      const create = vi.fn().mockReturnValue({ id: 9 });
+      await ctl({ create } as Partial<PlacesService>).create(user, '5', { name: 'Chapelle', website: site });
+      expect(create).toHaveBeenCalledWith('5', { name: 'Chapelle', website: `https://${site}` });
+
+      const update = vi.fn().mockReturnValue({ id: 9 });
+      await ctl({ update } as Partial<PlacesService>).update(user, '5', '9', { website: '//www.example.fr' });
+      expect(update).toHaveBeenCalledWith('5', '9', { website: 'https://www.example.fr' }, undefined);
     });
   });
 
@@ -560,5 +595,24 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
         else process.env.DEMO_MODE = prev;
       }
     });
+  });
+});
+
+describe('PUT /:id/image/from-file (#1242)', () => {
+  it('maps every refusal to its status and broadcasts a success', async () => {
+    const make = (result: unknown, extra: Partial<PlacesService> = {}) =>
+      new PlacesController(svc({ setImageFromFile: vi.fn().mockResolvedValue(result), ...extra } as Partial<PlacesService>), new RuntimeEnvService(), storageStub);
+    expect(await thrownAsync(() => make('not_found').imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({ status: 404, body: { error: 'File not found' } });
+    expect(await thrownAsync(() => make('not_image').imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({ status: 400, body: { error: 'Only jpg, png, gif, webp images allowed' } });
+    expect(await thrownAsync(() => make('too_large').imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({ status: 400, body: { error: 'Image too large' } });
+    expect(await thrownAsync(() => make(null).imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({ status: 404, body: { error: 'Place not found' } });
+    const broadcast = vi.fn(); const onUpdated = vi.fn();
+    expect(await make({ id: 9 }, { broadcast, onUpdated } as Partial<PlacesService>).imageFromFile(user, '5', '9', { file_id: 3 }, 'sock')).toEqual({ place: { id: 9 } })
+    expect(broadcast).toHaveBeenCalledWith('5', 'place:updated', { place: { id: 9 } }, 'sock');
+    expect(onUpdated).toHaveBeenCalledWith(9);
+  });
+
+  it('403 without place_edit', async () => {
+    expect(await thrownAsync(() => new PlacesController(svc({ canEdit: vi.fn().mockReturnValue(false) }), new RuntimeEnvService(), storageStub).imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({ status: 403, body: { error: 'No permission' } });
   });
 });

@@ -101,12 +101,14 @@ import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
 import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
 import { DocumentProviders } from '../../../src/db/entities/DocumentProviders.entity';
 import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
+import { PushSubscriptions } from '../../../src/db/entities/PushSubscriptions.entity';
 import type { McpTokensRepository } from '../../../src/db/repositories/McpTokens.repository';
 import { budgetRepoArgs } from '../../helpers/budget-repos';
 import { createTestShareTokensRepo, createTestPluginsRepo, createTestPluginUserErasureQueueRepo } from '../../helpers/share-repos';
 import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
 import { createTestJourneysRepo, createTestJourneyEntriesRepo, createTestJourneyContributorsRepo } from '../../helpers/journey-repos';
 import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
+import { createTestPushSubscriptionsRepo } from '../../helpers/notifications-repos';
 
 const realtime = new RealtimeService();
 
@@ -131,6 +133,7 @@ beforeAll(async () => {
     permissions, new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)), webauthn, userCleanup, new MailerService(await createTestUsersRepo(testDb), await createTestSettingsRepo(testDb), await createTestAppSettingsRepo(testDb)), new EphemeralTokenService(), new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)), await createTestUnitOfWork(testDb),
     await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestInviteTokensRepo(testDb), await createTestMcpTokensRepo(testDb),
     await createTestOauthTokensRepo(testDb), await createTestWebauthnCredentialsRepo(testDb), await createTestPasswordResetTokensRepo(testDb),
+    await createTestPushSubscriptionsRepo(testDb),
   );
   const t = await sharedTestOrm(testDb);
   mcpTokensRepo = await createTestMcpTokensRepo(testDb);
@@ -148,6 +151,7 @@ beforeAll(async () => {
   await createTestTripsRepo(testDb),
   await createTestPlacesRepo(testDb),
   t.repo(TripFiles),
+  t.repo(PushSubscriptions),
   await createTestAddonsService(testDb),
   new PasskeyService(auth, webauthn, await createTestUnitOfWork(testDb), await createTestWebauthnCredentialsRepo(testDb), await createTestWebauthnChallengesRepo(testDb), await createTestUsersRepo(testDb)),
   auth,
@@ -704,6 +708,20 @@ const pv = (id: number): number =>
 const mcpTokenCount = (id: number): number =>
   (testDb.prepare('SELECT COUNT(*) AS n FROM mcp_tokens WHERE user_id = ?').get(id) as { n: number }).n;
 
+const addPushDevice = (userId: number, endpoint: string): void => {
+  testDb
+    .prepare(
+      "INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, vapid_public_key) VALUES (?, ?, 'p', 'a', 'k')",
+    )
+    .run(userId, endpoint);
+};
+
+const pushDeviceCount = (id: number): number =>
+  (testDb.prepare('SELECT COUNT(*) AS n FROM push_subscriptions WHERE user_id = ?').get(id) as { n: number }).n;
+
+const passwordHash = (id: number): string =>
+  (testDb.prepare('SELECT password_hash FROM users WHERE id = ?').get(id) as { password_hash: string }).password_hash;
+
 describe('admin password reset revokes what an intruder already holds', () => {
   it('ADMIN-SVC-080 — setting a password bumps password_version, so existing cookies stop working', async () => {
     // An admin sets somebody else's password for one reason: the account is
@@ -727,15 +745,49 @@ describe('admin password reset revokes what an intruder already holds', () => {
     expect(mcpTokenCount(user.id)).toBe(0);
   });
 
+  it('ADMIN-SVC-081b: and forgets the push devices, which outlive every session, of that user only', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    addPushDevice(user.id, 'https://fcm.googleapis.com/fcm/send/intruder');
+    addPushDevice(user.id, 'https://web.push.apple.com/owner');
+    addPushDevice(other.id, 'https://fcm.googleapis.com/fcm/send/bystander');
+
+    await updateUser(String(user.id), { password: 'ANewStrongPass123!' });
+
+    expect(pushDeviceCount(user.id)).toBe(0);
+    expect(pushDeviceCount(other.id)).toBe(1);
+  });
+
+  it('ADMIN-SVC-081c: drops them in the same transaction as the password, so a failure leaves the account as it was', async () => {
+    const { user } = createUser(testDb);
+    const before = pv(user.id);
+    const hashBefore = passwordHash(user.id);
+    testDb.prepare("INSERT INTO mcp_tokens (user_id, token_hash, token_prefix, name) VALUES (?, 'hash', 'trek_ab', 'cli')").run(user.id);
+    addPushDevice(user.id, 'https://fcm.googleapis.com/fcm/send/intruder');
+    testDb.exec("CREATE TRIGGER boom BEFORE DELETE ON push_subscriptions BEGIN SELECT RAISE(ABORT, 'boom'); END");
+    try {
+      await expect(updateUser(String(user.id), { password: 'ANewStrongPass123!' })).rejects.toThrow('boom');
+    } finally {
+      testDb.exec('DROP TRIGGER boom');
+    }
+
+    expect(pv(user.id)).toBe(before);
+    expect(passwordHash(user.id)).toBe(hashBefore);
+    expect(mcpTokenCount(user.id)).toBe(1);
+    expect(pushDeviceCount(user.id)).toBe(1);
+  });
+
   it('ADMIN-SVC-082 — renaming a user touches neither, so an ordinary edit stays ordinary', async () => {
     const { user } = createUser(testDb);
     const before = pv(user.id);
     testDb.prepare("INSERT INTO mcp_tokens (user_id, token_hash, token_prefix, name) VALUES (?, 'hash', 'trek_ab', 'cli')").run(user.id);
+    addPushDevice(user.id, 'https://fcm.googleapis.com/fcm/send/renamed');
 
     await updateUser(String(user.id), { username: 'renamed' });
 
     expect(pv(user.id)).toBe(before);
     expect(mcpTokenCount(user.id)).toBe(1);
+    expect(pushDeviceCount(user.id)).toBe(1);
   });
 });
 

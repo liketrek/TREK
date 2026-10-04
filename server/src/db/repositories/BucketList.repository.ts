@@ -16,6 +16,7 @@ export interface BucketListRow {
   target_date: string | null;
   visited_at: string | null;
   visited_source: string | null;
+  region_code: string | null;
 }
 
 /**
@@ -23,7 +24,7 @@ export interface BucketListRow {
  * `VisitedCountriesRepository`'s own docstring explains why one shared
  * shape doesn't work for both reads and writes): the full row for
  * {@link listForUser}/{@link findById}/{@link findForUser}'s `SELECT *`;
- * the exact 7-column legacy `INSERT` list for {@link insertItem} (`id`,
+ * the exact 8-column legacy `INSERT` list for {@link insertItem} (`id`,
  * `created_at`, `visited_at`, `visited_source` are never bound —
  * `created_at` via the schema's `DEFAULT CURRENT_TIMESTAMP`, the rest via
  * SQLite's ordinary "omitted nullable column ⇒ NULL"); `id`/`user_id` plus
@@ -35,7 +36,7 @@ interface BucketListReadKyselyDB {
   bucket_list: BucketListRow;
 }
 interface BucketListInsertKyselyDB {
-  bucket_list: { user_id: number; name: string; lat: number | null; lng: number | null; country_code: string | null; notes: string | null; target_date: string | null };
+  bucket_list: { user_id: number; name: string; lat: number | null; lng: number | null; country_code: string | null; notes: string | null; target_date: string | null; region_code: string | null };
 }
 interface BucketListWriteKyselyDB {
   bucket_list: { id: number; user_id: number; name: string; notes: string | null; lat: number | null; lng: number | null; country_code: string | null; target_date: string | null };
@@ -129,7 +130,7 @@ export class BucketListRepository extends TrekRepository<BucketList> {
     return row?.id ?? null;
   }
 
-  /** AT32 (`createBucketItem`) — `INSERT INTO bucket_list (user_id, name, lat, lng, country_code, notes, target_date) VALUES (?, ?, ?, ?, ?, ?, ?)`. Returns the new row's id. */
+  /** AT32 (`createBucketItem`) — `INSERT INTO bucket_list (user_id, name, lat, lng, country_code, notes, target_date, region_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`. Returns the new row's id. */
   async insertItem(row: {
     user_id: number;
     name: string;
@@ -138,6 +139,7 @@ export class BucketListRepository extends TrekRepository<BucketList> {
     country_code: string | null;
     notes: string | null;
     target_date: string | null;
+    region_code: string | null;
   }): Promise<number> {
     const result = await this.insertDb().insertInto('bucket_list').values(row).executeTakeFirstOrThrow();
     return Number(result.insertId);

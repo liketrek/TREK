@@ -32,6 +32,7 @@ import { DocumentProviderFieldsSchema } from './DocumentProviderFields.entity';
 import { DocumentProvidersSchema } from './DocumentProviders.entity';
 import { DocumentSyncItemsSchema } from './DocumentSyncItems.entity';
 import { FileLinksSchema } from './FileLinks.entity';
+import { GoogleApiUsageSchema } from './GoogleApiUsage.entity';
 import { GooglePlacePhotoMetaSchema } from './GooglePlacePhotoMeta.entity';
 import { HiddenCountriesSchema } from './HiddenCountries.entity';
 import { HiddenRegionsSchema } from './HiddenRegions.entity';
@@ -81,6 +82,7 @@ import { PluginSettingsFieldsSchema } from './PluginSettingsFields.entity';
 import { PluginUserConfigSchema } from './PluginUserConfig.entity';
 import { PluginUserErasureQueueSchema } from './PluginUserErasureQueue.entity';
 import { PluginsSchema } from './Plugins.entity';
+import { PushSubscriptionsSchema } from './PushSubscriptions.entity';
 import { ReservationDayPositionsSchema } from './ReservationDayPositions.entity';
 import { ReservationEndpointsSchema } from './ReservationEndpoints.entity';
 import { ReservationTravelersSchema } from './ReservationTravelers.entity';
@@ -159,6 +161,7 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   DocumentProvidersSchema,
   DocumentSyncItemsSchema,
   FileLinksSchema,
+  GoogleApiUsageSchema,
   GooglePlacePhotoMetaSchema,
   HiddenCountriesSchema,
   HiddenRegionsSchema,
@@ -208,6 +211,7 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   PluginUserConfigSchema,
   PluginUserErasureQueueSchema,
   PluginsSchema,
+  PushSubscriptionsSchema,
   ReservationDayPositionsSchema,
   ReservationEndpointsSchema,
   ReservationTravelersSchema,

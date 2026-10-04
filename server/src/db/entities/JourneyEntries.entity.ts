@@ -37,6 +37,7 @@ export class JourneyEntries {
   dismissed: number & Opt = 0;
   country_code?: string | null;
   source_assignment_id?: number | null;
+  is_draft: number & Opt = 0;
   journey_entry_photos_collection = new Collection<JourneyEntryPhotos>(this);
 }
 
@@ -87,6 +88,7 @@ export const JourneyEntriesSchema = defineEntity({
     dismissed: p.integer().default(0),
     country_code: p.text().nullable(),
     source_assignment_id: p.integer().nullable(),
+    is_draft: p.integer().default(0),
     journey_entry_photos_collection: () => p.oneToMany(JourneyEntryPhotos).mappedBy('entry').hidden(),
   },
 });

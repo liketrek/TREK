@@ -1112,3 +1112,75 @@ describe('UsersRepository — admin (AD1-AD17) read methods, full-key parity', (
     expect(await users.findIdEmailMfaEnabled(999999)).toBeNull();
   });
 });
+
+// IM4/IM5 (`ImmichService.saveImmichSettings`, #2475): the self-signed switch
+// is decided INSIDE the UPDATE by `coalesceOverrideWhileSame`, the way the
+// legacy CASE did it. These pin the stored values for every branch against
+// the legacy statement's own text, and that the write stays one statement —
+// a read-then-write would be an interleaving window the legacy SQL never had.
+describe('UsersRepository — Immich settings write (IM4/IM5)', () => {
+  const read = (id: number) =>
+    testDb.prepare('SELECT immich_url, immich_api_key, immich_allow_insecure_tls FROM users WHERE id = ?').get(id) as {
+      immich_url: string | null; immich_api_key: string | null; immich_allow_insecure_tls: number;
+    };
+
+  it('USERSREPO-085 (IM4): setImmichSettings keeps the stored switch on a null value while the URL stays the same, and starts a new URL off', async () => {
+    const { user } = createUser(testDb);
+    testDb.prepare('UPDATE users SET immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = 1 WHERE id = ?').run('https://nas.local', 'enc-old', user.id);
+
+    // An older client that does not know the switch cannot clear it by saving.
+    await users.setImmichSettings(user.id, 'https://nas.local', 'enc-new', null);
+    expect(read(user.id)).toEqual({ immich_url: 'https://nas.local', immich_api_key: 'enc-new', immich_allow_insecure_tls: 1 });
+
+    // Sent explicitly, the value wins over the stored one.
+    await users.setImmichSettings(user.id, 'https://nas.local', 'enc-new', 0);
+    expect(read(user.id).immich_allow_insecure_tls).toBe(0);
+    await users.setImmichSettings(user.id, 'https://nas.local', 'enc-new', 1);
+    expect(read(user.id).immich_allow_insecure_tls).toBe(1);
+
+    // The switch trusts one server: another URL without it starts off ...
+    await users.setImmichSettings(user.id, 'https://photos.example.com', 'enc-2', null);
+    expect(read(user.id)).toEqual({ immich_url: 'https://photos.example.com', immich_api_key: 'enc-2', immich_allow_insecure_tls: 0 });
+    // ... and with it, holds for that server.
+    await users.setImmichSettings(user.id, 'https://other.example.com', 'enc-3', 1);
+    expect(read(user.id)).toEqual({ immich_url: 'https://other.example.com', immich_api_key: 'enc-3', immich_allow_insecure_tls: 1 });
+
+    // A first connection (no stored URL) without the switch starts off too.
+    testDb.prepare('UPDATE users SET immich_url = NULL, immich_allow_insecure_tls = 1 WHERE id = ?').run(user.id);
+    await users.setImmichSettings(user.id, 'https://nas.local', 'enc-4', null);
+    expect(read(user.id)).toEqual({ immich_url: 'https://nas.local', immich_api_key: 'enc-4', immich_allow_insecure_tls: 0 });
+  });
+
+  it('USERSREPO-086 (IM4): setImmichSettings matches the legacy CASE statement across every (stored url, stored switch, new url, value) combination, in ONE statement', async () => {
+    const { user } = createUser(testDb);
+    const seed = testDb.prepare('UPDATE users SET immich_url = ?, immich_api_key = NULL, immich_allow_insecure_tls = ? WHERE id = ?');
+    const legacy = testDb.prepare(
+      `UPDATE users SET immich_url = ?, immich_api_key = ?,
+         immich_allow_insecure_tls = CASE WHEN immich_url IS ? THEN COALESCE(?, immich_allow_insecure_tls) ELSE COALESCE(?, 0) END
+       WHERE id = ?`,
+    );
+    for (const storedUrl of [null, 'https://nas.local']) {
+      for (const storedFlag of [0, 1]) {
+        for (const newUrl of ['https://nas.local', 'https://photos.example.com']) {
+          for (const value of [null, 0, 1]) {
+            seed.run(storedUrl, storedFlag, user.id);
+            legacy.run(newUrl, 'enc-key', newUrl, value, value, user.id);
+            const expected = read(user.id);
+
+            seed.run(storedUrl, storedFlag, user.id);
+            const { queries } = await withQueryCount(() => users.setImmichSettings(user.id, newUrl, 'enc-key', value));
+            expect(queries).toBe(1);
+            expect(read(user.id)).toEqual(expected);
+          }
+        }
+      }
+    }
+  });
+
+  it('USERSREPO-087 (IM5): clearImmichSettings nulls the URL, stores the key it is handed and always turns the switch off', async () => {
+    const { user } = createUser(testDb);
+    testDb.prepare('UPDATE users SET immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = 1 WHERE id = ?').run('https://nas.local', 'enc-old', user.id);
+    await users.clearImmichSettings(user.id, null);
+    expect(read(user.id)).toEqual({ immich_url: null, immich_api_key: null, immich_allow_insecure_tls: 0 });
+  });
+});

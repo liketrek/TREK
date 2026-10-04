@@ -18,6 +18,7 @@ export class BucketList {
   target_date?: string | null;
   visited_at?: string | null;
   visited_source?: string | null;
+  region_code?: string | null;
   dawarich_visit_suggestions_collection = new Collection<DawarichVisitSuggestions>(this);
   dawarich_visit_suggestions_collection1 = new Collection<DawarichVisitSuggestions>(this);
 }
@@ -38,6 +39,7 @@ export const BucketListSchema = defineEntity({
     target_date: p.text().nullable().defaultRaw(`NULL`),
     visited_at: p.text().nullable(),
     visited_source: p.text().nullable(),
+    region_code: p.text().nullable(),
     dawarich_visit_suggestions_collection: () => p.oneToMany(DawarichVisitSuggestions).mappedBy('acceptedBucketListItem').hidden(),
     dawarich_visit_suggestions_collection1: () => p.oneToMany(DawarichVisitSuggestions).mappedBy('matchedBucketListItem').hidden(),
   },

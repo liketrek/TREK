@@ -1,8 +1,11 @@
-import { BedDouble, Car, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, StickyNote, Ticket, X, Zap } from 'lucide-react'
+import { BedDouble, ChevronDown, ChevronUp, Clock, Footprints, Pencil, Route, StickyNote, Ticket, X, Zap } from 'lucide-react'
+import { routeModeIcon } from '../../../../components/Planner/routeModes'
 import type { ReactNode, MouseEvent, CSSProperties } from 'react'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import MarkdownText from '../../../../components/shared/MarkdownText'
+import { BlurredCode } from '../../../../components/shared/BookingCode'
+import { useBlurBookingCodes } from '../../../../hooks/useBlurBookingCodes'
 import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { noteSurface } from '../../../../components/Planner/noteSurface'
 import { getDisplayTimeForDay, getSpanPhase } from '../../../../utils/dayMerge'
@@ -113,6 +116,7 @@ function AvatarRing({ children, className = '', style }: { children: ReactNode; 
 }
 
 const TIME_CHIP = 'flex-none whitespace-nowrap rounded-[6px] bg-[color:var(--m-ic)] px-[6px] py-px font-geist text-[0.65625rem] font-semibold'
+const ROW_CODE = 'flex-none whitespace-nowrap font-geist text-[0.71875rem] text-m-muted'
 
 // ── b3) Place row ────────────────────────────────────────────────────────────
 
@@ -124,24 +128,30 @@ export function PlaceRow({ assignment, fullPlace, linkedReservations, chrome, re
   reorder: ReactNode
   drag?: RowDrag
   onOpen: () => void
-  onEdit: () => void
+  onEdit?: () => void
   onRemove: () => void
 }) {
   const { t } = chrome
   const place = assignment.place
   const CatIcon = getCategoryIcon(place?.category?.icon)
   const time = fmtTime(place?.place_time, chrome)
+  const blurCodes = useBlurBookingCodes()
   // One line per booking on the stop (#2201). A single one keeps the bare
   // status line it always had; once there are several, the title tells them
   // apart, since "Confirmed" twice over says nothing.
-  const bookingLines = linkedReservations.map(r => ({
-    id: r.id,
-    text: [
+  // A code under the blur setting cannot stay inside the line, because the
+  // first line goes through the Markdown caption and that only takes a string.
+  // It is kept apart as `code` and drawn blurred right after the line.
+  const bookingLines = linkedReservations.map(r => {
+    const code = r.confirmation_number ? `#${r.confirmation_number}` : ''
+    const parts = [
       linkedReservations.length > 1 ? r.title : '',
       r.status === 'confirmed' ? t('dayplan.confirmed') : t('dayplan.pendingRes'),
-      r.confirmation_number ? `#${r.confirmation_number}` : '',
-    ].filter(Boolean).join(' · '),
-  }))
+    ]
+    return blurCodes && code
+      ? { id: r.id, text: `${parts.filter(Boolean).join(' · ')} ·`, code }
+      : { id: r.id, text: [...parts, code].filter(Boolean).join(' · '), code: '' }
+  })
   const sub = bookingLines.length > 0
     ? bookingLines[0].text
     : place?.address || place?.description || ''
@@ -191,11 +201,13 @@ export function PlaceRow({ assignment, fullPlace, linkedReservations, chrome, re
           <div className="mt-[2px] flex min-w-0 items-center gap-1.5">
             {time && <span className={TIME_CHIP}>{time}</span>}
             {sub && <MarkdownText clamp className="min-w-0 font-geist text-[0.71875rem] text-m-muted">{sub}</MarkdownText>}
+            {bookingLines[0]?.code && <BlurredCode interactive={false} className={ROW_CODE}>{bookingLines[0].code}</BlurredCode>}
           </div>
         )}
         {bookingLines.slice(1).map(line => (
           <div key={line.id} className="mt-[2px] flex min-w-0 items-center gap-1.5">
             <span className="min-w-0 truncate font-geist text-[0.71875rem] text-m-muted">{line.text}</span>
+            {line.code && <BlurredCode interactive={false} className={ROW_CODE}>{line.code}</BlurredCode>}
           </div>
         ))}
         {assignment.notes && (
@@ -210,9 +222,11 @@ export function PlaceRow({ assignment, fullPlace, linkedReservations, chrome, re
       </div>
       {chrome.editing && (
         <span className="flex flex-none items-center gap-1.5">
-          <ActionCircle label={t('common.edit')} onClick={onEdit}>
-            <Pencil size={14} strokeWidth={2} />
-          </ActionCircle>
+          {onEdit && (
+            <ActionCircle label={t('common.edit')} onClick={onEdit}>
+              <Pencil size={14} strokeWidth={2} />
+            </ActionCircle>
+          )}
           <ActionCircle label={t('planner.removeFromDay')} onClick={onRemove}>
             <X size={14} strokeWidth={2} />
           </ActionCircle>
@@ -438,7 +452,7 @@ export function TransitRow({ res, transit, dayId, open, chrome, reorder, drag, o
 /** The connector line of a routed leg — the leg's own mode (#1281) picks icon and duration. */
 function TravelLine({ seg }: { seg: RouteSegment }) {
   const mode = seg.mode
-  const Icon = mode === 'walking' ? Footprints : mode?.startsWith('plugin:') ? Zap : Car
+  const Icon = routeModeIcon(mode)
   const durationText = seg.durationText ?? (mode === 'walking' ? seg.walkingText : seg.drivingText)
   return (
     <>
@@ -537,7 +551,7 @@ export function NoteRow({ note, chrome, reorder, drag, onEdit }: {
   const { time: noteTime, detail } = splitNoteTime(note.time)
   const time = noteTime ? fmtTime(noteTime, chrome) : ''
   const [title, ...rest] = note.text.split('\n')
-  const titleExtra = rest.join(' ').trim()
+  const titleExtra = rest.join('\n').trim()
 
   return (
     <div
@@ -547,10 +561,10 @@ export function NoteRow({ note, chrome, reorder, drag, onEdit }: {
       // A link in the rendered body keeps its own tap; the rest of the row edits.
       onClick={chrome.editing ? (e => { if (!(e.target as HTMLElement).closest('a')) onEdit() }) : undefined}
       onKeyDown={chrome.editing ? (e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onEdit() } }) : undefined}
-      className={`my-[2px] flex items-center gap-2.5 ${chrome.editing ? 'cursor-pointer' : ''} ${dragClass(drag)}`}
+      className={`my-[2px] flex items-start gap-2.5 ${chrome.editing ? 'cursor-pointer' : ''} ${dragClass(drag)}`}
     >
       {!chrome.editing && (
-        <AvatarRing style={note.color ? { background: skin.iconBackground, borderColor: skin.border } : undefined}>
+        <AvatarRing className="mt-[2px]" style={note.color ? { background: skin.iconBackground, borderColor: skin.border } : undefined}>
           <Icon size={14} strokeWidth={2} style={{ color: skin.iconColor }} />
         </AvatarRing>
       )}
@@ -558,20 +572,20 @@ export function NoteRow({ note, chrome, reorder, drag, onEdit }: {
         className="min-w-0 flex-1 rounded-[13px] border px-[11px] py-[7px]"
         style={{ borderColor: skin.border, background: note.color ? skin.background : 'var(--m-ic)' }}
       >
-        <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 items-start gap-1.5">
           {time && <span className={TIME_CHIP}>{time}</span>}
-          <span className="min-w-0 text-[0.875rem] font-semibold">{title}</span>
+          <span className="min-w-0 text-[0.875rem] [overflow-wrap:anywhere] font-semibold">{title}</span>
         </div>
         {titleExtra && (
-          <div className="mt-px font-geist text-[0.71875rem] leading-[1.4] text-m-muted">{titleExtra}</div>
+          <MarkdownText className="mt-px font-geist text-[0.71875rem] leading-[1.4] text-m-muted">{titleExtra}</MarkdownText>
         )}
         {detail && (
           // Rendered, not raw: a note written with the formatting bar would
           // otherwise read as `**asterisks**` on the phone.
-          <MarkdownText className="mt-px font-geist text-[0.71875rem] leading-[1.45] text-m-muted [overflow-wrap:anywhere]">{detail}</MarkdownText>
+          <MarkdownText className="mt-px font-geist text-[0.71875rem] leading-[1.45] text-m-muted">{detail}</MarkdownText>
         )}
       </div>
-      {chrome.editing && <span className="flex flex-none items-center gap-1.5">{reorder}</span>}
+      {chrome.editing && <span className="mt-[2px] flex flex-none items-center gap-1.5">{reorder}</span>}
     </div>
   )
 }

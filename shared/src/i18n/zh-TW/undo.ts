@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': '撤銷：{action}',
   'undo.assignPlace': '地點已分配至某天',
   'undo.removeAssignment': '地點已從某天移除',
+  'undo.clearDay': '已清空當天',
   'undo.reorder': '地點已重新排序',
   'undo.optimize': '路線已最佳化',
   'undo.deletePlace': '地點已刪除',
@@ -19,6 +20,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Naver 地圖匯入',
   'undo.addPlace': '地點已新增',
   'undo.done': '已撤銷：{action}',
+  'undo.failed': '無法復原：{action}',
   'undo.importBooking': '匯入訂位確認',
 };
 export default undo;

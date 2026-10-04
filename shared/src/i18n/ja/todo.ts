@@ -11,6 +11,7 @@ const todo: TranslationStrings = {
   'todo.uncategorized': 'リストなし',
   'todo.namePlaceholder': 'タスク名',
   'todo.descriptionPlaceholder': '説明（任意）',
+  'todo.editDescription': 'クリックして編集、リンクは直接開きます',
   'todo.unassigned': '未割り当て',
   'todo.noCategory': 'リストなし',
   'todo.hasDescription': '説明あり',

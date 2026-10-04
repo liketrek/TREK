@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { resolvePackedState, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
@@ -311,7 +311,7 @@ export class PackingService {
   async updateItem(
     tripId: string | number,
     id: number,
-    data: { name?: string; checked?: number; category?: string; weight_grams?: number | null; bag_id?: number | null; quantity?: number; is_private?: boolean },
+    data: { name?: string; checked?: number; category?: string; weight_grams?: number | null; bag_id?: number | null; quantity?: number; packed_quantity?: number | null; is_private?: boolean },
     bodyKeys: string[],
     ifMatch?: string,
     actingUserId?: number,
@@ -337,13 +337,22 @@ export class PackingService {
     // the visibility filter still has someone to match (#858).
     const claimOwner = bodyKeys.includes('is_private') && !!data.is_private && item.owner_id == null && actingUserId != null;
 
+    // The box and the packed count (#2296) are settled together, so a count
+    // that reaches the quantity ticks the item and a tick clears the count.
+    const quantity = bodyKeys.includes('quantity') ? Math.max(1, Math.min(999, Number(data.quantity) || 1)) : (item.quantity || 1);
+    const packed = resolvePackedState(
+      { checked: item.checked ? 1 : 0, packed_quantity: item.packed_quantity ?? null },
+      { bodyKeys, checked: data.checked, packed_quantity: data.packed_quantity, quantity },
+    );
+
     await this.itemsRepo.update(id, {
       name: [!!data.name, data.name || null],
-      checked: [data.checked !== undefined, data.checked ? 1 : 0],
+      checked: [true, packed.checked],
+      packed_quantity: [true, packed.packed_quantity],
       category: [!!data.category, data.category || null],
       weight_grams: [bodyKeys.includes('weight_grams'), data.weight_grams ?? null],
       bag_id: [bodyKeys.includes('bag_id'), data.bag_id ?? null],
-      quantity: [bodyKeys.includes('quantity'), Math.max(1, Math.min(999, Number(data.quantity) || 1))],
+      quantity: [true, quantity],
       is_private: [bodyKeys.includes('is_private'), data.is_private ? 1 : 0],
       owner_id: [claimOwner, actingUserId ?? null],
     });
@@ -464,6 +473,20 @@ export class PackingService {
     return item;
   }
 
+  /**
+   * The trip's bag called `name`, created with the next colour when there is
+   * none yet. Shared by the bulk import and template apply (#1131), which both
+   * carry bags by name. Runs inside the caller's transaction.
+   */
+  private async bagIdByName(tripId: string | number, name: string | null | undefined): Promise<number | null> {
+    const bagName = name?.trim();
+    if (!bagName) return null;
+    const existing = await this.bagsRepo.byNameInTrip(tripId, bagName);
+    if (existing) return existing.id;
+    const bagCount = await this.bagsRepo.countForTrip(tripId);
+    return await this.bagsRepo.insertMinimal(tripId, bagName, BAG_COLORS[bagCount % BAG_COLORS.length]);
+  }
+
   // ── Bulk Import ────────────────────────────────────────────────────────────
 
   async bulkImport(tripId: string | number, items: ImportItem[], ownerId?: number) {
@@ -478,18 +501,7 @@ export class PackingService {
         const checked = item.checked ? 1 : 0;
         const weight = item.weight_grams ? Number.parseInt(String(item.weight_grams)) || null : null;
 
-        // Resolve bag by name if provided
-        let bagId: number | null = null;
-        if (item.bag?.trim()) {
-          const bagName = item.bag.trim();
-          const existing = await this.bagsRepo.byNameInTrip(tripId, bagName);
-          if (existing) {
-            bagId = existing.id;
-          } else {
-            const bagCount = await this.bagsRepo.countForTrip(tripId);
-            bagId = await this.bagsRepo.insertMinimal(tripId, bagName, BAG_COLORS[bagCount % BAG_COLORS.length]);
-          }
-        }
+        const bagId = await this.bagIdByName(tripId, item.bag);
 
         const qty = Math.max(1, Math.min(999, Number(item.quantity) || 1));
         const newId = await this.itemsRepo.insertItem({
@@ -678,8 +690,12 @@ export class PackingService {
     const added: any[] = [];
     await this.uow.transactional(async () => {
       for (const ti of templateItems) {
+        // Weight, count and bag ride along since #1131; a bag the trip lacks is
+        // created, the way the import does it.
+        const bagId = await this.bagIdByName(tripId, ti.bag_name);
         const newId = await this.itemsRepo.insertFromTemplate({
           trip_id: tripId, name: ti.name, category: ti.category, sort_order: sortOrder++, is_private: isPrivate, owner_id: owner,
+          weight_grams: ti.weight_grams ?? null, quantity: Math.max(1, ti.quantity), bag_id: bagId,
         });
         added.push(await this.itemsRepo.findById(newId));
       }
@@ -713,7 +729,10 @@ export class PackingService {
       for (const item of items) {
         const catId = catIdMap.get(item.category || 'Other')!;
         const order = itemsByCategory.get(item.category || 'Other') || 0;
-        await this.templateItemsRepo.insertTemplateItem(catId, item.name, order);
+        await this.templateItemsRepo.insertTemplateItem({
+          category_id: catId, name: item.name, sort_order: order,
+          weight_grams: item.weight_grams ?? null, quantity: Math.max(1, item.quantity), bag_name: item.bag_name ?? null,
+        });
         itemsByCategory.set(item.category || 'Other', order + 1);
       }
       return id;
@@ -845,7 +864,7 @@ export class PackingService {
     const cat = await this.templateCategoriesRepo.findInTemplate(catId, templateId);
     if (!cat) return { error: 'Category not found', status: 404 };
     const maxOrder = await this.templateItemsRepo.maxSortOrder(catId);
-    const newId = await this.templateItemsRepo.insertTemplateItem(catId, name.trim(), (maxOrder ?? -1) + 1);
+    const newId = await this.templateItemsRepo.insertTemplateItem({ category_id: catId, name: name.trim(), sort_order: (maxOrder ?? -1) + 1 });
     return { item: await this.templateItemsRepo.findById(newId) };
   }
 

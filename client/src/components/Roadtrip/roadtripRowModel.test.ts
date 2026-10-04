@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  arrivingReroutable,
+  bookendReading,
   destinationCount,
   firstStopOfPlace,
   legReroutable,
+  movableWithin,
   pickWarning,
+  resumeFoldsIntoBookend,
   roadtripRows,
   stageClocks,
   stageEnd,
@@ -13,9 +17,9 @@ import {
   type StopRow,
 } from './roadtripRowModel'
 import type { ScheduleEntry, ScheduleWarning } from './roadtripModel'
-import type { RoadtripDay, RoadtripStop, RouteSegment } from '@trek/shared/roadtrip'
+import type { BookendPhase, NightBookend, RoadtripDay, RoadtripStop, RouteSegment } from '@trek/shared/roadtrip'
 
-// FE-RTROW-001 to FE-RTROW-044
+// FE-RTROW-001 to FE-RTROW-067
 
 function stop(name: string, over: Partial<RoadtripStop> = {}): RoadtripStop {
   return {
@@ -227,19 +231,47 @@ describe('roadtripRows stop detail', () => {
   })
 
   it('FE-RTROW-011: a stop shows only its own findings, and only the strongest of them', () => {
+    // Where each finding really comes from: being late from the schedule, the drive's
+    // limits from `driveWarnings`.
     const rows = stopRows(
       roadtripRows(
         day([stop('A'), stop('B')], {
           driveWarnings: [
             { index: 0, code: 'overnight' },
             { index: 1, code: 'leg', overMinutes: 20 },
-            { index: 1, code: 'late', minutes: 15 },
           ],
+          schedule: { entries: [entry(null), entry(null)], warnings: [{ index: 1, code: 'late', minutes: 15 }] },
         }),
       ),
     )
     expect(rows[0].warning).toEqual({ index: 0, code: 'overnight' })
     expect(rows[1].warning).toEqual({ index: 1, code: 'late', minutes: 15 })
+  })
+
+  it('FE-RTROW-067: being late, or leaving after the time set, reaches the row from the schedule, a terminal\'s included', () => {
+    const terminal = stop('HAM', {
+      carrier: { reservationId: 78, type: 'flight', role: 'departure', title: 'LH 2078', code: 'HAM', at: '15:15' },
+    })
+    const rows = stopRows(
+      roadtripRows(
+        day([stop('A'), stop('B'), terminal], {
+          schedule: {
+            entries: [entry('09:00'), entry('10:00'), entry('14:15')],
+            warnings: [
+              { index: 1, code: 'missedLeave', minutes: 20 },
+              { index: 2, code: 'late', minutes: 579 },
+              // Only the lateness is read from the schedule, not the day it changes on.
+              { index: 0, code: 'overnight' },
+            ],
+          },
+        }),
+      ),
+    )
+    expect(rows.map(r => r.warning)).toEqual([
+      null,
+      { index: 1, code: 'missedLeave', minutes: 20 },
+      { index: 2, code: 'late', minutes: 579 },
+    ])
   })
 
   it('FE-RTROW-012: dwell and the walk in from the road pass through, absent means null', () => {
@@ -518,5 +550,315 @@ describe('legReroutable', () => {
     const extra = day([stop('A'), stop('B')], { legs: [seg(0), seg(1)] })
     expect(legReroutable(extra, 1)).toBe(false)
     expect(legReroutable(extra, -1)).toBe(false)
+  })
+})
+
+describe('roadtripRows with a ride (#2428)', () => {
+  const terminal = (name: string, role: 'departure' | 'arrival', at: string | null = '13:20') =>
+    stop(name, {
+      assignmentId: role === 'departure' ? -3000000014 : -3000000015,
+      placeId: -7,
+      carrier: { reservationId: 7, type: 'flight', role, title: 'LH 2020', code: role === 'departure' ? 'MUC' : 'HAM', at },
+      legMode: role === 'departure' ? 'flight' : null,
+      incomingLegMode: role === 'arrival' ? 'flight' : null,
+    })
+  const ride: RouteSegment = { ...seg(9), distance: 0, duration: 4200, mode: 'flight', distanceText: '', durationText: '1 h 10 min' }
+  const flightDay = () =>
+    day([stop('Bremen'), terminal('Munich Airport', 'departure'), terminal('Hamburg Airport', 'arrival', '14:30'), stop('Hotel')], {
+      legs: [seg(0), ride, seg(2)],
+    })
+
+  it('FE-RTROW-045: a same-day ride is one row holding both terminals, unnumbered, and the numbering skips them', () => {
+    const rows = roadtripRows(flightDay())
+    expect(stopRows(rows).map(r => [r.stop.name, r.number])).toEqual([
+      ['Bremen', 1],
+      ['Hotel', 2],
+    ])
+    const rideRow = rows.find(r => r.kind === 'ride')
+    expect(rideRow?.kind === 'ride' && [rideRow.departure.stop.name, rideRow.departure.number, rideRow.arrival.stop.name, rideRow.arrival.number])
+      .toEqual(['Munich Airport', null, 'Hamburg Airport', null])
+    expect(destinationCount(flightDay())).toBe(2)
+  })
+
+  it('FE-RTROW-046: the ride row stands where the departure stood and carries the booking; the road out of the arrival follows it as a leg', () => {
+    const rows = roadtripRows(flightDay())
+    expect(rows.map(r => r.kind)).toEqual(['stop', 'leg', 'ride', 'leg', 'stop'])
+    const rideRow = rows[2]
+    expect(rideRow.kind === 'ride' && rideRow.carrier.title).toBe('LH 2020')
+    expect(rideRow.kind === 'ride' && rideRow.seg).toBe(ride)
+    expect(rideRow.kind === 'ride' && rideRow.arrival.time).toBe(rideRow.kind === 'ride' ? rideRow.arrival.entry?.arrival ?? null : null)
+    // The leg after the ride is the arrival's, at the arrival's index.
+    expect(rows[3]).toMatchObject({ kind: 'leg', index: 2 })
+  })
+
+  it('FE-RTROW-049: a ride landing tomorrow leaves its departure as a lone stop row, and the arrival opens the next day as one', () => {
+    const rows = roadtripRows(day([stop('Bremen'), terminal('Munich Airport', 'departure')], { legs: [seg(0)] }))
+    expect(rows.map(r => r.kind)).toEqual(['stop', 'leg', 'stop'])
+    const landing = roadtripRows(day([terminal('Hamburg Airport', 'arrival', '07:00'), stop('Hotel')], { legs: [seg(0)] }))
+    expect(landing.map(r => r.kind)).toEqual(['stop', 'leg', 'stop'])
+    expect(stopRows(landing).map(r => [r.stop.name, r.number])).toEqual([['Hamburg Airport', null], ['Hotel', 1]])
+  })
+
+  it('FE-RTROW-051: a hop, the desk beside the terminal, is no leg row and is offered no other ways', () => {
+    const hop: RouteSegment = { ...seg(0), distance: 120, duration: 45, distanceText: '0 km', durationText: '0 min' }
+    const d = day([stop('Sixt Airport'), stop('Hamburg Airport'), stop('Hotel')], { legs: [hop, seg(1)] })
+    expect(roadtripRows(d).map(r => r.kind)).toEqual(['stop', 'stop', 'leg', 'stop'])
+    expect(legReroutable(d, 0)).toBe(false)
+    expect(legReroutable(d, 1)).toBe(true)
+    // A note a plugin attached keeps the row, however short the hop.
+    const noted = day([stop('A'), stop('B')], { legs: [{ ...hop, noteText: '10 min charge' }] })
+    expect(roadtripRows(noted).map(r => r.kind)).toEqual(['stop', 'leg', 'stop'])
+  })
+
+  it('FE-RTROW-050: a hire car\'s desks are unnumbered stop rows the road runs through', () => {
+    const desk = (name: string, role: 'pickup' | 'return') =>
+      stop(name, {
+        assignmentId: role === 'pickup' ? -3000000018 : -3000000019,
+        placeId: -9,
+        carrier: { reservationId: 9, type: 'car', role, title: 'Sixt', code: null, at: '09:00' },
+      })
+    const rows = roadtripRows(day([desk('Sixt Hbf', 'pickup'), stop('Bremen'), desk('Sixt Airport', 'return')], { legs: [seg(0), seg(1)] }))
+    expect(rows.map(r => r.kind)).toEqual(['stop', 'leg', 'stop', 'leg', 'stop'])
+    expect(stopRows(rows).map(r => [r.stop.name, r.number])).toEqual([['Sixt Hbf', null], ['Bremen', 1], ['Sixt Airport', null]])
+    const d = day([desk('Sixt Hbf', 'pickup'), stop('Bremen'), desk('Sixt Airport', 'return')], { legs: [seg(0), seg(1)] })
+    expect(legReroutable(d, 0)).toBe(false)
+    expect(legReroutable(d, 1)).toBe(true)
+  })
+
+  it('FE-RTROW-047: the road into a departure terminal can be offered other ways, nothing leaving a terminal can', () => {
+    const d = flightDay()
+    expect(legReroutable(d, 0)).toBe(true)
+    expect(legReroutable(d, 1)).toBe(false)
+    expect(legReroutable(d, 2)).toBe(false)
+  })
+
+  it('FE-RTROW-048: a terminal never answers for a place, however its id reads', () => {
+    expect(firstStopOfPlace([flightDay()], -7)).toBeNull()
+    expect(firstStopOfPlace([flightDay()], 100)?.name).toBe('Bremen')
+  })
+
+  /** Bremen at 09:00, the airport at 12:20 for a 13:20 flight, landing at 14:30, nothing after. */
+  const endsOnRide = () =>
+    day([stop('Bremen'), terminal('Munich Airport', 'departure'), terminal('Hamburg Airport', 'arrival', '14:30')], {
+      legs: [seg(0), ride],
+      schedule: { entries: [entry('09:00'), entry('12:20', { departure: '13:20' }), entry('14:30')], warnings: [] },
+    })
+  /** The flight first, the hotel after it. */
+  const opensOnRide = () =>
+    day([terminal('Munich Airport', 'departure', '06:00'), terminal('Hamburg Airport', 'arrival', '07:10'), stop('Hotel')], {
+      legs: [ride, seg(1)],
+      schedule: { entries: [entry('05:00', { departure: '06:00' }), entry('07:10'), entry('09:00')], warnings: [] },
+    })
+
+  it('FE-RTROW-052: a day that ends on a ride arrives at the arrival terminal, one that opens on a ride starts at the departure', () => {
+    // The head card printed the clock of the stop before the flight as where the day ends,
+    // while the ride block right below it printed the landing.
+    expect(stageClocks(roadtripRows(endsOnRide()))).toEqual({ start: '09:00', arrive: '14:30' })
+    expect(stageClocks(roadtripRows(opensOnRide()))).toEqual({ start: '05:00', arrive: '09:00' })
+  })
+
+  it('FE-RTROW-053: a day that is nothing but a ride still has both clocks', () => {
+    const rideOnly = day([terminal('Munich Airport', 'departure'), terminal('Hamburg Airport', 'arrival', '14:30')], {
+      legs: [ride],
+      schedule: { entries: [entry('12:20', { departure: '13:20' }), entry('14:30')], warnings: [] },
+    })
+    expect(stageClocks(roadtripRows(rideOnly))).toEqual({ start: '12:20', arrive: '14:30' })
+  })
+
+  it('FE-RTROW-054: up next names the departure terminal before its check-in, and the arrival after take-off', () => {
+    // A lone terminal (a ride landing tomorrow) was already a candidate; the terminals
+    // inside a same-day ride were not, so the countdown skipped the airport.
+    expect(upNextStop(endsOnRide(), 10 * 60, true)?.row.stop.name).toBe('Munich Airport')
+    expect(upNextStop(endsOnRide(), 10 * 60, true)?.minutesUntil).toBe(140)
+    expect(upNextStop(endsOnRide(), 13 * 60 + 30, true)?.row.stop.name).toBe('Hamburg Airport')
+    expect(upNextStop(endsOnRide(), 15 * 60 + 1, true)?.minutesUntil).toBe(-31)
+  })
+
+  it('FE-RTROW-055: a stage that ends on a ride ends at its arrival terminal', () => {
+    const end = stageEnd(roadtripRows(endsOnRide()))
+    expect(end?.stop.name).toBe('Hamburg Airport')
+    expect(end?.time).toBe('14:30')
+    expect(stageEnd(roadtripRows(opensOnRide()))?.stop.name).toBe('Hotel')
+  })
+})
+
+describe('the drive in from the day before (#2461)', () => {
+  /** Where yesterday ended: stored on day 6, its third stop, and drawn on no stop of this card. */
+  const yesterday = stop('Lüneburg', { ownerDayId: 6, ownerIndex: 2, legMode: null })
+  const drive: RouteSegment = { ...seg(4), distance: 120_000, duration: 5_400 }
+  /** A card joined to the one before it, with the drive and the line it is drawn on. */
+  const joined = (over: Partial<RoadtripDay> = {}) => day([stop('Berlin', { incomingLegMode: 'driving' }), stop('Potsdam')], {
+    arrivingLeg: drive,
+    arrivingFrom: yesterday,
+    arrivingLine: [[53.2, 10.4], [52.5, 13.4]],
+    ...over,
+  })
+
+  it('FE-RTROW-056: heads the card with a row of its own that names where it leaves, and counts no stop for it', () => {
+    const rows = roadtripRows(joined())
+    expect(rows.map(r => r.kind)).toEqual(['arriving', 'stop', 'leg', 'stop'])
+    expect(rows[0]).toMatchObject({ kind: 'arriving', seg: drive, from: { name: 'Lüneburg' }, mode: 'driving' })
+    // Still two stops, numbered from one: the stop it leaves is not on this card.
+    expect(stopRows(rows).map(r => r.number)).toEqual([1, 2])
+    expect(destinationCount(joined())).toBe(2)
+    expect(stageClocks(rows)).toEqual(stageClocks(roadtripRows(joined({ arrivingLeg: undefined }))))
+    expect(stageEnd(rows)?.stop.name).toBe('Potsdam')
+  })
+
+  it('FE-RTROW-057: no row for a hop, a ride, or a drive whose start the card was not told', () => {
+    const hop: RouteSegment = { ...seg(0), distance: 80, duration: 60 }
+    const ride: RouteSegment = { ...seg(0), distance: 0, duration: 9 * 3600, mode: 'flight' }
+    for (const over of [{ arrivingLeg: hop }, { arrivingLeg: ride }, { arrivingFrom: undefined }, { arrivingLeg: undefined }]) {
+      expect(roadtripRows(joined(over)).map(r => r.kind)).toEqual(['stop', 'leg', 'stop'])
+    }
+  })
+
+  it('FE-RTROW-058: other ways are offered on it exactly where a leg would be offered them', () => {
+    expect(arrivingReroutable(joined())).toBe(true)
+    // Nothing to offer against: no drive, no line, no stop it leaves or reaches.
+    expect(arrivingReroutable(joined({ arrivingLeg: undefined }))).toBe(false)
+    expect(arrivingReroutable(joined({ arrivingLine: undefined }))).toBe(false)
+    expect(arrivingReroutable(joined({ arrivingFrom: undefined }))).toBe(false)
+    expect(arrivingReroutable(joined({ stops: [] }))).toBe(false)
+    // A ride has no other way, and a hop is nothing to weigh.
+    expect(arrivingReroutable(joined({ arrivingLeg: { ...drive, mode: 'train' } }))).toBe(false)
+    expect(arrivingReroutable(joined({ arrivingLeg: { ...drive, distance: 80, duration: 60 } }))).toBe(false)
+    // A terminal leaves nothing a via can be filed behind.
+    const terminal = stop('Hamburg Airport', { carrier: { reservationId: 7, type: 'flight', role: 'arrival', title: 'LH 2020', code: null, at: '07:00' } })
+    expect(arrivingReroutable(joined({ arrivingFrom: terminal }))).toBe(false)
+    // An automatic night at either end is a marker on the road, not a stop anybody chose.
+    expect(arrivingReroutable(joined({ arrivingFrom: night() }))).toBe(false)
+    expect(arrivingReroutable(joined({ stops: [night('start'), stop('Potsdam')] }))).toBe(false)
+  })
+})
+
+describe('a booked night at the edge of the day', () => {
+  const reading = (phase: BookendPhase, over: Partial<NightBookend> = {}): NightBookend => ({
+    phase,
+    accommodationId: 5,
+    reservationId: 41,
+    checkingOut: false,
+    checkingIn: false,
+    checkOut: null,
+    ...over,
+  })
+  const hotel = (phase: BookendPhase, over: Partial<NightBookend> = {}, at: Partial<RoadtripStop> = {}) =>
+    stop('Hotel Alpenblick', {
+      assignmentId: phase === 'morning' ? -6_000_000_014 : -6_000_000_015,
+      placeId: 900,
+      lat: 45,
+      lng: 7,
+      stopType: 'hotel',
+      dwellMinutes: 0,
+      bookend: reading(phase, over),
+      ...at,
+    })
+  /** From the hotel, two places, back to the hotel, each with a clock. */
+  const loop = (over: Partial<RoadtripDay> = {}) => {
+    const stops = [
+      hotel('morning'),
+      stop('Lookout', { placeId: 1 }),
+      stop('Falls', { placeId: 2, ownerIndex: 1 }),
+      hotel('evening', {}, { ownerIndex: 2 }),
+    ]
+    return day(stops, {
+      schedule: { entries: [entry('08:40'), entry('09:30'), entry('11:00'), entry('12:10')], warnings: [] },
+      ...over,
+    })
+  }
+
+  it('FE-RTROW-059: reads as a check-out, a morning, an evening back or a check-in', () => {
+    const out = day([hotel('morning', { checkingOut: true, checkOut: '10:00' }), stop('Zoo')])
+    expect(bookendReading(out, 0)).toEqual({
+      phase: 'morning',
+      variant: 'checkOut',
+      name: 'Hotel Alpenblick',
+      until: '10:00',
+      from: null,
+      reservationId: 41,
+      accommodationId: 5,
+      placeId: 900,
+    })
+    expect(bookendReading(loop(), 0)).toMatchObject({ variant: 'from', until: null })
+    expect(bookendReading(loop(), 3)).toMatchObject({ variant: 'back', phase: 'evening' })
+    // The check-in day: back when the stay's own stop heads the card, a check-in without it.
+    const stayed = day([stop('Hotel Alpenblick', { lat: 45, lng: 7, night: true }), stop('Lookout'), hotel('evening', { checkingIn: true })])
+    expect(bookendReading(stayed, 2)?.variant).toBe('back')
+    const transfer = day([hotel('morning', { checkingOut: true }), hotel('evening', { checkingIn: true }, { name: 'Wallinga', lat: 46 })])
+    expect(bookendReading(transfer, 1)).toMatchObject({ variant: 'checkIn', name: 'Wallinga', from: null })
+    // The hour the room is ready rides along on a check-in, as a label and nowhere else.
+    const ready = day([hotel('morning', { checkingOut: true }), hotel('evening', { checkingIn: true, checkIn: '15:00' }, { name: 'Wallinga', lat: 46 })])
+    expect(bookendReading(ready, 1)).toMatchObject({ variant: 'checkIn', from: '15:00' })
+    expect(bookendReading(ready, 0)?.from).toBeNull()
+    // Nothing to read on an ordinary stop, or past the end.
+    expect(bookendReading(loop(), 1)).toBeNull()
+    expect(bookendReading(loop(), 9)).toBeNull()
+  })
+
+  it('FE-RTROW-060: a row of its own, unnumbered, that counts as no destination', () => {
+    const rows = roadtripRows(loop())
+    expect(rows.map(r => r.kind)).toEqual(['stop', 'leg', 'stop', 'leg', 'stop', 'leg', 'stop'])
+    const stops = stopRows(rows)
+    expect(stops.map(r => r.number)).toEqual([null, 1, 2, null])
+    expect(stops.map(r => r.bookend?.variant ?? null)).toEqual(['from', null, null, 'back'])
+    expect(stops[0]!.service).toBe(true)
+    expect(destinationCount(loop())).toBe(2)
+  })
+
+  it('FE-RTROW-061: offers no other ways from or to the hotel, on a leg or on the drive in', () => {
+    expect([0, 1, 2].map(i => legReroutable(loop(), i))).toEqual([false, true, false])
+    const joined = (from: RoadtripStop, first: RoadtripStop) => day([first, stop('Falls')], {
+      arrivingLeg: { ...seg(3), distance: 120_000, duration: 5_400 },
+      arrivingFrom: from,
+      arrivingLine: [[45, 7], [48, 11]],
+    })
+    expect(arrivingReroutable(joined(stop('Town', { ownerDayId: 6 }), stop('Lookout')))).toBe(true)
+    expect(arrivingReroutable(joined(hotel('evening'), stop('Lookout')))).toBe(false)
+    expect(arrivingReroutable(joined(stop('Town', { ownerDayId: 6 }), hotel('morning')))).toBe(false)
+  })
+
+  it('FE-RTROW-062: the morning marker at the hotel the day sets out from is folded into its row', () => {
+    const resume = night('start')
+    const at = { ...resume, lat: 45, lng: 7 }
+    const folded = day([at, hotel('morning'), stop('Lookout')], {
+      schedule: { entries: [entry('08:00'), entry('08:00'), entry('09:00')], warnings: [] },
+    })
+    expect(resumeFoldsIntoBookend(folded, 0)).toBe(true)
+    expect(roadtripRows(folded).map(r => r.kind)).toEqual(['stop', 'leg', 'stop'])
+    expect(stageClocks(roadtripRows(folded)).start).toBe('08:00')
+    // A marker somewhere else keeps its own row: the drive from there to the hotel is real.
+    const apart = day([resume, hotel('morning'), stop('Lookout')])
+    expect(resumeFoldsIntoBookend(apart, 0)).toBe(false)
+    expect(roadtripRows(apart)[0]).toMatchObject({ kind: 'auto', phase: 'resume' })
+    expect(resumeFoldsIntoBookend(folded, 1)).toBe(false)
+  })
+
+  it('FE-RTROW-063: the stage starts when the hotel is left and arrives when it is reached again', () => {
+    const rows = roadtripRows(loop())
+    expect(stageClocks(rows)).toEqual({ start: '08:40', arrive: '12:10' })
+    expect(stageEnd(rows)?.bookend?.variant).toBe('back')
+  })
+
+  it('FE-RTROW-064: a pin at the hotel opens the stay’s own stop, never a bookend', () => {
+    const own = stop('Hotel Alpenblick', { placeId: 900, assignmentId: 77, ownerDayId: 3 })
+    expect(firstStopOfPlace([loop(), day([own])], 900)).toBe(own)
+    expect(firstStopOfPlace([loop()], 900)).toBeNull()
+  })
+
+  it('FE-RTROW-065: a stop moves past anything but the hotel at the edge of its day', () => {
+    expect(movableWithin(loop(), 1)).toEqual({ up: false, down: true })
+    expect(movableWithin(loop(), 2)).toEqual({ up: true, down: false })
+    const plain = day([stop('A'), stop('B'), stop('C')])
+    expect([0, 1, 2].map(i => movableWithin(plain, i))).toEqual([
+      { up: false, down: true },
+      { up: true, down: true },
+      { up: true, down: false },
+    ])
+  })
+
+  it('FE-RTROW-066: up next is a place, not the hotel the day comes back to', () => {
+    // 11:30 is past both places and before the hotel: the last place is still next.
+    expect(upNextStop(loop(), 11 * 60 + 30, true)?.row.stop.name).toBe('Falls')
+    expect(upNextStop(loop(), 8 * 60 + 45, true)?.row.stop.name).toBe('Lookout')
   })
 })

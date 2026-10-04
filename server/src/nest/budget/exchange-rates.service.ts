@@ -8,14 +8,16 @@ import { Injectable } from '@nestjs/common';
  * settlement request never hammers the upstream. Rates are "units of X per 1
  * base", so an amount in currency C converts to base as `amount / rates[C]`.
  *
- * Everything degrades gracefully: if the fetch fails (offline, upstream down),
- * callers get `null`/identity conversion and amounts are treated as already in
- * the base currency rather than throwing.
+ * Everything degrades without throwing: if the fetch fails (offline, upstream
+ * down), callers get `null`. Budget rows that already froze a rate still convert;
+ * a foreign row that did not is left out of the figures and reported rather than
+ * read as if it were already in the base currency. A failed fetch is not
+ * remembered: the next request for that base asks the upstream again.
  *
  * Moved from the legacy `services/exchangeRateService.ts` (the budget-domain
  * fold): identical cache/coalescing behavior, `||` falsy-coercion defaults and
  * null degradation. The cache and inflight maps are deliberately MODULE-scoped,
- * not instance fields — the DI singleton and the out-of-container instances
+ * not instance fields: the DI singleton and the out-of-container instances
  * (the trips/airtrail/auth bridges each construct their own) wrap the same
  * upstream feed, so they must share one cache (same reasoning as the
  * permissions-cache.ts cache).

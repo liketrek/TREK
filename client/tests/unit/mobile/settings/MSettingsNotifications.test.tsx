@@ -594,3 +594,47 @@ describe('MSettingsNotifications', () => {
     });
   });
 });
+
+// Web Push (#894): the per-device card joins the other channel cards while the
+// admin has push switched on. jsdom has no push APIs, so the real hook reads
+// this "browser" as unable to receive push, and the card has to say so.
+describe('MSettingsNotifications: Web Push', () => {
+  it('FE-MOB-SETNOTIF-033: an active push channel gets its chip and the device card', async () => {
+    usePrefs(
+      matrix({
+        preferences: { trip_invite: { inapp: true, push: true } },
+        channels: [builtin('inapp'), builtin('push', { configured: false })],
+        implemented_combos: { trip_invite: ['inapp', 'push'] },
+      }),
+    );
+    render(<MSettingsNotifications />);
+
+    expect(await screen.findByText('Push notifications on this device')).toBeInTheDocument();
+    const row = (await screen.findByText('Trip invitations')).parentElement as HTMLElement;
+    expect(within(row).getByRole('button', { name: 'Push' })).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(/push/i);
+  });
+
+  it('FE-MOB-SETNOTIF-034: no card while the admin has push off', async () => {
+    usePrefs(
+      matrix({
+        channels: [builtin('inapp'), builtin('push', { active: false })],
+        implemented_combos: { trip_invite: ['inapp', 'push'] },
+      }),
+    );
+    render(<MSettingsNotifications />);
+
+    await screen.findByText('Trip invitations');
+    expect(screen.queryByText('Push notifications on this device')).not.toBeInTheDocument();
+  });
+});
+
+describe('MSettingsNotifications — cells the admin blocked (#1536)', () => {
+  it('FE-MOB-SETNOTIF-LOCK-001: a blocked channel shows as a locked chip, not a toggle', async () => {
+    usePrefs(matrix({ locked: { trip_invite: ['webhook'] } }));
+    render(<MSettingsNotifications />);
+    const chip = await screen.findByLabelText(/Turned off for everyone by the admin/);
+    expect(chip).toHaveAttribute('aria-disabled', 'true');
+    expect(chip.tagName).toBe('SPAN');
+  });
+});

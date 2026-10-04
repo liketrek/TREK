@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useId, useRef, useState } from 'react'
 import {
   Accessibility,
   ArrowRight,
@@ -10,10 +10,12 @@ import {
   ChevronUp,
   Clock,
   ExternalLink,
+  ImageIcon,
   Landmark,
   Leaf,
   Loader2,
   ScrollText,
+  SearchX,
   ShoppingBag,
   Sprout,
   Star,
@@ -26,6 +28,10 @@ import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './place
 import { convertHoursLine, isUnknownHoursLine, splitHoursLine } from './placeHoursFormat'
 import { safeHttpUrl } from '../../utils/safeUrl'
 import EmptyState from '../shared/EmptyState'
+import { Tooltip } from '../shared/Tooltip'
+import { fs } from '../shared/DialogShell'
+import { LABEL } from '../shared/dialogParts'
+import { COLUMN_CARD, ColumnHead, HintCard, SIDE_COLUMN, WHITE_BUTTON } from './placeDialogParts'
 import type { TranslationFn } from '../../types'
 
 /** The place the column is describing. Null while nothing is selected. */
@@ -44,6 +50,8 @@ interface PlaceDetailsColumnProps {
   selectedImageUrl?: string
   onPickImage: (url: string | null) => void
   onAdoptDescription: (text: string) => void
+  /** The looked-up opening hours, once they arrive, so the form can take them over (#2472). */
+  onHours?: (hours: PlaceHours) => void
   /** True once the form's description field has something in it. */
   hasDescription: boolean
   language: string
@@ -51,6 +59,18 @@ interface PlaceDetailsColumnProps {
   timeFormat?: string
   /** For grouping the rating count's digits. */
   locale?: string
+  /**
+   * Full width at every breakpoint. The desktop dialog sits the column beside
+   * the form (sm:w-80); the mobile sheet stacks it inside a scrolling column,
+   * where a 320 px cap would leave it hugging the left half of a wide screen.
+   */
+  fluid?: boolean
+  /**
+   * 'dialog' is the desktop add place dialog: a grey panel of white cards under
+   * small eyebrows, and a quiet hint card where the sheet shows the mascot. The
+   * default is the phone sheet's look, which this prop leaves exactly as it was.
+   */
+  variant?: 'sheet' | 'dialog'
   /** False on an instance with no Google key, which is most of them. */
   t: TranslationFn
 }
@@ -108,17 +128,43 @@ function Overline({ children }: { children: React.ReactNode }): React.ReactEleme
   )
 }
 
+/**
+ * One block of the column under its label. The sheet keeps its overline; the
+ * dialog uses the eyebrow every field of the form beside it wears.
+ */
+function Block({ label, dialog, children }: { label: React.ReactNode; dialog: boolean; children: React.ReactNode }): React.ReactElement {
+  if (!dialog) {
+    return (
+      <div className="space-y-2">
+        <Overline>{label}</Overline>
+        {children}
+      </div>
+    )
+  }
+  return (
+    <section className="min-w-0">
+      <p className={LABEL}>{label}</p>
+      {children}
+    </section>
+  )
+}
+
 export default function PlaceDetailsColumn({
   selection,
   selectedImageUrl,
   onPickImage,
   onAdoptDescription,
+  onHours,
   hasDescription,
   language,
   timeFormat = '24h',
   locale = 'en-US',
+  fluid = false,
+  variant = 'sheet',
   t,
 }: PlaceDetailsColumnProps): React.ReactElement {
+  const dialog = variant === 'dialog'
+  const adoptBlockedId = useId()
   const [data, setData] = useState<MapsPlaceEnrichmentResult | null>(null)
   const [state, setState] = useState<LoadState>('idle')
   const abortRef = useRef<AbortController | null>(null)
@@ -150,31 +196,48 @@ export default function PlaceDetailsColumn({
     setState('loading')
     setData(null)
 
-    mapsApi
-      .placeEnrichment(
-        {
-          placeId: selection.placeId,
-          lat: selection.lat,
-          lng: selection.lng,
-          name: selection.name,
-          lang: language,
-          details: selection.details,
-        },
-        controller.signal,
-      )
-      .then((result) => {
-        if (controller.signal.aborted) return
-        enrichmentCache.set(selectionKey, result)
-        writeSession(selectionKey, result)
-        setData(result)
-        setState('ready')
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted || (err as { code?: string })?.code === 'ERR_CANCELED') return
-        setState('error')
-      })
+    // One quiet retry before the error state: on a phone the first attempt
+    // regularly dies to a network blip rather than a real failure, and an
+    // error card the user can only clear by re-picking the place is worse than
+    // a second and a half of extra spinner.
+    let retried = false
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+    const run = () => {
+      mapsApi
+        .placeEnrichment(
+          {
+            placeId: selection.placeId,
+            lat: selection.lat,
+            lng: selection.lng,
+            name: selection.name,
+            lang: language,
+            details: selection.details,
+          },
+          controller.signal,
+        )
+        .then((result) => {
+          if (controller.signal.aborted) return
+          enrichmentCache.set(selectionKey, result)
+          writeSession(selectionKey, result)
+          setData(result)
+          setState('ready')
+        })
+        .catch((err: unknown) => {
+          if (controller.signal.aborted || (err as { code?: string })?.code === 'ERR_CANCELED') return
+          if (!retried) {
+            retried = true
+            retryTimer = setTimeout(run, 1500)
+            return
+          }
+          setState('error')
+        })
+    }
+    run()
 
-    return () => controller.abort()
+    return () => {
+      controller.abort()
+      if (retryTimer) clearTimeout(retryTimer)
+    }
     // selectionKey folds in the place id (or its coordinates) and the language,
     // which is everything the answer depends on. Depending on `selection` itself
     // would refetch whenever the object identity changes without the place
@@ -183,6 +246,13 @@ export default function PlaceDetailsColumn({
   }, [selectionKey, language])
 
   useEffect(() => () => abortRef.current?.abort(), [])
+
+  // Handed to the form once per answer; a ref so a new callback identity does not re-send it.
+  const onHoursRef = useRef(onHours)
+  useEffect(() => { onHoursRef.current = onHours })
+  useEffect(() => {
+    if (state === 'ready' && data?.hours) onHoursRef.current?.(data.hours)
+  }, [state, data])
 
   const isEmpty =
     state === 'ready' &&
@@ -198,16 +268,23 @@ export default function PlaceDetailsColumn({
     // tiles, which is too small to tell a facade from a foyer. The column is
     // stretched to the form's height by the row it sits in, so the extra room
     // costs nothing that was being used.
-    <aside className="w-full sm:w-80 shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch">
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-edge shrink-0">
-        <Landmark size={15} className="text-accent" />
-        <span className="text-body font-semibold text-content">{t('places.details.title')}</span>
-      </div>
+    <aside className={dialog ? `${SIDE_COLUMN} ${fluid ? '' : 'sm:w-80'}` : `w-full ${fluid ? '' : 'sm:w-80'} shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch`}>
+      {dialog ? (
+        <ColumnHead icon={<Landmark size={13} strokeWidth={2.2} />}>{t('places.details.title')}</ColumnHead>
+      ) : (
+        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-edge shrink-0">
+          <Landmark size={15} className="text-accent" />
+          <span className="text-body font-semibold text-content">{t('places.details.title')}</span>
+        </div>
+      )}
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3.5">
+      <div className={dialog ? 'flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-3 pb-3' : 'flex-1 min-h-0 overflow-y-auto p-3 space-y-3.5'}>
         {/* Nothing picked yet, which is a state rather than a fault: the mascot
-            waits with an idle look instead of a sad one. */}
-        {!selection && (
+            waits with an idle look instead of a sad one. The dialog says the
+            same in a quiet card, and the column keeps its width either way. */}
+        {!selection && (dialog ? (
+          <HintCard icon={<ImageIcon size={15} strokeWidth={2} />}>{t('places.details.empty')}</HintCard>
+        ) : (
           <EmptyState
             scene="idle"
             title={t('places.details.empty')}
@@ -215,27 +292,33 @@ export default function PlaceDetailsColumn({
             fill
             surface="var(--bg-secondary)"
           />
-        )}
+        ))}
 
-        {selection && state === 'loading' && (
+        {selection && state === 'loading' && (dialog ? (
+          <HintCard icon={<Loader2 size={15} className="animate-spin" />}>{t('places.details.loading')}</HintCard>
+        ) : (
           <div className="flex items-center gap-2 text-caption text-content-muted">
             <Loader2 className="w-4 h-4 animate-spin" />
             {t('places.details.loading')}
           </div>
-        )}
+        ))}
 
-        {selection && state === 'error' && <p className="text-caption text-content-muted">{t('places.details.error')}</p>}
+        {selection && state === 'error' && (dialog
+          ? <HintCard icon={<SearchX size={15} strokeWidth={2} />}>{t('places.details.error')}</HintCard>
+          : <p className="text-caption text-content-muted">{t('places.details.error')}</p>)}
 
-        {selection && state === 'ready' && data?.disabled && (
-          <p className="text-caption text-content-muted">{t('places.details.disabled')}</p>
-        )}
+        {selection && state === 'ready' && data?.disabled && (dialog
+          ? <HintCard icon={<Landmark size={15} strokeWidth={2} />}>{t('places.details.disabled')}</HintCard>
+          : <p className="text-caption text-content-muted">{t('places.details.disabled')}</p>)}
 
         {/* The mascot rather than a line of grey text and, under it, a paragraph
             telling the reader to go and ask an administrator for a Google key.
             Nothing came back for this place, which is worth saying once and
             plainly; whose key is missing is not this panel's business, and on a
             place the free sources describe fine it read as an advert. */}
-        {isEmpty && (
+        {isEmpty && (dialog ? (
+          <HintCard icon={<SearchX size={15} strokeWidth={2} />}>{t('places.details.nothing')}</HintCard>
+        ) : (
           <EmptyState
             scene="search"
             mood="sad"
@@ -244,21 +327,22 @@ export default function PlaceDetailsColumn({
             fill
             surface="var(--bg-secondary)"
           />
-        )}
+        ))}
 
         {selection && state === 'ready' && !data?.disabled && !isEmpty && (
           <>
-            <PhotoStrip photos={data?.photos ?? []} selectedImageUrl={selectedImageUrl} onPickImage={onPickImage} t={t} />
-            <RatingRow rating={data?.rating ?? null} locale={locale} />
+            <PhotoStrip photos={data?.photos ?? []} selectedImageUrl={selectedImageUrl} onPickImage={onPickImage} dialog={dialog} t={t} />
+            <RatingRow rating={data?.rating ?? null} locale={locale} dialog={dialog} />
             <OpeningHoursBlock
               hours={data?.hours ?? null}
               lat={selection.lat}
               lng={selection.lng}
               timeFormat={timeFormat}
+              dialog={dialog}
               t={t}
             />
-            <FactList facts={data?.facts ?? []} t={t} />
-            <DescriptionBlock description={data?.description ?? null} t={t} />
+            <FactList facts={data?.facts ?? []} dialog={dialog} t={t} />
+            <DescriptionBlock description={data?.description ?? null} dialog={dialog} t={t} />
           </>
         )}
       </div>
@@ -268,19 +352,36 @@ export default function PlaceDetailsColumn({
           enough to push it out of view — the button was there, just never
           where anyone looked. */}
       {selection && state === 'ready' && !data?.disabled && data?.description && (
-        <div className="shrink-0 border-t border-edge p-2.5">
-          <button
-            type="button"
-            onClick={() => onAdoptDescription(data.description!.text)}
-            disabled={hasDescription}
-            title={hasDescription ? t('places.details.adoptBlocked') : undefined}
-            className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-body font-medium bg-accent-subtle text-accent-on hover:bg-accent hover:text-accent-text disabled:opacity-50 disabled:hover:bg-accent-subtle disabled:hover:text-accent-on transition-colors"
-          >
-            <ArrowRight className="w-3.5 h-3.5" />
-            {t('places.details.adopt')}
-          </button>
+        <div className={dialog ? 'shrink-0 border-t border-edge-faint p-2.5' : 'shrink-0 border-t border-edge p-2.5'}>
+          {dialog ? (
+            // White like the dialog's other secondary buttons. While it is
+            // blocked the line under it says why, so it needs no tooltip, and
+            // that line is its description for assistive tech.
+            <button
+              type="button"
+              onClick={() => onAdoptDescription(data.description!.text)}
+              disabled={hasDescription}
+              aria-describedby={hasDescription ? adoptBlockedId : undefined}
+              className={WHITE_BUTTON}
+              style={fs(13, 'body')}
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+              {t('places.details.adopt')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onAdoptDescription(data.description!.text)}
+              disabled={hasDescription}
+              title={hasDescription ? t('places.details.adoptBlocked') : undefined}
+              className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-body font-medium bg-accent-subtle text-accent-on hover:bg-accent hover:text-accent-text disabled:opacity-50 disabled:hover:bg-accent-subtle disabled:hover:text-accent-on transition-colors"
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+              {t('places.details.adopt')}
+            </button>
+          )}
           {hasDescription && (
-            <p className="mt-1 text-center text-caption text-content-faint">{t('places.details.adoptBlocked')}</p>
+            <p id={dialog ? adoptBlockedId : undefined} className="mt-1 text-center text-caption text-content-faint">{t('places.details.adoptBlocked')}</p>
           )}
         </div>
       )}
@@ -310,21 +411,21 @@ function PhotoStrip({
   photos,
   selectedImageUrl,
   onPickImage,
+  dialog = false,
   t,
 }: {
   photos: PlacePhotoCandidate[]
   selectedImageUrl?: string
   onPickImage: (url: string | null) => void
+  dialog?: boolean
   t: TranslationFn
 }): React.ReactElement | null {
   const [hovered, setHovered] = useState<string | null>(null)
   if (photos.length === 0) return null
 
   const shown = photos.find((p) => p.url === (hovered ?? selectedImageUrl)) ?? photos[0]
-
-  return (
-    <div className="space-y-2">
-      <Overline>{t('places.details.pickImage')}</Overline>
+  const body = (
+    <>
       <div className="grid grid-cols-3 gap-1.5">
         {photos.map((photo) => (
           <PhotoTile
@@ -333,14 +434,21 @@ function PhotoStrip({
             selected={selectedImageUrl === photo.url}
             onPick={onPickImage}
             onHover={setHovered}
+            dialog={dialog}
             t={t}
           />
         ))}
       </div>
-      <p className="text-caption leading-tight text-content-faint truncate">
-        <PhotoCredit photo={shown} />
+      <p className={dialog ? 'mt-2 flex min-w-0 items-center gap-2 text-caption leading-tight text-content-faint' : 'text-caption leading-tight text-content-faint truncate'}>
+        <PhotoCredit photo={shown} dialog={dialog} />
       </p>
-    </div>
+    </>
+  )
+
+  return (
+    <Block label={t('places.details.pickImage')} dialog={dialog}>
+      {dialog ? <div className={`${COLUMN_CARD} p-2`}>{body}</div> : body}
+    </Block>
   )
 }
 
@@ -349,12 +457,15 @@ function PhotoTile({
   selected,
   onPick,
   onHover,
+  dialog = false,
   t,
 }: {
   photo: PlacePhotoCandidate
   selected: boolean
   onPick: (url: string | null) => void
   onHover: (url: string | null) => void
+  /** On a white card, and without the native tooltip: hovering a tile already moves the credit line under the grid to it. */
+  dialog?: boolean
   t: TranslationFn
 }): React.ReactElement {
   const credit = creditOf(photo)
@@ -369,9 +480,11 @@ function PhotoTile({
       onBlur={() => onHover(null)}
       aria-pressed={selected}
       aria-label={`${t('places.details.pickImage')} — ${credit}`}
-      title={`${credit}${photo.license ? ` · ${photo.license}` : ''}`}
+      title={dialog ? undefined : `${credit}${photo.license ? ` · ${photo.license}` : ''}`}
       className={`group relative block w-full aspect-square overflow-hidden rounded-lg transition-shadow ${
-        selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface-secondary' : 'ring-1 ring-edge hover:ring-content-muted'
+        selected
+          ? `ring-2 ring-accent ring-offset-2 ${dialog ? 'ring-offset-surface-card' : 'ring-offset-surface-secondary'}`
+          : 'ring-1 ring-edge hover:ring-content-muted'
       }`}
     >
       <img
@@ -434,8 +547,36 @@ function sourceLabelFor(source: PlacePhotoCandidate['source']): string {
  * us no author (Google), we say where it came from rather than inventing one.
  * Rendered inline — the container supplies the colour and the truncation.
  */
-function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElement {
+function PhotoCredit({ photo, dialog = false }: { photo: PlacePhotoCandidate; dialog?: boolean }): React.ReactElement {
   const credit = creditOf(photo)
+
+  if (dialog) {
+    // Two pieces side by side with room between them, rather than joined by a dot.
+    return (
+      <>
+        <span className="min-w-0 truncate">
+          {photo.sourceUrl ? (
+            <a href={photo.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+              {credit}
+            </a>
+          ) : (
+            credit
+          )}
+        </span>
+        {photo.license && (
+          <span className="flex-none">
+            {photo.licenseUrl ? (
+              <a href={photo.licenseUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                {photo.license}
+              </a>
+            ) : (
+              photo.license
+            )}
+          </span>
+        )}
+      </>
+    )
+  }
 
   return (
     <>
@@ -481,12 +622,12 @@ function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElem
  * a pill is read as text. The count only appears when there is one: Google's
  * search results carry a rating without a count, and empty brackets look broken.
  */
-function RatingRow({ rating, locale }: { rating: PlaceRating | null; locale: string }): React.ReactElement | null {
+function RatingRow({ rating, locale, dialog = false }: { rating: PlaceRating | null; locale: string; dialog?: boolean }): React.ReactElement | null {
   if (!rating) return null
   const filled = Math.round(rating.value)
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className={dialog ? 'inline-flex items-center gap-1.5 self-start rounded-full bg-surface-card px-2.5 py-1 shadow-sm ring-1 ring-edge-faint' : 'flex items-center gap-1.5'}>
       <span className="flex items-center gap-0.5" aria-hidden>
         {[1, 2, 3, 4, 5].map((step) => (
           <Star
@@ -522,12 +663,14 @@ function OpeningHoursBlock({
   lat,
   lng,
   timeFormat,
+  dialog = false,
   t,
 }: {
   hours: PlaceHours | null
   lat: number
   lng: number
   timeFormat: string
+  dialog?: boolean
   t: TranslationFn
 }): React.ReactElement | null {
   const [expanded, setExpanded] = useState(false)
@@ -540,9 +683,8 @@ function OpeningHoursBlock({
   const todayLabel = todayTimes && !isUnknownHoursLine(todayTimes) ? todayTimes : t('inspector.showHours')
 
   return (
-    <div className="space-y-2">
-      <Overline>{t('inspector.openingHours')}</Overline>
-      <div className="rounded-lg border border-edge bg-surface overflow-hidden">
+    <Block label={t('inspector.openingHours')} dialog={dialog}>
+      <div className={dialog ? `${COLUMN_CARD} overflow-hidden` : 'rounded-lg border border-edge bg-surface overflow-hidden'}>
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
@@ -600,7 +742,7 @@ function OpeningHoursBlock({
           </ul>
         )}
       </div>
-    </div>
+    </Block>
   )
 }
 
@@ -626,12 +768,11 @@ const FACT_ICONS: Record<PlaceFact['kind'], typeof ChefHat> = {
  * to its menu are in the map data, and they came along with a lookup that had
  * already happened.
  */
-function FactList({ facts, t }: { facts: PlaceFact[]; t: TranslationFn }): React.ReactElement | null {
+function FactList({ facts, dialog = false, t }: { facts: PlaceFact[]; dialog?: boolean; t: TranslationFn }): React.ReactElement | null {
   if (facts.length === 0) return null
 
   return (
-    <div className="space-y-2">
-      <Overline>{t('places.details.facts')}</Overline>
+    <Block label={t('places.details.facts')} dialog={dialog}>
       <div className="flex flex-wrap gap-1.5">
         {facts
           .filter((fact) => fact.kind !== 'openingHours' && fact.kind !== 'rating')
@@ -644,11 +785,28 @@ function FactList({ facts, t }: { facts: PlaceFact[]; t: TranslationFn }): React
               <span className="truncate">{label}</span>
             </>
           )
-          const shared = 'inline-flex items-center gap-1.5 max-w-full rounded-full border border-edge bg-surface px-2 py-1 text-caption text-content-secondary'
           // A fact url is a community-edited OSM tag (website:menu and friends),
           // so anything but http(s) renders as the plain chip instead of a link.
           const href = safeHttpUrl(fact.url)
 
+          if (dialog) {
+            // White pills on the grey column; the label is spelled out in the
+            // shared tooltip for the chip that had to truncate it.
+            const pill = 'inline-flex items-center gap-1.5 max-w-full rounded-full bg-surface-card px-2 py-1 text-caption text-content-secondary shadow-sm ring-1 ring-edge-faint'
+            return (
+              <Tooltip key={fact.kind} label={label}>
+                {href ? (
+                  <a href={href} target="_blank" rel="noopener noreferrer" className={`${pill} hover:text-content hover:ring-content-faint transition-colors`}>
+                    {body}
+                  </a>
+                ) : (
+                  <span className={pill}>{body}</span>
+                )}
+              </Tooltip>
+            )
+          }
+
+          const shared = 'inline-flex items-center gap-1.5 max-w-full rounded-full border border-edge bg-surface px-2 py-1 text-caption text-content-secondary'
           return href ? (
             <a
               key={fact.kind}
@@ -667,7 +825,7 @@ function FactList({ facts, t }: { facts: PlaceFact[]; t: TranslationFn }): React
           )
         })}
       </div>
-    </div>
+    </Block>
   )
 }
 
@@ -680,9 +838,11 @@ function FactList({ facts, t }: { facts: PlaceFact[]; t: TranslationFn }): React
  */
 function DescriptionBlock({
   description,
+  dialog = false,
   t,
 }: {
   description: MapsPlaceEnrichmentResult['description']
+  dialog?: boolean
   t: TranslationFn
 }): React.ReactElement | null {
   if (!description) return null
@@ -696,9 +856,8 @@ function DescriptionBlock({
   const aboutBrand = !!description.aboutBrand
 
   return (
-    <div className="space-y-2">
-      <Overline>{aboutBrand ? t('places.details.aboutBrand') : t('places.details.description')}</Overline>
-      <div className="rounded-lg border border-edge bg-surface p-2.5 space-y-2">
+    <Block label={aboutBrand ? t('places.details.aboutBrand') : t('places.details.description')} dialog={dialog}>
+      <div className={dialog ? `${COLUMN_CARD} p-3 space-y-2` : 'rounded-lg border border-edge bg-surface p-2.5 space-y-2'}>
         {aboutBrand && (
           <p className="flex items-start gap-1.5 text-caption leading-tight text-content-faint">
             <Building2 className="mt-px h-3 w-3 shrink-0" />
@@ -706,7 +865,7 @@ function DescriptionBlock({
           </p>
         )}
         <p className="text-caption leading-relaxed text-content whitespace-pre-line">{description.text}</p>
-        <p className="text-caption leading-tight text-content-faint">
+        <p className={dialog ? 'flex flex-wrap items-center gap-x-2 gap-y-0.5 text-caption leading-tight text-content-faint' : 'text-caption leading-tight text-content-faint'}>
           {description.sourceUrl ? (
             <a
               href={description.sourceUrl}
@@ -720,9 +879,9 @@ function DescriptionBlock({
           ) : (
             sourceLabel
           )}
-          {description.license && ` · ${description.license}`}
+          {description.license && (dialog ? <span>{description.license}</span> : ` · ${description.license}`)}
         </p>
       </div>
-    </div>
+    </Block>
   )
 }

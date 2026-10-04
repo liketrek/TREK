@@ -1,3 +1,5 @@
+import { idSchema } from '../common/primitives.schema';
+
 import { z } from 'zod';
 
 /**
@@ -113,6 +115,9 @@ export type BudgetItemReceipt = z.infer<typeof budgetItemReceiptSchema>;
  * plus the embedded `members` (equal-split participants), `payers` and `receipts` arrays.
  * total_price is the sum of payer amounts in `currency`; `exchange_rate` converts
  * that to the trip base currency (NULL currency + rate 1 = base currency).
+ * On a row in another currency, rate 1 means the rate was never frozen: the
+ * server converts it with today's rate, and without one leaves it out of every
+ * figure and lists it under the settlement's `unconverted`.
  */
 export const budgetItemSchema = z.object({
   id: z.number(),
@@ -151,6 +156,29 @@ const memberInputSchema = z.object({
   amount: z.number().nullable().optional(),
 });
 
+const currencyCodeSchema = z.string().regex(/^[A-Z]{3}$/);
+
+/**
+ * A rate table the caller already holds (the client's cached rates), lent to the
+ * server for a write. `rates` are units of each currency per 1 `base`, which is
+ * how a frozen `exchange_rate` reads when `base` is the trip currency.
+ *
+ * The server uses a rate from here only for a currency it cannot quote itself,
+ * and only while `base` is the trip's current currency; its own rate always wins,
+ * and a rate already frozen or sent as `exchange_rate` is never replaced.
+ */
+export const budgetFallbackFxSchema = z.object({
+  base: currencyCodeSchema,
+  rates: z.record(currencyCodeSchema, z.number().finite().min(1e-9).max(1e9)).refine(
+    (rates) => {
+      const n = Object.keys(rates).length;
+      return n >= 1 && n <= 200;
+    },
+    { message: 'rates must hold between 1 and 200 currencies' },
+  ),
+});
+export type BudgetFallbackFx = z.infer<typeof budgetFallbackFxSchema>;
+
 export const budgetCreateItemRequestSchema = z.object({
   name: z.string().min(1),
   category: z.string().optional(),
@@ -176,6 +204,8 @@ export const budgetCreateItemRequestSchema = z.object({
   place_id: z.number().optional(),
   // Receipt files to link to this expense
   receipt_file_ids: z.array(z.number()).optional(),
+  // Rates to freeze a foreign currency with when the server has none of its own.
+  fallback_fx: budgetFallbackFxSchema.optional(),
 });
 export type BudgetCreateItemRequest = z.infer<typeof budgetCreateItemRequestSchema>;
 
@@ -195,6 +225,11 @@ export const budgetUpdateItemRequestSchema = z.object({
   ticket_json: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(),
   receipt_file_ids: z.array(z.number()).optional(),
+  // Link an existing expense to a booking or a place on the same trip (#2084);
+  // null lets go of the link and keeps the expense. Omitted leaves it as is.
+  reservation_id: z.number().int().positive().nullable().optional(),
+  place_id: z.number().int().positive().nullable().optional(),
+  fallback_fx: budgetFallbackFxSchema.optional(),
 });
 export type BudgetUpdateItemRequest = z.infer<typeof budgetUpdateItemRequestSchema>;
 
@@ -209,7 +244,9 @@ export type BudgetUpdatePayersRequest = z.infer<typeof budgetUpdatePayersRequest
  * given amount, entered in the payer's display `currency`. `exchange_rate` is the
  * live rate frozen at settle time (units of that currency per 1 trip currency), so
  * a settled position stays balanced when live rates drift (#1445). Legacy rows
- * have currency = null / exchange_rate = 1 and convert with live rates. Creating
+ * have currency = null / exchange_rate = 1 and convert with live rates. A row in
+ * another currency with rate 1 was never frozen: without a live rate it is left
+ * out of the balances and listed under the settlement's `unconverted`. Creating
  * one marks a suggested flow as paid; deleting it (undo) brings the flow back.
  */
 export const budgetSettlementSchema = z.object({
@@ -226,6 +263,8 @@ export const budgetSettlementSchema = z.object({
   // vs. created_at. Null/absent on rows recorded before this column existed; the
   // ledger falls back to `created_at`'s date for those.
   settled_at: z.string().nullable().optional(),
+  // A free-text note on the payment (#2340). Null when none was written.
+  note: z.string().nullable().optional(),
   created_by_user_id: z.number().nullable().optional(),
   from_username: z.string().optional(),
   from_avatar_url: z.string().nullable().optional(),
@@ -243,6 +282,10 @@ export const budgetCreateSettlementRequestSchema = z.object({
   // The day the transfer happened. Null when the caller sets none; the ledger then
   // uses the day it was recorded, which is where every older payment already sits.
   settled_at: z.string().nullable().optional(),
+  // A free-text note on the payment (#2340); blank stores none.
+  note: z.string().max(500).nullable().optional(),
+  // Rates to freeze `currency` with when the server has none of its own.
+  fallback_fx: budgetFallbackFxSchema.optional(),
 });
 export type BudgetCreateSettlementRequest = z.infer<typeof budgetCreateSettlementRequestSchema>;
 
@@ -253,8 +296,61 @@ export const budgetUpdateSettlementRequestSchema = z.object({
   amount: z.number(),
   currency: z.string().nullable().optional(),
   settled_at: z.string().nullable().optional(),
+  // Omitted leaves the note as it is; null or blank clears it (#2340).
+  note: z.string().max(500).nullable().optional(),
+  fallback_fx: budgetFallbackFxSchema.optional(),
 });
 export type BudgetUpdateSettlementRequest = z.infer<typeof budgetUpdateSettlementRequestSchema>;
+
+/**
+ * POST …/budget/freeze-rates: pin a rate on every row in a foreign currency that
+ * has none frozen yet, not only the rows the settlement lists under `unconverted`
+ * but also those it still converts at today's rate. The server's own rate comes
+ * first; `fallback_fx` only fills a currency it cannot quote. A row that is frozen,
+ * in the trip currency or without a currency is never touched, so a second call
+ * never moves a rate the first one froze.
+ */
+export const budgetFreezeRatesRequestSchema = z.object({
+  fallback_fx: budgetFallbackFxSchema.optional(),
+});
+export type BudgetFreezeRatesRequest = z.infer<typeof budgetFreezeRatesRequestSchema>;
+
+/** The rows the call froze, and the currencies no rate was found for. */
+export const budgetFreezeRatesResponseSchema = z.object({
+  items: z.array(budgetItemSchema),
+  settlements: z.array(budgetSettlementSchema),
+  unresolved: z.array(z.string()),
+});
+export type BudgetFreezeRatesResponse = z.infer<typeof budgetFreezeRatesResponseSchema>;
+
+/**
+ * GET …/budget/settlement query. `base` is the display currency. `base_rate` is
+ * units of it per 1 trip currency, from the caller's own rates; the server uses
+ * it only when it cannot quote that pair itself, and then only in place of the
+ * missing display quote. That quote also reads a legacy transfer without a
+ * currency, which is taken to be in the display currency, as with a live quote.
+ */
+export const budgetSettlementQuerySchema = z.object({
+  base: z.string().optional(),
+  base_rate: z.coerce.number().finite().min(1e-9).max(1e9).optional(),
+});
+export type BudgetSettlementQuery = z.infer<typeof budgetSettlementQuerySchema>;
+
+/**
+ * What the settlement left out because no rate could convert it: expenses and
+ * transfers in a foreign currency with no frozen rate, while no live rate for
+ * that currency is to be had. Such a row counts in none of the figures, so the
+ * balances still add up to zero. `currencies` are upper case, deduplicated and
+ * sorted. The settlement also says which `currency` its amounts are in: the
+ * display currency asked for, or the trip currency when that one cannot be
+ * quoted.
+ */
+export const budgetUnconvertedSchema = z.object({
+  item_ids: z.array(idSchema),
+  settlement_ids: z.array(idSchema),
+  currencies: z.array(z.string()),
+});
+export type BudgetUnconverted = z.infer<typeof budgetUnconvertedSchema>;
 
 /**
  * What the trip actually costs one participant, as GET …/budget/settlement

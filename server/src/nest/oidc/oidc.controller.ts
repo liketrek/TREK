@@ -167,6 +167,18 @@ export class OidcController {
 
       const result = await this.oidc.findOrCreateUser(userInfo, config, pending.inviteToken);
       if ('error' in result) return f('/login?oidc_error=' + result.error);
+      if (result.created) {
+        // An account the callback just made is a registration, the way a password
+        // signup is (auth-public.controller): the same row, plus the way in. Without
+        // it an admin reading user.register for who got an account never sees the
+        // SSO ones, and the log looks complete while it is not.
+        await this.audit.writeAudit({
+          userId: result.user.id,
+          action: 'user.register',
+          ip: getClientIp(req),
+          details: { username: result.user.username, email: result.user.email, role: result.user.role, method: 'oidc' },
+        });
+      }
       if (result.roleChange) {
         // The claim mapping changing someone's privileges is a security event, and
         // the row is written here because this is where the client IP is. The claim
@@ -182,6 +194,11 @@ export class OidcController {
       }
 
       await this.oidc.touchLastLogin(result.user.id);
+      // The login row every other method writes (#2417). Here rather than at
+      // /exchange, because this is where the provider has vouched for the user
+      // and where the client IP is, the same place the role change is recorded;
+      // `method` names the way in, as the passkey login does.
+      await this.audit.writeAudit({ userId: result.user.id, action: 'user.login', ip: getClientIp(req), details: { method: 'oidc' } });
       // Pass the flag through untouched: `undefined` must reach the token as
       // "absent", not `false`, or the sliding renewal would later downgrade the
       // default persistent cookie to a browser-session one (remember-me, #1927).

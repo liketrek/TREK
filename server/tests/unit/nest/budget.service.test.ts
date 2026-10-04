@@ -75,10 +75,11 @@ const reservationsRepoStub = {
 function svc(
   tripMembersRepo: TripMembersRepository = {} as unknown as TripMembersRepository,
   tripsRepo: TripsRepository = {} as unknown as TripsRepository,
+  budgetItemsRepo: BudgetItemsRepository = {} as unknown as BudgetItemsRepository,
 ) {
   return new BudgetService(
     permissionsStub, exchangeRatesStub, new RealtimeService(), uowStub,
-    {} as unknown as BudgetItemsRepository,
+    budgetItemsRepo,
     {} as unknown as BudgetItemMembersRepository,
     {} as unknown as BudgetItemPayersRepository,
     {} as unknown as BudgetSettlementsRepository,
@@ -125,23 +126,42 @@ describe('BudgetService', () => {
   });
 
   it('list / perPersonSummary resolve through the folded SQL methods', async () => {
-    const s = svc();
+    // No row is waiting on today's rates, so none are fetched for it.
+    const getCurrency = vi.fn().mockResolvedValue('EUR');
+    const hasUnfrozenForeign = vi.fn().mockResolvedValue(false);
+    const s = svc(
+      undefined,
+      { getCurrency } as unknown as TripsRepository,
+      { hasUnfrozenForeign } as unknown as BudgetItemsRepository,
+    );
     const listSpy = vi.spyOn(s, 'listBudgetItems').mockResolvedValue([{ id: 1 }] as never);
     expect(await s.list('5')).toEqual([{ id: 1 }]);
     expect(listSpy).toHaveBeenCalledWith('5');
     const summarySpy = vi.spyOn(s, 'getPerPersonSummary').mockResolvedValue([{ userId: 1 }] as never);
     expect(await s.perPersonSummary('5')).toEqual([{ userId: 1 }]);
-    expect(summarySpy).toHaveBeenCalledWith('5');
+    expect(summarySpy).toHaveBeenCalledWith('5', null);
+    expect(hasUnfrozenForeign).toHaveBeenCalledWith('5', 'EUR');
+    expect(getRates).not.toHaveBeenCalled();
   });
 
   describe('settlement', () => {
-    it('upper-cases the explicit base and forwards the rates', async () => {
+    it('upper-cases the explicit base and converts with the trip currency\'s own quote (#2525)', async () => {
       const s = svc();
       const calcSpy = vi.spyOn(s, 'calculateSettlement').mockResolvedValue({ transfers: [] } as never);
-      getRates.mockResolvedValue({ USD: 1.1 });
-      await s.settlement('5', 'usd', 'EUR');
-      expect(getRates).toHaveBeenCalledWith('USD');
-      expect(calcSpy).toHaveBeenCalledWith('5', { base: 'USD', rates: { USD: 1.1 }, tripCurrency: 'EUR' });
+      getRates.mockResolvedValue({ EUR: 1, USD: 1.1 });
+      await s.settlement('5', 'usd', 'eur');
+      // The quote every entry rate was frozen from; the dollar's is not its exact inverse.
+      expect(getRates.mock.calls).toEqual([['EUR']]);
+      expect(calcSpy).toHaveBeenCalledWith('5', { base: 'USD', rates: { EUR: 1, USD: 1.1 }, tripCurrency: 'EUR' });
+    });
+
+    it('stands in the display currency\'s quote when the trip\'s cannot be fetched', async () => {
+      const s = svc();
+      const calcSpy = vi.spyOn(s, 'calculateSettlement').mockResolvedValue({ transfers: [] } as never);
+      getRates.mockImplementation(async (b: string) => (b === 'USD' ? { USD: 1, EUR: 0.9 } : null));
+      await s.settlement('5', 'USD', 'EUR');
+      expect(getRates.mock.calls).toEqual([['EUR'], ['USD']]);
+      expect(calcSpy).toHaveBeenCalledWith('5', { base: 'USD', rates: { USD: 1, EUR: 0.9 }, tripCurrency: 'EUR' });
     });
 
     it('falls back to the trip currency when no base is given', async () => {
@@ -149,8 +169,8 @@ describe('BudgetService', () => {
       const calcSpy = vi.spyOn(s, 'calculateSettlement').mockResolvedValue({ transfers: [] } as never);
       getRates.mockResolvedValue(null);
       await s.settlement('5', undefined, 'gbp');
-      expect(getRates).toHaveBeenCalledWith('GBP');
-      expect(calcSpy).toHaveBeenCalledWith('5', { base: 'GBP', rates: null, tripCurrency: 'gbp' });
+      expect(getRates.mock.calls).toEqual([['GBP']]);
+      expect(calcSpy).toHaveBeenCalledWith('5', { base: 'GBP', rates: null, tripCurrency: 'GBP' });
     });
 
     it('falls back to EUR when neither base nor trip currency is present', async () => {
@@ -159,7 +179,7 @@ describe('BudgetService', () => {
       getRates.mockResolvedValue(null);
       await s.settlement('5', undefined, '');
       expect(getRates).toHaveBeenCalledWith('EUR');
-      expect(calcSpy).toHaveBeenCalledWith('5', { base: 'EUR', rates: null, tripCurrency: '' });
+      expect(calcSpy).toHaveBeenCalledWith('5', { base: 'EUR', rates: null, tripCurrency: 'EUR' });
     });
   });
 
@@ -268,6 +288,79 @@ describe('BudgetService', () => {
       dbMock.prepare.mockImplementationOnce(() => { throw new Error('db gone'); });
       await expect(svc().syncReservationPrice('5', 42, 250, 'sock')).resolves.toBeUndefined();
       expect(broadcast).not.toHaveBeenCalled();
+    });
+
+    // #2084: the card names the currency beside the mirrored figure.
+    it('writes the currency beside the price, upper-cased', async () => {
+      dbMock._stmt.get.mockReturnValueOnce({ id: 42, metadata: '{"seat":"1A"}' }).mockReturnValueOnce({ id: 42 });
+      await svc().syncReservationPrice('5', 42, 99.5, 'sock', 'usd');
+      expect(JSON.parse(dbMock._stmt.run.mock.calls[0][0] as string)).toEqual({ seat: '1A', price: '99.5', priceCurrency: 'USD' });
+    });
+
+    it('drops a stored currency when the expense is in the trip currency (null)', async () => {
+      dbMock._stmt.get.mockReturnValueOnce({ id: 42, metadata: '{"price":"10","priceCurrency":"CNY"}' }).mockReturnValueOnce({ id: 42 });
+      await svc().syncReservationPrice('5', 42, 12, undefined, null);
+      expect(JSON.parse(dbMock._stmt.run.mock.calls[0][0] as string)).toEqual({ price: '12' });
+    });
+
+    it('leaves a stored currency alone when none is passed at all', async () => {
+      dbMock._stmt.get.mockReturnValueOnce({ id: 42, metadata: '{"price":"10","priceCurrency":"CNY"}' }).mockReturnValueOnce({ id: 42 });
+      await svc().syncReservationPrice('5', 42, 12, undefined);
+      expect(JSON.parse(dbMock._stmt.run.mock.calls[0][0] as string)).toEqual({ price: '12', priceCurrency: 'CNY' });
+    });
+  });
+
+  describe('resyncLinkedPrices', () => {
+    // Which bookings an update touches is pure bookkeeping over the before/after
+    // link and the body; the SQL behind resyncReservationPrice is pinned in
+    // budget.service.db.test.ts.
+    async function resynced(
+      previous: number | null | undefined,
+      updated: { reservation_id?: number | null },
+      data: { total_price?: number; reservation_id?: number | null },
+      socketId?: string,
+    ) {
+      const s = svc();
+      const spy = vi.spyOn(s, 'resyncReservationPrice').mockResolvedValue(undefined);
+      await s.resyncLinkedPrices('5', previous, updated, data, socketId);
+      return spy.mock.calls;
+    }
+
+    it('resyncs the linked booking when the total changes', async () => {
+      expect(await resynced(undefined, { reservation_id: 42 }, { total_price: 250 }, 'sock')).toEqual([['5', 42, 'sock']]);
+    });
+
+    it('resyncs the linked booking on an edit that names neither the total nor the link', async () => {
+      // A new currency, or payers that derive a new total, move the booking's
+      // price too, and neither shows up in the two fields this looks at.
+      expect(await resynced(undefined, { reservation_id: 42 }, {}, 'sock')).toEqual([['5', 42, 'sock']]);
+    });
+
+    it('leaves every booking alone when the expense is linked to none', async () => {
+      expect(await resynced(undefined, { reservation_id: null }, { total_price: 250 })).toEqual([]);
+      expect(await resynced(undefined, {}, {})).toEqual([]);
+    });
+
+    it('resyncs both the booking left and the booking joined on a re-link', async () => {
+      expect(await resynced(42, { reservation_id: 43 }, { reservation_id: 43 }, 'sock')).toEqual([['5', 42, 'sock'], ['5', 43, 'sock']]);
+    });
+
+    it('resyncs only the booking left on an unlink', async () => {
+      expect(await resynced(42, { reservation_id: null }, { reservation_id: null })).toEqual([['5', 42, undefined]]);
+    });
+
+    it('resyncs only the booking joined when the expense had none before', async () => {
+      expect(await resynced(null, { reservation_id: 43 }, { reservation_id: 43, total_price: 10 })).toEqual([['5', 43, undefined]]);
+    });
+
+    it('resyncs a booking once when the expense is re-linked to the one it already had', async () => {
+      expect(await resynced(42, { reservation_id: 42 }, { reservation_id: 42, total_price: 10 })).toEqual([['5', 42, undefined]]);
+    });
+
+    it('ignores the stored link when the body does not name one', async () => {
+      // A total change on an expense that stays put must not touch some other booking
+      // the caller happened to pass as the previous one.
+      expect(await resynced(41, { reservation_id: 42 }, { total_price: 10 })).toEqual([['5', 42, undefined]]);
     });
   });
 });

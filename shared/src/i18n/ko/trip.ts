@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': '거의 다 왔어요...',
   'trip.mobilePlan': '계획',
   'trip.mobilePlaces': '장소',
+  'trip.panelWidth': '패널 너비',
   'trip.toast.placeUpdated': '장소가 업데이트되었습니다',
   'trip.toast.tripUpdated': '여행이 업데이트됨',
   'trip.toast.placeAdded': '장소가 추가되었습니다',
@@ -88,7 +89,8 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': '환승',
   'transit.walkLabel': '도보',
   'transit.searchHint': '실제 연결편을 검색하고 바로 일정에 추가하세요 — 데이터 제공: Transitous.',
-  'trip.confirm.deletePlaceNight': '“{name}”에 예약된 숙박도 장소와 함께 삭제됩니다.',
-  'trip.confirm.deletePlaceBooked': '“{name}”에 예약된 숙박이 장소와 함께 삭제되며, 예약 “{booking}” 및 연결된 지출도 함께 삭제됩니다.',
+  'trip.confirm.deletePlaceNight': '“{name}”에 예약된 숙박도 함께 삭제됩니다.',
+  'trip.confirm.deletePlaceBooked': '“{name}”에 예약된 숙박, 예약 “{booking}” 및 연결된 지출도 함께 삭제됩니다.',
+  'trip.confirm.deletePlaceBookedSame': '“{name}”에 예약된 숙박과 그 예약, 연결된 지출도 함께 삭제됩니다.',
 };
 export default trip;

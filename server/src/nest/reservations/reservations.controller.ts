@@ -26,7 +26,7 @@ import {
 type ReservationBody = Record<string, unknown> & {
   title?: string;
   type?: string;
-  create_budget_entry?: { total_price?: number; category?: string };
+  create_budget_entry?: { total_price?: number; category?: string; currency?: string | null };
 };
 
 /**
@@ -69,11 +69,14 @@ export class ReservationsController {
   ) {
     const body = rawBody as ReservationBody & { title: string };
     await this.rejectForeignReferences(tripId, body);
+    // Before the writes: the price keeps the currency it was quoted in,
+    // at a rate frozen now (#2525).
+    const budgetEntry = await this.reservations.withFrozenRate(tripId, body.create_budget_entry);
     const { reservation, accommodationCreated } = await this.reservations.create(tripId, body as never);
     if (accommodationCreated) {
       this.reservations.broadcast(tripId, 'accommodation:created', {}, socketId);
     }
-    await this.reservations.syncBudgetOnCreate(tripId, reservation.id, body.title, body.type, body.create_budget_entry, socketId);
+    await this.reservations.syncBudgetOnCreate(tripId, reservation.id, body.title, body.type, budgetEntry, socketId);
     this.reservations.broadcast(tripId, 'reservation:created', { reservation }, socketId);
     await this.reservations.notifyBookingChange(tripId, user.id, body.title, body.type ?? '');
     return { reservation };
@@ -150,15 +153,15 @@ export class ReservationsController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const { deleted, accommodationDeleted, deletedBudgetItemId } = await this.reservations.remove(id, tripId);
+    const { deleted, accommodationDeleted, deletedBudgetItemIds } = await this.reservations.remove(id, tripId);
     if (!deleted) {
       throw new HttpException({ error: 'Reservation not found' }, 404);
     }
     if (accommodationDeleted) {
       this.reservations.broadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id }, socketId);
     }
-    if (deletedBudgetItemId) {
-      this.reservations.broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, socketId);
+    for (const itemId of deletedBudgetItemIds) {
+      this.reservations.broadcast(tripId, 'budget:deleted', { itemId }, socketId);
     }
     this.reservations.broadcast(tripId, 'reservation:deleted', { reservationId: Number(id) }, socketId);
     await this.reservations.notifyBookingChange(tripId, user.id, deleted.title, deleted.type || '');

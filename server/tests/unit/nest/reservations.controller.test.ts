@@ -21,6 +21,8 @@ function makeService(overrides: Partial<ReservationsService> = {}): Reservations
     syncBudgetOnCreate: vi.fn(),
     syncBudgetOnUpdate: vi.fn(),
     notifyBookingChange: vi.fn(),
+    // Hands the entry back as it came: what freezing does to it is the service's test.
+    withFrozenRate: vi.fn(async (_tripId: string, entry: unknown) => entry),
     ...overrides,
   } as unknown as ReservationsService;
 }
@@ -92,6 +94,22 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
       } as Partial<ReservationsService>);
       expect(await thrown(() => new ReservationsController(svc, airtrailLink).create(user, '5', { title: 'Hotel', place_id: 4711 })))
         .toEqual({ status: 400, body: { error: 'Not part of this trip: place_id' } });
+    });
+
+    // #2525: an imported booking quoted in dollars. The price has to reach the linked
+    // cost in dollars, at a rate frozen before anything is written.
+    it('hands the budget sync the entry with its currency and frozen rate', async () => {
+      const create = vi.fn().mockReturnValue({ reservation: { id: 9 }, accommodationCreated: false });
+      const syncBudgetOnCreate = vi.fn();
+      const withFrozenRate = vi.fn(async () => {
+        expect(create).not.toHaveBeenCalled();
+        return { total_price: 801.76, currency: 'USD', exchange_rate: 1.17 };
+      });
+      const svc = makeService({ create, syncBudgetOnCreate, withFrozenRate } as Partial<ReservationsService>);
+      const body = { title: 'Aparthotel Silver', type: 'hotel', create_budget_entry: { total_price: 801.76, currency: 'usd' } };
+      await new ReservationsController(svc, airtrailLink).create(user, '5', body, 'sock');
+      expect(withFrozenRate).toHaveBeenCalledWith('5', { total_price: 801.76, currency: 'usd' });
+      expect(syncBudgetOnCreate).toHaveBeenCalledWith('5', 9, 'Aparthotel Silver', 'hotel', { total_price: 801.76, currency: 'USD', exchange_rate: 1.17 }, 'sock');
     });
   });
 
@@ -176,18 +194,44 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
 
   describe('DELETE /:id', () => {
     it('404 when nothing deleted', async () => {
-      const svc = makeService({ remove: vi.fn().mockReturnValue({ deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null }) } as Partial<ReservationsService>);
+      const broadcast = vi.fn();
+      const svc = makeService({
+        remove: vi.fn().mockReturnValue({ deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] }),
+        broadcast,
+      } as Partial<ReservationsService>);
       expect(await thrown(() => new ReservationsController(svc, airtrailLink).remove(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Reservation not found' } });
+      expect(broadcast).not.toHaveBeenCalled();
     });
 
     it('broadcasts the accommodation + budget cascade then reservation:deleted', async () => {
-      const remove = vi.fn().mockReturnValue({ deleted: { id: 9, title: 'Hotel', type: 'lodging', accommodation_id: 3 }, accommodationDeleted: true, deletedBudgetItemId: 7 });
+      const remove = vi.fn().mockReturnValue({ deleted: { id: 9, title: 'Hotel', type: 'lodging', accommodation_id: 3 }, accommodationDeleted: true, deletedBudgetItemId: 7, deletedBudgetItemIds: [7] });
       const broadcast = vi.fn(); const notifyBookingChange = vi.fn();
       const svc = makeService({ remove, broadcast, notifyBookingChange } as Partial<ReservationsService>);
       expect(await new ReservationsController(svc, airtrailLink).remove(user, '5', '9', 'sock')).toEqual({ success: true });
       expect(broadcast).toHaveBeenCalledWith('5', 'accommodation:deleted', { accommodationId: 3 }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:deleted', { itemId: 7 }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'reservation:deleted', { reservationId: 9 }, 'sock');
+      expect(notifyBookingChange).toHaveBeenCalledWith('5', user.id, 'Hotel', 'lodging');
+    });
+
+    it('announces every expense the booking took with it, before the booking itself (#2084)', async () => {
+      const remove = vi.fn().mockReturnValue({ deleted: { id: 9, title: 'Flight', type: 'flight', accommodation_id: null }, accommodationDeleted: false, deletedBudgetItemId: 7, deletedBudgetItemIds: [7, 8] });
+      const broadcast = vi.fn();
+      const svc = makeService({ remove, broadcast } as Partial<ReservationsService>);
+      await new ReservationsController(svc, airtrailLink).remove(user, '5', '9', 'sock');
+      expect(broadcast.mock.calls).toEqual([
+        ['5', 'budget:deleted', { itemId: 7 }, 'sock'],
+        ['5', 'budget:deleted', { itemId: 8 }, 'sock'],
+        ['5', 'reservation:deleted', { reservationId: 9 }, 'sock'],
+      ]);
+    });
+
+    it('announces no expense when the booking carried none', async () => {
+      const remove = vi.fn().mockReturnValue({ deleted: { id: 9, title: 'Museum', type: 'activity', accommodation_id: null }, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] });
+      const broadcast = vi.fn();
+      const svc = makeService({ remove, broadcast } as Partial<ReservationsService>);
+      await new ReservationsController(svc, airtrailLink).remove(user, '5', '9', 'sock');
+      expect(broadcast.mock.calls).toEqual([['5', 'reservation:deleted', { reservationId: 9 }, 'sock']]);
     });
   });
 });

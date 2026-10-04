@@ -11,6 +11,7 @@ const todo: TranslationStrings = {
   'todo.uncategorized': 'Tanpa daftar',
   'todo.namePlaceholder': 'Nama tugas',
   'todo.descriptionPlaceholder': 'Deskripsi (opsional)',
+  'todo.editDescription': 'Klik untuk mengedit, tautan langsung terbuka',
   'todo.unassigned': 'Belum ditugaskan',
   'todo.noCategory': 'Tanpa daftar',
   'todo.hasDescription': 'Ada deskripsi',

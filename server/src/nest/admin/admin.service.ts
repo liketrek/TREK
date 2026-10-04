@@ -53,6 +53,8 @@ import { Places } from '../../db/entities/Places.entity';
 import type { PlacesRepository } from '../../db/repositories/Places.repository';
 import { TripFiles } from '../../db/entities/TripFiles.entity';
 import type { TripFilesRepository } from '../../db/repositories/TripFiles.repository';
+import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
+import type { PushSubscriptionsRepository } from '../../db/repositories/PushSubscriptions.repository';
 import type { AddonConfig } from '../../db/entities/Addons.entity';
 import {
   BCRYPT_COST,
@@ -112,6 +114,7 @@ export class AdminService {
     @InjectRepository(Trips) private readonly trips: TripsRepository,
     @InjectRepository(Places) private readonly places: PlacesRepository,
     @InjectRepository(TripFiles) private readonly tripFiles: TripFilesRepository,
+    @InjectRepository(PushSubscriptions) private readonly pushSubscriptions: PushSubscriptionsRepository,
     private readonly addons: AddonsService,
     private readonly passkeys: PasskeyService,
     private readonly auth: AuthService,
@@ -248,9 +251,9 @@ export class AdminService {
     }
 
     // The password-reset transaction's CURRENT boundary, preserved exactly
-    // (R4): the users UPDATE, the mcp_tokens DELETE and the oauth_tokens
-    // revoke stay inside the SAME uow.transactional call, never split across
-    // separate un-transacted repository calls.
+    // (R4): the users UPDATE, the mcp_tokens DELETE, the oauth_tokens revoke
+    // and the push_subscriptions DELETE stay inside the SAME uow.transactional
+    // call, never split across separate un-transacted repository calls.
     await this.uow.transactional(async () => {
       await this.users.applyAdminEdit(userId, patch);
 
@@ -262,6 +265,9 @@ export class AdminService {
         try {
           await this.oauthTokens.revokeAllForUser(userId);
         } catch { /* very old installs predate oauth_tokens */ }
+        // Push devices outlive every session, so the intruder's browser would
+        // keep receiving this account's notifications. They go with the rest.
+        await this.pushSubscriptions.deleteAllForUser(userId);
       }
     });
 

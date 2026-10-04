@@ -30,6 +30,8 @@ const login: TranslationStrings = {
   'login.oidcOnly':
     'Ο έλεγχος ταυτότητας με κωδικό είναι απενεργοποιημένος. Παρακαλώ συνδεθείτε χρησιμοποιώντας τον πάροχο SSO σας.',
   'login.oidcLoggedOut': 'Έχετε αποσυνδεθεί. Συνδεθείτε ξανά χρησιμοποιώντας τον πάροχο SSO σας.',
+  'login.oidcRedirecting': 'Ανακατεύθυνση στο {name}…',
+  'login.oidcRedirectSlow': 'Ακόμα εδώ; Συνέχεια στο {name}',
   'login.demoHint': 'Δοκιμάστε το demo — δεν απαιτείται εγγραφή',
   'login.mfaTitle': 'Έλεγχος ταυτότητας δύο παραγόντων',
   'login.mfaSubtitle': 'Εισάγετε τον 6ψήφιο κωδικό από την εφαρμογή authenticator σας.',

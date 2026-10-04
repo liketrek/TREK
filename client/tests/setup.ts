@@ -50,20 +50,47 @@ Date.prototype.toLocaleDateString = function (locales?: Intl.LocalesArgument, op
   return _origToLocaleDateString.call(this, locales ?? 'en-US', options)
 }
 
-// window.matchMedia — used by dark mode / responsive components
+// window.matchMedia — used by dark mode / responsive components.
+// Width queries are answered from window.innerWidth, which is what a test sets
+// when it wants a phone viewport, and the lists re-evaluate on a resize event,
+// so a component that follows the breakpoint can be driven from a test the same
+// way the browser drives it. Every other query keeps the old constant false.
+const mediaLists = new Set<{ media: string; matches: boolean; listeners: Set<(e: MediaQueryListEvent) => void> }>()
+
+function widthMatches(query: string): boolean {
+  const max = /\(\s*max-width:\s*(\d+)px\s*\)/.exec(query)
+  if (max) return window.innerWidth <= Number(max[1])
+  const min = /\(\s*min-width:\s*(\d+)px\s*\)/.exec(query)
+  if (min) return window.innerWidth >= Number(min[1])
+  return false
+}
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
+  value: vi.fn().mockImplementation((query: string) => {
+    const entry = { media: query, matches: widthMatches(query), listeners: new Set<(e: MediaQueryListEvent) => void>() }
+    mediaLists.add(entry)
+    return {
+      get matches() { return entry.matches },
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn((_type: string, fn: (e: MediaQueryListEvent) => void) => entry.listeners.add(fn)),
+      removeEventListener: vi.fn((_type: string, fn: (e: MediaQueryListEvent) => void) => entry.listeners.delete(fn)),
+      dispatchEvent: vi.fn(),
+    }
+  }),
 });
+
+window.addEventListener('resize', () => {
+  for (const entry of mediaLists) {
+    const matches = widthMatches(entry.media)
+    if (matches === entry.matches) continue
+    entry.matches = matches
+    for (const fn of entry.listeners) fn({ matches, media: entry.media } as MediaQueryListEvent)
+  }
+})
 
 // IntersectionObserver — used by lazy loading
 // Must use a class or regular function (not arrow function) so 'new IntersectionObserver()' works

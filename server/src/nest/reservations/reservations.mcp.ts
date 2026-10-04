@@ -14,12 +14,12 @@ import { DaysService } from '../days/days.service';
 import { findByIata } from '../airports/airports.data';
 import type { EndpointInput } from './reservations.service';
 import { AssignmentsService } from '../assignments/assignments.service';
-import { transportLegsInputSchema, reservationUrlSchema, type TransportLegInput } from '@trek/shared';
+import { transportLegInputSchema, reservationUrlSchema, type TransportLegInput } from '@trek/shared';
 
 // What counts as a transport booking, for the update_transport gate. Every value
 // ReservationsPanel renders with a transport icon, so a stored `transit` row is
 // editable through the transport tools like any other.
-const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'] as const;
+const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other'] as const;
 // What a caller may ASK for, which is the transport form's own picker
 // (client/src/components/Planner/TransportModal.tsx), in its order. The tools
 // below used to accept four of these nine, so a bus or a ferry could be planned
@@ -29,7 +29,7 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cr
 // booking carries a provider itinerary in metadata.transit, and create_transit_journey
 // is what writes one. A hand-made `transit` row would be a shape the transit UI
 // does not expect.
-const CREATABLE_TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'] as const;
+const CREATABLE_TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transport_other'] as const;
 /** Only these two carry per-segment detail: the transport form writes metadata.legs for a flight or a train and for nothing else. */
 const LEG_TRANSPORT_TYPES = ['flight', 'train'] as const;
 /** Everything the picker offers that is not a transport: create_reservation's half. */
@@ -47,7 +47,7 @@ const urlField = reservationUrlSchema.max(2000).optional()
 type TransportType = typeof CREATABLE_TRANSPORT_TYPES[number];
 type BookingType = typeof BOOKING_TYPES[number];
 
-const endpointObjectSchema = z.object({
+const endpointObjectSchema = z.strictObject({
   role: z.enum(['from', 'to', 'stop']).describe('Endpoint role: "from" (origin), "to" (destination), or "stop" (intermediate)'),
   sequence: z.number().int().min(0).describe('Order within the route (0-based)'),
   name: z.string().min(1).describe('Location name (e.g. "Paris Gare de Lyon", "ZRH Terminal 2")'),
@@ -115,7 +115,8 @@ function parseId(value: string | string[]): number | null {
 // and the importers write, and keep the two stores in step.
 // ---------------------------------------------------------------------------
 
-const legsSchema = transportLegsInputSchema.optional().describe(
+// Strict at this boundary: a leg written as flightNumber must not save half-empty.
+const legsSchema = z.array(z.strictObject(transportLegInputSchema.shape)).optional().describe(
   'Per-segment detail of a stopover flight or train: one entry per segment, in route order, exactly ONE FEWER than endpoints[]. '
   + 'Each leg carries its own departure and arrival day + local time (dep_day_id/dep_time, arr_day_id/arr_time) plus airline/flight_number (flights) or train_number/platform (trains). '
   + 'A leg may also carry its own confirmation_number when that segment was issued a separate booking reference; leave it out and the booking-level confirmation_number covers the segment. '
@@ -471,11 +472,12 @@ export class ReservationsMcp {
     if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
-    const { deleted, accommodationDeleted } = await this.reservations.remove(reservationId, tripId);
+    const { deleted, accommodationDeleted, deletedBudgetItemIds } = await this.reservations.remove(reservationId, tripId);
     if (!deleted) return errorResult('Reservation not found.');
     if (accommodationDeleted) {
       this.guards.safeBroadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id });
     }
+    for (const itemId of deletedBudgetItemIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
     return ok({ success: true });
   }
@@ -520,7 +522,7 @@ export class ReservationsMcp {
     description: 'Update the display order of reservations within a day.',
     inputSchema: {
       tripId: z.number().int().positive(),
-      positions: z.array(z.object({
+      positions: z.array(z.strictObject({
         id: z.number().int().positive(),
         day_plan_position: z.number().int().min(0),
       })).describe('Array of { id, day_plan_position } pairs'),
@@ -901,8 +903,9 @@ export class ReservationsMcp {
     if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
-    const { deleted } = await this.reservations.remove(reservationId, tripId);
+    const { deleted, deletedBudgetItemIds } = await this.reservations.remove(reservationId, tripId);
     if (!deleted) return errorResult('Transport not found.');
+    for (const itemId of deletedBudgetItemIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
     return ok({ success: true });
   }

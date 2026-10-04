@@ -1,4 +1,5 @@
 import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'react'
+import { clusterPhotos, photoMarkerHtml, type MapPhoto } from './journeyPhotoLayer'
 import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useCartoApiKey } from '../../hooks/useTileUrl'
@@ -22,44 +23,6 @@ export interface MapMarkerItem {
   photoUrls: string[]
 }
 
-/**
- * Grid clustering in screen space.
- *
- * The Journey maps have never had clustering, and the library the planner uses
- * hangs off react-leaflet while this map drives Leaflet directly. Bucketing by
- * rounded pixel position is a few lines, is deterministic, and is enough for the
- * job: photos of one place collapse into one thumbnail with a count, and pulling
- * the map apart separates them again.
- */
-const PHOTO_CLUSTER_PX = 64
-
-function clusterPhotos(
-  map: L.Map,
-  photos: MapPhoto[],
-): { lat: number; lng: number; members: MapPhoto[] }[] {
-  const buckets = new Map<string, MapPhoto[]>()
-  for (const photo of photos) {
-    const pt = map.latLngToContainerPoint([photo.lat, photo.lng])
-    const key = `${Math.round(pt.x / PHOTO_CLUSTER_PX)}:${Math.round(pt.y / PHOTO_CLUSTER_PX)}`
-    const list = buckets.get(key)
-    if (list) list.push(photo)
-    else buckets.set(key, [photo])
-  }
-  return [...buckets.values()].map(members => ({
-    // Anchor on the first member rather than the centroid: the thumbnail shown is
-    // that photo's, so the pin should point where that picture was taken.
-    lat: members[0].lat,
-    lng: members[0].lng,
-    members,
-  }))
-}
-
-function photoMarkerHtml(thumbUrl: string, count: number): string {
-  const badge = count > 1
-    ? `<span style="position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#fff;border:1.5px solid rgba(0,0,0,.12);box-shadow:0 1px 4px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#111827;line-height:1;box-sizing:border-box;">${count}</span>`
-    : ''
-  return `<div style="position:relative;width:48px;height:48px;border-radius:12px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);background-image:url('${encodeURI(thumbUrl)}');background-size:cover;background-position:center;"></div>${badge}`
-}
 
 export interface JourneyMapHandle {
   highlightMarker: (id: string | null) => void
@@ -67,13 +30,7 @@ export interface JourneyMapHandle {
   invalidateSize: () => void
 }
 
-/** A photo that knows where it was taken (#1614). */
-export interface MapPhoto {
-  id: string
-  lat: number
-  lng: number
-  thumbUrl: string
-}
+export type { MapPhoto } from './journeyPhotoLayer'
 
 interface MapEntry {
   id: string
@@ -159,6 +116,27 @@ function markerSvg(dayColor: string, dayLabel: number, highlighted: boolean): st
       <text x="14" y="13" text-anchor="middle" dominant-baseline="central" fill="#fff" font-family="'Poppins',system-ui,sans-serif" font-size="11" font-weight="700">${label}</text>
     </svg>
   </div>`
+}
+
+/**
+ * Pan, don't zoom: the initial fitBounds decides how far out the reader starts,
+ * and a focus keeps that (discussion #2299).
+ *
+ * Deferred until the map has its first view. That view is set on a rAF after
+ * the build, and the active entry asks for its pan on a 50 ms timer, so a tab
+ * in the background or a slow frame lets the pan come first. Leaflet does not
+ * refuse a pan on a viewless map, it takes it as the first view, with the zoom
+ * still undefined: the tile layer aborts its own add on that, the load event
+ * stops halfway, and every marker queued behind it never makes it onto the map.
+ * The next rebuild then tears down markers that were never added and dies in
+ * Leaflet's icon removal, which took the whole journey page with it after each
+ * save. whenReady runs the pan at once on a map with a view and otherwise right
+ * after the fit lands.
+ */
+function panToMarker(map: L.Map, marker: L.Marker): void {
+  map.whenReady(() => {
+    map.panTo(marker.getLatLng(), { animate: true, duration: 0.5 })
+  })
 }
 
 const EMPTY_TRAIL: { lat: number; lng: number }[] = []
@@ -254,11 +232,7 @@ function JourneyMap(
   const focusMarker = useCallback((id: string) => {
     highlightMarker(id)
     const marker = markersRef.current.get(id)
-    if (marker && mapRef.current) {
-      try {
-        mapRef.current.panTo(marker.getLatLng(), { animate: true, duration: 0.5 })
-      } catch { /* map not yet initialized */ }
-    }
+    if (marker && mapRef.current) panToMarker(mapRef.current, marker)
   }, [])
 
   const invalidateSize = useCallback(() => {
@@ -473,7 +447,7 @@ function JourneyMap(
       }
 
       const group = L.layerGroup()
-      for (const cluster of clusterPhotos(map, photos)) {
+      for (const cluster of clusterPhotos(photos, (lat, lng) => map.latLngToContainerPoint([lat, lng]))) {
         const marker = L.marker([cluster.lat, cluster.lng], {
           icon: L.divIcon({
             className: '',
@@ -511,14 +485,7 @@ function JourneyMap(
       highlightMarker(activeMarkerId)
       const marker = markersRef.current.get(activeMarkerId)
       if (!marker || !mapRef.current) return
-      // Pan, don't zoom — see focusMarker. fitBounds may still be pending when this
-      // fires, and panTo on a map with no view throws "Set map center and zoom
-      // first", so the catch is where the map gets its first one.
-      try {
-        mapRef.current.panTo(marker.getLatLng(), { animate: true, duration: 0.5 })
-      } catch {
-        mapRef.current.setView(marker.getLatLng(), 12)
-      }
+      panToMarker(mapRef.current, marker)
     }, 50)
     return () => clearTimeout(timer)
   }, [activeMarkerId])

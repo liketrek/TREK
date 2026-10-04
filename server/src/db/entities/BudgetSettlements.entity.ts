@@ -20,6 +20,7 @@ export class BudgetSettlements {
   currency?: string | null;
   exchange_rate!: number & Opt;
   settled_at?: string | null;
+  note?: string | null;
 }
 
 export const BudgetSettlementsSchema = defineEntity({
@@ -40,5 +41,6 @@ export const BudgetSettlementsSchema = defineEntity({
     currency: p.text().nullable(),
     exchange_rate: p.double().defaultRaw(`1`),
     settled_at: p.text().nullable(),
+    note: p.text().nullable(),
   },
 });

@@ -351,14 +351,14 @@ describe('PlacesRepository.scopedIds (PL23) — input-order preservation', () =>
 });
 
 describe('PlacesRepository.insertPlace (PL4) / updatePlace (PL11)', () => {
-  it('PLACEREPO-019: insertPlace writes every one of the 25 columns and returns the generated id', async () => {
+  it('PLACEREPO-019: insertPlace writes every one of the 27 columns and returns the generated id', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const id = await places.insertPlace({
       trip_id: trip.id, name: 'Full Insert', description: 'd', lat: 0, lng: 0, address: 'a',
       category_id: null, price: 0, currency: 'USD', place_time: '09:00', end_time: '10:00',
       duration_minutes: 60, notes: 'n', image_url: '/uploads/places/x.jpg', google_place_id: 'g',
-      google_ftid: 'f', osm_id: 'o', amap_poi_id: 'am', website: 'w', phone: 'p',
+      google_ftid: 'f', osm_id: 'o', amap_poi_id: 'am', website: 'w', phone: 'p', email: 'e@x.test', opening_hours: 'Mo-Fr 09:00-17:00',
       transport_mode: 'walking', route_geometry: '[[1,2]]', route_color: '#fff', stop_type: 'fuel',
       fill_percent: 50,
     });
@@ -367,7 +367,7 @@ describe('PlacesRepository.insertPlace (PL4) / updatePlace (PL11)', () => {
       trip_id: trip.id, name: 'Full Insert', description: 'd', lat: 0, lng: 0, address: 'a',
       category_id: null, price: 0, currency: 'USD', place_time: '09:00', end_time: '10:00',
       duration_minutes: 60, notes: 'n', image_url: '/uploads/places/x.jpg', google_place_id: 'g',
-      google_ftid: 'f', osm_id: 'o', amap_poi_id: 'am', website: 'w', phone: 'p',
+      google_ftid: 'f', osm_id: 'o', amap_poi_id: 'am', website: 'w', phone: 'p', email: 'e@x.test', opening_hours: 'Mo-Fr 09:00-17:00',
       transport_mode: 'walking', route_geometry: '[[1,2]]', route_color: '#fff', stop_type: 'fuel',
       fill_percent: 50,
     });
@@ -381,7 +381,7 @@ describe('PlacesRepository.insertPlace (PL4) / updatePlace (PL11)', () => {
       name: 'Original', description: null, lat: null, lng: null, address: null, category_id: null,
       price: null, currency: null, place_time: null, end_time: null, duration_minutes: null,
       notes: null, image_url: null, google_place_id: null, google_ftid: null, osm_id: null,
-      amap_poi_id: null, website: null, phone: null, transport_mode: null, route_color: null,
+      amap_poi_id: null, website: null, phone: null, email: null, opening_hours: null, transport_mode: null, route_color: null,
       stop_type: null, fill_percent: null,
     };
     // A non-COALESCE column (description) written explicitly null clears it.
@@ -413,7 +413,7 @@ describe('PlacesRepository.insertPlace (PL4) / updatePlace (PL11)', () => {
       name: 'Stamped', description: null, lat: null, lng: null, address: null, category_id: null,
       price: null, currency: null, place_time: null, end_time: null, duration_minutes: null,
       notes: null, image_url: null, google_place_id: null, google_ftid: null, osm_id: null,
-      amap_poi_id: null, website: null, phone: null, transport_mode: null, route_color: null,
+      amap_poi_id: null, website: null, phone: null, email: null, opening_hours: null, transport_mode: null, route_color: null,
       stop_type: null, fill_percent: null,
     });
     const after = await places.findInTrip(place.id, trip.id);
@@ -662,9 +662,11 @@ describe('PlacesRepository.listForTrip (PL3) — toEqual(legacy) over all 32 fil
     filters: { searchPattern?: string; category?: string; tag?: string; assignment?: 'all' | 'unassigned' | 'assigned' },
   ): unknown[] {
     let query = `
-      SELECT DISTINCT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+      SELECT DISTINCT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+        pr.country_code as country_code, pr.region_name as region_name
       FROM places p
       LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN place_regions pr ON pr.place_id = p.id
       WHERE p.trip_id = ?
     `;
     const params: (string | number)[] = [tripId];
@@ -750,7 +752,7 @@ describe('PlacesRepository.insertPlace — the four importers\' narrower column 
     address: null, category_id: null, price: null, currency: null,
     place_time: null, end_time: null, duration_minutes: 60, notes: null, image_url: null,
     google_place_id: null, google_ftid: null, osm_id: null, amap_poi_id: null, website: null,
-    phone: null, transport_mode: 'walking', route_geometry: null, route_color: null,
+    phone: null, email: null, opening_hours: null, transport_mode: 'walking', route_geometry: null, route_color: null,
     stop_type: null, fill_percent: null,
   };
 

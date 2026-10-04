@@ -14,6 +14,12 @@ import {
   refuelStopTypeFor,
   leaveAfter,
   scheduleStopOf,
+  carriedSeam,
+  reanchorAfterRemove,
+  reanchorAfterReorder,
+  reanchorByStopOrder,
+  seamViaIndex,
+  isStoredStop,
 } from './roadtripModel';
 
 import { describe, it, expect } from 'vitest';
@@ -1167,5 +1173,181 @@ describe('a check-in holds a booked night the way a pinned time does', () => {
       [14 * 60],
     );
     expect(schedule.warnings).toContainEqual({ index: 1, code: 'late', minutes: 314 });
+  });
+});
+
+describe('carriedSeam', () => {
+  it('FE-ROADTRIP-MODEL-107: the via behind a last stop stays with it while it is last, whatever its number', () => {
+    expect(carriedSeam([10, 20, 30], [20, 10, 30])).toEqual({ from: 2, to: 2 });
+    // A stop taken out ahead of it, and a night seated ahead of it.
+    expect(carriedSeam([10, 20, 30], [10, 30])).toEqual({ from: 2, to: 1 });
+    expect(carriedSeam([10, 20, 30], [10, 20, 25, 30])).toEqual({ from: 2, to: 3 });
+    // Another stop is last now, or the day has none.
+    expect(carriedSeam([10, 20, 30], [30, 10, 20])).toBeNull();
+    expect(carriedSeam([10, 20, 30], [10, 20, 30, 40])).toBeNull();
+    expect(carriedSeam([10, 20, 30], [10, 20])).toBeNull();
+    expect(carriedSeam([], [10])).toBeNull();
+    expect(carriedSeam([10], [])).toBeNull();
+  });
+
+  it('FE-ROADTRIP-MODEL-108: the reorder and the removal the planner and the server run both keep to it', () => {
+    const via = (id: number, after: number) => ({ id, after_order_index: after, lat: 53, lng: 10 });
+    expect(reanchorByStopOrder([via(9, 2)], [10, 20, 30], [10, 30])).toEqual({
+      vias: [{ id: 9, after_order_index: 1 }],
+      remove: [],
+    });
+    expect(reanchorByStopOrder([via(9, 2)], [10, 20, 30], [20, 10, 30])).toEqual({ vias: [], remove: [] });
+    expect(reanchorAfterRemove([via(9, 2)], 2, 3)).toEqual({ vias: [], remove: [9] });
+    expect(reanchorAfterRemove([via(9, 2)], 0, 3)).toEqual({ vias: [{ id: 9, after_order_index: 1 }], remove: [] });
+  });
+});
+
+describe('seamViaIndex', () => {
+  const via = (id: number, after: number) => ({ id, after_order_index: after, lat: 53, lng: 10 });
+  /** The day's stops after `from` was taken out and put back at `to`. */
+  const moved = (ids: number[], from: number, to: number): number[] => {
+    const next = ids.filter((_, i) => i !== from);
+    next.splice(to, 0, ids[from]!);
+    return next;
+  };
+
+  it('FE-ROADTRIP-MODEL-109: the via behind the last stop stays while that stop is last and goes once it is not', () => {
+    expect(seamViaIndex(2, [10, 20, 30], [10, 30])).toBe(1);
+    expect(seamViaIndex(2, [10, 20, 30], [30, 10, 20])).toBeNull();
+    expect(seamViaIndex(2, [10, 20, 30], [10, 30, 20])).toBeNull();
+    // A via on a leg of the day is left to the writer.
+    expect(seamViaIndex(1, [10, 20, 30], [30, 10, 20])).toBeUndefined();
+  });
+
+  it('FE-ROADTRIP-MODEL-110: every writer does the same to it for the same move, and never bends a leg of the day with it', () => {
+    // The rail's drag (positional) and the list's reorder or the server's sort (by stop)
+    // used to disagree: one dropped the via, the other put it on the leg its stop leaves by.
+    for (const count of [2, 3, 4, 5]) {
+      const ids = Array.from({ length: count }, (_, i) => 10 * (i + 1));
+      for (let from = 0; from < count; from++) {
+        for (let to = 0; to < count; to++) {
+          if (from === to) continue;
+          const vias = [via(9, count - 1)];
+          const positional = reanchorAfterReorder(vias, from, to, count);
+          expect(reanchorByStopOrder(vias, ids, moved(ids, from, to)), `${count}: ${from}->${to}`).toEqual(positional);
+          const stays = moved(ids, from, to)[count - 1] === ids[count - 1];
+          expect(positional, `${count}: ${from}->${to}`).toEqual(
+            stays ? { vias: [], remove: [] } : { vias: [], remove: [9] },
+          );
+        }
+        // Taken out: the same, by position and by stop.
+        const removed = ids.filter((_, i) => i !== from);
+        expect(reanchorByStopOrder([via(9, count - 1)], ids, removed)).toEqual(
+          reanchorAfterRemove([via(9, count - 1)], from, count),
+        );
+      }
+    }
+  });
+});
+
+describe('isStoredStop', () => {
+  it('FE-ROADTRIP-MODEL-111: a stored stop is an assignment, not a marker, a terminal or a booked night at the edge', () => {
+    expect(isStoredStop({})).toBe(true);
+    expect(isStoredStop({ automaticNight: { phase: 'end', fromDayNumber: 1 } })).toBe(false);
+    expect(
+      isStoredStop({
+        carrier: { reservationId: 1, type: 'flight', role: 'arrival', title: 'Flight', code: null, at: null },
+      }),
+    ).toBe(false);
+    expect(
+      isStoredStop({
+        bookend: {
+          phase: 'morning',
+          accommodationId: 1,
+          reservationId: null,
+          checkingOut: false,
+          checkingIn: false,
+          checkOut: null,
+        },
+      }),
+    ).toBe(false);
+  });
+});
+
+/**
+ * A ride's departure terminal is pinned a check-in ahead of a dated timetable. Read as a
+ * time of day like any other pin, a drive more than half a day behind it caught the same
+ * flight a day later without a word, and one that got there half a day early read the
+ * pin as yesterday's and came out late.
+ */
+describe('a departure terminal on its timetable’s day', () => {
+  const terminal = (role: 'departure' | 'arrival' | 'pickup', time: string, leaveAt: string | null = null) => ({
+    time,
+    leaveAt,
+    checkInTime: null,
+    dwellMinutes: role === 'departure' ? 60 : 0,
+    carrier: {
+      reservationId: 77,
+      type: role === 'pickup' ? 'car' : 'flight',
+      role,
+      title: 'LH 2078',
+      code: null,
+      at: null,
+    },
+  });
+  const minutes = (m: number): number => m * 60;
+
+  it('FE-ROADTRIP-MODEL-112: only a ride’s departure terminal is held to its day', () => {
+    expect(scheduleStopOf(terminal('departure', '14:15', '15:15'))).toEqual({
+      anchor: '14:15',
+      dwellMinutes: 60,
+      departureAt: 915,
+      dated: true,
+    });
+    expect(scheduleStopOf(terminal('arrival', '17:20'))).not.toHaveProperty('dated');
+    expect(scheduleStopOf(terminal('pickup', '09:00'))).not.toHaveProperty('dated');
+    expect(scheduleStopOf({ time: '14:15', dwellMinutes: 0 })).not.toHaveProperty('dated');
+  });
+
+  it('FE-ROADTRIP-MODEL-113: reached more than half a day after its check-in, it is late by all of it, and the ride still flies that day', () => {
+    // Left at eight with eighteen and a half hours of road ahead: at the airport at half past
+    // two the next morning for a check-in at 14:15. Read as a clock, that was the next
+    // day's 14:15 and nothing was said.
+    const { entries, warnings } = computeSchedule(
+      [
+        { anchor: '08:00', dwellMinutes: 0 },
+        scheduleStopOf(terminal('departure', '14:15', '15:15')),
+        scheduleStopOf(terminal('arrival', '17:20')),
+        { anchor: null, dwellMinutes: 0 },
+      ],
+      [minutes(18 * 60 + 30), minutes(125), minutes(30)],
+    );
+    expect(warnings).toEqual([{ index: 1, code: 'late', minutes: 735 }]);
+    // The drive after the landing runs on from the timetable, as it always has.
+    expect(entries.map((e) => [e.arrival, e.departure, e.dayOffset])).toEqual([
+      ['08:00', '08:00', 0],
+      ['14:15', '15:15', 0],
+      ['17:20', '17:20', 0],
+      ['17:50', '17:50', 0],
+    ]);
+  });
+
+  it('FE-ROADTRIP-MODEL-114: reached long before its check-in, it is waited for on its day, not read as the day before', () => {
+    const { entries, warnings } = computeSchedule(
+      [{ anchor: '00:30', dwellMinutes: 0 }, scheduleStopOf(terminal('departure', '14:15', '15:15'))],
+      [minutes(10)],
+    );
+    expect(warnings).toEqual([]);
+    expect(entries.map((e) => [e.arrival, e.departure, e.dayOffset])).toEqual([
+      ['00:30', '00:30', 0],
+      ['14:15', '15:15', 0],
+    ]);
+    // An arrival terminal keeps the reading nearest the drive: a flight booked on one day
+    // that lands after midnight is on time the next morning.
+    const lateLanding = computeSchedule(
+      [
+        { anchor: '21:00', dwellMinutes: 0 },
+        scheduleStopOf(terminal('departure', '22:00', '23:00')),
+        scheduleStopOf(terminal('arrival', '01:00')),
+      ],
+      [minutes(30), minutes(120)],
+    );
+    expect(lateLanding.warnings.filter((w) => w.code === 'late')).toEqual([]);
+    expect(lateLanding.entries[2]).toMatchObject({ arrival: '01:00', dayOffset: 1 });
   });
 });

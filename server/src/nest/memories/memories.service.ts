@@ -67,8 +67,8 @@ export class MemoriesService {
     return this.immich.getConnectionSettings(userId);
   }
 
-  immichSaveSettings(userId: number, immichUrl: string | undefined, immichApiKey: string | undefined, clientIp: string | null) {
-    return this.immich.saveImmichSettings(userId, immichUrl, immichApiKey, clientIp);
+  immichSaveSettings(userId: number, immichUrl: string | undefined, immichApiKey: string | undefined, clientIp: string | null, allowInsecureTls?: boolean) {
+    return this.immich.saveImmichSettings(userId, immichUrl, immichApiKey, clientIp, allowInsecureTls);
   }
 
   immichSetAutoUpload(userId: number, enabled: boolean): Promise<void> {
@@ -79,8 +79,8 @@ export class MemoriesService {
     return this.immich.getConnectionStatus(userId);
   }
 
-  immichTestConnection(immichUrl: string, immichApiKey: string) {
-    return this.immich.testConnection(immichUrl, immichApiKey);
+  immichTestConnection(immichUrl: string, immichApiKey: string, allowInsecureTls: boolean) {
+    return this.immich.testConnection(immichUrl, immichApiKey, allowInsecureTls);
   }
 
   immichBrowseTimeline(userId: number) {

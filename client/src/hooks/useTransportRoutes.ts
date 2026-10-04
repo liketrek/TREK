@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Reservation, ReservationEndpoint } from '../types'
 import { calculateRouteWithLegs } from '../components/Map/RouteCalculator'
-import { haversineKm, MAX_DRIVE_KM } from '../utils/geo'
+import { MAX_DRIVE_KM } from '@trek/shared/roadtrip'
+import { haversineKm } from '../utils/geo'
 
 /**
  * Real road-network geometry for road-based transport bookings (car, bus, taxi,

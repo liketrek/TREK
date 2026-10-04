@@ -39,6 +39,10 @@ const dashboard: TranslationStrings = {
   'dashboard.copySuffix': 'kopie',
   'dashboard.restore': 'Obnovit',
   'dashboard.archived': 'Archivováno',
+  'dashboard.search.placeholder': 'Hledat výlety nebo místa',
+  'dashboard.search.label': 'Prohledat všechny výlety podle názvu, data nebo místa',
+  'dashboard.search.clear': 'Vymazat hledání',
+  'dashboard.search.empty': 'Žádný výlet neodpovídá „{query}“',
   'dashboard.status.ongoing': 'Probíhající',
   'dashboard.status.today': 'Dnes',
   'dashboard.status.tomorrow': 'Zítra',
@@ -96,7 +100,24 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAll': 'Posunout vše',
   'dashboard.dateShiftAllDesc': 'Celý itinerář se posune podle nových termínů, včetně rezervací a ubytování.',
   'dashboard.dateShiftHint':
-    'Tip: pokud chcete posunout jen část itineráře, použijte místo toho „Přidat den” v plánovači.',
+    'Tip: pokud chcete posunout jen část itineráře, otevřete v plánovači „Změnit pořadí dnů“, přidejte den po konci cesty tlačítkem s jeho datem a přesuňte ho tam, kde má vzniknout mezera.',
+  'dashboard.shrinkTitle': 'Odebrat dny?',
+  'dashboard.shrinkIntro': 'Uložením nových dat se odeberou tyto dny:',
+  'dashboard.shrinkMoreDays': '+{count} další',
+  'dashboard.shrinkLastDays': 'Odeberou se poslední dny, ne první',
+  'dashboard.shrinkLastDaysHint':
+    'Plány dnů se posouvají s novými daty, takže se vždy odeberou poslední dny plánu, i když se posunul začátek.',
+  'dashboard.shrinkBookingsHint':
+    'Zůstanou v Rezervacích. Rezervace, jejíž datum je stále součástí cesty, se vrátí na tento den.',
+  'dashboard.shrinkBookingsShiftHint': 'Zůstanou v Rezervacích, bez dne.',
+  'dashboard.shrinkStayHint': 'Příjezd nebo odjezd připadá na odebíraný den, proto se odebere celé ubytování.',
+  'dashboard.shrinkStayBookedHint':
+    'Příjezd nebo odjezd připadá na odebíraný den, proto se odebere celé ubytování. Jeho rezervace „{booking}“ a její výdaj zůstanou v Rezervacích.',
+  'dashboard.shrinkStayBookingHint':
+    'Příjezd nebo odjezd připadá na odebíraný den, proto se odebere celé ubytování. Jeho rezervace „{booking}“ zůstane v Rezervacích.',
+  'dashboard.shrinkConfirm': 'Odebrat dny a uložit',
+  'dashboard.shrinkUnknown':
+    'Dny této cesty se nepodařilo ověřit. Pokud mají nová data méně dnů, uložení odebere poslední dny a vše, co je na nich naplánováno.',
   'dashboard.greeting.morning': 'Dobré ráno,',
   'dashboard.greeting.afternoon': 'Dobré odpoledne,',
   'dashboard.greeting.evening': 'Dobrý večer,',

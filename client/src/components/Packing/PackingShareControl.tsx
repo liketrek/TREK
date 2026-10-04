@@ -13,6 +13,13 @@ interface Props {
   onClone: (id: number) => void
   onJoin: (id: number) => void
   onLeave: (id: number, userId: number) => void
+  /**
+   * 'menu' draws the control as full-width rows for an overflow menu, where the
+   * whole line is the target instead of a lone icon. `onAction` then closes that
+   * menu after a pledge or a copy.
+   */
+  variant?: 'icon' | 'menu'
+  onAction?: () => void
 }
 
 /**
@@ -21,7 +28,7 @@ interface Props {
  * a dropdown; everyone else can pledge to co-bring a Common item ("I can bring
  * that too") or clone it onto their own list.
  */
-export default function PackingShareControl({ item, tripMembers, currentUserId, onSetSharing, onClone, onJoin, onLeave }: Props) {
+export default function PackingShareControl({ item, tripMembers, currentUserId, onSetSharing, onClone, onJoin, onLeave, variant = 'icon', onAction }: Props) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
@@ -57,12 +64,20 @@ export default function PackingShareControl({ item, tripMembers, currentUserId, 
     </button>
   )
 
+  const pledge = () => (iAmContributor ? onLeave(item.id, currentUserId!) : onJoin(item.id))
+  const pledgeLabel = iAmContributor ? t('packing.alsoBringingStop') : t('packing.alsoBring')
+
   // Non-owner on a Common item: pledge to co-bring + clone to personal list.
   if (!isOwner && isCommon) {
+    if (variant === 'menu') return (
+      <>
+        <MenuRow icon={<HandHelping size={13} />} label={pledgeLabel} active={iAmContributor} onClick={() => { pledge(); onAction?.() }} />
+        <MenuRow icon={<Copy size={13} />} label={t('packing.cloneToMine')} onClick={() => { onClone(item.id); onAction?.() }} />
+      </>
+    )
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        {btn(() => (iAmContributor ? onLeave(item.id, currentUserId!) : onJoin(item.id)),
-          iAmContributor ? t('packing.alsoBringingStop') : t('packing.alsoBring'), iAmContributor, <HandHelping size={14} />)}
+        {btn(pledge, pledgeLabel, iAmContributor, <HandHelping size={14} />)}
         {btn(() => onClone(item.id), t('packing.cloneToMine'), false, <Copy size={13} />)}
       </div>
     )
@@ -70,14 +85,20 @@ export default function PackingShareControl({ item, tripMembers, currentUserId, 
   // A recipient of a shared item has no controls (it's the owner's responsibility).
   if (!isOwner) return null
 
+  const tierLabel = visibility === 'common' ? t('packing.viewCommon') : visibility === 'personal' ? t('packing.tierPersonal') : t('packing.tierShared')
+
   return (
     <div style={{ display: 'flex' }}>
+      {variant === 'menu' ? (
+        <MenuRow buttonRef={btnRef} icon={<Share2 size={13} />} label={t('packing.share')} hint={tierLabel} active={open} onClick={toggle} />
+      ) : (
       <button type="button" ref={btnRef} onClick={toggle} title={t('packing.share')}
         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: visibility !== 'common' ? 'var(--accent)' : 'var(--text-faint)' }}
         onMouseEnter={e => { if (visibility === 'common') e.currentTarget.style.color = 'var(--text-secondary)' }}
         onMouseLeave={e => { if (visibility === 'common') e.currentTarget.style.color = 'var(--text-faint)' }}>
         <Share2 size={14} />
       </button>
+      )}
       {open && pos && createPortal(
         <>
           <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 1099 }} onClick={() => setOpen(false)} />
@@ -127,6 +148,23 @@ function Row({ icon, label, sub, active, onClick }: { icon: React.ReactNode; lab
         <span style={{ display: 'block', fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{sub}</span>
       </span>
       {active && <Check size={13} className="text-content-muted" style={{ marginTop: 2 }} />}
+    </button>
+  )
+}
+
+/** A full-width line in an overflow menu, shaped like the item menu's own entries. */
+function MenuRow({ icon, label, hint, active = false, onClick, buttonRef }: {
+  icon: React.ReactNode; label: string; hint?: string; active?: boolean; onClick: () => void
+  buttonRef?: React.Ref<HTMLButtonElement>
+}) {
+  return (
+    <button type="button" ref={buttonRef} onClick={onClick}
+      style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '8px 10px', borderRadius: 9, border: 'none', cursor: 'pointer', background: active ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, textAlign: 'left' }}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'none' }}>
+      <span style={{ width: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--text-muted)' }}>{icon}</span>
+      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+      {hint && <span style={{ flexShrink: 0, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{hint}</span>}
     </button>
   )
 }

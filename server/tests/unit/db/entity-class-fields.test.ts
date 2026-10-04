@@ -14,16 +14,17 @@ import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
  * `scripts/generate-entities.ts`'s `RULE1d_fixNaNNumericDefaults` and
  * `tests/unit/db/generate-entities.test.ts`'s `RULE1D-*` fixture tests for
  * the mechanism). This file pins the OUTPUT of that rule against the real,
- * committed entities — every one of the 125, not a sample — and reproduces
+ * committed entities — every one of the 127, not a sample — and reproduces
  * the reviewer's own insert probe so a future regenerate/hand-edit that
  * reintroduces a `NaN` initialiser fails loudly here, not silently at a
  * caller's first `em.create()`.
  */
 /** NOT NULL scalars with neither a column default nor a class-field initialiser (legitimate: the caller must supply them). */
-const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 424;
+// 424 + push_subscriptions (legacy step 245): id, user_id, endpoint, p256dh, auth, vapid_public_key.
+const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 430;
 
 describe('entity class fields never carry a NaN initialiser (task-4-review-shape.md, Important 1)', () => {
-  it('CLASSFIELD-001: new X() has no own property whose value is NaN, across all 125 entities', () => {
+  it('CLASSFIELD-001: new X() has no own property whose value is NaN, across all 127 entities', () => {
     const failures: string[] = [];
     for (const schema of ALL_ENTITIES) {
       const Ctor = schema.class as new () => Record<string, unknown>;

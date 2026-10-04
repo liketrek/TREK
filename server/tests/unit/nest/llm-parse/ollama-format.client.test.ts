@@ -52,6 +52,15 @@ describe('extractEnforced', () => {
     expect((init as RequestInit).headers).not.toHaveProperty('authorization');
   });
 
+  it('attaches images to the user turn only when given', async () => {
+    const fetchFn = mockFetch(() => jsonResponse({ message: { content: '{}' } }));
+    await extractEnforced({ ...INPUT, images: ['aW1n'] });
+    await extractEnforced(INPUT);
+    const userTurn = (i: number) => JSON.parse((fetchFn.mock.calls[i][1] as RequestInit).body as string).messages[1];
+    expect(userTurn(0).images).toEqual(['aW1n']);
+    expect(userTurn(1)).not.toHaveProperty('images');
+  });
+
   it('sends a bearer header only when an apiKey is given', async () => {
     const fetchFn = mockFetch(() => jsonResponse({ message: { content: '{}' } }));
     await extractEnforced({ ...INPUT, apiKey: 'sk-123', numPredict: 900, numCtx: 16000 });

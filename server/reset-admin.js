@@ -50,6 +50,10 @@ const db = new Database(dbPath);
 // journal mode below waits for a busy server instead of failing on the spot.
 // Five seconds, same as src/db/database.ts.
 db.exec('PRAGMA busy_timeout = 5000');
+// Temp files in memory, like every connection src/db/connection.ts opens: a
+// container with a read-only root and no tmpfs on /tmp has nowhere to put them
+// (#2518).
+db.exec('PRAGMA temp_store = MEMORY');
 db.exec(`PRAGMA journal_mode = ${journalMode}`);
 db.exec(`PRAGMA synchronous = ${synchronous}`);
 

@@ -104,6 +104,7 @@ import { createTestShareTokensRepo, createTestPluginsRepo, createTestPluginUserE
 import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
 import { createTestJourneysRepo, createTestJourneyEntriesRepo, createTestJourneyContributorsRepo } from '../../helpers/journey-repos';
 import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
+import { createTestPushSubscriptionsRepo } from '../../helpers/notifications-repos';
 
 // MailerService is injected since the notifications fold — a stub instead of a
 // module mock. sendPasswordResetEmail is the only thing auth reaches for.
@@ -139,6 +140,7 @@ beforeAll(async () => {
   await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb),
   await createTestInviteTokensRepo(testDb), await createTestMcpTokensRepo(testDb), await createTestOauthTokensRepo(testDb),
   await createTestWebauthnCredentialsRepo(testDb), await createTestPasswordResetTokensRepo(testDb),
+  await createTestPushSubscriptionsRepo(testDb),
 );
   svc = new PasskeyService(
     auth,

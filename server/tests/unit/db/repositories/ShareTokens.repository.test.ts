@@ -168,10 +168,10 @@ describe('ShareTokensRepository', () => {
       insertShareToken(tripB.id, user.id, { token: 'map-null', share_map: null });
 
       const legacySet = testDb
-        .prepare("SELECT trip_id, share_map FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))")
+        .prepare("SELECT trip_id, share_map, share_hide_images FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))")
         .get('map-set');
       const legacyNull = testDb
-        .prepare("SELECT trip_id, share_map FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))")
+        .prepare("SELECT trip_id, share_map, share_hide_images FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))")
         .get('map-null');
 
       expect(await repo.findTripAndShareMapByToken('map-set')).toEqual(legacySet);
@@ -214,17 +214,19 @@ describe('ShareTokensRepository', () => {
 
       await repo.insertNew({
         trip_id: trip.id, token: 'inserted-token', created_by: user.id,
-        share_map: 1, share_bookings: 0, share_packing: 1, share_budget: 0, share_collab: 1, expires_at: '2099-06-01 00:00:00',
+        share_map: 1, share_bookings: 0, share_packing: 1, share_budget: 0, share_collab: 1,
+        share_travel_only: 1, share_hide_images: 0, expires_at: '2099-06-01 00:00:00',
       });
 
       const raw = testDb.prepare('SELECT * FROM share_tokens WHERE token = ?').get('inserted-token') as Record<string, unknown>;
       expect(raw).toMatchObject({
         trip_id: trip.id, token: 'inserted-token', created_by: user.id,
-        share_map: 1, share_bookings: 0, share_packing: 1, share_budget: 0, share_collab: 1, expires_at: '2099-06-01 00:00:00',
+        share_map: 1, share_bookings: 0, share_packing: 1, share_budget: 0, share_collab: 1,
+        share_travel_only: 1, share_hide_images: 0, expires_at: '2099-06-01 00:00:00',
       });
     });
 
-    it('SHTOKREPO-015: updateFlagsByTrip overwrites all six flag columns for that trip only', async () => {
+    it('SHTOKREPO-015: updateFlagsByTrip overwrites all eight flag columns for that trip only', async () => {
       const { user } = createUser(testDb);
       const trip = createTrip(testDb, user.id);
       const other = createTrip(testDb, user.id);
@@ -232,14 +234,16 @@ describe('ShareTokensRepository', () => {
       const otherId = insertShareToken(other.id, user.id, { token: 'untouched' });
 
       await repo.updateFlagsByTrip(trip.id, {
-        share_map: 0, share_bookings: 0, share_packing: 0, share_budget: 0, share_collab: 0, expires_at: '2099-12-31 00:00:00',
+        share_map: 0, share_bookings: 0, share_packing: 0, share_budget: 0, share_collab: 0,
+        share_travel_only: 1, share_hide_images: 1, expires_at: '2099-12-31 00:00:00',
       });
 
       expect(rawShareToken(id)).toMatchObject({
-        share_map: 0, share_bookings: 0, share_packing: 0, share_budget: 0, share_collab: 0, expires_at: '2099-12-31 00:00:00',
+        share_map: 0, share_bookings: 0, share_packing: 0, share_budget: 0, share_collab: 0,
+        share_travel_only: 1, share_hide_images: 1, expires_at: '2099-12-31 00:00:00',
       });
       // The other trip's row is untouched — a different predicate, not a global update.
-      expect(rawShareToken(otherId)).toMatchObject({ share_map: 1, share_bookings: 1 });
+      expect(rawShareToken(otherId)).toMatchObject({ share_map: 1, share_bookings: 1, share_travel_only: 0, share_hide_images: 0 });
     });
 
     it('SHTOKREPO-016: deleteByTrip removes exactly that trip\'s row, leaving another trip\'s row alone', async () => {

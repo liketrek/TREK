@@ -83,27 +83,25 @@ export async function createTestOrm(
  * default (`false`): these are real HTTP requests through
  * `createNestApplication()`, so `registerRequestContext` (the NestJS
  * integration's default) forks a context-resolving EntityManager per request
- * the same way `buildApp()` does — no test-only global context needed here.
+ * — no test-only global context needed here.
  *
  * Built from `src/mikro-orm.config.ts` (spread, then overridden only on
  * `driver`/`dbName`/`discovery`) rather than a hand-rolled options object, so
  * this stays in lockstep with production instead of being a second copy of
  * the config that can silently drift.
  *
- * UPLOADS-P16 (Phase 1 ledger, entries 102–103): `registerRequestContext` is
- * left at its NestJS-integration default here — the `@mikro-orm/nestjs` auto
- * middleware that provides it is *also* the confirmed root cause of
- * UPLOADS-P16 (its Nest-11 wildcard route throws on a malformed `%`-encoded
- * upload path before any TREK handler runs). That coupling is faithful to
- * production as production is broken right now, not a weakened test — but
- * the recommended fix for UPLOADS-P16 (`registerRequestContext: false` on
- * `MikroOrmModule.forRoot`, paired with our own keyless `RequestContext.create`
- * middleware, since D6 needs the per-request EM fork this default provides)
- * changes what `buildApp()` registers. Building this helper from the same
- * `mikroOrmConfig` object production uses means that fix reaches both at
- * once; if it is ever done as a hand-edit instead, the e2e harnesses built
- * on this helper would silently stop mirroring production and need the same
- * `allowGlobalContext`-style re-justification `createTestOrm` above got.
+ * UPLOADS-P16 (Phase 1 ledger, entries 102–103): this is the one place the
+ * harness and production provide the per-request fork differently, on
+ * purpose. The `@mikro-orm/nestjs` auto middleware behind
+ * `registerRequestContext` was the root cause of UPLOADS-P16 (its Nest-11
+ * `{*all}` route throws on a malformed `%`-encoded path before any TREK
+ * handler runs), so `buildApp()` turns it off in `app.module.ts` and mounts
+ * a pathless `withRequestContext` middleware (`mikroOrmRequestContext`,
+ * bootstrap.ts) instead. A partial harness has no bootstrap.ts to mount
+ * that middleware, so it keeps the module default, which forks the same
+ * per-request EntityManager for every well-formed path these suites send.
+ * The malformed-escape case itself is only reachable through `buildApp()`
+ * and is covered there (uploads-static.test.ts, UPLOADS-P16).
  */
 // The spread also carries production's `extensions` (Migrator, SeedManager),
 // `migrations` and `seeder` settings into the harness; only the driver, the

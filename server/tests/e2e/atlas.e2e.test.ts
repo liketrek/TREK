@@ -140,6 +140,16 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
     expect(row).toEqual({ name: 'Kyoto', user_id: userId });
   });
 
+  it('keeps a wished-for region, and refuses one outside the item country (#1901)', async () => {
+    const ok = await request(server).post('/api/addons/atlas/bucket-list').set('Cookie', sessionCookie(userId))
+      .send({ name: 'Bayern', country_code: 'DE', region_code: 'DE-BY' });
+    expect(ok.status).toBe(201);
+    expect(ok.body.item.region_code).toBe('DE-BY');
+    const bad = await request(server).post('/api/addons/atlas/bucket-list').set('Cookie', sessionCookie(userId))
+      .send({ name: 'Berlin', country_code: 'FR', region_code: 'DE-BE' });
+    expect(bad.status).toBe(400);
+  });
+
   it('404 on delete of a missing bucket item', async () => {
     const res = await request(server).delete('/api/addons/atlas/bucket-list/999').set('Cookie', sessionCookie(userId));
     expect(res.status).toBe(404);
@@ -299,6 +309,7 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
         total_countries: 1,
         total_places: 1,
         last_trip: { title: 'Recent', country: 'IT', countries: ['IT'] },
+        next_trip: { title: 'Booked', start_date: iso(30), end_date: iso(40), days_until: 30, country: null, countries: [] },
       });
       // Scalars all the way — a widget maps fields, it cannot aggregate a list.
       for (const k of ['total_trips', 'total_countries', 'total_cities', 'total_places', 'total_days', 'total_distance_km']) {
@@ -314,7 +325,7 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
       const key = mintApiKey(stranger.id);
       const res = await request(server).get('/api/v1/stats').set('X-API-Key', key);
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ total_trips: 0, total_countries: 0, last_trip: null });
+      expect(res.body).toMatchObject({ total_trips: 0, total_countries: 0, last_trip: null, next_trip: null });
     });
   });
 

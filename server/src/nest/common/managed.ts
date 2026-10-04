@@ -153,6 +153,7 @@ export const MANAGED_CUSTOMER_KEYS = [
   'require_mfa',
   'temperature_unit',
   'time_format',
+  'week_start',
 ] as const;
 
 const LOCKED = new Set<string>(MANAGED_LOCKED_SETTING_KEYS);

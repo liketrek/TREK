@@ -39,6 +39,10 @@ const dashboard: TranslationStrings = {
   'dashboard.copySuffix': 'копія',
   'dashboard.restore': 'Відновити',
   'dashboard.archived': 'В архіві',
+  'dashboard.search.placeholder': 'Шукати поїздки або місця',
+  'dashboard.search.label': 'Шукати всі поїздки за назвою, датою або місцем',
+  'dashboard.search.clear': 'Очистити пошук',
+  'dashboard.search.empty': 'Немає поїздок за запитом «{query}»',
   'dashboard.status.ongoing': 'Триває',
   'dashboard.status.today': 'Сьогодні',
   'dashboard.status.tomorrow': 'Завтра',
@@ -111,7 +115,25 @@ const dashboard: TranslationStrings = {
     'Плани днів переміщуються разом із новими датами, а бронювання та проживання залишаються на своїх початкових датах, поки ті все ще входять до поїздки.',
   'dashboard.dateShiftAll': 'Перемістити все',
   'dashboard.dateShiftAllDesc': 'Весь маршрут переміщується на нові дати, включно з бронюваннями та проживанням.',
-  'dashboard.dateShiftHint': 'Порада: щоб зсунути лише частину маршруту, скористайтеся «Додати день» у планувальнику.',
+  'dashboard.dateShiftHint':
+    'Порада: щоб зсунути лише частину маршруту, відкрийте в планувальнику «Змінити порядок днів», додайте день після завершення подорожі кнопкою з його датою й перемістіть цей день туди, де має з’явитися проміжок.',
+  'dashboard.shrinkTitle': 'Видалити дні?',
+  'dashboard.shrinkIntro': 'Під час збереження нових дат буде видалено ці дні:',
+  'dashboard.shrinkMoreDays': 'ще +{count}',
+  'dashboard.shrinkLastDays': 'Видаляються останні дні, а не перші',
+  'dashboard.shrinkLastDaysHint':
+    'Плани днів переносяться разом із новими датами, тому завжди видаляються останні дні плану, навіть якщо зсунувся початок.',
+  'dashboard.shrinkBookingsHint':
+    'Вони залишаться в Бронюваннях. Бронювання, дата якого ще входить у подорож, повернеться на цей день.',
+  'dashboard.shrinkBookingsShiftHint': 'Вони залишаться в Бронюваннях, без дня.',
+  'dashboard.shrinkStayHint': 'Заїзд або виїзд припадає на день, що видаляється, тому проживання видаляється повністю.',
+  'dashboard.shrinkStayBookedHint':
+    'Заїзд або виїзд припадає на день, що видаляється, тому проживання видаляється повністю. Його бронювання «{booking}» і витрата за ним залишаться в Бронюваннях.',
+  'dashboard.shrinkStayBookingHint':
+    'Заїзд або виїзд припадає на день, що видаляється, тому проживання видаляється повністю. Його бронювання «{booking}» залишиться в Бронюваннях.',
+  'dashboard.shrinkConfirm': 'Видалити дні й зберегти',
+  'dashboard.shrinkUnknown':
+    'Не вдалося перевірити дні цієї подорожі. Якщо в нових датах менше днів, під час збереження буде видалено останні дні й усе, що на них заплановано.',
   'dashboard.greeting.morning': 'Доброго ранку,',
   'dashboard.greeting.afternoon': 'Доброго дня,',
   'dashboard.greeting.evening': 'Доброго вечора,',

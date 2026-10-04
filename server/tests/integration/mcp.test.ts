@@ -765,10 +765,9 @@ describe('MCP rate limiting', () => {
  * (`McpTransportService.verifyToken`, called from `handle()` before any tool
  * dispatch) is expected to already run inside the HTTP request context —
  * `/mcp` is an ordinary (if `@Public()`) Nest-routed controller, so
- * `@mikro-orm/nestjs`'s per-request EntityManager-fork middleware
- * (`MikroOrmModule.forRoot`'s default `registerRequestContext`, registered
- * via `NestModule.configure()`/`forRoutes(ALL)`) applies to it exactly like
- * every other route, BEFORE any guard runs. Verified here rather than
+ * the per-request EntityManager-fork middleware `buildApp()` mounts
+ * (bootstrap.ts's pathless `mikroOrmRequestContext`) applies to it exactly
+ * like every other route, BEFORE any guard runs. Verified here rather than
  * assumed: `TokenService.verifyMcpToken` (TK13 in the inventory) is now
  * repository-backed (`McpTokensRepository.findUserByHashAndKind` +
  * `touchLastUsedByHash`, Plan 3b Task 2) — MCP-CTX-002 drives a real `trek_`

@@ -2,6 +2,7 @@ import React, { ChangeEvent } from 'react'
 import { Lock, KeyRound, CheckCircle2, AlertTriangle, Eye, EyeOff } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useResetPassword } from './resetPassword/useResetPassword'
+import PasswordChecklist from '../components/shared/PasswordChecklist'
 
 const inputBase: React.CSSProperties = {
   width: '100%', padding: '11px 44px 11px 38px', borderRadius: 12,
@@ -114,6 +115,7 @@ function ResetPasswordPage() {
                   background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#9ca3af',
                 }}>{showPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
               </div>
+              <PasswordChecklist password={pw} className="mt-2" tone="light" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600, color: '#374151', marginBottom: 6 }}>

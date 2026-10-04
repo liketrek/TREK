@@ -17,6 +17,8 @@ import {
   buildOsmDetails,
   googleFtidFromMapsUrl,
   isGooglePlaceId,
+  clampPoiBbox,
+  MAX_POI_BBOX_SPAN_DEG,
   buildUserAgent,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
@@ -30,6 +32,7 @@ import {
 
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { Jimp } from 'jimp';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 // The seams below stand in for real collaborators, so they are typed from those
 // collaborators' signatures rather than from their own default implementations.
@@ -227,7 +230,7 @@ const placesStub = {
 // through a repository stub that flows into the SAME mockDbGet/mockDbRun/
 // mockInstanceGet/mockProviderGet functions, so they keep firing exactly as
 // they did for the legacy module.
-const svc = new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub);
+const svc = new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
 
 /**
  * Switch the TREK Places index off for one case.
@@ -930,6 +933,23 @@ describe('searchNominatim (fetch stubbed)', () => {
     expect((results[0] as any).lng).toBe(0);
     expect((results[1] as any).lat).toBeNull();
     expect((results[1] as any).lng).toBeNull();
+  });
+
+  it('MAPS-108b: carries what the place is, with a shop named as one (#2282)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [
+          { osm_type: 'node', osm_id: '5', lat: '52.5', lon: '13.4', name: 'Adlon', class: 'tourism', type: 'hotel' },
+          { osm_type: 'node', osm_id: '6', lat: '52.5', lon: '13.4', name: 'Bäcker', class: 'shop', type: 'bakery' },
+          { osm_type: 'node', osm_id: '7', lat: '52.5', lon: '13.4', name: 'Hut', class: 'building', type: 'yes' },
+          { osm_type: 'node', osm_id: '8', lat: '52.5', lon: '13.4', name: 'Bare' },
+        ],
+      }),
+    );
+    const results = await svc.searchNominatim('x');
+    expect(results.map((r: any) => r.category)).toEqual(['hotel', 'shop_bakery', null, null]);
   });
 });
 
@@ -2475,6 +2495,34 @@ describe('isGooglePlaceId', () => {
     // letters is still a Google id, because the prefix only counts before a colon.
     expect(isGooglePlaceId('gersChIJLU7jZClu5kcR')).toBe(true);
   });
+
+  it('MAPS-045c: rejects plugin ids, which name a plugin index and never a Google record (#2221, #1781)', () => {
+    // A place picked from a plugin search or a plugin POI category keeps
+    // plugin:<pluginId>:<id>. With a Google key configured, letting it through billed
+    // an invalid photo lookup, an editorial summary and the photo route per place.
+    expect(isGooglePlaceId('plugin:trail-finder:th-1')).toBe(false);
+    expect(isGooglePlaceId('PLUGIN:trail-finder:th-1')).toBe(false);
+    expect(isGooglePlaceId('plugin:trail-finder:th-1~p2')).toBe(false);
+    expect(isGooglePlaceId('pluginChIJLU7jZClu5kcR')).toBe(true);
+  });
+});
+
+describe('clampPoiBbox', () => {
+  it('MAPS-POIBOX-001: narrows each oversized side to a centred window and says so', () => {
+    expect(MAX_POI_BBOX_SPAN_DEG).toBe(0.5);
+    expect(clampPoiBbox({ south: 48, west: 11, north: 48.25, east: 11.25 })).toEqual({
+      bbox: { south: 48, west: 11, north: 48.25, east: 11.25 },
+      clamped: false,
+    });
+    expect(clampPoiBbox({ south: 40, west: 11, north: 50, east: 11.25 })).toEqual({
+      bbox: { south: 44.75, west: 11, north: 45.25, east: 11.25 },
+      clamped: true,
+    });
+    expect(clampPoiBbox({ south: 48, west: 0, north: 48.25, east: 20 })).toEqual({
+      bbox: { south: 48, west: 9.75, north: 48.25, east: 10.25 },
+      clamped: true,
+    });
+  });
 });
 
 describe('googleFtidFromMapsUrl', () => {
@@ -2709,7 +2757,7 @@ function makeSettingsRepo(row?: { value: string }) {
 }
 
 function settingsSvc(row?: { value: string }) {
-  return new MapsService(photoCacheStub, makeSettingsRepo(row).repo, usersStub, placeDetailsCacheStub, placesStub);
+  return new MapsService(photoCacheStub, makeSettingsRepo(row).repo, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
 }
 
 describe('kill-switch settings reads', () => {
@@ -2733,7 +2781,7 @@ describe('kill-switch settings reads', () => {
 
   it('queries the matching app_settings key', async () => {
     const { repo: settingsRepo, getValue } = makeSettingsRepo({ value: 'true' });
-    const s = new MapsService(photoCacheStub, settingsRepo, usersStub, placeDetailsCacheStub, placesStub);
+    const s = new MapsService(photoCacheStub, settingsRepo, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
     await s.autocompleteDisabled();
     expect(getValue).toHaveBeenCalledWith('places_autocomplete_enabled');
     await s.detailsDisabled();
@@ -2771,7 +2819,9 @@ describe('controller-facing wrappers delegate to the folded methods', () => {
     try {
       const circleBias = { lat: 1, lng: 2, radius: 5 };
       await svc.search(3, 'berlin', 'de', circleBias);
-      expect(spies.searchPlaces).toHaveBeenCalledWith(3, 'berlin', 'de', circleBias);
+      expect(spies.searchPlaces).toHaveBeenCalledWith(3, 'berlin', 'de', circleBias, { googleOnly: false });
+      await svc.search(3, 'berlin', 'de', circleBias, 'google');
+      expect(spies.searchPlaces).toHaveBeenLastCalledWith(3, 'berlin', 'de', circleBias, { googleOnly: true });
 
       const rectBias = { low: { lat: 1, lng: 2 }, high: { lat: 3, lng: 4 } };
       await svc.autocomplete(3, 'be', 'en', rectBias);
@@ -3431,7 +3481,7 @@ describe('readWikiIdentity', () => {
 describe('brandLogo', () => {
   // A fresh service per case: the logo cache lives on the instance, and a hit from
   // one case would answer the next one's question before its fetch stub ran.
-  const service = (): MapsService => new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub);
+  const service = (): MapsService => new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
 
   const claimResponse = (file: string | null) => ({
     ok: true,
@@ -3564,3 +3614,107 @@ describe('brandLogo', () => {
     expect(await service().brandLogo('Q3')).toBeNull();
   });
 })
+
+// ── Websites without a scheme (#2483) ─────────────────────────────────────────
+//
+// Every source hands its website through normalizePlaceWebsite, so a place that
+// is picked from any of them saves without a 400 over a field nobody sees.
+
+describe('websites from the map sources (#2483)', () => {
+  it('MAPS-2483-01: OSM details complete a bare host and skip a contact:website that is no website', () => {
+    expect(buildOsmDetails({ website: 'www.example.fr/patrimoine' }, 'way', '1').website).toBe(
+      'https://www.example.fr/patrimoine',
+    );
+    expect(buildOsmDetails({ 'contact:website': 'mailto:mairie@example.fr', website: 'example.fr' }, 'node', '1').website).toBe(
+      'https://example.fr',
+    );
+    expect(buildOsmDetails({ website: 'javascript:alert(1)' }, 'node', '1').website).toBeNull();
+  });
+
+  it('MAPS-2483-02: an Overpass POI gets https on a bare host and falls back past a script link', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          elements: [
+            { type: 'node', id: 1, lat: 48.03, lon: -3.49, tags: { name: 'Chapelle', tourism: 'attraction', website: 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët' } },
+            { type: 'node', id: 2, lat: 48.04, lon: -3.49, tags: { name: 'Mairie', tourism: 'attraction', website: 'javascript:alert(1)', 'contact:website': '//www.example.fr' } },
+            { type: 'node', id: 3, lat: 48.05, lon: -3.49, tags: { name: 'Halles', tourism: 'attraction', website: 'Halles' } },
+          ],
+        }),
+      }),
+    );
+    const { pois } = await svc.searchOverpassPois('sights', { south: 48.0, west: -3.6, north: 48.1, east: -3.4 }, 'fr-FR');
+    expect(pois.map((p) => p.website)).toEqual([
+      'https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
+      'https://www.example.fr',
+      null,
+    ]);
+  });
+
+  it('MAPS-2483-03: a Google search result goes through the same helper', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'ENCRYPTED' }).mockReturnValueOnce(null);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          places: [{ id: 'gid-web', displayName: { text: 'Chapelle' }, location: { latitude: 48, longitude: -3 }, websiteUri: 'www.example.fr' }],
+        }),
+      }),
+    );
+    const search = await svc.searchPlaces(1, 'Chapelle');
+    expect((search.places[0] as { website: unknown }).website).toBe('https://www.example.fr');
+  });
+
+  const googleDetails = (websiteUri: string) =>
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'ChIJWeb', websiteUri }) }));
+
+  it('MAPS-2483-04: so does the website of a Google details lookup', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
+    googleDetails('example.fr/visite');
+    const place = (await svc.getPlaceDetails(1, 'ChIJWeb-lean')).place as { website: unknown };
+    expect(place.website).toBe('https://example.fr/visite');
+  });
+
+  it('MAPS-2483-05: and of the expanded one, where a value that is no page becomes null', async () => {
+    mockDbGet.mockReturnValueOnce({ maps_api_key: 'gkey' });
+    mockDbGet.mockReturnValueOnce(undefined);
+    googleDetails('data:text/html,x');
+    const place = (await svc.getPlaceDetailsExpanded(1, 'ChIJWeb-expanded')).place as { website: unknown };
+    expect(place.website).toBeNull();
+  });
+
+  // A details row cached before the fix still holds the website as the source
+  // sent it, and keeps for a week; an expanded row keeps until a refresh. The
+  // cache hands it out through the same helper.
+  const cachedRow = (place: Record<string, unknown>) => ({ payload_json: JSON.stringify(place), fetched_at: Date.now() });
+
+  it('MAPS-2483-06: a cached details row with a bare website is served with https, without a Google call', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    mockDbGet
+      .mockReturnValueOnce({ maps_api_key: 'gkey' })
+      .mockReturnValueOnce(cachedRow({ google_place_id: 'ChIJOld', name: 'Chapelle', website: 'example.fr/visite' }));
+    const { place } = await svc.getPlaceDetails(1, 'ChIJOld');
+    expect(place).toMatchObject({ name: 'Chapelle', website: 'https://example.fr/visite' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('MAPS-2483-07: so is an expanded row, where a script link becomes null and a row without the field stays as it is', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    mockDbGet
+      .mockReturnValueOnce({ maps_api_key: 'gkey' })
+      .mockReturnValueOnce(cachedRow({ google_place_id: 'ChIJOldX', website: '//www.example.fr', reviews: [] }))
+      .mockReturnValueOnce({ maps_api_key: 'gkey' })
+      .mockReturnValueOnce(cachedRow({ google_place_id: 'ChIJOldY', website: 'javascript:alert(1)' }))
+      .mockReturnValueOnce({ maps_api_key: 'gkey' })
+      .mockReturnValueOnce(cachedRow({ google_place_id: 'ChIJOldZ', name: 'No site' }));
+    expect((await svc.getPlaceDetailsExpanded(1, 'ChIJOldX')).place).toMatchObject({ website: 'https://www.example.fr', reviews: [] });
+    expect((await svc.getPlaceDetailsExpanded(1, 'ChIJOldY')).place).toMatchObject({ website: null });
+    expect((await svc.getPlaceDetailsExpanded(1, 'ChIJOldZ')).place).toEqual({ google_place_id: 'ChIJOldZ', name: 'No site' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

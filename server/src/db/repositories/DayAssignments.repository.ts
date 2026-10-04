@@ -74,22 +74,6 @@ export type SharePublicAssignmentRow = Omit<
 >;
 
 /**
- * `day_assignments`'s shape as DY24's `em.getKysely()` call needs it (an
- * explicit `TDB` type argument, per `WebauthnChallengesRepository
- * .claimChallenge`'s docstring — entity-metadata inference is not what a
- * hand-written statement wants), narrowed to the columns `reanchorToDay`
- * reads or writes.
- */
-interface DayAssignmentsKyselyDB {
-  day_assignments: {
-    id: number;
-    day_id: number;
-    order_index: number | null;
-    accommodation_id: number | null;
-  };
-}
-
-/**
  * A `day_assignments` row exactly as `AS12` (`AssignmentsService
  * .getAssignmentForTrip`) re-selects it — every scalar column of the entity
  * (`da.*`), scoped by a two-hop join to `days` for the trip check (Task 3).
@@ -110,6 +94,7 @@ export interface DayAssignmentRow {
   incoming_leg_transport_mode: string | null;
   end_day: number;
   accommodation_id: number | null;
+  route_excluded: number;
 }
 
 const _dayAssignmentRowKeys: AssertRowKeys<DayAssignmentRow, DayAssignments> = true;
@@ -122,18 +107,29 @@ export interface DayStopRow {
   located: number;
 }
 
+/** AC7's row ({@link DayAssignmentsRepository.listSeatRows}), `night-seat.ts`'s `SeatRow`. */
+export interface DaySeatRow {
+  id: number;
+  order_index: number | null;
+  at: string | null;
+  night_id: number | null;
+  located: number;
+}
+
 /**
  * `day_assignments`/`places`/`day_accommodations`'s shape for AS16
- * (`effectiveStart`) and AS18 (`listForTimeSort`), Kysely-typed the same way
- * `DayAssignmentsKyselyDB` is above. There is no MikroORM relation from
+ * (`effectiveStart`) and AS18 (`listForTimeSort`), an explicit `TDB` type
+ * argument for `this.kysely()` (per `WebauthnChallengesRepository
+ * .claimChallenge`'s docstring — entity-metadata inference is not what a
+ * hand-written statement wants). There is no MikroORM relation from
  * `DayAssignments` to `DayAccommodations` — `accommodation_id` is a plain
  * `p.integer()` column on this entity, not a `manyToOne` (`day_accommodations`
  * is Plan 3d's table; adding the relation means touching
  * `src/db/entities/DayAssignments.entity.ts`, out of this task's scope) — so
  * the QueryBuilder's relation-path `.join()` cannot express the LEFT JOIN at
- * all, not just the correlated-subquery shape DY24 hit. Kysely joining the
- * physical table name directly is the sanctioned next step down D3's
- * escape-hatch order (`find/findOne → nativeUpdate → qb() → em.getKysely()`).
+ * all. Kysely joining the physical table name directly is the sanctioned
+ * next step down D3's escape-hatch order (`find/findOne → nativeUpdate →
+ * qb() → em.getKysely()`).
  */
 interface AssignmentTimeSortKyselyDB {
   day_assignments: {
@@ -162,10 +158,14 @@ interface AssignmentTimeSortKyselyDB {
  * interface declared it — the stay the visit stands for on its check-in day
  * (never `a.accommodation_id`, see the method docstring), and the checkout
  * day's `day_number`, both `null` for a visit with no linked stay.
+ * `accommodation_id` is the stay whose booking wrote this stop (null for one
+ * the traveller placed), and `order_index` is the stop's slot in the day plan
+ * the carrier terminals are seated against.
  */
 export interface RoadtripVisitRow {
   id: number;
   day_id: number;
+  order_index: number;
   place_id: number;
   name: string;
   lat: number | null;
@@ -178,6 +178,7 @@ export interface RoadtripVisitRow {
   incoming_leg_transport_mode: string | null;
   stop_type: string | null;
   fill_percent: number | null;
+  accommodation_id: number | null;
   stay_id: number | null;
   check_in: string | null;
   check_out: string | null;
@@ -196,6 +197,7 @@ interface RoadtripVisitsKyselyDB {
     day_id: number;
     place_id: number;
     order_index: number | null;
+    accommodation_id: number | null;
     created_at: string | null;
     assignment_time: string | null;
     assignment_end_time: string | null;
@@ -363,47 +365,6 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
       .where({ 'da.day': { $in: day_ids } })
       .orderBy({ 'da.order_index': 'asc', 'da.created_at': 'asc' })
       .execute<SharePublicAssignmentRow[]>('all', false);
-  }
-
-  /**
-   * DY24 (`days.service.ts::resyncAccommodationDays`'s `moveStayStop`,
-   * inventory §18.2) — a correlated scalar subquery in an UPDATE SET clause
-   * the QueryBuilder cannot express:
-   *
-   * ```sql
-   * UPDATE day_assignments
-   * SET day_id = :dayId,
-   *     order_index = COALESCE((SELECT MAX(order_index) FROM day_assignments WHERE day_id = :dayId), -1) + 1
-   * WHERE accommodation_id = :accId
-   * ```
-   *
-   * `this.kysely()` (`_shared/trek-repository.ts`), not
-   * `this.getEntityManager().getKysely()` directly — see
-   * `WebauthnChallengesRepository.claimChallenge`'s docstring for why.
-   * Proven to join the caller's ambient `uow.transactional` block by
-   * rollback, not by doc comment (ROLLBACK proof in the repository test and
-   * the task report): a call inside a transaction that then throws leaves
-   * the row un-moved; inside one that commits, the row is moved.
-   */
-  async reanchorToDay(accommodation_id: number, day_id: number): Promise<void> {
-    await this.kysely<DayAssignmentsKyselyDB>()
-      .updateTable('day_assignments')
-      .set((eb) => ({
-        day_id,
-        order_index: eb(
-          eb.fn.coalesce(
-            eb
-              .selectFrom('day_assignments as da2')
-              .select((eb2) => eb2.fn.max('da2.order_index').as('m'))
-              .where('da2.day_id', '=', day_id),
-            eb.val(-1),
-          ),
-          '+',
-          eb.val(1),
-        ),
-      }))
-      .where('accommodation_id', '=', accommodation_id)
-      .execute();
   }
 
   // ---------------------------------------------------------------------------
@@ -647,6 +608,29 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
     await this.nativeUpdate({ id }, { incoming_leg_transport_mode: mode });
   }
 
+  /**
+   * AS32 (`AssignmentsService.clearDay`, #2470) — `SELECT id FROM
+   * day_assignments WHERE day_id = ?`, no ORDER BY (unlike AC1's
+   * {@link listIdsForDay}).
+   */
+  async listIdsToClear(day_id: number): Promise<number[]> {
+    const rows = await this.qb('da')
+      .select(['da.id'])
+      .where({ day: day_id })
+      .execute<{ id: number }[]>('all', false);
+    return rows.map((r) => r.id);
+  }
+
+  /** AS33 (`AssignmentsService.clearDay`, #2470) — `DELETE FROM day_assignments WHERE day_id = ?`. */
+  async deleteForDay(day_id: number): Promise<void> {
+    await this.nativeDelete({ day: day_id });
+  }
+
+  /** AS34 (`AssignmentsService.setRouteExcluded`, #2532) — `UPDATE day_assignments SET route_excluded = ? WHERE id = ?`. */
+  async setRouteExcluded(id: number, route_excluded: number): Promise<void> {
+    await this.nativeUpdate({ id }, { route_excluded });
+  }
+
   // ---------------------------------------------------------------------------
   // Plan 3c Task 4 (`PlacesService.exportGpx`) — appended per the task-4
   // brief's "task-3-report.md" pointer ("DayAssignmentsRepository for the
@@ -765,12 +749,12 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
    * cluster's most dialect-specific SELECT (inventory §17b):
    *
    * ```sql
-   * SELECT a.id, a.day_id, a.place_id, p.name, p.lat, p.lng,
+   * SELECT a.id, a.day_id, a.order_index, a.place_id, p.name, p.lat, p.lng,
    *   COALESCE(a.assignment_time, p.place_time) AS time,
    *   COALESCE(a.assignment_end_time, p.end_time) AS end_time,
    *   p.duration_minutes, a.end_day,
    *   a.leg_transport_mode, a.incoming_leg_transport_mode, p.stop_type, p.fill_percent,
-   *   stay.id AS stay_id, stay.check_in, stay.check_out, checkout.day_number AS checkout_day
+   *   a.accommodation_id, stay.id AS stay_id, stay.check_in, stay.check_out, checkout.day_number AS checkout_day
    * FROM day_assignments a
    * JOIN days d ON d.id = a.day_id
    * JOIN places p ON p.id = a.place_id
@@ -787,7 +771,7 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
    * stay is matched by `place_id`+`start_day_id`, not by
    * `a.accommodation_id` — deliberately: the inventory's own RPL2 note),
    * so this is `this.kysely()` from the start, same escape-hatch order as
-   * `reanchorToDay`/`effectiveStart`/`listForTimeSort` above. `days` is
+   * `effectiveStart`/`listForTimeSort` above. `days` is
    * joined twice under two different aliases (`d`, `checkout`) — ordinary
    * Kysely self-join aliasing, no separate interface entry needed since both
    * resolve against the same `days` table shape.
@@ -812,6 +796,7 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
       .select((eb) => [
         'a.id as id',
         'a.day_id as day_id',
+        'a.order_index as order_index',
         'a.place_id as place_id',
         'p.name as name',
         'p.lat as lat',
@@ -824,6 +809,7 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
         'a.incoming_leg_transport_mode as incoming_leg_transport_mode',
         'p.stop_type as stop_type',
         'p.fill_percent as fill_percent',
+        'a.accommodation_id as accommodation_id',
         'stay.id as stay_id',
         'stay.check_in as check_in',
         'stay.check_out as check_out',
@@ -855,62 +841,46 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
   }
 
   /**
-   * AC7 (`AccommodationsService.positionForCheckIn`) — `SELECT
-   * da.order_index, COALESCE(da.assignment_time, p.place_time, other.check_in)
-   * AS at FROM day_assignments da JOIN places p ON p.id = da.place_id LEFT
+   * AC7 (`night-seat.ts`'s `SeatRow`, read by `AccommodationsService` and
+   * `DaysService` through `seatIndexWith`/`seatHolds`; `reseat-booked-nights.ts`
+   * runs the same statement raw inside migration 242) — `SELECT da.id,
+   * da.order_index, CASE WHEN other.id IS NULL THEN
+   * COALESCE(da.assignment_time, p.place_time) ELSE other.check_in END AS at,
+   * other.id AS night_id, (p.lat IS NOT NULL AND p.lng IS NOT NULL) AS
+   * located FROM day_assignments da JOIN places p ON p.id = da.place_id LEFT
    * JOIN day_accommodations other ON other.id = da.accommodation_id WHERE
-   * da.day_id = ? AND da.id != ? ORDER BY da.order_index`. Same Kysely
-   * escape hatch as {@link effectiveStart}/{@link listForTimeSort} (no ORM
-   * relation to `day_accommodations`).
+   * da.day_id = ? ORDER BY da.order_index ASC, da.created_at ASC, da.id ASC`.
+   * `locatedStopIdsWith` reads the via positions off these same rows
+   * (`located`), so a night and its vias are measured by one statement.
+   * Same Kysely escape hatch as {@link effectiveStart}/{@link listForTimeSort}
+   * (no ORM relation to `day_accommodations`); `located` and the `$castTo`
+   * follow `listForTimeSort`.
    */
-  async listSeatTimes(day_id: number, exclude_id: number): Promise<{ order_index: number | null; at: string | null }[]> {
+  async listSeatRows(day_id: number): Promise<DaySeatRow[]> {
     const rows = await this.kysely<AssignmentTimeSortKyselyDB>()
       .selectFrom('day_assignments as da')
       .innerJoin('places as p', 'p.id', 'da.place_id')
       .leftJoin('day_accommodations as other', 'other.id', 'da.accommodation_id')
-      .select((eb) => ['da.order_index as order_index', eb.fn.coalesce('da.assignment_time', 'p.place_time', 'other.check_in').as('at')])
-      .where('da.day_id', '=', day_id)
-      .where('da.id', '!=', exclude_id)
-      .orderBy('da.order_index', 'asc')
-      .execute();
-    return rows as { order_index: number | null; at: string | null }[];
-  }
-
-  /**
-   * AC8 (`AccommodationsService.seatedByCheckIn`) — {@link listSeatTimes}'s
-   * same joins, projected to `da.id` instead of `order_index`, no exclusion:
-   * `SELECT da.id, COALESCE(da.assignment_time, p.place_time, other.check_in)
-   * AS at FROM day_assignments da JOIN places p ON p.id = da.place_id LEFT
-   * JOIN day_accommodations other ON other.id = da.accommodation_id WHERE
-   * da.day_id = ? ORDER BY da.order_index`.
-   */
-  async listSeatTimesWithIds(day_id: number): Promise<{ id: number; at: string | null }[]> {
-    const rows = await this.kysely<AssignmentTimeSortKyselyDB>()
-      .selectFrom('day_assignments as da')
-      .innerJoin('places as p', 'p.id', 'da.place_id')
-      .leftJoin('day_accommodations as other', 'other.id', 'da.accommodation_id')
-      .select((eb) => ['da.id as id', eb.fn.coalesce('da.assignment_time', 'p.place_time', 'other.check_in').as('at')])
+      .select((eb) => [
+        'da.id as id',
+        'da.order_index as order_index',
+        eb
+          .case()
+          .when('other.id', 'is', null)
+          .then(eb.fn.coalesce('da.assignment_time', 'p.place_time'))
+          .else(eb.ref('other.check_in'))
+          .end()
+          .as('at'),
+        'other.id as night_id',
+        eb.and([eb('p.lat', 'is not', null), eb('p.lng', 'is not', null)]).as('located'),
+      ])
       .where('da.day_id', '=', day_id)
       .orderBy('da.order_index', 'asc')
+      .orderBy('da.created_at', 'asc')
+      .orderBy('da.id', 'asc')
+      .$castTo<DaySeatRow>()
       .execute();
-    return rows as { id: number; at: string | null }[];
-  }
-
-  /**
-   * AC12 (`AccommodationsService.locatedStopIds`) — `SELECT da.id FROM
-   * day_assignments da JOIN places p ON p.id = da.place_id WHERE da.day_id =
-   * ? AND p.lat IS NOT NULL AND p.lng IS NOT NULL ORDER BY da.order_index
-   * ASC, da.created_at ASC, da.id ASC`. `$ne: null` (a typed operator, rule
-   * 23) for the `IS NOT NULL` pair.
-   */
-  async listLocatedIds(day_id: number): Promise<number[]> {
-    const rows = await this.qb('da')
-      .join('da.place', 'p')
-      .select(['da.id'])
-      .where({ day: day_id, 'p.lat': { $ne: null }, 'p.lng': { $ne: null } })
-      .orderBy({ 'da.order_index': 'asc', 'da.created_at': 'asc', 'da.id': 'asc' })
-      .execute<{ id: number }[]>('all', false);
-    return rows.map((r) => r.id);
+    return rows;
   }
 
   /**

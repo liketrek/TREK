@@ -14,6 +14,7 @@ import { resolvePluginIcon } from '../../components/shared/PluginIcon'
 import { useTranslation, translateApiError } from '../../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, healthApi, airtrailApi, mapsApi, placesApi } from '../../api/client'
 import { getDayOrder } from '../../utils/dayOrder'
+import { TRANSPORT_TYPES, timedSlot } from '../../utils/dayMerge'
 import { isOvernightCategory } from '../../components/Roadtrip/stopKinds'
 import { parsedItemToDraft, isTransportItem, isUnplaceableItem, type BookingReviewDraft } from '../../components/Planner/parsedItemToDraft'
 import type { BookingImportPreviewItem } from '@trek/shared'
@@ -21,6 +22,8 @@ import { accommodationRepo } from '../../repo/accommodationRepo'
 import { offlineDb, getImportFiles, deleteImportFiles } from '../../db/offlineDb'
 import { isEffectivelyOffline } from '../../sync/networkMode'
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
+import { receiptToPrefill } from '../../components/Budget/CostsPanel.helpers'
+import type { ExpensePrefill } from '../../components/Budget/CostsPanel'
 import { useAuthStore } from '../../store/authStore'
 import { useResizablePanels } from '../../hooks/useResizablePanels'
 import { useTripWebSocket } from '../../hooks/useTripWebSocket'
@@ -30,20 +33,23 @@ import { useAutomaticDayPoints } from '../../components/Roadtrip/useAutomaticDay
 import { useDayBoundaries } from '../../components/Roadtrip/useDayBoundaries'
 import type { DayBoundaryControls } from '../../components/Map/dayBoundaryDrag'
 import { dayWindow, roadtripInsertion } from '../../components/Roadtrip/dayWindow'
+import { carrierReservationIds, isStoredStop, viasLeaving, type CarrierTerminal } from '@trek/shared/roadtrip'
 import { useTripRouteOverview } from '../../components/Map/useTripRouteOverview'
 import { useDawarichTrail } from '../../components/Map/useDawarichTrail'
 import { collapsedDayDates } from '../../components/Map/dawarichTrail'
 import { useRoadtripCorridor } from '../../components/Roadtrip/useRoadtripCorridor'
 import { PHONE_CORRIDOR_OPTIONS } from '../../components/Roadtrip/corridorSearchModel'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
+import { useDayClear } from './useDayClear'
 import { useRefuelSearch } from '../../components/Roadtrip/useRefuelSearch'
 import type { RefuelCandidate } from '../../components/Roadtrip/refuelSuggestion'
 import { useFollowTrack } from '../../components/Roadtrip/useFollowTrack'
-import { useRouteAlternatives } from '../../components/Roadtrip/useRouteAlternatives'
-import { buildAlternativeOverlays } from '../../components/Roadtrip/alternativeOverlays'
+import { openOn, useRouteAlternatives, type RailDrive } from '../../components/Roadtrip/useRouteAlternatives'
+import { alternativesBusy, buildAlternativeOverlays } from '../../components/Roadtrip/alternativeOverlays'
+import { pinAlternative, railDriveOn, railLegAt, refusalHint, type PinProof } from '../../components/Roadtrip/alternativePins'
 import { stopArrival } from '../../components/Roadtrip/stopArrival'
 import type { CorridorPoi } from '../../components/Roadtrip/useCorridorPois'
-import { projectOntoRoute, sliceAtMeters, type LatLng } from '../../components/Roadtrip/corridor'
+import { projectOntoRoute, sliceAtMeters, type CorridorHit, type LatLng } from '../../components/Roadtrip/corridor'
 import {
   insertIndexForAlong,
   reanchorAfterInsert,
@@ -54,7 +60,7 @@ import type { ManualStopTarget, ServiceStopMode } from '../../components/Roadtri
 import type { RoadtripStopDraft } from '../../components/Roadtrip/RoadtripStopPopup'
 import type { StayDraft } from '../../components/Roadtrip/RoadtripStayModal'
 import { inspectorStay } from '../../components/Roadtrip/stayReading'
-import { MAX_TRIP_DAYS, type RoadtripStopType } from '@trek/shared'
+import { MAX_TRIP_DAYS, normalizePlaceWebsite, type RoadtripStopType } from '@trek/shared'
 import { usePlaceSelection } from '../../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../../hooks/usePlannerHistory'
 import { useAirtrailConnection } from '../../hooks/useAirtrailConnection'
@@ -64,18 +70,25 @@ import type { Accommodation, Assignment, TripMember, Day, Place, Reservation } f
 import { OFM_POSITRON, DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { useTileUrl } from '../../hooks/useTileUrl'
 import { applyStayStops } from '../../store/stayStops'
-import { resolvePoolAssignmentId } from './tripPlannerModel'
+import { placesForDays, resolvePoolAssignmentId } from './tripPlannerModel'
 import { isDeepLinkableTripTab, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
+import { showReservationOnMap } from '../../components/Planner/bookings/showOnMap'
 import {
   parseStoredConnections, resolveEffectiveConnections, resolveVisibleConnectionIds,
   toggleConnectionId, toggleAllConnections as flipAllConnectionsMode,
   type StoredConnections,
 } from '../../utils/connectionsVisibility'
+import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
 import { plannedPlaceIds, plannedPlaceIdsForDay } from '../../utils/plannedPlaces'
+import { matchesPlacesFilter } from '../../utils/placesFilter'
+import { pendingStayPlaceIds } from '../../utils/pendingStays'
+import { useDayDelete } from './useDayDelete'
+import { useDayAdd } from './useDayAdd'
 
 /** Stable empty list so the road trip hook stays inert while its mode is off. */
 const EMPTY_DAYS: Day[] = []
+const EMPTY_RESERVATIONS: Reservation[] = []
 
 /**
  * Trip planner page logic — the big one. Owns the trip store wiring, addon
@@ -93,7 +106,8 @@ export function useTripPlanner() {
   const tripId = id ? Number(id) : Number.NaN
   const navigate = useNavigate()
   const toast = useToast()
-  const { t, language } = useTranslation()
+  const { t, language, locale } = useTranslation()
+  const placeLang = usePlaceLanguage()
   const { settings } = useSettingsStore()
   const roadtripSettings = useRoadtripSettings(s => s, tripId)
   // trip-page plugins mount as tabs inside this trip planner (tripId-scoped).
@@ -116,12 +130,14 @@ export function useTripPlanner() {
   const tripActions = useRef(useTripStore.getState()).current
   const can = useCanDo()
   const canUploadFiles = can('file_upload', trip)
-  const { pushUndo, undo, canUndo, lastActionLabel } = usePlannerHistory()
+  const { pushUndo, undo, forgetDay, canUndo, lastActionLabel } = usePlannerHistory()
 
+  // A step that could not be taken back says so instead of claiming it was.
   const handleUndo = useCallback(async () => {
     const label = lastActionLabel
-    await undo()
-    toast.info(t('undo.done', { action: label ?? '' }))
+    const undone = await undo()
+    if (undone === false) toast.error(t('undo.failed', { action: label ?? '' }))
+    else if (undone) toast.info(t('undo.done', { action: label ?? '' }))
   }, [undo, lastActionLabel, toast])
 
   const [enabledAddons, setEnabledAddons] = useState<Record<string, boolean>>({ packing: true, budget: true, documents: true, collab: false, roadtrip: false, dawarich: false })
@@ -171,7 +187,6 @@ export function useTripPlanner() {
       Object.entries(storedAssignments).map(([dayId, visits]) => [dayId, visits.filter(v => !hidden(v))]),
     )
   }, [roadtripMode, roadtripSettings.roadtrip_service_stops_in_days, storedAssignments])
-  const places = useMemo(() => roadtripMode || roadtripSettings.roadtrip_service_stops_in_days !== false ? allPlaces : allPlaces.filter(place => !isServiceStopType(place.stop_type)), [roadtripMode, roadtripSettings.roadtrip_service_stops_in_days, allPlaces])
   const toggleRoadtripMode = useCallback(() => {
     setRoadtripMode(prev => {
       const next = !prev
@@ -181,6 +196,12 @@ export function useTripPlanner() {
   }, [tripId])
   const [collabFeatures, setCollabFeatures] = useState<{ chat: boolean; notes: boolean; links: boolean; polls: boolean; whatsnext: boolean }>({ chat: true, notes: true, links: true, polls: true, whatsnext: true })
   const [tripAccommodations, setTripAccommodations] = useState<Accommodation[]>([])
+  const places = useMemo(
+    () => (roadtripMode
+      ? allPlaces
+      : placesForDays(allPlaces, roadtripSettings.roadtrip_service_stops_in_days === false, { accommodations: tripAccommodations, reservations })),
+    [roadtripMode, roadtripSettings.roadtrip_service_stops_in_days, allPlaces, tripAccommodations, reservations],
+  )
   const [allowedFileTypes, setAllowedFileTypes] = useState<string | null>(null)
   const [tripMembers, setTripMembers] = useState<TripMember[]>([])
 
@@ -213,7 +234,6 @@ export function useTripPlanner() {
     }).catch(() => {})
   }, [])
 
-  const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'])
 
   const tripPagePlugins = allPlugins.filter(p => p.type === 'trip-page')
   const tripPluginIds = tripPagePlugins.map(p => p.id).join(',')
@@ -291,14 +311,20 @@ export function useTripPlanner() {
   const {
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrow: narrowPanels,
-    startResizeLeft, startResizeRight,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
   } = useResizablePanels()
   const { selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment } = usePlaceSelection()
-  const [showDayDetail, setShowDayDetail] = useState<Day | null>(null)
+  const [dayDetail, setShowDayDetail] = useState<Day | null>(null)
+  // A day deleted while its panel is open, here or by a fellow traveller, takes
+  // the panel along instead of leaving it on a day that is gone.
+  const showDayDetail = dayDetail && days.some(d => d.id === dayDetail.id) ? dayDetail : null
   const [dayDetailCollapsed, setDayDetailCollapsed] = useState(false)
+  // The day's "+" can ask for a new stay: the details panel opens on that day and
+  // takes the request once, then hands it back so a later opening stays plain.
+  const [stayPickerDayId, setStayPickerDayId] = useState<number | null>(null)
   const [showPlaceForm, setShowPlaceForm] = useState<boolean>(false)
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
-  const [prefillCoords, setPrefillCoords] = useState<{ lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string; stop_type?: RoadtripStopType | null; duration_minutes?: number } | null>(null)
+  const [prefillCoords, setPrefillCoords] = useState<{ lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string; stop_type?: RoadtripStopType | null; duration_minutes?: number; category?: string } | null>(null)
   const [editingAssignmentId, setEditingAssignmentId] = useState<number | null>(null)
   // Day context of the open form. Set only by the day-scoped entry points (the
   // mobile day toolbar, a long-press on the mobile map); every other opener
@@ -401,6 +427,40 @@ export function useTripPlanner() {
   const [transportModalAutomated, setTransportModalAutomated] = useState<boolean>(false)
   const [transitPrefill, setTransitPrefill] = useState<{ from?: { name: string; lat: number; lng: number } | null; to?: { name: string; lat: number; lng: number } | null; time?: string | null } | null>(null)
   const [transitJourney, setTransitJourney] = useState<Reservation | null>(null)
+  // The booking whose detail is open over the desktop plan: a day row, a rental pill,
+  // the inspector's booking card, a map endpoint or the road-trip rail opened it.
+  // Held by id, so the dialog shows the store's copy and goes away by itself once the
+  // booking is deleted. `fromDayList` remembers that a row of the day list opened it,
+  // whose editor also asks for day_edit.
+  const [bookingDetailOpen, setBookingDetailOpen] = useState<{ id: number; fromDayList: boolean } | null>(null)
+
+  // The full transport editor on a saved entry. For a transit journey that is where
+  // travellers, costs, files, code and status live; an unchanged-endpoints save keeps
+  // the stored itinerary (#2148).
+  const openTransportEditor = useCallback((r: Reservation) => {
+    setEditingTransport(r)
+    setTransportModalDayId(r.day_id ?? null)
+    setTransportModalAutomated(false)
+    setTransitPrefill(null)
+    setTransitJourney(null)
+    setShowTransportModal(true)
+  }, [])
+  // Re-enters the transit search seeded with a journey's route; the journey is
+  // REPLACED on save (editingTransport drives handleSaveTransport's update path).
+  const changeTransitRoute = useCallback((r: Reservation) => {
+    const eps = r.endpoints || []
+    const from = eps.find(e => e.role === 'from')
+    const to = eps.find(e => e.role === 'to')
+    setTransitPrefill({
+      from: from ? { name: from.name, lat: from.lat, lng: from.lng } : null,
+      to: to ? { name: to.name, lat: to.lat, lng: to.lng } : null,
+    })
+    setEditingTransport(r)
+    setTransportModalDayId(r.day_id ?? null)
+    setTransportModalAutomated(true)
+    setTransitJourney(null)
+    setShowTransportModal(true)
+  }, [])
 
   // The bottom-nav "+" is context-aware per tab: on the Bookings / Transports tabs
   // it opens the booking / transport modal via ?create=reservation|transport
@@ -420,6 +480,8 @@ export function useTripPlanner() {
   const [reservationPrefill, setReservationPrefill] = useState<BookingReviewDraft | null>(null)
   const [transportPrefill, setTransportPrefill] = useState<BookingReviewDraft | null>(null)
   const [importReviewActive, setImportReviewActive] = useState(false)
+  // The expense a scanned receipt pre-fills, opened by the page's expense editor.
+  const [receiptExpense, setReceiptExpense] = useState<ExpensePrefill | null>(null)
   const importQueueRef = useRef<BookingImportPreviewItem[]>([])
   // The files this import was parsed from, so each reviewed booking can attach its source doc.
   const importSourceFilesRef = useRef<File[]>([])
@@ -473,6 +535,23 @@ export function useTripPlanner() {
       return next
     })
   }, [tripId])
+  // A locked map stays where the traveller put it (#2010): picking a day or a place no
+  // longer zooms or pans it. Remembered per browser, like the other view toggles; the
+  // first frame of a trip still fits, or the map would open on nothing.
+  const [mapLocked, setMapLocked] = useState<boolean>(() => {
+    try { return localStorage.getItem('trek:map-locked') === '1' } catch { return false }
+  })
+  const mapLockedRef = useRef(mapLocked)
+  mapLockedRef.current = mapLocked
+  const isMobileRef = useRef(isMobile)
+  isMobileRef.current = isMobile
+  const toggleMapLocked = useCallback(() => {
+    setMapLocked(prev => {
+      const next = !prev
+      try { localStorage.setItem('trek:map-locked', next ? '1' : '0') } catch { /* private mode keeps it for the session */ }
+      return next
+    })
+  }, [])
   // The recorded route from Dawarich (#2279), per trip and per session for the
   // same reason as the overview above: it answers "what actually happened on
   // this trip", which is a question about one trip rather than a preference.
@@ -505,7 +584,8 @@ export function useTripPlanner() {
    * itself only names the place, and those are the rows the traveller least expects
    * to lose, so the dialog says so before the yes. The expense list is loaded with
    * the costs tab, not here, so the sentence speaks of any expense rather than
-   * counting them. Null when nothing beyond the place is at stake.
+   * counting them. A booking named after its hotel, which is how most are named,
+   * is not quoted a second time. Null when nothing beyond the place is at stake.
    */
   const bookedNightsNote = useCallback((placeIds: number[]): string | null => {
     const stays = tripAccommodations.filter(stay => stay.place_id != null && placeIds.includes(stay.place_id))
@@ -517,9 +597,10 @@ export function useTripPlanner() {
         ?? stay.reservation_title ?? null)
       .filter((title): title is string => !!title)
     const name = names.join(', ')
-    return bookings.length > 0
-      ? t('trip.confirm.deletePlaceBooked', { name, booking: bookings.join(', ') })
-      : t('trip.confirm.deletePlaceNight', { name })
+    if (bookings.length === 0) return t('trip.confirm.deletePlaceNight', { name })
+    return bookings.every(title => names.includes(title))
+      ? t('trip.confirm.deletePlaceBookedSame', { name })
+      : t('trip.confirm.deletePlaceBooked', { name, booking: bookings.join(', ') })
   }, [tripAccommodations, allPlaces, reservations, t])
   const deletePlaceNote = useMemo(
     () => (deletePlaceId ? bookedNightsNote([deletePlaceId]) : null),
@@ -631,9 +712,11 @@ export function useTripPlanner() {
   // switches can't desync the marker set from the filter UI (#1541).
   const placesFilter = useTripStore((s) => s.placesFilter)
   const placesCategoryFilter = useTripStore((s) => s.placesCategoryFilter)
+  const placesRatingFilter = useTripStore((s) => s.placesRatingFilter)
 
   const [expandedDayIds, setExpandedDayIds] = useState<Set<number> | null>(null)
 
+  const compactUnplanned = useSettingsStore(s => s.settings.map_compact_unplanned === true)
   const mapPlaces = useMemo(() => {
     // Build set of place IDs assigned to collapsed days
     const hiddenPlaceIds = new Set<number>()
@@ -666,25 +749,37 @@ export function useTripPlanner() {
         : plannedPlaceIds({ assignments, accommodations: tripAccommodations, reservations }))
       : null
 
+    const compactIds = compactUnplanned ? plannedPlaceIds({ assignments, accommodations: tripAccommodations, reservations }) : null
+    const pendingIds = pendingStayPlaceIds(tripAccommodations, reservations)
+    const filterState = { filter: placesFilter, categoryFilters: placesCategoryFilter, ratingFilter: placesRatingFilter }
     return places.filter(p => {
       if (!p.lat || !p.lng) return false
-      if (placesFilter === 'tracks' && !p.route_geometry) return false
-      if (placesCategoryFilter.size > 0) {
-        if (p.category_id == null) {
-          if (!placesCategoryFilter.has('uncategorized')) return false
-        } else if (!placesCategoryFilter.has(String(p.category_id))) return false
-      }
       // Collapsed-day declutter hides a day's stops on every filter EXCEPT 'planned':
       // there the user asked to see the whole plan on the map, so a collapsed day
       // must not drop its planned places.
       if (placesFilter !== 'planned' && hiddenPlaceIds.has(p.id)) return false
-      if (placesFilter === 'unplanned' && plannedIds && plannedIds.has(p.id)) return false
-      if (placesFilter === 'planned' && plannedIds && !plannedIds.has(p.id)) return false
-      return true
+      // Pool, categories and rating floor: the very matcher the lists use (#1541).
+      return matchesPlacesFilter(p, filterState, { plannedIds })
+    }).map(p => {
+      // How the map tells a place apart (#2024, #2281); untouched places keep their identity.
+      const compact = !!compactIds && !compactIds.has(p.id)
+      const pending = pendingIds.has(p.id)
+      return compact || pending ? { ...p, _compact: compact, _pending: pending } : p
     })
-  }, [places, placesCategoryFilter, placesFilter, assignments, expandedDayIds, selectedDayId, days, tripAccommodations, reservations])
+  }, [places, placesCategoryFilter, placesFilter, placesRatingFilter, assignments, expandedDayIds, selectedDayId, days, tripAccommodations, reservations, compactUnplanned])
 
-  const { route, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
+  // The "Tracks" pool is only offered while a place carries a track. When the last
+  // one goes (deleted here or by a collaborator), fall back to "all" — here, because
+  // this hook is mounted whatever is on screen: the lists that used to do it are not
+  // mounted while the phone map is in front, and the map would sit empty under a
+  // "Tracks" filter no control offers any more.
+  const setPlacesFilter = useTripStore((s) => s.setPlacesFilter)
+  const hasTracks = useMemo(() => places.some(p => p.route_geometry), [places])
+  useEffect(() => {
+    if (placesFilter === 'tracks' && !hasTracks) setPlacesFilter('all')
+  }, [placesFilter, hasTracks, setPlacesFilter])
+
+  const { route, routeWalking, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, routeShown, routeProfile, tripAccommodations)
   // Road trip mode already draws the whole trip its own way, so the overview stands
   // down there rather than drawing a second set of lines over it.
   const overviewActive = overviewShown && !roadtripMode
@@ -743,7 +838,18 @@ export function useTripPlanner() {
     roadtripVias.byDay,
     dayBoundaries.boundaries,
     tripAccommodations,
+    roadtripFeedActive ? reservations : EMPTY_RESERVATIONS,
   )
+  /**
+   * The bookings the drive is seamed by, drawn as their own arcs beside the roads: a
+   * flight's route on the road trip map is the booking's line, the same one the day plan
+   * draws, so the ride shows where the road stops (#2428). On top of whatever the reader
+   * switched on by hand under Days.
+   */
+  const roadtripConnections = useMemo(() => {
+    const rides = carrierReservationIds(roadtripRoutes.days)
+    return rides.length ? [...new Set([...visibleConnections, ...rides])] : visibleConnections
+  }, [roadtripRoutes.days, visibleConnections])
   // Lives here rather than in the panel because the map draws what it finds.
   // The trip comes with it for the vehicle: an electric car looks for chargers rather
   // than for pumps, and that preference is stored per trip.
@@ -764,7 +870,8 @@ export function useTripPlanner() {
 
   const handleSelectDay = useCallback((dayId: number | null, skipFit?: boolean) => {
     tripActions.setSelectedDay(dayId)
-    if (!skipFit) setFitKey(k => k + 1)
+    // The lock is a desktop control; the phone always follows the day.
+    if (!skipFit && !(mapLockedRef.current && !isMobileRef.current)) setFitKey(k => k + 1)
     setMobileSidebarOpen(null)
     updateRouteForDay(dayId)
   }, [updateRouteForDay])
@@ -829,17 +936,17 @@ export function useTripPlanner() {
     setShowPlaceForm(true)
     try {
       const { mapsApi } = await import('../../api/client')
-      const data = await mapsApi.reverse(lat, lng, language)
+      const data = await mapsApi.reverse(lat, lng, placeLang)
       if (data.name || data.address) {
         setPrefillCoords(prev => prev ? { ...prev, name: data.name || '', address: data.address || '' } : prev)
       }
     } catch { /* best effort */ }
-  }, [language])
+  }, [placeLang])
 
   // Open the Add-Place form pre-filled from an OSM "explore" POI marker — all the
   // data already comes from the POI, so no reverse-geocode is needed.
   const openAddPlaceFromPoi = useCallback((
-    poi: { lat: number; lng: number; name: string; address: string | null; website: string | null; phone: string | null; osm_id: string },
+    poi: { lat: number; lng: number; name: string; address: string | null; website: string | null; phone: string | null; osm_id: string; category?: string | null; poi_type?: string | null },
     dayId?: number | null,
     /** Index within that day. Omitted, the place is appended, which is what every caller did before. */
     position?: number | null,
@@ -856,9 +963,15 @@ export function useTripPlanner() {
       lng: poi.lng,
       name: poi.name,
       address: poi.address || '',
-      website: poi.website || undefined,
+      // Checked again on the way into the form: a plugin POI's website is the plugin's
+      // text, and only an address a browser opens as a page belongs in the field.
+      website: normalizePlaceWebsite(poi.website) ?? undefined,
       phone: poi.phone || undefined,
+      // A plugin POI's `plugin:<pluginId>:<id>` rides along as it is. The server never
+      // takes that prefix for a Google place id, so the details column makes no Google call.
       osm_id: poi.osm_id,
+      // What the map search filed it under, so the form can preselect a category (#2282).
+      category: poi.poi_type || poi.category || undefined,
       stop_type: stop?.stopType ?? null,
       duration_minutes: stop?.dwellMinutes,
     })
@@ -996,6 +1109,24 @@ export function useTripPlanner() {
   }, [roadtripRoutes.days])
 
   /**
+   * How a day's vias move when a place at `at` lands on it at row `position`, or at its
+   * end without one. Null when none do: appending moves nothing, and a place without
+   * coordinates is never a stop.
+   *
+   * Worked out before the stop lands, the same way the road-trip popup does it: once the
+   * list has shifted there is no record of which leg each via was drawn for. The
+   * predicate decides which side of the new stop a via falls on when it is dropped into
+   * the middle of a leg.
+   */
+  const viasAfterInsert = useCallback((dayId: number, position: number | undefined, at: { lat?: number | null; lng?: number | null } | undefined) => {
+    const stopsBefore = roadtripStopsOf(dayId)
+    // The position is a row index in the day list, the anchors count stops.
+    const insertAt = position === undefined ? stopsBefore.length : roadtripIndexOf(dayId, position)
+    if (insertAt >= stopsBefore.length || typeof at?.lat !== 'number' || typeof at?.lng !== 'number') return null
+    return reanchorAfterInsert(roadtripVias.byDay[dayId] ?? [], insertAt, viaLiesBefore(dayId, { lat: at.lat, lng: at.lng }))
+  }, [roadtripStopsOf, roadtripIndexOf, roadtripVias.byDay, viaLiesBefore])
+
+  /**
    * Saves a corridor hit as a stop: the place itself, then its position in the day.
    *
    * `stop_type` is what makes it a fuel stop rather than a place that happens to sell
@@ -1061,6 +1192,12 @@ export function useTripPlanner() {
    */
   const roadtripMapPlaces = useMemo(() => {
     const plannedIds = new Set(Object.values(assignments).flat().map(a => a.place_id))
+    // The hotel a day sets out from or ends at is drawn with its drive whether or not a day
+    // still holds its stop: with that stop removed, the line and the walk to the door ended
+    // at a spot with no pin, where the phone's stage map has one (`stagePlaceIds`).
+    for (const day of roadtripRoutes.days) {
+      for (const stop of day.stops) if (stop.bookend) plannedIds.add(stop.placeId)
+    }
     const plannedPlaces = mapPlaces.filter(p => plannedIds.has(p.id))
     if (!collapsedRoadtripDays.size) return plannedPlaces
     const hidden = new Set<number>()
@@ -1493,7 +1630,7 @@ export function useTripPlanner() {
       noMotorway: t('roadtrip.alt.noMotorway'),
       noToll: t('roadtrip.alt.noToll'),
       noFerry: t('roadtrip.alt.noFerry'),
-    }),
+    }, routeAlternatives.open?.engine),
     [routeAlternatives.open, t],
   )
 
@@ -1548,85 +1685,149 @@ export function useTripPlanner() {
     [refuel.offered, alternativeFocusPoints, automaticPoints.focusPoints],
   )
 
-  /** Asks the router for other ways of driving one leg of one day. */
-  const askRouteAlternatives = useCallback((dayId: number, legIndex: number) => {
+  /**
+   * The rail as it stands now, for a choice that is written several router answers after
+   * the render that started it. Checked against before anything is written.
+   */
+  const railDaysRef = useRef<Parameters<typeof railLegAt>[0]>(roadtripRoutes.days)
+  // The days with a single stop as well, in day order: they draw no card, but a drive
+  // into the day after one leaves from its stop, and a choice for that drive is filed there.
+  useEffect(() => {
+    railDaysRef.current = [...roadtripRoutes.days, ...roadtripRoutes.quietDays].sort((a, b) => a.dayNumber - b.dayNumber)
+  }, [roadtripRoutes.days, roadtripRoutes.quietDays])
+
+  /**
+   * Asks the rail's own router for other ways of one drive on a card.
+   *
+   * The picker is handed everything about the leg as the rail has it: the road it is on
+   * now, which heads the list as the current one; where a choice would be written; and
+   * the router with the leg's own mode and avoided classes, not the trip-wide profile.
+   *
+   * The drive arriving at the head of a connected card is asked about the same way, as
+   * the pair from the last stop of the day before to the card's first. Its router is the
+   * one the rail drives that seam with, under the card it arrives on, and a choice is
+   * filed behind the stop it leaves, where the map already files a point dropped on it.
+   * It used to be the one drive on the rail that could not be offered another way.
+   */
+  const askRouteAlternatives = useCallback((dayId: number, drive: RailDrive) => {
     const day = roadtripRoutes.days.find(d => d.dayId === dayId)
-    const from = day?.stops[legIndex]
-    const to = day?.stops[legIndex + 1]
-    if (!from || !to || !day) return
-    if (routeAlternatives.open?.dayId === dayId && routeAlternatives.open.index === legIndex) {
+    const found = day ? railDriveOn(day, drive) : null
+    const router = found ? roadtripRoutes.legRouter?.(found.from, found.to, dayId) : undefined
+    if (!found || !router) return
+    if (openOn(routeAlternatives.open, dayId, drive)) {
       routeAlternatives.close()
       return
     }
-    // The vias on THIS leg, so the road currently driven is offered alongside the
-    // router's own suggestions rather than being missing from its own picker.
-    const dayIndex = from.ownerIndex
-    const legVias = (roadtripVias.byDay[from.ownerDayId] ?? [])
-      .filter(v => v.after_order_index === dayIndex)
-      .sort((a, b) => a.sequence - b.sequence)
-    routeAlternatives.ask(dayId, legIndex, from, to, routeProfile, legVias)
-  }, [roadtripRoutes.days, routeAlternatives, routeProfile, roadtripVias.byDay])
+    const { from, to, seg, line } = found
+    routeAlternatives.ask({
+      dayId,
+      drive,
+      from: { lat: from.lat, lng: from.lng },
+      to: { lat: to.lat, lng: to.lng },
+      driven: { coordinates: line ?? [], distance: seg.distance, duration: seg.duration },
+      // The vias of a leg are filed behind the stop it leaves, on the day that stop is
+      // stored on, which on a card holding a night drive or a drive in from yesterday is
+      // not the card's own day.
+      anchor: { dayId: from.ownerDayId, afterIndex: from.ownerIndex },
+      ends: { from: from.assignmentId, to: to.assignmentId },
+      router,
+    })
+  }, [roadtripRoutes, routeAlternatives])
 
   /**
-   * Taking one of the offered routes.
+   * Taking one of the offered routes: pinned, proven, and only then written.
    *
-   * Saved as a via at the point where that route differs most from the default, not as a
-   * stored polyline: a polyline goes stale with the next OSM update and with every stop
-   * that moves, while a via keeps forcing the router back onto this road for as long as
-   * the road exists.
+   * Saved as vias, not as a stored polyline: a polyline goes stale with the next OSM update
+   * and with every stop that moves, while a via keeps forcing the router back onto this
+   * road for as long as the road exists. But a via only holds a road the router is willing
+   * to drive through it, and nothing used to check that: a point on a ferry was pulled to
+   * the pier and the day went the long way round, and a way weighed away from motorways
+   * kept the motorway after its one pinned point. So the rail's own router is asked first
+   * (`pinAlternative`), and a way it will not follow is not saved and says why.
+   *
+   * The pins replace the leg's vias in one write rather than joining them. Appending put a
+   * new point behind the old one and routed out to each in turn, a zigzag matching neither
+   * the preview nor the distance printed on it; and one delete per via meant a full re-route
+   * between each of them. A write that fails is reported and leaves the picker open:
+   * swallowed, it closed on a leg that still carried its via, and not even the reload ran
+   * to contradict the traveller.
+   *
+   * A refusal is said twice: as a toast, and to the bar (`settle`), which keeps it beside
+   * the offers and announces it. A leg the rail drew with OSRM standing in for an engine
+   * that did not answer is asked for again once a choice holds, since the road the router
+   * chose is not the one on the map: taking the router's own road there wrote nothing and
+   * left the stand-in line in place, which read as a click that did nothing.
    */
   const chooseRouteAlternative = useCallback(async (index: number) => {
     const open = routeAlternatives.open
-    const alt = open?.routes[index]
-    if (!open || !alt) return
+    const offer = open?.routes[index]
+    if (!open || !offer) return
     // Choosing the road already being driven changes nothing.
-    if (alt.current) { routeAlternatives.close(); return }
-    // The router's own preference means no detour at all, so the vias on this leg go.
-    if (alt.direct || !alt.divergence) {
-      const day = roadtripRoutes.days.find(d => d.dayId === open.dayId)
-      const stop = day?.stops[open.index]
-      const dayIndex = stop?.ownerIndex ?? -1
-      // Clearing the leg in one write. One delete per via meant a full trip re-route
-      // between each of them, so undoing a detour with three vias drew three routes.
-      //
-      // Reported like every other write in this hook. Swallowing it closed the
-      // picker on a leg that still carries its via and still routes the old way,
-      // so the traveller believed they had undone the detour — and because the
-      // request failed, not even the reload ran to contradict them.
-      if (dayIndex >= 0) {
-        try {
-          await roadtripVias.addMany(stop!.ownerDayId, [], [dayIndex])
-        } catch (err: unknown) {
-          toast.error(err instanceof Error ? err.message : t('common.unknownError'))
-          return
-        }
+    if (offer.current) { routeAlternatives.close(); return }
+    // One choice at a time: the map line can be clicked while a chip's choice is checked.
+    if (alternativesBusy(open)) return
+    // Vias are written online only, so a choice that could not be kept is not checked.
+    if (!roadtripVias.editable) { toast.error(t('roadtrip.alt.offline')); return }
+
+    const signal = routeAlternatives.prove(index)
+    let proof: PinProof
+    try {
+      proof = await pinAlternative({ offer, current: open.routes.find(r => r.current), route: open.route, signal })
+    } catch {
+      if (signal.aborted) return
+      routeAlternatives.settle(t('roadtrip.alt.failed'))
+      // The desk's bar says it in its own status line; a toast on top covered that line
+      // and printed the same sentence twice. The phone's bar has no room for a sentence.
+      if (isMobile) toast.error(t('roadtrip.alt.failed'))
+      return
+    }
+    if (signal.aborted) return
+    if (!proof.held) {
+      const refusal = t(proof.fellBack ? 'roadtrip.alt.failed' : 'roadtrip.alt.notHeld')
+      const hint = proof.fellBack ? null : refusalHint(offer, proof.last, t)
+      routeAlternatives.settle(hint ? `${refusal} ${hint}` : refusal)
+      if (isMobile) {
+        toast.error(refusal, 6000)
+        if (hint) toast.info(hint, 8000)
       }
+      return
+    }
+
+    // The chain may have moved while the router was asked: a stop dragged, a collaborator's
+    // edit arriving. Pins worked out for this leg are only written where it still runs.
+    const { anchor, ends } = open
+    const leg = railLegAt(railDaysRef.current, anchor)
+    if (!leg || leg.from.assignmentId !== ends.from || leg.to.assignmentId !== ends.to) {
+      toast.error(t('roadtrip.alt.legChanged'), 6000)
       routeAlternatives.close()
       return
     }
-    const day = roadtripRoutes.days.find(d => d.dayId === open.dayId)
-    const stop = day?.stops[open.index]
-    if (!day || !stop) return
-    const ownerDayId = stop.ownerDayId ?? day.dayId
-    const legIndex = stop.ownerIndex ?? open.index
-    try {
-      // Replaces the leg rather than appending to it. The alternatives under the
-      // button were computed for the two bare endpoints — the road already being
-      // driven is offered separately as `current` — so a leg that already carries
-      // a via cannot produce the line the preview drew. Appending put the new
-      // point behind the old one and routed A, south to the old via, north to the
-      // new one, then B: a zigzag matching neither the preview nor the distance
-      // printed on it. Same write the direct branch above already uses.
-      await roadtripVias.addMany(
-        ownerDayId,
-        [{ after_order_index: legIndex, lat: alt.divergence.lat, lng: alt.divergence.lng }],
-        [legIndex],
-      )
-      routeAlternatives.close()
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+    // The router's own road on a leg nothing bends is already what is driven, unless OSRM
+    // drew the leg in its engine's place. A write routes the leg again by itself; without
+    // one the rail is asked to, and either way the picker says why the map may still hold
+    // the stand-in line for a moment, or for as long as that engine does not answer.
+    const bent = viasLeaving(leg.from, roadtripVias.byDay[anchor.dayId] ?? []).length > 0
+    if (proof.pins.length || bent) {
+      try {
+        await roadtripVias.addMany(
+          anchor.dayId,
+          proof.pins.map(pin => ({ after_order_index: anchor.afterIndex, lat: pin.lat, lng: pin.lng })),
+          [anchor.afterIndex],
+        )
+      } catch (err: unknown) {
+        // Said even when the picker has moved on in the meantime: the write was asked for.
+        const message = err instanceof Error ? err.message : t('common.unknownError')
+        if (!signal.aborted) routeAlternatives.settle(message)
+        toast.error(message)
+        return
+      }
+    } else if (open.standIn) {
+      roadtripRoutes.reroute?.()
     }
-  }, [routeAlternatives, roadtripRoutes.days, roadtripVias, toast, t])
+    if (open.standIn) toast.info(t('roadtrip.alt.standIn'), 8000)
+    // A picker opened on another leg while this was written belongs to that leg now.
+    if (!signal.aborted) routeAlternatives.close()
+  }, [routeAlternatives, roadtripVias, roadtripRoutes, toast, t, isMobile])
 
   /**
    * A click on the drawn route puts a via there, and the drive is redrawn through it.
@@ -1646,25 +1847,35 @@ export function useTripPlanner() {
    * looks exactly like a drag that did nothing.
    */
   const anchorFor = useCallback((lat: number, lng: number, onlyDayId?: number) => {
-    let best: { dayId: number; afterIndex: number; offRouteKm: number } | null = null
-    for (const day of roadtripRoutes.days) {
-      // NOT `day.dayId !== onlyDayId`. A dragged via has to stay on the day it is stored
-      // on, but that day's stops are no longer all on the card of the same name: after a
-      // night drive they are drawn on the next one (`nightSpill.ts`). Filtering by card
-      // measured the new position against a line that no longer covers those stops — a
-      // point dragged near Brandenburg was projected onto the short remainder of card 1
-      // and came back anchored to its last stop, which put the via on the night drive
-      // itself and pushed the stop before it over midnight.
-      //
-      // So every card is measured, and the answer is filtered by the day the ANCHOR is
-      // stored on. Same promise, kept against the stops rather than against the card.
-      if (day.geometry.length < 2) continue
-      const spine = day.geometry.map(([la, ln]) => ({ lat: la, lng: ln }))
-      const hit = projectOntoRoute({ lat, lng }, spine)
-      if (!hit) continue
-      if (best && hit.offRouteKm >= best.offRouteKm) continue
-      // Which stop the via follows: the last one the car passes before reaching it.
-      const stopsAlong = day.stops.map(stop => projectOntoRoute({ lat: stop.lat, lng: stop.lng }, spine)?.alongKm ?? 0)
+    // `terminal` names the anchor when it is one end of a ride rather than a stored stop
+    // (#2428). Nothing can be filed against a terminal: it stands in for no assignment,
+    // so a via anchored to it would be stored at a position that belongs to the stop
+    // after it and bend that stop's road instead. The callers decide what to refuse.
+    //
+    // `bookendLeg` says the drive leaves or reaches a booked night's hotel at the day's
+    // edge, which files nothing either: the morning's hotel has no index of its own, and
+    // the evening's drive is reached from the index that shapes the road into tomorrow.
+    // `card` is where the point fell on the card it was measured on, the day and the index
+    // of the stop before it there, -1 for the drive in before the card's first stop.
+    type Anchor = {
+      dayId: number
+      afterIndex: number
+      offRouteKm: number
+      terminal: CarrierTerminal['role'] | null
+      bookendLeg: boolean
+      card: { dayId: number; index: number }
+    }
+    // A road the day drives twice, out of the hotel in the morning and past it again later,
+    // is on the line twice, and the closer pass wins by metres at most. A pass that can
+    // take a via beats one on the hotel's drive, which files nothing, by this much.
+    const SAME_ROAD_KM = 0.03
+    const beats = (c: Anchor, b: Anchor | null) => {
+      if (!b) return true
+      if (c.bookendLeg === b.bookendLeg) return c.offRouteKm < b.offRouteKm
+      return c.bookendLeg ? c.offRouteKm + SAME_ROAD_KM < b.offRouteKm : c.offRouteKm <= b.offRouteKm + SAME_ROAD_KM
+    }
+    // Which stop of this card the point falls behind, for a hit measured on its line.
+    const readAnchor = (day: (typeof roadtripRoutes.days)[number], hit: CorridorHit, stopsAlong: number[]): Anchor | null => {
       // Before the card's first stop means a drive that arrives here but leaves from a
       // stop on the card BEFORE this one: the incoming night drive (`nightSpill.ts`), or
       // on a trip with connected days the drive from where yesterday ended, which is drawn
@@ -1681,9 +1892,15 @@ export function useTripPlanner() {
       const arrivedFrom = day.spills?.find(sp => sp.at === 0)?.fromStop ?? day.arrivingFrom
       if (arrivedFrom && hit.alongKm < (stopsAlong[0] ?? 0)) {
         const owner = arrivedFrom.ownerDayId ?? day.dayId
-        if (onlyDayId !== undefined && owner !== onlyDayId) continue
-        best = { dayId: owner, afterIndex: arrivedFrom.ownerIndex ?? 0, offRouteKm: hit.offRouteKm }
-        continue
+        if (onlyDayId !== undefined && owner !== onlyDayId) return null
+        return {
+          dayId: owner,
+          afterIndex: arrivedFrom.ownerIndex ?? 0,
+          offRouteKm: hit.offRouteKm,
+          terminal: arrivedFrom.carrier?.role ?? null,
+          bookendLeg: !!arrivedFrom.bookend || !!day.stops[0]?.bookend,
+          card: { dayId: day.dayId, index: -1 },
+        }
       }
       const at = insertIndexForAlong(stopsAlong, hit.alongKm) - 1
       // Named by the day the anchor stop is STORED on and its position there, not by the
@@ -1692,14 +1909,57 @@ export function useTripPlanner() {
       // night drive — and a via filed under the card's numbers matches no stop when the
       // route is next built, which reads as a drag that did nothing at all.
       const anchor = day.stops[at]
-      if (!anchor) continue
+      if (!anchor) return null
       // Falling back to the card's own numbers is not a guard against a bug, it is the
       // meaning: a stop that names no other day IS stored on the card it is drawn on,
       // which is every stop on a trip that never drives past midnight.
       const owner = anchor.ownerDayId ?? day.dayId
       // A drag stays on its own day; a fresh click may land wherever it landed.
-      if (onlyDayId !== undefined && owner !== onlyDayId) continue
-      best = { dayId: owner, afterIndex: anchor.ownerIndex ?? at, offRouteKm: hit.offRouteKm }
+      if (onlyDayId !== undefined && owner !== onlyDayId) return null
+      return {
+        dayId: owner,
+        afterIndex: anchor.ownerIndex ?? at,
+        offRouteKm: hit.offRouteKm,
+        terminal: anchor.carrier?.role ?? null,
+        bookendLeg: !!anchor.bookend || !!day.stops[at + 1]?.bookend,
+        card: { dayId: day.dayId, index: at },
+      }
+    }
+    let best: Anchor | null = null
+    for (const day of roadtripRoutes.days) {
+      // NOT `day.dayId !== onlyDayId`. A dragged via has to stay on the day it is stored
+      // on, but that day's stops are no longer all on the card of the same name: after a
+      // night drive they are drawn on the next one (`nightSpill.ts`). Filtering by card
+      // measured the new position against a line that no longer covers those stops — a
+      // point dragged near Brandenburg was projected onto the short remainder of card 1
+      // and came back anchored to its last stop, which put the via on the night drive
+      // itself and pushed the stop before it over midnight.
+      //
+      // So every card is measured, and the answer is filtered by the day the ANCHOR is
+      // stored on. Same promise, kept against the stops rather than against the card.
+      if (day.geometry.length < 2) continue
+      const spine = day.geometry.map(([la, ln]) => ({ lat: la, lng: ln }))
+      const hit = projectOntoRoute({ lat, lng }, spine)
+      if (!hit) continue
+      if (best && hit.offRouteKm >= best.offRouteKm + SAME_ROAD_KM) continue
+      // Which stop the via follows: the last one the car passes before reaching it.
+      const stopsAlong = day.stops.map(stop => projectOntoRoute({ lat: stop.lat, lng: stop.lng }, spine)?.alongKm ?? 0)
+      let candidate = readAnchor(day, hit, stopsAlong)
+      if (candidate?.bookendLeg) {
+        // Landed on the drive to or from the hotel, a road the day can drive again between
+        // two of its own stops. Asked once more of the stretch between the day's first and
+        // last stop, and taken when that answer lies on the same road.
+        const first = day.stops.findIndex(stop => !stop.bookend)
+        const last = day.stops.length - 1 - [...day.stops].reverse().findIndex(stop => !stop.bookend)
+        const fromKm = stopsAlong[first] ?? 0
+        const toKm = stopsAlong[last] ?? 0
+        const inner = first >= 0 && first < last && fromKm < toKm
+          ? projectOntoRoute({ lat, lng }, spine, { fromKm, toKm })
+          : null
+        const retry = inner && inner.offRouteKm <= hit.offRouteKm + SAME_ROAD_KM ? readAnchor(day, inner, stopsAlong) : null
+        if (retry && !retry.bookendLeg) candidate = retry
+      }
+      if (candidate && beats(candidate, best)) best = candidate
     }
     return best
   }, [roadtripRoutes.days])
@@ -1720,9 +1980,20 @@ export function useTripPlanner() {
    */
   const manualStopTargetFor = useCallback((lat: number, lng: number): ManualStopTarget | null => {
     const anchor = anchorFor(lat, lng)
-    if (!anchor) return null
+    // Nothing is stopped at on a flight. Behind an arrival terminal or a hire car's desk
+    // is a road, and a stop there is the first stop after landing or after the pick-up.
+    if (!anchor || anchor.terminal === 'departure') return null
+    // Behind a terminal, and on the drive from the hotel a day sets out from or to the one
+    // it ends at, the place goes where it fell on the card. None of them is a stored stop
+    // to be found by its index, which each shares with one: after the morning's hotel is
+    // before the day's first stop, before the evening's is after its last.
+    if (anchor.bookendLeg || anchor.terminal) {
+      return { dayId: anchor.card.dayId, position: anchor.card.index + 1, offRouteKm: anchor.offRouteKm }
+    }
     for (const day of roadtripRoutes.days) {
-      const at = day.stops.findIndex(stop => stop.ownerDayId === anchor.dayId && stop.ownerIndex === anchor.afterIndex)
+      // The stored stop the anchor names, not a terminal or a hotel seated in front of it
+      // with the same index, which put the place one stop early.
+      const at = day.stops.findIndex(stop => isStoredStop(stop) && stop.ownerDayId === anchor.dayId && stop.ownerIndex === anchor.afterIndex)
       if (at >= 0) return { dayId: day.dayId, position: at + 1, offRouteKm: anchor.offRouteKm }
     }
     // No card draws that stop, which happens while the rail is between rebuilds. Its own
@@ -1805,8 +2076,13 @@ export function useTripPlanner() {
   const addRoadtripVia = useCallback(async (lat: number, lng: number) => {
     if (!can('day_edit', trip)) return
     const best = anchorFor(lat, lng)
-    // A click that landed on some other line is not a via anywhere.
-    if (!best || best.offRouteKm > 2) return
+    // A click that landed on some other line is not a via anywhere. Neither is one on a
+    // ride, or on the road out of a terminal: a via is filed by the position of a stored
+    // stop, and a terminal is not one.
+    if (!best || best.offRouteKm > 2 || best.terminal) return
+    // Nor on the drive from or to a booked night's hotel, which says so rather than
+    // ignoring the click (`legReroutable`).
+    if (best.bookendLeg) { toast.info(t('roadtrip.bookend.noVia')); return }
     try {
       await roadtripVias.add(best.dayId, best.afterIndex, lat, lng)
     } catch (err: unknown) {
@@ -1826,7 +2102,7 @@ export function useTripPlanner() {
     // just says which leg gets bent, and the router answers the rest.
     const anchor = anchorFor(lat, lng, dayId)
     try {
-      await roadtripVias.move(dayId, id, lat, lng, anchor?.afterIndex)
+      await roadtripVias.move(dayId, id, lat, lng, anchor && !anchor.terminal && !anchor.bookendLeg ? anchor.afterIndex : undefined)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     }
@@ -2074,6 +2350,7 @@ export function useTripPlanner() {
   // place's lone assignment to hydrate & persist its times; with 0 or 2+
   // assignments the time is ambiguous and the modal hides the fields (#1247).
   const openPlaceEditor = useCallback((place: Place, preferredAssignmentId: number | null = null) => {
+    if (!can('place_edit', trip)) return
     if (roadtripActive && (isServiceStopType(place.stop_type) || tripAccommodations.some(stay => stay.place_id === place.id)) && typeof place.lat === 'number' && typeof place.lng === 'number') {
       const visitId = preferredAssignmentId ?? resolvePoolAssignmentId(assignments, place.id)
       const entry = Object.entries(assignments).find(([, visits]) => visits.some(visit => visit.id === visitId))
@@ -2098,7 +2375,7 @@ export function useTripPlanner() {
     setPlaceFormDayId(null)
     setServiceStopForm(false)
     setShowPlaceForm(true)
-  }, [assignments, roadtripActive, tripAccommodations, days, overnightOptions, roadtripRoutes.days])
+  }, [can, trip, assignments, roadtripActive, tripAccommodations, days, overnightOptions, roadtripRoutes.days])
 
   /**
    * How long the drive stands here, for every stop alike.
@@ -2113,8 +2390,9 @@ export function useTripPlanner() {
   }, [])
 
   const handleDeletePlace = useCallback((placeId) => {
+    if (!can('place_edit', trip)) return
     setDeletePlaceId(placeId)
-  }, [])
+  }, [can, trip])
 
   const confirmDeletePlace = useCallback(async () => {
     if (!deletePlaceId) return
@@ -2142,8 +2420,9 @@ export function useTripPlanner() {
             route_geometry: capturedPlace.route_geometry,
             route_color: capturedPlace.route_color,
           })
+          const live = new Set(useTripStore.getState().days.map(d => d.id))
           for (const { dayId, orderIndex } of capturedAssignments) {
-            await tripActions.assignPlaceToDay(tripId, dayId, newPlace.id, orderIndex)
+            if (live.has(dayId)) await tripActions.assignPlaceToDay(tripId, dayId, newPlace.id, orderIndex)
           }
         })
       }
@@ -2166,6 +2445,7 @@ export function useTripPlanner() {
       toast.success(t('trip.toast.placesDeleted', { count: capturedPlaces.length }))
       if (capturedPlaces.length > 0) {
         pushUndo(t('undo.deletePlaces'), async () => {
+          const live = new Set(useTripStore.getState().days.map(d => d.id))
           for (const place of capturedPlaces) {
             const newPlace = await tripActions.addPlace(tripId, {
               name: place.name, description: place.description,
@@ -2173,7 +2453,7 @@ export function useTripPlanner() {
               category_id: place.category_id, price: place.price,
               route_geometry: place.route_geometry, route_color: place.route_color,
             })
-            for (const a of capturedAssignments.filter(x => x.placeId === place.id)) {
+            for (const a of capturedAssignments.filter(x => x.placeId === place.id && live.has(x.dayId))) {
               await tripActions.assignPlaceToDay(tripId, a.dayId, newPlace.id, a.orderIndex)
             }
           }
@@ -2211,24 +2491,13 @@ export function useTripPlanner() {
   const handleAssignToDay = useCallback(async (placeId: number, dayId?: number, position?: number) => {
     const target = dayId || selectedDayId
     if (!target) { toast.error(t('trip.toast.selectDay')); return }
-    // Worked out before the stop lands, the same way the road-trip popup does it:
-    // once the list has shifted there is no record of which leg each via was
-    // drawn for. Appending to the end moves nothing, so only a real insert needs
-    // the correction — and the predicate decides which side of the new stop a
-    // via falls on when it is dropped into the middle of a leg.
-    const stopsBefore = roadtripStopsOf(target)
-    // The position is a row index in the day list, the anchors count stops.
-    const insertAt = position === undefined ? stopsBefore.length : roadtripIndexOf(target, position)
     const place = places.find(p => p.id === placeId)
-    const plan = insertAt >= stopsBefore.length || typeof place?.lat !== 'number' || typeof place?.lng !== 'number'
-      ? null
-      : reanchorAfterInsert(
-        roadtripVias.byDay[target] ?? [],
-        insertAt,
-        viaLiesBefore(target, { lat: place.lat, lng: place.lng }),
-      )
+    // A place with a start of its own is drawn by it, so it is stored there too, the
+    // way a stop moved over from another day is. Without one it goes where it was put.
+    const slot = timedSlot(storedAssignments[String(target)] ?? [], tripAccommodations, place?.place_time, position) ?? position
+    const plan = viasAfterInsert(target, slot, place)
     try {
-      const assignment = await tripActions.assignPlaceToDay(tripId, target, placeId, position)
+      const assignment = await tripActions.assignPlaceToDay(tripId, target, placeId, slot)
       toast.success(t('trip.toast.assignedToDay'))
       if (plan) await roadtripVias.reanchor(target, plan)
       updateRouteForDay(target)
@@ -2237,10 +2506,27 @@ export function useTripPlanner() {
         const capturedTarget = target
         pushUndo(t('undo.assignPlace'), async () => {
           await tripActions.removeAssignment(tripId, capturedTarget, capturedAssignmentId)
-        })
+        }, [capturedTarget])
       }
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
-  }, [selectedDayId, tripId, toast, updateRouteForDay, pushUndo, t, places, roadtripVias, roadtripStopsOf, roadtripIndexOf, viaLiesBefore])
+  }, [selectedDayId, tripId, toast, updateRouteForDay, pushUndo, t, places, storedAssignments, tripAccommodations, roadtripVias, viasAfterInsert])
+
+  /**
+   * Moves a stop from the day list onto another day, at a row of that day or at its
+   * end without one.
+   *
+   * It can land in the middle of a day whose road has been drawn, on the row it was
+   * dropped on or among the stops its start falls between. The vias of that day count
+   * stops, so every one behind the new stop would shape the leg before the one it was
+   * drawn on. They are moved the way a place added to the day moves them. Rejects when
+   * a write fails, so the list can say so and leave its undo out.
+   */
+  const handleMoveToDay = useCallback(async (assignmentId: number, fromDayId: number, toDayId: number, position?: number) => {
+    const place = (storedAssignments[String(fromDayId)] ?? []).find(a => a.id === assignmentId)?.place
+    const plan = viasAfterInsert(toDayId, position, place)
+    await tripActions.moveAssignment(tripId, assignmentId, fromDayId, toDayId, position)
+    if (plan) await roadtripVias.reanchor(toDayId, plan)
+  }, [tripId, tripActions, storedAssignments, roadtripVias, viasAfterInsert])
 
   const handleRemoveAssignment = useCallback(async (dayId: number, assignmentId: number) => {
     const state = useTripStore.getState()
@@ -2268,7 +2554,7 @@ export function useTripPlanner() {
         const capturedPos = capturedOrderIndex
         pushUndo(t('undo.removeAssignment'), async () => {
           await tripActions.assignPlaceToDay(tripId, capturedDayId, capturedPlaceId, capturedPos)
-        })
+        }, [capturedDayId])
       }
     }
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
@@ -2297,7 +2583,7 @@ export function useTripPlanner() {
           const capturedPrevIds = prevIds
           pushUndo(t('undo.reorder'), async () => {
             await tripActions.reorderAssignments(tripId, capturedDayId, capturedPrevIds)
-          })
+          }, [capturedDayId])
         })
         .catch(err => toast.error(err instanceof Error ? err.message : t('trip.toast.reorderError')))
       updateRouteForDay(dayId)
@@ -2316,16 +2602,39 @@ export function useTripPlanner() {
     tripActions.reorderDays(tripId, orderedIds)
       .then(() => {
         pushUndo(t('dayplan.reorderUndo'), async () => {
-          await tripActions.reorderDays(tripId, prevIds)
+          // A day deleted since then drops out of the old order. When the list no
+          // longer matches the days there are (one was added), the old order is
+          // not one the server could take, so the undo steps aside.
+          const live = new Set(useTripStore.getState().days.map(d => d.id))
+          const restorable = prevIds.filter(id => live.has(id))
+          if (restorable.length !== live.size) return
+          await tripActions.reorderDays(tripId, restorable)
         })
       })
       .catch(err => toast.error(err instanceof Error ? err.message : t('dayplan.reorderError')))
   }, [tripId, toast, pushUndo])
 
-  const handleAddDay = useCallback((position?: number) => {
-    tripActions.insertDay(tripId, position)
-      .catch(err => toast.error(err instanceof Error ? err.message : t('dayplan.addDayError')))
-  }, [tripId, toast])
+  const { handleAddDay, dayAdd } = useDayAdd({
+    tripId, trip, days, canEditDays: can('day_edit', trip), t, locale, toast,
+  })
+
+  // A deleted day can take a stay along, and the selected day's route may have
+  // lost its day or its stops. Its panel closes, and undo steps that would act
+  // on it are dropped rather than left to fail.
+  const afterDayDeleted = useCallback((dayId: number) => {
+    setShowDayDetail(open => (open?.id === dayId ? null : open))
+    forgetDay(dayId)
+    loadAccommodations()
+    updateRouteForDay(useTripStore.getState().selectedDayId)
+  }, [loadAccommodations, updateRouteForDay, forgetDay])
+  const dayDelete = useDayDelete({
+    tripId, trip, days, places: allPlaces, reservations, accommodations: tripAccommodations,
+    canEditDays: can('day_edit', trip), t, locale, toast, onDeleted: afterDayDeleted,
+  })
+
+  const dayClear = useDayClear({
+    tripId, days, canEditDays: can('day_edit', trip), t, locale, toast, roadtripVias, updateRouteForDay, pushUndo,
+  })
 
   const handleSaveReservation = async (data: Record<string, string | number | null> & { title: string }) => {
     try {
@@ -2409,6 +2718,34 @@ export function useTripPlanner() {
     }
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }
+
+  // ── The plan's booking detail ───────────────────────────────────────────────
+  // A click on a booking in the plan shows it first; the editor is one Edit away.
+  const bookingDetail = bookingDetailOpen == null ? null : reservations.find(r => r.id === bookingDetailOpen.id) ?? null
+  const openBookingDetail = (r: Reservation) => setBookingDetailOpen({ id: r.id, fromDayList: false })
+  const openBookingFromDayList = (r: Reservation) => setBookingDetailOpen({ id: r.id, fromDayList: true })
+  const closeBookingDetail = () => setBookingDetailOpen(null)
+  // Edit opens the editor the click used to open straight away, under the same right:
+  // day_edit for the transport editor, reservation_edit for the booking editor, and
+  // from a row of the day list day_edit on top, as that row asked for it. Without
+  // the right the detail has no Edit.
+  const editReservation = (r: Reservation) => { setEditingReservation(r); setShowReservationModal(true) }
+  const editorFor = (r: Reservation | null, fromDayList: boolean) => {
+    if (!r) return undefined
+    if (TRANSPORT_TYPES.has(r.type)) return can('day_edit', trip) ? openTransportEditor : undefined
+    if (fromDayList && !can('day_edit', trip)) return undefined
+    return can('reservation_edit', trip) ? editReservation : undefined
+  }
+  const bookingDetailEditor = editorFor(bookingDetail, !!bookingDetailOpen?.fromDayList)
+  // A transit journey is searched again under the right its journey view asked for,
+  // on the plan and on the Transports tab alike.
+  const bookingDetailChangeRoute = can('day_edit', trip) ? changeTransitRoute : undefined
+  // "On map", from the plan and from both booking tabs: the route switches on and its
+  // day opens, or the place is selected.
+  const showBookingOnMap = (r: Reservation) => showReservationOnMap(r, {
+    visibleConnections, toggleConnection, selectDay: id => handleSelectDay(id), selectPlace: setSelectedPlaceId, openPlan: () => handleTabChange('plan'),
+  })
+  const isBookingOnMap = (r: Reservation) => visibleConnections.includes(r.id)
 
   // ── Review-before-save booking import ───────────────────────────────────────
   // Match an existing trip place by name, else geocode the reviewed address and
@@ -2499,26 +2836,45 @@ export function useTripPlanner() {
   // Lives in the hook so the page stays a pure wiring container.
   const bgTasks = useBackgroundTasksStore((s) => s.tasks)
   const dismissBgTask = useBackgroundTasksStore((s) => s.dismiss)
+  const loadedTripId = trip?.id
   useEffect(() => {
     const task = bgTasks.find(
       (tk) => tk.tripId === String(tripId) && tk.status === 'done' && tk.reviewRequested && !tk.consumed,
     )
-    if (task && task.items && task.items.length > 0) {
+    if (task && task.kind === 'costs') {
+      // A scanned receipt is reviewed in the expense editor, pre-filled with what
+      // was read and with the photo waiting to be attached when it is saved. The
+      // photo goes up through the trip's file upload, so it is only put there for
+      // someone who may upload files: for anyone else it made the whole save fail,
+      // expense included, over an attachment they never picked. Whether they may
+      // is only known once this trip is loaded, so the review waits for it.
+      if (loadedTripId !== tripId) return
+      const receipt = task.receipt
+      const jobId = task.id
+      const inMemory = task.sourceFiles
+      dismissBgTask(jobId)
+      if (!receipt) return
+      void (async () => {
+        const files = inMemory && inMemory.length ? inMemory : await getImportFiles(jobId)
+        void deleteImportFiles(jobId)
+        setReceiptExpense(receiptToPrefill(receipt, canUploadFiles ? files : []))
+      })()
+    } else if (task && task.items && task.items.length > 0) {
       // Hand the items (and the source files, to attach to each booking) to the review flow
       // and clear the widget entry — once the user hit "review", the background card is done.
       const items = task.items
       const jobId = task.id
       const inMemory = task.sourceFiles
-      const kind = task.kind ?? 'bookings'
+      const kind = task.kind === 'transports' ? 'transports' : 'bookings'
       dismissBgTask(jobId)
       // Prefer the in-memory files (immediate path); after a reload they live in IndexedDB.
       void (async () => {
         const files = inMemory && inMemory.length ? inMemory : await getImportFiles(jobId)
-        deleteImportFiles(jobId)
+        void deleteImportFiles(jobId)
         startImportReview(items, files, kind)
       })()
     }
-  }, [bgTasks, tripId, startImportReview, dismissBgTask])
+  }, [bgTasks, tripId, startImportReview, dismissBgTask, canUploadFiles, loadedTripId])
 
   // Called when a reviewed item's modal closes (saved or skipped): open the next,
   // or finish the review session and refresh accommodations.
@@ -2541,8 +2897,11 @@ export function useTripPlanner() {
   }
 
   const selectedPlace = selectedPlaceId ? places.find(p => p.id === selectedPlaceId) : null
+  // The stops the inspector speaks for. A booked night at a day's edge stands on the
+  // hotel's place without being a stop of the day, so it is left out: counted, the hotel's
+  // own stop lost its stay and its day end to a second match.
   const selectedRoadtripStops = roadtripRoutes.days.flatMap(day => day.stops).filter(stop =>
-    !stop.automaticNight && (selectedAssignmentId ? stop.assignmentId === selectedAssignmentId : stop.placeId === selectedPlaceId),
+    !stop.automaticNight && !stop.bookend && (selectedAssignmentId ? stop.assignmentId === selectedAssignmentId : stop.placeId === selectedPlaceId),
   )
   const endDayStop = selectedRoadtripStops.length === 1 ? selectedRoadtripStops[0] : undefined
   const roadtripEndDay = roadtripActive && dailyTimesActive && can('day_edit', trip) && endDayStop && endDayStop.assignmentId > 0
@@ -2592,7 +2951,7 @@ export function useTripPlanner() {
   }, [isLoading, trip])
 
   return {
-    tripId, navigate, toast, t, language, settings, placesPhotosEnabled,
+    tripId, navigate, toast, t, language, locale, settings, placesPhotosEnabled,
     trip, days, places, assignments, storedAssignments, packingItems, todoItems, categories, reservations, budgetItems, files,
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
@@ -2605,9 +2964,10 @@ export function useTripPlanner() {
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrowPanels,
-    startResizeLeft, startResizeRight,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,
     showDayDetail, setShowDayDetail, dayDetailCollapsed, setDayDetailCollapsed,
+    stayPickerDayId, setStayPickerDayId,
     showPlaceForm, setShowPlaceForm, editingPlace, setEditingPlace,
     prefillCoords, setPrefillCoords, editingAssignmentId, setEditingAssignmentId,
     placeFormDayId, setPlaceFormDayId, reservationModalDayId, setReservationModalDayId,
@@ -2638,17 +2998,23 @@ export function useTripPlanner() {
     showTransportModal, setShowTransportModal, editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,
     transportModalAutomated, setTransportModalAutomated, transitPrefill, setTransitPrefill, transitJourney, setTransitJourney,
+    openTransportEditor, changeTransitRoute,
+    bookingDetail, openBookingDetail, openBookingFromDayList, closeBookingDetail, bookingDetailEditor, bookingDetailChangeRoute, showBookingOnMap, isBookingOnMap,
     reservationPrefill, transportPrefill, importReviewActive, startImportReview, advanceImportReview,
+    receiptExpense, clearReceiptExpense: () => setReceiptExpense(null),
+    mapLocked, toggleMapLocked,
     routeShown, setRouteShown, autoShowRoute, transitRoutesShown, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds, deletePlaceNote, deletePlacesNote,
-    visibleConnections, toggleConnection, allConnectionsShown, toggleAllConnections, mapTransportDetail, setMapTransportDetail,
+    visibleConnections, roadtripConnections, toggleConnection, allConnectionsShown, toggleAllConnections, mapTransportDetail, setMapTransportDetail,
     isMobile, isTouch,
     expandedDayIds, setExpandedDayIds, mapPlaces,
-    route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
+    route, routeWalking, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
     handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu, openAddPlaceFromPoi, handlePoiClick,
     handleSavePlace, openPlaceEditor, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces, confirmChangeCategory,
-    handleAssignToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, handleUpdateDayTitle,
+    handleAssignToDay, handleMoveToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, dayAdd, handleUpdateDayTitle,
+    ...dayDelete,
+    ...dayClear,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
     mapTileUrl, fontStyle, splashDone,

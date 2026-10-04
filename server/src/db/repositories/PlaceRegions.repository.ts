@@ -11,7 +11,7 @@ export interface PlaceRegionRow {
 
 interface PlaceRegionsKyselyDB {
   place_regions: { place_id: number; country_code: string; region_code: string; region_name: string };
-  places: { id: number; trip_id: number };
+  places: { id: number; trip_id: number; lat: number | null; lng: number | null; address: string | null };
   trips: { id: number; user_id: number; start_date: string | null; end_date: string | null };
   trip_members: { trip_id: number; user_id: number };
 }
@@ -44,23 +44,88 @@ export class PlaceRegionsRepository extends TrekRepository<PlaceRegions> {
   }
 
   /**
-   * AT4/AT29 (`resolvePlaceCountries`'s and `visitedRegions`'s background
-   * geocoding write — identical text, two call sites) — `INSERT OR REPLACE
-   * INTO place_regions (place_id, country_code, region_code, region_name)
-   * VALUES (?, ?, ?, ?)`. `place` is the table's own primary key
-   * (`PlaceRegions.entity.ts`'s `[PrimaryKeyProp]?: 'place'`) —
-   * `onConflictFields: ['place']`, and `onConflictAction: 'merge'` reproduces
-   * `OR REPLACE`'s "overwrite every non-key column" on the SAME row (a `place_id`
-   * this cache has already geocoded stays gone from `uncachedForGeocode`'s
-   * candidate list on the next call anyway, so in practice this fires once
-   * per place — `merge` matches the legacy statement's own semantics on a
-   * genuine re-run regardless).
+   * AT48 (`cacheRegionWhileUnmoved`, #2527: the background geocoding write
+   * of AT4/AT29's call sites, and the stale-cache repair's) — `INSERT OR
+   * REPLACE INTO place_regions (place_id, country_code, region_code,
+   * region_name) SELECT id, ?, ?, ? FROM
+   * places WHERE id = ? AND lat = ? AND lng = ? AND address IS ?`. The row only
+   * lands while the place still sits where its region was resolved from; a place
+   * moved or deleted in the meantime writes nothing. `OR REPLACE` on the
+   * `place_id` primary key is the `ON CONFLICT (place_id) DO UPDATE` below (no
+   * other unique column, no rowid reader). `address IS ?` is spelled as the
+   * NULL-safe pair of `IS NULL` / `= ?`. Returns whether a row was written.
    */
-  async upsertRegion(placeId: number, countryCode: string, regionCode: string, regionName: string): Promise<void> {
-    await this.upsert(
-      { place: placeId, country_code: countryCode, region_code: regionCode, region_name: regionName },
-      { onConflictFields: ['place'], onConflictAction: 'merge' },
-    );
+  async upsertRegionWhileUnmoved(
+    place: { id: number; lat: number | null; lng: number | null; address: string | null },
+    info: { country_code: string; region_code: string; region_name: string },
+  ): Promise<boolean> {
+    const result = await this.db()
+      .insertInto('place_regions')
+      .columns(['place_id', 'country_code', 'region_code', 'region_name'])
+      .expression((eb) =>
+        eb
+          .selectFrom('places')
+          .select((sb) => [
+            'places.id',
+            sb.val(info.country_code).as('country_code'),
+            sb.val(info.region_code).as('region_code'),
+            sb.val(info.region_name).as('region_name'),
+          ])
+          .where('places.id', '=', place.id)
+          .where('places.lat', '=', place.lat)
+          .where('places.lng', '=', place.lng)
+          .where((wb) => (place.address == null ? wb('places.address', 'is', null) : wb('places.address', '=', place.address))),
+      )
+      .onConflict((oc) =>
+        oc.column('place_id').doUpdateSet((ub) => ({
+          country_code: ub.ref('excluded.country_code'),
+          region_code: ub.ref('excluded.region_code'),
+          region_name: ub.ref('excluded.region_name'),
+        })),
+      )
+      .executeTakeFirst();
+    return (result.numInsertedOrUpdatedRows ?? 0n) > 0n;
+  }
+
+  /**
+   * AT49 (`repairStaleRegionCache`'s read, #2527) — `SELECT pr.place_id AS id, pr.country_code,
+   * pr.region_code, p.lat, p.lng, p.address FROM place_regions pr JOIN places p
+   * ON p.id = pr.place_id ORDER BY pr.place_id`.
+   */
+  async listWithPlaceLocation(): Promise<{ id: number; country_code: string; region_code: string; lat: number | null; lng: number | null; address: string | null }[]> {
+    return await this.db()
+      .selectFrom('place_regions as pr')
+      .innerJoin('places as p', 'p.id', 'pr.place_id')
+      .select(['pr.place_id as id', 'pr.country_code', 'pr.region_code', 'p.lat', 'p.lng', 'p.address'])
+      .orderBy('pr.place_id')
+      .execute();
+  }
+
+  /**
+   * AT50 (`dropRegionWhileUnmoved`, #2527) — `DELETE FROM place_regions WHERE place_id = ? AND
+   * country_code = ? AND region_code = ? AND EXISTS (SELECT 1 FROM places WHERE
+   * id = ? AND lat IS ? AND lng IS ? AND address IS ?)`. Only while the place
+   * still holds the location the row was read with. Returns whether a row went.
+   */
+  async deleteRegionWhileUnmoved(row: { id: number; country_code: string; region_code: string; lat: number | null; lng: number | null; address: string | null }): Promise<boolean> {
+    const result = await this.db()
+      .deleteFrom('place_regions')
+      .where('place_id', '=', row.id)
+      .where('country_code', '=', row.country_code)
+      .where('region_code', '=', row.region_code)
+      .where((eb) =>
+        eb.exists(
+          eb
+            .selectFrom('places')
+            .select('places.id')
+            .where('places.id', '=', row.id)
+            .where((wb) => (row.lat == null ? wb('places.lat', 'is', null) : wb('places.lat', '=', row.lat)))
+            .where((wb) => (row.lng == null ? wb('places.lng', 'is', null) : wb('places.lng', '=', row.lng)))
+            .where((wb) => (row.address == null ? wb('places.address', 'is', null) : wb('places.address', '=', row.address))),
+        ),
+      )
+      .executeTakeFirst();
+    return (result.numDeletedRows ?? 0n) > 0n;
   }
 
   /** AT23 (`hasVisibleRegionForCountry`) — `SELECT DISTINCT region_code FROM place_regions WHERE country_code = ? AND place_id IN (...)`. */

@@ -1,5 +1,5 @@
 /**
- * MAPS-AUTO-001..008 — the suggestion list behind the place search box.
+ * MAPS-AUTO-001..013: the suggestion list behind the place search box.
  *
  * This is the path the index was built for. Nominatim's usage policy names
  * autocomplete as unacceptable use in its own words, whatever the rate, and the
@@ -25,13 +25,13 @@ vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KE
 
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 
 // keyedProvider/resolveMapsKey (maps.service.ts) go through instance-api-keys.ts
-// on every call now — none of these cases configure a key, so the stubs just
-// answer "unset" the way the old `database.get(() => undefined)` fake already did.
-const noAppSettings = { getValue: async () => null } as unknown as AppSettingsRepository;
+// on every call now. No per-user key is configured anywhere here; the instance
+// rows a case needs come from make()'s `rows`, read through AppSettingsRepository.
 const noUsers = { getApiKeyColumn: async () => null } as unknown as UsersRepository;
 
 // The index switch is an environment variable now, not an admin row: it decides
@@ -80,17 +80,30 @@ const osmHit = (over: Record<string, unknown> = {}) => ({
 });
 
 /**
- * `enabled` drives the admin kill switch, which is read straight off
- * app_settings; an unset row reads as on, because the switch is fail-open.
+ * `enabled` drives the index switch, an environment variable; `rows` are the
+ * app_settings the instance holds, by key: a Google key, the provider choice,
+ * the Google-only switch. Anything else reads as absent.
  *
- * Keyed on the statement rather than answering everything the same way: the
- * same `get` also resolves the Google key, and a blanket answer would hand
- * `'false'` to the key resolver and send the fallback at Google for real.
+ * Keyed on the setting rather than answering everything the same way: the
+ * same `getValue` also resolves the Google key (`maps_api_key`), and a blanket
+ * answer would hand `'false'` to the key resolver and send the fallback at
+ * Google for real.
  */
-function make(enabled = true) {
+function make(enabled = true, rows: Record<string, string> = {}) {
   trekPlaces.on = enabled;
-  return new MapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never);
+  const appSettings = {
+    getValue: async (key: string) => (rows[key] !== undefined ? rows[key] : null),
+  } as unknown as AppSettingsRepository;
+  return new MapsService({} as PlacePhotoCacheService, appSettings, noUsers, {} as never, {} as never, noGoogleQuota);
 }
+
+/** Google's autocomplete envelope, which is not the shape its text search answers in. */
+const googleSuggestions = (name: string) => ({
+  ok: true,
+  json: async () => ({
+    suggestions: [{ placePrediction: { placeId: 'g1', structuredFormat: { mainText: { text: name }, secondaryText: { text: 'Chiyoda' } } } }],
+  }),
+});
 
 beforeEach(() => {
   mockSearch.mockReset();
@@ -234,5 +247,44 @@ describe('MapsService.autocompletePlaces', () => {
 
     expect(mockSearch).not.toHaveBeenCalled();
     expect(result.source).not.toBe('trek-places');
+  });
+
+  it('MAPS-AUTO-012: the Google-only switch sends the keystroke to Google and skips the index', async () => {
+    // The admin row promises every search AND every suggestion. The search half
+    // is pinned next door (MAPS-SEARCH-011); this is the other call site.
+    mockSearch.mockResolvedValue([hit()]);
+    const fetchMock = vi.fn().mockResolvedValue(googleSuggestions('Tokyo Station'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await make(true, { maps_api_key: 'key', places_google_only: 'true' }).autocompletePlaces(1, INPUT);
+
+    expect(mockSearch).not.toHaveBeenCalled();
+    expect(result.source).toBe('google');
+    expect(result.suggestions[0]).toMatchObject({ placeId: 'g1', mainText: 'Tokyo Station' });
+    expect(String(fetchMock.mock.calls[0][0])).toContain('places:autocomplete');
+    vi.unstubAllGlobals();
+  });
+
+  it('MAPS-AUTO-013: the switch changes nothing without a Google key, or when Google does not hold the slot', async () => {
+    mockSearch.mockResolvedValue([hit()]);
+
+    // No key at all: the index answers, as before.
+    const keyless = await make(true, { places_google_only: 'true' }).autocompletePlaces(1, INPUT);
+    expect(mockSearch).toHaveBeenCalledTimes(1);
+    expect(keyless.source).toBe('trek-places');
+
+    // A key, but the admin picked OpenStreetMap: Google holds no slot, so
+    // there is nothing for the switch to hand the keystroke to.
+    mockSearch.mockClear();
+    const osmOnly = await make(true, { maps_api_key: 'key', places_google_only: 'true', places_provider: 'openstreetmap' })
+      .autocompletePlaces(1, INPUT);
+    expect(mockSearch).toHaveBeenCalledTimes(1);
+    expect(osmOnly.source).toBe('trek-places');
+
+    // A key and the switch off: the index still answers first.
+    mockSearch.mockClear();
+    const off = await make(true, { maps_api_key: 'key', places_google_only: 'false' }).autocompletePlaces(1, INPUT);
+    expect(mockSearch).toHaveBeenCalledTimes(1);
+    expect(off.source).toBe('trek-places');
   });
 });

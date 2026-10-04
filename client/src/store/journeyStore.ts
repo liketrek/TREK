@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { journeyApi } from '../api/client'
+import type { ProviderPhotosAdded } from '../api/providerPhotoBatches'
 import { uploadFilesResilient, type ResilientResult, type UploadProgress } from '../utils/uploadQueue'
 import { captureVideoPoster, isVideoFile } from '../utils/videoPoster'
 
@@ -11,6 +12,8 @@ export interface Journey {
   cover_gradient?: string | null
   cover_image?: string | null
   status: 'draft' | 'active' | 'completed' | 'archived'
+  /** The state the owner set by hand (#762); null or absent follows the trip dates. */
+  status_override?: 'draft' | 'live' | 'completed' | null
   /**
    * Draw the GPX tracks of the journey's linked trips on its map (#2194).
    * Off unless the owner asks for it — see the migration for why the default
@@ -21,6 +24,8 @@ export interface Journey {
    * boolean would make `=== true` compile and never hold.
    */
   show_trip_tracks?: number
+  /** Entries without a place take the position of their first geotagged photo (#1003); 0/1, off by default. */
+  photo_location?: number
   /**
    * Which of the optional entry fields this journey uses (discussion #2299).
    *
@@ -63,6 +68,8 @@ export interface JourneyEntry {
   stats_excluded?: boolean
   /** A trip-derived suggestion the traveller waved away. Never sent by the server; the read paths drop it. */
   dismissed?: boolean
+  /** A draft (#696): contributors see it, the journey's public share page does not. */
+  is_draft?: boolean
   photos: JourneyPhoto[]
   created_at: number
   updated_at: number
@@ -108,6 +115,10 @@ export interface GalleryPhoto {
   // 'image' (default) or 'video' (#823)
   media_type?: string | null
   duration_ms?: number | null
+  /** Where and when it was taken, from EXIF or the provider (#1614); null when unknown. */
+  taken_at?: string | null
+  lat?: number | null
+  lng?: number | null
 }
 
 export interface JourneyTrip {
@@ -142,6 +153,13 @@ export interface JourneyDetail extends Journey {
   my_role?: 'owner' | 'editor' | 'viewer'
 }
 
+/** Assets picked from one provider, with what the add needs besides their ids. */
+interface ProviderAssets {
+  assetIds: string[]
+  passphrase?: string
+  mediaTypes?: string[]
+}
+
 interface JourneyState {
   journeys: Journey[]
   current: JourneyDetail | null
@@ -170,6 +188,16 @@ interface JourneyState {
 
   uploadPhotos: (entryId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<JourneyPhoto>>
   uploadGalleryPhotos: (journeyId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<GalleryPhoto>>
+  /**
+   * Photos from a connected provider (Immich, Synology Photos) onto one entry,
+   * or onto the gallery. They answer what was added and leave `current` alone:
+   * the caller reloads the journey, because where a new photo sorts depends on
+   * the capture time the server looks up after answering (#1587). A large add
+   * goes out in batches, and one that fails part way rejects with a
+   * ProviderPhotoBatchError that carries what the earlier batches stored.
+   */
+  addProviderPhotos: (entryId: number, provider: string, group: ProviderAssets) => Promise<ProviderPhotosAdded>
+  addProviderPhotosToGallery: (journeyId: number, provider: string, group: ProviderAssets) => Promise<ProviderPhotosAdded>
   unlinkPhoto: (entryId: number, journeyPhotoId: number) => Promise<void>
   deleteGalleryPhoto: (journeyId: number, journeyPhotoId: number) => Promise<void>
   deletePhoto: (photoId: number) => Promise<void>
@@ -375,6 +403,12 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       { onProgress: cbs?.onProgress },
     )
   },
+
+  addProviderPhotos: (entryId, provider, group) =>
+    journeyApi.addProviderPhotos(entryId, provider, group.assetIds, undefined, group.passphrase, group.mediaTypes),
+
+  addProviderPhotosToGallery: (journeyId, provider, group) =>
+    journeyApi.addProviderPhotosToGallery(journeyId, provider, group.assetIds, group.passphrase, group.mediaTypes),
 
   unlinkPhoto: async (entryId, journeyPhotoId) => {
     await journeyApi.unlinkPhoto(entryId, journeyPhotoId)

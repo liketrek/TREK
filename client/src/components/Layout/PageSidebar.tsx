@@ -49,15 +49,12 @@ export default function PageSidebar({
   }, [mobileOpen])
 
   return (
-    <div
-      className="rounded-2xl overflow-hidden flex flex-col lg:flex-row relative bg-surface-card border border-edge"
-      style={{
-        minHeight: 'min(820px, calc(100vh - var(--nav-h) - 120px))',
-      }}
-    >
+    // The planner's layout (#2541): a navigation card on the left, the panel's
+    // own cards on the page beside it, no frame around the two.
+    <div className="relative flex flex-col items-start gap-5 lg:flex-row">
       {/* Mobile top bar with hamburger */}
       <div
-        className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-edge"
+        className="lg:hidden flex w-full items-center justify-between rounded-[14px] border border-edge-faint bg-surface-secondary px-3 py-2"
       >
         <button type="button"
           onClick={() => setMobileOpen(true)}
@@ -74,11 +71,8 @@ export default function PageSidebar({
 
       {/* Desktop sidebar (always visible on lg) */}
       <aside
-        className="hidden lg:flex flex-col shrink-0 relative bg-surface-secondary border-r border-edge"
-        style={{
-          width: 260,
-          padding: '24px 14px',
-        }}
+        className="hidden lg:flex sticky flex-col shrink-0 self-start rounded-[18px] border border-edge-faint bg-surface-secondary p-2.5"
+        style={{ width: 248, top: 'calc(var(--nav-h, 56px) + 16px)', maxHeight: 'calc(100vh - var(--nav-h, 56px) - 32px)', overflowY: 'auto' }}
       >
         <SidebarInner
           sidebarLabel={sidebarLabel}
@@ -134,7 +128,7 @@ export default function PageSidebar({
       )}
 
       {/* Panel */}
-      <div className="flex-1 min-w-0" style={{ padding: '26px 28px' }}>
+      <div className="w-full min-w-0 flex-1">
         {children}
       </div>
     </div>
@@ -156,14 +150,13 @@ function SidebarInner({
 }): React.ReactElement {
   return (
     <>
-      {sidebarLabel && (
-        <div
-          className="text-[11px] font-bold tracking-widest uppercase mb-3 px-3 text-content-muted"
-        >
+      {/* Grouped tabs carry their own headings; a page label above the first would stack two. */}
+      {sidebarLabel && !tabs[0]?.group && (
+        <div className="mb-1.5 mt-1 px-2.5 font-geist font-bold uppercase tracking-[.08em] text-content-faint" style={{ fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))' }}>
           {sidebarLabel}
         </div>
       )}
-      <nav className="flex flex-col gap-1 flex-1">
+      <nav className="flex flex-col gap-0.5 flex-1">
         {(() => {
           let lastGroup: string | undefined
           return tabs.map((tab) => {
@@ -174,24 +167,19 @@ function SidebarInner({
             return (
               <React.Fragment key={tab.id}>
                 {showHeader && (
-                  <div className="text-[10px] font-bold tracking-widest uppercase text-content-faint px-3 mt-3 mb-0.5 first:mt-0">
+                  <div className="mt-3 mb-1 px-2.5 font-geist font-bold uppercase tracking-[.08em] text-content-faint first:mt-0" style={{ fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))' }}>
                     {tab.group}
                   </div>
                 )}
                 <button type="button"
                   onClick={() => onTabChange(tab.id)}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-colors ${active ? 'text-content font-semibold' : 'text-content-secondary font-medium'}`}
-                  style={{
-                    background: active ? 'var(--bg-hover)' : 'transparent',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.background = 'var(--bg-hover)'
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.background = 'transparent'
-                  }}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex items-center gap-2.5 rounded-[11px] px-2 py-1.5 text-left transition-colors ${active ? 'bg-surface-card font-semibold text-content shadow-sm ring-1 ring-edge-faint' : 'font-medium text-content-secondary hover:bg-surface-hover hover:text-content'}`}
+                  style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
                 >
-                  <Icon size={16} className="shrink-0" />
+                  <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-[8px] ${active ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-muted'}`}>
+                    <Icon size={14} strokeWidth={2} />
+                  </span>
                   <span className="truncate">{tab.label}</span>
                 </button>
               </React.Fragment>
@@ -201,7 +189,8 @@ function SidebarInner({
       </nav>
       {footer && (
         <div
-          className="mt-4 pt-3 px-3 text-[10px] tracking-wide text-content-faint border-t border-edge"
+          className="mt-3 border-t border-edge-faint px-2.5 pt-2.5 font-geist tabular-nums text-content-faint"
+          style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))' }}
         >
           {footer}
         </div>

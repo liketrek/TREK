@@ -337,7 +337,9 @@ export class JourneyDomainService {
       cover_gradient: string;
       cover_image: string;
       status: string;
+      status_override: string | null;
       show_trip_tracks: boolean | number;
+      photo_location: boolean | number;
       show_verdict: boolean | number;
       show_mood: boolean | number;
       show_weather: boolean | number;
@@ -348,6 +350,8 @@ export class JourneyDomainService {
     if (!(await this.isOwner(journeyId, userId))) return null;
 
     const ALLOWED_STATUSES = ['draft', 'active', 'completed', 'archived'];
+    // null hands the state back to the trip dates (#762).
+    const ALLOWED_OVERRIDES: (string | null)[] = [null, 'draft', 'live', 'completed'];
     // JG24 — R6's `presenceSet` conversion. The SERVICE resolves each field
     // to its final bound value (the `status` allow-list check, the
     // `show_*` boolean-to-0/1 coercion) before handing it to the repository;
@@ -359,7 +363,9 @@ export class JourneyDomainService {
       cover_gradient: string | null;
       cover_image: string | null;
       status: string;
+      status_override: string | null;
       show_trip_tracks: number;
+      photo_location: number;
       show_verdict: number;
       show_mood: number;
       show_weather: number;
@@ -369,7 +375,12 @@ export class JourneyDomainService {
       cover_gradient: [data.cover_gradient !== undefined, data.cover_gradient as string],
       cover_image: [data.cover_image !== undefined, data.cover_image as string],
       status: [data.status !== undefined && ALLOWED_STATUSES.includes(data.status as string), data.status as string],
+      status_override: [
+        data.status_override !== undefined && ALLOWED_OVERRIDES.includes(data.status_override as string | null),
+        data.status_override as string | null,
+      ],
       show_trip_tracks: [data.show_trip_tracks !== undefined, data.show_trip_tracks ? 1 : 0],
+      photo_location: [data.photo_location !== undefined, data.photo_location ? 1 : 0],
       show_verdict: [data.show_verdict !== undefined, data.show_verdict ? 1 : 0],
       show_mood: [data.show_mood !== undefined, data.show_mood ? 1 : 0],
       show_weather: [data.show_weather !== undefined, data.show_weather ? 1 : 0],
@@ -379,6 +390,37 @@ export class JourneyDomainService {
 
     await this.journeysRepo.updateFields(journeyId, { ...patch, updated_at: this.ts() });
     return ((await this.journeysRepo.findById(journeyId)) as Journey) ?? null;
+  }
+
+  /**
+   * Entries without a place that just received a geotagged photo, on journeys
+   * that asked for it (#1003): each takes the position of its first such photo.
+   * An entry that already has coordinates is never moved. Answers what changed,
+   * so the caller can name the places and tell the journeys.
+   */
+  async placeEntriesFromPhotos(trekPhotoIds: number[]): Promise<{ entryId: number; journeyId: number; lat: number; lng: number }[]> {
+    if (!trekPhotoIds.length) return [];
+    const rows = await this.entriesRepo.listPhotoPlacementCandidates(trekPhotoIds); // JG122
+    const placed: { entryId: number; journeyId: number; lat: number; lng: number }[] = [];
+    const seen = new Set<number>();
+    const now = this.ts();
+    for (const row of rows) {
+      if (seen.has(row.entryId)) continue;
+      seen.add(row.entryId);
+      const changes = await this.entriesRepo.placeIfUnplaced(row.entryId, {
+        location_lat: row.lat,
+        location_lng: row.lng,
+        country_code: this.countryFor(row.lat, row.lng),
+        updated_at: now,
+      }); // JG123
+      if (changes > 0) placed.push(row);
+    }
+    return placed;
+  }
+
+  /** The place name for an entry placed from a photo, only while it still has none. */
+  async nameEntryLocation(entryId: number, name: string): Promise<void> {
+    await this.entriesRepo.nameLocationIfUnnamed(entryId, name); // JG124
   }
 
   async updateJourneyPreferences(journeyId: number, userId: number, data: { hide_skeletons?: boolean }) {
@@ -1156,6 +1198,7 @@ export class JourneyDomainService {
       pros_cons?: { pros: string[]; cons: string[] };
       visibility?: string;
       sort_order?: number;
+      is_draft?: boolean;
     },
     sid?: string,
   ): Promise<JourneyEntryWire | null> {
@@ -1188,6 +1231,7 @@ export class JourneyDomainService {
       pros_cons: prosConsJson,
       visibility: data.visibility || 'private',
       sort_order: (maxOrder ?? -1) + 1,
+      is_draft: data.is_draft ? 1 : 0,
       created_at: now,
       updated_at: now,
     });
@@ -1217,6 +1261,7 @@ export class JourneyDomainService {
       sort_order: number;
       stats_excluded: boolean;
       dismissed: boolean;
+      is_draft: boolean;
     }>,
     sid?: string,
   ): Promise<JourneyEntryWire | null> {
@@ -1262,6 +1307,7 @@ export class JourneyDomainService {
       sort_order: number;
       stats_excluded: number;
       dismissed: number;
+      is_draft: number;
       country_code: string | null;
       updated_at: number;
     }>({
@@ -1286,6 +1332,7 @@ export class JourneyDomainService {
       sort_order: [data.sort_order !== undefined, data.sort_order as number],
       stats_excluded: [data.stats_excluded !== undefined, data.stats_excluded ? 1 : 0],
       dismissed: [data.dismissed !== undefined, data.dismissed ? 1 : 0],
+      is_draft: [data.is_draft !== undefined, data.is_draft ? 1 : 0],
       country_code: [
         data.location_lat !== undefined || data.location_lng !== undefined,
         this.countryFor(
@@ -1349,6 +1396,31 @@ export class JourneyDomainService {
     return true;
   }
 
+  /**
+   * The photos of one entry in a new order (#824), in one transaction. The list has
+   * to be exactly the entry's photos, each once, so a stale or foreign id cannot
+   * slip in. The order is kept on this entry's own links: a photo that also sits on
+   * another entry keeps its place there.
+   */
+  async reorderEntryPhotos(entryId: number, userId: number, orderedIds: number[], sid?: string): Promise<boolean> {
+    const entry = await this.entriesRepo.findById(entryId);
+    if (!entry || !(await this.canEdit(entry.journey_id, userId))) return false;
+    const held = await this.entryPhotosRepo.listPhotoIdsForEntry(entryId); // JG126
+    const asked = new Set(orderedIds);
+    if (asked.size !== orderedIds.length || held.length !== orderedIds.length || held.some(id => !asked.has(id))) return false;
+
+    const now = this.ts();
+    await this.uow.transactional(async () => {
+      for (const [index, id] of orderedIds.entries()) {
+        await this.entryPhotosRepo.updateEntryLinkSortOrder(entryId, id, index); // JG127
+      }
+      await this.entriesRepo.updateFields(entryId, { updated_at: now }); // JG78 reused: UPDATE journey_entries SET updated_at = ? WHERE id = ?
+    });
+    const updated = decodeEntryRow((await this.entriesRepo.findById(entryId)) as JourneyEntry);
+    await this.broadcastJourneyEvent(entry.journey_id, 'journey:entry:updated', { entry: updated }, sid);
+    return true;
+  }
+
   async deleteEntry(entryId: number, userId: number, sid?: string): Promise<boolean> {
     // JG84 — same text as JG76.
     const entry = await this.entriesRepo.findById(entryId);
@@ -1369,6 +1441,17 @@ export class JourneyDomainService {
   }
 
   // ── Photos ───────────────────────────────────────────────────────────────
+
+  /**
+   * The journey an entry belongs to, or null when there is no such entry.
+   *
+   * No access check: it answers for a caller that has already added photos to
+   * the entry, and only decides which journey hears about their capture times.
+   */
+  async journeyIdOfEntry(entryId: number): Promise<number | null> {
+    const row = await this.entriesRepo.findById(entryId);
+    return row?.journey_id ?? null;
+  }
 
   // Promote a skeleton suggestion to a concrete entry. Called whenever the user
   // adds content (photo upload, provider photo, gallery link) — a suggestion

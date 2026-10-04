@@ -8,7 +8,7 @@ export const reservationRepo = {
     return onlineThenCache(
       async () => {
         const result = await reservationsApi.list(tripId)
-        upsertReservations(result.reservations)
+        void upsertReservations(result.reservations)
         return result
       },
       async () => ({

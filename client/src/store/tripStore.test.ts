@@ -1,4 +1,4 @@
-// FE-TSTORE-001 to FE-TSTORE-021 (trip-scoped root store: load, hydrate, refresh, mutate)
+// FE-TSTORE-001 to FE-TSTORE-022 (trip-scoped root store: load, hydrate, refresh, mutate)
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
@@ -410,6 +410,29 @@ describe('tripStore', () => {
 
       await expect(useTripStore.getState().updateTrip(1, { title: 'New' })).rejects.toThrow('Not the owner');
       expect(useTripStore.getState().trip?.title).toBe('Old');
+    });
+
+    it('FE-TSTORE-022: new dates nudge the planner to reload its stays, a rename does not', async () => {
+      const refreshes = vi.fn();
+      window.addEventListener('accommodations:refresh', refreshes);
+      try {
+        seedStore(useTripStore, { trip: buildTrip({ id: 1, title: 'Week', start_date: '2025-06-01', end_date: '2025-06-07' }) });
+        let answer = buildTrip({ id: 1, title: 'Renamed', start_date: '2025-06-01', end_date: '2025-06-07' });
+        server.use(
+          http.put('/api/trips/1', () => HttpResponse.json({ trip: answer })),
+          http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
+        );
+
+        await useTripStore.getState().updateTrip(1, { title: 'Renamed' });
+        expect(refreshes).not.toHaveBeenCalled();
+
+        // A stay on a day the shorter range removed is gone on the server.
+        answer = buildTrip({ id: 1, title: 'Renamed', start_date: '2025-06-01', end_date: '2025-06-05' });
+        await useTripStore.getState().updateTrip(1, { end_date: '2025-06-05' });
+        expect(refreshes).toHaveBeenCalledTimes(1);
+      } finally {
+        window.removeEventListener('accommodations:refresh', refreshes);
+      }
     });
   });
 

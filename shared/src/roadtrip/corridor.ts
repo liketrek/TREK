@@ -1,3 +1,5 @@
+import type { RoadtripStop } from './planning-types';
+
 export interface LatLng {
   lat: number;
   lng: number;
@@ -22,6 +24,22 @@ export function haversineKm(a: LatLng, b: LatLng): number {
   const lat2 = toRad(b.lat);
   const h = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/**
+ * Beyond this straight-line distance a leg is not a drive anyone makes between two stops:
+ * it is a booking's terminal that landed next to a local stop or a hotel, and the road
+ * router answers such a pair with NoRoute (#2133).
+ *
+ * Only ever applied to a leg that touches a booking's terminal. Two real places 2000 km
+ * apart are a long drive somebody planned; an airport 2000 km from the stop before it
+ * never is. The day plan and the road trip both read it from here.
+ */
+export const MAX_DRIVE_KM = 2000;
+
+/** Whether two points are close enough to be joined by a road leg at all. */
+export function withinDriveRange(a: LatLng, b: LatLng): boolean {
+  return haversineKm(a, b) <= MAX_DRIVE_KM;
 }
 
 export function distanceToSegmentKm(p: LatLng, a: LatLng, b: LatLng): number {
@@ -57,22 +75,50 @@ export interface CorridorHit {
   alongKm: number;
 }
 
-export function projectOntoRoute(p: LatLng, line: LatLng[]): CorridorHit | null {
+/**
+ * Where `p` meets the line: how far off it is and how far into the drive the closest
+ * point comes.
+ *
+ * `within` keeps the answer to one stretch of the drive, in km from its start. A road
+ * driven twice in a day, out of a hotel and back past it later, is the same line twice
+ * over, and the answer for the whole line is always the first pass; a caller that needs
+ * the second one asks for the stretch it lies in. No part of that stretch on the line
+ * means no answer.
+ */
+export function projectOntoRoute(
+  p: LatLng,
+  line: LatLng[],
+  within?: { fromKm: number; toKm: number },
+): CorridorHit | null {
   if (line.length < 2) return null;
   let best = Number.POSITIVE_INFINITY;
   let bestAlong = 0;
   let travelled = 0;
+  let measured = false;
   for (let i = 0; i < line.length - 1; i++) {
     const a = line[i]!;
     const b = line[i + 1]!;
     const segment = haversineKm(a, b);
-    const { distanceKm: d, t } = projectOnSegment(p, a, b);
+    const start = travelled;
+    travelled += segment;
+    if (within && (travelled < within.fromKm || start > within.toKm)) continue;
+    measured = true;
+    let { distanceKm: d, t } = projectOnSegment(p, a, b);
+    if (within && segment > 0) {
+      // A segment the stretch starts or ends inside counts only up to that edge.
+      const lo = Math.max(0, (within.fromKm - start) / segment);
+      const hi = Math.min(1, (within.toKm - start) / segment);
+      if (t < lo || t > hi) {
+        t = t < lo ? lo : hi;
+        d = haversineKm(p, { lat: a.lat + t * (b.lat - a.lat), lng: a.lng + t * (b.lng - a.lng) });
+      }
+    }
     if (d < best) {
       best = d;
-      bestAlong = travelled + t * segment;
+      bestAlong = start + t * segment;
     }
-    travelled += segment;
   }
+  if (within && !measured) return null;
   return { offRouteKm: best, alongKm: bestAlong };
 }
 
@@ -223,4 +269,84 @@ export function boxAround(point: LatLng, radiusKm: number): Bbox {
     north: point.lat + dLat,
     east: point.lng + dLng,
   };
+}
+
+/** A stretch of the spine, in kilometres along it. */
+export interface KmRange {
+  fromKm: number;
+  toKm: number;
+}
+
+/** A ride among a day's stops: the departure terminal, at `index`, and the arrival it jumps to. */
+export interface RideGap {
+  index: number;
+  from: LatLng;
+  to: LatLng;
+}
+
+/**
+ * The rides on a day (#2428): each departure terminal followed by the arrival of the same
+ * booking. The line runs straight from the one to the other there, and the car is not on
+ * it, so a corridor search leaves the stretch out and drops what it finds under it.
+ */
+export function rideGaps(stops: readonly Pick<RoadtripStop, 'carrier' | 'lat' | 'lng'>[]): RideGap[] {
+  const out: RideGap[] = [];
+  stops.forEach((stop, i) => {
+    const next = stops[i + 1];
+    if (stop.carrier?.role === 'departure' && next?.carrier?.reservationId === stop.carrier.reservationId) {
+      out.push({ index: i, from: { lat: stop.lat, lng: stop.lng }, to: { lat: next.lat, lng: next.lng } });
+    }
+  });
+  return out;
+}
+
+/**
+ * The ridden stretches as kilometres along the spine, in order. A ride whose two ends
+ * land on the same point of the spine, or that has no spine to be measured against, is
+ * no stretch. A terminal well off the line still projects onto its nearest point, so a
+ * ride is never dropped for standing away from the road.
+ */
+export function riddenRanges(spine: LatLng[], gaps: readonly { from: LatLng; to: LatLng }[]): KmRange[] {
+  const out: KmRange[] = [];
+  for (const gap of gaps) {
+    const a = projectOntoRoute(gap.from, spine)?.alongKm;
+    const b = projectOntoRoute(gap.to, spine)?.alongKm;
+    if (a === undefined || b === undefined) continue;
+    const range = { fromKm: Math.min(a, b), toKm: Math.max(a, b) };
+    if (range.toKm > range.fromKm) out.push(range);
+  }
+  return out.sort((a, b) => a.fromKm - b.fromKm);
+}
+
+// The terminals themselves stand at the ends of a ride and stay on the road.
+const TERMINAL_SLACK_KM = 0.05;
+
+export function inRiddenRange(ridden: readonly KmRange[], alongKm: number): boolean {
+  return ridden.some((r) => alongKm > r.fromKm + TERMINAL_SLACK_KM && alongKm < r.toKm - TERMINAL_SLACK_KM);
+}
+
+/**
+ * The spine cut into the pieces the car drives: the window, or the whole line, with every
+ * ridden stretch left out. Only the pieces to tile are cut, never the spine itself: every
+ * alongKm is a distance along the spine, and cutting that would renumber every hit and
+ * every stop the moment a window moved.
+ */
+export function drivenPieces(spine: LatLng[], ridden: readonly KmRange[], window?: KmRange | null): LatLng[][] {
+  const start = window?.fromKm ?? 0;
+  const end = window?.toKm ?? Number.POSITIVE_INFINITY;
+  const slice = (fromKm: number, toKm: number): LatLng[] =>
+    sliceAtMeters(spine, fromKm * 1000, Number.isFinite(toKm) ? toKm * 1000 : Number.MAX_SAFE_INTEGER);
+  const pieces: LatLng[][] = [];
+  if (!ridden.length) {
+    pieces.push(window ? slice(start, end) : spine);
+  } else {
+    let cursor = start;
+    for (const range of ridden) {
+      if (range.fromKm >= end) break;
+      if (range.fromKm > cursor) pieces.push(slice(cursor, range.fromKm));
+      cursor = Math.max(cursor, range.toKm);
+    }
+    if (cursor < end) pieces.push(slice(cursor, end));
+  }
+  return pieces.filter((piece) => piece.length > 1);
 }

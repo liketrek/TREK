@@ -25,6 +25,8 @@ const collab: TranslationStrings = {
   'collab.links.delete': 'Xóa liên kết',
   'collab.links.edit': 'Chỉnh sửa liên kết',
   'collab.links.open': 'Mở liên kết',
+  'collab.links.confirmDeleteTitle': 'Xóa liên kết?',
+  'collab.links.confirmDeleteBody': 'Liên kết này sẽ bị xóa vĩnh viễn.',
   'collab.whatsNext.title': 'Tiếp theo là gì',
   'collab.whatsNext.today': 'Hôm nay',
   'collab.whatsNext.tomorrow': 'Ngày mai',

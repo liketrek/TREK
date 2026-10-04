@@ -51,7 +51,7 @@ const { db } = vi.hoisted(() => {
     UNIQUE(user_id, plan_id, date));`);
   tmp.exec(`CREATE TABLE vacay_company_holidays (id INTEGER PRIMARY KEY AUTOINCREMENT,
     plan_id INTEGER NOT NULL REFERENCES vacay_plans(id) ON DELETE CASCADE,
-    date TEXT NOT NULL, note TEXT DEFAULT '', UNIQUE(plan_id, date));`);
+    date TEXT NOT NULL, note TEXT DEFAULT '', fraction REAL NOT NULL DEFAULT 1, UNIQUE(plan_id, date));`);
   tmp.exec(`CREATE TABLE vacay_holiday_calendars (id INTEGER PRIMARY KEY AUTOINCREMENT,
     plan_id INTEGER NOT NULL REFERENCES vacay_plans(id) ON DELETE CASCADE,
     type TEXT NOT NULL DEFAULT 'public_holiday', region TEXT NOT NULL, label TEXT,

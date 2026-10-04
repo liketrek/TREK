@@ -21,6 +21,15 @@ import { roadtripViaUpdateRequestSchema, type RoadtripViaUpdateRequest } from '@
 const roadtripAddonOn = addonGate(ADDON_IDS.ROADTRIP);
 
 /**
+ * What a via on the drive into a booked night's hotel does, said on both tools that place
+ * one. The planner refuses the click there with a sentence (`roadtrip.bookend.noVia`); a
+ * tool stores what it is given, so the assistant has to hear before it reports a detour
+ * that the calculation will not take.
+ */
+const BOOKEND_VIA_NOTE =
+  'With roadtrip_hotel_bookends on, a via after the last stop of a day that ends at a booked night is kept but not used: the drive to the hotel keeps its own road, so calculate_roadtrip returns the same route. Add a stop there instead.';
+
+/**
  * Road-trip via points over MCP, the same surface the REST routes expose (#1797).
  *
  * Parity is the point: the permission checked here is `day_edit`, the same action string
@@ -60,7 +69,7 @@ export class RoadtripMcp {
 
   @Tool({
     name: 'add_route_via',
-    description: 'Make a day\'s drive pass through a point without stopping there — use it to send the route over a particular road or away from one. For somewhere the traveller actually stops, add a place and assign it to the day instead.',
+    description: `Make a day's drive pass through a point without stopping there: use it to send the route over a particular road or away from one. For somewhere the traveller actually stops, add a place and assign it to the day instead. ${BOOKEND_VIA_NOTE}`,
     inputSchema: {
       tripId: z.number().int().positive(),
       dayId: z.number().int().positive(),
@@ -87,18 +96,18 @@ export class RoadtripMcp {
 
   @Tool({
     name: 'add_route_vias',
-    description: 'Lay a whole chain of via points on one day at once, so the drive follows a particular road for a stretch rather than being nudged at a single point. Use this when the shape comes from a line — a recorded track, a signed scenic route — and add_route_via when it is one detour. Pass replace_legs to clear the vias on those legs first; leave it out to add to what is already there, which is what leaves hand-placed detours on other legs alone.',
+    description: `Lay a whole chain of via points on one day at once, so the drive follows a particular road for a stretch rather than being nudged at a single point. Use this when the shape comes from a line (a recorded track, a signed scenic route) and add_route_via when it is one detour. Pass replace_legs to clear the vias on those legs first; leave it out to add to what is already there, which is what leaves hand-placed detours on other legs alone. ${BOOKEND_VIA_NOTE}`,
     inputSchema: {
       tripId: z.number().int().positive(),
       dayId: z.number().int().positive(),
-      vias: z.array(z.object({
+      vias: z.array(z.strictObject({
         after_order_index: z.number().int().min(0).describe('Which stop of the day this via follows, counting from 0'),
         lat: z.number().min(-90).max(90),
         lng: z.number().min(-180).max(180),
       })).max(100).describe('In the order the drive passes through them'),
       replace_legs: z.array(z.number().int().min(0)).max(100).optional()
         .describe('Legs to clear before inserting, by the index of the stop they follow'),
-      track: z.object({
+      track: z.strictObject({
         place_id: z.number().int().positive().describe('The imported track this chain was fitted to, as its place id'),
         stray_km: z.number().min(0).max(40_000).nullable().optional()
           .describe('How far the fitted route still runs from the track at its worst point'),
@@ -142,7 +151,7 @@ export class RoadtripMcp {
     inputSchema: {
       tripId: z.number().int().positive(),
       dayId: z.number().int().positive(),
-      vias: z.array(z.object({
+      vias: z.array(z.strictObject({
         id: z.number().int().positive(),
         after_order_index: z.number().int().min(0).describe('Which stop of the day the via now follows, counting from 0'),
       })).max(500),

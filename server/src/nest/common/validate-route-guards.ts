@@ -103,6 +103,7 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'ConfigController.getConfig',
   // OAuth/OIDC discovery documents + the JSON 404 catchalls that keep
   // /.well-known probes from ever seeing SPA HTML.
+  'DiscoveryController.authorizationServerForMcp',
   'DiscoveryController.openidConfiguration',
   'DiscoveryController.protectedResource',
   'DiscoveryController.wellKnownFallback',
@@ -124,11 +125,18 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'HelpController.asset',
   'HelpController.index',
   'HelpController.page',
+  'HelpController.search',
   // Share-token validated.
   'JourneyPublicController.get',
   'JourneyPublicController.legacyPhoto',
   'JourneyPublicController.photo',
   // The MCP transport — bearer tokens are verified inside the handler.
+  // The same documents under the resource URL, for clients that append the
+  // well-known path to the server address they were handed.
+  'McpResourceDiscoveryController.authorizationServer',
+  'McpResourceDiscoveryController.fallback',
+  'McpResourceDiscoveryController.openidConfiguration',
+  'McpResourceDiscoveryController.protectedResource',
   'McpTransportController.delete',
   'McpTransportController.get',
   'McpTransportController.post',

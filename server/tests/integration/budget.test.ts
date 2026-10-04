@@ -370,6 +370,9 @@ describe('Budget summary and settlement', () => {
     expect(res.status).toBe(200);
     expect(res.body.balances).toEqual([]);
     expect(res.body.flows).toEqual([]);
+    // Additive since the VND/AUD report: what the amounts are in, and what was left out.
+    expect(res.body.currency).toBe('EUR');
+    expect(res.body.unconverted).toEqual({ item_ids: [], settlement_ids: [], currencies: [] });
   });
 });
 

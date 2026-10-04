@@ -264,6 +264,46 @@ describe('Tool: unassign_place', () => {
 // reorder_day_assignments
 // ---------------------------------------------------------------------------
 
+describe('Tool: clear_day_assignments (#2470)', () => {
+  it('removes every place from the day and broadcasts each removal', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const a1 = createDayAssignment(testDb, day.id, place.id);
+    const a2 = createDayAssignment(testDb, day.id, place.id);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({ name: 'clear_day_assignments', arguments: { tripId: trip.id, dayId: day.id } })) as any;
+      expect(data.success).toBe(true);
+      expect([...data.removedIds].sort()).toEqual([a1.id, a2.id].sort());
+      expect(testDb.prepare('SELECT COUNT(*) AS n FROM day_assignments WHERE day_id = ?').get(day.id)).toEqual({ n: 0 });
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'assignment:deleted', expect.objectContaining({ assignmentId: a1.id, dayId: day.id }));
+    });
+  });
+
+  it('returns an error for a day on another trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const foreignDay = createDay(testDb, otherTrip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'clear_day_assignments', arguments: { tripId: trip.id, dayId: foreignDay.id } });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('returns access denied for non-member', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+    const day = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'clear_day_assignments', arguments: { tripId: trip.id, dayId: day.id } });
+      expect(result.isError).toBe(true);
+    });
+  });
+});
+
 describe('Tool: reorder_day_assignments', () => {
   it('reorders assignments by updating order_index', async () => {
     const { user } = createUser(testDb);

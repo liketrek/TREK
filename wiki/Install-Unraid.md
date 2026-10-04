@@ -45,7 +45,9 @@ The Unraid template exposes the following fields in the container UI:
 
 ### Advanced Variables
 
-Additional variables (`PORT`, `NODE_ENV`, `LOG_LEVEL`, `TREK_WIKI_DIR`, `DEFAULT_LANGUAGE`, `FORCE_HTTPS`, `HSTS_INCLUDE_SUBDOMAINS`, `TRUST_PROXY`, `COOKIE_SECURE`, `ALLOW_INTERNAL_NETWORK`, `SESSION_DURATION`, `SESSION_DURATION_REMEMBER`, all OIDC variables, `MCP_RATE_LIMIT`, `MCP_MAX_SESSION_PER_USER`, `DEMO_MODE`, `UNSPLASH_ACCESS_KEY`) are available under **Advanced View** in the template editor.
+Additional variables (`PORT`, `NODE_ENV`, `LOG_LEVEL`, `TREK_WIKI_DIR`, `DEFAULT_LANGUAGE`, `FORCE_HTTPS`, `HSTS_INCLUDE_SUBDOMAINS`, `TRUST_PROXY`, `COOKIE_SECURE`, `ALLOW_INTERNAL_NETWORK`, `SESSION_DURATION`, `SESSION_DURATION_REMEMBER`, the OIDC variables apart from `OIDC_USERNAME_CLAIM`, `MCP_RATE_LIMIT`, `MCP_MAX_SESSION_PER_USER`, `DEMO_MODE`, `UNSPLASH_ACCESS_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`) are available under **Advanced View** in the template editor.
+
+Any other variable from [Environment-Variables](Environment-Variables), such as `OIDC_USERNAME_CLAIM`, `FILE_UPLOAD_LIMIT_MB`, `PLACES_API_KEY` or `HTTP_PROXY`, is added as a new variable in the template editor, with its name as the key.
 
 ## Setting the Encryption Key
 

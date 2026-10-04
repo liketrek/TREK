@@ -7,6 +7,7 @@ import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 import { randomBytes, createHash } from 'crypto';
 import type { Request, Response } from 'express';
+import { WEB_PUSH_CHANNEL_ID } from '@trek/shared';
 import { readEnv } from '../../app-config';
 import { JWT_SECRET, SESSION_DURATION_SECONDS, SESSION_DURATION_REMEMBER_SECONDS } from '../../config';
 import { UnitOfWork } from '../database/unit-of-work';
@@ -30,6 +31,8 @@ import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entit
 import type { WebauthnCredentialsRepository } from '../../db/repositories/WebauthnCredentials.repository';
 import { PasswordResetTokens } from '../../db/entities/PasswordResetTokens.entity';
 import type { PasswordResetTokensRepository } from '../../db/repositories/PasswordResetTokens.repository';
+import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
+import type { PushSubscriptionsRepository } from '../../db/repositories/PushSubscriptions.repository';
 // Type-and-guard only: the app-config read reports the provider choice, it does
 // not construct one, so this does not pull the maps domain into auth.
 import { isPlacesProviderChoice } from '../maps/providers/places-provider';
@@ -181,6 +184,7 @@ export class AuthService {
     @InjectRepository(OauthTokens) private readonly oauthTokens: OauthTokensRepository,
     @InjectRepository(WebauthnCredentials) private readonly webauthnCredentials: WebauthnCredentialsRepository,
     @InjectRepository(PasswordResetTokens) private readonly passwordResetTokens: PasswordResetTokensRepository,
+    @InjectRepository(PushSubscriptions) private readonly pushSubscriptions: PushSubscriptionsRepository,
   ) {}
 
   // Cookie
@@ -344,6 +348,7 @@ export class AuthService {
     const notifChannelsRaw = settings.get('notification_channels') || notifChannel;
     const activeChannels = notifChannelsRaw === 'none' ? [] : notifChannelsRaw.split(',').map((c: string) => c.trim()).filter(Boolean);
     const hasWebhookEnabled = activeChannels.includes('webhook');
+    const hasPushEnabled = activeChannels.includes(WEB_PUSH_CHANNEL_ID);
     const tripRemindersEnabled = tripReminderSetting !== 'false';
     const placesPhotosEnabled = settings.get('places_photos_enabled') !== 'false';
     const placesAutocompleteEnabled = settings.get('places_autocomplete_enabled') !== 'false';
@@ -386,6 +391,8 @@ export class AuthService {
       // server's acceptance can never drift (the historical inline copy here
       // dropped pkpass, pkpasses, md and markdown).
       allowed_file_types: await this.allowedFileTypes.get(),
+      // FILE_UPLOAD_LIMIT_MB, so the pickers refuse a file before the upload starts (#1364).
+      max_upload_mb: readEnv().files.uploadLimitMb,
       // Whether the configuration belongs to whoever operates this install
       // rather than to its admin. The client uses it to stop offering settings
       // the server would refuse anyway — it is an honesty flag for the UI, never
@@ -397,7 +404,7 @@ export class AuthService {
       timezone: readEnv().app.tz || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       notification_channel: notifChannel,
       notification_channels: activeChannels,
-      available_channels: { email: hasSmtpHost, webhook: hasWebhookEnabled, inapp: true },
+      available_channels: { email: hasSmtpHost, webhook: hasWebhookEnabled, push: hasPushEnabled, inapp: true },
       trip_reminders_enabled: tripRemindersEnabled,
       places_photos_enabled: placesPhotosEnabled,
       places_autocomplete_enabled: placesAutocompleteEnabled,
@@ -656,6 +663,11 @@ export class AuthService {
       try {
         await this.oauthTokens.revokeAllForUser(userId);
       } catch { /* oauth_tokens table may not exist in very old installs */ }
+      // Push devices keep receiving notifications without any session, so they
+      // go too. The device the change was made on registers again right away:
+      // the client reloads the user after the change, and that re-syncs its
+      // subscription. Other devices do so after their next sign-in.
+      await this.pushSubscriptions.deleteAllForUser(userId);
     });
 
     try { revokeUserSessions?.(userId); } catch { /* best-effort */ }
@@ -1083,6 +1095,9 @@ export class AuthService {
       try {
         await this.oauthTokens.revokeAllForUser(user.id);
       } catch { /* oauth_tokens table may not exist in very old installs */ }
+      // Push devices are a delivery channel that outlives every session, so an
+      // intruder's browser would keep reading this account's notifications.
+      await this.pushSubscriptions.deleteAllForUser(user.id);
     });
 
     // Kick off any MCP/WS session cleanup — same hook the account-delete path uses.

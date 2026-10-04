@@ -39,6 +39,10 @@ const dashboard: TranslationStrings = {
   'dashboard.copySuffix': '사본',
   'dashboard.restore': '복원',
   'dashboard.archived': '보관됨',
+  'dashboard.search.placeholder': '여행 또는 장소 검색',
+  'dashboard.search.label': '제목, 날짜, 장소로 모든 여행 검색',
+  'dashboard.search.clear': '검색 지우기',
+  'dashboard.search.empty': '“{query}”와(과) 일치하는 여행이 없습니다',
   'dashboard.status.ongoing': '진행 중',
   'dashboard.status.today': '오늘',
   'dashboard.status.tomorrow': '내일',
@@ -110,7 +114,24 @@ const dashboard: TranslationStrings = {
     '일별 계획은 새 날짜로 이동하고, 예약과 숙박은 여행 기간에 포함되어 있는 한 원래 날짜에 그대로 유지됩니다.',
   'dashboard.dateShiftAll': '모두 이동',
   'dashboard.dateShiftAllDesc': '예약과 숙박을 포함한 전체 일정이 새 날짜로 이동합니다.',
-  'dashboard.dateShiftHint': '팁: 일정의 일부만 이동하려면 플래너의 "날짜 추가" 기능을 사용하세요.',
+  'dashboard.dateShiftHint':
+    '팁: 일정의 일부만 옮기려면 플래너에서 "날짜 순서 변경"을 열고, 날짜가 표시된 버튼으로 여행 종료 다음 날을 추가한 뒤 그 날을 빈칸이 생겨야 할 위치로 옮기세요.',
+  'dashboard.shrinkTitle': '날짜를 삭제할까요?',
+  'dashboard.shrinkIntro': '새 날짜를 저장하면 다음 날짜가 삭제됩니다:',
+  'dashboard.shrinkMoreDays': '외 {count}일',
+  'dashboard.shrinkLastDays': '처음이 아니라 마지막 날짜가 삭제됩니다',
+  'dashboard.shrinkLastDaysHint':
+    '각 날짜의 계획은 새 날짜와 함께 이동하므로, 시작일이 바뀌어도 항상 계획의 마지막 날짜가 삭제됩니다.',
+  'dashboard.shrinkBookingsHint': '예약에 남습니다. 날짜가 아직 여행 기간에 포함된 예약은 해당 날짜로 돌아갑니다.',
+  'dashboard.shrinkBookingsShiftHint': '날짜 없이 예약에 남습니다.',
+  'dashboard.shrinkStayHint': '삭제되는 날짜에 체크인 또는 체크아웃하므로 숙박 전체가 삭제됩니다.',
+  'dashboard.shrinkStayBookedHint':
+    '삭제되는 날짜에 체크인 또는 체크아웃하므로 숙박 전체가 삭제됩니다. 예약 “{booking}”과 해당 지출은 예약에 남습니다.',
+  'dashboard.shrinkStayBookingHint':
+    '삭제되는 날짜에 체크인 또는 체크아웃하므로 숙박 전체가 삭제됩니다. 예약 “{booking}”은 예약에 남습니다.',
+  'dashboard.shrinkConfirm': '날짜 삭제 후 저장',
+  'dashboard.shrinkUnknown':
+    '이 여행의 날짜를 확인할 수 없습니다. 새 날짜의 일수가 더 적으면 저장 시 마지막 날짜와 그날 계획된 모든 항목이 삭제됩니다.',
   'dashboard.greeting.morning': '좋은 아침이에요,',
   'dashboard.greeting.afternoon': '안녕하세요,',
   'dashboard.greeting.evening': '좋은 저녁이에요,',

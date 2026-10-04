@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useId, useMemo, useState, useRef, type SyntheticEvent } from 'react'
 import { localIsoDate } from '../../utils/localDate'
-import { X, Plus, Image, Minus, Check, MapPin, Locate, Camera } from 'lucide-react'
+import { Briefcase, X, Plus, Image, Minus, Check, MapPin, Locate, Camera, Play, Loader2, NotebookPen } from 'lucide-react'
 import { normalizeImageFiles } from '../../utils/convertHeic'
 import { isVideoFile } from '../../utils/videoPoster'
 import { type ResilientResult, type UploadProgress } from '../../utils/uploadQueue'
@@ -11,15 +11,117 @@ import { getCurrentPositionOnce } from '../../hooks/useGeolocation'
 import { getApiErrorMessage } from '../../types'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip } from '../../store/journeyStore'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
-import { photoUrl, isValidGeoPoint, geoOnceErrorKey } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
+import { photoUrl, posterlessVideo, isValidGeoPoint, geoOnceErrorKey } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import MarkdownToolbar from './MarkdownToolbar'
 import { DatePicker } from './JourneyDetailPageDatePicker'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import { ProviderPicker, type ProviderPhotoGroup } from './JourneyDetailPageProviderPicker'
 import { journeyWeatherCategory } from '../../mobile/screens/journey/mobileJourneyMeta'
+import ConfirmDialog from '../shared/ConfirmDialog'
+import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
+import { AddRowButton, EditorField, INPUT } from '../shared/dialogParts'
+import { Tooltip } from '../shared/Tooltip'
+import { useJourneyTripSuggestion } from './useJourneyTripSuggestion'
+import { useEntryPhotoOrder } from './useEntryPhotoOrder'
+import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
 
 type PendingProviderGroup = ProviderPhotoGroup & { provider: string }
+
+/** A chip of the mood and weather rows, as in the collection dialogs' category row. */
+const CHIP = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-semibold transition-colors'
+const CHIP_OFF = 'border-edge-faint bg-surface-card text-content-muted hover:text-content'
+/** The buttons that bring photos in: dashed while shut, framed solid while their panel is open. */
+const SOURCE = 'flex items-center justify-center gap-1.5 rounded-[12px] border py-4 font-medium disabled:cursor-default disabled:opacity-50'
+const SOURCE_OFF = 'border-dashed border-edge text-content-muted hover:border-content-faint hover:bg-surface-secondary hover:text-content'
+const SOURCE_ON = 'border-content bg-surface-secondary text-content'
+/** The panel a photo source opens under the buttons: the gallery grid, the provider browser. */
+const PHOTO_PANEL = 'mt-2 rounded-[12px] border border-edge-faint bg-surface-secondary'
+/** A control laid over a photo tile, raised on the card colour so it reads on any picture. */
+const ON_PHOTO = 'bg-surface-card text-content shadow-sm'
+const PHOTO_REMOVE = `absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full opacity-0 transition-opacity group-hover:opacity-100 ${ON_PHOTO}`
+/** What hangs under the location field: the search results, or the note that a search is running. */
+const DROPDOWN = 'absolute left-0 right-0 top-full z-[100] mt-1 rounded-[12px] border border-edge-faint bg-surface-card shadow-dropdown'
+
+const VERDICT_TONES = {
+  pros: { Icon: Check, text: 'text-success', soft: 'bg-success-soft', dot: 'bg-success' },
+  cons: { Icon: Minus, text: 'text-danger', soft: 'bg-danger-soft', dot: 'bg-danger' },
+} as const
+
+// A photo whose thumbnail is missing can still be drawn from its original. A
+// clip's original is the video file, which no <img> can show, so a clip gets
+// no fallback (#2341).
+function thumbnailFallback(p: { photo_id: number; media_type?: string | null }) {
+  if (p.media_type === 'video') return undefined
+  return (e: SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget
+    if (!img.src.includes('/original')) img.src = photoUrl(p, 'original')
+  }
+}
+
+// No poster to show and falling back to /original would hand an <img> the clip
+// itself, so this tile stays a play badge.
+function ClipTile() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-surface-tertiary text-content-muted">
+      <Play size={18} className="ml-0.5" fill="currentColor" />
+    </div>
+  )
+}
+
+/**
+ * One side of the verdict: a row per item and the button that adds one at the
+ * end. Enter in a row opens the next one below it (see `addVerdictRow`).
+ */
+function VerdictColumn({ list, label, placeholder, removeLabel, addLabel, items, rowRef, onChange, onAddRow, onRemove }: {
+  list: 'pros' | 'cons'
+  label: string
+  placeholder: string
+  removeLabel: string
+  addLabel: string
+  items: string[]
+  rowRef: (key: string) => (el: HTMLInputElement | null) => void
+  onChange: (index: number, value: string) => void
+  onAddRow: (index: number) => void
+  onRemove: (index: number) => void
+}) {
+  const tone = VERDICT_TONES[list]
+  return (
+    <div className="min-w-0">
+      <div className="mb-2 flex items-center gap-[7px]">
+        <span className={`grid h-4 w-4 place-items-center rounded-full ${tone.soft}`}>
+          <tone.Icon size={9} strokeWidth={3.5} className={tone.text} />
+        </span>
+        <span className={`font-semibold ${tone.text}`} style={fs(12, 'body')}>{label}</span>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        {items.map((value, i) => (
+          <div key={i} className="flex h-9 items-center gap-2 rounded-[10px] border border-edge bg-surface-input px-3">
+            <span className={`h-[5px] w-[5px] flex-none rounded-full ${tone.dot}`} />
+            <input
+              ref={rowRef(`${list}-${i}`)}
+              value={value}
+              onChange={e => onChange(i, e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAddRow(i) } }}
+              placeholder={placeholder}
+              className="min-w-0 flex-1 border-none bg-transparent text-content outline-none placeholder:text-content-faint dark:bg-transparent"
+              style={fs(13, 'body')}
+            />
+            {items.length > 1 && (
+              <Tooltip label={removeLabel}>
+                <button type="button" onClick={() => onRemove(i)} aria-label={removeLabel}
+                  className="flex-none rounded-[6px] p-1 text-content-faint hover:text-danger">
+                  <X size={13} strokeWidth={2.5} />
+                </button>
+              </Tooltip>
+            )}
+          </div>
+        ))}
+        <AddRowButton onClick={() => onAddRow(items.length - 1)}>{addLabel}</AddRowButton>
+      </div>
+    </div>
+  )
+}
 
 export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips, userId = 0, showVerdict = true, showMood = true, showWeather = true, onClose, onSave, onUploadPhotos, onAddProviderPhotos, onDone }: {
   entry: JourneyEntry
@@ -45,6 +147,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   onDone: () => void
 }) {
   const { t, language } = useTranslation()
+  const placeLang = usePlaceLanguage()
   const toast = useToast()
   const [title, setTitle] = useState(entry.title || '')
   const [story, setStory] = useState(entry.story || '')
@@ -62,11 +165,17 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   const [mood, setMood] = useState(entry.mood || '')
   const [weather, setWeather] = useState(entry.weather || '')
   const [statsExcluded, setStatsExcluded] = useState(entry.stats_excluded ?? false)
+  // The trip this day belongs to, when the journey does not follow it yet (#2265).
+  const tripSuggestion = useJourneyTripSuggestion(journeyId, trips.map(tr => tr.trip_id), entryDate, true)
+  const [isDraft, setIsDraft] = useState(entry.is_draft ?? false)
   const [pros, setPros] = useState<string[]>(entry.pros_cons?.pros?.length ? entry.pros_cons.pros : [''])
   const [cons, setCons] = useState<string[]>(entry.pros_cons?.cons?.length ? entry.pros_cons.cons : [''])
   const [saving, setSaving] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
   const [photos, setPhotos] = useState<(JourneyPhoto | GalleryPhoto)[]>(entry.photos || [])
+  // Drag a photo onto another's place, or send it to the front (#824).
+  const photoOrder = useEntryPhotoOrder(entry.id, photos, setPhotos)
+  const canReorder = entry.id > 0 && photos.length > 1
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   // Minting the preview URL inline in the JSX would hand out a fresh blob on
   // every keystroke in the story field and never give one back.
@@ -89,6 +198,8 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
   // and the caret has to follow it, or the key does half a job.
   const verdictFocusRef = useRef<string | null>(null)
   const persistedEntryIdRef = useRef<number | null>(entry.id > 0 ? entry.id : null)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const labelId = useId()
 
   // Track which fields differ from the entry we started editing so we can
   // warn before discarding on close/cancel.
@@ -105,6 +216,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
     mood !== (entry.mood || '') ||
     weather !== (entry.weather || '') ||
     statsExcluded !== (entry.stats_excluded ?? false) ||
+    isDraft !== (entry.is_draft ?? false) ||
     pros.filter(p => p.trim()).join('\n') !== originalPros ||
     cons.filter(c => c.trim()).join('\n') !== originalCons ||
     pendingFiles.length > 0 ||
@@ -120,7 +232,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
     // The discovery is not tied to the open tab, so the result is applied even if
     // the user left the tab meanwhile — dropping it would leave providersLoading
     // stuck and block every later run of this effect.
-    ;(async () => {
+    ;void (async () => {
       try {
         const addonsData = await addonsApi.enabled()
         const enabled = (addonsData.addons || []).filter((a: any) => a.type === 'photo_provider' && a.enabled)
@@ -208,8 +320,13 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
     }
   }
 
+  // Every way out (Cancel, the close button, Escape, the dimmed backdrop) comes
+  // through here, so none of them drops an edit without asking first.
   const handleClose = () => {
-    if (isDirty && !window.confirm(t('journey.editor.discardChangesConfirm'))) return
+    if (isDirty) {
+      setConfirmDiscard(true)
+      return
+    }
     onClose()
   }
 
@@ -225,6 +342,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
         location_lat: locationLat,
         location_lng: locationLng,
         stats_excluded: offersStatsToggle ? statsExcluded : undefined,
+        is_draft: isDraft,
         mood: mood || null,
         weather: weather || null,
         pros_cons: { pros: pros.filter(p => p.trim()), cons: cons.filter(c => c.trim()) },
@@ -314,7 +432,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
       setLocationResults([])
       setShowLocationResults(false)
       try {
-        const data = await mapsApi.reverse(pos.lat, pos.lng, language)
+        const data = await mapsApi.reverse(pos.lat, pos.lng, placeLang)
         const name = data.name || data.address
         // Only replace the coordinate fallback — don't clobber a search
         // result the user may have picked while the reverse call was in flight.
@@ -327,405 +445,363 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
     }
   }
 
+  const header = (
+    <DialogHeader
+      tile={<DialogTile><NotebookPen size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+      tint={NEUTRAL_TINT}
+      labelId={labelId}
+      onClose={handleClose}
+      eyebrow={entry.id === 0 ? t('journey.detail.newEntry') : t('journey.detail.editEntry')}
+      titleInput={{
+        value: title,
+        onChange: setTitle,
+        label: t('journey.editor.titlePlaceholder'),
+        placeholder: t('journey.editor.titlePlaceholder'),
+      }}
+    />
+  )
+
+  const footer = (
+    <DialogFooter>
+      <FooterSpacer />
+      <DialogButton onClick={handleClose}>{t('common.cancel')}</DialogButton>
+      <DialogButton variant="primary" onClick={() => void handleSave()} disabled={saving}>
+        {saving ? t('common.saving') : t('common.save')}
+      </DialogButton>
+    </DialogFooter>
+  )
+
   return (
-    <div className="fixed inset-0 z-[9999]" style={{ background: 'rgba(9,9,11,0.6)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
-      {/* The modal itself is constrained to the feed column on desktop so it
-          centers there — but the backdrop stays full-width (covering the map
-          too) for a uniform dim/blur across the whole page. */}
-      <div
-        className="absolute inset-0 flex items-end sm:items-center sm:justify-center sm:p-5"
-      >
-        <div className="bg-white dark:bg-zinc-900 rounded-t-[24px] sm:rounded-[24px] shadow-[0_20px_40px_rgba(0,0,0,0.2)] sm:max-w-[1040px] w-full flex flex-col overflow-hidden h-full sm:h-auto sm:max-h-[90vh]" style={{ paddingBottom: 'var(--bottom-nav-h)' }}>
-
-
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
-          <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{entry.id === 0 ? t('journey.detail.newEntry') : t('journey.detail.editEntry')}</h2>
-          <button type="button" onClick={handleClose} className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-stretch">
-          <div className="flex flex-col gap-4 min-w-0">
-          <input
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            placeholder={t('journey.editor.titlePlaceholder')}
-            className="w-full text-[20px] font-medium bg-transparent border-0 border-b border-transparent focus:border-zinc-300 dark:focus:border-zinc-600 outline-none text-zinc-900 dark:text-white placeholder:text-zinc-400 pb-2"
-          />
-
-          <div>
-            <input ref={fileRef} type="file" accept="image/*,video/*" multiple onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} className="hidden" />
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} className="hidden" />
-            <div className="flex gap-2">
-              <button type="button"
-                onClick={() => { setPhotoTab('upload'); setShowGalleryPick(false); fileRef.current?.click() }}
-                disabled={saving}
-                className="flex-1 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl py-4 text-[12px] text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center gap-1.5 disabled:opacity-50"
-              >
-                {uploadProgress ? (
-                  <><div className="w-3.5 h-3.5 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" /> {t('journey.editor.uploadingProgress', { done: String(uploadProgress.done), total: String(uploadProgress.total) })}</>
-                ) : (
-                  <><Plus size={13} /> {t('journey.editor.uploadPhotos')}</>
-                )}
-              </button>
-              {galleryPhotos.length > 0 && (
+    <>
+      {/* Pinned at the top: the photo panels, the verdict rows and the photo
+          strip all change the body's height while an entry is being written. */}
+      <DialogShell onClose={handleClose} labelledBy={labelId} width="wide" align="top" blocked={confirmDiscard} header={header} footer={footer}>
+        <div className="grid grid-cols-1 items-stretch gap-x-6 gap-y-5 md:grid-cols-2">
+          <div className="flex min-w-0 flex-col gap-5">
+            <div>
+              <input ref={fileRef} type="file" accept="image/*,video/*" multiple onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} className="hidden" />
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} className="hidden" />
+              <div className="flex gap-2" style={fs(12, 'body')}>
                 <button type="button"
-                  onClick={() => { setPhotoTab('gallery'); setShowGalleryPick(!showGalleryPick) }}
-                  className={`flex-1 border rounded-xl py-4 text-[12px] text-zinc-500 flex items-center justify-center gap-1.5 ${
-                    showGalleryPick
-                      ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
-                      : 'border-dashed border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                  }`}
+                  onClick={() => { setPhotoTab('upload'); setShowGalleryPick(false); fileRef.current?.click() }}
+                  disabled={saving}
+                  className={`${SOURCE} ${SOURCE_OFF} flex-1`}
                 >
-                  <Image size={13} /> {t('journey.editor.fromGallery')}
+                  {uploadProgress ? (
+                    <><Loader2 size={13} className="animate-spin" /> {t('journey.editor.uploadingProgress', { done: String(uploadProgress.done), total: String(uploadProgress.total) })}</>
+                  ) : (
+                    <><Plus size={13} /> {t('journey.editor.uploadPhotos')}</>
+                  )}
                 </button>
-              )}
-              {/* Only where a camera is plausibly attached to the thing you are typing
-                  on. On a desktop it was a second button to the same file dialog with a
-                  different icon (discussion #2299) — the phone shell has its own sheet,
-                  and this modal is what a tablet gets. */}
-              <button type="button"
-                onClick={() => { setPhotoTab('upload'); setShowGalleryPick(false); cameraRef.current?.click() }}
-                disabled={saving}
-                aria-label={t('journey.photo.add')}
-                title={t('journey.photo.add')}
-                className="md:hidden border border-dashed border-zinc-200 dark:border-zinc-700 rounded-xl px-4 text-[12px] text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-center disabled:opacity-50"
-              >
-                <Camera size={14} />
-              </button>
-              <button type="button"
-                onClick={() => { setPhotoTab('external'); setShowGalleryPick(false) }}
-                disabled={saving}
-                className={`flex-1 border rounded-lg py-4 text-[12px] text-zinc-500 flex items-center justify-center gap-1.5 ${
-                  photoTab === 'external'
-                    ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
-                    : 'border-dashed border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                }`}
-              >
-                <Image size={13} /> {t('journey.editor.externalPhotos') || 'External photos'}
-              </button>
-            </div>
-
-            {/* Gallery picker — directly below buttons. Safari collapses
-                `aspect-square` items inside an overflow-scroll grid, so
-                the square is enforced with a padding-top spacer + an
-                absolutely positioned image (works across all browsers). */}
-            {showGalleryPick && (
-              <div className="mt-2 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 bg-zinc-50 dark:bg-zinc-800/50">
-                <div className="grid grid-cols-5 sm:grid-cols-6 gap-1.5 max-h-[160px] overflow-y-auto">
-                  {availableGalleryPhotos.map(gp => (
-                    <button
-                      type="button"
-                      key={gp.id}
-                      aria-label={t('journey.editor.fromGallery')}
-                      onClick={async () => {
-                        if (entry.id > 0) {
-                          try {
-                            const linked = await journeyApi.linkPhoto(entry.id, gp.id)
-                            if (linked) setPhotos(prev => [...prev, linked])
-                          } catch {}
-                        } else {
-                          setPendingLinkIds(prev => [...prev, gp.id])
-                          setPhotos(prev => [...prev, gp])
-                        }
-                      }}
-                      className="relative block w-full rounded-xl overflow-hidden border-0 p-0 bg-transparent cursor-pointer hover:ring-2 hover:ring-zinc-900 dark:hover:ring-white hover:ring-offset-1 dark:hover:ring-offset-zinc-900 transition-all"
-                      style={{ paddingTop: '100%' }}
-                    >
-                      <img src={photoUrl(gp)} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { const img = e.currentTarget; const orig = photoUrl(gp, 'original'); if (!img.src.includes('/original')) img.src = orig }} />
-                    </button>
-                  ))}
-                  {availableGalleryPhotos.length === 0 && (
-                    <div className="col-span-full text-center py-3 text-[11px] text-zinc-400">{t('journey.editor.allPhotosAdded')}</div>
-                  )}
-                </div>
+                {galleryPhotos.length > 0 && (
+                  <button type="button"
+                    onClick={() => { setPhotoTab('gallery'); setShowGalleryPick(!showGalleryPick) }}
+                    aria-pressed={showGalleryPick}
+                    className={`${SOURCE} flex-1 ${showGalleryPick ? SOURCE_ON : SOURCE_OFF}`}
+                  >
+                    <Image size={13} /> {t('journey.editor.fromGallery')}
+                  </button>
+                )}
+                {/* Only where a camera is plausibly attached to the thing you are typing
+                    on. On a desktop it was a second button to the same file dialog with a
+                    different icon (discussion #2299); the phone shell has its own sheet,
+                    and this dialog is what a tablet gets. */}
+                <Tooltip label={t('journey.photo.add')}>
+                  <button type="button"
+                    onClick={() => { setPhotoTab('upload'); setShowGalleryPick(false); cameraRef.current?.click() }}
+                    disabled={saving}
+                    aria-label={t('journey.photo.add')}
+                    className={`${SOURCE} ${SOURCE_OFF} px-4 md:hidden`}
+                  >
+                    <Camera size={14} />
+                  </button>
+                </Tooltip>
+                <button type="button"
+                  onClick={() => { setPhotoTab('external'); setShowGalleryPick(false) }}
+                  disabled={saving}
+                  aria-pressed={photoTab === 'external'}
+                  className={`${SOURCE} flex-1 ${photoTab === 'external' ? SOURCE_ON : SOURCE_OFF}`}
+                >
+                  <Image size={13} /> {t('journey.editor.externalPhotos') || 'External photos'}
+                </button>
               </div>
-            )}
-            {photoTab === 'external' && (
-              <div className="mt-2 flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden bg-zinc-50 dark:bg-zinc-800/50" style={{ height: 'min(56vh, 520px)' }}>
-                <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-700 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 truncate">
-                      {t('journey.editor.externalPhotosFor', { date: new Date(entryDate + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) })}
-                    </p>
-                    <p className="text-[10px] text-zinc-400 truncate">
-                      {contextLocation?.name
-                        ? `${t('journey.editor.externalPhotosNearby') || 'Nearby photos first'} · ${contextLocation.name}`
-                        : (t('journey.editor.externalPhotosNoLocation') || 'All photos from this day')}
-                    </p>
-                  </div>
-                  {pendingProviderGroups.length > 0 && (
-                    <button type="button" onClick={() => setPendingProviderGroups([])} className="text-[10px] text-zinc-500 hover:text-zinc-900 dark:hover:text-white whitespace-nowrap">
-                      {pendingProviderGroups.reduce((sum, group) => sum + group.assetIds.length, 0)} {t('journey.editor.externalPhotosQueued') || 'queued'} · {t('common.clear') || 'Clear'}
-                    </button>
-                  )}
-                </div>
-                {providersLoading ? (
-                  <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-700 rounded-full animate-spin" /></div>
-                ) : availableProviders.length === 0 ? (
-                  <div className="text-center py-10 px-4 text-[12px] text-zinc-500">{t('journey.editor.externalPhotosUnavailable') || 'No connected photo providers are available.'}</div>
-                ) : (
-                  <div className="h-full min-h-0 flex flex-col">
-                    <div className="flex gap-1 px-3 py-2 border-b border-zinc-200 dark:border-zinc-700 overflow-x-auto">
-                      {availableProviders.map(provider => (
-                        <button type="button"
-                          key={provider.id}
-                          data-testid={`journey-external-provider-${provider.id}`}
-                          onClick={() => setExternalProvider(provider.id)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap ${externalProvider === provider.id ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700'}`}
-                        >
-                          {provider.name}
-                        </button>
-                      ))}
-                    </div>
-                    {activeExternalProvider && (
-                      <div className="flex-1 min-h-0">
-                        <ProviderPicker
-                          key={`${activeExternalProvider}-${entryDate}`}
-                          provider={activeExternalProvider}
-                          userId={userId}
-                          entries={[entry]}
-                          trips={trips}
-                          existingAssetIds={providerExistingAssetIds}
-                          initialDate={entryDate}
-                          contextLocation={contextLocation}
-                          initialEntryId={entry.id || null}
-                          embedded
-                          onClose={() => setExternalProvider(null)}
-                          onAdd={async groups => {
-                            setPendingProviderGroups(previous => {
-                              const next = [...previous]
-                              for (const group of groups) {
-                                const existing = next.find(item => item.provider === activeExternalProvider && item.passphrase === group.passphrase)
-                                if (existing) {
-                                  const seen = new Set(existing.assetIds)
-                                  group.assetIds.forEach((assetId, index) => {
-                                    if (seen.has(assetId)) return
-                                    seen.add(assetId)
-                                    existing.assetIds.push(assetId)
-                                    existing.mediaTypes?.push(group.mediaTypes?.[index] || 'image')
-                                  })
-                                } else {
-                                  next.push({ ...group, provider: activeExternalProvider })
-                                }
-                              }
-                              return next
-                            })
-                            setExternalProvider(null)
-                          }}
-                        />
-                      </div>
+
+              {/* The gallery picker, directly below the buttons. Safari collapses
+                  `aspect-square` items inside an overflow-scroll grid, so the square
+                  is enforced with a padding-top spacer and an absolutely positioned
+                  image (works across all browsers). */}
+              {showGalleryPick && (
+                <div className={`${PHOTO_PANEL} p-3`}>
+                  <div className="grid max-h-[160px] grid-cols-5 gap-1.5 overflow-y-auto sm:grid-cols-6">
+                    {availableGalleryPhotos.map(gp => (
+                      <button
+                        type="button"
+                        key={gp.id}
+                        aria-label={t('journey.editor.fromGallery')}
+                        onClick={async () => {
+                          if (entry.id > 0) {
+                            try {
+                              const linked = await journeyApi.linkPhoto(entry.id, gp.id)
+                              if (linked) setPhotos(prev => [...prev, linked])
+                            } catch {}
+                          } else {
+                            setPendingLinkIds(prev => [...prev, gp.id])
+                            setPhotos(prev => [...prev, gp])
+                          }
+                        }}
+                        className="relative block w-full cursor-pointer overflow-hidden rounded-[10px] border-0 bg-transparent p-0 transition-shadow hover:ring-2 hover:ring-accent"
+                        style={{ paddingTop: '100%' }}
+                      >
+                        {posterlessVideo(gp) ? (
+                          <ClipTile />
+                        ) : (
+                          <img src={photoUrl(gp)} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" onError={thumbnailFallback(gp)} />
+                        )}
+                      </button>
+                    ))}
+                    {availableGalleryPhotos.length === 0 && (
+                      <div className="col-span-full py-3 text-center text-content-faint" style={fs(11)}>{t('journey.editor.allPhotosAdded')}</div>
                     )}
                   </div>
-                )}
-              </div>
-            )}
-            {(photos.length > 0 || pendingFiles.length > 0) && (
-              <div className="mt-3">
-                <div className="flex flex-wrap gap-2">
+                </div>
+              )}
+              {photoTab === 'external' && (
+                <div className={`${PHOTO_PANEL} flex flex-col overflow-hidden`} style={{ height: 'min(56vh, 520px)' }}>
+                  <div className="flex items-center justify-between gap-2 border-b border-edge-faint px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-content" style={fs(11.5)}>
+                        {t('journey.editor.externalPhotosFor', { date: new Date(entryDate + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) })}
+                      </p>
+                      <p className="truncate text-content-faint" style={fs(10.5)}>
+                        {contextLocation?.name
+                          ? `${t('journey.editor.externalPhotosNearby') || 'Nearby photos first'}: ${contextLocation.name}`
+                          : (t('journey.editor.externalPhotosNoLocation') || 'All photos from this day')}
+                      </p>
+                    </div>
+                    {pendingProviderGroups.length > 0 && (
+                      <button type="button" onClick={() => setPendingProviderGroups([])} className="inline-flex items-center gap-1.5 whitespace-nowrap text-content-muted hover:text-content" style={fs(10.5)}>
+                        <span>{pendingProviderGroups.reduce((sum, group) => sum + group.assetIds.length, 0)} {t('journey.editor.externalPhotosQueued') || 'queued'}</span>{' '}
+                        <span className="font-semibold text-content">{t('common.clear') || 'Clear'}</span>
+                      </button>
+                    )}
+                  </div>
+                  {providersLoading ? (
+                    <div className="flex justify-center py-8"><Loader2 size={20} className="animate-spin text-content-faint" /></div>
+                  ) : availableProviders.length === 0 ? (
+                    <div className="px-4 py-10 text-center text-content-muted" style={fs(12, 'body')}>{t('journey.editor.externalPhotosUnavailable') || 'No connected photo providers are available.'}</div>
+                  ) : (
+                    <div className="flex h-full min-h-0 flex-col">
+                      <div className="flex gap-1 overflow-x-auto border-b border-edge-faint px-3 py-2" style={fs(11.5)}>
+                        {availableProviders.map(provider => (
+                          <button type="button"
+                            key={provider.id}
+                            data-testid={`journey-external-provider-${provider.id}`}
+                            onClick={() => setExternalProvider(provider.id)}
+                            aria-pressed={externalProvider === provider.id}
+                            className={`whitespace-nowrap rounded-[8px] px-2.5 py-1 font-medium ${externalProvider === provider.id ? 'bg-accent text-accent-text' : 'text-content-muted hover:bg-surface-hover hover:text-content'}`}
+                          >
+                            {provider.name}
+                          </button>
+                        ))}
+                      </div>
+                      {activeExternalProvider && (
+                        <div className="min-h-0 flex-1">
+                          <ProviderPicker
+                            key={`${activeExternalProvider}-${entryDate}`}
+                            provider={activeExternalProvider}
+                            userId={userId}
+                            entries={[entry]}
+                            trips={trips}
+                            existingAssetIds={providerExistingAssetIds}
+                            initialDate={entryDate}
+                            contextLocation={contextLocation}
+                            initialEntryId={entry.id || null}
+                            embedded
+                            onClose={() => setExternalProvider(null)}
+                            onAdd={async groups => {
+                              setPendingProviderGroups(previous => {
+                                const next = [...previous]
+                                for (const group of groups) {
+                                  const existing = next.find(item => item.provider === activeExternalProvider && item.passphrase === group.passphrase)
+                                  if (existing) {
+                                    const seen = new Set(existing.assetIds)
+                                    group.assetIds.forEach((assetId, index) => {
+                                      if (seen.has(assetId)) return
+                                      seen.add(assetId)
+                                      existing.assetIds.push(assetId)
+                                      existing.mediaTypes?.push(group.mediaTypes?.[index] || 'image')
+                                    })
+                                  } else {
+                                    next.push({ ...group, provider: activeExternalProvider })
+                                  }
+                                }
+                                return next
+                              })
+                              setExternalProvider(null)
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              {(photos.length > 0 || pendingFiles.length > 0) && (
+                <div className="mt-3 flex flex-wrap gap-2">
                   {photos.map((p, idx) => (
-                    <div key={p.id} className={`w-20 h-20 rounded-xl overflow-hidden relative group ${idx === 0 && photos.length > 1 ? 'ring-2 ring-zinc-900 dark:ring-white ring-offset-1 dark:ring-offset-zinc-900' : ''}`}>
-                      <img src={photoUrl(p)} className="w-full h-full object-cover" alt="" onError={e => { const img = e.currentTarget; const orig = photoUrl(p, 'original'); if (!img.src.includes('/original')) img.src = orig }} />
+                    <div key={p.id}
+                      {...(canReorder ? photoOrder.dragProps(idx) : {})}
+                      className={`group relative h-20 w-20 overflow-hidden rounded-[12px] ${canReorder ? 'cursor-grab active:cursor-grabbing' : ''} ${idx === 0 && photos.length > 1 ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface-card' : ''} ${photoOrder.overIndex === idx && photoOrder.dragIndex !== idx ? 'outline outline-2 outline-offset-2 outline-[color:var(--accent)]' : ''}`}
+                      style={photoOrder.dragIndex === idx ? { opacity: 0.4 } : undefined}>
+                      {posterlessVideo(p) ? (
+                        <ClipTile />
+                      ) : (
+                        <img src={photoUrl(p)} className="h-full w-full object-cover" alt="" onError={thumbnailFallback(p)} />
+                      )}
                       {idx === 0 && photos.length > 1 && (
-                        <span className="absolute bottom-0.5 left-0.5 px-1 py-px rounded text-[8px] font-bold bg-zinc-900/70 text-white">{t('journey.editor.photoFirst')}</span>
+                        <span className={`absolute bottom-0.5 left-0.5 rounded px-1 py-px font-bold ${ON_PHOTO}`} style={fs(8)}>{t('journey.editor.photoFirst')}</span>
                       )}
                       {idx > 0 && photos.length > 1 && (
                         <button type="button"
-                          onClick={e => {
-                            e.stopPropagation()
-                            const prevOrder = photos
-                            const next = [...photos]
-                            const [moved] = next.splice(idx, 1)
-                            next.unshift(moved)
-                            setPhotos(next)
-                            // The order is shared: other members, the share view and the
-                            // PDF all read it, so a rejected write has to go back. Every
-                            // write is awaited first — snapping back on the first
-                            // rejection would do it while the rest are still landing.
-                            void (async () => {
-                              const results = await Promise.allSettled(next.map((ph, i) => journeyApi.updatePhoto(ph.id, { sort_order: i })))
-                              const rejected = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[]
-                              if (rejected.length === 0) return
-                              toast.error(getApiErrorMessage(rejected[0].reason, t('common.error')))
-                              // Only a run where nothing landed can be put back: with a
-                              // partial one the server already holds part of the new
-                              // order, and hiding that would be the worse lie.
-                              if (rejected.length === results.length) setPhotos(prevOrder)
-                            })()
-                          }}
-                          className="absolute bottom-0.5 left-0.5 px-1.5 py-0.5 rounded bg-black/60 text-white text-[8px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={e => { e.stopPropagation(); photoOrder.makeFirst(idx) }}
+                          className={`absolute bottom-0.5 left-0.5 rounded px-1.5 py-0.5 font-semibold opacity-0 transition-opacity group-hover:opacity-100 ${ON_PHOTO}`}
+                          style={fs(8)}
                         >
                           {t('journey.editor.makeFirst')}
                         </button>
                       )}
-                      <button type="button"
-                        onClick={async (e) => {
-                          e.stopPropagation()
-                          setPhotos(prev => prev.filter(x => x.id !== p.id))
-                          if (entry.id > 0) {
-                            // unlink from entry; gallery row is preserved
-                            try { await journeyApi.unlinkPhoto(entry.id, p.id) } catch {}
-                          } else {
-                            setPendingLinkIds(prev => prev.filter(id => id !== p.id))
-                          }
-                        }}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={10} />
-                      </button>
+                      <Tooltip label={t('common.delete')}>
+                        <button type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            setPhotos(prev => prev.filter(x => x.id !== p.id))
+                            if (entry.id > 0) {
+                              // unlink from entry; gallery row is preserved
+                              try { await journeyApi.unlinkPhoto(entry.id, p.id) } catch {}
+                            } else {
+                              setPendingLinkIds(prev => prev.filter(id => id !== p.id))
+                            }
+                          }}
+                          aria-label={t('common.delete')}
+                          className={PHOTO_REMOVE}
+                        >
+                          <X size={10} />
+                        </button>
+                      </Tooltip>
                     </div>
                   ))}
                   {pendingFiles.map((f, i) => (
-                    <div key={`pending-${i}`} className="w-20 h-20 rounded-xl overflow-hidden relative group">
+                    <div key={`pending-${i}`} className="group relative h-20 w-20 overflow-hidden rounded-[12px]">
                       {/* A clip in an <img> is a broken-image glyph (issue #2341). The
                           same object URL in a <video> shows its first frame, which is
                           the preview the poster frame will become after saving. */}
                       {isVideoFile(f) ? (
-                        <video src={pendingUrls[i]} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                        <video src={pendingUrls[i]} className="h-full w-full object-cover" muted playsInline preload="metadata" />
                       ) : (
-                        <img src={pendingUrls[i]} className="w-full h-full object-cover" alt="" />
+                        <img src={pendingUrls[i]} className="h-full w-full object-cover" alt="" />
                       )}
-                      <button type="button"
-                        onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={10} />
-                      </button>
+                      <Tooltip label={t('common.delete')}>
+                        <button type="button"
+                          onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
+                          aria-label={t('common.delete')}
+                          className={PHOTO_REMOVE}
+                        >
+                          <X size={10} />
+                        </button>
+                      </Tooltip>
                     </div>
                   ))}
                 </div>
-              </div>
+              )}
+            </div>
+
+            <div className="flex min-h-[220px] flex-1 flex-col overflow-hidden rounded-[10px] border border-edge bg-surface-input focus-within:ring-2 focus-within:ring-[color:var(--text-primary)]">
+              <MarkdownToolbar textareaRef={storyRef} onUpdate={setStory} />
+              <textarea
+                ref={storyRef}
+                value={story}
+                onChange={e => setStory(e.target.value)}
+                placeholder={t('journey.editor.writeStory')}
+                rows={6}
+                className="w-full flex-1 resize-none border-0 bg-transparent px-3 py-2.5 text-content outline-none placeholder:text-content-faint dark:bg-transparent"
+                style={{ ...fs(14, 'body'), minHeight: 144 }}
+              />
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-5">
+            {/* Pros & Cons: gone entirely when the journey does not keep a verdict */}
+            {showVerdict && (
+              <DialogSection label={t('journey.editor.prosCons')}>
+                <div className="grid grid-cols-2 gap-3 rounded-[14px] border border-edge-faint bg-surface-secondary p-3">
+                  <VerdictColumn
+                    list="pros"
+                    label={t('journey.editor.pros')}
+                    placeholder={t('journey.editor.proPlaceholder')}
+                    removeLabel={t('common.delete')}
+                    addLabel={t('journey.editor.addAnother')}
+                    items={pros}
+                    rowRef={verdictRowRef}
+                    onChange={(i, value) => { const next = [...pros]; next[i] = value; setPros(next) }}
+                    onAddRow={i => addVerdictRow('pros', i)}
+                    onRemove={i => setPros(pros.filter((_, j) => j !== i))}
+                  />
+                  <VerdictColumn
+                    list="cons"
+                    label={t('journey.editor.cons')}
+                    placeholder={t('journey.editor.conPlaceholder')}
+                    removeLabel={t('common.delete')}
+                    addLabel={t('journey.editor.addAnother')}
+                    items={cons}
+                    rowRef={verdictRowRef}
+                    onChange={(i, value) => { const next = [...cons]; next[i] = value; setCons(next) }}
+                    onAddRow={i => addVerdictRow('cons', i)}
+                    onRemove={i => setCons(cons.filter((_, j) => j !== i))}
+                  />
+                </div>
+              </DialogSection>
             )}
-          </div>
 
-          <div className="flex-1 flex flex-col min-h-[220px] border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden focus-within:border-zinc-400 dark:focus-within:border-zinc-500">
-            <MarkdownToolbar textareaRef={storyRef} onUpdate={setStory} />
-            <textarea
-              ref={storyRef}
-              value={story}
-              onChange={e => setStory(e.target.value)}
-              placeholder={t('journey.editor.writeStory')}
-              rows={6}
-              style={{ minHeight: '144px' }}
-              className="w-full flex-1 px-3 py-2.5 text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none resize-none border-0"
-            />
-          </div>
-
-          </div>
-
-          <div className="flex flex-col gap-4 min-w-0">
-          {/* Pros & Cons — gone entirely when the journey does not keep a verdict */}
-          {showVerdict && (
-          <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-5">
-            <div className="mb-4">
-              <span className="text-[11px] font-semibold tracking-[0.12em] uppercase text-zinc-500">{t('journey.editor.prosCons')}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Pros */}
-              <div>
-                <div className="flex items-center gap-[7px] mb-2.5">
-                  <div className="w-4 h-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <Check size={9} className="text-green-700 dark:text-green-400" strokeWidth={3.5} />
-                  </div>
-                  <span className="text-[12px] font-semibold text-green-700 dark:text-green-400">{t('journey.editor.pros')}</span>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  {pros.map((p, i) => (
-                    <div key={i} className="flex items-center gap-2 h-9 px-3 border rounded-[10px] border-zinc-200 dark:border-zinc-700">
-                      <span className="w-[5px] h-[5px] rounded-full bg-green-500 flex-shrink-0" />
-                      <input
-                        ref={verdictRowRef(`pros-${i}`)}
-                        value={p}
-                        onChange={e => { const next = [...pros]; next[i] = e.target.value; setPros(next) }}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addVerdictRow('pros', i) } }}
-                        placeholder={t('journey.editor.proPlaceholder')}
-                        className="flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] text-zinc-900 dark:text-zinc-100 placeholder:text-green-400 dark:placeholder:text-green-600"
-                      />
-                      {pros.length > 1 && (
-                        <button type="button" onClick={() => setPros(pros.filter((_, j) => j !== i))} className="p-1 text-green-300 dark:text-green-700 hover:text-green-600 dark:hover:text-green-400 flex-shrink-0">
-                          <X size={13} strokeWidth={2.5} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button type="button"
-                    onClick={() => addVerdictRow('pros', pros.length - 1)}
-                    className="flex items-center justify-center gap-1.5 h-9 w-full border border-dashed border-green-200 dark:border-green-800/40 rounded-[10px] text-[12px] font-medium text-green-700 dark:text-green-400 hover:border-green-300 dark:hover:border-green-700 transition-colors"
-                  >
-                    <Plus size={13} strokeWidth={2.5} /> {t('journey.editor.addAnother')}
-                  </button>
-                </div>
-              </div>
-
-              {/* Cons */}
-              <div>
-                <div className="flex items-center gap-[7px] mb-2.5">
-                  <div className="w-4 h-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                    <Minus size={9} className="text-red-700 dark:text-red-400" strokeWidth={3.5} />
-                  </div>
-                  <span className="text-[12px] font-semibold text-red-700 dark:text-red-400">{t('journey.editor.cons')}</span>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  {cons.map((c, i) => (
-                    <div key={i} className="flex items-center gap-2 h-9 px-3 border rounded-[10px] border-zinc-200 dark:border-zinc-700">
-                      <span className="w-[5px] h-[5px] rounded-full bg-red-500 flex-shrink-0" />
-                      <input
-                        ref={verdictRowRef(`cons-${i}`)}
-                        value={c}
-                        onChange={e => { const next = [...cons]; next[i] = e.target.value; setCons(next) }}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addVerdictRow('cons', i) } }}
-                        placeholder={t('journey.editor.conPlaceholder')}
-                        className="flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] text-zinc-900 dark:text-zinc-100 placeholder:text-red-400 dark:placeholder:text-red-600"
-                      />
-                      {cons.length > 1 && (
-                        <button type="button" onClick={() => setCons(cons.filter((_, j) => j !== i))} className="p-1 text-red-300 dark:text-red-700 hover:text-red-600 dark:hover:text-red-400 flex-shrink-0">
-                          <X size={13} strokeWidth={2.5} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button type="button"
-                    onClick={() => addVerdictRow('cons', cons.length - 1)}
-                    className="flex items-center justify-center gap-1.5 h-9 w-full border border-dashed border-red-200 dark:border-red-800/40 rounded-[10px] text-[12px] font-medium text-red-700 dark:text-red-400 hover:border-red-300 dark:hover:border-red-700 transition-colors"
-                  >
-                    <Plus size={13} strokeWidth={2.5} /> {t('journey.editor.addAnother')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          )}
-
-          {/* The date needs the room, not the clock: a long localized date
-              ("12. Sept. 2026") wrapped onto a second line while the time field
-              sat half empty beside it. The row is split in the date's favour and
-              the location, which is a free-text search, gives some back. */}
-          <div className="grid grid-cols-1 sm:grid-cols-[1.3fr_1fr] gap-3">
-            {/* Time sat in state and went to the server, it just had no input here — so a
+            {/* Time sat in state and went to the server, it just had no input here, so a
                 draft's auto-stamped clock time showed up in the timeline, the map, the PDF
-                and the public share, and the desktop had no way to correct it (#1614). */}
-            {/* 112px: enough for the clock button plus "2:30 PM" in 12h, and no
-                more — the date column is what needed the space back. */}
-            <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
-              <div>
-                <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.editor.date')}</label>
+                and the public share, and the desktop had no way to correct it (#1614).
+                The row is split in the date's favour: a long localized date ("12. Sept.
+                2026") wrapped onto a second line while the time field sat half empty
+                beside it. 112px holds the clock button plus "2:30 PM" in 12h, and no more. */}
+            <div className="grid grid-cols-[minmax(0,1fr)_112px] items-start gap-3">
+              <EditorField label={t('journey.editor.date')}>
                 <DatePicker value={entryDate} onChange={setEntryDate} tripDates={tripDates} />
-              </div>
-              <div>
-                <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('mobileJourney.time')}</label>
+              </EditorField>
+              <EditorField label={t('mobileJourney.time')}>
                 {/* A native <input type="time"> paints 12h or 24h from the browser
-                    locale, and no attribute overrides it — so it ignored the user's
+                    locale, and no attribute overrides it, so it ignored the user's
                     setting outright (#2067). The rest of TREK has used this picker
                     for exactly that reason; the journey editor was never migrated. */}
                 <CustomTimePicker value={entryTime} onChange={setEntryTime} />
-              </div>
+              </EditorField>
             </div>
-            <div className="relative">
-              <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.editor.location')}</label>
+
+            {tripSuggestion.trip && (
+              <div className="flex flex-col gap-2.5 rounded-[14px] border border-edge-faint bg-surface-secondary px-3 py-2.5">
+                <div className="flex items-start gap-3">
+                  <span className="grid h-8 w-8 flex-none place-items-center rounded-[10px] bg-surface-card text-content-muted shadow-sm"><Briefcase size={15} /></span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-content [overflow-wrap:anywhere]" style={fs(12.5, 'body')}>{tripSuggestion.trip.title}</div>
+                    <div className="mt-0.5 leading-snug text-content-muted" style={fs(11)}>{t('journey.editor.tripSuggestionHint')}</div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <DialogButton onClick={tripSuggestion.dismiss}>{t('journey.editor.tripSuggestionLater')}</DialogButton>
+                  <DialogButton variant="primary" onClick={() => void tripSuggestion.link()} disabled={tripSuggestion.linking}>{t('journey.trips.linkTrip')}</DialogButton>
+                </div>
+              </div>
+            )}
+
+            {/* The location is a free-text search, so it gets the whole width. */}
+            <EditorField label={t('journey.editor.location')} htmlFor={`${labelId}-location`} className="relative">
               <div className="relative">
                 <input
+                  id={`${labelId}-location`}
                   value={locationQuery || locationName}
                   onChange={e => {
                     const q = e.target.value
@@ -736,7 +812,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                       locationTimerRef.current = setTimeout(async () => {
                         setLocationSearching(true)
                         try {
-                          const res = await mapsApi.search(q)
+                          const res = await mapsApi.search(q, placeLang)
                           setLocationResults((res.places || []).slice(0, 6).map((p: any) => ({
                             name: p.name, address: p.address, lat: Number(p.lat), lng: Number(p.lng),
                           })))
@@ -749,25 +825,24 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                   }}
                   onFocus={() => { if (locationResults.length > 0) setShowLocationResults(true) }}
                   placeholder={t('journey.editor.searchLocation')}
-                  className="w-full pl-3 pr-9 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                  className={`${INPUT} pr-9`}
                 />
-                <button
-                  type="button"
-                  onClick={handleUseCurrentLocation}
-                  disabled={locating}
-                  title={t('journey.editor.useCurrentLocation')}
-                  aria-label={t('journey.editor.useCurrentLocation')}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50"
-                >
-                  {locating
-                    ? <div className="w-3.5 h-3.5 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" />
-                    : <Locate size={14} />}
-                </button>
+                <Tooltip label={t('journey.editor.useCurrentLocation')}>
+                  <button
+                    type="button"
+                    onClick={handleUseCurrentLocation}
+                    disabled={locating}
+                    aria-label={t('journey.editor.useCurrentLocation')}
+                    className="absolute right-1 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-[8px] text-content-faint hover:bg-surface-hover hover:text-content disabled:cursor-default disabled:opacity-50"
+                  >
+                    {locating ? <Loader2 size={14} className="animate-spin" /> : <Locate size={14} />}
+                  </button>
+                </Tooltip>
               </div>
               {showLocationResults && locationResults.length > 0 && (
                 <>
                   <div role="presentation" className="fixed inset-0 z-[99]" onClick={() => setShowLocationResults(false)} />
-                  <div className="absolute left-0 right-0 top-full mt-1 z-[100] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg overflow-hidden max-h-[240px] overflow-y-auto">
+                  <div className={`${DROPDOWN} flex max-h-[240px] flex-col gap-0.5 overflow-y-auto p-1`}>
                     {locationResults.map((r, i) => (
                       <button type="button"
                         key={i}
@@ -779,12 +854,12 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                           setShowLocationResults(false)
                           setLocationResults([])
                         }}
-                        className="w-full text-left px-3 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-700 flex items-start gap-2.5 border-b border-zinc-100 dark:border-zinc-700 last:border-0"
+                        className="flex w-full items-start gap-2.5 rounded-[8px] px-2.5 py-2 text-left hover:bg-surface-hover"
                       >
-                        <MapPin size={13} className="text-zinc-400 flex-shrink-0 mt-0.5" />
+                        <MapPin size={13} className="mt-0.5 flex-none text-content-faint" />
                         <div className="min-w-0">
-                          <div className="text-[13px] font-medium text-zinc-900 dark:text-white truncate">{r.name}</div>
-                          {r.address && <div className="text-[11px] text-zinc-500 truncate">{r.address}</div>}
+                          <div className="truncate font-medium text-content" style={fs(13, 'body')}>{r.name}</div>
+                          {r.address && <div className="truncate text-content-muted" style={fs(11)}>{r.address}</div>}
                         </div>
                       </button>
                     ))}
@@ -792,81 +867,88 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
                 </>
               )}
               {locationSearching && (
-                <div className="absolute left-0 right-0 top-full mt-1 z-[100] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg px-3 py-3 text-center text-[12px] text-zinc-400">
+                <div className={`${DROPDOWN} px-3 py-3 text-center text-content-faint`} style={fs(12, 'body')}>
                   {t('journey.editor.searching')}
                 </div>
               )}
-            </div>
-          </div>
+            </EditorField>
 
-          {/* Every located entry is a stop on the route Studio prints, the home
-              airport included. This is the entry's own way off it, the same
-              switch the Studio travel panel offers (#2064). */}
-          {offersStatsToggle && (
-            <div className="flex items-center gap-3 px-3 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl">
-              <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-semibold text-zinc-900 dark:text-white">{t('journey.editor.statsExcluded')}</div>
-                <div className="text-[11px] leading-snug text-zinc-500 mt-0.5">{t('journey.editor.statsExcludedHint')}</div>
+            {/* Every located entry is a stop on the route Studio prints, the home
+                airport included. This is the entry's own way off it, the same
+                switch the Studio travel panel offers (#2064). */}
+            {offersStatsToggle && (
+              <div className="flex items-center gap-3 rounded-[14px] border border-edge-faint bg-surface-secondary px-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-content" style={fs(12.5, 'body')}>{t('journey.editor.statsExcluded')}</div>
+                  <div className="mt-0.5 leading-snug text-content-muted" style={fs(11)}>{t('journey.editor.statsExcludedHint')}</div>
+                </div>
+                <ToggleSwitch on={statsExcluded} onToggle={() => setStatsExcluded(v => !v)} label={t('journey.editor.statsExcluded')} />
               </div>
-              <ToggleSwitch on={statsExcluded} onToggle={() => setStatsExcluded(v => !v)} label={t('journey.editor.statsExcluded')} />
-            </div>
-          )}
+            )}
 
-          {showMood && (
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.editor.mood')}</label>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(MOOD_CONFIG).map(([key, config]) => {
-                const Icon = config.icon
-                const active = mood === key
-                return (
-                  <button type="button" key={key} onClick={() => setMood(active ? '' : key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-all ${
-                      active ? '' : 'border-zinc-200 dark:border-zinc-700 text-zinc-500'
-                    }`}
-                    style={active ? { background: config.bg, color: config.text, borderColor: config.text + '30' } : undefined}>
-                    <Icon size={12} />
-                    {t(config.label)}
-                  </button>
-                )
-              })}
+            {/* A draft stays among the contributors until it is ready (#696). */}
+            <div className="flex items-center gap-3 rounded-[14px] border border-edge-faint bg-surface-secondary px-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-content" style={fs(12.5, 'body')}>{t('journey.editor.draft')}</div>
+                <div className="mt-0.5 leading-snug text-content-muted" style={fs(11)}>{t('journey.editor.draftHint')}</div>
+              </div>
+              <ToggleSwitch on={isDraft} onToggle={() => setIsDraft(v => !v)} label={t('journey.editor.draft')} />
             </div>
-          </div>
-          )}
 
-          {showWeather && (
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.editor.weather')}</label>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(WEATHER_CONFIG).map(([key, config]) => {
-                const Icon = config.icon
-                const active = weather === key
-                return (
-                  <button type="button" key={key} onClick={() => setWeather(active ? '' : key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-all ${
-                      active ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white' : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:border-zinc-400'
-                    }`}>
-                    <Icon size={12} />
-                    {t(config.label)}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          )}
-          </div>
+            {/* The size sits on the rows rather than on each chip, so a chip at rest
+                carries no inline style and only a picked mood wears its palette. */}
+            {showMood && (
+              <EditorField label={t('journey.editor.mood')}>
+                <div role="group" aria-label={t('journey.editor.mood')} className="flex flex-wrap gap-1.5" style={fs(12, 'body')}>
+                  {Object.entries(MOOD_CONFIG).map(([key, config]) => {
+                    const Icon = config.icon
+                    const active = mood === key
+                    return (
+                      <button type="button" key={key} onClick={() => setMood(active ? '' : key)} aria-pressed={active}
+                        className={active ? CHIP : `${CHIP} ${CHIP_OFF}`}
+                        style={active ? { background: config.bg, color: config.text, borderColor: config.text + '30' } : undefined}>
+                        <Icon size={12} />
+                        {t(config.label)}
+                      </button>
+                    )
+                  })}
+                </div>
+              </EditorField>
+            )}
+
+            {showWeather && (
+              <EditorField label={t('journey.editor.weather')}>
+                <div role="group" aria-label={t('journey.editor.weather')} className="flex flex-wrap gap-1.5" style={fs(12, 'body')}>
+                  {Object.entries(WEATHER_CONFIG).map(([key, config]) => {
+                    const Icon = config.icon
+                    const active = weather === key
+                    return (
+                      <button type="button" key={key} onClick={() => setWeather(active ? '' : key)} aria-pressed={active}
+                        className={`${CHIP} ${active ? 'border-accent bg-accent text-accent-text' : CHIP_OFF}`}>
+                        <Icon size={12} />
+                        {t(config.label)}
+                      </button>
+                    )
+                  })}
+                </div>
+              </EditorField>
+            )}
           </div>
         </div>
+      </DialogShell>
 
-
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}>
-          <button type="button" onClick={handleClose} className="px-4 h-10 flex items-center rounded-full border border-zinc-200 dark:border-zinc-600 text-[13px] font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">{t('common.cancel')}</button>
-          <button type="button" onClick={handleSave} disabled={saving} className="px-5 h-10 flex items-center rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-50 transition-colors">
-            {saving ? t('common.saving') : t('common.save')}
-          </button>
-        </div>
-      </div>
-      </div>
-    </div>
+      {/* Mounted only while asked, over the editor, which ignores Escape and its
+          backdrop until the question is answered. */}
+      {confirmDiscard && (
+        <ConfirmDialog
+          isOpen
+          onClose={() => setConfirmDiscard(false)}
+          onConfirm={onClose}
+          title={t('common.discardChanges')}
+          message={t('journey.editor.discardChangesConfirm')}
+          confirmLabel={t('common.discard')}
+        />
+      )}
+    </>
   )
 }

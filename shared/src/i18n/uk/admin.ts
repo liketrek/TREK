@@ -137,6 +137,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'API-ключ Amap (高德地图)',
   'admin.amapKeyHint':
     'Для пошуку місць у континентальному Китаї, де Google недоступний, а даних OpenStreetMap обмаль. Потрібен ключ типу «Web 服务» (вебсервіс), а не ключ JS API. Отримати можна на console.amap.com.',
+  'admin.keyFromEnv': 'Задано через {name}',
   'admin.placesProvider.title': 'Постачальник пошуку місць',
   'admin.placesProvider.subtitle':
     'Власний індекс TREK і OpenStreetMap відповідають на кожен пошук. Тут обирається, кого запитати додатково, якщо вони нічого не знайшли: «Автоматично» надає перевагу Google за наявності ключа, потім Amap.',
@@ -177,6 +178,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Збагачення місць',
   'admin.placesEnrich.subtitle':
     'Показує зображення та опис під час додавання місця. Wikipedia та OpenStreetMap використовуються завжди; Google додається, якщо ввімкнено «Фото місць» або «Деталі місць».',
+  'admin.placesGoogleOnly.title': 'Шукати лише через Google',
+  'admin.placesGoogleOnly.subtitle': 'Кожен пошук і кожна підказка йдуть до Google Places. Вимкнено: спершу відповідають індекс TREK та OpenStreetMap, Google запитується лише тоді, коли вони нічого не знайшли.',
+  'admin.placesGoogleOnly.missingKey': 'Потрібен ключ Google Maps API. Без нього пошук іде через індекс TREK та OpenStreetMap незалежно від цього перемикача.',
+  'admin.placesGoogleOnly.otherProvider': 'Потрібен Google як постачальник місць. Якщо вибрано Amap або OpenStreetMap, жоден пошук не йде до Google, хай як стоїть цей перемикач.',
+  'admin.googleQuota.title': 'Денний ліміт запитів до Google',
+  'admin.googleQuota.subtitle': 'Коли ліміт вичерпано, TREK не звертається до Google до наступного дня (UTC) і шукає через OpenStreetMap. Порожньо означає без ліміту.',
+  'admin.googleQuota.placeholder': 'Без ліміту',
+  'admin.googleQuota.usedToday': 'Сьогодні: {used}',
+  'admin.googleQuota.usedOfLimit': 'Сьогодні: {used} з {limit}',
+  'admin.googleQuota.reached': 'Ліміт вичерпано ({used}), Google призупинено до завтра',
+  'admin.googleQuota.saved': 'Денний ліміт збережено',
   'admin.transitProvider.title': 'Постачальник громадського транспорту',
   'admin.transitProvider.subtitle': 'Яка служба відповідає на пошук громадського транспорту.',
   'admin.transitProvider.transitous': 'Transitous (безкоштовно)',
@@ -226,7 +238,7 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryError': 'Не вдалося видалити категорію',
   'admin.packingTemplates.deleteItemError': 'Не вдалося видалити елемент',
   'admin.packingTemplates.saveError': 'Помилка збереження',
-  'admin.tabs.addons': 'Дополнения',
+  'admin.tabs.addons': 'Доповнення',
   'admin.tabs.plugins': 'Плагіни',
   'admin.tabs.storage': 'Сховище',
   'admin.plugins.rescan': 'Пересканувати',
@@ -380,6 +392,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider': 'Додавати додаткові деталі (відгуки, оцінки, посилання) до місця',
   'admin.plugins.perm.hook:search-provider':
     'Відповідати на пошук місць із власного індексу, поряд із результатами TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Додавати власні категорії місць до «Досліджуйте місця на карті»; коли ви обираєте одну з них, розширення отримує область карти, яку ви переглядаєте',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Створювати попередження перевірки для подорожі (показуються в планувальнику)',
   'admin.plugins.perm.hook:table-contributor': 'Додавати стовпці та дії до подань подорожі (бронювання, місця, дні)',
@@ -395,6 +409,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Публікує ШІ-інструменти',
   'admin.plugins.mcpToolsTitle': 'Опубліковані ШІ-інструменти',
   'admin.plugins.mcpToolsHint': 'Асистент може запускати їх від імені користувача. Кожен діє з правами, наданими вище.',
+  'admin.plugins.poiCategoriesTitle': 'Категорії карти, які він додає',
   'admin.plugins.perm.mcp:tools':
     'Публікувати інструменти, які ШІ-асистент може запускати від вашого імені (він діє з правами, наданими плаґіну тут, а не зі своїми)',
   'admin.plugins.perm.geolocation:read':
@@ -538,6 +553,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Надає події календаря',
   'admin.plugins.cap.placeDetails': 'Збагачує місця',
   'admin.plugins.cap.search': 'Відповідає на пошук',
+  'admin.plugins.cap.poiCategories': 'Додає категорії на карту',
   'admin.plugins.cap.warnings': 'Позначає проблеми',
   'admin.plugins.cap.mapLayers': 'Малює на карті',
   'admin.plugins.cap.routing': 'Пропонує маршрутизацію',
@@ -614,6 +630,11 @@ const admin: TranslationStrings = {
     'Читає перебування та записані маршрути із сервера Dawarich, який кожен користувач підключає сам',
   'admin.addons.catalog.llm_parsing.name': 'Розбір за допомогою ШІ',
   'admin.addons.catalog.llm_parsing.description': 'Читає бронювання, які не розпізнає вбудований аналізатор, за допомогою обраної вами моделі ШІ',
+  'admin.addons.llm.vision.auto': 'Автоматично',
+  'admin.addons.llm.vision.on': 'Так',
+  'admin.addons.llm.vision.off': 'Ні',
+  'admin.addons.llm.vision.hintLocal': '«Автоматично» запитує сервер Ollama, чи читає ця модель зображення.',
+  'admin.addons.llm.vision.hintCloud': 'Для хмарної моделі «Автоматично» означає «ні». Виберіть «Так», якщо ця модель читає зображення.',
   'admin.addons.enabled': 'Увімкнено',
   'admin.addons.disabled': 'Вимкнено',
   'admin.addons.type.trip': 'Поїздка',
@@ -713,6 +734,9 @@ const admin: TranslationStrings = {
   'admin.tabs.permissions': 'Дозволи',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Дозволяє користувачам отримувати сповіщення на телефонах і комп’ютерах через браузер, навіть коли TREK закрито. Потрібен HTTPS; на iPhone та iPad TREK треба додати на початковий екран.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint': 'Сповіщення в додатку завжди активні і не можуть бути вимкнені глобально.',
   'admin.notifications.adminWebhookPanel.title': 'Webhook адміністратора',
@@ -748,6 +772,12 @@ const admin: TranslationStrings = {
     'Ntfy адміністратора завжди надсилається при наявності налаштованої теми',
   'admin.notifications.adminNotificationsHint':
     'Налаштуйте, які канали доставляють сповіщення адміністратора (наприклад, повідомлення про версії). Вебхук надсилається автоматично, якщо задано URL вебхука адміністратора.',
+  'admin.notificationDefaults.title': 'Типові налаштування для користувачів',
+  'admin.notificationDefaults.hint': 'Так починаються сповіщення кожного користувача. «Вимк.» користувач може ввімкнути сам, «Заблоковано» вимикає для всіх і показується із замком у їхніх налаштуваннях. Діє для всіх, хто не змінював клітинку сам.',
+  'admin.notificationDefaults.on': 'Увімк.',
+  'admin.notificationDefaults.off': 'Вимк.',
+  'admin.notificationDefaults.blocked': 'Заблоковано',
+  'admin.notificationDefaults.cycle': 'Натисніть для: {next}',
   'admin.notifications.tripReminders.title': 'Нагадування про поїздки',
   'admin.notifications.tripReminders.hint':
     'Надсилає нагадування перед початком поїздки (необхідно вказати дні нагадування в параметрах поїздки).',

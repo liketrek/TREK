@@ -171,21 +171,13 @@ export default tseslint.config(
     ignores: [
       // The connection and the ORM's bound driver: this is where the engine lives.
       'src/db/database.ts',
+      // openDatabase(): every better-sqlite3 handle the server opens (#2518).
+      'src/db/connection.ts',
       'src/db/orm-driver.ts',
       'src/db/durability.ts',
       // The plugin sandbox opens its own per-plugin database files, deliberately
       // outside the app's ORM and connection.
       'src/nest/plugins/host/plugin-data.service.ts',
-      // R1 (Plan 3i Task 3): backup.impl.ts's live-connection statements
-      // (a WAL checkpoint, a VACUUM INTO snapshot) convert onto
-      // MaintenanceRepository — this allow-list entry now covers ONLY the
-      // untrusted-upload-file probe in restoreFromZip (an integrity check +
-      // a required-table check run against a SEPARATE, freshly-opened,
-      // read-only connection over an uploaded file, never the app's own
-      // connection or ORM). A permanent, intentional exception — see
-      // task-3-report.md / the plan's R1 ruling — not debt for a later plan
-      // to close.
-      'src/nest/backup/backup.impl.ts',
       // Frozen forever (ruling 7): invoked from inside numbered, already-shipped
       // MikroORM migrations — rewriting either onto the ORM would change what a
       // re-run of an old migration against an old schema snapshot produces,

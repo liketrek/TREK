@@ -64,6 +64,13 @@ export interface PluginFeedRow {
   granted_permissions: string;
 }
 
+/** PPS1 — `plugin-pois.service.ts#available`'s active-provider projection (#1781). */
+export interface PluginActiveNameCapabilitiesRow {
+  id: string;
+  name: string;
+  capabilities: string;
+}
+
 /** PS-list — `list()`'s admin projection, every column `PluginsService.list()` re-shapes. */
 export interface PluginAdminRow {
   id: string;
@@ -570,6 +577,25 @@ export class PluginsRepository extends TrekRepository<Plugins> {
   async existsActive(id: string): Promise<boolean> {
     const row = await this.findOne({ id, status: 'active' }, { fields: ['id'] });
     return row !== null;
+  }
+
+  // -----------------------------------------------------------------------
+  // PPS1 — plugin-pois.service.ts#available (#1781); PPS2 reuses PR52's
+  // findCapabilities.
+  // -----------------------------------------------------------------------
+
+  /**
+   * PPS1 (`plugin-pois.service.ts#available`, #1781) — `SELECT id, name, capabilities
+   * FROM plugins WHERE status = 'active' ORDER BY sort_order, name`. The explore
+   * pill's category list, in the order the feed lists plugins. PPS2 (`declared`)
+   * reuses `findCapabilities` (PR52's identical text).
+   */
+  async listActiveNameCapabilities(): Promise<PluginActiveNameCapabilitiesRow[]> {
+    const rows = await this.find(
+      { status: 'active' },
+      { fields: ['id', 'name', 'capabilities'], orderBy: [{ sort_order: 'asc' }, { name: 'asc' }] },
+    );
+    return rows.map((r) => ({ id: r.id ?? '', name: r.name, capabilities: r.capabilities }));
   }
 }
 

@@ -20,3 +20,17 @@ export const settingsBulkRequestSchema = z.object({
   settings: z.record(z.string(), z.unknown()),
 });
 export type SettingsBulkRequest = z.infer<typeof settingsBulkRequestSchema>;
+
+/**
+ * The first column of every date picker (#2029). Stored as the day's name, like
+ * the other regional settings ('24h', 'metric'): getUserSettings JSON-parses
+ * each row, so a digit string would come back as a number, a name comes back
+ * unchanged. Vacay keeps its own per-plan week_start (0/1) next to this.
+ */
+export const WEEK_START_VALUES = ['monday', 'sunday', 'saturday'] as const;
+export type WeekStart = (typeof WEEK_START_VALUES)[number];
+export const weekStartSchema = z.enum(WEEK_START_VALUES);
+/** What a user who never picked one gets, and what every picker did before the setting existed. */
+export const DEFAULT_WEEK_START: WeekStart = 'monday';
+/** Date#getDay() of each value, the number a calendar grid computes with. */
+export const WEEK_START_DAY: Record<WeekStart, number> = { monday: 1, sunday: 0, saturday: 6 };

@@ -83,6 +83,18 @@ describe('BookingImportService.preview', () => {
     expect(res.files![0].aiUsed).toBe(false);
   });
 
+  it('fallback-on-empty: a photo goes straight to the LLM, kitinerary is not asked', async () => {
+    const { svc, extractor, llmParse } = make({
+      kit: true, ai: true,
+      extract: async () => [HOTEL_KI],
+      parse: async () => ({ kiItems: [HOTEL_KI], warnings: [] }),
+    });
+    const res = await svc.preview([file('ticket.jpg')], 'fallback-on-empty', 1);
+    expect(extractor.extract).not.toHaveBeenCalled();
+    expect(llmParse.parse).toHaveBeenCalledWith({ buffer: expect.any(Buffer), originalName: 'ticket.jpg' }, 1);
+    expect(res.items[0].needs_review).toBe(true);
+  });
+
   it('force-ai: skips kitinerary entirely and uses the LLM', async () => {
     const { svc, extractor, llmParse } = make({
       kit: true, ai: true,
@@ -189,5 +201,35 @@ describe('BookingImportService.preview endpoint geocoding (#1969)', () => {
 
     await svc.preview([file()], 'no-ai', 1);
     expect(maps.geocodeQuery).not.toHaveBeenCalled();
+  });
+});
+
+// #2483: a venue's website from a booking mail is one more outside source, and it
+// used to reach the place row exactly as the mail or the review form had it.
+describe('BookingImportService.confirm venue website (#2483)', () => {
+  it('BOOKING-IMPORT-2483-01: a bare host is saved with https, a script link or nothing not at all', async () => {
+    const reservations = { create: vi.fn(() => ({ reservation: { id: 1 }, accommodationCreated: false })) };
+    const places = { create: vi.fn((_tripId: string, _input: { website?: string }) => ({ id: 7 })) };
+    // No dates on a restaurant, so the day repositories are never reached.
+    const svc = new BookingImportService(
+      {} as never, {} as never, undefined as never, undefined as never, reservations as never, permissionsStub as never,
+      undefined as never, { isAddonEnabled: () => false } as never, { broadcast: vi.fn() } as never,
+      { geocodeQuery: vi.fn() } as never, places as never,
+    );
+    const item = (website?: string) => ({
+      type: 'restaurant',
+      title: 'Dîner',
+      _venue: { name: 'Crêperie', lat: 48.03, lng: -3.49, website },
+      source: { fileName: 'booking.eml', index: 0 },
+    });
+
+    const res = await svc.confirm('5', [item('www.creperie.example/carte'), item('javascript:alert(1)'), item()], undefined);
+
+    expect(res.created).toHaveLength(3);
+    expect(places.create.mock.calls.map(([, input]) => input.website)).toEqual([
+      'https://www.creperie.example/carte',
+      undefined,
+      undefined,
+    ]);
   });
 });

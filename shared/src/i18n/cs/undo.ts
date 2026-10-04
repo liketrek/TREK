@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Zpět: {action}',
   'undo.assignPlace': 'Místo přiřazeno ke dni',
   'undo.removeAssignment': 'Místo odebráno ze dne',
+  'undo.clearDay': 'Den vyprázdněn',
   'undo.reorder': 'Místa přeseřazena',
   'undo.optimize': 'Trasa optimalizována',
   'undo.deletePlace': 'Místo smazáno',
@@ -19,6 +20,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Import z Naver Maps',
   'undo.addPlace': 'Místo přidáno',
   'undo.done': 'Vráceno zpět: {action}',
+  'undo.failed': 'Nelze vrátit zpět: {action}',
   'undo.importBooking': 'Import potvrzení rezervace',
 };
 export default undo;

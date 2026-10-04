@@ -14,8 +14,10 @@ import {
   derivePlugins,
   deriveIntegrations,
   deriveBackup,
+  deriveFiles,
   deriveNet,
   derivePaths,
+  derivePush,
   deriveAll,
 } from '../../../src/app-config/derive';
 
@@ -145,6 +147,12 @@ describe('deriveOidc', () => {
     expect(deriveOidc({ OIDC_ADMIN_CLAIM: 'roles' }).adminClaim).toBe('roles');
   });
 
+  it('usernameClaim stays unset unless a claim is named (#1677)', () => {
+    expect(deriveOidc({}).usernameClaim).toBeUndefined();
+    expect(deriveOidc({ OIDC_USERNAME_CLAIM: '   ' }).usernameClaim).toBeUndefined();
+    expect(deriveOidc({ OIDC_USERNAME_CLAIM: ' preferred_username ' }).usernameClaim).toBe('preferred_username');
+  });
+
   it('OIDC_ONLY coerces the boolean-like family', () => {
     expect(deriveOidc({ OIDC_ONLY: 'True' }).only).toBe(true);
     expect(deriveOidc({ OIDC_ONLY: '1' }).only).toBe(true);
@@ -238,6 +246,13 @@ describe('deriveIntegrations', () => {
   });
 });
 
+describe('deriveFiles (#1364)', () => {
+  it('defaults the upload limit to 50 MB and takes FILE_UPLOAD_LIMIT_MB', () => {
+    expect(deriveFiles({}).uploadLimitMb).toBe(50);
+    expect(deriveFiles({ FILE_UPLOAD_LIMIT_MB: '200' }).uploadLimitMb).toBe(200);
+  });
+});
+
 describe('deriveBackup', () => {
   it('pins the backupService limit parsing (positive number or default)', () => {
     expect(deriveBackup({}).uploadLimitMb).toBe(500);
@@ -245,6 +260,12 @@ describe('deriveBackup', () => {
     expect(deriveBackup({ BACKUP_UPLOAD_LIMIT_MB: '-1' }).uploadLimitMb).toBe(500);
     expect(deriveBackup({}).maxDecompressedMb).toBe(5 * 1024);
     expect(deriveBackup({ ENCRYPTION_KEY: 'x' }).encryptionKeyFromEnv).toBe(true);
+  });
+
+  it('reads RESTORE_FROM_BACKUP as a trimmed path, and blank as unset (#1089)', () => {
+    expect(deriveBackup({}).restoreFromBackup).toBeNull();
+    expect(deriveBackup({ RESTORE_FROM_BACKUP: '   ' }).restoreFromBackup).toBeNull();
+    expect(deriveBackup({ RESTORE_FROM_BACKUP: ' /app/data/b.zip ' }).restoreFromBackup).toBe('/app/data/b.zip');
   });
 });
 
@@ -277,7 +298,7 @@ describe('deriveAll', () => {
     expect(env.demo.enabled).toBe(true);
     for (const ns of [
       'app', 'http', 'session', 'demo', 'adminBootstrap', 'oidc', 'smtp', 'mcp',
-      'plugins', 'webauthn', 'integrations', 'backup', 'db', 'paths', 'net',
+      'plugins', 'webauthn', 'integrations', 'backup', 'db', 'paths', 'net', 'push',
     ] as const) {
       expect(env[ns]).toBeDefined();
     }
@@ -307,5 +328,19 @@ describe('deriveMaps', () => {
     for (const value of ['', '  ', 'maybe', 'fasle']) {
       expect(deriveMaps({ TREK_PLACES_ENABLED: value } as never).trekPlacesEnabled, value).toBe(true);
     }
+  });
+});
+
+describe('derivePush', () => {
+  it('passes the VAPID_* values through trimmed, blank counting as unset', () => {
+    expect(derivePush({})).toEqual({ vapidPublicKey: undefined, vapidPrivateKey: undefined, vapidSubject: undefined });
+    expect(
+      derivePush({ VAPID_PUBLIC_KEY: ' BPub ', VAPID_PRIVATE_KEY: 'priv', VAPID_SUBJECT: ' mailto:ops@example.com ' }),
+    ).toEqual({ vapidPublicKey: 'BPub', vapidPrivateKey: 'priv', vapidSubject: 'mailto:ops@example.com' });
+    expect(derivePush({ VAPID_PUBLIC_KEY: '   ', VAPID_SUBJECT: '' })).toEqual({
+      vapidPublicKey: undefined,
+      vapidPrivateKey: undefined,
+      vapidSubject: undefined,
+    });
   });
 });

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MFilesTab from '../../../../src/mobile/screens/trip/tabs/MFilesTab'
+import { useAuthStore } from '../../../../src/store/authStore'
 import { filesApi } from '../../../../src/api/client'
 import { openFile } from '../../../../src/utils/fileDownload'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
@@ -293,8 +294,19 @@ describe('MFilesTab', () => {
     fireEvent.change(hiddenInput(container), {
       target: { files: [makeFile('huge.pdf', 'application/pdf', 60 * 1024 * 1024)] },
     })
-    expect(planner.toast.error).toHaveBeenCalledWith('files.uploadErrorSize')
+    expect(planner.toast.error).toHaveBeenCalledWith('files.uploadErrorSize:50')
     expect(planner.tripActions.addFile).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-FTAB-019b: a raised FILE_UPLOAD_LIMIT_MB lets the same file through (#1364)', async () => {
+    useAuthStore.setState({ maxUploadMb: 100 })
+    const { container, planner } = renderTab()
+    fireEvent.change(hiddenInput(container), {
+      target: { files: [makeFile('huge.pdf', 'application/pdf', 60 * 1024 * 1024)] },
+    })
+    expect(planner.toast.error).not.toHaveBeenCalled()
+    await waitFor(() => expect(planner.tripActions.addFile).toHaveBeenCalledTimes(1))
+    useAuthStore.setState({ maxUploadMb: 50 })
   })
 
   it('FE-MOB-FTAB-020: an oversized file in a batch is skipped, the rest still uploads', async () => {
@@ -307,7 +319,7 @@ describe('MFilesTab', () => {
         ],
       },
     })
-    expect(planner.toast.error).toHaveBeenCalledWith('files.uploadErrorSize')
+    expect(planner.toast.error).toHaveBeenCalledWith('files.uploadErrorSize:50')
     await waitFor(() => expect(planner.toast.success).toHaveBeenCalledWith('files.uploaded:1'))
     expect(planner.tripActions.addFile).toHaveBeenCalledTimes(1)
   })

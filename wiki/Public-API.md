@@ -108,7 +108,7 @@ Two sections come back at trip level rather than on a day, because that is where
 | Field | Comes with | What it is |
 |---|---|---|
 | `unplanned_places` | `places` | places collected but not scheduled yet. On a real instance these are routinely **half** of a trip's places, and they carry coordinates. A hotel is not listed here; it is under `accommodations`. |
-| `unscheduled_reservations` | `reservations` | bookings with no day. Deleting a day detaches its bookings rather than deleting them, so these exist in the wild. |
+| `unscheduled_reservations` | `reservations` | bookings with no day. Deleting a day or shortening a trip detaches the bookings on the days that go rather than deleting them, so these exist in the wild. |
 
 Asking for `places`, `notes` or `reservations` brings `days` along automatically, since that is where they are reported. `?include=notes` returns the day skeleton with its notes and empty place lists, not an empty trip.
 
@@ -193,6 +193,14 @@ Totals for a dashboard. Built for widgets like Homepage's `customapi`, which ren
     "end_date": "2026-02-14",
     "country": "JP",
     "countries": ["JP"]
+  },
+  "next_trip": {
+    "title": "Lisbon long weekend",
+    "start_date": "2026-11-12",
+    "end_date": "2026-11-16",
+    "days_until": 42,
+    "country": "PT",
+    "countries": ["PT"]
   }
 }
 ```
@@ -200,6 +208,8 @@ Totals for a dashboard. Built for widgets like Homepage's `customapi`, which ren
 These are the same figures TREK's own dashboard shows, computed from the same source — a widget cannot disagree with the passport card next to it. In particular `total_countries` follows TREK's notion of *visited*: countries reached only by a flight or train count, layovers do not, and countries hidden by hand in Atlas stay hidden.
 
 `last_trip` is the most recent trip that has **started** — a trip booked for next year is not one you have been on — and is `null` when every trip is still ahead. `country` is the country most of its places sit in, and is the head of `countries`, which lists them all for a trip that crossed a border. Both are empty or `null` for a trip whose places were never geocoded.
+
+`next_trip` is its counterpart: the trip with the nearest start date that has **not started yet**, with the same `country` and `countries`, and `null` when nothing is planned. A trip that is under way is still `last_trip`, so the two never name the same trip. `days_until` counts whole days from today to the start date, so `1` means tomorrow.
 
 A Homepage widget then needs no scripting:
 
@@ -220,6 +230,8 @@ A Homepage widget then needs no scripting:
           label: Cities
         - field: last_trip.country
           label: Last
+        - field: next_trip.days_until
+          label: Days to go
 ```
 
 ## Notes for integrators
@@ -241,6 +253,8 @@ A Homepage widget then needs no scripting:
 | `403` | the key is valid but not allowed to read what was asked for (`code: "API_SCOPE_FORBIDDEN"`, with the missing section in `required_scope`) |
 | `404` | no such trip, or not one of yours |
 | `429` | rate limit exceeded |
+
+**Which TREK is running.** To check the running version, for example against the latest GitHub release, call `GET /api/auth/app-config`. It needs no key and no login, and the `version` field holds the running version (such as `4.3.3`). It is not part of `/api/v1`, so it follows the app's own release rather than the promise below.
 
 **Versioning.** `/api/v1` may gain fields; it will not lose them or change their types. A breaking change ships as `/api/v2` and both run side by side for a transition period. Write your client to ignore fields it does not know.
 

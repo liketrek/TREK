@@ -10,6 +10,8 @@ interface VacayMonthCardProps {
   month: number
   holidays: HolidaysMap
   companyHolidaySet: Set<string>
+  /** Half company holidays (#2439): shown half-filled, and still open for half a day of leave. */
+  companyHalfSet?: Set<string>
   companyHolidaysEnabled?: boolean
   entryMap: Record<string, VacayEntry[]>
   // Shared read-only calendars per date (#444/#667) — rendered as rings, not fills.
@@ -24,7 +26,7 @@ interface VacayMonthCardProps {
 }
 
 export default function VacayMonthCard({
-  year, month, holidays, companyHolidaySet, companyHolidaysEnabled = true, entryMap, sharedMap,
+  year, month, holidays, companyHolidaySet, companyHalfSet, companyHolidaysEnabled = true, entryMap, sharedMap,
   onCellClick, onCellHover, companyMode, blockWeekends, weekendDays = [0, 6], tripDates, weekStart = 1
 }: VacayMonthCardProps) {
   const { t, locale } = useTranslation()
@@ -106,13 +108,14 @@ export default function VacayMonthCard({
           const publicHoliday = holidayMarkers.find(h => (h.type ?? 'public_holiday') === 'public_holiday')
           const schoolHolidayMarkers = holidayMarkers.filter(h => h.type === 'school_holiday')
           const isCompany = companyHolidaysEnabled && companyHolidaySet.has(dateStr)
+          const isHalfCompany = companyHolidaysEnabled && !!companyHalfSet?.has(dateStr)
           const dayEntries = entryMap[dateStr] || []
           const hasEntries = dayEntries.length > 0
           // A blocked weekend day that still carries an entry (#1897) stays clickable —
           // the click clears the stranded day rather than logging a new one.
           const isBlocked = (weekend && blockWeekends && !hasEntries) || (isCompany && !companyMode)
           const isToday = dateStr === todayStr
-          const plain = !hasEntries && holidayMarkers.length === 0 && !isCompany
+          const plain = !hasEntries && holidayMarkers.length === 0 && !isCompany && !isHalfCompany
 
           // The fill always shows WHO is off (person colour, split for several) — half
           // days keep that fill and get a small corner ½ badge instead, so a half day
@@ -130,6 +133,8 @@ export default function VacayMonthCard({
           // 2 people render via the diagonal overlay below, so each half can be a solid
           // vacation fill or a hatched comp fill independently (#1074).
           else if (dayEntries.length === 0 && isCompany) background = 'rgba(245,158,11,0.22)'
+          // Half the day is the company's: the fill covers half the cell (#2439).
+          else if (dayEntries.length === 0 && isHalfCompany) background = 'linear-gradient(135deg, rgba(245,158,11,0.3) 50%, transparent 50%)'
           else if (dayEntries.length === 0 && publicHoliday) background = `color-mix(in srgb, ${publicHoliday.color} 22%, transparent)`
           // A plain school-break day gets a soft wash of its calendar colour so a run of
           // days reads as one gentle stretch; the rounded band below names the calendar.

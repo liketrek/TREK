@@ -87,6 +87,8 @@ import {
   createTestReservationTravelersRepo,
   createTestReservationDayPositionsRepo,
   createTestDayAccommodationsRepo,
+  createTestRoadtripViasRepo,
+  createTestRoadtripDayBoundariesRepo,
 } from '../../helpers/test-uow';
 import { createTestTripFilesRepo, createTestFileLinksRepo, createTestBudgetItemsRepo } from '../../helpers/files-repos';
 import { budgetRepoArgs } from '../../helpers/budget-repos';
@@ -107,6 +109,7 @@ import {
 import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
 import { createTestShareTokensRepo, createTestPluginsRepo, createTestPluginUserErasureQueueRepo } from '../../helpers/share-repos';
 import { createTestCollectionPlacesRepo } from '../../helpers/test-uow';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 // Real sibling services over the same in-memory DB — the aggregation runs the
 // actual SQL of every domain it fans out to, so a shape change downstream shows
@@ -146,10 +149,12 @@ beforeAll(async () => {
     await createTestReservationsRepo(testDb),
     await createTestReservationEndpointsRepo(testDb),
     await createTestDayAccommodationsRepo(testDb),
+    await createTestRoadtripViasRepo(testDb),
+    await createTestRoadtripDayBoundariesRepo(testDb),
   );
   placesSvc = new PlacesService(
   new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new RealtimeService(),
-  new MapsService(photoCache, await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestPlaceDetailsCacheRepo(testDb), await createTestPlacesRepo(testDb)), new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
+  new MapsService(photoCache, await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestPlaceDetailsCacheRepo(testDb), await createTestPlacesRepo(testDb), noGoogleQuota), new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
   new UnsplashService(await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), new RuntimeEnvService(), makeStorageFixture('').storage), photoCache,
   new JourneyDomainService(
     new RealtimeService(), new TrekPhotoRegistrationService((await sharedTestOrm(testDb)).repo(TrekPhotos), (await sharedTestOrm(testDb)).repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)), await createTestUnitOfWork(testDb),
@@ -318,10 +323,42 @@ describe('getTripSummary shaping', () => {
     // the offline clients both render as an empty budget.
     addBudgetItem(trip.id, 'Free walking tour', 0);
 
-    const summary = await (await svc.getTripSummary(trip.id, owner.id))!;
+    const summary = (await svc.getTripSummary(trip.id, owner.id))!;
     expect(summary.budget.item_count).toBe(2);
     expect(summary.budget.total).toBe(40);
     expect(summary.budget.currency).toBe('EUR');
+  });
+
+  it('TRIP-READ-008: totals a foreign-currency bill in the trip currency, at its booked rate (#2525)', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addBudgetItem(trip.id, 'Dinner', 100);
+    // 801.76 USD booked when a euro bought 1.17 dollars: 685.26 EUR of trip money. The
+    // summary used to add the 801.76 to the euros and report 901.76 EUR.
+    testDb.prepare("INSERT INTO budget_items (trip_id, category, name, total_price, currency, exchange_rate) VALUES (?, 'accommodation', 'Aparthotel Silver', 801.76, 'USD', 1.17)")
+      .run(trip.id);
+
+    const summary = (await svc.getTripSummary(trip.id, owner.id))!;
+    expect(summary.budget.total).toBe(785.26);
+    expect(summary.budget.by_category).toEqual({ food: 100, accommodation: 685.26 });
+    expect(summary.budget.currency).toBe('EUR');
+    // Both rows convert, so none is reported as left out of the total.
+    expect(summary.budget.unconverted_item_ids).toEqual([]);
+  });
+
+  it('TRIP-READ-009: totals a trip saved without a currency in euros, the default the rest of the app reads it in (#2525)', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('UPDATE trips SET currency = NULL WHERE id = ?').run(trip.id);
+    addBudgetItem(trip.id, 'Dinner', 100);
+    // 117.33 USD booked at 1.1733 dollars to the euro is 100 EUR of trip money.
+    testDb.prepare("INSERT INTO budget_items (trip_id, category, name, total_price, currency, exchange_rate) VALUES (?, 'transport', 'Taxi', 117.33, 'USD', 1.1733)")
+      .run(trip.id);
+
+    const summary = (await svc.getTripSummary(trip.id, owner.id))!;
+    expect(summary.budget.total).toBe(200);
+    expect(summary.budget.by_category).toEqual({ food: 100, transport: 100 });
+    expect(summary.budget.currency).toBeNull();
   });
 
   it('TRIP-READ-004: counts only checked packing items, not the whole list', async () => {
@@ -333,7 +370,7 @@ describe('getTripSummary shaping', () => {
 
     // total and checked come from the same array; if the filter is ever widened the
     // packing progress the summary reports jumps to 100% while items are still open.
-    const summary = await (await svc.getTripSummary(trip.id, owner.id))!;
+    const summary = (await svc.getTripSummary(trip.id, owner.id))!;
     expect(summary.packing.total).toBe(3);
     expect(summary.packing.checked).toBe(2);
   });
@@ -392,7 +429,7 @@ describe('private packing items stay viewer-scoped (#858)', () => {
     // ONLY thing filtering the list. If either call site loses it, listItems falls
     // back to the unfiltered query and the surprise the owner is carrying shows up
     // in the other member's MCP summary and in their offline cache.
-    const asViewer = await (await svc.getTripSummary(trip.id, viewer.id))!;
+    const asViewer = (await svc.getTripSummary(trip.id, viewer.id))!;
     expect(asViewer.packing.items.map((i: any) => i.name)).toEqual(['Tent']);
     expect(asViewer.packing.total).toBe(1);
 
@@ -401,7 +438,7 @@ describe('private packing items stay viewer-scoped (#858)', () => {
 
     // The owner still sees their own private item through both paths, so the
     // assertions above are the filter working, not an empty fixture.
-    expect((await (await svc.getTripSummary(trip.id, owner.id))!).packing.items.map((i: any) => i.name)).toEqual(['Ring', 'Tent']);
+    expect((await svc.getTripSummary(trip.id, owner.id))!.packing.items.map((i: any) => i.name)).toEqual(['Ring', 'Tent']);
     expect(((await svc.bundle(String(trip.id), { user_id: owner.id }, owner.id)) as any)
       .packingItems.map((i: any) => i.name)).toEqual(['Ring', 'Tent']);
   });

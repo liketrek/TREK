@@ -17,6 +17,7 @@ import {
   collectionCopyToTripRequestSchema, collectionLabelCreateRequestSchema,
   collectionLabelUpdateRequestSchema, collectionLabelAssignRequestSchema,
   collectionInviteRequestSchema, collectionSetStatusFromTripRequestSchema,
+  collectionLinkSchema,
   COLLECTION_STATUSES, COLLECTION_ROLES,
 } from '@trek/shared';
 import type {
@@ -55,6 +56,9 @@ const collectionsAddonOn = addonGate(ADDON_IDS.COLLECTIONS);
  * plus the `when:` collections-addon gate the legacy registrar lacked (fixed
  * in the trailing quirk commit — REST and the plugin host always gated).
  */
+// The shared link schema stays open for REST; a tool refuses a key it did not declare.
+const linksInput = z.array(z.strictObject(collectionLinkSchema.shape)).max(30).optional();
+
 @McpController()
 export class CollectionsMcp {
   constructor(
@@ -140,7 +144,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'create_collection',
     description: 'Create a new saved-place collection (list) owned by the user.',
-    inputSchema: collectionCreateRequestSchema.shape,
+    inputSchema: { ...collectionCreateRequestSchema.shape, links: linksInput },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -153,7 +157,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'update_collection',
     description: 'Update a collection\'s name, description, colour, icon, cover, links, or sort order. Owner/admin only.',
-    inputSchema: { collectionId: z.number().int().positive(), ...collectionUpdateRequestSchema.shape },
+    inputSchema: { collectionId: z.number().int().positive(), ...collectionUpdateRequestSchema.shape, links: linksInput },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -194,7 +198,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'save_place_to_collection',
     description: 'Save a place into a collection from a raw payload (name required; set google_place_id/osm_id from search_place for rich details). Returns a duplicate marker instead of saving when a similar place already exists, unless force is true.',
-    inputSchema: collectionSavePlaceRequestSchema.shape,
+    inputSchema: { ...collectionSavePlaceRequestSchema.shape, links: linksInput },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -228,7 +232,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'update_collection_place',
     description: 'Update a saved place\'s name, address, coordinates (lat/lng), description, notes, status, category, links, tags, labels, image, or move it to another collection (set collection_id).',
-    inputSchema: { placeId: z.number().int().positive(), ...collectionPlaceUpdateRequestSchema.shape },
+    inputSchema: { placeId: z.number().int().positive(), ...collectionPlaceUpdateRequestSchema.shape, links: linksInput },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },

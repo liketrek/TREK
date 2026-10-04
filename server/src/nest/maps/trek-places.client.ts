@@ -11,6 +11,7 @@
  * to configure and no quota to exhaust, so the failure modes are the network
  * and the service being down, both of which fall back to what TREK did before.
  */
+import { normalizePlaceWebsite } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
 
 /** The public instance. An operator may point at their own copy instead. */
@@ -425,7 +426,8 @@ export function toPlaceRecord(p: TrekPlace): Record<string, unknown> {
     lng: Number.isFinite(p.lng) ? p.lng : null,
     // Ratings exist nowhere in open data, and saying so with null is honest.
     rating: null,
-    website: p.contact?.website ?? null,
+    // The index keeps websites as Overture has them, often without a scheme.
+    website: normalizePlaceWebsite(p.contact?.website),
     phone: p.contact?.phone ?? null,
     email: p.contact?.email ?? null,
     category: p.category ?? null,

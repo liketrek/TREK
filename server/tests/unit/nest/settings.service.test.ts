@@ -371,6 +371,22 @@ describe('legacy quirk fixes', () => {
     expect(await svc.getDecryptedUserSetting(user.id, 'llm_api_key')).toBeNull();
   });
 
+  it('SET-SVC-035 — a week_start default reaches users without their own, and theirs wins (#2029)', async () => {
+    const { user: plain } = createUser(testDb);
+    const { user: own } = createUser(testDb);
+    await svc.setAdminUserDefaults({ week_start: 'sunday' });
+    await svc.upsertSetting(own.id, 'week_start', 'saturday');
+    expect((await svc.getUserSettings(plain.id)).week_start).toBe('sunday');
+    expect((await svc.getUserSettings(own.id)).week_start).toBe('saturday');
+  });
+
+  it('SET-SVC-036 — a week_start default outside monday/sunday/saturday is refused and not stored', async () => {
+    await expect(svc.setAdminUserDefaults({ week_start: 'friday' })).rejects.toThrow(/Invalid value for week_start/);
+    // Vacay's 0/1 numbers are not this setting's values either.
+    await expect(svc.setAdminUserDefaults({ week_start: 0 })).rejects.toThrow(/Invalid value for week_start/);
+    expect((await svc.getAdminUserDefaults()).week_start).toBeUndefined();
+  });
+
   it('SET-SVC-028 — a nulled defaultable key falls through to the admin default', async () => {
     const { user } = createUser(testDb);
     await svc.setAdminUserDefaults({ mapbox_style: 'admin-style' });

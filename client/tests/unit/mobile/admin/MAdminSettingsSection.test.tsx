@@ -1,4 +1,4 @@
-// FE-MOB-ASET-001 to FE-MOB-ASET-023
+// FE-MOB-ASET-001 to FE-MOB-ASET-024
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
@@ -234,6 +234,21 @@ describe('MAdminSettingsSection', () => {
     expect(admin.handleValidateKey).toHaveBeenCalledWith('maps');
   });
 
+  it('FE-MOB-ASET-024: a key the environment sets is read-only and names its variable (#1881)', async () => {
+    const user = userEvent.setup();
+    const admin = renderSettings({
+      keyInputProps: (field: string) =>
+        field === 'maps' ? { disabled: true, placeholder: 'Set via PLACES_API_KEY' } : { disabled: false, placeholder: 'Enter key...' },
+      mapsKeyTestable: true,
+    });
+
+    expect(screen.getByLabelText('Google Maps API Key')).toBeDisabled();
+    expect(screen.getByLabelText('Google Maps API Key')).toHaveAttribute('placeholder', 'Set via PLACES_API_KEY');
+    expect(screen.getByLabelText('Unsplash API Key')).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Test' }));
+    expect(admin.handleValidateKey).toHaveBeenCalledWith('maps');
+  });
+
   it('FE-MOB-ASET-015: the validation result renders as a valid or invalid line', () => {
     const { unmount } = render(
       <Harness admin={buildAdminHook({ mapsKey: 'k', validation: { maps: true } })} />,
@@ -345,6 +360,35 @@ describe('MAdminSettingsSection', () => {
     expect(admin.setPlacesPhotosEnabled).toHaveBeenLastCalledWith(true);
     expect(admin.setPlacesAutocompleteEnabledState).toHaveBeenLastCalledWith(true);
     expect(admin.setPlacesDetailsEnabledState).toHaveBeenLastCalledWith(true);
+  });
+
+  it('FE-MOB-ASET-018b: the Google-only row says what it needs without a key and toggles through the hook', async () => {
+    const user = userEvent.setup();
+    const admin = renderSettings();
+    await user.click(screen.getByRole('button', { name: 'What the key is used for' }));
+
+    expect(screen.getByText(/Needs a Google Maps API key/)).toBeInTheDocument();
+    expect(toggle('Search with Google only')).toHaveAttribute('aria-checked', 'false');
+    await user.click(toggle('Search with Google only'));
+    expect(admin.handleTogglePlacesGoogleOnly).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-ASET-018c: with a key the Google-only row explains what it changes, unless another provider holds the slot', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<Harness admin={buildAdminHook({ hasMapsKey: true, placesGoogleOnly: true })} />);
+    await user.click(screen.getByRole('button', { name: 'What the key is used for' }));
+    expect(screen.getByText(/Every search and every suggestion goes to Google Places/)).toBeInTheDocument();
+    expect(toggle('Search with Google only')).toHaveAttribute('aria-checked', 'true');
+    unmount();
+
+    // The server ignores the switch under Amap or OpenStreetMap, and the row
+    // must not promise otherwise just because a key is stored.
+    render(<Harness admin={buildAdminHook({ hasMapsKey: true, placesGoogleOnly: true, placesProvider: 'amap' })} />);
+    await user.click(screen.getByRole('button', { name: 'What the key is used for' }));
+    expect(screen.queryByText(/Every search and every suggestion goes to Google Places/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Needs a Google Maps API key/)).not.toBeInTheDocument();
+    const row = toggle('Search with Google only').closest<HTMLElement>('.justify-between')!;
+    expect(row.textContent).toMatch(/provider/i);
   });
 
   it('FE-MOB-ASET-019: the API-keys card is about keys, and weather needs none', () => {

@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Vincular archivo',
   'files.linkEmpty': 'Aún no hay lugares ni reservas para vincular',
   'files.menu': 'Más opciones',
-  'files.uploadErrorSize': 'El archivo es demasiado grande (máx. 50 MB)',
+  'files.uploadErrorSize': 'El archivo es demasiado grande (máx. {max} MB)',
   'files.title': 'Archivos',
   'files.pageTitle': 'Archivos y documentos',
   'files.subtitle': '{count} archivos para {trip}',

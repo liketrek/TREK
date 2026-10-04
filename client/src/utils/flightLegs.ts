@@ -49,6 +49,17 @@ export function orderedEndpoints(r: Pick<Reservation, 'endpoints'>): Reservation
 }
 
 /**
+ * An airport endpoint's name without the code every writer appends to it:
+ * "Paris Charles de Gaulle (CDG)" → "Paris Charles de Gaulle". Done as a trim plus an
+ * anchored test instead of /\s*\([A-Z]{3}\)\s*$/, because the leading \s* backtracks over
+ * every space in a long name for a quadratic worst case.
+ */
+export function stripAirportCode(name: string): string {
+  const trimmed = name.trimEnd()
+  return /\([A-Z]{3}\)$/.test(trimmed) ? trimmed.slice(0, -5).trimEnd() : name
+}
+
+/**
  * Ordered legs of a flight. `metadata.legs` is preferred; otherwise a single leg
  * is derived from the endpoints (and finally the flat metadata) so that legacy
  * single-leg flights — and flights created before this feature — still work.
@@ -155,8 +166,17 @@ export function legCount(r: Reservation): number {
   return getFlightLegs(r).length
 }
 
+/**
+ * Types whose route is a row of stations, each with its own arrival and
+ * departure: trains, and cruises with their ports of call (#1807). Both use
+ * the station form and the legs getTrainLegs reads.
+ */
+export function usesStationRoute(type: string | null | undefined): boolean {
+  return type === 'train' || type === 'cruise'
+}
+
 export function isMultiLegTrain(r: Reservation): boolean {
-  return r.type === 'train' && getTrainLegs(r).length > 1
+  return usesStationRoute(r.type) && getTrainLegs(r).length > 1
 }
 
 export function isMultiLegFlight(r: Reservation): boolean {

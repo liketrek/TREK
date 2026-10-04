@@ -84,7 +84,7 @@ export default function PlCategoryPicker({ planner, value, onChange }: PlCategor
             onKeyDown={e => {
               if (e.key === 'Enter') {
                 e.preventDefault()
-                handleCreate()
+                void handleCreate()
               }
             }}
             placeholder={t('places.categoryNamePlaceholder')}

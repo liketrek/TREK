@@ -602,6 +602,16 @@ describe('toPlaceRecord', () => {
     expect(r.lat).toBeNull();
   });
 
+  // #2483: Overture keeps a website the way the operator typed it.
+  it('TREK-PLACES-2483-01: a website without a scheme gains https, one that is no website becomes null', () => {
+    const withSite = (website: string | null) => toPlaceRecord({ ...PLACE, contact: { ...PLACE.contact, website } }).website;
+    expect(withSite('fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët')).toBe(
+      'https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
+    );
+    expect(withSite('javascript:alert(1)')).toBeNull();
+    expect(withSite(null)).toBeNull();
+  });
+
   it('builds an address from whatever parts exist', () => {
     const r = toPlaceRecord({
       ...PLACE,

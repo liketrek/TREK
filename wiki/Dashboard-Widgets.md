@@ -1,6 +1,6 @@
 # Dashboard Widgets
 
-The My Trips dashboard has a widget sidebar holding a currency converter, a timezone clock and a list of upcoming reservations, plus a Collections shortcut when the [Collections](Collections) addon is enabled (it ships disabled). Installed plugins can contribute further widgets to the same sidebar. This page covers the currency converter and the timezone clock.
+The My Trips dashboard has a widget sidebar holding a currency converter, a timezone clock and a list of upcoming reservations, plus a Collections shortcut when the [Collections](Collections) addon is enabled (it ships disabled). Installed plugins can contribute further widgets to the same sidebar. This page covers the currency converter, the timezone clock and the upcoming reservations list.
 
 ![Dashboard Widgets](assets/DashboardWidgets.png)
 
@@ -53,6 +53,12 @@ The timezone clock displays live clocks for multiple time zones simultaneously.
 - Hover over a zone row and click **×** to remove it.
 
 Clocks refresh every 30 seconds and are always shown in 24-hour time — the 12-hour display setting does not apply to this widget.
+
+---
+
+## Upcoming reservations
+
+**Upcoming reservations** lists the next six bookings across all your trips that are not archived, soonest first. A booking counts when its time is still ahead, or, without a time, when its day is today or later; cancelled bookings are left out. A hotel stay is not listed as a whole: its **Check-in** and **Check-out** appear as two entries of their own. Each row shows the date, the time in your 12 or 24 hour format, the title with a **Pending** tag while the booking is not confirmed, and the booking's type as an icon. Click a row to open its trip. With nothing ahead the widget reads *Nothing booked yet.*
 
 ---
 

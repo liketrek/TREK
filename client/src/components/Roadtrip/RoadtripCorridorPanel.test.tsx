@@ -138,6 +138,25 @@ const searchRow = (): HTMLButtonElement[] => {
 }
 
 describe('RoadtripCorridorPanel', () => {
+  it('FE-ROADTRIP-PANEL-036: the day sits beside what is looked for, not in the header, and picking one moves the search', () => {
+    const c = corridor()
+    wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1), day(2, 2)])} />)
+    const dayTrigger = screen.getByText('Day 1').closest('button')!
+    expect(dayTrigger.closest('header, h2')).toBeNull()
+    // One line: the kinds and the day share the row under "Looking for".
+    const row = dayTrigger.parentElement!.parentElement!
+    expect(row.querySelector('[aria-haspopup="listbox"]')).not.toBe(dayTrigger)
+    expect(row.querySelectorAll('[aria-haspopup="listbox"]')).toHaveLength(2)
+    fireEvent.click(dayTrigger)
+    fireEvent.click(screen.getByRole('option', { name: /Day 2/ }))
+    expect(c.setDayId).toHaveBeenCalledWith('2')
+  })
+
+  it('FE-ROADTRIP-PANEL-037: a trip of one day offers no day to pick', () => {
+    wrap(<RoadtripCorridorPanel corridor={corridor()} routes={routes([day(1, 1)])} />)
+    expect(screen.queryByText('Day 1')).toBeNull()
+  })
+
   it('FE-ROADTRIP-PANEL-001: searching is a button, never a side effect of opening the panel', () => {
     const c = corridor()
     wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
@@ -512,8 +531,8 @@ describe('RoadtripCorridorPanel', () => {
   })
 
   it('FE-ROADTRIP-PANEL-032: a narrow panel gives the heading up before it gives up a control', () => {
-    // The heading repeats what the column already is, and the day picker beside it is
-    // the part somebody came here to change.
+    // The heading repeats what the column already is; the controls are what somebody came
+    // here to change.
     panelWidth.value = 320
     const { unmount } = wrap(<RoadtripCorridorPanel corridor={corridor()} routes={routes([day(1, 1), day(2, 2)])} />)
     expect(screen.getByRole('heading', { name: 'Along the route' })).toBeInTheDocument()

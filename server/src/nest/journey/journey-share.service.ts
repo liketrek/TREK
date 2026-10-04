@@ -234,7 +234,8 @@ export class JourneyShareService {
     // JS15 (R1's second `GALLERY_CHRONOLOGICAL_ORDER` site) — L2: reuses
     // `JourneyPhotosRepository.galleryRead` (same `GALLERY_COLUMNS`, same
     // ORDER BY) rather than a second, hand-kept copy of the same query.
-    const gallery = await this.photosRepo.galleryRead(row.journey_id);
+    // A photo whose every entry is a draft stays off the public page (#696).
+    const gallery = await this.photosRepo.galleryRead(row.journey_id, { hideDraftOnly: true });
 
     const enrichedEntries = entries
       .map(e => ({

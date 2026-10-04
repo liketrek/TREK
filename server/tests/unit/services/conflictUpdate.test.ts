@@ -79,6 +79,7 @@ import {
   createTestPackingTemplateCategoriesRepo,
   createTestPackingTemplateItemsRepo,
 } from '../../helpers/packing-repos';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 const realtime = new RealtimeService();
 const runtimeEnv = new RuntimeEnvService();
@@ -119,7 +120,7 @@ beforeAll(async () => {
   places = new PlacesService(
   new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
   realtime,
-  new MapsService(photoCache, await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestPlaceDetailsCacheRepo(testDb), await createTestPlacesRepo(testDb)),
+  new MapsService(photoCache, await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestPlaceDetailsCacheRepo(testDb), await createTestPlacesRepo(testDb), noGoogleQuota),
   new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
   new UnsplashService(await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), runtimeEnv, makeStorageFixture('').storage),
   photoCache,

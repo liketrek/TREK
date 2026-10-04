@@ -1,6 +1,6 @@
 /**
  * Unit tests for the DI-discovered DaysMcp: the update_day and reorder_days
- * tools, create_day's mid-trip insert, and the trek://trips/{tripId}/days
+ * tools, create_day's mid-trip insert and dated append, and the trek://trips/{tripId}/days
  * resource (moved from resources.test.ts when the legacy registrar was ported).
  * create_day's plain append is covered in tools-days-accommodations.test.ts.
  */
@@ -26,6 +26,7 @@ import {
   createUser, createTrip, createDay, createPlace, createDayAssignment, createDayAccommodation,
 } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { DaysService } from '../../../src/nest/days/days.service';
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -352,6 +353,114 @@ describe('Tool: create_day (position)', () => {
       expect(result.isError).toBe(true);
     });
     expect(dayIdsInOrder(trip.id)).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// create_day (dated)
+// ---------------------------------------------------------------------------
+
+describe('Tool: create_day (dated)', () => {
+  const endDate = (tripId: number) =>
+    (testDb.prepare('SELECT end_date FROM trips WHERE id = ?').get(tripId) as { end_date: string | null }).end_date;
+
+  it('appends the next date behind the dated days, extends the trip and answers with both', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2025-06-01', end_date: '2025-06-02' });
+    const [d1, d2] = dayIdsInOrder(trip.id);
+    const spare = createDay(testDb, trip.id);
+
+    let data = {} as { day: { id: number; date: string; notes: string | null }; trip: { end_date: string; day_count: number } };
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_day',
+        arguments: { tripId: trip.id, dated: true, notes: 'Late checkout' },
+      });
+      data = parseToolResult(result) as typeof data;
+    });
+
+    expect(data.day).toMatchObject({ date: '2025-06-03', notes: 'Late checkout' });
+    expect(data.trip).toMatchObject({ end_date: '2025-06-03', day_count: 4 });
+    expect(dayIdsInOrder(trip.id)).toEqual([d1, d2, data.day.id, spare.id]);
+    expect(dayDatesInOrder(trip.id)).toEqual(['2025-06-01', '2025-06-02', '2025-06-03', null]);
+    expect(endDate(trip.id)).toBe('2025-06-03');
+    // The insert shape of day:reordered, so collaborators refetch, then the trip.
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'day:reordered', expect.objectContaining({ day: expect.objectContaining({ id: data.day.id }) }));
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'trip:updated', expect.objectContaining({ trip: expect.objectContaining({ end_date: '2025-06-03' }) }));
+    expect(broadcastMock).not.toHaveBeenCalledWith(trip.id, 'day:created', expect.any(Object));
+  });
+
+  it('refuses dated next to a position or a date, the way the REST contract does', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2025-06-01', end_date: '2025-06-02' });
+
+    await withHarness(user.id, async (h) => {
+      for (const extra of [{ position: 1 }, { date: '2025-07-01' }]) {
+        const result = await h.client.callTool({ name: 'create_day', arguments: { tripId: trip.id, dated: true, ...extra } });
+        expect(result.isError).toBe(true);
+        expect((result.content as { text: string }[])[0].text).toContain('dated cannot be combined with date or position');
+      }
+    });
+
+    expect(dayIdsInOrder(trip.id)).toHaveLength(2);
+    expect(endDate(trip.id)).toBe('2025-06-02');
+    expect(broadcastMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses a trip without dates and writes nothing', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createDay(testDb, trip.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'create_day', arguments: { tripId: trip.id, dated: true } });
+      expect(result.isError).toBe(true);
+      expect((result.content as { text: string }[])[0].text).toContain('This trip has no dates');
+    });
+
+    expect(dayDatesInOrder(trip.id)).toEqual([null]);
+    expect(broadcastMock).not.toHaveBeenCalled();
+  });
+
+  it('lets an unexpected failure surface as one, not as a refusal of the trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2025-06-01', end_date: '2025-06-02' });
+    const boom = vi.spyOn(DaysService.prototype, 'appendDated').mockImplementation(() => { throw new Error('disk full'); });
+    try {
+      await withHarness(user.id, async (h) => {
+        const result = await h.client.callTool({ name: 'create_day', arguments: { tripId: trip.id, dated: true } });
+        expect(result.isError).toBe(true);
+        expect(JSON.stringify(result.content)).not.toContain('This trip has no dates');
+      });
+    } finally {
+      boom.mockRestore();
+    }
+    expect(broadcastMock).not.toHaveBeenCalled();
+  });
+
+  it('blocks a demo user', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const trip = createTrip(testDb, user.id, { start_date: '2025-06-01', end_date: '2025-06-02' });
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'create_day', arguments: { tripId: trip.id, dated: true } });
+      expect(result.isError).toBe(true);
+    });
+
+    expect(dayIdsInOrder(trip.id)).toHaveLength(2);
+    expect(endDate(trip.id)).toBe('2025-06-02');
+  });
+
+  it('an insert at a position announces the grown trip as well', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2025-06-01', end_date: '2025-06-02' });
+
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'create_day', arguments: { tripId: trip.id, position: 1 } });
+    });
+
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'trip:updated', expect.objectContaining({ trip: expect.objectContaining({ end_date: '2025-06-03', day_count: 3 }) }));
   });
 });
 

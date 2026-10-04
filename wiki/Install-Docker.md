@@ -44,6 +44,8 @@ See [Environment-Variables](Environment-Variables) for the full list.
 
 Replace `mauriceboe/trek:latest` in the run command with your chosen tag to pin to a major version or exact release.
 
+Every image carries the standard `org.opencontainers.image.*` labels (title, version, source, documentation, licence), so an update tool such as Renovate links an image update to its release notes. `docker inspect mauriceboe/trek:latest --format '{{json .Config.Labels}}'` shows them.
+
 ## Volume Reference
 
 | Volume | Container path | What lives there |

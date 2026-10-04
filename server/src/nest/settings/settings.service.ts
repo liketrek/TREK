@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { UnitOfWork } from '../database/unit-of-work';
 import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { MASKED_SETTING_VALUE, normalizeAppearance } from '@trek/shared';
+import { MASKED_SETTING_VALUE, WEEK_START_VALUES, normalizeAppearance } from '@trek/shared';
 import { readEnv } from '../../app-config';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
@@ -30,6 +30,8 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'distance_unit',
   'dark_mode',
   'time_format',
+  // First day of the week in every date picker (#2029).
+  'week_start',
   // Instance-wide default currency for Costs (new users inherit it until they
   // pick their own). Free-form ISO code, validated on the client.
   'default_currency',
@@ -88,6 +90,7 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
   temperature_unit: ['fahrenheit', 'celsius'],
   distance_unit: ['metric', 'imperial'],
   time_format: ['12h', '24h'],
+  week_start: [...WEEK_START_VALUES],
   dark_mode: [true, false, 'light', 'dark', 'auto'],
   map_provider: ['leaflet', 'mapbox-gl', 'maplibre-gl'],
   llm_provider: ['local', 'openai', 'anthropic'],

@@ -2,7 +2,7 @@
  * Journey API integration tests.
  * Covers JOURNEY-INT-001 through JOURNEY-INT-020.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import request from 'supertest';
 import type { Application } from 'express';
 import type { INestApplication } from '@nestjs/common';
@@ -45,6 +45,7 @@ import {
   addJourneyContributor,
 } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
+import { jpegWithExif } from '../helpers/exif-jpeg';
 import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
 
 let nestApp: INestApplication;
@@ -1193,5 +1194,91 @@ describe('Journey upload parity', () => {
     expect(res.body.cover_image).toMatch(/^journey\/[0-9a-f-]{36}\.jpg$/);
     const diskName = res.body.cover_image.replace(/^journey\//, '');
     expect(fsMod.existsSync(pathMod.join(journeyDir, diskName))).toBe(true);
+  });
+
+  describe('capture metadata read from the uploaded file (#2512)', () => {
+    // A server whose zone is neither UTC nor the photographer's: the setup the
+    // report came from, and the only one where a stamp read in the wrong zone shows.
+    let prevTz: string | undefined;
+    beforeEach(() => {
+      prevTz = process.env.TZ;
+      process.env.TZ = 'America/Chicago';
+    });
+    afterEach(() => {
+      if (prevTz === undefined) delete process.env.TZ;
+      else process.env.TZ = prevTz;
+    });
+
+    const phonePhoto = () => jpegWithExif({
+      DateTimeOriginal: '2026:05:30 15:52:19',
+      CreateDate: '2026:05:30 15:52:19',
+      OffsetTime: '+02:00',
+      OffsetTimeOriginal: '+02:00',
+      OffsetTimeDigitized: '+02:00',
+      gps: { lat: 49.274523, lng: -0.703421 },
+    });
+
+    type CaptureRow = { taken_at: string | null; lat: number | null; lng: number | null };
+    // The backfill runs detached after the response, so wait for it to land.
+    async function captureOf(filePath: string): Promise<CaptureRow> {
+      let row: CaptureRow | undefined;
+      await vi.waitFor(() => {
+        row = testDb.prepare('SELECT taken_at, lat, lng FROM trek_photos WHERE file_path = ?').get(filePath) as CaptureRow;
+        expect(row?.taken_at).toBeTruthy();
+      });
+      return row!;
+    }
+
+    it('JOURNEY-P10: an entry photo stores the instant from DateTimeOriginal plus its offset, and its GPS', async () => {
+      const { user } = createUser(testDb);
+      const journey = createJourney(testDb, user.id);
+      const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-05-30' });
+
+      const res = await request(app)
+        .post(`/api/journeys/entries/${entry.id}/photos`)
+        .set('Cookie', authCookie(user.id))
+        .attach('photos', phonePhoto(), { filename: 'PXL_20260530_135219.jpg', contentType: 'image/jpeg' });
+      expect(res.status).toBe(201);
+
+      const row = await captureOf(res.body.photos[0].file_path);
+      // Not 2026-05-30T20:52:19.000Z, which is the stamp read as Chicago time.
+      expect(row.taken_at).toBe('2026-05-30T13:52:19.000Z');
+      expect(row.lat).toBeCloseTo(49.274523, 5);
+      expect(row.lng).toBeCloseTo(-0.703421, 5);
+    });
+
+    it('JOURNEY-P11: a gallery photo gets the same', async () => {
+      const { user } = createUser(testDb);
+      const journey = createJourney(testDb, user.id);
+
+      const res = await request(app)
+        .post(`/api/journeys/${journey.id}/gallery/photos`)
+        .set('Cookie', authCookie(user.id))
+        .attach('photos', phonePhoto(), { filename: 'PXL_20260530_135219.jpg', contentType: 'image/jpeg' });
+      expect(res.status).toBe(201);
+
+      const row = await captureOf(res.body.photos[0].file_path);
+      expect(row.taken_at).toBe('2026-05-30T13:52:19.000Z');
+      expect(row.lat).toBeCloseTo(49.274523, 5);
+      expect(row.lng).toBeCloseTo(-0.703421, 5);
+    });
+
+    it('JOURNEY-P12: zeros in the GPS block, as a receiver without a fix writes them, put no pin at 0,0', async () => {
+      const { user } = createUser(testDb);
+      const journey = createJourney(testDb, user.id);
+
+      const res = await request(app)
+        .post(`/api/journeys/${journey.id}/gallery/photos`)
+        .set('Cookie', authCookie(user.id))
+        .attach('photos', jpegWithExif({
+          DateTimeOriginal: '2026:05:30 15:52:19',
+          OffsetTimeOriginal: '+02:00',
+          gps: { lat: 0, lng: 0 },
+        }), { filename: 'nofix.jpg', contentType: 'image/jpeg' });
+      expect(res.status).toBe(201);
+
+      const row = await captureOf(res.body.photos[0].file_path);
+      expect(row).toEqual({ taken_at: '2026-05-30T13:52:19.000Z', lat: null, lng: null });
+    });
   });
 });

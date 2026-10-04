@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'ファイルをリンク',
   'files.linkEmpty': 'リンクできる場所や予約がまだありません',
   'files.menu': 'その他のオプション',
-  'files.uploadErrorSize': 'ファイルが大きすぎます（最大50MB）',
+  'files.uploadErrorSize': 'ファイルが大きすぎます（最大{max}MB）',
   'files.title': 'ファイル',
   'files.pageTitle': 'ファイル・ドキュメント',
   'files.subtitle': '{trip} のファイル {count} 件',

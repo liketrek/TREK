@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'もうすぐ到着...',
   'trip.mobilePlan': '計画',
   'trip.mobilePlaces': '場所',
+  'trip.panelWidth': 'パネルの幅',
   'trip.toast.placeUpdated': '場所を更新しました',
   'trip.toast.tripUpdated': '旅行を更新しました',
   'trip.toast.placeAdded': '場所を追加しました',
@@ -88,7 +89,8 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': '乗り換え',
   'transit.walkLabel': '徒歩',
   'transit.searchHint': '実際の経路を検索して、そのまま日程に追加できます — データは Transitous 提供。',
-  'trip.confirm.deletePlaceNight': '「{name}」で予約した宿泊も場所と一緒に削除されます。',
-  'trip.confirm.deletePlaceBooked': '「{name}」で予約した宿泊も場所と一緒に削除され、予約「{booking}」と関連する支出も失われます。',
+  'trip.confirm.deletePlaceNight': '「{name}」で予約した宿泊も削除されます。',
+  'trip.confirm.deletePlaceBooked': '「{name}」で予約した宿泊、予約「{booking}」、関連する支出も削除されます。',
+  'trip.confirm.deletePlaceBookedSame': '「{name}」で予約した宿泊とその予約、関連する支出も削除されます。',
 };
 export default trip;

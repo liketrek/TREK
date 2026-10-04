@@ -67,6 +67,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Mapy i GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Eksportuj plan dnia jako PDF',
+  'dayplan.pdfMine': 'Mój plan jako PDF',
+  'dayplan.pdfMineSub': 'Tylko aktywności i rezerwacje, w których bierzesz udział',
   'dayplan.gpxTooltip': 'Eksportuj jako GPX do map offline i urządzeń GPS',
   'dayplan.gpxAll': 'Cała podróż',
   'dayplan.gpxPlaces': 'Tylko miejsca',
@@ -79,8 +81,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Wszystkie miejsca przypisane',
   'dayplan.mobile.noMatch': 'Brak wyników',
   'dayplan.mobile.createNew': 'Utwórz nowe miejsce',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Rozwiń wszystkie dni', // en-fallback
+  'dayplan.collapseAll': 'Zwiń wszystkie dni', // en-fallback
   'dayplan.reorderDays': 'Zmień kolejność dni',
   'dayplan.reorderTitle': 'Zmień kolejność dni',
   'dayplan.reorderHint': 'Miejsca, notatki i rezerwacje danego dnia przenoszą się razem z nim.',
@@ -90,5 +92,52 @@ const dayplan: TranslationStrings = {
   'dayplan.reorderUndo': 'Zmień kolejność dni',
   'dayplan.reorderError': 'Nie udało się zmienić kolejności dni',
   'dayplan.addDayError': 'Nie udało się dodać dnia',
+  'dayplan.deleteDay': 'Usuń dzień',
+  'dayplan.deleteDayTitle': 'Usunąć {day}?',
+  'dayplan.deleteDayBody': 'Dzień zostanie usunięty z podróży. Tej operacji nie można cofnąć.',
+  'dayplan.excludeFromRoute': 'Pomiń w trasie',
+  'dayplan.includeInRoute': 'Przywróć do trasy',
+  'dayplan.offRoute': 'Poza trasą',
+  'dayplan.offRouteHint': 'Zostaje w dniu i na mapie, ale trasa je pomija',
+  'dayplan.clearDay': 'Wyczyść dzień',
+  'dayplan.clearDayTitle': 'Wyczyścić {day}?',
+  'dayplan.clearDayBody':
+    'Wszystkie miejsca zostaną usunięte z tego dnia. Miejsca pozostaną w podróży, a dzień zachowa swoje notatki i rezerwacje.',
+  'dayplan.deleteDayEmpty': 'Na ten dzień nic nie zaplanowano.',
+  'dayplan.impactPlaces': 'Zaplanowane miejsca: {count}',
+  'dayplan.impactPlacesHint': 'Pozostają na liście miejsc.',
+  'dayplan.impactNotes': 'Notatki: {count}',
+  'dayplan.impactTexts': 'Tytuły i opisy dnia: {count}',
+  'dayplan.impactDeletedHint': 'Również zostaną usunięte.',
+  'dayplan.impactBookings': 'Rezerwacje: {count}',
+  'dayplan.impactStay': 'Nocleg w {name}',
+  'dayplan.deleteDayBookingsHint': 'Pozostają w Rezerwacjach, bez dnia.',
+  'dayplan.deleteDayStayHint': 'Zameldowanie lub wymeldowanie przypada na ten dzień, więc nocleg zostanie anulowany.',
+  'dayplan.deleteDayStayBookedHint':
+    'Zameldowanie lub wymeldowanie przypada na ten dzień, więc nocleg zostanie anulowany razem z rezerwacją „{booking}” i jej wydatkiem.',
+  'dayplan.deleteDayStayBookingHint':
+    'Zameldowanie lub wymeldowanie przypada na ten dzień, więc nocleg zostanie anulowany razem z rezerwacją „{booking}”.',
+  'dayplan.deleteDayStayPaidHint':
+    'Zameldowanie lub wymeldowanie przypada na ten dzień, więc nocleg zostanie anulowany razem z rezerwacją „{booking}” i jej wydatkiem w kwocie {amount}.',
+  'dayplan.deleteDayShift': 'Późniejsze dni: {count}',
+  'dayplan.deleteDayShiftHint': 'Każdy przesuwa się o jedną datę wcześniej.',
+  'dayplan.deleteDayShiftBookingsHint':
+    'Każdy przesuwa się o jedną datę wcześniej. Rezerwacje przesuwane razem z nimi: {count}',
+  'dayplan.deleteDayShrink': 'Podróż kończy się teraz {date}',
+  'dayplan.deleteDayShrinkHint': 'Nie ma dnia bez daty, który mógłby przejąć ostatnią datę.',
+  'dayplan.impactStayShorter': 'Nocleg w {name}: o jedną noc krócej',
+  'dayplan.deleteDayStayShorterHint': 'Obejmuje ten dzień, więc wymeldowanie przypada teraz na {date}.',
+  'dayplan.deleteDayStayShorterUndatedHint': 'Obejmuje ten dzień, więc kończy się teraz dzień wcześniej.',
+  'dayplan.deleteDaySpareDated': '{day} otrzymuje datę {date}',
+  'dayplan.deleteDaySpareDatedHint': 'To pierwszy dzień bez daty i przejmuje ostatnią datę podróży.',
+  'dayplan.deleteDayLast': 'Podróż musi mieć co najmniej jeden dzień',
+  'dayplan.daysOffline': 'Zmiana dni wymaga połączenia',
+  'dayplan.deleteDaySuccess': 'Dzień usunięty',
+  'dayplan.deleteDayError': 'Nie udało się usunąć dnia',
+  'dayplan.addUndatedDay': 'Bez daty',
+  'dayplan.addUndatedDayHint': 'Dodaje na końcu dzień bez daty. Daty podróży się nie zmieniają.',
+  'dayplan.addDatedDay': 'Dodaj {date}',
+  'dayplan.addDatedDayHint': 'Wydłuża podróż o jeden dzień, do {date}.',
+  'dayplan.tripExtended': 'Dodano dzień. Podróż kończy się teraz {date}, dzień później.',
 };
 export default dayplan;

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { ChevronDown, Globe } from 'lucide-react'
 import { SUPPORTED_LANGUAGES } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAnchoredPosition } from '../../hooks/useAnchoredPosition'
@@ -13,6 +14,11 @@ interface PublicLanguagePickerProps {
   locale?: string | null
   open: boolean
   onOpenChange: React.Dispatch<React.SetStateAction<boolean>>
+  /**
+   * `overlay` pins the pill over a dark hero (the journey page); `bar` sits in
+   * the flow of a light top bar, as the trip page's does.
+   */
+  variant?: 'overlay' | 'bar'
 }
 
 /**
@@ -26,7 +32,7 @@ interface PublicLanguagePickerProps {
  * trigger now, which no ancestor can clip, and it caps its own height at the room
  * the viewport actually has: the treatment `CustomSelect` already gets.
  */
-export default function PublicLanguagePicker({ locale, open, onOpenChange }: PublicLanguagePickerProps) {
+export default function PublicLanguagePicker({ locale, open, onOpenChange, variant = 'overlay' }: PublicLanguagePickerProps) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   // matchWidth stays on: the anchored box's `width` is the trigger's own width,
@@ -61,28 +67,45 @@ export default function PublicLanguagePicker({ locale, open, onOpenChange }: Pub
     ? Math.max(8, (typeof window === 'undefined' ? 0 : window.innerWidth) - anchored.left - anchored.width)
     : 8
 
+  const label = SUPPORTED_LANGUAGES.find(l => l.value === current)?.label || 'Language'
+
   return (
-    <div ref={wrapRef} style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
-      <button
-        type="button"
-        aria-haspopup="true"
-        aria-expanded={open}
-        onClick={() => onOpenChange(v => !v)}
-        className="bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.7)]"
-        style={{
-          padding: '5px 12px',
-          borderRadius: 20,
-          border: '1px solid rgba(255,255,255,0.15)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
-          fontWeight: 500,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-        }}
-      >
-        {SUPPORTED_LANGUAGES.find(l => l.value === current)?.label || 'Language'}
-      </button>
+    <div ref={wrapRef} style={variant === 'bar' ? { position: 'relative' } : { position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
+      {variant === 'bar' ? (
+        <button
+          type="button"
+          aria-haspopup="true"
+          aria-expanded={open}
+          onClick={() => onOpenChange(v => !v)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-edge-faint bg-surface-card px-3 py-1.5 font-semibold text-content-secondary shadow-sm transition-colors hover:text-content"
+          style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}
+        >
+          <Globe size={13} strokeWidth={2} className="flex-none text-content-faint" aria-hidden />
+          {label}
+          <ChevronDown size={13} strokeWidth={2} className="flex-none text-content-faint" aria-hidden />
+        </button>
+      ) : (
+        <button
+          type="button"
+          aria-haspopup="true"
+          aria-expanded={open}
+          onClick={() => onOpenChange(v => !v)}
+          className="bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.7)]"
+          style={{
+            padding: '5px 12px',
+            borderRadius: 20,
+            border: '1px solid rgba(255,255,255,0.15)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
+            fontWeight: 500,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          {label}
+        </button>
+      )}
       {open && createPortal(
         <div
           ref={menuRef}

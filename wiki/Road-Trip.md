@@ -71,6 +71,7 @@ The stay is only a starting point. Change it on the stop, see [How long you stay
 - **Make it a stop on the way:** click the number of a numbered stop and pick a kind. The number turns into the kind's icon and the stops below it are renumbered.
 - **Change what kind of stop this is:** click the icon of a stop on the way. **Back to a destination** gives it its number again.
 - A fuel or charging stop that refills your vehicle carries a fill badge (see [Driving limits and range](#driving-limits-and-range)). Click it to set how full this particular stop fills, or **Use my default**.
+- **Edit it:** while the Road trip view is on, **Edit** on a stop on the way or on the place of a booked night, from its row, its place details or the map, opens the same compact dialog the search uses, with its kind and its stay. **More details** in that dialog opens the full place form.
 
 Stops on the way also show under **Days** and on the day's route there. To keep them in Road trip only, switch off **Show in Days too** under **Service stops** in the **Driving settings**. The switch is on by default, belongs to the trip, and applies to every stop on the way, including existing ones. A stop that a booked night put on the drive is always hidden under **Days**, whatever the switch says, because the day already shows that booking.
 
@@ -92,7 +93,7 @@ Every stop has a **Stay** badge. Click it to open **Time at this stop**:
 
 A stay may run past midnight. The clock carries into the next morning together with the drive from there, and the next stop moves to the card of the day it is actually reached on. With daily travel times set, the hours between one day's end time and the next day's start time count towards the stay, so a twelve hour night that begins at 20:00 is over at 08:00 the next morning.
 
-A booked night is answered the same way: its length is its stay. The drive never reads a check-out, because a check-out is the latest the room has to be handed back, not the time anybody drives on. The booking keeps its check-out as a booking detail under **Days**.
+A booked night is answered the same way: its length is its stay. The drive never reads a check-out, because a check-out is the latest the room has to be handed back, not the time anybody drives on. The booking keeps its check-out as a booking detail under **Days**. When the day [starts at the stay](#starting-and-ending-the-day-at-the-stay), the hotel's row prints it as *until 10:00*, and that is still a label, not the time the drive leaves.
 
 ## Leaving at a set time
 
@@ -112,7 +113,7 @@ Give a visit a **Start** in the place form and the chain restarts from it. That 
 - With nothing to count from (no pinned time, no check-in and no daily travel times), the rail shows driving times but no clock times.
 - **The schedule works backwards too.** Pin 10:00 on the second stop and the first one says when to set off, worked out from the drive and the stay. It stops at a leg that has not routed rather than inventing a duration.
 - A stop reached later than the time you set says so: *Arrives 15 min after the time you set*. The same warning appears on a fuel or charging halt that carries a time.
-- The **Check-in** of a booked night is not an appointment. Arriving before it means waiting for it, and it starts the day when nothing before it decides the hour. Arriving after it is simply arriving.
+- The **Check-in** of a booked night holds its stop the way a pinned time does: the day is built to be there by then, the chain restarts from it, and a drive that gets there later is late, with the same *Arrives 15 min after the time you set* warning a missed pin gets. A time pinned on the stop itself wins over the check-in.
 
 ## Daily travel times and day endings
 
@@ -132,6 +133,7 @@ Driving then stops at the end time and continues from the same point at the next
 - If a time you pinned cannot be reached together with the daily breaks, the planner says so and pauses automatic scheduling rather than moving your time.
 - Turning daily travel times off keeps every **End the day here** and every dragged ending, but stops applying them until the times are back.
 - With daily travel times set, the days are always connected: the drive from one day's last stop to the next day's first is routed and counted.
+- With **Start and end each day at your stay** on, a booked night ends the day by itself. The drive to tonight's hotel is never cut or carried into the morning, so that day's **End of day** can come after the end time, and the next morning starts at the hotel. A dragged ending between two stops that a booked night separates is ignored. See [Starting and ending the day at the stay](#starting-and-ending-the-day-at-the-stay).
 
 ## Driving settings
 
@@ -144,10 +146,10 @@ The **Driving settings** card sits under the search in the right column. Its bad
 | **Avoid where possible** | **Toll roads**, **Motorways**, **Ferries** |
 | **Service stops** | **Show in Days too** |
 | **Vehicle** | What you drive (**Either**, **Petrol**, **Electric**), the range, **Fill up to**, and **Work it out from the car** |
-| **Route line** | **Connect the days**, **A colour per day** |
+| **Route line** | **Connect the days**, **Start and end each day at your stay**, **A colour per day** |
 | **Current warnings** | **Show hazard areas** |
 
-**Connect the days** routes the drive from one day's last stop to the next day's first and counts it towards the day it arrives on. It is off by default, and always on while daily travel times are set. **A colour per day** draws each day in its own colour and tints its card to match.
+**Connect the days** routes the drive from one day's last stop to the next day's first and counts it towards the day it arrives on. It is off by default, and always on while daily travel times are set. **Start and end each day at your stay** is off by default too, see [Starting and ending the day at the stay](#starting-and-ending-the-day-at-the-stay). **A colour per day** draws each day in its own colour and tints its card to match.
 
 ## Driving limits and range
 
@@ -166,8 +168,8 @@ Where the range runs out, the rail draws a band across the leg: **Tank runs out 
 
 The **Along the route** panel searches the road actually driven, not the straight line between stops. That is the difference between one petrol station and forty.
 
-1. Pick the **Day** at the top of the panel.
-2. Under **Looking for**, pick one or more of **Fuel**, **Charging**, **Rest area**, **Campsite**, **Accommodation**, **Food** and **Sights**. It opens on **Charging** when the trip's vehicle is electric, and on **Fuel** otherwise.
+1. Under **Looking for**, open the list and tick one or more of **Fuel**, **Charging**, **Rest area**, **Campsite**, **Accommodation**, **Food** and **Sights**. It opens on **Charging** when the trip's vehicle is electric, and on **Fuel** otherwise.
+2. Pick the **Day** in the dropdown at the end of the same line. **Search** waits until that day has routed.
 3. Under **Within**, pick 2, 5 or 10 km either side of the road.
 4. Press **Search**.
 
@@ -210,7 +212,7 @@ The handles show once you zoom in far enough to aim at a road (zoom level 9). A 
 
 ## Other ways and avoidance
 
-Click a drive band in the rail to see **Ways to drive this leg**. TREK asks the router for alternatives and lists them: the **Fastest**, how much slower or quicker each other one is, and on a leg you already reshaped, the road you are on as **Current**. Hover an entry to light it up on the map, click it to drive that way. Choosing a different road places a via on the leg, replacing any the leg already had; choosing the router's own road removes them.
+Click a drive band in the rail to see **Ways to drive this leg**. TREK asks the router for alternatives and lists them: the **Fastest**, how much slower or quicker each other one is, and on a leg you already reshaped, the road you are on as **Current**. Hover an entry to light it up on the map, click it to drive that way. Choosing a different road first checks it with the road trip's router, then holds the leg on it with as few vias as it takes, replacing any the leg already had; a road the router will not follow is not saved. Choosing the router's own road removes them again.
 
 The list can also offer **No motorway**, **No tolls** and **No ferry**. These come from the second routing engine (see below), which prices roads with its own speed model, so they are marked *Timed by the avoidance router, not the main one* and are not compared with the others. When the router knows only one way, the list says *Only one sensible way to drive this one.*
 
@@ -267,7 +269,7 @@ The badge is then tinted, and its tooltip names the track the day follows. **Dro
 Switch on **Show hazard areas** under **Current warnings** in the Driving settings. It is off by default and shared by the trip.
 
 - **DWD** weather warnings cover Germany. **GDACS** reports disasters worldwide; up to twelve flood, wildfire or cyclone events are drawn with their affected area.
-- Click an area or an event for the source report and when it was last updated, and for GDACS its alert score. An event given only as a point says *Location only; affected area unknown.*
+- Click an area or an event for the source report and when it was last updated, and for GDACS its alert score: the score of the event's current episode, or the event's overall score where GDACS gives none for the episode. An event given only as a point says *Location only; affected area unknown.*
 - The feeds are refreshed every ten minutes, and a source that is incomplete or unreachable is labelled as such. Offline, live warnings are unavailable.
 - **Warnings are not road closures. Routes stay unchanged.** They are current notices, not forecasts for your travel dates, and the coverage is not exhaustive.
 
@@ -277,10 +279,53 @@ A night booked anywhere, whether in the day panel, the booking form, on the phon
 
 - **Days** shows the night in the day header as always, and hides the stop so the hotel is not listed twice.
 - Moving the booking to another day moves its stop along; deleting the booking removes the stop it created. A stop you placed yourself is left standing.
-- The drive uses the booking's **Check-in** as the earliest arrival and the place's stay as its length. The check-out stays a booking detail.
+- The drive uses the booking's **Check-in** to anchor the stop, the way a pinned time anchors any other, and the place's stay as its length. A drive that cannot make the check-in is reported late. The check-out stays a booking detail.
+- **The night leads its day.** Its stop is seated first, behind only a stop whose own time is at or before the check-in, and the stops that carry no hour follow it: a hotel booked for ten in the morning is reached at ten, not at a quarter past twelve behind a whole day of untimed stops. A night without a check-in is seated first as well, a new check-in seats the stop afresh, and two nights booked on one day settle by their check-ins. A day that is nothing but its booked night stands among the days with the hotel and its check-in, instead of under the *Only {name} so far* placeholder.
+- One consequence to be aware of: a night booked for the end of a driving day heads that day too when its stops carry no time of their own, so the drive reads hotel first. To put the hotel back at the end, drag it down the rail: an edit to the booking that leaves the check-in alone will not undo that. A **Start** at or before the check-in does it as well, as long as it goes on the *first* stop after the hotel: the day re-sorts by time, and the untimed stops behind that one follow it. On the last stop alone it is not enough, because the untimed stops in front of it keep counting as being at the check-in and stay behind the hotel. With [Start and end each day at your stay](#starting-and-ending-the-day-at-the-stay) switched on, none of this is needed: the day ends at tonight's hotel by itself.
 - **Add as an overnight stay** from the search books the night and adds the stop in one go. The night runs to the next day; change the dates under **Days**. On the phone, booking a night works in the desktop planner only.
 
+Trips planned before 4.3.1 were seated the same way when the server upgraded, see [Upgrading to 4.3.1](Updating#upgrading-to-431).
+
 See [Accommodations](Accommodations#on-the-route) for the details.
+
+### Starting and ending the day at the stay
+
+Normally a day drives from its first stop to its last, and the hotel you slept in is not on it. **Start and end each day at your stay**, under **Route line** in the Driving settings, changes that: the day after a booked night starts at that hotel, and the day before one ends at tonight's hotel. The switch is off by default, so a trip drives exactly as before until somebody turns it on. Like every driving setting it belongs to the trip and needs the permission *Edit days, notes & assignments*. On the phone it is the one switch in **Driving figures**, see [On the phone](#on-the-phone).
+
+With it on:
+
+- The hotel stands at the edge of the day card as a row of its own, with a bed icon and no number. In the morning it reads *Check-out · Hotel Adler* with *until 10:00* on the day you leave, and *From Hotel Adler* on a day you come back to. When the plan sets out after the check-out hour, the row adds *Leaves after check-out*. In the evening it reads *Check-in · Hotel Adler* on the day the stay begins, and *Back to Hotel Adler* on a day you come back to, or when you placed the hotel on the day yourself earlier on.
+- The drive to and from the hotel counts towards the day's distance, driving time, driving limits and range. The hotel does not count as a stop and does not refill the tank.
+- These rows are not stops you planned, and nothing is stored for them: they cannot be dragged, removed or given a stay. Clicking one opens the night's booking, or the hotel's place when there is no booking to open. On the phone, a night without a booking opens the stay for somebody who may edit days.
+- Only real nights count: a stay that checks in and out on the same day adds no row, and neither does a hotel without coordinates. Where two stays overlap, the choice is the one **Days** makes: the day ends at a stay checked in that day, otherwise at the one it started from, and it starts at a stay checked in on an earlier day, the one entered first where there are two. A drive between two different hotels is then a real drive.
+- The stop a booking put on its check-in day gives way to that evening's row, the way **Days** hides it: the day checks out, drives its places and ends at tonight's hotel, instead of visiting the hotel in the middle of the day and coming back to it at night. It stays while it is already the day's last stop, or when the day ends at a departure terminal instead. A hotel you placed on the day yourself always stays.
+- A side of the day that already starts or ends at the hotel gets no row. Neither does a day that starts where a flight, train or ferry lands or at a hire car's pick-up desk, or ends at a departure terminal or where the hire car goes back.
+- A day with one place becomes a drive from the hotel to it and back. A day between two nights in the same hotel with no place planned has no drive, and a check-out day with no places is the drive from one hotel to the next.
+- The drive from and to the hotel keeps its road. Clicking it on the map places no via point and says *No via point on the drive to or from your stay. Add a stop there instead.*, and its drive band offers no **Other ways**. Where the day drives the same road again between two of its places, a click there places the via point on that leg as usual. A place added from the search along that drive goes to the start or the end of the day.
+- With **Connect the days** on or daily travel times set, a night at one hotel is no drive between the two days. A via point on the drive from one day into the next is kept, but not used while that day ends at a hotel.
+
+Switch it off and every day drives from its first stop to its last, as before. The **Days** view does not change either way.
+
+## Flights, trains and ferries on the drive
+
+A **Flight**, **Train**, **Ferry**, **Cruise** or **Bus** booking on a day is a seam in the drive: the road ends at the terminal the booking leaves from and starts again at the one it lands at. Nothing is routed across the ride, so a flight from Hamburg to Munich no longer turns into an eight-hour drive on the road trip map.
+
+- A ride that leaves and lands on the same day is one block on the day card: the booking and how long it takes at the top, then the terminal it leaves from and the one it lands at, each with the timetable under its name (*Departure 13:20*, *Arrival 14:30*) and the time the drive has you there on the right. The block opens the booking. A ride that lands on a later day shows its departure at the end of one day and its arrival at the start of the next, each as a row of its own.
+- The departure terminal is pinned a check-in ahead of the timetable (an hour for a flight or a cruise, half an hour for a ferry, ten minutes for a train or a bus). A drive that cannot get there by then is late, the way a missed pinned time is. The arrival terminal is pinned at the timetable's arrival, and the drive continues from it.
+- The map draws the ride as the booking's own line, the same arc the day plan draws, beside the roads.
+- The ride's hours and kilometres are the booking's, not the drive's: the day's distance and driving time count the roads only, the range budget spends nothing on a flight, and after a ride the car cannot take (a flight, a cruise, a bus) the range starts afresh, because the next road is driven in another car. A car ferry or a motorail keeps the budget.
+- A booking that lands on a later day seats its arrival at the start of that day. With **Connect the days** on, the join between the two days is the ride. With daily travel times set, the ride runs on the booking's clock: no day ends at the airport and no morning resumes on the plane.
+- The terminals sit where the day plan lists the booking: a position you dragged it to under Days, otherwise behind the last stop whose time is before the departure, otherwise at the end of the day. Move the booking under Days to move the seam.
+
+What the seam does not do: it never plans the ride itself, and a booking without located terminals (an airport TREK could not place, a train with no station coordinates) makes no seam and is left to the day plan. Via points and other ways of driving are offered for the road into a departure terminal, not for the ride or for the road out of an arrival, and the search along the route skips the ride. A taxi or a transit hop is not a seam: you stay on the road.
+
+### Hire cars
+
+A **Car** booking is not a seam, you drive it, but its desks are where the drive starts and ends. The pick-up desk stands on the day card as a row with the car icon and *Pick-up 09:00* under its name, and it opens the day when nothing timed comes before it. The return desk closes the day it is handed back on, with *Return 11:30*. The road runs through both like any other stop, the range budget starts from a full tank at the pick-up, and both rows open the booking. The return only appears when the booking names a return day and a located return desk; nothing is guessed.
+
+### Other bookings on the day
+
+A table, tickets or a tour booked on the day appear as chips under the stop they belong to: the stop the booking is pinned to, or the stop at the booking's place on that day. A chip shows the booking's icon, its name and the time it starts, and opens the booking. A booking on the day that belongs to no stop is listed under *Also booked this day* at the end of the card, so nothing you booked goes unseen in road trip mode. Nights are the stays, and rides and hire cars have their own rows, so none of them become chips.
 
 ## Car bookings with stops
 
@@ -307,8 +352,9 @@ The tab shows the open day as a chain: where it starts and where it ends, each s
 - **Tap a stop's number or icon** to change its kind, the same seven kinds as on the desktop.
 - **Tap a leg** for other ways to drive it. They light up on the map before anything is saved.
 - **Search along the drive** is two choices: what you are **Looking for**, and **How far**, either *50 km ahead* or **The whole day**. On the day you are driving, *ahead* starts at your next stop; otherwise it starts at the beginning of the day. Fuel and charging offers show the detour and the range they leave, with a button that puts one on the day. Search needs a connection.
+- **Tap the day and distance** at the top of the tab for **Driving figures**: the range and the limits every warning is measured against, to read, and one switch, **Start and end each day at your stay** (see [Starting and ending the day at the stay](#starting-and-ending-the-day-at-the-stay)). It is the same setting as on the desktop and changes it for the whole trip; somebody who may not edit days sees it greyed out.
 
-Planning is done on the desktop: the Driving settings, reordering and deleting stops, following a track and booking a night. The phone reads the plan and handles what a passenger decides on the road.
+Planning is done on the desktop: the other Driving settings, reordering and deleting stops, following a track and booking a night. The phone reads the plan and handles what a passenger decides on the road.
 
 ## MCP tools
 
@@ -316,8 +362,8 @@ With the [MCP](MCP-Overview) addon on as well, an assistant can plan and check a
 
 | Tool | What it does | Scope |
 |---|---|---|
-| `get_roadtrip_context` | Reads the saved days, visits, pinned times, End times, stays, kinds of stop, vias, followed tracks and day endings. | `trips:read` |
-| `calculate_roadtrip` | Works out arrivals, departures, day splits, driving limit and range warnings. Missing coordinates and routing failures are reported, not hidden. | `trips:read` |
+| `get_roadtrip_context` | Reads the saved days, visits, pinned times, End times, stays, kinds of stop, vias, followed tracks and day endings, plus a `carriers` block with the flight, train, ferry, cruise and bus bookings that seam the drive and the hire cars whose desks stand on it, and the booked nights with their check-in and check-out day. | `trips:read` |
+| `calculate_roadtrip` | Works out arrivals, departures, day splits, driving limit and range warnings. Missing coordinates and routing failures are reported, not hidden. A booking's terminals and a hire car's desks come back as stops carrying `carrier` (its role, type and timetable); their `assignmentId` and `placeId` are synthetic negative numbers that belong to no assignment and no place, so never pass them to the assignment or place tools. With **Start and end each day at your stay** on, the hotel rows come back as stops carrying `bookend`, with the stay's real `placeId` and a synthetic negative `assignmentId`. | `trips:read` |
 | `get_roadtrip_settings`, `update_roadtrip_settings` | Read or change the trip's shared driving settings. | `trips:read`, `trips:write` |
 | `search_roadtrip_corridor` | Searches along a calculated day, with the same kinds, filters and sources as the panel. It never adds anything. | `trips:read` |
 | `list_route_vias`, `add_route_via`, `add_route_vias`, `update_route_via`, `reanchor_route_vias`, `remove_route_via` | List, add, move, re-pin and remove via points. | `trips:read`, `trips:write` |
@@ -365,6 +411,7 @@ What TREK contacts, and from where:
 | *Use a Google Maps directions link.* | The link is not a Google Maps directions link, for example a single place. |
 | *The link must contain between 2 and 30 readable stops.* | Too few or too many stops in the link. Split a longer route into days. |
 | Via handles do not appear or do not move | Zoom in further. Otherwise you are offline, or you may not edit days on this trip. |
+| *No via point on the drive to or from your stay. Add a stop there instead.* | You clicked the drive to or from a hotel row, which takes no via point. Add a stop there instead, or switch off **Start and end each day at your stay**. |
 
 ## See also
 

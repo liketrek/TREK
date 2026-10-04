@@ -1,4 +1,9 @@
-import { dayCreateRequestSchema, dayNoteCreateRequestSchema, dayNoteUpdateRequestSchema } from './day.schema';
+import {
+  DAY_CREATE_DATED_CONFLICT,
+  dayCreateRequestSchema,
+  dayNoteCreateRequestSchema,
+  dayNoteUpdateRequestSchema,
+} from './day.schema';
 
 import { describe, it, expect } from 'vitest';
 
@@ -6,6 +11,31 @@ describe('dayCreateRequestSchema', () => {
   it('accepts an optional date + notes', () => {
     expect(dayCreateRequestSchema.safeParse({}).success).toBe(true);
     expect(dayCreateRequestSchema.safeParse({ date: '2026-07-01', notes: 'n' }).success).toBe(true);
+  });
+
+  it('takes dated on its own or with notes', () => {
+    expect(dayCreateRequestSchema.safeParse({ dated: true }).success).toBe(true);
+    expect(dayCreateRequestSchema.safeParse({ dated: true, notes: 'Late checkout' }).success).toBe(true);
+    // An explicit false is a plain append, so it combines with anything.
+    expect(dayCreateRequestSchema.safeParse({ dated: false, position: 2, date: '2026-07-01' }).success).toBe(true);
+  });
+
+  it('refuses dated next to a position or a date, on the dated key', () => {
+    for (const body of [
+      { dated: true, position: 2 },
+      { dated: true, date: '2026-07-01' },
+    ]) {
+      const parsed = dayCreateRequestSchema.safeParse(body);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error?.issues[0]).toMatchObject({ message: DAY_CREATE_DATED_CONFLICT, path: ['dated'] });
+    }
+  });
+
+  it('keeps its fields reachable for the MCP tool, which builds its input from them', () => {
+    expect(dayCreateRequestSchema.shape.date.safeParse('2026-07-01').success).toBe(true);
+    expect(dayCreateRequestSchema.shape.notes.safeParse(undefined).success).toBe(true);
+    expect(dayCreateRequestSchema.shape.position.safeParse(0).success).toBe(false);
+    expect(dayCreateRequestSchema.shape.dated.safeParse(true).success).toBe(true);
   });
 });
 

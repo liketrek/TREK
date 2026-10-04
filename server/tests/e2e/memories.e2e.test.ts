@@ -68,6 +68,7 @@ import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
 const BASE = '/api/integrations/memories';
 const UNIFIED = `${BASE}/unified`;
@@ -88,6 +89,9 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
+    // Mirror the production APP_PIPE (app.module.ts): DTO-typed bodies validate
+    // by metatype, exactly as they do under buildApp().
+    nest.useGlobalPipes(new ZodValidationPipe());
     await nest.init();
     return nest;
   }
@@ -208,6 +212,33 @@ describe('Memories e2e (real auth guard + temp SQLite)', () => {
       const bad = await request(server).put(`${IMMICH}/settings`).set('Cookie', sessionCookie(1)).send({ immich_url: 'bad' });
       expect(bad.status).toBe(400);
       expect(bad.body).toEqual({ error: 'Invalid Immich URL: bad' });
+    });
+
+    it('PUT settings hands the self-signed switch to the save, and leaves it undefined when absent (#2475)', async () => {
+      immich.saveImmichSettings.mockResolvedValue({ success: true });
+      const on = await request(server).put(`${IMMICH}/settings`).set('Cookie', sessionCookie(1)).send({ immich_url: 'https://x', immich_api_key: 'k', allow_insecure_tls: true });
+      expect(on.status).toBe(200);
+      expect(immich.saveImmichSettings).toHaveBeenLastCalledWith(1, 'https://x', 'k', expect.anything(), true);
+
+      await request(server).put(`${IMMICH}/settings`).set('Cookie', sessionCookie(1)).send({ immich_url: 'https://x', immich_api_key: 'k' });
+      expect(immich.saveImmichSettings).toHaveBeenLastCalledWith(1, 'https://x', 'k', expect.anything(), undefined);
+    });
+
+    it('400 PUT settings and /test with a switch value that is not a boolean, before the service runs', async () => {
+      const put = await request(server).put(`${IMMICH}/settings`).set('Cookie', sessionCookie(1)).send({ immich_url: 'https://x', immich_api_key: 'k', allow_insecure_tls: 'true' });
+      expect(put.status).toBe(400);
+      const test = await request(server).post(`${IMMICH}/test`).set('Cookie', sessionCookie(1)).send({ immich_url: 'https://x', immich_api_key: 'k', allow_insecure_tls: 1 });
+      expect(test.status).toBe(400);
+      expect(immich.saveImmichSettings).not.toHaveBeenCalled();
+      expect(immich.testConnection).not.toHaveBeenCalled();
+    });
+
+    it('200 /test probes with the switch the form carries', async () => {
+      immich.testConnection.mockResolvedValue({ connected: false, error: 'HTTP 404' });
+      const res = await request(server).post(`${IMMICH}/test`).set('Cookie', sessionCookie(1)).send({ immich_url: 'https://x', immich_api_key: 'k', allow_insecure_tls: true });
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ connected: false, error: 'HTTP 404' });
+      expect(immich.testConnection).toHaveBeenCalledWith('https://x', 'k', true);
     });
 
     it('CRITICAL: 200 /status with { connected: false } on failure', async () => {

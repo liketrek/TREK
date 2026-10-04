@@ -1182,7 +1182,7 @@ import { TrekPhotoRegistrationService } from '../../src/nest/photos/trek-photo-r
 // call it directly, with no HTTP request around them (unlike the real
 // `syncSynologyAlbum` call chain this pins, which always runs inside one) —
 // `withRequestContext` supplies the same per-call EntityManager fork a real
-// request's `MikroOrmMiddleware` would.
+// request's `mikroOrmRequestContext` middleware (bootstrap.ts) would.
 let trekPhotos: TrekPhotoRegistrationService;
 let orm: MikroORM;
 beforeAll(() => {

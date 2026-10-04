@@ -1,16 +1,18 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { addIsoDays, MAX_TRIP_DAYS, planDatedAppend } from '@trek/shared';
+import type { RoadtripDayBoundary, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import { PermissionsService } from '../permissions/permissions.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
+import { carryViasWith, locatedStopIdsWith, reseatOwnStopWith } from '../accommodations/night-seat';
 import { formatAssignmentWithPlace } from '../common/rowShape';
 import type { User } from '../../types';
 import { UnitOfWork } from '../database/unit-of-work';
 import { toRowId } from '../common/row-id';
 import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository, DayOrderRow } from '../../db/repositories/Days.repository';
+import type { DaysRepository, DayOrderRow, DayRow } from '../../db/repositories/Days.repository';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
 import { DayNotes } from '../../db/entities/DayNotes.entity';
@@ -23,27 +25,20 @@ import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.ent
 import type { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
 import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
 import type { DayAccommodationsRepository } from '../../db/repositories/DayAccommodations.repository';
+import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
+import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
+import type { RoadtripDayBoundariesRepository } from '../../db/repositories/RoadtripDayBoundaries.repository';
 
 type Trip = TripAccess;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
- * Add `n` days to a YYYY-MM-DD date string, staying entirely in UTC.
- *
- * Deliberately never builds a local-time Date: `new Date('2026-06-07T00:00:00')`
- * parses as *server-local* midnight, so a later .toISOString() round-trips through
- * UTC and lands on the previous day whenever the server sits east of Greenwich.
+ * Add `n` days to a YYYY-MM-DD date string, staying entirely in UTC. The shared
+ * day-grid rule, so the planner counts the date it promises the way this writes it.
  */
-export function addDays(date: string, n: number): string {
-  const [y, m, d] = date.split('-').map(Number);
-  const t = Date.UTC(y, m - 1, d) + n * MS_PER_DAY;
-  const dt = new Date(t);
-  const yyyy = dt.getUTCFullYear();
-  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(dt.getUTCDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
+export const addDays = addIsoDays;
 
 function dayDelta(from: string, to: string): number {
   const [fy, fm, fd] = from.split('-').map(Number);
@@ -58,6 +53,29 @@ function withDatePart(timestamp: string, date: string): string {
 
 /** Thrown for invalid reorder/insert requests; mapped to HTTP 400 by the controller. */
 export class DayReorderError extends Error {}
+
+/**
+ * A dated day the trip cannot take: it has no dates, or it would grow past the
+ * day limit. REST answers 400, MCP a tool error, a plugin BadParams.
+ */
+export class DayAppendError extends Error {}
+
+export const NO_DATES_MESSAGE = 'This trip has no dates. Add a day without a date instead.';
+
+/** How a surface sends what a day write changed; the MCP tools and the plugin RPC hand the same sender twice. */
+export type DaySender = <E extends TrekWsTripEventName>(event: E, payload: TrekWsPayload<E>) => void;
+
+/** What adding the next dated day did to the trip, for the surface that announces it. */
+export interface DatedDayAppend {
+  /** The new day, in the shape the create route answers with. */
+  day: DayRow & { assignments: unknown[]; notes_items: unknown[] };
+  /** The trip's end date now, which is the new day's date. */
+  endDate: string;
+  /** The road trip day boundaries after they moved back with their days, or null when none moved. */
+  boundaries: RoadtripDayBoundary[] | null;
+  /** The trip re-read in list shape for the viewer: its end date and its day count changed. */
+  trip: unknown;
+}
 
 /**
  * Day domain service — the day + day-assignment-projection SQL now lives in
@@ -130,6 +148,11 @@ export class DaysService {
     // read and `resyncAccommodationDays`'s `day_accommodations` statements
     // convert onto this — Task 2 deliberately left it unadded ("Task 3's own").
     @InjectRepository(DayAccommodations) private readonly dayAccommodationsRepo: DayAccommodationsRepository,
+    // The stay stop a re-dated stay carries re-pins its day's drawn roads
+    // (carryStayStop), and a dated append moves the road trip day boundaries
+    // back with their days (shiftBoundariesBack).
+    @InjectRepository(RoadtripVias) private readonly roadtripViasRepo: RoadtripViasRepository,
+    @InjectRepository(RoadtripDayBoundaries) private readonly roadtripDayBoundariesRepo: RoadtripDayBoundariesRepository,
   ) {}
 
   async verifyTripAccess(tripId: string | number, userId: number) {
@@ -168,6 +191,7 @@ export class DaysService {
         day_id: a.day_id,
         order_index: a.order_index,
         end_day: a.end_day === 1,
+        route_excluded: a.route_excluded === 1,
         notes: a.notes,
         // Repeated here for the same reason stop_type is: the day list hides the stop
         // a booking wrote, and this copy is one of the paths that feed it.
@@ -330,10 +354,14 @@ export class DaysService {
     return { ...updatedDay, assignments: await this.getAssignmentsForDay(dayId) };
   }
 
-  /** DY13 — unscoped by trip: the caller (every route) already proved trip access via `getDay`. */
-  async remove(id: string | number): Promise<void> {
-    const dayId = toRowId(id)!;
-    await this.daysRepo.deleteById(dayId);
+  /**
+   * The trip in list shape, as the trip routes answer it, for a day write that
+   * changed the trip itself (its end date, its day count). Read through the
+   * repository rather than TripsService, which imports this class.
+   */
+  async getTripForViewer(tripId: string | number, userId: number): Promise<unknown> {
+    // DY37
+    return await this.tripsRepo.findListShapeById(tripId, userId);
   }
 
   // -------------------------------------------------------------------------
@@ -441,10 +469,9 @@ export class DaysService {
    * DY20/DY22 — Plan 3d Task 3: `DayAccommodationsRepository.listForResync`/
    * `setDayRange`. DY21 (`DaysRepository.findByTripAndDate`) and DY25
    * (`DaysRepository.findById`) convert — both root on `days`, which this
-   * plan owns. DY24 (the `day_assignments` stop that follows its booking)
-   * converts via `DayAssignmentsRepository.reanchorToDay`, a Kysely
-   * statement proven to join this method's ambient transaction by rollback
-   * (see the task report). DY23 (`reservations`) converts onto
+   * plan owns. DY24, the `day_assignments` stop that follows its booking, is
+   * seated by its check-in on the day it moves to, see `carryStayStop` (DY39/
+   * DY40). DY23 (`reservations`) converts onto
    * `ReservationsRepository.restampLinkedReservation` — Plan 3d Task 2.
    *
    * `tripId: number` (Task 9 fix wave, H2): callers now pass their own
@@ -471,11 +498,7 @@ export class DaysService {
           && (newStart.id !== stay.start_day_id || newEnd.id !== stay.end_day_id)) {
           // DY22
           await this.dayAccommodationsRepo.setDayRange(stay.id, newStart.id, newEnd.id);
-          // The day stop a booking wrote moves with it, the way its linked booking does.
-          // Left behind it would sit on a day the traveller no longer sleeps there, with
-          // nothing on screen to say why. Re-indexed to the end of the target day, because
-          // its old position belonged to a day it is leaving. DY24, via Kysely.
-          await this.dayAssignmentsRepo.reanchorToDay(stay.id, newStart.id);
+          if (newStart.id !== stay.start_day_id) await this.carryStayStop(stay, newStart.id);
           stay.start_day_id = newStart.id;
         }
       }
@@ -486,6 +509,41 @@ export class DaysService {
       if (startDay?.date) {
         // DY23 — Plan 3d
         await this.reservationsRepo.restampLinkedReservation(stay.id, stay.start_day_id, startDay.date);
+      }
+    }
+  }
+
+  /**
+   * The day stop a booking wrote moves with it, the way its linked booking does.
+   * Left behind it would sit on a day the traveller no longer sleeps there, with
+   * nothing on screen to say why. Seated on its new day by its check-in like a
+   * night booked there (night-seat.ts), with the drawn roads of both days re-pinned
+   * behind the stops they were drawn after. A day that already holds the place under
+   * a stop of the traveller's keeps that one, and the booking rides along with it.
+   *
+   * DY39 — `SELECT id, day_id, place_id, order_index FROM day_assignments WHERE
+   * accommodation_id = ? AND day_id != ?`: `listOwnedByStay` (AC25) with the
+   * target day filtered out here. DY40 — `SELECT id FROM day_assignments WHERE
+   * day_id = ? AND place_id = ?` (`existsForDayAndPlace`), then `DELETE ... WHERE
+   * id = ?` (`deleteById`) and the gap closed (`closeGap`, AC19's statement).
+   * Runs inside the caller's transaction.
+   */
+  private async carryStayStop(stay: { id: number; check_in: string | null }, dayId: number): Promise<void> {
+    // DY39
+    const own = (await this.dayAssignmentsRepo.listOwnedByStay(stay.id)).filter(stop => stop.day_id !== dayId);
+    for (const stop of own) {
+      const before: [number, number[]][] = [];
+      for (const id of [stop.day_id, dayId]) before.push([id, await locatedStopIdsWith(this.dayAssignmentsRepo, id)]);
+      // DY40
+      if (await this.dayAssignmentsRepo.existsForDayAndPlace(dayId, stop.place_id)) {
+        await this.dayAssignmentsRepo.deleteById(stop.id);
+        // `order_index > NULL` matches no row, so a stop without a position closes no gap.
+        if (stop.order_index !== null) await this.dayAssignmentsRepo.closeGap(stop.day_id, stop.order_index);
+      } else {
+        await reseatOwnStopWith(this.dayAssignmentsRepo, stop, stop.place_id, dayId, { id: stay.id, check_in: stay.check_in });
+      }
+      for (const [id, previousIds] of before) {
+        await carryViasWith(this.roadtripViasRepo, id, previousIds, await locatedStopIdsWith(this.dayAssignmentsRepo, id));
       }
     }
   }
@@ -599,4 +657,79 @@ export class DaysService {
     return { ...day, assignments: [], notes_items: [] };
   }
 
+  /**
+   * Add the calendar day after the trip's last date and extend the trip to it.
+   *
+   * Unlike insert(), no day that is already there changes its date. The new day
+   * goes right behind the last dated day, so the days without a date stay
+   * undated and move one place back, the road trip boundaries drawn on them with
+   * them. No booking moves either. One transaction, reads included, so two clicks
+   * in a row add two days one after the other instead of the same date twice.
+   *
+   * Throws a DayAppendError for a trip without dates and for one that would grow
+   * past the day limit; nothing is written then.
+   *
+   * Reads: `SELECT start_date, end_date FROM trips WHERE id = ?`
+   * (`TripsRepository.findDatesById`) and DY26's day order. Writes: DY27's
+   * two-phase renumber, DY6's insert with notes (`createDay`, which reads the
+   * row back), RB5/RB7 for the boundaries and DY38 for the end date.
+   */
+  async appendDated(tripId: string | number, viewerId: number, notes?: string): Promise<DatedDayAppend> {
+    // The same parse-once gate `create`/`insert` use (class docstring).
+    const trip = toRowId(tripId);
+    if (trip === null) throw new HttpException({ error: 'Trip not found' }, 404);
+    const appended = await this.uow.transactional(async () => {
+      const range = await this.tripsRepo.findDatesById(trip);
+      const rows: DayOrderRow[] = await this.daysRepo.listOrderedForReorder(trip);
+      const plan = planDatedAppend(range ?? {}, rows.map(r => r.date));
+      if (!plan) throw new DayAppendError(NO_DATES_MESSAGE);
+      if (!plan.fits) throw new DayAppendError(`A trip can span at most ${MAX_TRIP_DAYS} days`);
+
+      // The dates are a prefix of the day order on any trip the planner wrote;
+      // the highest dated number keeps that true even on one that drifted.
+      const position = rows.reduce((last, r) => (r.date ? Math.max(last, r.day_number) : last), 0) + 1;
+      const later = rows.filter(r => r.day_number >= position);
+      // Two phases, to get past UNIQUE(trip_id, day_number) on the way.
+      for (const r of later) await this.daysRepo.setDayNumber(r.id, -r.day_number);
+      const day = await this.daysRepo.createDay({ trip_id: trip, day_number: position, date: plan.date, notes: notes || null });
+      for (const r of later) await this.daysRepo.setDayNumber(r.id, r.day_number + 1);
+
+      const boundaries = await this.shiftBoundariesBack(trip, position);
+      // DY38
+      await this.tripsRepo.setEndDateTouched(trip, plan.date);
+      return { day: { ...day, assignments: [], notes_items: [] }, endDate: plan.date, boundaries };
+    });
+    return { ...appended, trip: await this.getTripForViewer(trip, viewerId) };
+  }
+
+  /**
+   * Boundaries are keyed by day number, so the ones on the days that moved back
+   * move back with them. One at a time and from the last one down: the key is
+   * the primary key, and a CHECK keeps it at 1 or above, so the negative two-step
+   * the days use is not available here. Returns the list after the move, or null
+   * when no boundary had to move.
+   */
+  private async shiftBoundariesBack(tripId: number, fromNumber: number): Promise<RoadtripDayBoundary[] | null> {
+    // RB5
+    const later = await this.roadtripDayBoundariesRepo.listDayNumbersFrom(tripId, fromNumber);
+    if (later.length === 0) return null;
+    // RB7
+    for (const dayNumber of later) await this.roadtripDayBoundariesRepo.moveDayNumber(tripId, dayNumber, dayNumber + 1);
+    // RB1
+    return await this.roadtripDayBoundariesRepo.listForTrip(tripId);
+  }
+
+  /**
+   * The one place a dated append is fanned out. The collaborators take the new
+   * day through day:reordered, the insert shape, because it can land in front of
+   * the days without a date and day:created only appends; that event makes them
+   * pull the whole list. The trip follows for its end date and day count. Moved
+   * boundaries go to every screen, the adding one included, which holds them
+   * outside the day list.
+   */
+  announceDatedAppend(append: DatedDayAppend, send: { all: DaySender; others: DaySender }): void {
+    send.others('day:reordered', { day: append.day });
+    if (append.boundaries) send.all('roadtripBoundary:changed', { boundaries: append.boundaries });
+    if (append.trip) send.others('trip:updated', { trip: append.trip });
+  }
 }

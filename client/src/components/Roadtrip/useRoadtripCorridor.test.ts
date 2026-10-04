@@ -313,4 +313,37 @@ describe('useRoadtripCorridor', () => {
       expect(result.current.insertIndexFor(beforeFirstStop)).toBe(1)
     })
   })
+
+  it('FE-ROADTRIP-CORRIDORSTATE-038: the leg between a departure terminal and its arrival is no section', () => {
+    // The search leaves the ride out and drops every hit inside it, so a section around
+    // its midpoint could only ever come back empty. The two terminals stay offered.
+    const terminal = (role: 'departure' | 'arrival', index: number, lat: number, lng: number) => ({
+      assignmentId: -3000000014 - index, ownerDayId: 1, ownerIndex: index, placeId: -7, name: role, lat, lng,
+      time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null,
+      carrier: { reservationId: 7, type: 'flight', role, title: 'LH 2020', code: null, at: null },
+    })
+    const spine = [
+      { lat: 53.5, lng: 9.9 }, { lat: 53.0, lng: 11.0 }, { lat: 52.5, lng: 13.4 }, { lat: 52.0, lng: 14.5 },
+    ]
+    useCorridorPois.mockReturnValue({ ...searchWith([]), spine })
+    const [first, last] = day().stops
+    const flightDay = day({
+      stops: [
+        first,
+        terminal('departure', 1, 53.0, 11.0),
+        terminal('arrival', 2, 52.5, 13.4),
+        { ...last, assignmentId: 3, ownerIndex: 3, lat: 52.0, lng: 14.5 },
+      ],
+      geometry: spine.map(p => [p.lat, p.lng] as [number, number]),
+    })
+
+    const { result } = renderHook(() => useRoadtripCorridor(routes([flightDay])))
+
+    // On the old code the list also carries 'leg:1', the midpoint of the flight.
+    expect(result.current.anchors.map(a => `${a.kind}:${a.index}`))
+      .toEqual(['stop:0', 'leg:0', 'stop:1', 'stop:2', 'leg:2', 'stop:3'])
+    // The same ride is what the search is told to leave out.
+    const asked = useCorridorPois.mock.calls[useCorridorPois.mock.calls.length - 1]
+    expect(asked[3].gaps).toEqual([{ index: 1, from: { lat: 53.0, lng: 11.0 }, to: { lat: 52.5, lng: 13.4 } }])
+  })
 })

@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import { resolveCountryCodeSync } from '../atlas/atlas-geo';
 import { XMLValidator } from 'fast-xml-parser';
 import { TRACK_COLORS, placeMatchStrategies, type PlaceMatchCandidate } from '@trek/shared';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
@@ -28,7 +29,9 @@ import type { GpxExportDay, GpxExportOptions, GpxExportPlace } from './gpx-expor
 import { UnsplashService } from '../unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
-import { isUploadedPlaceImage } from './place-image';
+import { isUploadedPlaceImage, placeImageUrl } from './place-image';
+import { MAX_PLACE_IMAGE_SIZE, PLACE_IMAGE_EXTENSIONS } from '../common/place-image-upload';
+import { randomUUID } from 'node:crypto';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 import { StorageService } from '../storage/storage.service';
 import { AccommodationsService } from '../accommodations/accommodations.service';
@@ -39,7 +42,7 @@ import { TripMembers } from '../../db/entities/TripMembers.entity';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import { Categories } from '../../db/entities/Categories.entity';
 import { Trips } from '../../db/entities/Trips.entity';
-import type { PlacesRepository, PlaceWithCategoryRow, PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
+import type { PlacesRepository, PlaceListRow, PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
 import type { TagsRepository } from '../../db/repositories/Tags.repository';
 import type { PlaceRatingsRepository } from '../../db/repositories/PlaceRatings.repository';
 import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
@@ -97,6 +100,7 @@ export interface PlaceCreateInput {
   place_time?: string; end_time?: string;
   duration_minutes?: number; notes?: string; image_url?: string;
   google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string; website?: string; phone?: string;
+  email?: string | null; opening_hours?: string | null;
   /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
   stop_type?: string | null;
   /** How full THIS stop fills the tank, 1-100; null to follow the traveller's own setting. */
@@ -111,6 +115,7 @@ export interface PlaceUpdateInput {
   place_time?: string; end_time?: string;
   duration_minutes?: number; notes?: string; image_url?: string;
   google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string; website?: string; phone?: string;
+  email?: string | null; opening_hours?: string | null;
   /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
   stop_type?: string | null;
   /** How full THIS stop fills the tank, 1-100; null to follow the traveller's own setting. */
@@ -292,7 +297,7 @@ export class PlacesService {
     // the coercion stays here (the service), the repository binds the
     // already-built pattern verbatim (PL3).
     const searchPattern = filters.search ? `%${escapeLikePattern(filters.search)}%` : undefined;
-    const places: PlaceWithCategoryRow[] = await this.placesRepo.listForTrip(tripId, {
+    const places: PlaceListRow[] = await this.placesRepo.listForTrip(tripId, {
       searchPattern,
       category: filters.category,
       tag: filters.tag,
@@ -305,6 +310,9 @@ export class PlacesService {
 
     return places.map(p => ({
       ...p,
+      // The cached region row when the atlas resolved one, else the country the bundled
+      // borders place it in, which needs no network (#2537).
+      country_code: p.country_code ?? resolveCountryCodeSync(p),
       category: p.category_id ? {
         id: p.category_id,
         name: p.category_name,
@@ -317,6 +325,29 @@ export class PlacesService {
     }));
   }
 
+  /**
+   * Makes a picture already attached in the trip the place's own image (#1242). The file
+   * is copied, not pointed at: the place keeps its picture when the attachment is deleted,
+   * and the update path reclaims the copy like any other uploaded image. Returns a reason
+   * string when the file cannot serve, the updated place otherwise.
+   */
+  async setImageFromFile(tripId: string, placeId: string, fileId: number): Promise<'not_found' | 'not_image' | 'too_large' | Awaited<ReturnType<PlacesService['update']>>> {
+    const tid = toRowId(tripId);
+    // PL53 — the trip's own, not-trashed attachment.
+    const file = tid === null ? undefined : await this.placesRepo.findActiveTripFile(fileId, tid);
+    if (!file) return 'not_found';
+    const ext = path.extname(file.original_name || file.filename).toLowerCase();
+    const mime = file.mime_type ?? '';
+    if (!mime.startsWith('image/') || mime.includes('svg') || !PLACE_IMAGE_EXTENSIONS.includes(ext)) return 'not_image';
+    if (file.file_size != null && file.file_size > MAX_PLACE_IMAGE_SIZE) return 'too_large';
+    const name = `${randomUUID()}${ext}`;
+    const { stream } = await this.storage.getStream('files', path.basename(file.filename));
+    await this.storage.put('places', name, stream, { contentType: mime });
+    const updated = await this.update(tripId, placeId, { image_url: placeImageUrl(name) } as never);
+    if (!updated || isUpdateConflict(updated)) await this.reclaimPlaceImage(placeImageUrl(name));
+    return updated;
+  }
+
   // -------------------------------------------------------------------------
   // Create place
   // -------------------------------------------------------------------------
@@ -326,6 +357,7 @@ export class PlacesService {
       name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
       duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, amap_poi_id, website, phone,
+      email, opening_hours,
       transport_mode, route_geometry, route_color, stop_type, fill_percent, tags = [],
     } = body;
 
@@ -342,7 +374,7 @@ export class PlacesService {
     // gate, a bug to surface, not a trip id to silently coerce to -1.
     const tid = toRowId(tripId)!;
 
-    // PL4 — the 25-column INSERT. lat/lng/price/duration_minutes/fill_percent
+    // PL4 — the 27-column INSERT. lat/lng/price/duration_minutes/fill_percent
     // use an explicit undefined check, not `||`: 0 is a legitimate value for
     // all five (Null Island, a free entry, a drive-by stop, an empty tank)
     // and the falsy coercion silently threw it away.
@@ -378,6 +410,8 @@ export class PlacesService {
       route_color: route_color || null,
       stop_type: stop_type || null,
       fill_percent: fill_percent ?? null,
+      email: email?.trim() || null,
+      opening_hours: opening_hours || null,
     });
 
     // PL5 — `INSERT OR IGNORE INTO place_tags (place_id, tag_id) VALUES (?, ?)`.
@@ -474,6 +508,7 @@ export class PlacesService {
       name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
       duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, amap_poi_id, website, phone,
+      email, opening_hours,
       transport_mode, route_color, stop_type, fill_percent, tags,
     } = body;
 
@@ -512,6 +547,9 @@ export class PlacesService {
       amap_poi_id: amap_poi_id !== undefined ? amap_poi_id : existingPlace.amap_poi_id,
       website: website !== undefined ? website : existingPlace.website,
       phone: phone !== undefined ? phone : existingPlace.phone,
+      // Empty clears, like null: the form sends what its field holds (#2472).
+      email: email !== undefined ? (email?.trim() || null) : existingPlace.email,
+      opening_hours: opening_hours !== undefined ? (opening_hours || null) : existingPlace.opening_hours,
       // COALESCE(?, transport_mode) — same fold as `name`/`currency` above.
       transport_mode: (transport_mode || null) ?? existingPlace.transport_mode,
       // Deliberately not COALESCE: an explicit null is how the picker resets a
@@ -981,6 +1019,8 @@ export class PlacesService {
           route_color: null,
           stop_type: null,
           fill_percent: null,
+          email: null,
+          opening_hours: null,
         });
         const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
         created.push(place);
@@ -1115,6 +1155,8 @@ export class PlacesService {
           route_color: null,
           stop_type: null,
           fill_percent: null,
+          email: null,
+          opening_hours: null,
         });
 
         const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
@@ -1375,6 +1417,8 @@ export class PlacesService {
           route_color: null,
           stop_type: null,
           fill_percent: null,
+          email: null,
+          opening_hours: null,
         });
         const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
         created.push(place);
@@ -1644,6 +1688,8 @@ export class PlacesService {
           route_color: null,
           stop_type: null,
           fill_percent: null,
+          email: null,
+          opening_hours: null,
         });
         const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
         created.push(place);
@@ -1762,6 +1808,16 @@ export class PlacesService {
     } catch (err) {
       console.error('[Places] import enrichment pass failed:', err instanceof Error ? err.message : err);
     }
+  }
+
+  /**
+   * The Google pass for places a file brought in (#2536). Only its points: a track
+   * or a drawn path is a line, and looking a line up by its name finds a stranger.
+   * Detached like the list imports, and just as quietly a no-op without a key.
+   */
+  enrichImportedFilePlaces(tripId: string, userId: number, places: ImportedPlace[]): void {
+    const points = (places as (ImportedPlace & EnrichablePlace)[]).filter(p => !p.route_geometry);
+    void this.enrichImportedPlaces(tripId, userId, points);
   }
 
   /**

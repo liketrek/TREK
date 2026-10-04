@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import path from 'path';
-import type { Readable } from 'node:stream';
+import { randomUUID } from 'crypto';
+import { Readable } from 'node:stream';
 import type { Request } from 'express';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -357,6 +358,22 @@ export class FilesService {
 
     const created = await this.tripFilesRepo.findByIdWithJoins(newId);
     return formatFile(created!);
+  }
+
+  /**
+   * Store bytes that arrived without multipart (the MCP upload tool, #1566) and
+   * record them like a multipart upload: same random storage key, same row. The
+   * caller has already run the type and size checks.
+   */
+  async createFileFromBytes(
+    tripId: string | number,
+    upload: { originalname: string; mimetype: string; bytes: Buffer },
+    uploadedBy: number,
+    opts: { place_id?: number | null; reservation_id?: number | null; description?: string | null },
+  ) {
+    const filename = `${randomUUID()}${path.extname(upload.originalname)}`;
+    await this.storage.put('files', filename, Readable.from([upload.bytes]), { contentType: upload.mimetype });
+    return this.createFile(tripId, { filename, originalname: upload.originalname, size: upload.bytes.length, mimetype: upload.mimetype }, uploadedBy, opts);
   }
 
   /** R2: `updateFile`'s field update and its conditional `file_links` insert/delete (FL12+FL13+FL14) run inside one transaction. */

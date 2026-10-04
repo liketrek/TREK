@@ -31,6 +31,12 @@ function getIframe(): HTMLIFrameElement | null {
   return document.querySelector('#pdf-preview-overlay iframe')
 }
 
+/** The cover's "Planned" figure. The stat is read off its label, since days and places print the same markup. */
+function plannedStat(html: string): number | null {
+  const match = /<div class="cover-stat-num">(\d+)<\/div>\s*<div class="cover-stat-lbl">pdf\.planned<\/div>/.exec(html)
+  return match ? Number(match[1]) : null
+}
+
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -253,6 +259,51 @@ describe('downloadTripPDF', () => {
     expect(iframe!.srcdoc).toContain('Air Italia · AI123 · CDG → FCO')
   })
 
+  it('FE-COMP-TRIPPDF-013f: the stop a booked night wrote is not listed, so a morning flight prints before the hotel (#2434)', async () => {
+    // The desktop toolbar hands the export the store's assignments, hidden stop and
+    // all, and that stop heads its check-in day. The day plan hides it and shows the
+    // booking as the accommodation block, and the print lists what the plan lists.
+    const hotelPlace = { id: 101, name: 'Hotel Hafen Hamburg', address: 'Seewartenstr. 9', place_time: null, price: '120' } as any
+    const hotelStop = { id: 201, day_id: 10, place_id: 101, order_index: 0, accommodation_id: 30, place: hotelPlace }
+    const flight = { ...transportReservation, title: 'Morning flight', reservation_time: '2025-06-01T08:00:00' }
+    await downloadTripPDF({
+      ...richArgs,
+      assignments: { '10': [hotelStop, { ...assignmentForDay, order_index: 1 }] } as any,
+      reservations: [flight],
+    })
+    const html = getIframe()!.srcdoc
+    expect(html).not.toContain('Seewartenstr. 9')
+    expect(html.indexOf('Morning flight')).toBeLessThan(html.indexOf('Colosseum'))
+    expect(html.indexOf('Morning flight')).toBeGreaterThan(-1)
+    // The cover and the day header read the same list: the hidden stop is not a planned
+    // stop and its hotel's price is not part of the day, whichever shell asked.
+    expect(plannedStat(html)).toBe(1)
+    const money = html.replace(/[\u00a0\u202f]/g, ' ')
+    expect(money).toContain('15,00 €')
+    expect(money).not.toContain('135,00 €')
+  })
+
+  it('FE-COMP-TRIPPDF-013g: a service stop the plan keeps to the road trip view is not printed either, and comes back with the switch', async () => {
+    // "Show in Days too" off keeps petrol stations and rest areas out of the day lists.
+    // The print follows the same switch, so the desktop, which hands over the store's
+    // assignments, and the phone print the same day.
+    const pump = { id: 102, name: 'Aral Autohof', address: 'Autobahnkreuz 1', stop_type: 'fuel', place_time: null } as any
+    const pumpStop = { id: 202, day_id: 10, place_id: 102, order_index: 1, place: pump }
+    const assignments = { '10': [assignmentForDay, pumpStop] } as any
+    await downloadTripPDF({ ...richArgs, assignments, showServiceStops: false })
+    const hidden = getIframe()!.srcdoc
+    expect(hidden).not.toContain('Aral Autohof')
+    expect(hidden).toContain('Colosseum')
+    expect(plannedStat(hidden)).toBe(1)
+
+    // On, and by default, the stop prints where the plan lists it.
+    getOverlay()?.remove()
+    await downloadTripPDF({ ...richArgs, assignments })
+    const shown = getIframe()!.srcdoc
+    expect(shown).toContain('Aral Autohof')
+    expect(plannedStat(shown)).toBe(2)
+  })
+
   it('FE-COMP-TRIPPDF-013c: a flight that lands the same day shows both times (#1310)', async () => {
     const sameDay = { ...transportReservation, reservation_end_time: '2025-06-01T16:45:00' }
     await downloadTripPDF({ ...richArgs, reservations: [sameDay] })
@@ -420,6 +471,31 @@ describe('downloadTripPDF', () => {
     expect(srcdoc).toContain('2 500,00 kr + $2,730.27')
     expect(srcdoc).not.toContain('≈')
     expect(srcdoc).not.toMatch(/5 ?230/)
+  })
+
+  it('FE-COMP-TRIPPDF-016g: with Costs on, the day and cover totals are the expenses, not the place prices (#2551)', async () => {
+    const args = {
+      ...richArgs,
+      trip: { ...richArgs.trip, currency: 'USD' },
+      costsEnabled: true,
+      budgetItems: [
+        { id: 1, trip_id: 10, category: 'activities', name: 'Tickets', total_price: 42, currency: null, place_id: 100 },
+        { id: 2, trip_id: 10, category: 'other', name: 'Insurance', total_price: 8, currency: null },
+      ],
+    }
+    await downloadTripPDF(args)
+    const srcdoc = getIframe()!.srcdoc
+    // The day carries the ticket linked to its place, the cover the whole trip.
+    expect(srcdoc).toContain('$42.00')
+    expect(srcdoc).toContain('$50.00')
+
+    document.getElementById('pdf-preview-overlay')?.remove()
+    // Every expense deleted: nothing is left to add up, whatever price the place carries.
+    await downloadTripPDF({ ...args, budgetItems: [] })
+    const after = getIframe()!.srcdoc
+    expect(after).not.toContain('$42.00')
+    expect(after).not.toContain('$50.00')
+    expect(after).toContain('$15.00') // the place's own price chip stays on its card
   })
 
   it('FE-COMP-TRIPPDF-016f: an all-same-currency trip makes no FX request', async () => {
@@ -1285,5 +1361,55 @@ describe('a printed day follows the plan (#1978)', () => {
     const seen = expected.map(name => html.indexOf(name))
     for (const at of seen) expect(at).toBeGreaterThan(-1)
     expect(seen).toEqual([...seen].sort((a, b) => a - b))
+  })
+})
+
+// ── Transport notes (#1571) ─────────────────────────────────────────────────
+
+describe('downloadTripPDF — transport notes', () => {
+  const withNote = { ...transportReservation, notes: 'Seat 14A\nCheck in online the day before' }
+
+  beforeEach(() => {
+    localStorage.removeItem('trek_pdf_transport_notes')
+  })
+
+  const notesToggle = () => document.querySelector<HTMLButtonElement>('#pdf-transport-notes-toggle')
+
+  it('FE-PDF-TNOTES-001: prints the note of a transport, escaped, and offers the switch', async () => {
+    await downloadTripPDF({ ...richArgs, reservations: [{ ...withNote, notes: 'Gate <b>B12</b>' }] })
+    const html = getIframe()!.srcdoc
+
+    expect(html).toContain('<div class="note-time transport-note">Gate &lt;b&gt;B12&lt;/b&gt;</div>')
+    expect(html).not.toContain('pdf-no-transport-notes"')
+    expect(notesToggle()!.getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('FE-PDF-TNOTES-002: without any transport note there is nothing to switch', async () => {
+    await downloadTripPDF(richArgs)
+
+    expect(getIframe()!.srcdoc).not.toContain('class="note-time transport-note"')
+    expect(notesToggle()).toBeNull()
+    // The page break switch is still there on its own.
+    expect(document.querySelector('#pdf-daybreak-toggle')).not.toBeNull()
+  })
+
+  it('FE-PDF-TNOTES-003: turning the notes off hides them at once and is remembered', async () => {
+    await downloadTripPDF({ ...richArgs, reservations: [withNote] })
+    notesToggle()!.click()
+
+    expect(notesToggle()!.getAttribute('aria-checked')).toBe('false')
+    expect(localStorage.getItem('trek_pdf_transport_notes')).toBe('0')
+    const body = getIframe()!.contentDocument?.body
+    if (body) expect(body.classList.contains('pdf-no-transport-notes')).toBe(true)
+  })
+
+  it('FE-PDF-TNOTES-004: the remembered choice comes back, next to the flowing layout', async () => {
+    localStorage.setItem('trek_pdf_transport_notes', '0')
+    localStorage.setItem('trek_pdf_page_break_per_day', '0')
+    await downloadTripPDF({ ...richArgs, reservations: [withNote] })
+
+    expect(getIframe()!.srcdoc).toContain('<body class="pdf-flow pdf-no-transport-notes">')
+    expect(notesToggle()!.getAttribute('aria-checked')).toBe('false')
+    localStorage.removeItem('trek_pdf_page_break_per_day')
   })
 })

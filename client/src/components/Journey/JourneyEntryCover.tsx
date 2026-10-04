@@ -1,6 +1,7 @@
-import { MapPin, Plus } from 'lucide-react'
+import { MapPin, Play, Plus } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { moodMeta, weatherMeta } from '../../mobile/screens/journey/mobileJourneyMeta'
+import { posterlessVideo } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import CountryFlag from '../shared/CountryFlag'
 import { cardDateLabel, cardPhotoId, cardPlace, cardTitle, type CardPhoto } from './journeyCard'
 import type { JourneyEntry } from '../../store/journeyStore'
@@ -25,6 +26,13 @@ import type { JourneyEntry } from '../../store/journeyStore'
  * which needs no tokens at all.
  */
 
+/** A card's photo, plus what says whether a clip has a poster to draw (#2341). */
+export interface CoverPhoto extends CardPhoto {
+  media_type?: string | null
+  provider?: string | null
+  thumbnail_path?: string | null
+}
+
 /** The subset of an entry a card reads. Shared journeys hand over less than the journey's own. */
 export interface CoverEntry {
   id: number
@@ -39,7 +47,7 @@ export interface CoverEntry {
   entry_time?: string | null
   mood?: string | null
   weather?: string | null
-  photos?: CardPhoto[]
+  photos?: CoverPhoto[]
 }
 
 interface Props {
@@ -69,8 +77,12 @@ export default function JourneyEntryCover({
   const { t, locale } = useTranslation()
   const isSuggestion = entry.type === 'skeleton'
 
-  const photoId = cardPhotoId(entry.photos?.[0])
-  const src = photoId == null ? null : photoUrlFor ? photoUrlFor(photoId) : `/api/photos/${photoId}/thumbnail`
+  const first = entry.photos?.[0]
+  const photoId = cardPhotoId(first)
+  // A clip without a poster has no picture to fill the card with; its thumbnail
+  // route 404s and an <img> pointed at it would draw the broken glyph (#2341).
+  const posterless = first != null && posterlessVideo(first)
+  const src = photoId == null || posterless ? null : photoUrlFor ? photoUrlFor(photoId) : `/api/photos/${photoId}/thumbnail`
 
   const title = cardTitle(entry, t)
   const place = cardPlace(entry)
@@ -112,7 +124,9 @@ export default function JourneyEntryCover({
         <img src={src} alt="" loading="lazy" className="absolute inset-0 h-full w-full rounded-[18px] object-cover" />
       ) : (
         <span className="absolute inset-0 flex items-center justify-center">
-          <MapPin size={24} strokeWidth={1.8} style={{ color: dayColor }} className="opacity-60" />
+          {posterless
+            ? <Play size={24} strokeWidth={1.8} fill="currentColor" style={{ color: dayColor }} className="ml-0.5 opacity-60" />
+            : <MapPin size={24} strokeWidth={1.8} style={{ color: dayColor }} className="opacity-60" />}
         </span>
       )}
 

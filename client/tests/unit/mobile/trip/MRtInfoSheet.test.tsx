@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MRtInfoSheet from '../../../../src/mobile/screens/trip/roadtrip/MRtInfoSheet'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { useAuthStore } from '../../../../src/store/authStore'
@@ -7,9 +7,9 @@ import { useRoadtripPreferencesStore } from '../../../../src/store/roadtripPrefe
 import type { RoadtripPreferences } from '@trek/shared'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
-import { render, screen } from '../../../helpers/render'
+import { fireEvent, render, screen } from '../../../helpers/render'
 
-// FE-MOB-RTINFO-001 to FE-MOB-RTINFO-015
+// FE-MOB-RTINFO-001 to FE-MOB-RTINFO-019
 //
 // The sheet renders inside the real TranslationProvider, so the copy is asserted
 // in English. Everything it shows comes out of the roadtrip preferences store,
@@ -36,9 +36,13 @@ function seedPreferences(preferences: RoadtripPreferences): void {
   useRoadtripPreferencesStore.setState({ byTrip: { [`${USER_ID}:${TRIP_ID}`]: preferences } })
 }
 
-function renderSheet(preferences: RoadtripPreferences = FULL, shellOverrides: Record<string, unknown> = {}) {
+function renderSheet(
+  preferences: RoadtripPreferences = FULL,
+  shellOverrides: Record<string, unknown> = {},
+  plannerOverrides: Record<string, unknown> = {},
+) {
   seedPreferences(preferences)
-  const planner = buildPlanner({ tripId: TRIP_ID } as unknown as Partial<TripPlanner>)
+  const planner = buildPlanner({ tripId: TRIP_ID, ...plannerOverrides } as unknown as Partial<TripPlanner>)
   const shell = buildShell({ sheet: { id: 'rtinfo' }, ...shellOverrides } as unknown as Partial<MTripShellApi>)
   render(<MRtInfoSheet planner={planner} shell={shell} />)
   return { planner, shell }
@@ -136,18 +140,21 @@ describe('MRtInfoSheet', () => {
     expect(limitValue('Avoid where possible')).toBe('off')
   })
 
-  it('FE-MOB-RTINFO-012: carries no control of any kind, only the way out', () => {
+  it('FE-MOB-RTINFO-012: carries no control but the stay switch and the way out', () => {
     renderSheet()
     const dialog = screen.getByRole('dialog', { name: 'Driving figures' })
     expect(screen.getAllByRole('button')).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
     expect(dialog.querySelectorAll('input, select, textarea')).toHaveLength(0)
-    for (const role of ['textbox', 'spinbutton', 'slider', 'switch', 'checkbox', 'combobox', 'radio'] as const) {
+    // The figures stay a desktop matter; the one switch here is no figure.
+    expect(screen.getAllByRole('switch')).toHaveLength(1)
+    expect(screen.getByRole('switch', { name: 'Start and end each day at your stay' })).toBeInTheDocument()
+    for (const role of ['textbox', 'spinbutton', 'slider', 'checkbox', 'combobox', 'radio'] as const) {
       expect(screen.queryByRole(role)).not.toBeInTheDocument()
     }
   })
 
-  it('FE-MOB-RTINFO-013: closes with the footnote that names the desktop as the place to change them', () => {
+  it('FE-MOB-RTINFO-013: carries the footnote that names the desktop as the place to change them', () => {
     renderSheet()
     expect(screen.getByText(/These figures are set on the desktop/)).toBeInTheDocument()
   })
@@ -164,5 +171,46 @@ describe('MRtInfoSheet', () => {
     renderSheet({ roadtrip_range_km: 2000 })
     expect(screen.getByRole('img', { name: '2000 km per tank' })).toBeInTheDocument()
     expect(screen.queryByText(/One block/)).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-RTINFO-016: the stay switch reads off when unset and saves on through the desktop dialog’s write', () => {
+    const saveRoadtripLimit = vi.fn()
+    renderSheet(FULL, {}, { saveRoadtripLimit })
+    const toggle = screen.getByRole('switch', { name: 'Start and end each day at your stay' })
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+    expect(toggle).toBeEnabled()
+    expect(
+      screen.getByText('After a booked night the day starts at that stay, and before one it ends at the stay booked for that night.'),
+    ).toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(saveRoadtripLimit).toHaveBeenCalledWith('roadtrip_hotel_bookends', true)
+    expect(saveRoadtripLimit).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-MOB-RTINFO-017: switched on, it reads on and turns back off', () => {
+    const saveRoadtripLimit = vi.fn()
+    renderSheet({ ...FULL, roadtrip_hotel_bookends: true }, {}, { saveRoadtripLimit })
+    const toggle = screen.getByRole('switch', { name: 'Start and end each day at your stay' })
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(toggle)
+    expect(saveRoadtripLimit).toHaveBeenCalledWith('roadtrip_hotel_bookends', false)
+  })
+
+  it('FE-MOB-RTINFO-019: the footnote about figures set on the desktop stands under the figures, above the switch that is set here', () => {
+    renderSheet()
+    const note = screen.getByText(/These figures are set on the desktop/)
+    const limits = screen.getByText('Longest drive at once')
+    const toggle = screen.getByRole('switch', { name: 'Start and end each day at your stay' })
+    expect(limits.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(note.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('FE-MOB-RTINFO-018: a reader who may not edit days sees the switch, disabled', () => {
+    // The planner hands out no save to a reader without day_edit, or before the trip's
+    // settings are in, and the switch says so rather than flipping and springing back.
+    renderSheet({ ...FULL, roadtrip_hotel_bookends: true }, {}, { saveRoadtripLimit: undefined })
+    const toggle = screen.getByRole('switch', { name: 'Start and end each day at your stay' })
+    expect(toggle).toBeDisabled()
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
   })
 })

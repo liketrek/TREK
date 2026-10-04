@@ -1,6 +1,7 @@
 import { authApi, notificationsApi } from '../../../api/client'
 import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
+import { SWITCH_ONLY_CHANNELS, useNotificationChannels } from '../../../components/Admin/useNotificationChannels'
 import MToggle from '../../components/MToggle'
 import MAdminNotifyMatrix from './MAdminNotifyMatrix'
 import { MAdminButton, MAdminCard, MAdminCardHead, MAdminField, MAdminInput, MAdminRow } from './MAdminUi'
@@ -18,38 +19,17 @@ const SMTP_FIELDS = [
   { key: 'smtp_from', label: 'From Address', placeholder: 'trek@example.com' },
 ]
 
-// Notifications section: channel toggles (email/webhook/ntfy/in-app), SMTP
-// credentials, trip reminders, admin webhook + ntfy targets and the per-event
-// preference matrix — the desktop notifications tab in mobile cards.
+// Notifications section: channel toggles (email/webhook/ntfy/web push/in-app),
+// SMTP credentials, trip reminders, admin webhook + ntfy targets and the
+// per-event preference matrix: the desktop notifications tab in mobile cards.
+// The channel switches come from useNotificationChannels, shared with desktop.
 export default function MAdminNotificationsSection({ admin, t }: MAdminNotificationsSectionProps) {
   const { toast, smtpValues, setSmtpValues, smtpLoaded, setTripRemindersEnabled } = admin
 
-  // Derive active channels from notification_channels (plural) with fallback
-  // to notification_channel (singular) for existing installs.
-  const rawChannels = smtpValues.notification_channels ?? smtpValues.notification_channel ?? 'none'
-  const activeChans = rawChannels === 'none' ? [] : rawChannels.split(',').map((c: string) => c.trim())
-  const emailActive = activeChans.includes('email')
-  const webhookActive = activeChans.includes('webhook')
-  const ntfyActive = activeChans.includes('ntfy')
+  const channels = useNotificationChannels(admin, t)
+  const emailActive = channels.isActive('email')
   const tripRemindersActive = smtpValues.notify_trip_reminder !== 'false'
   const smtpConfigured = !!smtpValues.smtp_host?.trim()
-
-  const setChannels = async (email: boolean, webhook: boolean, ntfy: boolean) => {
-    // Preserve channel ids this toggle doesn't know about instead of
-    // rebuilding the CSV from just these three booleans.
-    const others = activeChans.filter((c: string) => c !== 'email' && c !== 'webhook' && c !== 'ntfy')
-    const chans = [email && 'email', webhook && 'webhook', ntfy && 'ntfy', ...others].filter(Boolean).join(',') || 'none'
-    setSmtpValues((prev) => ({ ...prev, notification_channels: chans }))
-    try {
-      await authApi.updateAppSettings({ notification_channels: chans })
-    } catch {
-      const reverted =
-        [emailActive && 'email', webhookActive && 'webhook', ntfyActive && 'ntfy', ...others].filter(Boolean).join(',') ||
-        'none'
-      setSmtpValues((prev) => ({ ...prev, notification_channels: reverted }))
-      toast.error(t('common.error'))
-    }
-  }
 
   const saveSmtp = async () => {
     // Saves credentials only — channel activation is auto-saved by the toggle.
@@ -179,7 +159,7 @@ export default function MAdminNotificationsSection({ admin, t }: MAdminNotificat
             <MToggle
               checked={emailActive}
               ariaLabel={t('admin.notifications.emailPanel.title')}
-              onChange={() => setChannels(!emailActive, webhookActive, ntfyActive)}
+              onChange={() => channels.toggle('email')}
             />
           }
         />
@@ -219,35 +199,22 @@ export default function MAdminNotificationsSection({ admin, t }: MAdminNotificat
         </div>
       </MAdminCard>
 
-      {/* Webhook */}
-      <MAdminCard>
-        <MAdminCardHead
-          title={t('admin.notifications.webhookPanel.title')}
-          hint={t('admin.webhook.hint')}
-          trailing={
-            <MToggle
-              checked={webhookActive}
-              ariaLabel={t('admin.notifications.webhookPanel.title')}
-              onChange={() => setChannels(emailActive, !webhookActive, ntfyActive)}
-            />
-          }
-        />
-      </MAdminCard>
-
-      {/* Ntfy */}
-      <MAdminCard>
-        <MAdminCardHead
-          title={t('admin.notifications.ntfy')}
-          hint={t('admin.ntfy.hint')}
-          trailing={
-            <MToggle
-              checked={ntfyActive}
-              ariaLabel={t('admin.notifications.ntfy')}
-              onChange={() => setChannels(emailActive, webhookActive, !ntfyActive)}
-            />
-          }
-        />
-      </MAdminCard>
+      {/* Webhook, Ntfy and Web Push: a title, a hint and the switch each */}
+      {SWITCH_ONLY_CHANNELS.map((ch) => (
+        <MAdminCard key={ch.id}>
+          <MAdminCardHead
+            title={t(ch.titleKey)}
+            hint={t(ch.hintKey)}
+            trailing={
+              <MToggle
+                checked={channels.isActive(ch.id)}
+                ariaLabel={t(ch.titleKey)}
+                onChange={() => channels.toggle(ch.id)}
+              />
+            }
+          />
+        </MAdminCard>
+      ))}
 
       {/* In-App (always on) */}
       <MAdminCard>

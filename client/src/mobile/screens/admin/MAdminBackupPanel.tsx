@@ -91,7 +91,7 @@ export default function MAdminBackupPanel() {
     } catch {}
   }
 
-  useEffect(() => { loadBackups(); loadAutoSettings() }, [])
+  useEffect(() => { void loadBackups(); void loadAutoSettings() }, [])
 
   const handleCreate = async () => {
     setIsCreating(true)

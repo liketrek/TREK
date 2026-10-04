@@ -1,9 +1,10 @@
 import { readEnv } from '../app-config';
+import { openDatabase } from './connection';
 import { resolveDbPath } from './db-path';
 import { applyDurabilityPragmas } from './durability';
 import { readSchemaSnapshot } from './schema-snapshot';
 
-import Database from 'better-sqlite3';
+import type Database from 'better-sqlite3';
 
 // In test mode each vitest worker gets an isolated in-memory DB so that
 // parallel forks can't race on the same file or share migration state.
@@ -34,7 +35,7 @@ function initDb(): void {
   }
 
   const snapshot = isTest ? readSchemaSnapshot() : null;
-  _db = snapshot ? new Database(snapshot) : new Database(dbPath);
+  _db = openDatabase(snapshot ?? dbPath);
   // Ahead of the journal switch now: changing journal_mode needs an exclusive
   // lock, which a sibling process (reset-admin, the rotation script) may hold.
   _db.exec('PRAGMA busy_timeout = 5000');

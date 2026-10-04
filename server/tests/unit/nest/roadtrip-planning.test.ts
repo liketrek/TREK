@@ -61,6 +61,14 @@ function setup() {
   const tripsRepo = { findAccessible: vi.fn(async () => true) };
   const daysRepo = { listPlanDays: vi.fn(async () => days) };
   const dayAssignmentsRepo = { listRoadtripVisits: vi.fn(async () => visits) };
+  // The trip's stays, none unless a case books one.
+  const stays: Record<string, unknown>[] = [];
+  const dayAccommodationsRepo = { listRoadtripStays: vi.fn(async () => stays) };
+  // No carrier bookings in this suite: the rides are read off the real tables in
+  // roadtrip-plan.service.test.ts.
+  const reservationsRepo = { listRoadtripCarriers: vi.fn(async () => []), listRoadtripUndated: vi.fn(async () => []) };
+  const endpointsRepo = { listRoadtripTerminals: vi.fn(async () => []) };
+  const dayPositionsRepo = { listForTrip: vi.fn(async () => []) };
   const router = {
     profiles: () => ['driving'],
     route: vi.fn(async (_user: number, _trip: number, _day: number, points: { lat: number; lng: number }[]) => ({
@@ -94,8 +102,28 @@ function setup() {
     tripsRepo as never,
     daysRepo as never,
     dayAssignmentsRepo as never,
+    dayAccommodationsRepo as never,
+    reservationsRepo as never,
+    endpointsRepo as never,
+    dayPositionsRepo as never,
   );
-  return { preferenceDb, preferences, store, realtime, tripsRepo, daysRepo, dayAssignmentsRepo, plans, router, visits, days, boundaries };
+  return {
+    preferenceDb,
+    preferences,
+    store,
+    realtime,
+    tripsRepo,
+    daysRepo,
+    dayAssignmentsRepo,
+    dayAccommodationsRepo,
+    reservationsRepo,
+    plans,
+    router,
+    visits,
+    days,
+    boundaries,
+    stays,
+  };
 }
 
 describe('roadtrip preferences', () => {
@@ -141,6 +169,23 @@ describe('roadtrip preferences', () => {
     await mcp.update({ tripId: 10, settings: { roadtrip_range_km: 300 } }, ctx);
     expect(s.preferenceDb.upsertValue).not.toHaveBeenCalled();
   });
+  it('saves the switch that starts and ends each day at the stay, through the tool too, and reads it back', async () => {
+    const s = setup();
+    expect((await s.preferences.read(10)).roadtrip_hotel_bookends).toBeUndefined();
+    const mcp = new RoadtripPreferencesMcp(
+      s.preferences,
+      { isDemoUser: () => false } as never,
+      {} as never,
+      s.tripsRepo as never,
+      { hasTripPermission: () => true } as never,
+    );
+    const res = await mcp.update({ tripId: 10, settings: { roadtrip_hotel_bookends: true } }, ctx);
+    expect(JSON.parse(res.content[0].text as string).settings.roadtrip_hotel_bookends).toBe(true);
+    expect((await s.preferences.read(10)).roadtrip_hotel_bookends).toBe(true);
+    await s.preferences.update(10, { roadtrip_hotel_bookends: false });
+    expect((await s.preferences.read(10)).roadtrip_hotel_bookends).toBe(false);
+    expect(roadtripPreferencesUpdateSchema.safeParse({ roadtrip_hotel_bookends: 'yes' }).success).toBe(false);
+  });
   it('tells the assistant why a window was refused instead of the exception class name', async () => {
     // The service refuses an inverted window with the `{ error }` body the route
     // sends verbatim; left to the SDK the tool would answer "Http Exception".
@@ -176,12 +221,38 @@ describe('browser-independent roadtrip calculation', () => {
     expect((await s.preferences.read(10)).roadtrip_day_end).toBe('10:00');
     expect(s.preferenceDb.upsertValue).not.toHaveBeenCalled();
   });
+  it('previews a day that ends at tonight’s stay without saving the switch, and leaves it off otherwise', async () => {
+    const s = setup();
+    s.stays.push({
+      id: 7,
+      place_id: 70,
+      start_day_id: 1,
+      end_day_id: 2,
+      check_in: '15:00',
+      check_out: '10:00',
+      place_name: 'Tonight',
+      place_lat: 48.5,
+      place_lng: 4,
+      reservation_id: null,
+    });
+    const stored = await s.plans.calculate(10, 5);
+    expect(stored.calculated.days.flatMap((d) => d.stops).some((stop) => stop.bookend)).toBe(false);
+
+    const preview = await s.plans.calculate(10, 5, { roadtrip_hotel_bookends: true });
+    const hotel = preview.calculated.days.flatMap((d) => d.stops).find((stop) => stop.bookend);
+    expect(hotel).toMatchObject({ name: 'Tonight', bookend: { phase: 'evening', accommodationId: 7, checkingIn: true } });
+    expect((await s.preferences.read(10)).roadtrip_hotel_bookends).toBeUndefined();
+    expect(s.preferenceDb.upsertValue).not.toHaveBeenCalled();
+  });
   it('checks trip access before reading or routing', async () => {
     const s = setup();
     s.tripsRepo.findAccessible.mockResolvedValue(false);
     await expect(s.plans.calculate(20, 5)).rejects.toThrow();
     expect(s.daysRepo.listPlanDays).not.toHaveBeenCalled();
     expect(s.dayAssignmentsRepo.listRoadtripVisits).not.toHaveBeenCalled();
+    expect(s.dayAccommodationsRepo.listRoadtripStays).not.toHaveBeenCalled();
+    expect(s.reservationsRepo.listRoadtripCarriers).not.toHaveBeenCalled();
+    expect(s.reservationsRepo.listRoadtripUndated).not.toHaveBeenCalled();
     expect(s.router.route).not.toHaveBeenCalled();
   });
   it('tells the assistant why a read, a calculation or a corridor search was refused', async () => {
@@ -232,6 +303,45 @@ describe('browser-independent roadtrip calculation', () => {
     expect(day.stops.map((stop: { leaveAt: string | null }) => stop.leaveAt)).toEqual([undefined, '09:00', '12:00']);
     expect(day.schedule.entries.map((e: { departure: string }) => e.departure)).toEqual(['07:30', '09:30', '12:00']);
     expect(day.schedule.warnings).toEqual([{ index: 1, code: 'missedLeave', minutes: 30 }]);
+  });
+  it('keeps the per-leg lines the browser planner reads out of the calculate_roadtrip answer', async () => {
+    // The shared assembler now carries each leg's line beside its figures, for the picker of
+    // other ways in the browser. A tool answer carries geometry only when asked, and then
+    // once per day: the same road a second time, split by leg, is weight and nothing else.
+    const s = setup();
+    const settings = { roadtrip_day_start: '', roadtrip_day_end: '' };
+    const plan = await s.plans.calculate(10, 5, settings);
+    expect(plan.calculated.days[0].legLines).toHaveLength(plan.calculated.days[0].legs.length);
+
+    const mcp = new RoadtripPlanningMcp(s.plans, {} as never, {} as never);
+    const answer = await mcp.calculate({ tripId: 10, includeGeometry: true, settings }, ctx);
+    const [day] = JSON.parse(answer.content[0].text as string).days;
+    expect(day).toHaveProperty('geometry');
+    expect(day).not.toHaveProperty('legLines');
+    expect(day).not.toHaveProperty('arrivingLine');
+  });
+  it('answers calculate_roadtrip with the rides on no day, an empty list when there are none (#2461)', async () => {
+    // Additive: the rest of the answer is what it was. The rides themselves are read off the
+    // real tables in roadtrip-plan.service.test.ts; this pins the field and the words for it.
+    const s = setup();
+    const mcp = new RoadtripPlanningMcp(s.plans, {} as never, {} as never);
+    const body = JSON.parse((await mcp.calculate({ tripId: 10, includeGeometry: false }, ctx)).content[0].text as string);
+    expect(body.undatedRides).toEqual([]);
+    expect(body.days.length).toBeGreaterThan(0);
+    // And the tool says what the field is, or an assistant has no reason to read it.
+    const addons = { isAddonEnabled: vi.fn(() => true) };
+    const registry = createTestRegistry([new RoadtripPlanningMcp(s.plans, {} as never, addons as never)], {
+      accessPolicy: trekMcpAccessPolicy,
+      validateAccess: trekMcpValidateAccess,
+    });
+    const described = new Map<string, string>();
+    const registrar = {
+      registerTool: (name: string, config: { description?: string }) => {
+        described.set(name, config.description ?? '');
+      },
+    };
+    await registry.attach(registrar as never, { ...ctx, scopes: ['trips:read'] });
+    expect(described.get('calculate_roadtrip')).toContain('undatedRides');
   });
   it('keeps explicit end-day visits and manual boundaries in the shared planning path', async () => {
     const s = setup();
@@ -302,6 +412,31 @@ describe('Roadtrip MCP registration and search', () => {
     await registry.attach(registrar as never, { ...ctx, scopes: null });
     expect(names).toEqual([]);
   });
+  it('tells the assistant the stay switch is off until it is set, on every tool the switch changes', async () => {
+    const s = setup();
+    const registry = createTestRegistry(
+      [
+        new RoadtripPreferencesMcp(s.preferences, {} as never, { isAddonEnabled: () => true } as never, s.tripsRepo as never, {} as never),
+        new RoadtripPlanningMcp(s.plans, {} as never, { isAddonEnabled: () => true } as never),
+      ],
+      { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess },
+    );
+    const descriptions: Record<string, string> = {};
+    await registry.attach(
+      {
+        registerTool: (name: string, config: Record<string, unknown>) => {
+          descriptions[name] = String(config.description);
+        },
+      } as never,
+      { ...ctx, scopes: null },
+    );
+    expect(descriptions.get_roadtrip_settings).toContain('Missing roadtrip_hotel_bookends means off.');
+    expect(descriptions.update_roadtrip_settings).toContain('Set roadtrip_hotel_bookends true to start and end each day at the stay');
+    expect(descriptions.calculate_roadtrip).toContain('With roadtrip_hotel_bookends switched on (missing means off)');
+    expect(descriptions.calculate_roadtrip).toContain('{roadtrip_hotel_bookends:true}');
+    expect(descriptions.get_roadtrip_context).toContain('stays lists every booked stay');
+    expect(descriptions.search_roadtrip_corridor).toContain('With roadtrip_hotel_bookends on');
+  });
   it('returns corridor sources, truncation and matching brands without adding stops', async () => {
     const plans = {
       calculate: vi.fn(async () => ({
@@ -311,6 +446,7 @@ describe('Roadtrip MCP registration and search', () => {
           days: [
             {
               dayNumber: 1,
+              stops: [],
               geometry: [
                 [48, 10],
                 [48, 10.1],
@@ -473,7 +609,7 @@ describe('MCP trip preferences authorization', () => {
 describe('corridor filtering', () => {
   const input = { tripId: 10, dayNumber: 1, category: 'charging' as const, widthKm: 5, offset: 0 };
   function tool() {
-    const plan = { failures: [] as unknown[], omittedVisits: [] as number[], calculated: { dayWindowIssue: null as string | null, days: [{ dayNumber: 1, geometry: [[48, 10], [48, 10.1]] }] } };
+    const plan = { failures: [] as unknown[], omittedVisits: [] as number[], calculated: { dayWindowIssue: null as string | null, days: [{ dayNumber: 1, stops: [], geometry: [[48, 10], [48, 10.1]] }] } };
     const maps = { search: vi.fn(async () => ({ pois: [
       { osm_id: 'a', name: 'Fast', lat: 48, lng: 10.03, category: 'charging', charging: { sockets: [{ type: 'type2', kw: 150 }] } },
       { osm_id: 'b', name: 'Slow', lat: 48, lng: 10.07, category: 'charging', charging: { sockets: [{ type: 'type2', kw: 11 }] } },
@@ -505,6 +641,44 @@ describe('corridor filtering', () => {
     expect((await read({ fromKm: 100 })).hits).toHaveLength(0);
     expect((await read({ toKm: 0 })).hits).toHaveLength(0);
     expect((await read({})).failedSources).toEqual(['plugin']);
+  });
+  it('leaves the ride between two terminals out of the search and drops a hit under the flight path (#2428)', async () => {
+    // The day drives to the airport, flies two degrees north and east, and drives on
+    // from the far one: the geometry jumps straight between the terminals, and the
+    // browser hook already cuts that stretch out. The tool tiles the same pieces.
+    const terminal = (role: 'departure' | 'arrival', lat: number, lng: number) => ({
+      carrier: { reservationId: 7, type: 'flight', role, title: 'LH 2020', code: null, at: null },
+      lat,
+      lng,
+    });
+    const plan = {
+      failures: [],
+      omittedVisits: [],
+      calculated: {
+        dayWindowIssue: null,
+        days: [
+          {
+            dayNumber: 1,
+            stops: [{ lat: 48, lng: 10 }, terminal('departure', 48, 10.1), terminal('arrival', 50, 12), { lat: 50, lng: 12.1 }],
+            geometry: [[48, 10], [48, 10.1], [50, 12], [50, 12.1]],
+          },
+        ],
+      },
+    };
+    const underTheFlight = { lat: 49, lng: 11 };
+    type Box = { south: number; north: number; west: number; east: number };
+    const maps = { search: vi.fn(async (_query: { bbox: Box }) => ({ pois: [
+      { osm_id: 'road', name: 'On the road', lat: 48, lng: 10.05, category: 'fuel' },
+      { osm_id: 'field', name: 'Under the flight', ...underTheFlight, category: 'fuel' },
+    ], sources: ['osm'], failedSources: [], truncated: false, clamped: false })) };
+    const mcp = new RoadtripPlanningMcp({ calculate: async () => plan } as never, maps as never, {} as never);
+    const body = JSON.parse((await mcp.corridor({ ...input, category: 'fuel' }, ctx)).content[0].text as string);
+    const asked = maps.search.mock.calls.map(([query]) => query.bbox);
+    expect(asked.length).toBeGreaterThan(0);
+    expect(asked.some((b) => b.south <= underTheFlight.lat && b.north >= underTheFlight.lat && b.west <= underTheFlight.lng && b.east >= underTheFlight.lng)).toBe(false);
+    expect(body.hits.map((h: { poi: { osm_id: string } }) => h.poi.osm_id)).toEqual(['road']);
+    expect(body.totalAreas).toBe(asked.length);
+    expect(body.complete).toBe(true);
   });
 });
 it('reads the saved roadtrip context without routing', async () => {

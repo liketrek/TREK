@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Propojit soubor',
   'files.linkEmpty': 'Zatím nejsou žádná místa ani rezervace k propojení',
   'files.menu': 'Další možnosti',
-  'files.uploadErrorSize': 'Soubor je příliš velký (max. 50 MB)',
+  'files.uploadErrorSize': 'Soubor je příliš velký (max. {max} MB)',
   'files.title': 'Soubory',
   'files.pageTitle': 'Soubory a dokumenty',
   'files.subtitle': '{count} souborů pro {trip}',

@@ -855,9 +855,9 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * `assignment_id` branch) — `SELECT d.trip_id FROM day_assignments da JOIN
    * days d ON da.day_id = d.id WHERE da.id = ?`. Reached through
    * `DayAssignmentsRepository`'s own relation join (`da.day` — the same
-   * cross-repository-read shape `DaysRepository.isEmptyDay`/
-   * `TripMembersRepository.rosterUserIds` already use for a table this
-   * repository does not own), never a new method on that file
+   * cross-repository-read shape `TripMembersRepository.rosterUserIds`
+   * already uses for a table this repository does not own), never a new
+   * method on that file
    * (`DayAssignmentsRepository`/`DaysRepository` are Task 1's
    * additive-method territory per the file-ownership split).
    */
@@ -1393,6 +1393,23 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     return rows as SharePublicAccommodationRow[];
   }
 
+  /**
+   * `share.service.ts`'s travel-only read (SH19, #1712) — `SELECT DISTINCT
+   * a.place_id FROM day_accommodations a WHERE a.trip_id = ? AND <RV2('a')>`:
+   * the places the trip sleeps at, through the same public-stay predicate as
+   * {@link listPublicAccommodationsForShare}.
+   */
+  async listPublicStayPlaceIdsForShare(trip_id: number | string): Promise<number[]> {
+    const rows = await this.kysely<SharePublicAccommodationKyselyDB>()
+      .selectFrom('day_accommodations as a')
+      .where('a.trip_id', '=', trip_id)
+      .where((eb) => publicStayExists(eb))
+      .select('a.place_id')
+      .distinct()
+      .execute();
+    return rows.map((r) => r.place_id as number);
+  }
+
   /** `public-api.service.ts::reservationsByDay` (Task 5's `// Task 2` pickup) — see {@link PublicApiScheduledReservationRow}'s docstring. */
   async listScheduledForPublicApi(trip_id: number): Promise<PublicApiScheduledReservationRow[]> {
     const rows = await this.kysely<PublicApiReservationKyselyDB>()
@@ -1645,6 +1662,66 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
   async markNeedsReview(id: number): Promise<void> {
     await this.nativeUpdate({ id }, { needs_review: 1 });
   }
+
+  /** RPL4/RPL5's shared select list, the columns of `RoadtripCarrierRow`. */
+  private roadtripCarrierQuery() {
+    const platform = this.getEntityManager().getPlatform();
+    return this.qb('r')
+      .select([
+        'r.id',
+        'r.type',
+        'r.title',
+        columnRef(platform, 'r.day_id').as('day_id'),
+        columnRef(platform, 'r.end_day_id').as('end_day_id'),
+        'r.reservation_time',
+        'r.reservation_end_time',
+        'r.metadata',
+        'r.day_plan_position',
+      ]);
+  }
+
+  /**
+   * RPL4 (`RoadtripPlanService.carriers`) — `SELECT id, type, title, day_id,
+   * end_day_id, reservation_time, reservation_end_time, metadata,
+   * day_plan_position FROM reservations WHERE trip_id = ? AND type IN
+   * ('flight', 'train', 'ferry', 'cruise', 'bus', 'car') AND day_id IS NOT
+   * NULL`: the bookings that seam the drive, and the hire cars whose desks
+   * stand on it.
+   */
+  async listRoadtripCarriers(trip_id: number): Promise<RoadtripCarrierRow[]> {
+    return this.roadtripCarrierQuery()
+      .where({ trip: trip_id, type: { $in: ['flight', 'train', 'ferry', 'cruise', 'bus', 'car'] }, day: { $ne: null } })
+      .execute<RoadtripCarrierRow[]>('all', false);
+  }
+
+  /**
+   * RPL5 (`RoadtripPlanService.undatedRides`) — `SELECT id, type, title,
+   * day_id, end_day_id, reservation_time, reservation_end_time, metadata,
+   * day_plan_position FROM reservations WHERE trip_id = ? AND day_id IS
+   * NULL`. Which of them count as rides is `undatedRides` (shared) alone.
+   */
+  async listRoadtripUndated(trip_id: number): Promise<RoadtripCarrierRow[]> {
+    return this.roadtripCarrierQuery()
+      .where({ trip: trip_id, day: null })
+      .execute<RoadtripCarrierRow[]>('all', false);
+  }
+}
+
+/**
+ * RPL4/RPL5's row: a booking the traveller rides, with what the road trip's
+ * seam needs of it (the days and clocks at both ends, where the day plan
+ * seats it). The terminals and day positions are joined on in the service.
+ */
+export interface RoadtripCarrierRow {
+  id: number;
+  type: string;
+  title: string;
+  day_id: number | null;
+  end_day_id: number | null;
+  reservation_time: string | null;
+  reservation_end_time: string | null;
+  metadata: string | null;
+  day_plan_position: number | null;
 }
 
 /** `SELECT *` — every scalar column of `Reservations`, RS35's shape. */

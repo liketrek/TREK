@@ -1,22 +1,30 @@
-// FE-PLANNER-EXPORTMODAL-001 to FE-PLANNER-EXPORTMODAL-014
+// FE-PLANNER-EXPORTMODAL-001 to FE-PLANNER-EXPORTMODAL-018
 import { render, screen, waitFor } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { downloadTripPDF } from '../PDF/TripPDF'
-import { buildDay, buildDayNote, buildTrip } from '../../../tests/helpers/factories'
+import { buildDay, buildDayNote, buildTrip, buildUser } from '../../../tests/helpers/factories'
 import { TripExportModal } from './TripExportModal'
+import { resetAllStores, seedStore } from '../../../tests/helpers/store'
+import { useAuthStore } from '../../store/authStore'
+import type { AssignmentsMap } from '../../types'
 
 vi.mock('../PDF/TripPDF', () => ({ downloadTripPDF: vi.fn().mockResolvedValue(undefined) }))
 
 // The subscribe dialog fetches its feed token on mount; it is exercised in its
-// own test, here we only care that the entry mounts it.
-vi.mock('./IcsSubscribeModal', () => ({
-  IcsSubscribeModal: ({ title, onClose }: { title: string; onClose: () => void }) => (
-    <div data-testid="ics-subscribe-modal">
-      {title}
-      <button onClick={onClose}>close-subscribe</button>
-    </div>
-  ),
-}))
+// own test, here we only care that the entry mounts it. Portalled to the body
+// like the real one, so the stacking order can be checked.
+vi.mock('./IcsSubscribeModal', async () => {
+  const { createPortal } = await import('react-dom')
+  return {
+    IcsSubscribeModal: ({ title, onClose }: { title: string; onClose: () => void }) => createPortal(
+      <div data-testid="ics-subscribe-modal">
+        {title}
+        <button onClick={onClose}>close-subscribe</button>
+      </div>,
+      document.body,
+    ),
+  }
+})
 
 const t = (key: string, params?: Record<string, unknown>) =>
   params ? `${key}|${Object.values(params).join('|')}` : key
@@ -77,13 +85,41 @@ describe('TripExportModal', () => {
 
   it('FE-PLANNER-EXPORTMODAL-002: open, every export sits in its own section', () => {
     render(<TripExportModal {...makeProps()} />)
+    expect(screen.getByRole('dialog', { name: 'dayplan.export' })).toBeInTheDocument()
+    expect(screen.getByText('dayplan.exportIntro')).toBeInTheDocument()
     expect(screen.getByText('dayplan.exportDocument')).toBeInTheDocument()
     expect(screen.getByText('dayplan.exportCalendar')).toBeInTheDocument()
-    expect(screen.getByText('dayplan.exportMaps · GPX')).toBeInTheDocument()
+    // The format stands beside the plain-language heading as a pill, not behind a "·".
+    expect(screen.getByText('dayplan.exportMaps')).toBeInTheDocument()
+    expect(screen.getByText('GPX')).toBeInTheDocument()
+    expect(document.body.textContent).not.toContain('·')
     for (const label of ['dayplan.pdf', 'mobileTrip.icsDownload', 'mobileTrip.icsSubscribe',
       'dayplan.gpxAll', 'dayplan.gpxPlaces', 'dayplan.gpxDays']) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
+  })
+
+  it('FE-PLANNER-EXPORTMODAL-015: Escape and the head band close button close the dialog', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    render(<TripExportModal {...makeProps({ onClose })} />)
+    await user.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onClose).toHaveBeenCalledTimes(2)
+  })
+
+  it('FE-PLANNER-EXPORTMODAL-016: while one export works, every row waits', async () => {
+    const user = userEvent.setup()
+    let finish: (() => void) | null = null
+    vi.mocked(downloadTripPDF).mockImplementationOnce(() => new Promise<void>(res => { finish = res }))
+    render(<TripExportModal {...makeProps()} />)
+    await user.click(screen.getByText('dayplan.pdf'))
+    await waitFor(() => expect(screen.getByRole('button', { name: /dayplan\.gpxAll/ })).toBeDisabled())
+    expect(screen.getByRole('button', { name: /mobileTrip\.icsDownload/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /dayplan\.pdf/ })).toBeDisabled()
+    finish!()
+    await waitFor(() => expect(screen.getByRole('button', { name: /dayplan\.gpxAll/ })).toBeEnabled())
   })
 
   // ── PDF ───────────────────────────────────────────────────────────────────
@@ -96,7 +132,8 @@ describe('TripExportModal', () => {
     await user.click(screen.getByText('dayplan.pdf'))
     await waitFor(() => expect(downloadTripPDF).toHaveBeenCalledTimes(1))
     expect(vi.mocked(downloadTripPDF).mock.calls[0][0]).toMatchObject({
-      trip, days, dayNotes: [expect.objectContaining({ id: 1, text: 'Bring cash', day_id: 10 })],
+      trip, days, showServiceStops: true,
+      dayNotes: [expect.objectContaining({ id: 1, text: 'Bring cash', day_id: 10 })],
     })
   })
 
@@ -159,6 +196,27 @@ describe('TripExportModal', () => {
     expect(screen.queryByTestId('ics-subscribe-modal')).not.toBeInTheDocument()
   })
 
+  // The subscription dialog used to sit under the export dialog (9999 against
+  // 10000), and one Escape closed the export behind it as well.
+  it('FE-PLANNER-EXPORTMODAL-017: the subscribe dialog stacks on top, and Escape leaves the export alone while it is open', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    render(<TripExportModal {...makeProps({ onClose })} />)
+    await user.click(screen.getByText('mobileTrip.icsSubscribe'))
+    const exportBackdrop = screen.getByRole('dialog', { name: 'dayplan.export' }).parentElement!
+    const subscribe = screen.getByTestId('ics-subscribe-modal')
+    // Both hang off the body; the later one paints above the earlier.
+    expect(exportBackdrop.compareDocumentPosition(subscribe) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await user.keyboard('{Escape}')
+    expect(onClose).not.toHaveBeenCalled()
+    // A press on the export's backdrop is spent on nothing either.
+    await user.click(exportBackdrop)
+    expect(onClose).not.toHaveBeenCalled()
+    await user.click(screen.getByText('close-subscribe'))
+    await user.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   // The subscription mints a link that reads the trip without an account, so it
   // needs share_manage; the one-off download is a file this member may already
   // read. Leaving the entry visible would only produce a dialog whose enable
@@ -218,5 +276,19 @@ describe('TripExportModal', () => {
     render(<TripExportModal {...makeProps({ toast })} />)
     await user.click(screen.getByText('dayplan.gpxAll'))
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('dayplan.gpxFailed'))
+  })
+
+  it('FE-PLANNER-EXPORTMODAL-018: "My plan" appears once people are assigned, and prints only mine (#2168)', async () => {
+    const user = userEvent.setup()
+    resetAllStores()
+    seedStore(useAuthStore, { user: buildUser({ id: 7 }) })
+    const { rerender } = render(<TripExportModal {...makeProps()} />)
+    expect(screen.queryByText('dayplan.pdfMine')).toBeNull()
+
+    const assignments = { 10: [{ id: 1, participants: [{ user_id: 7, username: 'me' }] }] } as unknown as AssignmentsMap
+    rerender(<TripExportModal {...makeProps({ assignments })} />)
+    await user.click(screen.getByText('dayplan.pdfMine'))
+    await waitFor(() => expect(downloadTripPDF).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(downloadTripPDF).mock.calls[0][0]).toMatchObject({ onlyUserId: 7 })
   })
 })

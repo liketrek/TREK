@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useTripStore } from '../../../src/store/tripStore';
+import { applyStayStops } from '../../../src/store/stayStops';
 import { resetAllStores } from '../../helpers/store';
 import { buildDay, buildAssignment, buildPlace } from '../../helpers/factories';
 import type { Assignment } from '../../../src/types';
@@ -237,13 +238,13 @@ describe('remoteEventHandler > assignments', () => {
   });
 
   it('FE-WSEVT-ASSIGN-014: assignment:moved drops a stale copy already sitting on the target day', () => {
-    const moved = buildAssignment({ id: 100, day_id: 20 });
+    const moved = buildAssignment({ id: 100, day_id: 20, order_index: 1 });
     useTripStore.setState({
       days: [buildDay({ id: 10 }), buildDay({ id: 20 })],
       assignments: {
         '10': [moved],
         // The target day still holds the previous copy plus an unrelated item.
-        '20': [buildAssignment({ id: 100, day_id: 20 }), buildAssignment({ id: 200, day_id: 20 })],
+        '20': [buildAssignment({ id: 100, day_id: 20 }), buildAssignment({ id: 200, day_id: 20, order_index: 0 })],
       },
     });
     useTripStore.getState().handleRemoteEvent({
@@ -254,7 +255,133 @@ describe('remoteEventHandler > assignments', () => {
     });
     const target = useTripStore.getState().assignments['20'];
     expect(target.map(a => a.id)).toEqual([200, 100]);
+    expect(target.map(a => a.order_index)).toEqual([0, 1]);
     expect(useTripStore.getState().assignments['10']).toHaveLength(0);
+  });
+
+  // #2410: a stop arrives with the seat the server gave it, and the client puts it
+  // there rather than at the end of the day, the way the local move reducer does.
+  describe('seating by order_index', () => {
+    const seedDay = () => {
+      useTripStore.setState({
+        days: [buildDay({ id: 10 })],
+        assignments: {
+          '10': [
+            buildAssignment({ id: 100, day_id: 10, order_index: 0 }),
+            buildAssignment({ id: 101, day_id: 10, order_index: 1 }),
+          ],
+        },
+      });
+    };
+    const day = () => useTripStore.getState().assignments['10'];
+
+    it('FE-WSEVT-ASSIGN-017: assignment:created at index 0 lands first and the others move up one', () => {
+      seedDay();
+      useTripStore.getState().handleRemoteEvent({
+        type: 'assignment:created',
+        assignment: buildAssignment({ id: 200, day_id: 10, order_index: 0 }),
+      });
+      expect(day().map(a => a.id)).toEqual([200, 100, 101]);
+      expect(day().map(a => a.order_index)).toEqual([0, 1, 2]);
+    });
+
+    it('FE-WSEVT-ASSIGN-018: an index past the end appends, and the rows already seated keep their identity', () => {
+      seedDay();
+      const [first, second] = day();
+      useTripStore.getState().handleRemoteEvent({
+        type: 'assignment:created',
+        assignment: buildAssignment({ id: 200, day_id: 10, order_index: 9 }),
+      });
+      expect(day().map(a => a.id)).toEqual([100, 101, 200]);
+      expect(day().map(a => a.order_index)).toEqual([0, 1, 2]);
+      expect(day()[0]).toBe(first);
+      expect(day()[1]).toBe(second);
+    });
+
+    it('FE-WSEVT-ASSIGN-019: a day held out of order is sorted before the seat is counted', () => {
+      useTripStore.setState({
+        days: [buildDay({ id: 10 })],
+        assignments: {
+          '10': [
+            buildAssignment({ id: 101, day_id: 10, order_index: 1 }),
+            buildAssignment({ id: 100, day_id: 10, order_index: 0 }),
+          ],
+        },
+      });
+      useTripStore.getState().handleRemoteEvent({
+        type: 'assignment:created',
+        assignment: buildAssignment({ id: 200, day_id: 10, order_index: 1 }),
+      });
+      expect(day().map(a => a.id)).toEqual([100, 200, 101]);
+      expect(day().map(a => a.order_index)).toEqual([0, 1, 2]);
+    });
+
+    it('FE-WSEVT-ASSIGN-020: assignment:moved seats the row on its new day the same way', () => {
+      useTripStore.setState({
+        days: [buildDay({ id: 10 }), buildDay({ id: 20 })],
+        assignments: {
+          '10': [buildAssignment({ id: 300, day_id: 10, order_index: 0 })],
+          '20': [
+            buildAssignment({ id: 100, day_id: 20, order_index: 0 }),
+            buildAssignment({ id: 101, day_id: 20, order_index: 1 }),
+          ],
+        },
+      });
+      useTripStore.getState().handleRemoteEvent({
+        type: 'assignment:moved',
+        assignment: buildAssignment({ id: 300, day_id: 20, order_index: 0 }),
+        oldDayId: 10,
+        newDayId: 20,
+      });
+      const { assignments } = useTripStore.getState();
+      expect(assignments['10']).toEqual([]);
+      expect(assignments['20'].map(a => a.id)).toEqual([300, 100, 101]);
+      expect(assignments['20'].map(a => a.order_index)).toEqual([0, 1, 2]);
+    });
+
+    it('FE-WSEVT-ASSIGN-021: a night re-seated on its own day moves within it rather than doubling', () => {
+      // A check-in given a new hour arrives as assignment:moved with oldDayId === newDayId.
+      useTripStore.setState({
+        days: [buildDay({ id: 10 })],
+        assignments: {
+          '10': [
+            buildAssignment({ id: 100, day_id: 10, order_index: 0 }),
+            buildAssignment({ id: 12, day_id: 10, order_index: 1, accommodation_id: 7 }),
+            buildAssignment({ id: 101, day_id: 10, order_index: 2 }),
+          ],
+        },
+      });
+      useTripStore.getState().handleRemoteEvent({
+        type: 'assignment:moved',
+        assignment: buildAssignment({ id: 12, day_id: 10, order_index: 0, accommodation_id: 7 }),
+        oldDayId: 10,
+        newDayId: 10,
+      });
+      expect(day().map(a => a.id)).toEqual([12, 100, 101]);
+      expect(day().map(a => a.order_index)).toEqual([0, 1, 2]);
+    });
+
+    it('FE-WSEVT-ASSIGN-022: the answer a session without a socket folds in seats the moved night as well', () => {
+      // The HTTP answer carries no assignment:reordered behind it, so the seat has to be
+      // right from the moved event alone.
+      useTripStore.setState({
+        days: [buildDay({ id: 10 }), buildDay({ id: 20 })],
+        assignments: {
+          '10': [buildAssignment({ id: 12, day_id: 10, order_index: 0, accommodation_id: 7 })],
+          '20': [
+            buildAssignment({ id: 100, day_id: 20, order_index: 0 }),
+            buildAssignment({ id: 101, day_id: 20, order_index: 1 }),
+          ],
+        },
+      });
+      applyStayStops({
+        movedAssignment: { assignment: buildAssignment({ id: 12, day_id: 20, order_index: 0, accommodation_id: 7 }), oldDayId: 10 },
+      });
+      const { assignments } = useTripStore.getState();
+      expect(assignments['10']).toEqual([]);
+      expect(assignments['20'].map(a => a.id)).toEqual([12, 100, 101]);
+      expect(assignments['20'].map(a => a.order_index)).toEqual([0, 1, 2]);
+    });
   });
 
   it('FE-WSEVT-ASSIGN-015: assignment:reordered drops ids that are no longer on the day', () => {

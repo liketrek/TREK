@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'Almost there...',
   'trip.mobilePlan': 'Plan',
   'trip.mobilePlaces': 'Places',
+  'trip.panelWidth': 'Panel width',
   'trip.toast.placeUpdated': 'Place updated',
   'trip.toast.tripUpdated': 'Trip updated',
   'trip.toast.placeAdded': 'Place added',
@@ -88,7 +89,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'Transfers',
   'transit.walkLabel': 'Walking',
   'transit.searchHint': 'Search real connections and add them straight to the day — data via Transitous.',
-  'trip.confirm.deletePlaceNight': 'The night booked at “{name}” goes with the place.',
-  'trip.confirm.deletePlaceBooked': 'The night booked at “{name}” goes with the place, together with the booking “{booking}” and any expense linked to it.',
+  'trip.confirm.deletePlaceNight': 'This also deletes the stay booked at “{name}”.',
+  'trip.confirm.deletePlaceBooked':
+    'This also deletes the stay booked at “{name}”, the booking “{booking}” and any expense linked to it.',
+  'trip.confirm.deletePlaceBookedSame':
+    'This also deletes the stay booked at “{name}”, its booking and any expense linked to it.',
 };
 export default trip;

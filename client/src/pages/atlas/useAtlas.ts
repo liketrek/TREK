@@ -9,12 +9,13 @@ import { isVectorStyle } from '../../utils/tileUrl'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
 import L from 'leaflet'
 import type { GeoJsonFeatureCollection } from '../../types'
-import { A2_TO_A3, countryStatus, visitMonth, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, regionCacheEvictions, withCountryMarkedVisited, wishlistA3Codes, countryColor, REGION_CACHE_MAX, bucketTooltipWidth, bucketTooltipPlacement, bucketTooltipNeedsScroll, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
+import { A2_TO_A3, countryStatus, visitedRegionCount, visitMonth, findBucketDuplicate, isBucketDuplicateError, isCountryVisible, normalizeRegionName, regionCacheEvictions, withCountryMarkedVisited, wishlistA3Codes, wishlistRegionCodes, countryColor, REGION_CACHE_MAX, bucketTooltipWidth, bucketTooltipPlacement, bucketTooltipNeedsScroll, type AtlasData, type AtlasPlaceHit, type CountryDetail, type BucketItem } from './atlasModel'
 import { continentForCountry, escapeHtml, type VisitStatus } from '@trek/shared'
 import { useGlassGlare } from '../../components/Atlas/useGlassGlare'
 import { dawarichApi } from '../../api/dawarich'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
+import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
 
 const PLANNED_KEY = 'trek_atlas_show_planned'
 
@@ -24,6 +25,46 @@ function hexToRgba(hex: string, alpha: number): string {
   const g = Number.parseInt(clean.substring(2, 4), 16)
   const b = Number.parseInt(clean.substring(4, 6), 16)
   return `rgba(${r},${g},${b},${alpha})`
+}
+
+/**
+ * The same diagonal stripes for the region layer, which draws with SVG where a
+ * CanvasPattern means nothing (#1901): an SVG pattern kept in one hidden defs
+ * block, referenced by `url(#id)`. Built once per colour and theme.
+ */
+function svgWishlistFill(color: string, dark: boolean): string {
+  const id = `trek-wish-${color.replace('#', '')}-${dark ? 'd' : 'l'}`
+  if (typeof document === 'undefined') return color
+  if (!document.getElementById(id)) {
+    const ns = 'http://www.w3.org/2000/svg'
+    let host: Element | null = document.getElementById('trek-wish-patterns')
+    if (!host) {
+      host = document.createElementNS(ns, 'svg')
+      host.id = 'trek-wish-patterns'
+      host.setAttribute('width', '0')
+      host.setAttribute('height', '0')
+      host.setAttribute('aria-hidden', 'true')
+      host.setAttribute('style', 'position:absolute')
+      host.appendChild(document.createElementNS(ns, 'defs'))
+      document.body.appendChild(host)
+    }
+    const pattern = document.createElementNS(ns, 'pattern')
+    pattern.id = id
+    pattern.setAttribute('patternUnits', 'userSpaceOnUse')
+    pattern.setAttribute('width', '8')
+    pattern.setAttribute('height', '8')
+    const bg = document.createElementNS(ns, 'rect')
+    bg.setAttribute('width', '8')
+    bg.setAttribute('height', '8')
+    bg.setAttribute('fill', hexToRgba(color, dark ? 0.14 : 0.2))
+    const stripes = document.createElementNS(ns, 'path')
+    stripes.setAttribute('d', 'M-1,9 L9,-1 M-1,1 L1,-1 M7,9 L9,7')
+    stripes.setAttribute('stroke', color)
+    stripes.setAttribute('stroke-width', '2')
+    pattern.append(bg, stripes)
+    host.firstElementChild!.appendChild(pattern)
+  }
+  return `url(#${id})`
 }
 
 // Diagonal-stripe CanvasPattern for the wishlist country fill, in that
@@ -79,6 +120,7 @@ function useCountryNames(language: string): (code: string) => string {
  */
 export function useAtlas() {
   const { t, language } = useTranslation()
+  const placeLang = usePlaceLanguage()
   const { settings } = useSettingsStore()
   const navigate = useNavigate()
   const toast = useToast()
@@ -118,6 +160,8 @@ export function useAtlas() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false)
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
   const [countryDetail, setCountryDetail] = useState<CountryDetail | null>(null)
+  // The list of a country's places, opened from its detail (#2174).
+  const [placesOpen, setPlacesOpen] = useState(false)
   const [geoData, setGeoData] = useState<GeoJsonFeatureCollection | null>(null)
   const [visitedRegions, setVisitedRegions] = useState<Record<string, { code: string; name: string; placeCount: number; manuallyMarked?: boolean; status?: VisitStatus }[]>>({})
   const [pluginLayers, setPluginLayers] = useState<PluginAtlasLayer[]>([])
@@ -750,6 +794,8 @@ export function useAtlas() {
     }
     const isVisitedFeature = (f: any) => matchesRegions(f, visitedRegionCodes, visitedRegionNamesByCountry)
     const isPlannedFeature = (f: any) => matchesRegions(f, plannedRegionCodes, plannedRegionNamesByCountry)
+    // States and provinces on the bucket list, hatched like a wished-for country (#1901).
+    const wishedRegionCodes = wishlistRegionCodes(bucketList)
 
     // Include every region feature of the countries in view: visited ones get colored
     // fill, unvisited get outline only (clicking one is how a region gets marked)
@@ -784,6 +830,16 @@ export function useAtlas() {
           }
         }
         const visited = isVisitedFeature(feature)
+        if (!visited && wishedRegionCodes.has(String(feature?.properties?.iso_3166_2 || '').toUpperCase())) {
+          const wishColor = A2_TO_A3[countryA2] ? countryColor(A2_TO_A3[countryA2]) : '#6366f1'
+          return {
+            fillColor: svgWishlistFill(wishColor, dark),
+            fillOpacity: 1,
+            color: wishColor,
+            weight: 1,
+            dashArray: '3 2',
+          }
+        }
         return visited ? {
           fillColor: a2ColorMap[countryA2] || '#6366f1',
           fillOpacity: 0.85,
@@ -869,7 +925,7 @@ export function useAtlas() {
     // visitedCountries belongs here: the region colours are derived from it, and without
     // the dep this effect kept painting regions from a stale country list.
     rebuildRegionLayerRef.current(true)
-  }, [regionGeoLoaded, visitedRegions, dark, t, visitedCountries, showPlanned])
+  }, [regionGeoLoaded, visitedRegions, dark, t, visitedCountries, showPlanned, bucketList])
 
   const handleMarkCountry = (code: string, name: string): void => {
     setConfirmAction({ type: 'choose', code, name })
@@ -896,7 +952,7 @@ export function useAtlas() {
     // newer one the user has already typed past.
     const seq = ++placeSearchSeqRef.current
     placeSearchTimerRef.current = setTimeout(() => {
-      mapsApi.search(query, language)
+      mapsApi.search(query, placeLang)
         .then(result => {
           if (seq !== placeSearchSeqRef.current) return
           // The provider blob is deliberately open (Google and OSM disagree on
@@ -1069,7 +1125,7 @@ export function useAtlas() {
     if (!bucketSearch.trim()) return
     setBucketSearching(true)
     try {
-      const result = await mapsApi.search(bucketSearch, language)
+      const result = await mapsApi.search(bucketSearch, placeLang)
       setBucketSearchResults(result.places || [])
     } catch (err) { console.error('Bucket-list place search failed:', err) } finally { setBucketSearching(false) }
   }
@@ -1164,6 +1220,7 @@ export function useAtlas() {
 
   const stats = data?.stats || { totalTrips: 0, totalPlaces: 0, totalCountries: 0, totalDays: 0 }
   const countries = data?.countries || []
+  const regionsVisited = useMemo(() => visitedRegionCount(visitedRegions), [visitedRegions])
 
   return {
     t, language, navigate, resolveName, dark, loading,
@@ -1172,7 +1229,7 @@ export function useAtlas() {
     data, setData, stats, countries, selectedCountry, countryDetail,
     visitedCountries, visibleCountries, showPlanned, togglePlanned,
     loadCountryDetail, handleUnmarkCountry, select_country_from_search,
-    visitedRegions, setVisitedRegions,
+    visitedRegions, setVisitedRegions, regionsVisited, placesOpen, setPlacesOpen,
     atlas_country_search, set_atlas_country_search,
     atlas_country_results, set_atlas_country_results,
     atlas_country_open, set_atlas_country_open, atlas_country_options,

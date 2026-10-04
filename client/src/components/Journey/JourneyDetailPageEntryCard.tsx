@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
-import { MapPin, Clock, MoreHorizontal, Pencil, Trash2, Plus, RouteOff, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { MapPin, Clock, Pencil, Trash2, Plus, PencilLine, RouteOff, X } from 'lucide-react'
 import { formatLocationName } from '../../utils/formatters'
 import { useTranslation } from '../../i18n'
 import { pluginsApi } from '../../api/client'
@@ -9,6 +8,7 @@ import type { JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
 import { photoUrl } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { Tooltip } from '../shared/Tooltip'
+import { MoreButton, type MenuEntry } from '../Planner/planParts'
 import { PhotoGrid } from './JourneyDetailPagePhotoGrid'
 import { MoodChip, WeatherChip } from './JourneyDetailPageChips'
 import { ExpandableStory } from './JourneyDetailPageExpandableStory'
@@ -22,8 +22,10 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
   onPhotoClick: (photos: JourneyPhoto[], index: number) => void
 }) {
   const { t } = useTranslation()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuBtnRef = useRef<HTMLButtonElement>(null)
+  const menuItems: MenuEntry[] = [
+    { label: t('common.edit'), icon: Pencil, onClick: onEdit },
+    { label: t('common.delete'), icon: Trash2, onClick: onDelete, danger: true },
+  ]
   // Extra rows contributed by journalEntryProvider plugins — same pattern as the
   // PlaceInspector provider details: fetched only when plugins are active at all,
   // fail-safe (the server drops slow/failing providers), only ever additive.
@@ -77,24 +79,19 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
                 {t('journey.entry.offRoute')}
               </span>
             )}
+            {/* A draft (#696) is the contributors' own until it is published. */}
+            {entry.is_draft && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-black/40 backdrop-blur-sm rounded-full text-[10px] font-semibold text-white tracking-wide">
+                <PencilLine size={10} />
+                {t('journey.entry.draft')}
+              </span>
+            )}
           </div>
 
-          {/* Menu top-right */}
+          {/* Menu top-right, raised on the card colour so it reads on any photo */}
           {!readOnly && (
             <div className="absolute top-2.5 right-3 z-[2]">
-              <button type="button" ref={menuBtnRef} onClick={() => setMenuOpen(!menuOpen)} className="w-8 h-8 rounded-[10px] bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50">
-                <MoreHorizontal size={14} />
-              </button>
-              {menuOpen && createPortal(
-                <>
-                  <div className="fixed inset-0 z-[99]" role="presentation" onClick={() => setMenuOpen(false)} />
-                  <div className="fixed z-[100] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 min-w-[120px]" style={{ top: (menuBtnRef.current?.getBoundingClientRect().bottom || 0) + 4, right: window.innerWidth - (menuBtnRef.current?.getBoundingClientRect().right || 0) }}>
-                    <button type="button" onClick={() => { setMenuOpen(false); onEdit() }} className="w-full text-left px-3 py-1.5 text-[12px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 flex items-center gap-2"><Pencil size={12} /> {t('common.edit')}</button>
-                    <button type="button" onClick={() => { setMenuOpen(false); onDelete() }} className="w-full text-left px-3 py-1.5 text-[12px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"><Trash2 size={12} /> {t('common.delete')}</button>
-                  </div>
-                </>,
-                document.body,
-              )}
+              <MoreButton label={t('files.menu')} items={menuItems} size={32} alwaysVisible className="bg-surface-card shadow-sm" />
             </div>
           )}
 
@@ -124,24 +121,13 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
                 <RouteOff size={10} /> {t('journey.entry.offRoute')}
               </span>
             )}
+            {entry.is_draft && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-[10px] font-semibold text-zinc-500">
+                <PencilLine size={10} /> {t('journey.entry.draft')}
+              </span>
+            )}
           </div>
-          {!readOnly && (
-            <div className="relative">
-              <button type="button" ref={menuBtnRef} onClick={() => setMenuOpen(!menuOpen)} className="w-7 h-7 rounded-md flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                <MoreHorizontal size={14} />
-              </button>
-              {menuOpen && createPortal(
-                <>
-                  <div className="fixed inset-0 z-[99]" role="presentation" onClick={() => setMenuOpen(false)} />
-                  <div className="fixed z-[100] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 min-w-[120px]" style={{ top: (menuBtnRef.current?.getBoundingClientRect().bottom || 0) + 4, right: window.innerWidth - (menuBtnRef.current?.getBoundingClientRect().right || 0) }}>
-                    <button type="button" onClick={() => { setMenuOpen(false); onEdit() }} className="w-full text-left px-3 py-1.5 text-[12px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 flex items-center gap-2"><Pencil size={12} /> {t('common.edit')}</button>
-                    <button type="button" onClick={() => { setMenuOpen(false); onDelete() }} className="w-full text-left px-3 py-1.5 text-[12px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"><Trash2 size={12} /> {t('common.delete')}</button>
-                  </div>
-                </>,
-                document.body,
-              )}
-            </div>
-          )}
+          {!readOnly && <MoreButton label={t('files.menu')} items={menuItems} size={28} alwaysVisible />}
         </div>
       )}
 

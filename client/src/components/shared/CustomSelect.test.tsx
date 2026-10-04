@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
+import { render, screen, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import CustomSelect from './CustomSelect';
 
@@ -143,6 +143,46 @@ describe('CustomSelect', () => {
 
     const menu = screen.getByText('Apple').closest('div[style*="position: fixed"]') as HTMLElement;
     expect(menu.style.maxWidth).toBe('180px');
+  });
+
+  // #2478: the trip share dialog stored String(value) against options keyed by numeric
+  // user ids, so the pick never showed in the trigger although it was made.
+  const USERS = [
+    { value: 7, label: 'alice' },
+    { value: 12, label: 'bob' },
+  ];
+
+  it('FE-COMP-SELECT-014: a value held as text finds the option keyed by the same number', async () => {
+    const user = userEvent.setup();
+    render(<CustomSelect value="12" onChange={onChange} options={USERS} placeholder="Pick a user" />);
+
+    const trigger = screen.getByRole('button');
+    expect(trigger).toHaveTextContent('bob');
+    expect(screen.queryByText('Pick a user')).toBeNull();
+
+    // The open list marks the same option with its check, and only that one.
+    await user.click(trigger);
+    const menu = within(screen.getByText('alice').closest('div[style*="position: fixed"]') as HTMLElement);
+    expect(menu.getByRole('button', { name: 'bob' }).querySelector('svg')).not.toBeNull();
+    expect(menu.getByRole('button', { name: 'alice' }).querySelector('svg')).toBeNull();
+  });
+
+  it('FE-COMP-SELECT-015: a numeric value finds the option keyed by the same text', () => {
+    render(<CustomSelect value={3} onChange={onChange} options={[{ value: '3', label: 'March' }, { value: '4', label: 'April' }]} placeholder="Month" />);
+    expect(screen.getByRole('button')).toHaveTextContent('March');
+  });
+
+  it('FE-COMP-SELECT-016: a caller holding nothing still sees the placeholder', () => {
+    render(<CustomSelect value={null} onChange={onChange} options={[{ value: '', label: 'Nobody' }, ...USERS]} placeholder="Pick a user" />);
+    expect(screen.getByRole('button')).toHaveTextContent('Pick a user');
+  });
+
+  it('FE-COMP-SELECT-017: picking hands back the option value as it is', async () => {
+    const user = userEvent.setup();
+    render(<CustomSelect value="" onChange={onChange} options={USERS} />);
+    await user.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button', { name: 'alice' }));
+    expect(onChange).toHaveBeenCalledWith(7);
   });
 
   it('FE-COMP-SELECT-008: disabled state prevents the dropdown from opening', async () => {

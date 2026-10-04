@@ -92,6 +92,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Image metadata
+        id: meta
+        run: |
+          echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v6
@@ -102,6 +108,9 @@ jobs:
           no-cache: true
           build-args: |
             APP_VERSION=${{ needs.version-bump.outputs.version }}
+          labels: |
+            org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.created }}
 
       - name: Export digest
         run: |
@@ -163,7 +172,12 @@ jobs:
               digests+=("mauriceboe/trek@sha256:$(basename "$f")")
             done
           done
+          # The labels live on each platform image; the index gets the ones a
+          # client reads before it picks a platform (#1498).
           docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.source=https://github.com/liketrek/TREK" \
+            --annotation "index:org.opencontainers.image.version=$VERSION" \
+            --annotation "index:org.opencontainers.image.licenses=AGPL-3.0-only" \
             -t "mauriceboe/trek:latest-pre" \
             -t "mauriceboe/trek:$MAJOR_TAG" \
             -t "mauriceboe/trek:$VERSION" \

@@ -79,7 +79,7 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                     const toIdx = newOrder.indexOf(cat)
                     newOrder.splice(fromIdx, 1)
                     newOrder.splice(toIdx, 0, dragCat)
-                    reorderBudgetCategories(tripId, newOrder)
+                    void reorderBudgetCategories(tripId, newOrder)
                   }
                   setDragCat(null); setDragOverCat(null)
                 }}
@@ -103,8 +103,8 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                         autoFocus
                         value={editingCat.value}
                         onChange={e => setEditingCat({ ...editingCat, value: e.target.value })}
-                        onBlur={() => { handleRenameCategory(cat, editingCat.value); setEditingCat(null) }}
-                        onKeyDown={e => { if (e.key === 'Enter') { handleRenameCategory(cat, editingCat.value); setEditingCat(null) } if (e.key === 'Escape') setEditingCat(null) }}
+                        onBlur={() => { void handleRenameCategory(cat, editingCat.value); setEditingCat(null) }}
+                        onKeyDown={e => { if (e.key === 'Enter') { void handleRenameCategory(cat, editingCat.value); setEditingCat(null) } if (e.key === 'Escape') setEditingCat(null) }}
                         style={{ fontWeight: 600, fontSize: 'calc(13px * var(--fs-scale-body, 1))', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 4, color: '#fff', padding: '1px 6px', outline: 'none', fontFamily: 'inherit', width: '100%' }}
                       />
                     ) : (
@@ -180,7 +180,7 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                                 const toIdx = ids.indexOf(item.id)
                                 ids.splice(fromIdx, 1)
                                 ids.splice(toIdx, 0, dragItem)
-                                reorderBudgetItems(tripId, ids)
+                                void reorderBudgetItems(tripId, ids)
                                 setDragItem(null); setDragOverItem(null); setDragItemCat(null)
                               }
                             }}

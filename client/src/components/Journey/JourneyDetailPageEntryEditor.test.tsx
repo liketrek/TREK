@@ -1,10 +1,10 @@
-// FE-JRN-EDITOR-001 to FE-JRN-EDITOR-040
+// FE-JRN-EDITOR-001 to FE-JRN-EDITOR-059
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { http, HttpResponse, delay } from 'msw'
 import { localIsoDate } from '../../utils/localDate'
 import userEvent from '@testing-library/user-event'
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
+import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render'
 import { seedStore } from '../../../tests/helpers/store'
 import { buildSettings } from '../../../tests/helpers/factories'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -75,8 +75,12 @@ function mountEditor(
       onDone={onDone}
     />,
   )
-  return { ...utils, onClose, onDone, onSave, onUploadPhotos, onAddProviderPhotos }
+  // The editor is a dialog in a portal on the body, so DOM queries go to the
+  // body; the render container itself stays empty.
+  return { ...utils, container: utils.baseElement, onClose, onDone, onSave, onUploadPhotos, onAddProviderPhotos }
 }
+
+const DISCARD_QUESTION = 'You have unsaved changes. Discard them?'
 
 function useConnectedImmich() {
   server.use(
@@ -134,7 +138,7 @@ describe('EntryEditor', () => {
     expect(screen.getByDisplayValue('Rome')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Great food')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Crowded')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Amazing' }).className).not.toContain('border-zinc-200')
+    expect(screen.getByRole('button', { name: 'Amazing' }).className).not.toContain('border-edge-faint')
   })
 
   it('FE-JRN-EDITOR-003: saves the edited fields and finishes', async () => {
@@ -285,10 +289,10 @@ describe('EntryEditor', () => {
   })
 
   it('FE-JRN-EDITOR-012: promoting a photo to first persists the new sort order', async () => {
-    const patched: Array<{ id: string; body: unknown }> = []
-    server.use(http.patch('/api/journeys/photos/:id', async ({ params, request }) => {
-      patched.push({ id: String(params.id), body: await request.json() })
-      return HttpResponse.json({ ok: true })
+    const sent: Array<{ id: string; body: unknown }> = []
+    server.use(http.put('/api/journeys/entries/:id/photos/reorder', async ({ params, request }) => {
+      sent.push({ id: String(params.id), body: await request.json() })
+      return HttpResponse.json({ success: true })
     }))
     const user = userEvent.setup()
     const { container } = mountEditor(buildEntry({ id: 10, photos: [buildPhoto(100), buildPhoto(101)] }))
@@ -296,42 +300,40 @@ describe('EntryEditor', () => {
     expect(screen.getByText('1st')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Make 1st' }))
 
-    await waitFor(() => expect(patched).toHaveLength(2))
-    expect(patched).toEqual([
-      { id: '101', body: { sort_order: 0 } },
-      { id: '100', body: { sort_order: 1 } },
-    ])
+    // The whole order goes out in one request, not one PATCH per photo.
+    await waitFor(() => expect(sent).toHaveLength(1))
+    expect(sent[0]).toEqual({ id: '10', body: { orderedIds: [101, 100] } })
     const imgs = Array.from(container.querySelectorAll('img')).map(i => i.getAttribute('src'))
     expect(imgs[0]).toBe('/api/photos/101/thumbnail')
   })
 
   it('FE-JRN-EDITOR-013: asks before discarding a dirty editor', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     const user = userEvent.setup()
     const { onClose } = mountEditor(buildEntry({ id: 10, title: 'Rome' }))
 
     await user.type(screen.getByDisplayValue('Rome'), '!')
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
-    expect(confirmSpy).toHaveBeenCalledWith('You have unsaved changes. Discard them?')
+    // Answering no keeps the editor and what was typed in it.
+    const question = screen.getByText(DISCARD_QUESTION).closest('[role="presentation"]') as HTMLElement
+    await user.click(within(question).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByText(DISCARD_QUESTION)).not.toBeInTheDocument()
     expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByDisplayValue('Rome!')).toBeInTheDocument()
 
-    confirmSpy.mockReturnValue(true)
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Discard' }))
     expect(onClose).toHaveBeenCalledTimes(1)
-    confirmSpy.mockRestore()
   })
 
   it('FE-JRN-EDITOR-014: closes an untouched editor without asking', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     const { onClose } = mountEditor(buildEntry({ id: 10 }))
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
-    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(screen.queryByText(DISCARD_QUESTION)).not.toBeInTheDocument()
     expect(onClose).toHaveBeenCalledTimes(1)
-    confirmSpy.mockRestore()
   })
 
   it('FE-JRN-EDITOR-015: adds and removes pro and con rows', async () => {
@@ -363,10 +365,10 @@ describe('EntryEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'Neutral' }))
     await user.click(screen.getByRole('button', { name: 'Rainy' }))
-    expect(screen.getByRole('button', { name: 'Rainy' }).className).toContain('bg-zinc-900')
+    expect(screen.getByRole('button', { name: 'Rainy' }).className).toContain('bg-accent')
 
     await user.click(screen.getByRole('button', { name: 'Rainy' }))
-    expect(screen.getByRole('button', { name: 'Rainy' }).className).not.toContain('bg-zinc-900')
+    expect(screen.getByRole('button', { name: 'Rainy' }).className).not.toContain('bg-accent')
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(onSave).toHaveBeenCalled())
@@ -466,13 +468,13 @@ describe('EntryEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'External photos' }))
     expect(await screen.findByTestId('journey-external-provider-immich')).toBeInTheDocument()
-    expect(screen.getByText('Nearby photos first · Rome')).toBeInTheDocument()
+    expect(screen.getByText('Nearby photos first: Rome')).toBeInTheDocument()
     expect(screen.getByText('Photos for Mar 15, 2026')).toBeInTheDocument()
 
     await user.click(await screen.findByAltText(''))
     await user.click(screen.getByRole('button', { name: 'Add (1)' }))
 
-    const clearBtn = await screen.findByRole('button', { name: /1 queued · Clear/ })
+    const clearBtn = await screen.findByRole('button', { name: /1 queued Clear/ })
     await user.click(clearBtn)
     expect(screen.queryByRole('button', { name: /queued/ })).not.toBeInTheDocument()
   })
@@ -486,7 +488,7 @@ describe('EntryEditor', () => {
     expect(await screen.findByText('All photos from this day')).toBeInTheDocument()
     await user.click(await screen.findByAltText(''))
     await user.click(screen.getByRole('button', { name: 'Add (1)' }))
-    await screen.findByRole('button', { name: /1 queued · Clear/ })
+    await screen.findByRole('button', { name: /1 queued Clear/ })
 
     onAddProviderPhotos.mockRejectedValueOnce(new Error('provider down'))
     await user.click(screen.getByRole('button', { name: 'Save' }))
@@ -595,7 +597,7 @@ describe('EntryEditor', () => {
 
   it('FE-JRN-EDITOR-029: rolls the order back when persisting it fails', async () => {
     let attempts = 0
-    server.use(http.patch('/api/journeys/photos/:id', () => {
+    server.use(http.put('/api/journeys/entries/:id/photos/reorder', () => {
       attempts += 1
       return HttpResponse.json({ error: 'sort rejected' }, { status: 500 })
     }))
@@ -604,30 +606,31 @@ describe('EntryEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'Make 1st' }))
 
-    await waitFor(() => expect(attempts).toBe(2))
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('sort rejected', 'error', undefined))
+    expect(attempts).toBe(1)
     const order = Array.from(container.querySelectorAll('.w-20.h-20 img')).map(i => i.getAttribute('src'))
     expect(order).toEqual(['/api/photos/100/thumbnail', '/api/photos/101/thumbnail'])
   })
 
-  it('FE-JRN-EDITOR-047: a partly accepted order keeps what the server took', async () => {
+  it('FE-JRN-EDITOR-047: the server takes the whole order or none of it, so a refusal never leaves a half order', async () => {
     const patched: number[] = []
-    server.use(http.patch('/api/journeys/photos/:id', ({ params }) => {
-      const id = Number(params.id)
-      patched.push(id)
-      if (id === 100) return HttpResponse.json({ error: 'sort rejected' }, { status: 500 })
-      return HttpResponse.json({ success: true })
-    }))
+    server.use(
+      http.patch('/api/journeys/photos/:id', ({ params }) => {
+        patched.push(Number(params.id))
+        return HttpResponse.json({ success: true })
+      }),
+      http.put('/api/journeys/entries/:id/photos/reorder', () => HttpResponse.json({ error: 'sort rejected' }, { status: 409 })),
+    )
     const user = userEvent.setup()
-    const { container } = mountEditor(buildEntry({ id: 10, photos: [buildPhoto(100), buildPhoto(101)] }))
+    const { container } = mountEditor(buildEntry({ id: 10, photos: [buildPhoto(100), buildPhoto(101), buildPhoto(102)] }))
 
-    await user.click(screen.getByRole('button', { name: 'Make 1st' }))
+    await user.click(screen.getAllByRole('button', { name: 'Make 1st' })[1])
 
-    await waitFor(() => expect(patched).toEqual([101, 100]))
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('sort rejected', 'error', undefined))
-    // 101 is first on the server now; snapping the strip back would hide that.
+    // No per-photo writes any more, and the strip shows the order the server kept.
+    expect(patched).toEqual([])
     const order = Array.from(container.querySelectorAll('.w-20.h-20 img')).map(i => i.getAttribute('src'))
-    expect(order).toEqual(['/api/photos/101/thumbnail', '/api/photos/100/thumbnail'])
+    expect(order).toEqual(['/api/photos/100/thumbnail', '/api/photos/101/thumbnail', '/api/photos/102/thumbnail'])
   })
 
   it('FE-JRN-EDITOR-030: dropping an unsaved gallery pick cancels its link', async () => {
@@ -704,15 +707,15 @@ describe('EntryEditor', () => {
     // Queue a photo from the first provider, then switch tabs.
     await user.click(await screen.findByAltText(''))
     await user.click(screen.getByRole('button', { name: 'Add (1)' }))
-    await screen.findByRole('button', { name: /1 queued · Clear/ })
+    await screen.findByRole('button', { name: /1 queued Clear/ })
 
     await user.click(screen.getByTestId('journey-external-provider-photoprism'))
-    expect(screen.getByTestId('journey-external-provider-photoprism').className).toContain('bg-zinc-900')
+    expect(screen.getByTestId('journey-external-provider-photoprism').className).toContain('bg-accent')
 
     // The picker's own cancel drops back to the first available provider.
     await user.click(screen.getAllByRole('button', { name: 'Cancel' })[0])
-    expect(screen.getByTestId('journey-external-provider-photoprism').className).not.toContain('bg-zinc-900')
-    expect(screen.getByRole('button', { name: /1 queued · Clear/ })).toBeInTheDocument()
+    expect(screen.getByTestId('journey-external-provider-photoprism').className).not.toContain('bg-accent')
+    expect(screen.getByRole('button', { name: /1 queued Clear/ })).toBeInTheDocument()
   })
 
   it('FE-JRN-EDITOR-033: merges a second pick into the already queued group', async () => {
@@ -739,7 +742,7 @@ describe('EntryEditor', () => {
 
     await user.click(tiles[0])
     await user.click(screen.getByRole('button', { name: 'Add (1)' }))
-    await screen.findByRole('button', { name: /1 queued · Clear/ })
+    await screen.findByRole('button', { name: /1 queued Clear/ })
 
     // The first asset stays selected but is now greyed out, so the second Add
     // re-sends it and the merge has to skip the duplicate.
@@ -747,7 +750,7 @@ describe('EntryEditor', () => {
     const secondId = assetIdOf(remaining)
     await user.click(remaining)
     await user.click(screen.getByRole('button', { name: 'Add (2)' }))
-    expect(await screen.findByRole('button', { name: /2 queued · Clear/ })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /2 queued Clear/ })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1))
@@ -857,11 +860,11 @@ describe('EntryEditor', () => {
     expect(amazing.getAttribute('style')).toBeNull()
 
     await user.click(amazing)
-    expect(amazing.className).not.toContain('border-zinc-200')
+    expect(amazing.className).not.toContain('border-edge-faint')
     expect(amazing.getAttribute('style')).toBeTruthy()
 
     await user.click(amazing)
-    expect(amazing.className).toContain('border-zinc-200')
+    expect(amazing.className).toContain('border-edge-faint')
     expect(amazing.getAttribute('style')).toBe('')
   })
 
@@ -1017,15 +1020,56 @@ describe('EntryEditor', () => {
   })
 
   it('FE-JRN-EDITOR-055: flipping the switch is a change worth warning about', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     const user = userEvent.setup()
     const { onClose } = mountEditor(buildEntry({ id: 10, location_lat: 63.98, location_lng: -22.6 }))
 
     await user.click(screen.getByRole('button', { name: 'Leave out of the route' }))
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
-    expect(confirmSpy).toHaveBeenCalledWith('You have unsaved changes. Discard them?')
+    expect(screen.getByText(DISCARD_QUESTION)).toBeInTheDocument()
     expect(onClose).not.toHaveBeenCalled()
-    confirmSpy.mockRestore()
+  })
+  it('FE-JRN-EDITOR-056: a clip without a poster is a play badge, not a request for its thumbnail (#2341)', () => {
+    // The thumbnail route answers 404 for such a clip on purpose, and the old
+    // fallback to /original would have handed an <img> the video file itself.
+    const clip = { ...buildPhoto(100), media_type: 'video', provider: 'local', thumbnail_path: null }
+    const { container } = mountEditor(buildEntry({ id: 10, photos: [clip] }))
+
+    expect(container.querySelector('img[src="/api/photos/100/thumbnail"]')).not.toBeInTheDocument()
+    expect(container.querySelector('svg.lucide-play')).toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-057: a clip with its poster shows the poster like any photo', () => {
+    const clip = { ...buildPhoto(100), media_type: 'video', provider: 'local', thumbnail_path: 'journey/poster.jpg' }
+    const { container } = mountEditor(buildEntry({ id: 10, photos: [clip] }))
+
+    expect(container.querySelector('img[src="/api/photos/100/thumbnail"]')).toBeInTheDocument()
+    expect(container.querySelector('svg.lucide-play')).not.toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-058: the gallery picker gives a clip without a poster the same play badge (#2341)', async () => {
+    const user = userEvent.setup()
+    const clip = { ...buildGalleryPhoto(200), media_type: 'video', provider: 'local', thumbnail_path: null }
+    const { container } = mountEditor(buildEntry(), { galleryPhotos: [clip] })
+
+    await user.click(screen.getByRole('button', { name: 'From Gallery' }))
+
+    expect(container.querySelector('img[src="/api/photos/200/thumbnail"]')).not.toBeInTheDocument()
+    expect(container.querySelector('svg.lucide-play')).toBeInTheDocument()
+  })
+
+  it('FE-JRN-EDITOR-059: a clip whose poster fails to load is not retried as the clip itself', async () => {
+    // The /original of a video is the video file, which an <img> cannot draw.
+    const user = userEvent.setup()
+    const strip = { ...buildPhoto(100), media_type: 'video', provider: 'local', thumbnail_path: 'journey/a.jpg' }
+    const picker = { ...buildGalleryPhoto(200), media_type: 'video', provider: 'local', thumbnail_path: 'journey/b.jpg' }
+    const { container } = mountEditor(buildEntry({ id: 10, photos: [strip] }), { galleryPhotos: [picker] })
+
+    await user.click(screen.getByRole('button', { name: 'From Gallery' }))
+    for (const id of [100, 200]) {
+      const img = container.querySelector(`img[src="/api/photos/${id}/thumbnail"]`) as HTMLImageElement
+      fireEvent.error(img)
+      expect(img.getAttribute('src')).toBe(`/api/photos/${id}/thumbnail`)
+    }
   })
 })

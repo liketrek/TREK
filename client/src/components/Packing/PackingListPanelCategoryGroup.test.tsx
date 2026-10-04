@@ -323,7 +323,7 @@ describe('KategorieGruppe — bulk actions', () => {
     expect(checkAll.style.background).toBe('none')
 
     fireEvent.mouseEnter(deleteAll)
-    expect(deleteAll.style.background).toBe('rgb(254, 242, 242)')
+    expect(deleteAll.style.background).toBe('rgba(239, 68, 68, 0.1)')
   })
 })
 

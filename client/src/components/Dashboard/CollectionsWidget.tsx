@@ -21,7 +21,7 @@ export default function CollectionsWidget({ onOpen }: { onOpen: () => void }): R
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
+    ;void (async () => {
       try {
         const data = await collectionsApi.list()
         if (!cancelled) setLists(data.collections)

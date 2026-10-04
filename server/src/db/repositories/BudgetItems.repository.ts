@@ -46,14 +46,13 @@ export interface BudgetReceiptLinkRow {
   place_id: number | null;
 }
 
-/** BG71's per-person aggregate row (`getPerPersonSummary`). */
-export interface BudgetPerPersonRow {
-  user_id: number;
-  username: string;
-  avatar: string | null;
-  total_assigned: number;
-  total_paid: number;
-  items_count: number;
+/** BG88's projection: what a row needs to be converted into the trip currency. */
+export interface BudgetItemMoneyRow {
+  id: number;
+  category: string;
+  total_price: number;
+  currency: string | null;
+  exchange_rate: number;
 }
 
 interface BudgetKyselyDB {
@@ -128,9 +127,9 @@ export class BudgetItemsRepository extends TrekRepository<BudgetItems> {
       .execute();
   }
 
-  /** BG14 — `SELECT currency FROM budget_items WHERE id = ?`. `id: number` (Plan 4 Task 8b, U6 — the program's gate-level id parsing carry: its one caller, `freezeForeignRate`, is only reached with `BudgetController.update`'s `toRowId`-parsed id). */
-  async getCurrency(id: number): Promise<string | null | undefined> {
-    const row = await this.kysely<BudgetKyselyDB>().selectFrom('budget_items').select('currency').where('id', '=', id).executeTakeFirst();
+  /** BG14 — `SELECT currency FROM budget_items WHERE id = ? AND trip_id = ?`. `id: number` (Plan 4 Task 8b, U6 — the program's gate-level id parsing carry: its one caller, `freezeForeignRate`, is only reached with `BudgetController.update`'s `toRowId`-parsed id). */
+  async getCurrency(id: number, trip_id: number | string): Promise<string | null | undefined> {
+    const row = await this.kysely<BudgetKyselyDB>().selectFrom('budget_items').select('currency').where('id', '=', id).where('trip_id', '=', trip_id as number).executeTakeFirst();
     return row?.currency;
   }
 
@@ -194,7 +193,9 @@ export class BudgetItemsRepository extends TrekRepository<BudgetItems> {
   }
 
   /**
-   * BG33 (`updateBudgetItem`) — the 11-column presence-sentinel `UPDATE`
+   * BG33 (`updateBudgetItem`) — the 13-column presence-sentinel `UPDATE`
+   * (the last two, `reservation_id`/`place_id`, link an expense to a booking
+   * or a place, #2084)
    * (R11's helper — {@link presenceSet}; land here first, Tasks 3/4/5 copy
    * this shape). `category`/`name` keep the legacy `COALESCE(?, col)`
    * truthy-wins semantics (the caller passes `present = !!value`, matching
@@ -214,11 +215,13 @@ export class BudgetItemsRepository extends TrekRepository<BudgetItems> {
     ticket_json?: readonly [present: boolean, value: string | null];
     sort_order?: readonly [present: boolean, value: number];
     expense_date?: readonly [present: boolean, value: string | null];
+    reservation_id?: readonly [present: boolean, value: number | null];
+    place_id?: readonly [present: boolean, value: number | null];
   }): Promise<void> {
     const data = presenceSet<{
       category: string; name: string; total_price: number; currency: string | null; exchange_rate: number;
       persons: number | null; days: number | null; note: string | null; ticket_json: string | null;
-      sort_order: number; expense_date: string | null;
+      sort_order: number; expense_date: string | null; reservation_id: number | null; place_id: number | null;
     }>(write);
     if (Object.keys(data).length === 0) return;
     await this.kysely<BudgetKyselyDB>().updateTable('budget_items').set(data).where('id', '=', id).execute();
@@ -244,6 +247,12 @@ export class BudgetItemsRepository extends TrekRepository<BudgetItems> {
     await this.kysely<BudgetKyselyDB>().deleteFrom('budget_items').where('id', '=', id).execute();
   }
 
+  /** RS49 — `DELETE FROM budget_items WHERE id IN (dynamic)`, every expense the booking carried (#2084); a bound list, no interpolated SQL. */
+  async deleteByIds(ids: number[]): Promise<void> {
+    if (ids.length === 0) return;
+    await this.kysely<BudgetKyselyDB>().deleteFrom('budget_items').where('id', 'in', ids).execute();
+  }
+
   /** BG72 (`calculateSettlement`) — `SELECT * FROM budget_items WHERE trip_id = ?`. */
   async listAllForTrip(trip_id: number | string): Promise<BudgetItemRow[]> {
     return await this.kysely<BudgetKyselyDB>().selectFrom('budget_items').selectAll().where('trip_id', '=', trip_id as number).execute();
@@ -259,49 +268,92 @@ export class BudgetItemsRepository extends TrekRepository<BudgetItems> {
   }
 
   /**
-   * BG71 (`getPerPersonSummary`) — the correlated-subquery-inside-`SUM`
-   * aggregate (T6, per the plan's own ruling): `SELECT bm.user_id,
-   * COALESCE(u.display_name,u.username) AS username, u.avatar, SUM(...) as
-   * total_assigned, SUM(CASE WHEN...) as total_paid, COUNT(bi.id) as
-   * items_count FROM budget_item_members bm JOIN budget_items bi JOIN users
-   * u WHERE bi.trip_id = ? GROUP BY bm.user_id`. Built entirely from
-   * Kysely's expression builder (`eb.fn.coalesce`/`eb.fn.sum`/`eb.case`/a
-   * correlated `eb.selectFrom(...).whereRef(...)` subquery, the
-   * `Trips.repository.ts#tripSelectQuery` precedent for a correlated
-   * scalar) — no `sql` tag (ESLint's `no-restricted-syntax` bans it in
-   * `src/db/repositories/**`; ALL dialect SQL goes through
-   * `src/db/dialect/sql-functions.ts` instead, and this shape needs no new
-   * helper there since every piece is a plain, non-dialect-specific SQL
-   * function/operator).
+   * BG88 (`tripTotals`, `getPerPersonSummary`) — `SELECT id, category,
+   * total_price, currency, exchange_rate FROM budget_items WHERE trip_id = ?
+   * ORDER BY id`. Replaces the BG71 aggregate (#2525): every row is now
+   * converted into the trip currency in the service before anything is added.
    */
-  async getPerPersonSummary(trip_id: number | string): Promise<BudgetPerPersonRow[]> {
+  async listMoneyRows(trip_id: number | string): Promise<BudgetItemMoneyRow[]> {
     return await this.kysely<BudgetKyselyDB>()
-      .selectFrom('budget_item_members as bm')
-      .innerJoin('budget_items as bi', 'bi.id', 'bm.budget_item_id')
-      .innerJoin('users as u', 'u.id', 'bm.user_id')
-      .select((eb) => {
-        // `(SELECT COUNT(*) FROM budget_item_members WHERE budget_item_id = bi.id)`
-        const memberCount = eb
-          .selectFrom('budget_item_members as bm2')
-          .select((eb2) => eb2.fn.countAll<number>().as('c'))
-          .whereRef('bm2.budget_item_id', '=', 'bi.id');
-        // `bi.total_price * 1.0 / (memberCount)`
-        const equalShare = eb(eb('bi.total_price', '*', 1.0), '/', memberCount);
-        // `COALESCE(bm.amount, equalShare)`
-        const assigned = eb.fn.coalesce('bm.amount', equalShare);
-        // `CASE WHEN bm.paid = 1 THEN assigned ELSE 0 END`
-        const paidAmount = eb.case().when('bm.paid', '=', 1).then(assigned).else(0).end();
-        return [
-          'bm.user_id',
-          eb.fn.coalesce('u.display_name', 'u.username').as('username'),
-          'u.avatar',
-          eb.fn.sum<number>(assigned).as('total_assigned'),
-          eb.fn.sum<number>(paidAmount).as('total_paid'),
-          eb.fn.count<number>('bi.id').as('items_count'),
-        ];
-      })
-      .where('bi.trip_id', '=', trip_id as number)
-      .groupBy('bm.user_id')
+      .selectFrom('budget_items')
+      .select(['id', 'category', 'total_price', 'currency', 'exchange_rate'])
+      .where('trip_id', '=', trip_id as number)
+      .orderBy('id', 'asc')
+      .execute();
+  }
+
+  /**
+   * BG89 (`ratesForTripTotals`) — `SELECT 1 FROM budget_items WHERE trip_id = ?
+   * AND currency IS NOT NULL AND currency != '' AND UPPER(currency) != ? AND
+   * (exchange_rate IS NULL OR exchange_rate <= 0 OR exchange_rate = 1) LIMIT 1`.
+   */
+  async hasUnfrozenForeign(trip_id: number | string, trip_currency: string): Promise<boolean> {
+    const row = await this.kysely<BudgetKyselyDB>()
+      .selectFrom('budget_items')
+      .select('id')
+      .where('trip_id', '=', trip_id as number)
+      .where('currency', 'is not', null)
+      .where('currency', '!=', '')
+      .where((eb) => eb(eb.fn<string>('upper', ['currency']), '!=', trip_currency))
+      .where((eb) => eb.or([eb('exchange_rate', 'is', null), eb('exchange_rate', '<=', 0), eb('exchange_rate', '=', 1)]))
+      .limit(1)
+      .executeTakeFirst();
+    return row !== undefined;
+  }
+
+  /**
+   * BG90's `budget_items` half (`freezeMissingRates`) — `SELECT UPPER(currency)
+   * AS cur FROM budget_items WHERE trip_id = ? AND currency IS NOT NULL AND
+   * currency != '' AND UPPER(currency) != ? AND (exchange_rate IS NULL OR exchange_rate <= 0 OR exchange_rate = 1)`.
+   * The legacy statement UNIONed this with the settlements half; `DISTINCT`
+   * here stands in for the dedupe the UNION did, and the caller merges, dedupes
+   * and sorts the two lists.
+   */
+  async listUnfrozenForeignCurrencies(trip_id: number | string, trip_currency: string): Promise<string[]> {
+    const rows = await this.kysely<BudgetKyselyDB>()
+      .selectFrom('budget_items')
+      .select((eb) => eb.fn<string>('upper', ['currency']).as('cur'))
+      .distinct()
+      .where('trip_id', '=', trip_id as number)
+      .where('currency', 'is not', null)
+      .where('currency', '!=', '')
+      .where((eb) => eb(eb.fn<string>('upper', ['currency']), '!=', trip_currency))
+      .where((eb) => eb.or([eb('exchange_rate', 'is', null), eb('exchange_rate', '<=', 0), eb('exchange_rate', '=', 1)]))
+      .execute();
+    return rows.map(r => r.cur);
+  }
+
+  /** BG91's `budget_items` half (`freezeMissingRates`) — `SELECT id FROM budget_items WHERE trip_id = ? AND UPPER(currency) = ? AND (exchange_rate IS NULL OR exchange_rate <= 0 OR exchange_rate = 1)`. */
+  async listUnfrozenIdsForCurrency(trip_id: number | string, currency: string): Promise<number[]> {
+    const rows = await this.kysely<BudgetKyselyDB>()
+      .selectFrom('budget_items')
+      .select('id')
+      .where('trip_id', '=', trip_id as number)
+      .where((eb) => eb(eb.fn<string>('upper', ['currency']), '=', currency))
+      .where((eb) => eb.or([eb('exchange_rate', 'is', null), eb('exchange_rate', '<=', 0), eb('exchange_rate', '=', 1)]))
+      .execute();
+    return rows.map(r => r.id);
+  }
+
+  /** BG92's `budget_items` half (`freezeMissingRates`) — `UPDATE budget_items SET exchange_rate = ? WHERE trip_id = ? AND UPPER(currency) = ? AND (exchange_rate IS NULL OR exchange_rate <= 0 OR exchange_rate = 1)`, the compare-and-set write. */
+  async freezeUnfrozenForCurrency(trip_id: number | string, currency: string, exchange_rate: number): Promise<void> {
+    await this.kysely<BudgetKyselyDB>()
+      .updateTable('budget_items')
+      .set({ exchange_rate })
+      .where('trip_id', '=', trip_id as number)
+      .where((eb) => eb(eb.fn<string>('upper', ['currency']), '=', currency))
+      .where((eb) => eb.or([eb('exchange_rate', 'is', null), eb('exchange_rate', '<=', 0), eb('exchange_rate', '=', 1)]))
+      .execute();
+  }
+
+  /** BG93 (`resyncReservationPrice`) — `SELECT total_price, currency FROM budget_items WHERE trip_id = ? AND reservation_id = ? ORDER BY id`, every expense linked to one booking (#2084). */
+  async listLinkedToReservation(trip_id: number | string, reservation_id: number): Promise<{ total_price: number | null; currency: string | null }[]> {
+    return await this.kysely<BudgetKyselyDB>()
+      .selectFrom('budget_items')
+      .select(['total_price', 'currency'])
+      .where('trip_id', '=', trip_id as number)
+      .where('reservation_id', '=', reservation_id)
+      .orderBy('id', 'asc')
       .execute();
   }
 
@@ -430,9 +482,13 @@ export class BudgetItemsRepository extends TrekRepository<BudgetItems> {
   // place of the raw statement, never a new SQL string of their own.
   // ---------------------------------------------------------------------------
 
-  /** AC41 (`deleteAccommodation`) — `SELECT id FROM budget_items WHERE reservation_id = ?`. */
-  async findIdByReservation(reservation_id: number): Promise<{ id: number } | undefined> {
-    return await this.kysely<BudgetKyselyDB>().selectFrom('budget_items').select('id').where('reservation_id', '=', reservation_id).executeTakeFirst();
+  /**
+   * AC41 (`deleteAccommodation`) — `SELECT id FROM budget_items WHERE reservation_id = ?`,
+   * every row: a booking can hold several expenses now (#2084), and the delete takes
+   * them all.
+   */
+  async listIdsByReservation(reservation_id: number): Promise<{ id: number }[]> {
+    return await this.kysely<BudgetKyselyDB>().selectFrom('budget_items').select('id').where('reservation_id', '=', reservation_id).execute();
   }
 
   /** PL15 (`linkedExpenseIds`) — `SELECT id FROM budget_items WHERE trip_id = ? AND place_id IN (dynamic)`. */
@@ -452,14 +508,26 @@ export class BudgetItemsRepository extends TrekRepository<BudgetItems> {
     await this.kysely<BudgetKyselyDB>().deleteFrom('budget_items').where('trip_id', '=', trip_id as number).where('place_id', '=', place_id as number).execute();
   }
 
-  /** RS48/RS49/RS52/RS53 — `SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?`. */
+  /** RS52/RS53 — `SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?`. */
   async findIdByReservationInTrip(trip_id: number | string, reservation_id: number | string): Promise<{ id: number } | undefined> {
     return await this.kysely<BudgetKyselyDB>().selectFrom('budget_items').select('id').where('trip_id', '=', trip_id as number).where('reservation_id', '=', reservation_id as number).executeTakeFirst();
   }
 
-  /** RS51 — `SELECT id, category FROM budget_items WHERE trip_id = ? AND reservation_id = ?`. */
-  async findIdAndCategoryByReservation(trip_id: number | string, reservation_id: number | string): Promise<{ id: number; category: string } | undefined> {
-    return await this.kysely<BudgetKyselyDB>().selectFrom('budget_items').select(['id', 'category']).where('trip_id', '=', trip_id as number).where('reservation_id', '=', reservation_id as number).executeTakeFirst();
+  /**
+   * RS48/RS51 and the RS52 guard (`linkedBudgetItems`) — `SELECT id, category
+   * FROM budget_items WHERE trip_id = ? AND reservation_id = ?`, every row: a
+   * booking can hold several expenses now (#2084), so the delete takes them
+   * all, the type change re-files each one still on the derived category, and
+   * the price field is left alone once more than one is linked.
+   */
+  async listIdAndCategoryByReservation(trip_id: number | string, reservation_id: number | string): Promise<{ id: number; category: string }[]> {
+    return await this.kysely<BudgetKyselyDB>()
+      .selectFrom('budget_items')
+      .select(['id', 'category'])
+      .where('trip_id', '=', trip_id as number)
+      .where('reservation_id', '=', reservation_id as number)
+      .orderBy('id', 'asc')
+      .execute();
   }
 
   /** RS54 — `UPDATE budget_items SET reservation_id = ? WHERE id = ?` (binds the reservation id verbatim — a string in the legacy call site, matching parity). */

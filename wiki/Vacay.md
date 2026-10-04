@@ -48,6 +48,8 @@ Days that overlap with any of your existing TREK trips are marked with a small b
 
 You can also switch the calendar toolbar to **Company** mode to mark shared company holidays, which are highlighted in amber and do not deduct from personal allowances.
 
+A company holiday can be a half day too (a free afternoon, say): switch on **Half day** while in **Company** mode before clicking the day. A half company holiday is drawn half filled and leaves room for half a day of leave, so a vacation day logged on it costs only 0.5. Clicking the same day with the same size again removes the company holiday, and the other size converts it. Turning a day into a whole company holiday removes any leave logged on it; making it a half one shortens a full day of leave to a half.
+
 ### Half days and comp days
 
 Two toggles in the toolbar change what a click logs. They are independent, so they combine:
@@ -60,7 +62,7 @@ Each toggle's icon in the toolbar is the marker it places, so you can see what a
 **Settings** (gear icon) let you configure:
 
 - **Block weekends** — prevents logging on weekend days. You choose which days count as the weekend.
-- **Week start** — Monday or Sunday.
+- **Week starts on**: Monday or Sunday. This one is per plan and applies to the Vacay calendar only; every other calendar in TREK follows **Week starts on** under Settings > General > Language & region.
 - **Carry-over** — toggle as described above.
 - **Vacation year** — Calendar, Fiscal or Hire date, as described under Leave year above. Unlike the rest of this panel it is personal to you rather than to the plan.
 - **Company holidays** — enable a shared company holiday layer that any fused user can edit.

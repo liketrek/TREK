@@ -106,9 +106,14 @@ export class VacayEntriesRepository extends TrekRepository<VacayEntries> {
     }
   }
 
-  /** VC24/VC30/VC121 — `DELETE FROM vacay_entries WHERE plan_id = ? AND date = ?` (`applyHolidayCalendars`'s auto-clear, `updatePlan`'s company-holiday-enable clear, `toggleCompanyHoliday`'s clear — three identical-text call sites). */
+  /** VC24/VC30/VC121 — `DELETE FROM vacay_entries WHERE plan_id = ? AND date = ?` (`applyHolidayCalendars`'s auto-clear, and `makeRoomForCompanyHoliday`'s whole-holiday clear, reached from `updatePlan`'s company-holiday enable and `toggleCompanyHoliday`). */
   async deleteForPlanAndDate(planId: number, date: string): Promise<void> {
     await this.nativeDelete({ plan: planId, date });
+  }
+
+  /** VC134 — `UPDATE vacay_entries SET fraction = 0.5 WHERE plan_id = ? AND date = ? AND fraction > 0.5` (`makeRoomForCompanyHoliday`: a half company holiday halves a whole leave day, #2439). */
+  async halveForPlanAndDate(planId: number, date: string): Promise<void> {
+    await this.nativeUpdate({ plan: planId, date, fraction: { $gt: 0.5 } }, { fraction: 0.5 });
   }
 
   /** VC54/VC69/VC72 — `UPDATE vacay_entries SET plan_id = ? WHERE plan_id = ? AND user_id = ?` (`acceptInvite`'s migration-in, `dissolvePlan`'s two migration-out branches — three identical-text call sites). */

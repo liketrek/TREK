@@ -2,17 +2,32 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MTransportsTab from '../../../../src/mobile/screens/trip/tabs/MTransportsTab'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { openFile } from '../../../../src/utils/fileDownload'
+import { formatMoney } from '../../../../src/utils/formatters'
 import type { Day, Reservation, TripFile } from '../../../../src/types'
+import { usePluginStore } from '../../../../src/store/pluginStore'
 import { buildSettings } from '../../../helpers/factories'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
+import { seedStore } from '../../../helpers/store'
 
-// FE-MOB-TRTAB-001 to FE-MOB-TRTAB-022
+// FE-MOB-TRTAB-001 to FE-MOB-TRTAB-028
+
+// A card shows a price the way formatMoney writes it; getByText collapses the
+// no-break space Intl puts between amount and symbol, so the expectation does too.
+const money = (amount: number, currency: string) => formatMoney(amount, currency, 'en').replace(/\s/g, ' ')
 
 vi.mock('../../../../src/utils/fileDownload', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../src/utils/fileDownload')>()),
   openFile: vi.fn(),
 }))
+
+vi.mock('../../../../src/components/Plugins/PluginFrame', () => ({
+  default: ({ pluginId, tripId, reservationId, surface }: { pluginId: string; tripId: string | null; reservationId?: string | null; surface?: string }) => (
+    <div data-testid="plugin-frame" data-plugin={pluginId} data-trip={String(tripId)} data-reservation={String(reservationId)} data-surface={surface} />
+  ),
+}))
+
+const FLIGHT_TRACKER = { id: 'flight-tracker', name: 'Flight Tracker', type: 'widget', icon: null, slot: 'reservation-detail' } as const
 
 const DAYS = [
   { id: 1, trip_id: 7, day_number: 1, date: '2026-05-01', title: null },
@@ -101,6 +116,7 @@ function cardOf(title: string): HTMLElement {
 describe('MTransportsTab', () => {
   beforeEach(() => {
     vi.mocked(openFile).mockClear()
+    seedStore(usePluginStore, { plugins: [] })
   })
 
   it('FE-MOB-TRTAB-001: groups the transport reservations and leaves bookings out', () => {
@@ -181,11 +197,11 @@ describe('MTransportsTab', () => {
     expect(within(card).getByText('reservations.needsReview')).toBeInTheDocument()
   })
 
-  it('FE-MOB-TRTAB-011: appends the currency to the price cell', () => {
+  it('FE-MOB-TRTAB-011: formats the price cell as money in its own currency', () => {
     renderTab()
     const card = cardOf('Airport shuttle')
     expect(within(card).getByText('reservations.price')).toBeInTheDocument()
-    expect(within(card).getByText('25 CHF')).toBeInTheDocument()
+    expect(within(card).getByText(money(25, 'CHF'))).toBeInTheDocument()
   })
 
   it('FE-MOB-TRTAB-012: uses the airport meta cells when no endpoints are stored', () => {
@@ -316,10 +332,41 @@ describe('MTransportsTab', () => {
     }))
     const card = cardOf('Heli transfer')
     expect(within(card).getByText('reservations.type.helicopter')).toBeInTheDocument()
-    // seat without a class and a price without a currency stay bare
+    // a seat without a class stays bare; a price without a currency is in the trip's (EUR)
     expect(within(card).getByText('3B')).toBeInTheDocument()
-    expect(within(card).getByText('99')).toBeInTheDocument()
+    expect(within(card).getByText(money(99, 'EUR'))).toBeInTheDocument()
     // nobody is assigned, so the traveler filter row stays away
     expect(screen.queryByTitle('Ada')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-TRTAB-027: mounts a reservation-detail plugin on every card, scoped to that reservation (#2440)', () => {
+    seedStore(usePluginStore, {
+      plugins: [
+        FLIGHT_TRACKER,
+        { id: 'dash-widget', name: 'Dash', type: 'widget', icon: null, slot: 'hero' },
+        { id: 'seat-map', name: 'Seat Map', type: 'widget', icon: null, slot: 'place-detail' },
+      ],
+    })
+    const { shell } = renderTab()
+    const frame = within(cardOf('HND to ITM')).getByTestId('plugin-frame')
+    expect(frame).toHaveAttribute('data-plugin', 'flight-tracker')
+    expect(frame).toHaveAttribute('data-trip', '7')
+    expect(frame).toHaveAttribute('data-reservation', '101')
+    expect(frame).toHaveAttribute('data-surface', 'detail-slot')
+    // the slot sits outside the card's body button: a tap in it opens no sheet
+    fireEvent.click(frame)
+    expect(shell.openSheet).not.toHaveBeenCalled()
+    expect(within(cardOf('Metro to hotel')).getByTestId('plugin-frame')).toHaveAttribute('data-reservation', '104')
+    // one frame per transport card, and only for the reservation-detail slot
+    expect(screen.getAllByTestId('plugin-frame')).toHaveLength(5)
+    expect(document.querySelector('[data-plugin="dash-widget"]')).toBeNull()
+    expect(document.querySelector('[data-plugin="seat-map"]')).toBeNull()
+  })
+
+  it('FE-MOB-TRTAB-028: compact mode drops the plugin frames with the rest of the body', () => {
+    seedStore(usePluginStore, { plugins: [FLIGHT_TRACKER] })
+    renderTab(planner(), buildShell({ transportsCompact: true }))
+    expect(screen.getByText('HND to ITM')).toBeInTheDocument()
+    expect(screen.queryByTestId('plugin-frame')).not.toBeInTheDocument()
   })
 })

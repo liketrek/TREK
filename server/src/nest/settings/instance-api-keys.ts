@@ -1,3 +1,4 @@
+import { readEnv } from '../../app-config';
 import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { UsersRepository, InstanceApiKeyName } from '../../db/repositories/Users.repository';
@@ -73,6 +74,26 @@ async function readInstanceValue(appSettings: AppSettingsRepository, name: Insta
   const value = await appSettings.getValue(name);
   if (!value) return null;
   return decrypt_api_key(value) || null;
+}
+
+/**
+ * The environment variable that overrides each instance key. Whatever it holds
+ * is the operator key resolveApiKey puts first, so the admin panel names the
+ * variable rather than showing a field that nothing reads (#1881).
+ */
+const OPERATOR_KEY_ENV: Record<InstanceApiKeyName, { variable: string; read: () => string | undefined }> = {
+  maps_api_key: { variable: 'PLACES_API_KEY', read: () => readEnv().maps.placesApiKey },
+  unsplash_api_key: { variable: 'UNSPLASH_ACCESS_KEY', read: () => readEnv().integrations.unsplashAccessKey },
+  amap_api_key: { variable: 'AMAP_API_KEY', read: () => readEnv().maps.amapApiKey },
+};
+
+/** The instance keys an environment variable sets, each with that variable's name. Never the value. */
+export function operatorKeyVariables(): Partial<Record<InstanceApiKeyName, string>> {
+  const set: Partial<Record<InstanceApiKeyName, string>> = {};
+  for (const name of INSTANCE_API_KEY_NAMES) {
+    if (OPERATOR_KEY_ENV[name].read()) set[name] = OPERATOR_KEY_ENV[name].variable;
+  }
+  return set;
 }
 
 /** The instance-wide value in cleartext, or null when unset/cleared. */

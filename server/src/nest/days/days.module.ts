@@ -4,6 +4,9 @@ import { DaysController } from './days.controller';
 import { DaysService } from './days.service';
 import { DaysMcp } from './days.mcp';
 import { DaysRpc } from './days.rpc';
+import { DayRemovalService } from './day-removal.service';
+import { AccommodationsDomainModule } from '../accommodations/accommodations-domain.module';
+import { AssignmentsDomainModule } from '../assignments/assignments-domain.module';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
@@ -18,6 +21,8 @@ import { Trips } from '../../db/entities/Trips.entity';
 import { Reservations } from '../../db/entities/Reservations.entity';
 import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
 import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
+import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
 
 /**
  * Days (S6 — Phase 2 trip sub-domain), mounted at /api/trips/:tripId/days.
@@ -28,8 +33,14 @@ import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
  * Day notes used to live here too, with their own full file set; they are their
  * own domain now (day-notes/).
  *
+ * Deleting a day cancels the stays that check in or out on it and lets the
+ * journey catch up, so DayRemovalService needs the accommodations and
+ * assignments services. Both domain modules are leaves (neither reaches days or
+ * places), and PlacesModule already brings them in, so the edge adds no cycle.
+ *
  * `MikroOrmModule.forFeature([Days, DayAssignments, DayNotes, Trips,
- * Reservations, ReservationEndpoints, DayAccommodations])` registers
+ * Reservations, ReservationEndpoints, DayAccommodations, RoadtripVias,
+ * RoadtripDayBoundaries])` registers
  * `DaysRepository`/`DayAssignmentsRepository`/`DayNotesRepository`/
  * `TripsRepository`/`ReservationsRepository`/`ReservationEndpointsRepository`/
  * `DayAccommodationsRepository` for `DaysService`'s `@InjectRepository`
@@ -38,7 +49,10 @@ import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
  * Plan 3d Task 3 for DY19/DY20/DY22) — the same forFeature +
  * `@InjectRepository` wiring every converted domain copies
  * (`trip-membership.module.ts`'s precedent for pulling in a repository this
- * module doesn't otherwise own).
+ * module doesn't otherwise own). `RoadtripVias` (the stay stop a re-dated stay
+ * carries re-pins its roads) and `RoadtripDayBoundaries` (a dated append and a
+ * day delete move the day boundaries) serve `DaysService` and
+ * `DayRemovalService`.
  */
 @Module({
   imports: [
@@ -49,10 +63,15 @@ import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
     AuthModule,
     RealtimeModule,
     PluginGuardsModule,
-    MikroOrmModule.forFeature([Days, DayAssignments, DayNotes, Trips, Reservations, ReservationEndpoints, DayAccommodations]),
+    AccommodationsDomainModule,
+    AssignmentsDomainModule,
+    MikroOrmModule.forFeature([
+      Days, DayAssignments, DayNotes, Trips, Reservations, ReservationEndpoints, DayAccommodations,
+      RoadtripVias, RoadtripDayBoundaries,
+    ]),
   ],
   controllers: [DaysController],
-  providers: [DaysService, DaysMcp, DaysRpc],
+  providers: [DaysService, DayRemovalService, DaysMcp, DaysRpc],
   exports: [DaysService],
 })
 export class DaysModule {}

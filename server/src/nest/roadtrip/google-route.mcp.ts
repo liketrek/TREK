@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { googleRouteImportSchema, googleRoutePreviewRequestSchema, type GoogleRouteImport } from '@trek/shared';
+import { googleRouteImportSchema, googleRoutePreviewRequestSchema, googleRouteStopSchema, type GoogleRouteImport } from '@trek/shared';
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_NON_IDEMPOTENT, ok, type McpContext } from '../../nest-mcp';
 import { ADDON_IDS } from '../../addons';
 import { AddonsService } from '../addons/addons.service';
@@ -18,7 +18,7 @@ export class GoogleRouteMcp {
   async preview({ url }: { url: string }) { return answeringRefusals(async () => ok(await this.routes.preview(url))); }
 
   @Tool({ name: 'import_google_maps_route', description: 'Append reviewed Google Maps stops to an existing trip day in supplied order. Creates places and visits atomically. Requires place and day editing permissions. Existing visits remain. TREK calculates the road geometry; no Google route geometry is preserved.',
-    inputSchema: { tripId: z.number().int().positive(), ...googleRouteImportSchema.shape },
+    inputSchema: { tripId: z.number().int().positive(), ...googleRouteImportSchema.shape, stops: z.array(z.strictObject(googleRouteStopSchema.shape)).min(2).max(30) },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     // What the tool writes, not where the link came from: this inserts up to
     // thirty places and their day assignments, which is exactly what create_place

@@ -66,6 +66,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': 'Войти через {name}',
   'login.oidcOnly': 'Вход по паролю отключён. Используйте вашего провайдера SSO для входа.',
   'login.oidcLoggedOut': 'Вы вышли из системы. Войдите снова через вашего провайдера SSO.',
+  'login.oidcRedirecting': 'Переходим к {name}…',
+  'login.oidcRedirectSlow': 'Всё ещё здесь? Перейти к {name}',
   'login.demoHint': 'Попробуйте демо — регистрация не требуется',
   'login.passkey.signIn': 'Войти с помощью passkey',
   'login.passkey.failed': 'Не удалось войти с помощью passkey. Попробуйте ещё раз.',

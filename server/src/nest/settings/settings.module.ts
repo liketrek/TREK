@@ -9,7 +9,7 @@ import { AppConfigModule } from '../app-config/app-config.module';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { Settings } from '../../db/entities/Settings.entity';
 
-/** Exports SettingsService for in-container consumers (admin, share, llm-parse). */
+/** Exports SettingsService for in-container consumers (admin, share, llm-parse, journey, roadtrip, trips). */
 @Module({
   // AuthModule for the admin gate on the defaults routes, and for the
   // AuthService that SettingsMcp's demo gate injects. MikroOrmModule.forFeature

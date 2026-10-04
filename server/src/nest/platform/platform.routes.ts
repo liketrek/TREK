@@ -27,6 +27,43 @@ import type { PhotosRepository } from '../../db/repositories/Photos.repository';
 
 export const PUBLIC_DIR = path.join(__dirname, '../../../public');
 
+// File types the client build emits. No page of the app ends in one of these.
+const BUILD_FILE_RE = /\.(?:m?js|css|map|wasm|webmanifest|json|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf)$/i;
+
+/**
+ * Whether a request asks for a file of the built client rather than a page of it.
+ *
+ * Such a request that the static handler could not answer is a file that does not
+ * exist, and it must end in a 404. It used to get index.html like a page (#2524).
+ * A tab still running the previous build asks for a chunk the update removed and
+ * gets HTML with a 200, which the module loader rejects. Worse, a 200 is a success
+ * to everything that caches: a service worker's precache stores the HTML under the
+ * chunk's name and keeps reusing it in every later version that keeps the name,
+ * and a reverse proxy that caches static files by extension hands it out as the
+ * chunk. A 404 is refused by the precache and never stands in for the file.
+ */
+export function isBuildFilePath(pathname: string): boolean {
+  return pathname.startsWith('/assets/') || BUILD_FILE_RE.test(pathname);
+}
+
+/**
+ * The production answer to a GET that nothing else matched: index.html for a page
+ * of the app, a plain 404 in the TREK envelope for a build file that is not there.
+ * Shared by both fallback forms (applyPlatformSpa and SpaFallbackFilter).
+ */
+export function answerUnmatchedGet(req: Request, res: Response, message = 'Not Found'): void {
+  if (isBuildFilePath(req.path)) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(404).json({ error: message });
+    return;
+  }
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  // Relative to root, so that send() checks only 'index.html' for dot segments. Given
+  // the absolute path it refused an install living under a dot directory (a
+  // ~/.local checkout, say) and every deep link came back as a 404.
+  res.sendFile('index.html', { root: PUBLIC_DIR });
+}
+
 /**
  * express.static replacement for the four public /uploads mounts (storage
  * slice 3). Parity contract (spec §Serving): identical ETag / Last-Modified /
@@ -219,17 +256,14 @@ export function applyPlatformUploads(app: express.Application, storage: StorageS
  * NOT use this (its router terminates unmatched requests with a 404 before any
  * post-init route runs, and Express 5's path-to-regexp rejects a bare '*'); it serves
  * the SPA via the SpaFallbackFilter instead. Both produce the identical result:
- * unmatched GET → index.html in production.
+ * unmatched GET → index.html in production, or a 404 for a missing build file.
  */
 export function applyPlatformSpa(app: express.Application): void {
   applyPlatformStatic(app);
   // Case-sensitive on purpose (legacy parity).
   if (readEnv().app.nodeEnv !== 'production') return;
   // /.*/ rather than '*' so the helper is Express-4 and Express-5 safe.
-  app.get(/.*/, (_req: Request, res: Response) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
-  });
+  app.get(/.*/, (req: Request, res: Response) => answerUnmatchedGet(req, res));
 }
 
 /**

@@ -93,6 +93,23 @@ export class BudgetItemMembersRepository extends TrekRepository<BudgetItemMember
       .execute();
   }
 
+  /**
+   * BG94 (`getPerPersonSummary`, #2525) — `SELECT bm.budget_item_id,
+   * bm.user_id, bm.amount, bm.paid, COALESCE(u.display_name, u.username) AS
+   * username, u.avatar FROM budget_item_members bm JOIN budget_items bi ON
+   * bm.budget_item_id = bi.id JOIN users u ON bm.user_id = u.id WHERE
+   * bi.trip_id = ?`. Like {@link listForTripWithUsers}, plus `paid`.
+   */
+  async listForTripWithUsersAndPaid(trip_id: number | string): Promise<(BudgetItemMemberWithUserRow & { budget_item_id: number })[]> {
+    return await this.kysely<BudgetItemMembersKyselyDB & { budget_items: { id: number; trip_id: number } }>()
+      .selectFrom('budget_item_members as bm')
+      .innerJoin('budget_items as bi', 'bi.id', 'bm.budget_item_id')
+      .innerJoin('users as u', 'u.id', 'bm.user_id')
+      .select(['bm.budget_item_id', 'bm.user_id', 'bm.amount', 'bm.paid', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'), 'u.avatar'])
+      .where('bi.trip_id', '=', trip_id as number)
+      .execute();
+  }
+
   /** BG64 (`removeUserFromBudgetItems`) — `SELECT DISTINCT budget_item_id FROM budget_item_members WHERE user_id = ?`. */
   async listItemIdsForUser(user_id: number): Promise<number[]> {
     const rows = await this.kysely<BudgetItemMembersKyselyDB>()

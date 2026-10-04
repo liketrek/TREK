@@ -25,6 +25,8 @@ const collab: TranslationStrings = {
   'collab.links.delete': 'Excluir link',
   'collab.links.edit': 'Editar link',
   'collab.links.open': 'Abrir link',
+  'collab.links.confirmDeleteTitle': 'Excluir link?',
+  'collab.links.confirmDeleteBody': 'Este link será excluído permanentemente.',
   'collab.whatsNext.title': 'Próximos passos',
   'collab.whatsNext.today': 'Hoje',
   'collab.whatsNext.tomorrow': 'Amanhã',

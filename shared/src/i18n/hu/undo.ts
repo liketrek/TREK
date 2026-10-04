@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Visszavonás: {action}',
   'undo.assignPlace': 'Hely naphoz rendelve',
   'undo.removeAssignment': 'Hely eltávolítva a napról',
+  'undo.clearDay': 'Nap kiürítve',
   'undo.reorder': 'Helyek átrendezve',
   'undo.optimize': 'Útvonal optimalizálva',
   'undo.deletePlace': 'Hely törölve',
@@ -19,6 +20,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Naver Maps importálás',
   'undo.addPlace': 'Hely hozzáadva',
   'undo.done': 'Visszavonva: {action}',
+  'undo.failed': 'Nem sikerült visszavonni: {action}',
   'undo.importBooking': 'Foglalási visszaigazolás importálása',
 };
 export default undo;

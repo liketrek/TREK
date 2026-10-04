@@ -62,4 +62,40 @@ export class RoadtripDayBoundariesRepository extends TrekRepository<RoadtripDayB
   async deleteForDay(trip_id: number, day_number: number): Promise<void> {
     await this.nativeDelete({ trip: trip_id, day_number });
   }
+
+  /**
+   * RB5 (`DaysService.shiftBoundariesBack`, the dated append) — `SELECT
+   * day_number FROM roadtrip_day_boundaries WHERE trip_id = ? AND day_number
+   * >= ? ORDER BY day_number DESC`.
+   */
+  async listDayNumbersFrom(trip_id: number, from_number: number): Promise<number[]> {
+    const rows = await this.qb('b')
+      .select(['b.day_number'])
+      .where({ trip: trip_id, day_number: { $gte: from_number } })
+      .orderBy({ day_number: 'desc' })
+      .execute<{ day_number: number }[]>('all', false);
+    return rows.map((r) => r.day_number);
+  }
+
+  /**
+   * RB6 (`DayRemovalService.shiftBoundaries`) — `SELECT day_number FROM
+   * roadtrip_day_boundaries WHERE trip_id = ? ORDER BY day_number`.
+   */
+  async listDayNumbers(trip_id: number): Promise<number[]> {
+    const rows = await this.qb('b')
+      .select(['b.day_number'])
+      .where({ trip: trip_id })
+      .orderBy({ day_number: 'asc' })
+      .execute<{ day_number: number }[]>('all', false);
+    return rows.map((r) => r.day_number);
+  }
+
+  /**
+   * RB7 (`DaysService.shiftBoundariesBack`, `DayRemovalService.shiftBoundaries`)
+   * — `UPDATE roadtrip_day_boundaries SET day_number = ? WHERE trip_id = ? AND
+   * day_number = ?`.
+   */
+  async moveDayNumber(trip_id: number, from_number: number, to_number: number): Promise<void> {
+    await this.nativeUpdate({ trip: trip_id, day_number: from_number }, { day_number: to_number });
+  }
 }

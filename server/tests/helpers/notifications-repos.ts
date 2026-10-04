@@ -4,6 +4,8 @@ import { Notifications } from '../../src/db/entities/Notifications.entity';
 import type { NotificationsRepository } from '../../src/db/repositories/Notifications.repository';
 import { NotificationChannelPreferences } from '../../src/db/entities/NotificationChannelPreferences.entity';
 import type { NotificationChannelPreferencesRepository } from '../../src/db/repositories/NotificationChannelPreferences.repository';
+import { PushSubscriptions } from '../../src/db/entities/PushSubscriptions.entity';
+import type { PushSubscriptionsRepository } from '../../src/db/repositories/PushSubscriptions.repository';
 
 /**
  * Plan 3f Task 3 (`NotificationsService`/`NotificationPreferencesService`)
@@ -23,4 +25,9 @@ export function createTestNotificationsRepo(db: Database.Database): Promise<Noti
 
 export function createTestNotificationChannelPreferencesRepo(db: Database.Database): Promise<NotificationChannelPreferencesRepository> {
   return sharedTestOrm(db).then((t) => t.repo(NotificationChannelPreferences));
+}
+
+/** Web Push (#894): the `push_subscriptions` table behind `PushSubscriptionsService`. */
+export function createTestPushSubscriptionsRepo(db: Database.Database): Promise<PushSubscriptionsRepository> {
+  return sharedTestOrm(db).then((t) => t.repo(PushSubscriptions));
 }

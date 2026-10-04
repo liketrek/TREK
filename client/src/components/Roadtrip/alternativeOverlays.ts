@@ -1,6 +1,6 @@
 import { formatDurationShort } from './roadtripModel'
 import { ALT_PRIMARY, ALT_SECONDARY, ALT_LABEL_PRIMARY_BG, ALT_LABEL_SECONDARY_BG } from './alternativeColors'
-import type { RouteAlternative } from '../Map/RouteCalculator'
+import type { RouteAlternative, RouteEngine } from '../Map/RouteCalculator'
 import type { LegAlternatives } from './useRouteAlternatives'
 
 /** One offered route, ready to draw: the line, its colour, and where its label sits. */
@@ -24,6 +24,8 @@ export interface AlternativeOverlay {
    * `slowerThanQuickest` stays zero.
    */
   otherEngine: boolean
+  /** The engine that priced this route, which names the other engine when it is one. */
+  engine: RouteEngine
   labelBg: string
   /** Where to hang the label — a point on this route and on no other. */
   at: { lat: number; lng: number }
@@ -88,29 +90,35 @@ function mostDistinctPoint(
  * Each label hangs where its own route is furthest from all the others, so a label always
  * sits on a stretch only that route uses. Two routes that share their first and last
  * thirds still get their labels on the middle third, where they actually differ.
+ *
+ * `railEngine` is the engine the rail drives this leg with. Only routes that engine
+ * priced can be read against the road being driven; every other one is marked as the
+ * other engine's and takes part in no comparison.
  */
 export function buildAlternativeOverlays(
   routes: (RouteAlternative & { current?: boolean; direct?: boolean })[] | undefined,
   labels: { fastest: string; current: string; noMotorway: string; noToll: string; noFerry: string },
+  railEngine: RouteEngine = 'osrm',
 ): AlternativeOverlay[] {
   if (!routes?.length) return []
   // A single answer is not a choice; drawing it would just double the route already there.
   if (routes.length < 2) return []
 
   // The quickest of what came back, which is what Apple calls out — not necessarily the
-  // first entry, since the road currently driven is put at the top when there is one.
+  // first entry, since the road currently driven is put at the top.
   //
-  // Only among the routes one engine priced. The avoidance offer on a default install
-  // comes from the second engine, whose speed model differs by up to a seventh either
-  // way depending on the region, so letting it into this election decides which road is
-  // blue and how much slower every other road is called on nothing but that gap. On a
-  // Spanish motorway leg that is enough to crown a toll-free B-road detour and label
-  // the motorway somebody is actually driving as the slower way round.
+  // Only among the routes the rail's own engine priced, the current road included. An
+  // offer from another engine runs on a speed model that differs by up to a seventh
+  // either way depending on the region, so letting it into this election decides which
+  // road is fastest and how much slower every other road is called on nothing but that
+  // gap. On a Spanish motorway leg that is enough to crown a toll-free B-road detour and
+  // label the motorway somebody is actually driving as the slower way round.
   //
   // Index 0 is the fallback rather than -1: the first entry is the road being driven
   // when there is one and the router's own pick otherwise, so if a list ever held
-  // nothing but second-engine routes, that is still the one to call primary.
-  const comparable = routes.map((r, i) => (r.engine ? -1 : i)).filter(i => i >= 0)
+  // nothing the rail's engine priced, that is still the one to call primary.
+  const engineOf = (route: RouteAlternative): RouteEngine => route.engine ?? 'osrm'
+  const comparable = routes.map((r, i) => (engineOf(r) === railEngine ? i : -1)).filter(i => i >= 0)
   const quickest = comparable.length
     ? comparable.reduce((best, i) => (routes[i].duration < routes[best].duration ? i : best), comparable[0])
     : 0
@@ -119,10 +127,11 @@ export function buildAlternativeOverlays(
   return routes.map((route, index) => {
     const others = routes.filter((_, i) => i !== index).map(r => r.coordinates)
     const at = mostDistinctPoint(route.coordinates, others)
-    // Blue is the road you are on: the one currently driven, or the router's own pick
-    // when nothing has been bent. Everything else is the pale blue of an offer.
-    const primary = route.current || (!anyCurrent && index === quickest)
-    const otherEngine = !!route.engine
+    // Blue is the road you are on, which the picker always lists as the current one,
+    // however slow it is. Only a list without it (none is built that way any more) falls
+    // back to the quickest. Everything else is the pale blue of an offer.
+    const primary = anyCurrent ? !!route.current : index === quickest
+    const otherEngine = engineOf(route) !== railEngine
     return {
       index,
       coordinates: route.coordinates,
@@ -146,10 +155,11 @@ export function buildAlternativeOverlays(
       // that is the only thing to measure against. The bar reads a zero as "no
       // difference worth printing" and falls back to naming what the road is, which
       // for these is always the class left out of it.
-      slowerThanQuickest: otherEngine || !!routes[quickest].engine
+      slowerThanQuickest: otherEngine || engineOf(routes[quickest]) !== railEngine
         ? 0
         : Math.max(0, Math.round(route.duration - routes[quickest].duration)),
       otherEngine,
+      engine: engineOf(route),
       labelBg: primary ? ALT_LABEL_PRIMARY_BG : ALT_LABEL_SECONDARY_BG,
       at: at ?? { lat: 0, lng: 0 },
     }
@@ -189,5 +199,33 @@ export function alternativesPhase(
  * instead of each keeping its own.
  */
 export function alternativeSubline(alt: AlternativeOverlay, slower: (time: string) => string): string {
-  return alt.note || slower(formatDurationShort(alt.slowerThanQuickest))
+  if (alt.note) return alt.note
+  // Another engine's road has no difference to the quickest, only its own time: a "0 min
+  // slower" under it would read as a tie that nobody measured.
+  if (alt.otherEngine) return alt.label
+  return slower(formatDurationShort(alt.slowerThanQuickest))
+}
+
+/**
+ * What a route another engine timed says about it, as a translation key: which engine it
+ * was. Null for a route the rail's own engine timed.
+ *
+ * Both bars used to call every such route the avoidance router's. A leg a route provider
+ * plugin drives is offered OSRM's ways, and a leg OSRM drew while the avoidance router did
+ * not answer heads its list with OSRM's line, so the note named an engine that had nothing
+ * to do with either. One reading for the desk and the phone.
+ */
+export function otherEngineNote(alt: Pick<AlternativeOverlay, 'otherEngine' | 'engine'>): string | null {
+  if (!alt.otherEngine) return null
+  if (alt.engine === 'valhalla') return 'roadtrip.alt.otherEngine'
+  // No offer comes from a plugin: only the rail's own line on a plugin leg is one's.
+  return alt.engine === 'osrm' ? 'roadtrip.alt.otherEngineStandard' : null
+}
+
+/**
+ * Whether a choice is being checked and saved, so neither bar takes another one meanwhile.
+ * One reading for the desk and the phone, which both stand still while it runs.
+ */
+export function alternativesBusy(open: Pick<LegAlternatives, 'proving'> | null | undefined): boolean {
+  return open?.proving != null
 }

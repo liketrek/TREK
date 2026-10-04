@@ -237,6 +237,42 @@ describe('Roadtrip e2e (real guard chain + temp SQLite)', () => {
         db.prepare('DELETE FROM trip_members WHERE trip_id = 5 AND user_id = 2').run();
       }
     });
+    it('ROADTRIP-E2E-013: the stay switch is off until it is set, and round-trips as a boolean', async () => {
+      db.prepare("DELETE FROM roadtrip_preferences WHERE trip_id = 5 AND key = 'roadtrip_hotel_bookends'").run();
+      const before = await request(server).get('/api/trips/5/roadtrip/preferences').set('Cookie', cookie()).expect(200);
+      expect(before.body.preferences).not.toHaveProperty('roadtrip_hotel_bookends');
+
+      const saved = await request(server)
+        .put('/api/trips/5/roadtrip/preferences')
+        .set('Cookie', cookie())
+        .send({ roadtrip_hotel_bookends: true })
+        .expect(200);
+      expect(saved.body.preferences.roadtrip_hotel_bookends).toBe(true);
+      const after = await request(server).get('/api/trips/5/roadtrip/preferences').set('Cookie', cookie()).expect(200);
+      expect(after.body.preferences.roadtrip_hotel_bookends).toBe(true);
+
+      await request(server)
+        .put('/api/trips/5/roadtrip/preferences')
+        .set('Cookie', cookie())
+        .send({ roadtrip_hotel_bookends: false })
+        .expect(200);
+      expect(
+        db.prepare("SELECT value FROM roadtrip_preferences WHERE trip_id = 5 AND key = 'roadtrip_hotel_bookends'").get(),
+      ).toEqual({ value: 'false' });
+    });
+    it('ROADTRIP-E2E-014: a stay switch that is not a boolean is a 400, not a stored row', async () => {
+      db.prepare("DELETE FROM roadtrip_preferences WHERE trip_id = 5 AND key = 'roadtrip_hotel_bookends'").run();
+      for (const value of ['true', 1, null]) {
+        await request(server)
+          .put('/api/trips/5/roadtrip/preferences')
+          .set('Cookie', cookie())
+          .send({ roadtrip_hotel_bookends: value })
+          .expect(400);
+      }
+      expect(
+        db.prepare("SELECT value FROM roadtrip_preferences WHERE trip_id = 5 AND key = 'roadtrip_hotel_bookends'").get(),
+      ).toBeUndefined();
+    });
     it('refuses strangers and invalid daily windows', async () => {
       await request(server).get('/api/trips/5/roadtrip/preferences').set('Cookie', sessionCookie(2)).expect(404);
       await request(server)

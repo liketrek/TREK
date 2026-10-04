@@ -7,6 +7,7 @@ import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { formatClock, formatDurationShort, parseClock } from '../../../../components/Roadtrip/roadtripModel'
 import { stageOf } from '../../../../components/Roadtrip/roadtripRowModel'
+import { isStoredStop } from '@trek/shared/roadtrip'
 import { locateStop, missedLeaveOf } from '../../../../components/Roadtrip/stayReading'
 import { useLeaveMode, type LeaveMode } from '../../../../components/Roadtrip/useLeaveMode'
 import { formatClockTime } from '../../../../utils/formatters'
@@ -110,7 +111,9 @@ export default function MRtStaySheet({ planner, shell }: MTripSheetsProps) {
   const arrival = useMemo(() => {
     if (located) return located.entry?.arrival ?? null
     if (!stage || stopPlaceId == null) return null
-    const index = stage.stops.findIndex(s => s.placeId === stopPlaceId)
+    // A stored stop at the place: the hotel a day sets out from shares the place of the
+    // hotel's own stop and comes first on the card, with a clock of its own.
+    const index = stage.stops.findIndex(s => isStoredStop(s) && s.placeId === stopPlaceId)
     if (index === -1) return null
     return stage.schedule.entries[index]?.arrival ?? null
   }, [located, stage, stopPlaceId])

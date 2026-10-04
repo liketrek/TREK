@@ -13,7 +13,7 @@ Requires `packing:read` or `packing:write` scope. The Packing addon is listed as
 | Tool | Description |
 |---|---|
 | `create_packing_item` | Add an item to the packing checklist with optional category. |
-| `update_packing_item` | Rename an item or change its category. |
+| `update_packing_item` | Rename an item, change its category, or count how many of it are already packed. |
 | `set_packing_item_sharing` | Move an item between the three sharing tiers: `common` puts it in the pool the whole trip packs from, `personal` keeps it to its owner, `shared` covers the trip members in `recipient_ids`. Only the item's owner may change this. |
 | `toggle_packing_item` | Check or uncheck a packing item. |
 | `delete_packing_item` | Remove a packing item. |
@@ -60,7 +60,7 @@ Requires `atlas:read` or `atlas:write` scope.
 | `mark_region_visited` | Mark a sub-country region as visited (e.g. `"US-CA"`). |
 | `unmark_region_visited` | Remove a region from the visited list. |
 | `get_country_atlas_places` | Get places saved in the user's atlas for a specific country. |
-| `create_bucket_list_item` | Add a destination to your personal bucket list with optional coordinates, country code and target date. The same destination for the same target date is rejected as a duplicate. |
+| `create_bucket_list_item` | Add a destination to your personal bucket list with optional coordinates, country code, target date and `region_code` (a state or province, hatched on the Atlas map). The same destination for the same target date is rejected as a duplicate. |
 | `update_bucket_list_item` | Update a bucket list item (name, notes, coordinates, target date). |
 | `delete_bucket_list_item` | Remove an item from your bucket list. |
 
@@ -185,16 +185,17 @@ Requires `journey:read` or `journey:write` scope.
 | `get_journey` | Get a full snapshot of a journey — metadata, entries, contributors, and linked trips. |
 | `get_journey_stats` | What a journey adds up to: distance travelled in metres, calendar days spanned, countries in visit order, the furthest point reached, and entry, photo and place counts. Entries switched off with `stats_excluded` count towards none of those and are listed under `excluded`. Pass `include_route` for the route itself, up to 400 stops with coordinates. |
 | `create_journey` | Create a new journey with title, optional subtitle, and an initial list of trip IDs. |
-| `update_journey` | Update a journey's title, subtitle, cover or status, and whether its entries offer a pros/cons list, a mood and a weather note (`show_verdict`, `show_mood`, `show_weather`). Owner only. |
+| `update_journey` | Update a journey's title, subtitle, cover or status, and whether its entries offer a pros/cons list, a mood and a weather note (`show_verdict`, `show_mood`, `show_weather`). `status_override` sets the shown status by hand (`draft`, `live` or `completed`), `null` goes back to following the trip dates. `photo_location` lets an entry without a place take the position of its first geotagged photo. Owner only. |
 | `restore_journey_suggestions` | Bring back every trip-derived suggestion that was dismissed from a journey. Answers with how many came back. |
 | `delete_journey` | Delete a journey. |
 | `add_journey_trip` | Link an existing trip to a journey. |
 | `remove_journey_trip` | Remove a trip from a journey. |
 | `list_journey_entries` | List all entries in a journey (date, text, mood, linked trip). |
-| `create_journey_entry` | Add an entry with date (required), optional title, story text, time of day, location name, mood, and sort order. |
-| `update_journey_entry` | Edit a journey entry's title, story, date, time of day, place, coordinates, weather, tags, mood, pros/cons list or visibility. `stats_excluded: true` keeps the entry but takes it off the route and out of `get_journey_stats`; `dismissed: true` waves a trip-derived suggestion away without deleting it, so the trip sync does not offer it again. |
+| `create_journey_entry` | Add an entry with date (required), optional title, story text, time of day, location name, mood, and sort order. `is_draft: true` creates it as a draft that the journey share link leaves out. |
+| `update_journey_entry` | Edit a journey entry's title, story, date, time of day, place, coordinates, weather, tags, mood, pros/cons list or visibility. `stats_excluded: true` keeps the entry but takes it off the route and out of `get_journey_stats`; `dismissed: true` waves a trip-derived suggestion away without deleting it, so the trip sync does not offer it again. `is_draft` turns the entry into a draft or publishes it. |
 | `delete_journey_entry` | Remove an entry from a journey. |
 | `reorder_journey_entries` | Reorder entries by providing the new ordered list of entry IDs. |
+| `reorder_journey_entry_photos` | Put the photos of one entry in a new order by passing every photo id of the entry once. The first photo is the entry's cover. |
 | `list_journey_contributors` | List the contributors of a journey (owner and editors/viewers). |
 | `add_journey_contributor` | Invite a user to a journey with `editor` or `viewer` role. |
 | `update_journey_contributor_role` | Change a contributor's role between `editor` and `viewer`. |
@@ -236,14 +237,14 @@ These tools work without an open browser. The external assistant chooses places 
 
 | Tool | Purpose | Scope |
 |---|---|---|
-| `get_roadtrip_context` | Saved days, visits, coordinates, stays, pinned times, vehicle preferences, route profiles, vias, tracks and manual boundaries | `trips:read` |
-| `calculate_roadtrip` | Calculated days, arrivals, departures, automatic pauses, driving warnings and range warnings; optional geometry | `trips:read` |
-| `get_roadtrip_settings` | Shared driving preferences for the specified trip | `trips:read` |
+| `get_roadtrip_context` | Saved days, visits, coordinates, stays, pinned times, vehicle preferences, route profiles, vias, tracks and manual boundaries, plus a `carriers` block with the flight, train, ferry, cruise and bus bookings that seam the drive and the hire cars whose desks stand on it, and `stays` with every booked stay, its check-in and check-out day and the earliest linked reservation | `trips:read` |
+| `calculate_roadtrip` | Calculated days, arrivals, departures, automatic pauses, driving warnings and range warnings; optional geometry. A booking's terminals and a hire car's desks come back as stops carrying `carrier` (its role, type and timetable); their `assignmentId` and `placeId` are synthetic negative numbers that belong to no assignment and no place, so never pass them to the assignment or place tools. With `roadtrip_hotel_bookends` on, a day after a booked night starts at that stay and a day before one ends there: those stops carry `bookend` (phase, accommodation, reservation, check-in and check-out flags, the check-out time as a label), the stay's real `placeId` and a synthetic negative `assignmentId`, and cannot be reordered, edited or given via points | `trips:read` |
+| `get_roadtrip_settings` | Shared driving preferences for the specified trip; a missing `roadtrip_hotel_bookends` means off | `trips:read` |
 | `update_roadtrip_settings` | Patch shared trip driving preferences, preserving other settings | `trips:write` |
 | `search_roadtrip_corridor` | Fuel, charging, rest areas, campsites, food, sights or hotels along a day | `trips:read` |
 | `update_route_via` | Move an existing routing handle and optionally change its outgoing leg | `trips:write` |
 | `list_route_vias` | A day's via points, or the whole trip's together with its followed tracks | `trips:read` |
-| `add_route_via`, `add_route_vias` | Add one via point, or a whole chain on one day | `trips:write` |
+| `add_route_via`, `add_route_vias` | Add one via point, or a whole chain on one day. With `roadtrip_hotel_bookends` on, a via after the last stop of a day that ends at a booked night is kept but not used, because the drive to the hotel keeps its own road | `trips:write` |
 | `reanchor_route_vias` | Re-pin a day's via points after its stops changed | `trips:write` |
 | `remove_route_via` | Remove a via point so the leg drives direct again | `trips:write` |
 | `list_day_boundaries`, `set_day_boundary` | Read or set dragged day endings; null restores the automatic ending | `trips:read` / `trips:write` |
@@ -252,15 +253,15 @@ These tools work without an open browser. The external assistant chooses places 
 | `preview_google_maps_route` | Read the ordered stops of a Google Maps directions link; nothing is saved | `trips:read` |
 | `import_google_maps_route` | Append the reviewed stops to a day as places and visits | `places:write` |
 
-Driving preferences include daily times, day-ending mode, leg/day driving limits, fuel or electric vehicle specifications, fallback range, fill percentage, avoidance and route display. They belong to the specified trip and apply equally to all its travellers. Both settings tools require tripId. Changing driving preferences requires day-edit permission, as do changes to visits, vias and endings. Fixed visit times retain priority over automatic times. Turning daily travel times off preserves saved endings but stops applying them.
+Driving preferences include daily times, day-ending mode, leg/day driving limits, fuel or electric vehicle specifications, fallback range, fill percentage, avoidance, route display and whether each day starts and ends at the stay (`roadtrip_hotel_bookends`, off by default). They belong to the specified trip and apply equally to all its travellers. Both settings tools require tripId. Changing driving preferences requires day-edit permission, as do changes to visits, vias and endings. Fixed visit times retain priority over automatic times. Turning daily travel times off preserves saved endings but stops applying them.
 
 Calculation distances are metres, route durations seconds, and stays minutes. Settings use kilometres, litres, kWh, consumption per 100 km and percentages regardless of display units. Zero clears a numeric limit; an empty daily time disables the automatic window. Vehicle specifications take precedence over fallback range when complete. The optional calculation settings are a preview and are never saved. Calculations support up to 150 visits and 100 waypoints per routing run (30 for plugin profiles). Routing calls are paced and cached. Missing coordinates, provider failures and schedule conflicts are reported explicitly; incomplete totals must not be presented as a complete itinerary. Avoidance is a routing preference, and `avoidMissed` identifies requested classes that could not be avoided, including when Valhalla falls back to OSRM.
 
-Corridor results include source attribution, distance along/from the route, failed areas and truncated areas. Follow `nextOffset` for remaining search rectangles. Filters include name or brand, socket type, minimum known charging power and `fromKm`/`toKm`. Unknown charging power remains unknown. Search never adds places automatically. Use the returned place information with `create_and_assign_place`, then move or reorder the assignment and re-anchor vias as needed. Recalculate after editing.
+Corridor results include source attribution, distance along/from the route, failed areas and truncated areas. Follow `nextOffset` for remaining search rectangles. Filters include name or brand, socket type, minimum known charging power and `fromKm`/`toKm`. Unknown charging power remains unknown. With `roadtrip_hotel_bookends` on, the road of a day includes the drive from the stay slept in and to the stay of that night; a place found there belongs at the start or the end of the stored day. Search never adds places automatically. Use the returned place information with `create_and_assign_place`, then move or reorder the assignment and re-anchor vias as needed. Recalculate after editing.
 
 Corridor searches include installed search-provider plugins. Providers receive the category and search bounds, and the host filters hits to the route. The response lists successful and failed sources; a failed provider does not discard the remaining results.
 
-The via tools manage scenic detours and followed tracks. `list_day_boundaries`, `set_day_boundary` and `set_assignment_end_day` manage manual endings; `set_assignment_end_day` is a general assignment tool and is registered whether or not the addon is on. The Places tool `import_trip_gpx` accepts GPX XML up to one million characters, uses the standard importer and requires places:write. It imports waypoints, routes and tracks without assigning them to days; `export_trip_gpx` exports the trip. Stay durations and place-level time defaults can be cleared with null through `update_place`.
+The via tools manage scenic detours and followed tracks. `list_day_boundaries`, `set_day_boundary` and `set_assignment_end_day` manage manual endings; `set_assignment_end_day` is a general assignment tool and is registered whether or not the addon is on. With `roadtrip_hotel_bookends` on, a boundary between two stops that a booked night separates is ignored, because the night ends the day. The Places tool `import_trip_gpx` accepts GPX XML up to one million characters, uses the standard importer and requires places:write. It imports waypoints, routes and tracks without assigning them to days; `export_trip_gpx` exports the trip. Stay durations and place-level time defaults can be cleared with null through `update_place`.
 
 `get_roadtrip_hazards` takes `tripId`. It does not reroute the trip. The shared `roadtrip_show_hazards` setting controls the online map overlay.
 

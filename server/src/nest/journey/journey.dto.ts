@@ -13,6 +13,7 @@ import {
   journeyPreferencesRequestSchema,
   journeyProviderPhotosRequestSchema,
   journeyReorderEntriesRequestSchema,
+  journeyReorderEntryPhotosRequestSchema,
   journeyShareLinkRequestSchema,
   journeyUpdateRequestSchema,
   bookSaveRequestSchema,
@@ -41,6 +42,7 @@ export class JourneyAddTripDto extends createZodDto(journeyAddTripRequestSchema)
 export class JourneyEntryCreateDto extends createZodDto(journeyEntryCreateRequestSchema) {}
 export class JourneyEntryUpdateDto extends createZodDto(journeyEntryUpdateRequestSchema) {}
 export class JourneyReorderEntriesDto extends createZodDto(journeyReorderEntriesRequestSchema) {}
+export class JourneyReorderEntryPhotosDto extends createZodDto(journeyReorderEntryPhotosRequestSchema) {}
 export class JourneyContributorAddDto extends createZodDto(journeyContributorRequestSchema) {}
 export class JourneyContributorUpdateDto extends createZodDto(journeyContributorUpdateRequestSchema) {}
 export class JourneyPreferencesDto extends createZodDto(journeyPreferencesRequestSchema) {}

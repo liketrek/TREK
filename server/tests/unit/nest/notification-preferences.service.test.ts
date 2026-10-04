@@ -42,6 +42,7 @@ import { WebhookService } from '../../../src/nest/notifications/transports/webho
 import { __resetChannelsForTest } from '../../../src/nest/notifications/channel-registry';
 import { createTestUnitOfWork, createTestAppSettingsRepo, createTestSettingsRepo, createTestUsersRepo } from '../../helpers/test-uow';
 import { createTestNotificationChannelPreferencesRepo } from '../../helpers/notifications-repos';
+import { makeWebPushService } from '../../helpers/notifications';
 
 // Built in beforeAll: MailerService/WebhookService/NtfyService now take
 // repositories, resolved async through test-uow.ts's memoised factories.
@@ -68,7 +69,12 @@ beforeAll(async () => {
   const settingsRepo = await createTestSettingsRepo(testDb);
   const appSettingsRepoForChannels = await createTestAppSettingsRepo(testDb);
   mailer = new MailerService(usersRepo, settingsRepo, appSettingsRepoForChannels);
-  registerBuiltinChannels({ mailer, webhook: new WebhookService(settingsRepo, appSettingsRepoForChannels), ntfy: new NtfyService(settingsRepo, appSettingsRepoForChannels) });
+  registerBuiltinChannels({
+    mailer,
+    webhook: new WebhookService(settingsRepo, appSettingsRepoForChannels),
+    ntfy: new NtfyService(settingsRepo, appSettingsRepoForChannels),
+    push: await makeWebPushService(testDb),
+  });
   svc = new NotificationPreferencesService(
     mailer,
     await createTestUnitOfWork(testDb),
@@ -361,5 +367,58 @@ describe('isWebhookConfigured', () => {
   it('NPREF-027 — returns true when webhook is in active channels', async () => {
     setNotificationChannels(testDb, 'webhook');
     expect(await isWebhookConfigured()).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Instance defaults (#1536)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('instance defaults', () => {
+  it('NPREF-028 — "off" as the default turns a cell off for everyone who never touched it', async () => {
+    const { user } = createUser(testDb);
+    await svc.setInstanceDefaults({ trip_invite: { email: 'off' } });
+    expect(await isEnabledForEvent(user.id, 'trip_invite', 'email')).toBe(false);
+    expect((await getPreferencesMatrix(user.id, 'user')).preferences.trip_invite?.email).toBe(false);
+    // Other cells keep the old default.
+    expect(await isEnabledForEvent(user.id, 'trip_invite', 'inapp')).toBe(true);
+  });
+
+  it('NPREF-029 — a user may still turn an "off" default on, and that choice is kept', async () => {
+    const { user } = createUser(testDb);
+    await svc.setInstanceDefaults({ trip_invite: { email: 'off' } });
+    await setPreferences(user.id, { trip_invite: { email: true } });
+    expect(await isEnabledForEvent(user.id, 'trip_invite', 'email')).toBe(true);
+    // Switching back to the default leaves no row behind.
+    await setPreferences(user.id, { trip_invite: { email: false } });
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM notification_channel_preferences WHERE user_id = ?').get(user.id)).toEqual({ n: 0 });
+  });
+
+  it('NPREF-030 — a blocked cell is off, locked in the matrix, and a user cannot turn it on', async () => {
+    const { user } = createUser(testDb);
+    await svc.setInstanceDefaults({ booking_change: { email: 'blocked' } });
+    await setPreferences(user.id, { booking_change: { email: true } });
+    expect(await isEnabledForEvent(user.id, 'booking_change', 'email')).toBe(false);
+    const matrix = await getPreferencesMatrix(user.id, 'user');
+    expect(matrix.preferences.booking_change?.email).toBe(false);
+    expect(matrix.locked?.booking_change).toEqual(['email']);
+  });
+
+  it('NPREF-031 — admin-scoped events and unknown cells are never touched by defaults', async () => {
+    const { user: admin } = createAdmin(testDb);
+    await svc.setInstanceDefaults({ version_available: { inapp: 'blocked' }, trip_invite: { carrier_pigeon: 'off' } } as never);
+    expect(await isEnabledForEvent(admin.id, 'version_available', 'inapp')).toBe(true);
+    expect(testDb.prepare("SELECT COUNT(*) AS n FROM app_settings WHERE key LIKE 'notif_default_%'").get()).toEqual({ n: 0 });
+  });
+
+  it('NPREF-032 — the defaults matrix lists user events only, "on" stores nothing', async () => {
+    const { user: admin } = createAdmin(testDb);
+    await svc.setInstanceDefaults({ trip_invite: { email: 'off' } });
+    const before = await svc.getInstanceDefaults(admin.id);
+    expect(before.event_types).not.toContain('version_available');
+    expect(before.defaults.trip_invite?.email).toBe('off');
+    expect(before.defaults.trip_invite?.inapp).toBe('on');
+    await svc.setInstanceDefaults({ trip_invite: { email: 'on' } });
+    expect(testDb.prepare("SELECT COUNT(*) AS n FROM app_settings WHERE key LIKE 'notif_default_%'").get()).toEqual({ n: 0 });
   });
 });

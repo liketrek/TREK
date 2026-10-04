@@ -13,6 +13,7 @@ export interface PlacesSlice {
   addPlace: (tripId: number | string, placeData: Partial<Place> & { name: string }) => Promise<Place>
   updatePlace: (tripId: number | string, placeId: number, placeData: Partial<Place>) => Promise<Place>
   uploadPlaceImage: (tripId: number | string, placeId: number, file: File) => Promise<Place>
+  setPlaceImageFromFile: (tripId: number | string, placeId: number, fileId: number) => Promise<Place>
   ratePlace: (tripId: number | string, placeId: number, rating: number | null) => Promise<Place>
   deletePlace: (tripId: number | string, placeId: number) => Promise<void>
   deletePlacesMany: (tripId: number | string, placeIds: number[]) => Promise<void>
@@ -101,6 +102,18 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
     // The server broadcast is echo-suppressed for us, so apply the returned place.
     try {
       const data = await placesApi.uploadImage(tripId, placeId, file)
+      applyUpdatedPlace(set, placeId, data.place)
+      return data.place
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, 'Error uploading image'))
+    }
+  },
+
+  setPlaceImageFromFile: async (tripId, placeId, fileId) => {
+    // Online-only like the upload: the server copies the file, so there is nothing to
+    // do offline that the next sync could replay.
+    try {
+      const data = await placesApi.imageFromFile(tripId, placeId, fileId)
       applyUpdatedPlace(set, placeId, data.place)
       return data.place
     } catch (err: unknown) {

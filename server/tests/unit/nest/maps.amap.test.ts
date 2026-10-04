@@ -61,8 +61,11 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 }));
 
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { trekPlacesSearch } from '../../../src/nest/maps/trek-places.client';
 import {
   AmapPlacesProvider,
+  AmapTipStash,
+  amapOpeningToOsm,
   amapPoiId,
   isAmapHost,
   isAmapPlaceId,
@@ -70,6 +73,7 @@ import {
 } from '../../../src/nest/maps/providers/amap.provider';
 import { isGooglePlaceId } from '../../../src/nest/maps/maps.helpers';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
@@ -123,11 +127,11 @@ const photoCacheStub = {
   serveKey: vi.fn(() => null),
 } as unknown as PlacePhotoCacheService;
 
-const svc = new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub);
+const svc = new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
 
 /** A provider over a fixed key, which is all these cases need. */
-function provider(): AmapPlacesProvider {
-  return new AmapPlacesProvider({ key: 'amap-test-key', source: 'instance', userId: 3 });
+function provider(tips = new AmapTipStash()): AmapPlacesProvider {
+  return new AmapPlacesProvider({ key: 'amap-test-key', source: 'instance', userId: 3 }, tips);
 }
 
 /** Amap's success envelope. */
@@ -268,6 +272,23 @@ describe('AmapPlacesProvider.searchText', () => {
     expect(place.website).toBeNull();
   });
 
+  // #2483: a site in Amap is free text, and often a bare host.
+  it('AMAP-012b: a website without a scheme gains https, one that is no website becomes null', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        ok({
+          pois: [
+            { id: 'B3', name: '故宫博物院', website: 'www.dpm.org.cn', location: TIANANMEN_LOCATION },
+            { id: 'B4', name: '某小店', website: 'javascript:alert(1)', location: TIANANMEN_LOCATION },
+          ],
+        }),
+      ),
+    );
+    const places = await provider().searchText('故宫');
+    expect(places.map((p) => p.website)).toEqual(['https://www.dpm.org.cn', null]);
+  });
+
   it('AMAP-013: uses place/around with a bias, because text search cannot be biased', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ pois: [] })));
     await provider().searchText('咖啡', 'zh', { lat: 31.2304, lng: 121.4737, radius: 3000 });
@@ -325,6 +346,40 @@ describe('AmapPlacesProvider.searchText', () => {
     expect(place.lat).toBeNull();
     expect(place.lng).toBeNull();
     expect(place.name).toBe('无坐标');
+  });
+
+  it('AMAP-017: an empty place/around falls through to place/text, which can read a region out of the keywords', async () => {
+    // The client's details-miss fallback searches for "name, region". around
+    // matches that literally against POI names and finds nothing; text parses
+    // the region and answers. Invented fixtures: the id and the place do not
+    // exist.
+    const villageGcj = wgs84ToGcj02(30.0, 120.0);
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce(ok({ pois: [] }))
+      .mockResolvedValueOnce(
+        ok({ pois: [{ id: 'B0TESTVIL1', name: 'Test Village', location: `${villageGcj.lng},${villageGcj.lat}` }] }),
+      );
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const places = await provider().searchText('Test Village, Test Region', 'zh', { lat: 30.0, lng: 120.0, radius: 5000 });
+
+    expect(places).toHaveLength(1);
+    expect(places[0].amap_poi_id).toBe('amap:B0TESTVIL1');
+    const calls = fetchSpy.mock.calls.map((c) => String(c[0]));
+    expect(calls[0]).toContain('/v3/place/around');
+    expect(calls[1]).toContain('/v3/place/text');
+  });
+
+  it('AMAP-017b: a place/around with hits answers alone, place/text is not asked', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(ok({ pois: [{ id: 'B1', name: '咖啡', location: TIANANMEN_LOCATION }] }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const places = await provider().searchText('咖啡', 'zh', { lat: 39.9, lng: 116.4, radius: 3000 });
+
+    expect(places).toHaveLength(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(calledUrl()).toContain('/v3/place/around');
   });
 });
 
@@ -451,6 +506,122 @@ describe('AmapPlacesProvider.placeDetails', () => {
   it('AMAP-042: returns null when Amap knows the id but has no POI for it', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ pois: [] })));
     expect(await provider().placeDetails('amap:B000A83M61')).toBeNull();
+  });
+
+  it('AMAP-043: answers from the tip autocomplete served when the detail index does not know the id', async () => {
+    // inputtips indexes 地名地址 entries (typecode 19xxxx: villages, lanes)
+    // that place/detail then answers with count=0. Without the stash the pick
+    // ends in a failed search. Invented fixtures throughout.
+    const villageGcj = wgs84ToGcj02(30.0, 120.0);
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce(
+        ok({
+          tips: [
+            {
+              id: 'B0TESTVIL2',
+              name: 'Test Village',
+              district: 'Test Province Test City',
+              address: 'Test Hamlet',
+              location: `${villageGcj.lng},${villageGcj.lat}`,
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(ok({ count: '0', pois: [] }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    // Two provider instances, as two requests make them, sharing one stash.
+    const tips = new AmapTipStash();
+    const [suggestion] = await provider(tips).autocomplete('Test Vil');
+    expect(suggestion.placeId).toBe('amap:B0TESTVIL2');
+
+    const place = await provider(tips).placeDetails('amap:B0TESTVIL2');
+    expect(place).not.toBeNull();
+    expect(place!.name).toBe('Test Village');
+    expect(place!.address).toBe('Test Province Test CityTest Hamlet');
+    // The tip's GCJ-02 coordinate made it back to WGS-84.
+    expect(place!.lat as number).toBeCloseTo(30.0, 4);
+    expect(place!.lng as number).toBeCloseTo(120.0, 4);
+    expect(place!.source).toBe('amap');
+    expect(place!.cached_at).toBeTypeOf('number');
+    const calls = fetchSpy.mock.calls.map((c) => String(c[0]));
+    expect(calls[1]).toContain('/v5/place/detail');
+  });
+
+  it('AMAP-044: without a stashed tip the empty detail answer is still null', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ count: '0', pois: [] })));
+    expect(await provider().placeDetails('amap:B0TESTNONE')).toBeNull();
+  });
+
+  it('AMAP-045: Chinese hours from v5 place/detail become weekday lines and periods', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ pois: [{
+      id: 'B0TESTHRS1', name: 'Test Shop', location: TIANANMEN_LOCATION,
+      business: { opentime_week: '周一至周五 09:00-18:00；周六、周日 10:00-16:00' },
+    }] })));
+
+    const place = await provider().placeDetails('amap:B0TESTHRS1');
+
+    expect(place!.opening_hours).toEqual([
+      'Monday: 09:00-18:00', 'Tuesday: 09:00-18:00', 'Wednesday: 09:00-18:00', 'Thursday: 09:00-18:00',
+      'Friday: 09:00-18:00', 'Saturday: 10:00-16:00', 'Sunday: 10:00-16:00',
+    ]);
+    expect(place!.opening_periods).toHaveLength(7);
+  });
+
+  it('AMAP-046: a dated holiday segment is dropped, not allowed to void the week', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ pois: [{
+      id: 'B0TESTHRS2', name: 'Test Shop', location: TIANANMEN_LOCATION,
+      business: { opentime_week: '周一至周五 09:00-18:00；2026-10-01至2026-10-07 10:00-22:00' },
+    }] })));
+
+    const place = await provider().placeDetails('amap:B0TESTHRS2');
+
+    expect(place!.opening_periods).toHaveLength(5);
+    expect((place!.opening_hours as string[])[5]).toBe('Saturday: ?');
+  });
+
+  it('AMAP-047: hours the translation cannot fully read give no hours, not a verbatim line', async () => {
+    // Amap's own documented example: a service remark with a nested ；, and a
+    // Saturday segment that is prose. Partly parsed, Saturday would read as closed.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ pois: [{
+      id: 'B0TESTHRS3', name: 'Test Bank', location: TIANANMEN_LOCATION,
+      business: { opentime_week: '周一至周五:08:30-17:30(延时服务时间:08:30-09:00；12:00-13:30)；周六延时服务时间:09:00-13:00(法定节假日除外)' },
+    }] })));
+
+    const place = await provider().placeDetails('amap:B0TESTHRS3');
+
+    expect(place!.opening_hours).toBeNull();
+    expect(place!.opening_periods).toBeNull();
+    expect(place!.open_now).toBeNull();
+  });
+
+  it('AMAP-048: amapOpeningToOsm reads the common spellings and refuses a partial read', () => {
+    const rows: [string, string | null][] = [
+      ['周一至周日 10:00-22:00', 'Mo-Su 10:00-22:00'],
+      ['周一至周四,周日 09:30-22:00；周五至周六 09:30-22:30', 'Mo-Th,Su 09:30-22:00; Fr-Sa 09:30-22:30'],
+      ['周一至周五 09:00-18:00；周六、周日 10:00-16:00', 'Mo-Fr 09:00-18:00; Sa,Su 10:00-16:00'],
+      ['周一至周五 10:00-14:00，周六至周日 17:00-22:00', 'Mo-Fr 10:00-14:00; Sa-Su 17:00-22:00'],
+      ['每天 10:00～22:00', 'Mo-Su 10:00-22:00'],
+      ['周一至周日:10：00-22：00', 'Mo-Su 10:00-22:00'],
+      ['星期一到星期五 09:00-12:00 14:00-18:00', 'Mo-Fr 09:00-12:00,14:00-18:00'],
+      ['周一至周日 18:00-次日02:00', 'Mo-Su 18:00-02:00'],
+      ['24小时营业', 'Mo-Su 00:00-24:00'],
+      ['周二至周日 09:00-17:00(周一闭馆)', 'Tu-Su 09:00-17:00'],
+      ['周二至周日 09:00-17:00；周一闭馆', 'Tu-Su 09:00-17:00'],
+      ['周一至周五 09:00-18:00；法定节假日 10:00-16:00', null],
+      ['Open daily 10:00-22:00', null],
+      ['2026-10-01至2026-10-07 10:00-22:00', null],
+    ];
+    for (const [input, expected] of rows) expect(amapOpeningToOsm(input), input).toBe(expected);
+  });
+
+  it('AMAP-049: a stashed tip without a coordinate is still null, so the client falls back to its text search', async () => {
+    const tips = new AmapTipStash();
+    tips.remember([{ id: 'B0TESTVIL3', name: 'Test Village', location: [] }]);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ count: '0', pois: [] })));
+
+    expect(await provider(tips).placeDetails('amap:B0TESTVIL3')).toBeNull();
   });
 });
 
@@ -631,6 +802,22 @@ describe('MapsService.keyedProvider', () => {
     expect(place!.source).toBe('amap');
     expect(calledUrl()).not.toContain('overpass');
   });
+
+  // #2483: a details row cached before the fix holds Amap's website as it came,
+  // often a bare host, and keeps for a week.
+  it('AMAP-079: a cached details row with a bare website is served with https', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    const row = { payload_json: JSON.stringify({ name: '旧酒店', website: 'www.hotel.cn', source: 'amap' }), fetched_at: Date.now() };
+    // The cache lookup binds the place id, the key lookup the user id.
+    mockDbGet.mockImplementation((...args: unknown[]) =>
+      args[0] === 'amap:B7' ? row : { maps_api_key: null, amap_api_key: 'akey' },
+    );
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const { place } = await svc.getPlaceDetails(1, 'amap:B7');
+    expect(place).toMatchObject({ name: '旧酒店', website: 'https://www.hotel.cn' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 describe('MapsService with Amap in the keyed slot', () => {
@@ -659,6 +846,26 @@ describe('MapsService with Amap in the keyed slot', () => {
     expect(result.source).toBe('amap');
     expect(result.places).toHaveLength(1);
     expect(result.places[0].amap_poi_id).toBe('amap:B1');
+  });
+
+  it('AMAP-085: the tip a suggestion came from answers the details request that follows it', async () => {
+    // Two requests, two provider instances: the stash has to live on the service.
+    amapSelected();
+    const villageGcj = wgs84ToGcj02(30.0, 120.0);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: unknown) =>
+        String(url).includes('/v3/assistant/inputtips')
+          ? ok({ tips: [{ id: 'B0TESTVIL4', name: 'Test Village', district: 'Test District', location: `${villageGcj.lng},${villageGcj.lat}` }] })
+          : ok({ count: '0', pois: [] }),
+      ),
+    );
+
+    await svc.autocompletePlaces(1, 'Test Vil');
+    const { place } = await svc.getPlaceDetails(1, 'amap:B0TESTVIL4');
+
+    expect(place!.name).toBe('Test Village');
+    expect(place!.lat as number).toBeCloseTo(30.0, 4);
   });
 
   it('AMAP-081: autocomplete goes to inputtips instead of Nominatim', async () => {
@@ -726,5 +933,144 @@ describe('MapsService with Amap in the keyed slot', () => {
     vi.stubGlobal('fetch', fetchSpy);
     await expect(svc.resolveGoogleMapsUrl('https://www.amap.com/place/B000A83M61')).rejects.toMatchObject({ status: 400 });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('MapsService: Amap first inside China when picked outright (#1636)', () => {
+  const BEIJING = { lat: 39.9087, lng: 116.3975, radius: 20000 };
+  const PARIS = { lat: 48.8584, lng: 2.2945, radius: 20000 };
+  const BEIJING_BOX = { low: { lat: 39.8, lng: 116.3 }, high: { lat: 40.0, lng: 116.5 } };
+  let spies: { mockRestore: () => void }[] = [];
+  afterEach(() => {
+    spies.forEach(s => s.mockRestore());
+    spies = [];
+    vi.mocked(trekPlacesSearch).mockClear();
+  });
+  function osmAnswers(places: Record<string, unknown>[]) {
+    const spy = vi.spyOn(svc, 'searchNominatim').mockResolvedValue(places as never);
+    spies.push(spy);
+    return spy;
+  }
+  const amapPoi = () => ok({ pois: [{ id: 'B1', name: '天安门', location: TIANANMEN_LOCATION }] });
+
+  it('AMAP-095: picked outright and searching around Beijing, Amap answers before the index and OpenStreetMap', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    const osm = osmAnswers([{ name: 'Tiananmen (OSM)' }]);
+    const fetchSpy = vi.fn().mockResolvedValue(amapPoi());
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await svc.searchPlaces(1, '天安门', 'zh', BEIJING);
+
+    expect(result.source).toBe('amap');
+    expect(result.places[0].amap_poi_id).toBe('amap:B1');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(osm).not.toHaveBeenCalled();
+    expect(trekPlacesSearch).not.toHaveBeenCalled();
+  });
+
+  it('AMAP-096: an empty Amap answer hands the search on, and Amap is not asked a second time', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    osmAnswers([]);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ count: '0', pois: [] })));
+    const searchText = vi.spyOn(AmapPlacesProvider.prototype, 'searchText');
+    spies.push(searchText);
+
+    const result = await svc.searchPlaces(1, 'nothing here', 'zh', BEIJING);
+
+    expect(result).toEqual({ places: [], source: 'amap' });
+    expect(trekPlacesSearch).toHaveBeenCalled();
+    expect(searchText).toHaveBeenCalledTimes(1);
+  });
+
+  it('AMAP-097: a search centred outside China keeps the usual order, so the Eiffel Tower does not land in Macau', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    osmAnswers([{ name: 'Tour Eiffel' }]);
+    const fetchSpy = vi.fn().mockResolvedValue(amapPoi());
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await svc.searchPlaces(1, 'Eiffel Tower', 'en', PARIS);
+
+    expect(result.places[0].name).toBe('Tour Eiffel');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('AMAP-098: Amap holding the slot only by default (auto) changes nothing', async () => {
+    mockProviderGet.mockReturnValue(undefined);
+    keys({ amap: 'akey' });
+    osmAnswers([{ name: 'Tiananmen (OSM)' }]);
+    const fetchSpy = vi.fn().mockResolvedValue(amapPoi());
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await svc.searchPlaces(1, '天安门', 'zh', BEIJING);
+
+    expect(result.places[0].name).toBe('Tiananmen (OSM)');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('AMAP-099: a failing Amap drops through to the index and OpenStreetMap with a warning', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    osmAnswers([{ name: 'Tiananmen (OSM)' }]);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    spies.push(warn);
+    spies.push(vi.spyOn(console, 'error').mockImplementation(() => {}));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(amapError('10003')));
+
+    const result = await svc.searchPlaces(1, '天安门', 'zh', BEIJING);
+
+    expect(result.places[0].name).toBe('Tiananmen (OSM)');
+    expect(warn).toHaveBeenCalledWith('Amap search failed, falling back:', expect.any(String));
+  });
+
+  it('AMAP-100: suggestions around Beijing come from Amap first, once', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    const fetchSpy = vi.fn().mockResolvedValue(ok({ tips: [{ id: 'T1', name: '天安门', district: '北京市东城区' }] }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await svc.autocompletePlaces(1, '天安', 'zh', BEIJING_BOX);
+
+    expect(result.source).toBe('amap');
+    expect(result.suggestions[0].placeId).toBe('amap:T1');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(trekPlacesSearch).not.toHaveBeenCalled();
+  });
+
+  it('AMAP-101: empty Amap suggestions hand on to the index and are not asked for again', async () => {
+    mockProviderGet.mockReturnValue({ value: 'amap' });
+    keys({ amap: 'akey' });
+    const fetchSpy = vi.fn().mockResolvedValue(ok({ tips: [] }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await svc.autocompletePlaces(1, 'zzz', 'zh', BEIJING_BOX);
+
+    expect(result).toEqual({ suggestions: [], source: 'amap' });
+    expect(trekPlacesSearch).toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('AmapTipStash', () => {
+  it('AMAP-090: a tip is forgotten once its ten minutes are up', () => {
+    const tips = new AmapTipStash();
+    tips.remember([{ id: 'T1', name: 'x' }], 1_000);
+    expect(tips.recall('T1', 1_000 + AmapTipStash.TTL_MS - 1)?.name).toBe('x');
+    expect(tips.recall('T1', 1_000 + AmapTipStash.TTL_MS)).toBeNull();
+    // Dropped on the expired read, not merely hidden.
+    expect(tips.recall('T1', 0)).toBeNull();
+    expect(tips.recall('nope')).toBeNull();
+  });
+
+  it('AMAP-091: holds at most 500 tips, oldest out first, and a tip served again counts as new', () => {
+    const tips = new AmapTipStash();
+    tips.remember(Array.from({ length: AmapTipStash.MAX }, (_, i) => ({ id: `T${i}` })), 0);
+    tips.remember([{ id: 'T0' }], 0);
+    tips.remember([{ id: 'NEW' }], 0);
+    expect(tips.recall('T0', 0)).not.toBeNull();
+    expect(tips.recall('T1', 0)).toBeNull();
+    expect(tips.recall('NEW', 0)).not.toBeNull();
   });
 });

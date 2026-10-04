@@ -303,6 +303,21 @@ export class AssignmentsService {
   }
 
   /**
+   * Empties a day: every place comes off it in one transaction, while the day, its
+   * notes and its bookings stay (#2470). Returns the removed ids so each can be
+   * announced the way a single unassign is. Both callers gate on `dayExists` first,
+   * which `toRowId`s inside the gate, so the non-null assertion below is safe.
+   */
+  async clearDay(dayId: string | number): Promise<number[]> {
+    const dayIdNum = toRowId(dayId)!;
+    return await this.uow.transactional(async () => {
+      const ids = await this.dayAssignmentsRepo.listIdsToClear(dayIdNum); // AS32
+      await this.dayAssignmentsRepo.deleteForDay(dayIdNum); // AS33
+      return ids;
+    });
+  }
+
+  /**
    * AS11 — `DayAssignmentsRepository.setOrderIndex`, day-scoped, one row per
    * id, sequentially and in the legacy's own order (not `Promise.all` — the
    * program's transaction-ordering rule).
@@ -448,13 +463,12 @@ export class AssignmentsService {
 
     // A via behind the day's last stop bends the drive into the next day, on a trip
     // with connected days or a night drive (the planner's `anchorFor` files it there).
-    // `reanchorByStopOrder` gives a last stop no leg and deletes what follows it, which
-    // is right for a stop the sort made last and wrong for one that was last already.
-    const lastAt = previousIds.length - 1;
-    const seam = previousIds[lastAt] === nextIds[lastAt] ? lastAt : null;
+    // It stays with that stop while the sort leaves it last, and goes once the sort puts
+    // another stop last (`seamViaIndex`, applied inside `reanchorByStopOrder`): it lies on
+    // the road to tomorrow, not on the leg that stop leaves by now. The same rule the
+    // planner's own drags follow.
     // AS20 — `RoadtripViasRepository.listForReanchor`.
-    const vias = (await this.roadtripViasRepo.listForReanchor(dayId))
-      .filter(via => via.after_order_index !== seam);
+    const vias = await this.roadtripViasRepo.listForReanchor(dayId);
     const plan = reanchorByStopOrder(vias, previousIds, nextIds);
     for (const viaId of plan.remove) {
       // AS21 — `RoadtripViasRepository.deleteInDay` (= RT19).
@@ -509,6 +523,16 @@ export class AssignmentsService {
   async setIncomingLegTransportMode(id: string | number, mode: string | null) {
     const idNum = toRowId(id)!;
     await this.dayAssignmentsRepo.setIncomingLegMode(idNum, mode ?? null);
+    return await this.getAssignmentWithPlace(idNum);
+  }
+
+  /**
+   * Keep a stop on the day but out of its route (#2532): it stays in the list and on
+   * the map, and the route runs from the stop before it straight to the one after.
+   */
+  async setRouteExcluded(id: string | number, excluded: boolean) {
+    const idNum = toRowId(id)!;
+    await this.dayAssignmentsRepo.setRouteExcluded(idNum, excluded ? 1 : 0); // AS34
     return await this.getAssignmentWithPlace(idNum);
   }
 

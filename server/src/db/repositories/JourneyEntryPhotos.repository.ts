@@ -227,4 +227,24 @@ export class JourneyEntryPhotosRepository extends TrekRepository<JourneyEntryPho
       .execute();
     return rows as { entryId: number; photoId: number }[];
   }
+
+  /** JG126 — `reorderEntryPhotos`'s held-set read: `SELECT journey_photo_id FROM journey_entry_photos WHERE entry_id = ?`. */
+  async listPhotoIdsForEntry(entryId: number): Promise<number[]> {
+    const rows = await this.kysely<Pick<JourneyPhotoJoinKyselyDB, 'journey_entry_photos'>>()
+      .selectFrom('journey_entry_photos')
+      .select('journey_photo_id')
+      .where('entry_id', '=', entryId)
+      .execute();
+    return rows.map((r) => r.journey_photo_id);
+  }
+
+  /**
+   * JG127 — `reorderEntryPhotos`'s per-photo write (#824): `UPDATE journey_entry_photos SET
+   * sort_order = ? WHERE entry_id = ? AND journey_photo_id = ?`. Scoped to this entry's own
+   * link, unlike {@link updateSortOrder} (JG112): a photo that also sits on another entry
+   * keeps its place there.
+   */
+  async updateEntryLinkSortOrder(entryId: number, journeyPhotoId: number, sortOrder: number): Promise<void> {
+    await this.nativeUpdate({ entry: entryId, journeyPhoto: journeyPhotoId }, { sort_order: sortOrder });
+  }
 }

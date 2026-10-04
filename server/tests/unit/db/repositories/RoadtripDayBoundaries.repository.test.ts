@@ -2,8 +2,8 @@
  * `RoadtripDayBoundariesRepository` (Plan 3d Task 1). RB1 (`listForTrip`),
  * RB3 (`upsertBoundary`, `ON CONFLICT (trip_id, day_number) DO UPDATE SET
  * from_assignment_id = excluded.from_assignment_id, to_assignment_id =
- * excluded.to_assignment_id, fraction = excluded.fraction`) and RB4
- * (`deleteForDay`).
+ * excluded.to_assignment_id, fraction = excluded.fraction`), RB4
+ * (`deleteForDay`) and RB7 (`moveDayNumber`).
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
@@ -74,6 +74,23 @@ describe('RoadtripDayBoundariesRepository', () => {
 
     await repo.deleteForDay(trip.id, 1);
     expect((await repo.listForTrip(trip.id)).map((b) => b.day_number)).toEqual([2]);
+  });
+
+  it('RB7REPO-001: moveDayNumber rewrites only the named day_number of the named trip, silent on a miss', async () => {
+    const { trip, from, to } = fixture();
+    const { trip: other, from: otherFrom, to: otherTo } = fixture();
+    await repo.upsertBoundary(trip.id, { day_number: 1, from_assignment_id: from.id, to_assignment_id: to.id, fraction: 0.4 });
+    await repo.upsertBoundary(trip.id, { day_number: 3, from_assignment_id: from.id, to_assignment_id: to.id, fraction: 0.6 });
+    await repo.upsertBoundary(other.id, { day_number: 3, from_assignment_id: otherFrom.id, to_assignment_id: otherTo.id, fraction: 0.9 });
+
+    await expect(repo.moveDayNumber(trip.id, 99, 100)).resolves.toBeUndefined();
+    await repo.moveDayNumber(trip.id, 3, 2);
+
+    expect(await repo.listForTrip(trip.id)).toEqual([
+      { day_number: 1, from_assignment_id: from.id, to_assignment_id: to.id, fraction: 0.4 },
+      { day_number: 2, from_assignment_id: from.id, to_assignment_id: to.id, fraction: 0.6 },
+    ]);
+    expect((await repo.listForTrip(other.id)).map((b) => b.day_number)).toEqual([3]);
   });
 
   it('boundaries of one trip are never boundaries of another', async () => {

@@ -13,6 +13,7 @@ import {
   castIntegerKysely,
   coalesce,
   coalesceOverride,
+  coalesceOverrideWhileSame,
   coalesceParam,
   collateNoCase,
   columnIncrementedBy,
@@ -374,6 +375,79 @@ describe('sql-functions (sqlite)', () => {
     class FakePlatform extends Platform {}
     const foreign = new FakePlatform();
     expect(() => coalesceOverride(foreign, 'x', 'u.a')).toThrow(/no implementation for platform FakePlatform/);
+  });
+
+  // `coalesceOverrideWhileSame` — IM4's `immich_allow_insecure_tls = CASE WHEN
+  // immich_url IS ? THEN COALESCE(?, immich_allow_insecure_tls) ELSE
+  // COALESCE(?, 0) END` (#2475), driven through the same `users` columns the
+  // repository writes, in ONE UPDATE that also overwrites the key column —
+  // proving the WHEN reads the stored URL, not the one being written.
+  describe('coalesceOverrideWhileSame (IM4 self-signed switch)', () => {
+    async function save(userId: number, url: string, value: number | null): Promise<{ immich_url: string; immich_allow_insecure_tls: number }> {
+      const platform = t.em.getPlatform();
+      await t.em.createQueryBuilder(Users, 'u')
+        .update({
+          immich_url: url,
+          immich_allow_insecure_tls: coalesceOverrideWhileSame(platform, value, 'immich_allow_insecure_tls', 'immich_url', url),
+        })
+        .where({ id: userId })
+        .execute('run');
+      t.clear();
+      return testDb.prepare('SELECT immich_url, immich_allow_insecure_tls FROM users WHERE id = ?').get(userId) as { immich_url: string; immich_allow_insecure_tls: number };
+    }
+
+    it('SQLF-093: a null value keeps the stored column while the key column still holds the value being written', async () => {
+      const { user } = createUser(testDb);
+      testDb.prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = 1 WHERE id = ?').run('https://nas.local', user.id);
+      expect(await save(user.id, 'https://nas.local', null)).toEqual({ immich_url: 'https://nas.local', immich_allow_insecure_tls: 1 });
+      // Symmetric: a stored 0 is kept too, not merely "anything truthy survives".
+      testDb.prepare('UPDATE users SET immich_allow_insecure_tls = 0 WHERE id = ?').run(user.id);
+      expect(await save(user.id, 'https://nas.local', null)).toEqual({ immich_url: 'https://nas.local', immich_allow_insecure_tls: 0 });
+    });
+
+    it('SQLF-094: a non-null value overwrites the stored column in both directions, same key or not', async () => {
+      const { user } = createUser(testDb);
+      testDb.prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = 1 WHERE id = ?').run('https://nas.local', user.id);
+      expect((await save(user.id, 'https://nas.local', 0)).immich_allow_insecure_tls).toBe(0);
+      expect((await save(user.id, 'https://nas.local', 1)).immich_allow_insecure_tls).toBe(1);
+      expect((await save(user.id, 'https://other.example.com', 1)).immich_allow_insecure_tls).toBe(1);
+      expect((await save(user.id, 'https://nas.local', 0)).immich_allow_insecure_tls).toBe(0);
+    });
+
+    it('SQLF-095: a null value falls back to 0, not to the stored column, once the key column changes — including from NULL (a first connection)', async () => {
+      const { user } = createUser(testDb);
+      testDb.prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = 1 WHERE id = ?').run('https://nas.local', user.id);
+      expect(await save(user.id, 'https://photos.example.com', null)).toEqual({ immich_url: 'https://photos.example.com', immich_allow_insecure_tls: 0 });
+      // `IS` (not `=`) so a stored NULL url compares as "different", never as unknown.
+      testDb.prepare('UPDATE users SET immich_url = NULL, immich_allow_insecure_tls = 1 WHERE id = ?').run(user.id);
+      expect(await save(user.id, 'https://nas.local', null)).toEqual({ immich_url: 'https://nas.local', immich_allow_insecure_tls: 0 });
+    });
+
+    it('SQLF-096: matches the legacy CASE text row-for-row across every (stored url, new url, value) combination', async () => {
+      const { user } = createUser(testDb);
+      const legacy = testDb.prepare(
+        `UPDATE users SET immich_url = ?, immich_allow_insecure_tls = CASE WHEN immich_url IS ? THEN COALESCE(?, immich_allow_insecure_tls) ELSE COALESCE(?, 0) END WHERE id = ?`,
+      );
+      for (const storedUrl of [null, 'https://nas.local']) {
+        for (const storedFlag of [0, 1]) {
+          for (const newUrl of ['https://nas.local', 'https://photos.example.com']) {
+            for (const value of [null, 0, 1]) {
+              testDb.prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = ? WHERE id = ?').run(storedUrl, storedFlag, user.id);
+              legacy.run(newUrl, newUrl, value, value, user.id);
+              const expected = testDb.prepare('SELECT immich_url, immich_allow_insecure_tls FROM users WHERE id = ?').get(user.id);
+              testDb.prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = ? WHERE id = ?').run(storedUrl, storedFlag, user.id);
+              expect(await save(user.id, newUrl, value)).toEqual(expected);
+            }
+          }
+        }
+      }
+    });
+
+    it('SQLF-097: an unknown platform fails closed for coalesceOverrideWhileSame', () => {
+      class FakePlatform extends Platform {}
+      const foreign = new FakePlatform();
+      expect(() => coalesceOverrideWhileSame(foreign, null, 'u.a', 'u.b', 'x')).toThrow(/no implementation for platform FakePlatform/);
+    });
   });
 
   it('SQLF-021: absDifference is usable as a filter key, matching ABS(col - ?) <= tolerance', async () => {

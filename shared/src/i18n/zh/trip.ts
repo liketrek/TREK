@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': '就快到啦...',
   'trip.mobilePlan': '计划',
   'trip.mobilePlaces': '地点',
+  'trip.panelWidth': '面板宽度',
   'trip.toast.placeUpdated': '地点已更新',
   'trip.toast.tripUpdated': '行程已更新',
   'trip.toast.placeAdded': '地点已添加',
@@ -87,7 +88,8 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': '换乘',
   'transit.walkLabel': '步行',
   'transit.searchHint': '搜索真实班次并直接添加到当天行程 — 数据来自 Transitous。',
-  'trip.confirm.deletePlaceNight': '在“{name}”预订的过夜会随该地点一起删除。',
-  'trip.confirm.deletePlaceBooked': '在“{name}”预订的过夜会随该地点一起删除，同时删除预订“{booking}”及其关联的费用。',
+  'trip.confirm.deletePlaceNight': '在“{name}”预订的住宿也会一并删除。',
+  'trip.confirm.deletePlaceBooked': '在“{name}”预订的住宿、预订“{booking}”及其关联的费用也会一并删除。',
+  'trip.confirm.deletePlaceBookedSame': '在“{name}”预订的住宿及其预订和关联的费用也会一并删除。',
 };
 export default trip;

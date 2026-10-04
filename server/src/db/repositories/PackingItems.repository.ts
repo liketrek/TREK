@@ -20,6 +20,7 @@ export interface PackingItemRow {
   updated_at: string | null;
   is_private: number;
   owner_id: number | null;
+  packed_quantity: number | null;
 }
 
 const _packingItemRowKeys: AssertRowKeys<PackingItemRow, PackingItems> = true;
@@ -31,10 +32,13 @@ export interface PackingItemRecipientRow {
   username: string;
 }
 
-/** PK54's privacy-filtered export projection (`saveAsTemplate`) — name/category only. */
+/** PK54's privacy-filtered export projection (`saveAsTemplate`) — name, category, weight, count and the joined bag name (#1131). */
 export interface PackingItemExportRow {
   name: string;
   category: string | null;
+  weight_grams: number | null;
+  quantity: number;
+  bag_name: string | null;
 }
 
 /**
@@ -49,6 +53,7 @@ interface PackingItemsKyselyDB extends PackingVisibilityKyselyDB {
   packing_items: PackingItemRow;
   packing_item_recipients: { item_id: number; user_id: number };
   users: { id: number; username: string; display_name: string | null };
+  packing_bags: { id: number; name: string };
 }
 
 /**
@@ -213,13 +218,15 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
   /**
    * PK52 (`applyTemplate`'s per-row loop) — `INSERT INTO packing_items
    * (trip_id, name, checked, category, sort_order, is_private, owner_id,
-   * updated_at) VALUES (?, ?, 0, ?, ?, ?, ?, CURRENT_TIMESTAMP)` — a distinct,
-   * narrower column set from {@link insertItem} (`checked` is always 0;
-   * `weight_grams`/`bag_id` take their SQL defaults — `NULL`; `quantity`
-   * takes its SQL default — 1). MikroORM's own `insert()`, same reason as
-   * {@link insertItem}'s docstring. Returns the new row's id.
+   * weight_grams, quantity, bag_id, updated_at) VALUES (?, ?, 0, ?, ?, ?, ?,
+   * ?, ?, ?, CURRENT_TIMESTAMP)` — `checked` is always 0; weight, count and
+   * bag ride along from the template since #1131. MikroORM's own `insert()`,
+   * same reason as {@link insertItem}'s docstring. Returns the new row's id.
    */
-  async insertFromTemplate(row: { trip_id: number | string; name: string; category: string; sort_order: number; is_private: number; owner_id: number | null }): Promise<number> {
+  async insertFromTemplate(row: {
+    trip_id: number | string; name: string; category: string; sort_order: number; is_private: number; owner_id: number | null;
+    weight_grams: number | null; quantity: number; bag_id: number | null;
+  }): Promise<number> {
     const platform = this.getEntityManager().getPlatform();
     const id = await this.insert({
       trip: row.trip_id,
@@ -229,6 +236,9 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
       sort_order: row.sort_order,
       is_private: row.is_private,
       owner: row.owner_id,
+      weight_grams: row.weight_grams,
+      quantity: row.quantity,
+      bag: row.bag_id,
       updated_at: currentTimestamp(platform),
     });
     return Number(id);
@@ -286,19 +296,21 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
   }
 
   /**
-   * PK13 (`updateItem`, T3) — the 8-column presence-sentinel `UPDATE
-   * packing_items SET name = COALESCE(?, name), checked = CASE WHEN ? IS
-   * NOT NULL THEN ? ELSE checked END, category = COALESCE(?, category),
+   * PK13 (`updateItem`, T3) — the presence-sentinel `UPDATE
+   * packing_items SET name = COALESCE(?, name), checked = ?,
+   * packed_quantity = ?, category = COALESCE(?, category),
    * weight_grams = CASE WHEN ? THEN ? ELSE weight_grams END, bag_id = CASE
-   * WHEN ? THEN ? ELSE bag_id END, quantity = CASE WHEN ? THEN ? ELSE
-   * quantity END, is_private = CASE WHEN ? THEN ? ELSE is_private END,
+   * WHEN ? THEN ? ELSE bag_id END, quantity = ?,
+   * is_private = CASE WHEN ? THEN ? ELSE is_private END,
    * owner_id = CASE WHEN ? THEN ? ELSE owner_id END, updated_at =
    * CURRENT_TIMESTAMP WHERE id = ?` (`_shared/presence-set.ts`, R11 — Task
    * 2's landed shape, copied here rather than re-derived). `name`/`category`
    * keep the legacy `COALESCE(?, col)` truthy-wins semantics (the service
    * passes `present = !!value`, matching `data.name || null`'s
    * fall-through-on-falsy exactly); every other column is a true presence
-   * sentinel (`present = bodyKeys.includes(...)`), and `owner_id`'s
+   * sentinel (`present = bodyKeys.includes(...)`), except `checked`,
+   * `packed_quantity` and `quantity`, which the service always settles
+   * together (#2296, `resolvePackedState`) and passes as present; `owner_id`'s
    * presence is the claim-owner-on-privatize flag. `updated_at` is NOT
    * gated by presence — the legacy statement always stamps it, unlike
    * `BudgetItemsRepository.update`'s early-return guard (budget's row has
@@ -308,6 +320,7 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
   async update(id: number, write: {
     name?: readonly [present: boolean, value: string | null];
     checked?: readonly [present: boolean, value: number];
+    packed_quantity?: readonly [present: boolean, value: number | null];
     category?: readonly [present: boolean, value: string | null];
     weight_grams?: readonly [present: boolean, value: number | null];
     bag_id?: readonly [present: boolean, value: number | null];
@@ -317,11 +330,12 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
   }): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     const data = presenceSet<{
-      name: string | null; checked: number; category: string | null; weight_grams: number | null;
+      name: string | null; checked: number; packed_quantity: number | null; category: string | null; weight_grams: number | null;
       bag: number | null; quantity: number; is_private: number; owner: number | null;
     }>({
       name: write.name,
       checked: write.checked,
+      packed_quantity: write.packed_quantity,
       category: write.category,
       weight_grams: write.weight_grams,
       bag: write.bag_id,
@@ -385,9 +399,12 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
   }
 
   /**
-   * PK54 (`saveAsTemplate`) — `SELECT name, category FROM packing_items
-   * WHERE trip_id = ? AND (is_private = 0 OR owner_id = ?) ORDER BY
-   * sort_order ASC`. **Security-critical, its own two-arm predicate — NOT
+   * PK54 (`saveAsTemplate`) — `SELECT i.name, i.category, i.weight_grams,
+   * i.quantity, b.name AS bag_name FROM packing_items i LEFT JOIN
+   * packing_bags b ON b.id = i.bag_id WHERE i.trip_id = ? AND (i.is_private
+   * = 0 OR i.owner_id = ?) ORDER BY i.sort_order ASC` (weight, count and
+   * bag name ride into the template since #1131).
+   * **Security-critical, its own two-arm predicate — NOT
    * `packingVisibleToActorExpr`/`packingVisibleToActorCondition`.** A
    * template is a durable, shareable artifact, so it may only capture what
    * the actor's own list contains: Common items plus the actor's own
@@ -400,11 +417,12 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
    */
   async listExportable(trip_id: number | string, userId: number): Promise<PackingItemExportRow[]> {
     return await this.db()
-      .selectFrom('packing_items')
-      .select(['name', 'category'])
-      .where('trip_id', '=', trip_id as number)
-      .where((eb) => eb.or([eb('is_private', '=', 0), eb('owner_id', '=', userId)]))
-      .orderBy('sort_order', 'asc')
+      .selectFrom('packing_items as i')
+      .leftJoin('packing_bags as b', 'b.id', 'i.bag_id')
+      .select(['i.name', 'i.category', 'i.weight_grams', 'i.quantity', 'b.name as bag_name'])
+      .where('i.trip_id', '=', trip_id as number)
+      .where((eb) => eb.or([eb('i.is_private', '=', 0), eb('i.owner_id', '=', userId)]))
+      .orderBy('i.sort_order', 'asc')
       .execute();
   }
 

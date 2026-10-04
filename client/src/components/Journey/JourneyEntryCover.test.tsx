@@ -1,4 +1,4 @@
-// FE-JRN-COVER-001 to FE-JRN-COVER-008
+// FE-JRN-COVER-001 to FE-JRN-COVER-010
 
 import { describe, it, expect, vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
@@ -111,5 +111,24 @@ describe('JourneyEntryCover', () => {
     await userEvent.click(screen.getByRole('button'))
 
     expect(onClick).toHaveBeenCalledOnce()
+  })
+
+  it('FE-JRN-COVER-009: a clip without a poster falls back to the ground, marked as a clip (#2341)', () => {
+    // Its thumbnail route 404s on purpose, so an <img> would have been a broken face
+    // across the whole card.
+    const entry = buildEntry({ photos: [{ photo_id: 7, media_type: 'video', provider: 'local', thumbnail_path: null }] })
+    const { container } = render(<JourneyEntryCover entry={entry} dayColor="#6366f1" isActive={false} onClick={() => {}} />)
+
+    expect(container.querySelector('img[src*="/thumbnail"]')).toBeNull()
+    expect(container.querySelector('svg.lucide-play')).toBeInTheDocument()
+    expect(container.querySelector('svg.lucide-map-pin')).toBeNull()
+  })
+
+  it('FE-JRN-COVER-010: a clip with its poster fills the card like any photo', () => {
+    const entry = buildEntry({ photos: [{ photo_id: 7, media_type: 'video', provider: 'local', thumbnail_path: 'journey/poster.jpg' }] })
+    const { container } = render(<JourneyEntryCover entry={entry} dayColor="#6366f1" isActive={false} onClick={() => {}} />)
+
+    expect(container.querySelector('img')).toHaveAttribute('src', '/api/photos/7/thumbnail')
+    expect(container.querySelector('svg.lucide-play')).toBeNull()
   })
 })

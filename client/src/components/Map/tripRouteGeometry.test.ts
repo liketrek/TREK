@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { dayColor } from '../Roadtrip/dayColors'
 import { dayRouteColor, planTripRoute, routeTrip, summariseTripRoute } from './tripRouteGeometry'
 import { buildAssignment, buildDay, buildPlace } from '../../../tests/helpers/factories'
-import type { AssignmentsMap, RouteSegment } from '../../types'
+import type { Accommodation, AssignmentsMap, Reservation, RouteSegment } from '../../types'
 
 vi.mock('./RouteCalculator', async (importActual) => {
   const actual = await importActual<typeof import('./RouteCalculator')>()
@@ -211,5 +211,25 @@ describe('tripRouteGeometry', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('FE-MAP-TRG-012: the overview draws no drive between two stays on the day a flight connects them (#2476)', () => {
+    // Day 2 moves from a Munich hotel to a Hamburg one. The overview reads the same
+    // day plan as the map, so the flight saved without airports keeps the road off it.
+    const days = [1, 2, 3].map(n => buildDay({ id: n, day_number: n }))
+    const accommodations = [
+      { id: 1, trip_id: 1, place_lat: 48.137, place_lng: 11.575, start_day_id: 1, end_day_id: 2 },
+      { id: 2, trip_id: 1, place_lat: 53.551, place_lng: 9.993, start_day_id: 2, end_day_id: 3 },
+    ] as unknown as Accommodation[]
+    const flight = {
+      id: 80, trip_id: 1, type: 'flight', title: 'LH 2078', day_id: 2, end_day_id: 2,
+      reservation_time: '2026-11-04T15:15', reservation_end_time: '2026-11-04T17:20', endpoints: [],
+    } as unknown as Reservation
+    const moving = { days, assignments: {}, accommodations, optimizeFromAccommodation: true }
+
+    expect(planTripRoute({ ...moving, reservations: [flight] }, 'driving')).toEqual([])
+    // Without the booking the day is a drive from one hotel to the other, as before (#1297).
+    const byRoad = planTripRoute({ ...moving, reservations: [] }, 'driving')
+    expect(byRoad.map(d => d.day.id)).toEqual([2])
   })
 })

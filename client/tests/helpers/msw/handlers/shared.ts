@@ -5,8 +5,9 @@ export const sharedHandlers = [
   http.get('/api/shared/:token', ({ params }) => {
     const { token } = params;
 
+    // What the share endpoint answers for an unknown, expired or revoked token.
     if (token === 'invalid-token' || token === 'expired-token') {
-      return new HttpResponse(null, { status: 404 });
+      return HttpResponse.json({ error: 'Invalid or expired link' }, { status: 404 });
     }
 
     const trip = { ...buildTrip({ start_date: '2026-07-01', end_date: '2026-07-05' }), title: 'Shared Paris Trip' };

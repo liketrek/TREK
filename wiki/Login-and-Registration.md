@@ -51,7 +51,9 @@ Passwords must meet all of the following rules:
 - Must not be a commonly used password
 - Must not consist of a single repeated character
 
-> **Admin:** You can disable open registration so only invite links work. See [Admin-Users-and-Invites](Admin-Users-and-Invites).
+As soon as you start typing, the five character rules appear under the password field as a checklist (**At least 8 characters**, **An uppercase letter**, **A lowercase letter**, **A number**, **A special character**), and each one is ticked off once the password meets it. The same checklist appears on every form that sets a password: registration, the forced password change, the reset page, **Change Password** in Settings and the admin's user dialogs. The common-password and repeated-character checks run when you submit.
+
+> **Admin:** You can disable open registration so only invite links work: switch off **Password Registration** in **Admin → Settings**, card **Authentication Methods**. See [Admin-Users-and-Invites](Admin-Users-and-Invites).
 
 ### Invite link flow
 
@@ -95,7 +97,7 @@ When the server is started with `DEMO_MODE=true`, a **"Try the demo — no regis
 
 If the admin has configured OpenID Connect, a **"Sign in with SSO"** button (labelled with the configured `OIDC_DISPLAY_NAME`, defaulting to `SSO`) appears below the login form. See [OIDC-SSO](OIDC-SSO) for details on setup and the sign-in flow.
 
-When OIDC-only mode is active (password login disabled), visiting `/login` automatically redirects the browser to the identity provider. The email/password form is not shown. The automatic redirect is suppressed only when you have explicitly logged out, in which case the SSO button is shown instead so you can choose to sign back in.
+When OIDC-only mode is active (password login disabled), visiting `/login` automatically redirects the browser to the identity provider. The page only says where it is going ("Taking you to Keycloak…", with the configured display name) and offers nothing to fill in; should the redirect not have happened after eight seconds, a link to continue appears. The email/password form is never shown, not even while the page is still asking the server which sign-in it offers: until the answer arrives it shows a short wait, and on a repeat visit it announces the redirect straight away. The automatic redirect is suppressed when you have explicitly logged out, after a failed sign-in at the identity provider, and when the server could not be reached; the SSO button is shown instead so you can choose to sign back in.
 
 ---
 

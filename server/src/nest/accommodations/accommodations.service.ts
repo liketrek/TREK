@@ -22,6 +22,7 @@ import { Reservations } from '../../db/entities/Reservations.entity';
 import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
 import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
+import { carryViasWith, locatedStopIdsWith, reseatOwnStopWith, seatHolds, seatIndexAmong, seatIndexWith, type Night } from './night-seat';
 import type { User } from '../../types';
 
 type Trip = TripAccess;
@@ -30,9 +31,6 @@ type MirroredAssignment = Awaited<ReturnType<AssignmentsService['createAssignmen
 
 /** One day's drawn roads after a write re-pinned them, as the road trip broadcasts them. */
 type DayVias = { dayId: number; vias: RoadtripVia[] };
-
-/** A via as the re-pinning reads it: where it is pinned and its place on that leg. */
-type PinnedVia = { id: number; after_order_index: number; sequence: number };
 
 /** How a surface sends the mirror's events; see announceMirror. */
 export type MirrorSender = <E extends TrekWsTripEventName>(event: E, payload: TrekWsPayload<E>) => void;
@@ -303,66 +301,6 @@ export class AccommodationsService {
   }
 
   /**
-   * Put the booking's check-in day on the map.
-   *
-   * Only the check-in day gets a stop, even for a fortnight's stay: that is the
-   * day you drive there, and it is exactly what the road-trip side writes for a
-   * night it books itself. The later nights ride on the stay row, which is where
-   * the rail reads check-out from.
-   *
-   * Runs inside the caller's transaction.
-   */
-  /**
-   * Where in the day the booked night belongs.
-   *
-   * First. The hotel is where the day is based: the traveller checks in and the stops
-   * they placed without an hour follow from there. Only a stop with a clock of its
-   * own can stand ahead of it, and only when that clock is at or before the check-in:
-   * a stop pinned to eight with a check-in at ten puts the night second, one pinned
-   * to the afternoon does not. It used to go last unless something pinned later
-   * pulled it forward, and a night booked for ten in the morning sat behind a whole
-   * day of unpinned stops, reached at a quarter past twelve.
-   */
-  private async positionForCheckIn(dayId: number, checkIn: string | null | undefined, excludeId?: number): Promise<number> {
-    if (!checkIn) return 0;
-    // excludeId leaves the row being re-seated out of the chain it is measured
-    // against. Without it a night parked at the end of the day can find itself.
-    // Another booked night on the day counts by its check-in, so two bookings on
-    // one day settle by the clock.
-    // AC7
-    const rows = await this.dayAssignmentsRepo.listSeatTimes(dayId, excludeId ?? -1);
-    let seat = 0;
-    // `Number(row.order_index) + 1`, not `row.order_index + 1`: the legacy row
-    // type claimed `order_index: number` (non-null) although the column is
-    // nullable — a stored NULL there added to 1 in JS coerces to 1
-    // (`null + 1 === 1`), and `Number(null)` reproduces that same coercion
-    // for the repository's honestly-nullable projection.
-    for (const row of rows) if (row.at !== null && row.at <= checkIn) seat = Number(row.order_index) + 1;
-    return seat;
-  }
-
-  /**
-   * Whether the night sits somewhere its check-in allows, on an edit that did not
-   * touch the check-in.
-   *
-   * Read off the chain rather than recomputed, because the index a fresh insert would
-   * get is not the index this row already occupies. Two ways to be wrong: something
-   * with a later hour ahead of it, or something with an earlier one behind it. Stops
-   * without an hour are passed over in both directions: the night may have been
-   * dragged past them on purpose, and a change of notes is no reason to undo that.
-   */
-  private async seatedByCheckIn(dayId: number, ownId: number, checkIn: string | null | undefined): Promise<boolean> {
-    if (!checkIn) return true;
-    // AC8
-    const rows = await this.dayAssignmentsRepo.listSeatTimesWithIds(dayId);
-    const own = rows.findIndex(row => row.id === ownId);
-    if (own < 0) return true;
-    const laterAhead = rows.slice(0, own).some(row => row.at !== null && row.at > checkIn);
-    const earlierBehind = rows.slice(own + 1).some(row => row.at !== null && row.at <= checkIn);
-    return !laterAhead && !earlierBehind;
-  }
-
-  /**
    * Type the place as lodging, unless the traveller already typed it themselves.
    *
    * 'hotel' is a service stop: it takes no number, stays out of the day's stop
@@ -393,105 +331,31 @@ export class AccommodationsService {
   private async stopOrders(dayIds: number[]): Promise<Map<number, number[]>> {
     const result = new Map<number, number[]>();
     for (const dayId of new Set(dayIds)) {
-      result.set(dayId, await this.locatedStopIds(dayId));
+      // AC7
+      result.set(dayId, await locatedStopIdsWith(this.dayAssignmentsRepo, dayId));
     }
     return result;
   }
 
-  private async locatedStopIds(dayId: number): Promise<number[]> {
-    // AC12
-    return await this.dayAssignmentsRepo.listLocatedIds(dayId);
-  }
-
   /**
    * Keep every drawn road behind the stop it was drawn after, now that this write
-   * has seated, moved or taken out a stop on these days.
+   * has seated, moved or taken out a stop on these days (planViaCarry has the rules).
    *
    * A night seated by its check-in ahead of the afternoon renumbers everything
    * behind it, and a via pinned to position one would otherwise bend the drive
    * into the hotel instead of the leg it was drawn on. Persisted and visible to
-   * everyone, so it is put right where the stop moved, by the rules the planner
-   * applies when a stop is dragged or taken out: a via follows its stop, a stop
-   * that left the day hands its road to the stop before it, and a stop that is
-   * last has no leg to keep a via on.
+   * everyone, so it is put right where the stop moved and reported on the mirror.
    *
    * Runs inside the caller's transaction.
    */
   private async reanchorVias(mirror: AccommodationMirror, before: Map<number, number[]>): Promise<void> {
     for (const [dayId, previousIds] of before) {
-      const nextIds = await this.locatedStopIds(dayId);
-      if (previousIds.length === nextIds.length && previousIds.every((id, i) => id === nextIds[i])) continue;
-      // AC13
-      const vias: PinnedVia[] = await this.roadtripViasRepo.listAnchors(dayId);
-      if (!vias.length) continue;
-
-      // A via behind the day's last stop bends the drive into the next day. It stays
-      // with that stop when the stop is still last, whatever its number is now:
-      // measured as a leg it would be dropped, because a last stop has no leg.
-      const previousLast = previousIds.length - 1;
-      const nextLast = nextIds.length - 1;
-      const lastStayed = previousLast >= 0 && previousIds[previousLast] === nextIds[nextLast];
-      const remove: number[] = [];
-      const moved: { id: number; after_order_index: number }[] = [];
-      for (const via of vias) {
-        const next = lastStayed && via.after_order_index === previousLast
-          ? nextLast
-          : this.legAfter(via.after_order_index, previousIds, nextIds);
-        if (next === null) remove.push(via.id);
-        else if (next !== via.after_order_index) moved.push({ id: via.id, after_order_index: next });
-      }
-      if (!remove.length && !moved.length) continue;
-
-      // AC14
-      for (const viaId of remove) await this.roadtripViasRepo.deleteInDay(viaId, dayId);
-      // AC15
-      for (const via of moved) await this.roadtripViasRepo.setAnchor(via.id, dayId, via.after_order_index);
-      await this.renumberMergedLegs(dayId, vias.filter(via => !remove.includes(via.id)), moved);
+      // AC7
+      const nextIds = await locatedStopIdsWith(this.dayAssignmentsRepo, dayId);
+      // AC13/AC14/AC15/AC17 (night-seat.ts `carryViasWith`)
+      if (!(await carryViasWith(this.roadtripViasRepo, dayId, previousIds, nextIds))) continue;
       // AC16
       this.noteVias(mirror, { dayId, vias: await this.roadtripViasRepo.listForDay(dayId) });
-    }
-  }
-
-  /**
-   * The leg a via pinned behind the n-th stop of the old order is on in the new one.
-   *
-   * A stop this write took off the day hands its road to the stop before it: the
-   * leg it was drawn on merges into the one ahead, the way taking a stop out of the
-   * drive merges them (`RoadtripService.reanchor`). Null when no leg is left for it,
-   * because the stop it follows is the last one now, nothing ahead of it survived,
-   * or it was pinned past the day's end to begin with.
-   */
-  private legAfter(index: number, previousIds: number[], nextIds: number[]): number | null {
-    if (index > previousIds.length - 1) return null;
-    let at = index;
-    while (at >= 0 && !nextIds.includes(previousIds[at])) at -= 1;
-    if (at < 0) return null;
-    const next = nextIds.indexOf(previousIds[at]);
-    return next >= nextIds.length - 1 ? null : next;
-  }
-
-  /**
-   * Two legs that merged carry two sequence series side by side, and everything
-   * that draws the route orders by sequence: the drive would run through the first
-   * leg's point, the second leg's, and back. Renumbered the way
-   * `RoadtripService.reanchor` does it, the earlier leg's points first, then by
-   * their old sequence, then by id. Only a leg that received a via is touched.
-   */
-  private async renumberMergedLegs(dayId: number, kept: PinnedVia[], moved: { id: number; after_order_index: number }[]): Promise<void> {
-    const landed = new Map(moved.map(via => [via.id, via.after_order_index]));
-    const byLeg = new Map<number, PinnedVia[]>();
-    for (const via of kept) {
-      const leg = landed.get(via.id) ?? via.after_order_index;
-      byLeg.set(leg, [...(byLeg.get(leg) ?? []), via]);
-    }
-    for (const onLeg of byLeg.values()) {
-      if (!onLeg.some(via => landed.has(via.id))) continue;
-      onLeg.sort((a, b) => a.after_order_index - b.after_order_index || a.sequence - b.sequence || a.id - b.id);
-      // AC17 — only rows whose sequence changed (the caller's own guard; the
-      // statement itself is `setSequence`, RoadtripViasRepository's RT22).
-      for (const [index, via] of onLeg.entries()) {
-        if (via.sequence !== index) await this.roadtripViasRepo.setSequence(via.id, dayId, index);
-      }
     }
   }
 
@@ -519,40 +383,29 @@ export class AccommodationsService {
     stop: { id: number; day_id: number; order_index: number | null },
     placeId: number,
     dayId: number,
-    checkIn?: string | null,
+    night: Night,
   ): Promise<MirroredAssignment | null> {
     // AC18
     if (await this.dayAssignmentsRepo.existsForDayAndPlace(dayId, placeId, stop.id)) {
       return null;
     }
-
-    // Close the gap the row leaves behind. A no-op when it is not changing days,
-    // because it is put back into that same numbering two statements down.
-    // `Number(stop.order_index)` — see `positionForCheckIn`'s docstring for
-    // why this reproduces the legacy row type's implicit non-null coercion.
-    // AC19
-    await this.dayAssignmentsRepo.closeGap(stop.day_id, Number(stop.order_index));
-
-    // Park it at the end of the target day first, then seat it by the check-in the
-    // same way a fresh insert would. Two steps, because the index it should get is
-    // read off the chain it is not part of yet.
-    // AC20
-    const max = await this.dayAssignmentsRepo.maxOrderIndexExcluding(dayId, stop.id);
-    const end = (max !== null ? max : -1) + 1;
-    // AC21
-    await this.dayAssignmentsRepo.relocate(stop.id, dayId, placeId, end);
-
-    const seat = await this.positionForCheckIn(dayId, checkIn, stop.id);
-    if (seat < end) {
-      // AC22
-      await this.dayAssignmentsRepo.shiftFromExcluding(dayId, seat, stop.id);
-      // AC23 — `setOrderIndex` (exists, AS11/AS19's shared method).
-      await this.dayAssignmentsRepo.setOrderIndex(stop.id, undefined, seat);
-    }
-
+    // AC19/AC20/AC21/AC22/AC23 (night-seat.ts `reseatOwnStopWith`)
+    await reseatOwnStopWith(this.dayAssignmentsRepo, stop, placeId, dayId, night);
     return this.assignments.getAssignmentWithPlace(stop.id);
   }
 
+  /**
+   * Put the booking's check-in day on the map.
+   *
+   * Only the check-in day gets a stop, even for a fortnight's stay: that is the
+   * day you drive there, and it is exactly what the road-trip side writes for a
+   * night it books itself. The later nights ride on the stay row: a trip that
+   * starts and ends its days at the stay seats the hotel at the edges of the days
+   * around them from it (`seatNightBookends`), and reads the check-out there as a
+   * label only.
+   *
+   * Runs inside the caller's transaction.
+   */
   private async mirrorStay(accommodationId: number, placeId: number | null, dayId: number, checkIn?: string | null): Promise<AccommodationMirror> {
     const mirror = noMirror();
     // A stay can outlive its place (place_id is ON DELETE SET NULL) and the booking
@@ -569,8 +422,8 @@ export class AccommodationsService {
     if (await this.dayAssignmentsRepo.existsForDayAndPlace(dayId, placeId)) return mirror;
 
     const before = await this.stopOrders([dayId]);
-    // Through AssignmentsService, seated where the check-in says (see
-    // positionForCheckIn), with everything behind it moved up one.
+    // Through AssignmentsService, seated where the check-in says (night-seat.ts),
+    // with everything behind it moved up one.
     //
     // The booking id goes in with the INSERT, not as an UPDATE afterwards: what this
     // returns is the row the answer hands the client, and stamping the id on later
@@ -579,7 +432,8 @@ export class AccommodationsService {
     // time until the next reload.
     mirror.created = await this.assignments.createAssignment(dayId, placeId, null, {
       accommodationId,
-      orderIndex: await this.positionForCheckIn(dayId, checkIn),
+      // AC7
+      orderIndex: await seatIndexWith(this.dayAssignmentsRepo, dayId, { id: accommodationId, check_in: checkIn }),
     });
     await this.reanchorVias(mirror, before);
     return mirror;
@@ -649,14 +503,19 @@ export class AccommodationsService {
   ): Promise<AccommodationMirror> {
     const own = await this.ownStops(accommodationId);
     if (own.length === 0) return noMirror();
+    const night: Night = { id: accommodationId, check_in: checkIn };
     if (own.length === 1 && own[0].day_id === dayId && own[0].place_id === placeId) {
-      // Same place, same day. A check-in given a new hour seats the night afresh, the
-      // way booking it with that hour would have; any other edit leaves a stop where
-      // it is unless the clocks around it say it is in the wrong place, so a night the
-      // traveller dragged somewhere stays there through a change of notes.
-      const settled = opts.checkInChanged
-        ? (await this.positionForCheckIn(dayId, checkIn, own[0].id)) === own[0].order_index
-        : await this.seatedByCheckIn(dayId, own[0].id, checkIn);
+      // Same place, same day. A stop already where a fresh seat would put it stays,
+      // whatever the edit: relocating it would land it in the same place and report
+      // a move that moved nothing. A check-in given a new hour seats the night afresh
+      // otherwise, the way booking it with that hour would have; any other edit
+      // leaves the stop alone unless the clocks around it say it is in the wrong
+      // place, so a night the traveller dragged somewhere stays there through a
+      // change of notes.
+      // AC7 (one read, both checks)
+      const rows = await this.dayAssignmentsRepo.listSeatRows(dayId);
+      const settled = seatIndexAmong(rows, night, own[0].id) === own[0].order_index
+        || (!opts.checkInChanged && seatHolds(rows, own[0].id, checkIn));
       if (settled) return noMirror();
     }
 
@@ -668,7 +527,7 @@ export class AccommodationsService {
     // on its id, all of which a DELETE takes with it.
     if (own.length === 1 && placeId) {
       const before = await this.stopOrders([own[0].day_id, dayId]);
-      const moved = await this.relocateOwnStop(own[0], placeId, dayId, checkIn);
+      const moved = await this.relocateOwnStop(own[0], placeId, dayId, night);
       if (moved) {
         mirror.moved = { assignment: moved, oldDayId: own[0].day_id };
         mirror.stamped = await this.stampLodging(placeId);
@@ -827,9 +686,8 @@ export class AccommodationsService {
       const linkedRes = await this.reservationsRepo.listIdsByStay(idNum);
       const deletedBudgetItemIds: number[] = [];
       for (const res of linkedRes) {
-        // AC41/AC42 — Plan 3e Task 2, converted: `BudgetItemsRepository.findIdByReservation`/`deleteById`.
-        const linkedBudget = await this.budgetItemsRepo.findIdByReservation(res.id);
-        if (linkedBudget) {
+        // AC41/AC42 — every expense on the booking, not just the first (#2084).
+        for (const linkedBudget of await this.budgetItemsRepo.listIdsByReservation(res.id)) {
           await this.budgetItemsRepo.deleteById(linkedBudget.id);
           deletedBudgetItemIds.push(linkedBudget.id);
         }

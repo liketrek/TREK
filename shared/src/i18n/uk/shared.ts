@@ -3,6 +3,10 @@ import type { TranslationStrings } from '../types';
 const shared: TranslationStrings = {
   'shared.expired': 'Посилання прострочено або недійсне',
   'shared.expiredHint': 'Це посилання на поїздку більше не активне.',
+  'shared.loadFailed': 'Не вдалося завантажити поїздку',
+  'shared.loadFailedHint':
+    'Це не означає, що термін дії посилання минув. Перевірте з’єднання та спробуйте ще раз трохи згодом.',
+  'shared.retry': 'Спробувати ще раз',
   'shared.readOnly': 'Тільки для читання',
   'shared.tabPlan': 'План',
   'shared.tabBookings': 'Бронювання',
@@ -11,11 +15,18 @@ const shared: TranslationStrings = {
   'shared.tabChat': 'Чат',
   'shared.days': 'днів',
   'shared.places': 'місць',
+  'shared.unplanned': 'Ще не заплановано',
   'shared.other': 'Інше',
   'shared.totalBudget': 'Загальні витрати',
   'shared.messages': 'повідомлень',
   'shared.sharedVia': 'Поділено через',
   'shared.confirmed': 'Підтверджено',
   'shared.pending': 'Очікує',
+  'shared.footerTagline': 'Планувальник подорожей, який ви розміщуєте самі. Відкритий код.',
+  'shared.emptyBookings': 'Бронювань поки немає',
+  'shared.emptyPacking': 'Список речей поки порожній',
+  'shared.emptyCosts': 'Витрат поки немає',
+  'shared.emptyChat': 'Повідомлень поки немає',
+  'shared.wholeTrip': 'Уся подорож',
 };
 export default shared;

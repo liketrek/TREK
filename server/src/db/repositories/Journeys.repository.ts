@@ -24,6 +24,10 @@ export interface JourneyRow {
   show_verdict: number;
   show_mood: number;
   show_weather: number;
+  /** Shown state set by hand (#762): draft/live/completed, or null to follow the trip dates. */
+  status_override: string | null;
+  /** Entries without a place take their first geotagged photo's position (#1003). */
+  photo_location: number;
 }
 
 /** JG8's dashboard row — `JourneyRow` plus the five correlated-subquery stat pills. */
@@ -51,6 +55,8 @@ interface JourneyListKyselyDB {
     show_verdict: number;
     show_mood: number;
     show_weather: number;
+    status_override: string | null;
+    photo_location: number;
   };
   journey_contributors: { journey_id: number; user_id: number };
   journey_entries: { journey_id: number; type: string; location_name: string | null };
@@ -222,7 +228,9 @@ export class JourneysRepository extends TrekRepository<Journeys> {
       cover_gradient: string | null;
       cover_image: string | null;
       status: string;
+      status_override: string | null;
       show_trip_tracks: number;
+      photo_location: number;
       show_verdict: number;
       show_mood: number;
       show_weather: number;

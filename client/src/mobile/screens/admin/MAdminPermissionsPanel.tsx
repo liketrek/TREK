@@ -38,7 +38,7 @@ export default function MAdminPermissionsPanel(): React.ReactElement {
   const [dirty, setDirty] = useState(false)
 
   useEffect(() => {
-    loadPermissions()
+    void loadPermissions()
   }, [])
 
   const loadPermissions = async () => {

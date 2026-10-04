@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { MikroORM } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { CONTINENT_MAP, strongerVisitStatus, todayUtc, tripVisitStatus, VisitStatus } from '@trek/shared';
 import type { AtlasLocateResponse } from '@trek/shared';
 import { UnitOfWork } from '../database/unit-of-work';
+import { withRequestContext } from '../database/request-context';
 import { BucketList } from '../../db/entities/BucketList.entity';
 import type { BucketListRepository, BucketListRow } from '../../db/repositories/BucketList.repository';
 import { HiddenCountries } from '../../db/entities/HiddenCountries.entity';
@@ -22,19 +24,42 @@ import type { PlacesRepository, PlaceRow } from '../../db/repositories/Places.re
 import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
 import type { ReservationEndpointsRepository, TravelerOwnedEndpointRow } from '../../db/repositories/ReservationEndpoints.repository';
 import {
+  getCountryFromAddress,
   getCountryFromCoords,
   getCountryGeoGz,
   getRegionFromCoords,
   getRegionGeo,
   geocodingInFlight,
   resolveCountryCodeSync,
+  resolveRegionFromBundle,
   reverseGeocodeRegion,
 } from './atlas-geo';
+import type { RegionInfo } from './atlas-geo';
 import { KNOWN_COUNTRIES } from './known-countries';
 import { cityFromAddress } from './city-from-address';
 import { transferEndpointIds } from './transfer-endpoints';
 import { countryVisitDates } from './visit-dates';
 import { haversineKm } from '../common/geo';
+
+/** The part of a place that its cached region is derived from. */
+type LocatedPlace = Pick<PlaceRow, 'id' | 'lat' | 'lng' | 'address'>;
+
+/** A place_regions row next to the location of its place. */
+type CachedRegionRow = LocatedPlace & { country_code: string; region_code: string };
+
+/** How many cached rows the #2527 repair checks before it lets other work run. */
+const REPAIR_YIELD_EVERY = 200;
+
+/**
+ * Whole days from `today` to `isoDate`, both `YYYY-MM-DD` in UTC: the legacy
+ * `CAST(julianday(start_date) - julianday(date('now')) AS INTEGER)` (#2542),
+ * truncated toward zero the same way.
+ */
+function daysBetween(today: string, isoDate: string): number {
+  const from = Date.parse(`${today.slice(0, 10)}T00:00:00Z`);
+  const to = Date.parse(`${isoDate.slice(0, 10)}T00:00:00Z`);
+  return Math.trunc((to - from) / 86_400_000);
+}
 
 /**
  * A reservation endpoint plus the two booking columns that decide whether it may
@@ -52,6 +77,7 @@ export type CreateBucketData = {
   country_code?: string | null;
   notes?: string | null;
   target_date?: string | null;
+  region_code?: string | null;
 };
 
 export type UpdateBucketData = {
@@ -101,6 +127,18 @@ function blankToNull(value: string | null | undefined): string | null {
 }
 
 /**
+ * A wished-for region as stored (#1901): ISO 3166-2, upper case as the region
+ * boundaries carry it, and only when it lies in the item's own country. Anything
+ * else is no region, which keeps a caller that skips the contract (the plugin RPC)
+ * from pinning a wish to somebody else's map.
+ */
+export function bucketRegionCode(region: string | null | undefined, country: string | null): string | null {
+  const code = blankToNull(region)?.toUpperCase() ?? null;
+  if (!code || !country || !/^[A-Z]{2}-[A-Z0-9]{1,8}$/.test(code)) return null;
+  return code.startsWith(`${country.toUpperCase()}-`) ? code : null;
+}
+
+/**
  * Who ticked a country off, for the detail sheet.
  *
  * Null when there is no row at all — a country derived from a trip's places was
@@ -143,6 +181,7 @@ export class AtlasService {
     @InjectRepository(Places) private readonly places: PlacesRepository,
     @InjectRepository(ReservationEndpoints) private readonly reservationEndpoints: ReservationEndpointsRepository,
     private readonly uow: UnitOfWork,
+    private readonly orm: MikroORM,
   ) {}
 
   // ── Shared query: all trips the user owns or is a member of ───────────────
@@ -191,27 +230,107 @@ export class AtlasService {
       }
     }
 
-    if (uncachedForGeocode.length > 0) {
-      for (const p of uncachedForGeocode) geocodingInFlight.add(p.id);
-      void (async () => {
-        try {
-          for (const place of uncachedForGeocode) {
-            try {
-              const info = await reverseGeocodeRegion(place.lat!, place.lng!, place.address);
-              if (info) await this.placeRegions.upsertRegion(place.id, info.country_code, info.region_code, info.region_name); // AT4
-            } catch {
-              /* continue */
-            } finally {
-              geocodingInFlight.delete(place.id);
-            }
-          }
-        } catch {
-          for (const p of uncachedForGeocode) geocodingInFlight.delete(p.id);
-        }
-      })();
-    }
+    this.cacheRegionsInBackground(uncachedForGeocode); // AT4
 
     return out;
+  }
+
+  /**
+   * Resolve each place's region in the background and cache it in place_regions.
+   *
+   * The loop outlives the Atlas request that started it, so it forks its own
+   * request context with `withRequestContext` instead of riding that request's
+   * `EntityManager` fork — the same shape the import-job runner
+   * (`ImportJobsService#start`) and the webhook nudge timer
+   * (`DocSyncWebhookController#schedule`) use for their detached chains.
+   */
+  private cacheRegionsInBackground(places: PlaceRow[]): void {
+    if (places.length === 0) return;
+    for (const p of places) geocodingInFlight.add(p.id);
+    void withRequestContext(this.orm, async () => {
+      try {
+        for (const place of places) {
+          try {
+            const info = await reverseGeocodeRegion(place.lat!, place.lng!, place.address);
+            if (info) await this.cacheRegionWhileUnmoved(place, info);
+          } catch {
+            // individual failure, continue with the remaining places
+          } finally {
+            geocodingInFlight.delete(place.id);
+          }
+        }
+      } catch {
+        for (const p of places) geocodingInFlight.delete(p.id);
+      }
+    });
+  }
+
+  /**
+   * Cache a resolved region, but only while the place still sits where it was resolved
+   * from. A place moved while its lookup was running has already had its row dropped by
+   * the place_regions trigger (#2527), and writing the old answer back would pin it to
+   * the country it just left. A place deleted in the meantime is skipped the same way.
+   */
+  private async cacheRegionWhileUnmoved(place: LocatedPlace, info: RegionInfo): Promise<boolean> {
+    return this.placeRegions.upsertRegionWhileUnmoved(place, info); // AT48
+  }
+
+  // ── One time repair of the rows cached before #2527 ───────────────────────
+
+  /**
+   * Before #2527 nothing dropped a place_regions row when its place moved, so an
+   * install that upgrades still holds the country every corrected place left. This
+   * re-derives each row with the bundled resolver alone, never Nominatim, and puts
+   * right the ones that no longer match where their place is now.
+   *
+   * Where the bundle answers for the place's current location with another country
+   * or region, the row gets that answer, which is what a fresh lookup would cache. A
+   * good row matches it, the address fallback case included.
+   *
+   * Where the bundle has no answer (a coastal point outside the simplified polygons,
+   * a country the bundle has no regions for), the row came from Nominatim and only
+   * Nominatim could judge it, so it stays, unless the coordinates put the place in
+   * another country and the address does not name the cached one either. Then it is
+   * dropped and the next Atlas load looks the place up again.
+   *
+   * A place without coordinates keeps no row, the same as the trigger does.
+   *
+   * Every write only lands while the place still holds the location it was read with,
+   * so a place edited while this runs keeps what the trigger and the next lookup give it.
+   */
+  async repairStaleRegionCache(): Promise<{ replaced: number; dropped: number }> {
+    const rows: CachedRegionRow[] = await this.placeRegions.listWithPlaceLocation(); // AT49
+    let replaced = 0;
+    let dropped = 0;
+    for (const [i, row] of rows.entries()) {
+      // A big install holds many rows, so requests get a turn every so often.
+      if (i > 0 && i % REPAIR_YIELD_EVERY === 0) await new Promise((resolve) => setImmediate(resolve));
+      const fix = await this.staleRegionFix(row);
+      if (fix === 'drop') {
+        if (await this.dropRegionWhileUnmoved(row)) dropped++;
+      } else if (fix && (await this.cacheRegionWhileUnmoved(row, fix))) {
+        replaced++;
+      }
+    }
+    return { replaced, dropped };
+  }
+
+  /** What a cached row needs: a new region, 'drop', or null when it is right. */
+  private async staleRegionFix(row: CachedRegionRow): Promise<RegionInfo | 'drop' | null> {
+    if (row.lat == null || row.lng == null) return 'drop';
+    const cachedCountry = row.country_code.toUpperCase();
+    const fresh = await resolveRegionFromBundle(row.lat, row.lng, row.address);
+    if (fresh) {
+      const same = fresh.country_code.toUpperCase() === cachedCountry && fresh.region_code === row.region_code;
+      return same ? null : fresh;
+    }
+    const countryNow = resolveCountryCodeSync(row);
+    const contradicted = !!countryNow && countryNow !== cachedCountry && getCountryFromAddress(row.address) !== cachedCountry;
+    return contradicted ? 'drop' : null;
+  }
+
+  private async dropRegionWhileUnmoved(row: CachedRegionRow): Promise<boolean> {
+    return this.placeRegions.deleteRegionWhileUnmoved(row); // AT50
   }
 
   // ── Stats ─────────────────────────────────────────────────────────────────
@@ -677,26 +796,9 @@ export class AtlasService {
     const cachedMap = new Map(cached.map((c) => [c.place_id, c]));
 
     // Kick off background geocoding for uncached places; return cached data immediately.
-    const uncached = places.filter((p) => p.lat && p.lng && !cachedMap.has(p.id) && !geocodingInFlight.has(p.id));
-    if (uncached.length > 0) {
-      for (const p of uncached) geocodingInFlight.add(p.id);
-      void (async () => {
-        try {
-          for (const place of uncached) {
-            try {
-              const info = await reverseGeocodeRegion(place.lat!, place.lng!, place.address);
-              if (info) await this.placeRegions.upsertRegion(place.id, info.country_code, info.region_code, info.region_name); // AT29
-            } catch {
-              // individual failure — continue with remaining places
-            } finally {
-              geocodingInFlight.delete(place.id);
-            }
-          }
-        } catch {
-          for (const p of uncached) geocodingInFlight.delete(p.id);
-        }
-      })();
-    }
+    this.cacheRegionsInBackground(
+      places.filter((p) => p.lat && p.lng && !cachedMap.has(p.id) && !geocodingInFlight.has(p.id)),
+    ); // AT29
 
     // Group by country → regions with place counts
     const regionMap: Record<
@@ -832,6 +934,7 @@ export class AtlasService {
       country_code: identity.country_code,
       notes: data.notes ?? null,
       target_date: identity.target_date,
+      region_code: bucketRegionCode(data.region_code, identity.country_code),
     }); // AT32
     return this.bucketListRepo.findById(id); // AT33
   }
@@ -912,14 +1015,42 @@ export class AtlasService {
     const trip = await this.trips.lastStartedTrip(userId, todayUtc()); // AT39
     if (!trip) return null;
 
-    const rows = await this.placeRegions.countPlacesByCountryForTrip(trip.id); // AT40
+    return {
+      title: trip.title,
+      start_date: trip.start_date,
+      end_date: trip.end_date,
+      countries: await this.tripCountries(trip.id),
+    };
+  }
+
+  /**
+   * The trip the user goes on next, the counterpart of lastTrip for a widget that
+   * counts down (#2542).
+   *
+   * Next means not started yet: a trip that is under way is still the last trip,
+   * so the two never name the same one. Only a trip with a start date qualifies,
+   * because a trip with only an end date has nothing to count down to. The days
+   * are counted against the same UTC `todayUtc()` lastTrip cuts on, so the switch
+   * from next to last happens at one moment for both fields.
+   */
+  async nextTrip(userId: number): Promise<{ title: string; start_date: string; end_date: string | null; days_until: number; countries: string[] } | null> {
+    const today = todayUtc();
+    const trip = await this.trips.nextUpcomingTrip(userId, today); // AT47
+    if (!trip) return null;
 
     return {
       title: trip.title,
       start_date: trip.start_date,
       end_date: trip.end_date,
-      countries: rows.map((r) => r.country_code.toUpperCase()),
+      days_until: daysBetween(today, trip.start_date),
+      countries: await this.tripCountries(trip.id),
     };
+  }
+
+  /** The countries a trip's places resolved to in `place_regions`, most-visited first. */
+  private async tripCountries(tripId: number): Promise<string[]> {
+    const rows = await this.placeRegions.countPlacesByCountryForTrip(tripId); // AT40
+    return rows.map((r) => r.country_code.toUpperCase());
   }
 
   async getTravelStats(userId: number) {

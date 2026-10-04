@@ -51,7 +51,7 @@ function makeFixture(keyPrefix = 'files/'): Fixture {
 }
 
 /** A driver with no getLocalPath — the remote-driver branch every helper must handle. */
-function makeStreamOnlyFixture(contents: string): Fixture & { driverCalls: string[] } {
+function makeStreamOnlyFixture(contents: string, body = (bytes: Buffer): Readable => Readable.from(bytes)): Fixture & { driverCalls: string[] } {
   const fx = makeFixture('');
   const driverCalls: string[] = [];
   const bytes = Buffer.from(contents);
@@ -61,7 +61,7 @@ function makeStreamOnlyFixture(contents: string): Fixture & { driverCalls: strin
     put: async () => undefined,
     getStream: async (key: string) => {
       driverCalls.push(`getStream:${key}`);
-      return { stream: Readable.from(bytes), stat: { ...stat, key } };
+      return { stream: body(bytes), stat: { ...stat, key } };
     },
     stat: async (key: string) => ({ ...stat, key }),
     delete: async () => undefined,
@@ -214,6 +214,22 @@ describe('StorageService withLocalFile', () => {
       }),
     ).rejects.toThrow('processing failed');
     expect(fs.existsSync(seenPath)).toBe(false); // cleaned up on throw too
+  });
+
+  it('leaves nothing in tempDir when the download itself fails midway', async () => {
+    const cut = new Error('socket hang up');
+    const remote = makeStreamOnlyFixture('first half of the bytes', bytes =>
+      Readable.from((async function* () {
+        yield bytes;
+        throw cut;
+      })()),
+    );
+    let called = false;
+
+    await expect(remote.storage.withLocalFile('files', 'remote.bin', async () => { called = true; })).rejects.toBe(cut);
+
+    expect(called).toBe(false);
+    expect(fs.readdirSync(remote.tempDir)).toEqual([]);
   });
 
   it('falls through to the stream branch when getLocalPath resolves but the file is not actually on disk', async () => {

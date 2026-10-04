@@ -1,10 +1,11 @@
 import { chronoOrder } from '@trek/shared'
+import { rideSeatAfter, sameDayRide, type CarrierBooking, type SeatItem } from '@trek/shared/roadtrip'
 // `orderedEndpoints` is the geometry order's single source of truth, in the module
 // that documents the multi-leg model. Sorting endpoints a second time here is how
 // the two drift.
 import { orderedEndpoints } from './flightLegs'
 
-export const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'])
+export const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other'])
 
 export interface MergedItem {
   type: 'place' | 'note' | 'transport'
@@ -267,6 +268,25 @@ export function getAssignmentReservations<T extends {
 }
 
 /**
+ * The bookings that belong to a place: the ones pinned to the open stop, and the
+ * stay booked for it when the place is a hotel (#2363). Without the second, a
+ * hotel opened from its pill in the day head showed the place but no route to its
+ * booking. Pinned ones keep their order and come first.
+ */
+export function getPlaceBookings<T extends {
+  id: number
+  assignment_id?: number | null
+  reservation_time?: string | null
+  accommodation_place_id?: number | null
+}>(reservations: T[], assignmentId: number | null | undefined, placeId: number | null | undefined): T[] {
+  const pinned = getAssignmentReservations(reservations, assignmentId)
+  if (placeId == null) return pinned
+  const pinnedIds = new Set(pinned.map(r => r.id))
+  const stays = reservations.filter(r => r.accommodation_place_id === placeId && !pinnedIds.has(r.id))
+  return [...pinned, ...stays]
+}
+
+/**
  * Order items chronologically: anything with a time (a place's place_time, a
  * transport/leg display time, a timed note) sorts by that time. An item WITHOUT a
  * time inherits the time of the timed item before it, so untimed items stay where
@@ -287,6 +307,101 @@ function applyChronoOrder(
     if (it.type === 'note') return parseTimeToMinutes(it.data?.time)
     return parseTimeToMinutes(getDisplayTime(it.data, dayId))
   })
+}
+
+/** A row of the day list as the seat of a ride reads it; a note is none (see rideSeatKey). */
+function seatItemsOf(row: MergedItem): SeatItem[] {
+  if (row.type === 'place') {
+    const place = row.data?.place
+    const located = Number.isFinite(place?.lat) && Number.isFinite(place?.lng)
+    return [{
+      key: row.sortKey,
+      minutes: parseTimeToMinutes(place?.place_time),
+      point: located ? { lat: place.lat, lng: place.lng } : null,
+    }]
+  }
+  if (row.type === 'transport') {
+    return [{ key: row.sortKey, minutes: parseTimeToMinutes(row.data?.reservation_time), point: null }]
+  }
+  return []
+}
+
+/**
+ * Where a booking without a saved slot goes among the day's rows by where it goes: the
+ * key of the row it goes behind, -Infinity to open the day, or null to leave it to the
+ * clock. Only a ride that leaves and lands on this day, with both terminals located,
+ * has a say (`sameDayRide`); the rule itself is `rideSeatAfter` in @trek/shared, which
+ * the road trip seats its terminals with, so the list and the drive keep one order.
+ *
+ * A place counts with its time and its coordinates, another booking with its time, a
+ * note not at all: the clock rule this refines never read a note's time either.
+ */
+export function rideSeatKey(r: CarrierBooking, rows: readonly MergedItem[]): number | null {
+  const ride = sameDayRide(r)
+  return ride ? rideSeatAfter(rows.flatMap(seatItemsOf), ride) : null
+}
+
+/** A booked stay, as far as the road trip times a stop by it. */
+interface StayStart {
+  place_id?: number | null
+  start_day_id?: number | null
+  check_in?: string | null
+}
+
+/**
+ * The stay a stop at `placeId` begins on day `dayId`, the one whose check-in the road trip
+ * times that stop by. Only the day the stay starts: a check-out says when the room has to
+ * be handed back, not when the drive sets off.
+ */
+export function stayStartingOn<T extends StayStart>(stays: readonly T[], placeId: number | null | undefined, dayId: number): T | undefined {
+  return stays.find(stay => stay.place_id === placeId && stay.start_day_id === dayId)
+}
+
+/** A stored row of a day, as far as `storedRideSlot` reads it. */
+interface StoredStop {
+  order_index: number
+  place_id?: number | null
+  place?: { lat?: number | null; lng?: number | null; place_time?: string | null } | null
+}
+
+/**
+ * The slot to store for a ride that lands on the day it left (`sameDayRide`) and has none
+ * yet: worked out over the day's rows the way the road trip seats its terminals among
+ * them (`seatCarrierStops`), so the slot the list is drawn by and the drive agree. Null for
+ * any other booking, which keeps the clock's slot.
+ *
+ * Read over every stored row the drive stops at, the ones the list hides included: the
+ * hotel a booking put on the day, a petrol station kept out of the list. The slot is a
+ * number among their order indexes all the same, and worked out over the rows the list
+ * shows it could land behind a hidden stop on the far shore, which the drive then went to
+ * overland before the crossing (#2461). Each row counts with its start, else the check-in
+ * of the stay that begins there that day (`stayStartingOn`), and with its coordinates; a
+ * row without them is no stop of the drive. Where the rule keeps the clock's seat, the
+ * clock is read over the same rows: behind the last one timed at or before the departure,
+ * else at the end of the day.
+ */
+export function storedRideSlot(
+  r: CarrierBooking,
+  day: readonly StoredStop[],
+  stays: readonly StayStart[],
+  dayId: number,
+): number | null {
+  const ride = sameDayRide(r)
+  if (!ride || !day.length) return null
+  const items: SeatItem[] = day.flatMap(row => {
+    const lat = row.place?.lat
+    const lng = row.place?.lng
+    if (typeof lat !== 'number' || typeof lng !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lng)) return []
+    const start = row.place?.place_time ?? stayStartingOn(stays, row.place_id, dayId)?.check_in
+    return [{ key: row.order_index, minutes: parseTimeToMinutes(start), point: { lat, lng } }]
+  })
+  const keys = day.map(row => row.order_index)
+  const seat = rideSeatAfter(items, ride)
+  if (seat === -Infinity) return Math.min(...keys) - 0.5
+  if (seat !== null) return seat + 0.5
+  const departs = ride.minutes ?? 0
+  const before = items.filter(item => item.minutes !== null && item.minutes <= departs).map(item => item.key)
+  return (before.length ? Math.max(...before) : Math.max(...keys)) + 0.5
 }
 
 /** Merge places, notes, and transports into a single ordered day timeline. */
@@ -345,14 +460,68 @@ export function getMergedItems(opts: {
         if (tm !== null && tm <= minutes) insertAfterKey = item.sortKey
       }
     }
+    // A ride that lands today may sit elsewhere between the same clocks, where it adds
+    // the least road. Without that, a ferry between two untimed stops closed the day and
+    // the drive went to the far shore overland before the crossing (#2461).
+    const seat = rideSeatKey(timed.data, result)
+    if (seat !== null) insertAfterKey = seat
 
     const lastKey = result.length > 0 ? Math.max(...result.map(i => i.sortKey)) : 0
-    const sortKey = insertAfterKey === -Infinity
-      ? lastKey + 0.5 + ti * 0.01
-      : insertAfterKey + 0.01 + ti * 0.001
+    const firstKey = result.length > 0 ? Math.min(...result.map(i => i.sortKey)) : 0
+    const sortKey = seat === -Infinity
+      ? firstKey - 0.5 - ti * 0.01
+      : insertAfterKey === -Infinity
+        ? lastKey + 0.5 + ti * 0.01
+        : insertAfterKey + 0.01 + ti * 0.001
 
     result.push({ type: timed.type, sortKey, data: timed.data })
   }
 
   return applyChronoOrder(result.sort((a, b) => a.sortKey - b.sortKey), dayId, getDisplayTime)
+}
+
+/** A stored day row, as far as `timedSlot` reads it. */
+interface StoredVisit {
+  order_index: number
+  accommodation_id?: number | null
+  place?: { place_time?: string | null } | null
+}
+
+/**
+ * Where a stop joining a day is stored when it carries a start of its own, as an index
+ * into the day's stored rows sorted by order_index. Null when it has none: that stop
+ * goes where it was dropped, as it always has.
+ *
+ * The list draws a day by time (`applyChronoOrder`) and the road trip drives it in the
+ * order it is stored. Put at the end of the day, or wherever it was dropped, a stop with
+ * a start sat in one place on the list and in another on the road, and behind a later
+ * start the road trip reached it late. So it is stored right behind the row it will be
+ * drawn after. Among stops without a time it keeps the spot it was dropped on; where the
+ * drop and the start disagree, the start wins.
+ *
+ * Read over every stored row, the ones the list hides included, because those are what
+ * the index counts. A booked night is timed by its check-in, the way the server's time
+ * sort reads it, so a stop pinned before the check-in lands ahead of the hotel and one
+ * pinned after it behind. A night without one counts as a stop without a time, so a
+ * night that leads its day keeps leading it.
+ */
+export function timedSlot(
+  day: readonly StoredVisit[],
+  nights: readonly { id: number; check_in?: string | null }[],
+  start: string | null | undefined,
+  dropAt?: number | null,
+): number | null {
+  const minutes = parseTimeToMinutes(start)
+  if (minutes === null) return null
+  const stored = [...day].sort((a, b) => a.order_index - b.order_index)
+  const at = dropAt == null ? stored.length : Math.min(Math.max(dropAt, 0), stored.length)
+  const joining: StoredVisit = { order_index: -1 }
+  const startOf = (row: StoredVisit): number | null => {
+    if (row === joining) return minutes
+    const checkIn = row.accommodation_id == null ? null : nights.find(n => n.id === row.accommodation_id)?.check_in
+    return parseTimeToMinutes(row.place?.place_time ?? checkIn)
+  }
+  const drawn = chronoOrder([...stored.slice(0, at), joining, ...stored.slice(at)], startOf)
+  const before = drawn[drawn.indexOf(joining) - 1]
+  return before ? stored.indexOf(before) + 1 : 0
 }

@@ -1,6 +1,4 @@
 import {
-  BookOpen,
-  Camera,
   Clock,
   Cloud,
   CloudLightning,
@@ -28,9 +26,10 @@ import MobileEntryView from '../components/Journey/MobileEntryView';
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline';
 import PhotoLightbox from '../components/Journey/PhotoLightbox';
 import EmptyState from '../components/shared/EmptyState';
-import PublicLanguagePicker from '../components/shared/PublicLanguagePicker';
+import { PAGE_WIDTH, SharedFooter, SharedHero, SharedLoading, SharedTabBar, SharedTopBar } from './sharedTrip/SharedChrome';
 import { useTranslation } from '../i18n';
 import { formatLocationName } from '../utils/formatters';
+import { posterlessVideo } from './journeyDetail/JourneyDetailPage.helpers';
 import { useJourneyPublic } from './journeyPublic/useJourneyPublic';
 
 const MOOD_CONFIG: Record<string, { icon: typeof Smile; label: string; bg: string; text: string }> = {
@@ -71,6 +70,13 @@ const WEATHER_CONFIG: Record<string, { icon: typeof Sun; label: string }> = {
 
 function photoUrl(p: { photo_id: number }, shareToken: string, kind: 'thumbnail' | 'original' = 'original'): string {
   return `/api/public/journey/${shareToken}/photos/${p.photo_id}/${kind}`;
+}
+
+// The share route answers 404 for the thumbnail of a clip that has no poster, and
+// an <img> pointed at it draws the broken-image glyph (#2341). The black ground
+// the layouts give a video stands in for the picture.
+function ClipTile() {
+  return <span className="block h-full w-full bg-black" />;
 }
 
 function formatDate(d: string, locale?: string): { weekday: string; month: string; day: number } {
@@ -121,13 +127,7 @@ export default function JourneyPublicPage() {
     desktopTwoColumn,
   } = useJourneyPublic();
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
-      </div>
-    );
-  }
+  if (loading) return <SharedLoading />;
 
   if (error || !data) {
     return (
@@ -251,12 +251,14 @@ export default function JourneyPublicPage() {
                         onClick={() => setLightbox({ photos: lightboxPhotos, index: 0 })}
                       >
                         <div className={`relative h-64 w-full ${photos[0].media_type === 'video' ? 'bg-black' : ''}`}>
-                          <img
-                            src={photoUrl(photos[0], token!, photos[0].media_type === 'video' ? 'thumbnail' : 'original')}
-                            className={`h-full w-full ${photos[0].media_type === 'video' ? 'object-contain' : 'object-cover'
-                              }`}
-                            alt=""
-                          />
+                          {!posterlessVideo(photos[0]) && (
+                            <img
+                              src={photoUrl(photos[0], token!, photos[0].media_type === 'video' ? 'thumbnail' : 'original')}
+                              className={`h-full w-full ${photos[0].media_type === 'video' ? 'object-contain' : 'object-cover'
+                                }`}
+                              alt=""
+                            />
+                          )}
 
                           {photos[0].media_type === 'video' && (
                             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -301,12 +303,14 @@ export default function JourneyPublicPage() {
                               }`}
                             onClick={() => setLightbox({ photos: lightboxPhotos, index: i })}
                           >
-                            <img
-                              src={photoUrl(p, token!, 'thumbnail')}
-                              alt=""
-                              className={`h-full w-full ${p.media_type === 'video' ? 'object-contain' : 'object-cover'
-                                }`}
-                            />
+                            {!posterlessVideo(p) && (
+                              <img
+                                src={photoUrl(p, token!, 'thumbnail')}
+                                alt=""
+                                className={`h-full w-full ${p.media_type === 'video' ? 'object-contain' : 'object-cover'
+                                  }`}
+                              />
+                            )}
 
                             {p.media_type === 'video' && (
                               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -327,12 +331,16 @@ export default function JourneyPublicPage() {
                           className="min-w-0 flex-1 cursor-pointer"
                           onClick={() => setLightbox({ photos: lightboxPhotos, index: 0 })}
                         >
-                          <img
-                            src={photoUrl(photos[0], token!, 'thumbnail')}
-                            alt=""
-                            className={`h-full w-full ${photos[0].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
-                              }`}
-                          />
+                          {posterlessVideo(photos[0]) ? (
+                            <ClipTile />
+                          ) : (
+                            <img
+                              src={photoUrl(photos[0], token!, 'thumbnail')}
+                              alt=""
+                              className={`h-full w-full ${photos[0].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
+                                }`}
+                            />
+                          )}
                         </button>
                         <div className="flex min-w-0 flex-1 flex-col" style={{ gap: 2 }}>
                           <button
@@ -340,24 +348,32 @@ export default function JourneyPublicPage() {
                             className="min-h-0 flex-1 cursor-pointer"
                             onClick={() => setLightbox({ photos: lightboxPhotos, index: 1 })}
                           >
-                            <img
-                              src={photoUrl(photos[1], token!, 'thumbnail')}
-                              alt=""
-                              className={`h-full w-full ${photos[1].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
-                                }`}
-                            />
+                            {posterlessVideo(photos[1]) ? (
+                              <ClipTile />
+                            ) : (
+                              <img
+                                src={photoUrl(photos[1], token!, 'thumbnail')}
+                                alt=""
+                                className={`h-full w-full ${photos[1].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
+                                  }`}
+                              />
+                            )}
                           </button>
                           <button
                             type="button"
                             className="relative min-h-0 flex-1 cursor-pointer"
                             onClick={() => setLightbox({ photos: lightboxPhotos, index: 2 })}
                           >
-                            <img
-                              src={photoUrl(photos[2], token!, 'thumbnail')}
-                              alt=""
-                              className={`h-full w-full ${photos[2].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
-                                }`}
-                            />
+                            {posterlessVideo(photos[2]) ? (
+                              <ClipTile />
+                            ) : (
+                              <img
+                                src={photoUrl(photos[2], token!, 'thumbnail')}
+                                alt=""
+                                className={`h-full w-full ${photos[2].media_type === 'video' ? 'object-contain bg-black' : 'object-cover'
+                                  }`}
+                              />
+                            )}
                             {photos.length > 3 && (
                               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                                 <span className="flex items-center gap-1 text-[13px] font-semibold text-white">
@@ -529,15 +545,19 @@ export default function JourneyPublicPage() {
             })
           }
         >
-          <img
-            src={photoUrl(photo, token!, 'thumbnail')}
-            className={`h-full w-full transition-transform hover:scale-105 ${photo.media_type === 'video'
-              ? 'object-contain bg-black'
-              : 'object-cover'
-              }`}
-            alt=""
-            loading="lazy"
-          />
+          {posterlessVideo(photo) ? (
+            <ClipTile />
+          ) : (
+            <img
+              src={photoUrl(photo, token!, 'thumbnail')}
+              className={`h-full w-full transition-transform hover:scale-105 ${photo.media_type === 'video'
+                ? 'object-contain bg-black'
+                : 'object-cover'
+                }`}
+              alt=""
+              loading="lazy"
+            />
+          )}
           {photo.media_type === 'video' && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur">
@@ -550,202 +570,29 @@ export default function JourneyPublicPage() {
     </div>
   );
 
-  // Shared view tab bar
-  const renderTabs = (views: typeof availableViews) =>
-    views.length > 1 && (
-      <div className="mb-6 flex w-fit overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-        {views.map((v) => (
-          <button type="button"
-            key={v.id}
-            onClick={() => setView(v.id)}
-            className={`flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium ${view === v.id
-              ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-              : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-              }`}
-          >
-            <v.icon size={13} />
-            {v.label}
-          </button>
-        ))}
-      </div>
-    );
+  // The same frame as a shared trip (#2541): the planner's top bar, the journey as
+  // a postcard, and the views as tabs that stay in reach. The mobile map view keeps
+  // its own floating switch above the full screen map.
+  const firstDate = sortedDates[0];
+  const lastDate = sortedDates[sortedDates.length - 1];
+  const heroStats = [
+    { key: 'entries', value: stats.entries, label: t('journey.stats.entries') },
+    { key: 'photos', value: stats.photos, label: t('journey.stats.photos') },
+    { key: 'places', value: stats.places, label: t('journey.stats.places') },
+  ].filter(st => st.value > 0);
+  const floatingSwitch = isMobile && view === 'timeline' && perms.share_timeline && perms.share_map;
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      {/* Hero */}
-      <div
-        className="relative text-center text-white"
-        style={{
-          background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)',
-          padding: '32px 20px 28px',
-          overflow: 'hidden',
-        }}
-      >
-        {journey.cover_image && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: `url(/uploads/${journey.cover_image})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              opacity: 0.15,
-            }}
-          />
-        )}
-        <div
-          style={{
-            position: 'absolute',
-            top: -60,
-            right: -60,
-            width: 200,
-            height: 200,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.03)',
-          }}
+    <div className="flex min-h-screen flex-col bg-surface-secondary" style={{ fontFamily: 'var(--font-system)' }}>
+      <SharedTopBar title={journey.title} locale={locale} langOpen={showLangPicker} onLangOpenChange={setShowLangPicker} />
+      <div className={`${PAGE_WIDTH} pt-5`}>
+        <SharedHero
+          trip={{ title: journey.title, description: journey.subtitle, cover_image: journey.cover_image, start_date: firstDate, end_date: lastDate }}
+          stats={heroStats}
         />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: -40,
-            left: -40,
-            width: 150,
-            height: 150,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.02)',
-          }}
-        />
-
-        <PublicLanguagePicker locale={locale} open={showLangPicker} onOpenChange={setShowLangPicker} />
-
-        {/* Logo */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 44,
-            height: 44,
-            borderRadius: 12,
-            background: 'rgba(255,255,255,0.08)',
-            backdropFilter: 'blur(8px)',
-            marginBottom: 12,
-            border: '1px solid rgba(255,255,255,0.1)',
-            position: 'relative',
-          }}
-        >
-          <img src="/icons/icon-white.svg" alt="TREK" width={26} height={26} />
-        </div>
-
-        <div
-          style={{
-            fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
-            fontWeight: 600,
-            letterSpacing: 3,
-            textTransform: 'uppercase',
-            opacity: 0.35,
-            marginBottom: 12,
-            position: 'relative',
-          }}
-        >
-          {t('journey.public.tagline')}
-        </div>
-
-        <h1
-          className="relative"
-          style={{
-            margin: '0 0 4px',
-            fontSize: 'calc(26px * var(--fs-scale-title, 1))',
-            fontWeight: 700,
-            letterSpacing: -0.5,
-          }}
-        >
-          {journey.title}
-        </h1>
-
-        {journey.subtitle && (
-          <div
-            className="relative"
-            style={{
-              fontSize: 'calc(13px * var(--fs-scale-body, 1))',
-              opacity: 0.5,
-              maxWidth: 400,
-              margin: '0 auto',
-              lineHeight: 1.5,
-            }}
-          >
-            {journey.subtitle}
-          </div>
+        {!floatingSwitch && (
+          <SharedTabBar tabs={availableViews.map(v => ({ id: v.id, label: v.label, icon: v.icon }))} active={view} onChange={id => setView(id as typeof view)} />
         )}
-
-        {/* Stats pill */}
-        <div
-          className="relative"
-          style={{
-            marginTop: 12,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '8px 18px',
-            borderRadius: 20,
-            background: 'rgba(255,255,255,0.08)',
-            backdropFilter: 'blur(4px)',
-            border: '1px solid rgba(255,255,255,0.08)',
-          }}
-        >
-          <span
-            style={{
-              fontSize: 'calc(12px * var(--fs-scale-body, 1))',
-              fontWeight: 500,
-              opacity: 0.8,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-            }}
-          >
-            <BookOpen size={12} /> {stats.entries} {t('journey.stats.entries')}
-          </span>
-          <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', opacity: 0.4 }}>·</span>
-          <span
-            style={{
-              fontSize: 'calc(12px * var(--fs-scale-body, 1))',
-              fontWeight: 500,
-              opacity: 0.8,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-            }}
-          >
-            <Camera size={12} /> {stats.photos} {t('journey.stats.photos')}
-          </span>
-          <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', opacity: 0.4 }}>·</span>
-          <span
-            style={{
-              fontSize: 'calc(12px * var(--fs-scale-body, 1))',
-              fontWeight: 500,
-              opacity: 0.8,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-            }}
-          >
-            <MapPin size={12} /> {stats.places} {t('journey.stats.places')}
-          </span>
-        </div>
-
-        <div
-          className="relative"
-          style={{
-            marginTop: 12,
-            fontSize: 'calc(9px * var(--fs-scale-caption, 1))',
-            fontWeight: 500,
-            letterSpacing: 1.5,
-            textTransform: 'uppercase',
-            opacity: 0.25,
-          }}
-        >
-          {t('journey.public.readOnly')}
-        </div>
       </div>
 
       {/* Content */}
@@ -754,7 +601,6 @@ export default function JourneyPublicPage() {
         <div className="mx-auto flex max-w-[1440px]" style={{ alignItems: 'flex-start' }}>
           {/* Left: feed */}
           <div className="min-w-0 flex-1 px-8 py-6 xl:max-w-[50%]">
-            {renderTabs(availableViews)}
             {view === 'timeline' && perms.share_timeline && renderTimeline()}
             {view === 'gallery' && perms.share_gallery && renderGallery()}
           </div>
@@ -815,8 +661,6 @@ export default function JourneyPublicPage() {
             </div>
           )}
 
-          {renderTabs(availableViews)}
-
           {/* Mobile combined map+timeline (public, read-only) */}
           {isMobile && view === 'timeline' && perms.share_timeline && perms.share_map && (
             <MobileMapTimeline
@@ -825,7 +669,7 @@ export default function JourneyPublicPage() {
               dark={document.documentElement.classList.contains('dark')}
               readOnly
               onEntryClick={(entry) => setViewingEntry(entry as any)}
-              publicPhotoUrl={(photoId) => `/api/public/journey/${token}/photos/${photoId}/original`}
+              publicPhotoUrl={(photoId) => `/api/public/journey/${token}/photos/${photoId}/thumbnail`}
               carouselBottom="calc(env(safe-area-inset-bottom, 16px) + 8px)"
               cartoApiKey={cartoApiKey}
               showMood={journey.show_mood !== 0}
@@ -848,32 +692,7 @@ export default function JourneyPublicPage() {
         </div>
       )}
 
-      {/* Powered by */}
-      <div className="flex flex-col items-center gap-2 py-8">
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '8px 16px',
-            borderRadius: 20,
-            background: 'white',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          }}
-        >
-          <img src="/icons/icon.svg" alt="TREK" width={18} height={18} style={{ borderRadius: 4 }} />
-          <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: '#9ca3af' }}>
-            {t('journey.public.sharedVia')} <strong style={{ color: '#6b7280' }}>TREK</strong>
-          </span>
-        </div>
-        <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: '#d1d5db' }}>
-          Made with <span style={{ color: '#ef4444' }}>♥</span> by Maurice ·{' '}
-          <a href="https://github.com/liketrek/TREK" style={{ color: '#9ca3af', textDecoration: 'none' }}>
-            GitHub
-          </a>
-        </div>
-      </div>
+      <SharedFooter />
 
       {/* Lightbox */}
       {lightbox && (

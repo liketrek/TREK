@@ -10,6 +10,13 @@ vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetchLlm: safeFetchLlmMo
 import { OpenAiCompatibleClient } from '../../../../src/nest/llm-parse/clients/openai-compatible.client';
 import { AnthropicClient } from '../../../../src/nest/llm-parse/clients/anthropic.client';
 import type { LlmExtractionInput } from '../../../../src/nest/llm-parse/llm-provider.interface';
+import {
+  buildReceiptPrompt,
+  RECEIPT_LIST_JSON_SCHEMA,
+  RECEIPT_ROOT_KEY,
+  RECEIPT_USER_TEXT,
+  toReceiptRead,
+} from '../../../../src/nest/llm-parse/receipt-read';
 import { readEnv } from '../../../../src/app-config';
 
 const baseInput: LlmExtractionInput = {
@@ -139,6 +146,31 @@ describe('OpenAiCompatibleClient', () => {
     expect(second.response_format).toEqual({ type: 'json_object' });
     expect(second.messages).toEqual(first.messages);
     expect(second.model).toBe(first.model);
+  });
+
+  it('reads a receipt from a server that only takes json_object, going by the prompt alone', async () => {
+    // The server refuses json_schema, so the schema never reaches the model: the
+    // prompt has to name JSON (json_object mode wants the word) and the wrapper
+    // the answer is read under, or a flat receipt comes back as none.
+    safeFetchLlmMock
+      .mockResolvedValueOnce(jsonResponse({ error: { message: 'response_format json_schema is not supported' } }, false, 400))
+      .mockResolvedValueOnce(jsonResponse({
+        choices: [{ message: { content: '{"receipts":[{"merchant":"Café","date":"2026-09-20","total":12.5,"currency":"EUR","items":[]}]}' } }],
+      }));
+    const out = await new OpenAiCompatibleClient().extract({
+      prompt: buildReceiptPrompt(new Date('2026-09-24T10:00:00Z'), true),
+      jsonSchema: RECEIPT_LIST_JSON_SCHEMA,
+      rootKey: RECEIPT_ROOT_KEY,
+      userText: RECEIPT_USER_TEXT,
+      model: 'deepseek-chat',
+      file: { mimeType: 'image/jpeg', data: Buffer.from('jpeg') },
+    });
+
+    const second = JSON.parse((safeFetchLlmMock.mock.calls[1][1] as RequestInit).body as string);
+    expect(second.response_format).toEqual({ type: 'json_object' });
+    expect(second.messages[0].content).toContain('JSON');
+    expect(second.messages[0].content).toContain('{ "receipts": [');
+    expect(toReceiptRead(out[0])).toEqual({ merchant: 'Café', date: '2026-09-20', total: 12.5, currency: 'EUR', items: [] });
   });
 
   it('retries with max_completion_tokens when the model rejects max_tokens (400, #1760)', async () => {
@@ -275,6 +307,15 @@ describe('OpenAiCompatibleClient', () => {
     expect(safeFetchLlmMock).toHaveBeenCalledTimes(1);
   });
 
+  it('sends each page of a scanned PDF as its own image_url, in order', async () => {
+    const fetchFn = mockFetch(() => jsonResponse({ choices: [{ message: { content: '{"reservations":[]}' } }] }));
+    const page = (n: string) => ({ mimeType: 'image/png', data: Buffer.from(n) });
+    await new OpenAiCompatibleClient().extract({ ...baseInput, text: undefined, file: page('p1'), pageImages: [page('p2')] });
+    const parts = JSON.parse((fetchFn.mock.calls[0][1] as RequestInit).body as string).messages[1].content;
+    const urls = parts.filter((p: { type: string }) => p.type === 'image_url').map((p: { image_url: { url: string } }) => p.image_url.url);
+    expect(urls).toEqual([`data:image/png;base64,${Buffer.from('p1').toString('base64')}`, `data:image/png;base64,${Buffer.from('p2').toString('base64')}`]);
+  });
+
   it('sends an image natively as image_url but never a file/pdf part', async () => {
     const fetchFn = mockFetch(() => jsonResponse({ choices: [{ message: { content: '{"reservations":[]}' } }] }));
     await new OpenAiCompatibleClient().extract({ ...baseInput, file: { mimeType: 'image/png', data: Buffer.from('IMG') } });
@@ -286,6 +327,38 @@ describe('OpenAiCompatibleClient', () => {
     await new OpenAiCompatibleClient().extract({ ...baseInput, file: { mimeType: 'application/pdf', data: Buffer.from('PDF') } });
     parts = JSON.parse((fetchFn.mock.calls[1][1] as RequestInit).body as string).messages[1].content;
     expect(parts.every((p: any) => p.type !== 'file' && p.type !== 'image_url')).toBe(true);
+  });
+
+  /**
+   * A report could not say whether the schema ever reached the model or the
+   * ladder had fallen back to the prompt alone (#2477). The debug line names
+   * the rung that answered, and nothing of the booking.
+   */
+  it('logs which response_format the answering attempt carried (#2477)', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const ok = () => jsonResponse({ choices: [{ message: { content: '{"reservations":[]}' } }] });
+    const refused = () => jsonResponse({ error: 'no' }, false, 400);
+    const lines = () => debug.mock.calls.map(c => String(c[0])).filter(l => l.includes('response_format='));
+    try {
+      safeFetchLlmMock.mockResolvedValueOnce(ok());
+      await new OpenAiCompatibleClient().extract(baseInput);
+      safeFetchLlmMock.mockResolvedValueOnce(refused()).mockResolvedValueOnce(ok());
+      await new OpenAiCompatibleClient().extract(baseInput);
+      safeFetchLlmMock.mockResolvedValueOnce(refused()).mockResolvedValueOnce(refused()).mockResolvedValueOnce(ok());
+      await new OpenAiCompatibleClient().extract(baseInput);
+      safeFetchLlmMock.mockResolvedValueOnce(jsonResponse({ choices: [{ message: { content: '{}' } }] }));
+      await new OpenAiCompatibleClient().extract({ ...baseInput, model: 'hf.co/numind/NuExtract-2.0-2B-GGUF:latest' });
+
+      expect(lines()).toEqual([
+        '[DEBUG] LLM answered with response_format=json_schema',
+        '[DEBUG] LLM answered with response_format=json_object',
+        '[DEBUG] LLM answered with response_format=none',
+        '[DEBUG] LLM answered with response_format=none',
+      ]);
+      expect(debug.mock.calls.flat().join(' ')).not.toContain('Flight AB123');
+    } finally {
+      debug.mockRestore();
+    }
   });
 });
 
@@ -348,6 +421,28 @@ describe('OpenAiCompatibleClient — NuExtract path', () => {
 });
 
 describe('AnthropicClient', () => {
+  it('sends the pages of a scanned PDF as image blocks after the first', async () => {
+    const fetchFn = mockFetch(() =>
+      jsonResponse({ stop_reason: 'tool_use', content: [{ type: 'tool_use', name: 'emit_reservations', input: { reservations: [] } }] }),
+    );
+    const page = (n: string) => ({ mimeType: 'image/png', data: Buffer.from(n) });
+    await new AnthropicClient().extract({ ...baseInput, text: undefined, file: page('p1'), pageImages: [page('p2')] });
+    const content = JSON.parse((fetchFn.mock.calls[0][1] as RequestInit).body as string).messages[0].content;
+    expect(content.map((b: { type: string }) => b.type)).toEqual(['image', 'image', 'text']);
+    expect(content[1].source.data).toBe(Buffer.from('p2').toString('base64'));
+  });
+
+  it('sends a photo as an image block and a PDF as a document block', async () => {
+    const fetchFn = mockFetch(() =>
+      jsonResponse({ stop_reason: 'tool_use', content: [{ type: 'tool_use', name: 'emit_reservations', input: { reservations: [] } }] }),
+    );
+    await new AnthropicClient().extract({ ...baseInput, text: undefined, file: { mimeType: 'image/jpeg', data: Buffer.from('jpg') } });
+    await new AnthropicClient().extract({ ...baseInput, text: undefined, file: { mimeType: 'application/pdf', data: Buffer.from('pdf') } });
+    const blockOf = (i: number) => JSON.parse((fetchFn.mock.calls[i][1] as RequestInit).body as string).messages[0].content[0];
+    expect(blockOf(0)).toEqual({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: Buffer.from('jpg').toString('base64') } });
+    expect(blockOf(1).type).toBe('document');
+  });
+
   it('forces the emit_reservations tool and reads its input', async () => {
     const fetchFn = mockFetch(() =>
       jsonResponse({ stop_reason: 'tool_use', content: [{ type: 'tool_use', name: 'emit_reservations', input: { reservations: [{ '@type': 'LodgingReservation' }] } }] }),

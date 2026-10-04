@@ -82,6 +82,11 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Μονάδα Θερμοκρασίας',
   'settings.distance': 'Μονάδα Απόστασης',
   'settings.timeFormat': 'Μορφή Ώρας',
+  'settings.weekStart': 'Η εβδομάδα ξεκινά την',
+  'settings.weekStartHint': 'Πρώτη ημέρα της εβδομάδας σε κάθε επιλογέα ημερομηνίας. Το Vacay έχει δική του ρύθμιση.',
+  'settings.preferredNavApp': 'Άνοιγμα τοποθεσιών σε',
+  'settings.preferredNavAppAsk': 'Ερώτηση κάθε φορά',
+  'settings.preferredNavAppHint': 'Με επιλεγμένη εφαρμογή, το κουμπί πλοήγησης την ανοίγει αμέσως αντί να προτείνει όλες τις εφαρμογές χαρτών.',
   'settings.bookingLabels': 'Ετικέτες διαδρομής κρατήσεων',
   'settings.bookingLabelsHint':
     'Εμφάνιση ονομάτων σταθμών / αεροδρομίων στον χάρτη. Όταν είναι απενεργοποιημένο, εμφανίζεται μόνο το εικονίδιο.',
@@ -112,6 +117,7 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.inapp': 'Εντός εφαρμογής',
   'settings.notificationPreferences.notConfigured':
     'Δεν έχει ρυθμιστεί ακόμη — ρυθμίστε το στις ρυθμίσεις του πρόσθετου',
+  'settings.notificationPreferences.lockedByAdmin': 'Απενεργοποιήθηκε από τον διαχειριστή για όλους',
   'settings.plugins.actions': 'Ενέργειες',
   'settings.plugins.actions.confirm': 'Εκτέλεση αυτής της ενέργειας;',
   'settings.notificationPreferences.sendTest': 'Αποστολή δοκιμής',
@@ -121,6 +127,20 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.pluginConfigured':
     'Ρυθμίστηκε. Διαχειριστείτε τα διαπιστευτήρια στη σελίδα ρυθμίσεων του πρόσθετου.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Push ειδοποιήσεις σε αυτή τη συσκευή',
+  'settings.webPush.hint':
+    'Εμφανίζει τις ειδοποιήσεις του TREK σε αυτή τη συσκευή ακόμη και όταν το TREK είναι κλειστό. Ποια συμβάντα φτάνουν καθορίζεται από τη στήλη Push.',
+  'settings.webPush.enable': 'Ενεργοποίηση για αυτή τη συσκευή',
+  'settings.webPush.disable': 'Απενεργοποίηση για αυτή τη συσκευή',
+  'settings.webPush.enabled': 'Ενεργό για αυτή τη συσκευή',
+  'settings.webPush.unsupported': 'Αυτό το πρόγραμμα περιήγησης δεν μπορεί να λάβει push ειδοποιήσεις.',
+  'settings.webPush.insecure': 'Για το push, το TREK πρέπει να ανοίγει μέσω HTTPS.',
+  'settings.webPush.iosInstall':
+    'Σε iPhone και iPad, προσθέστε πρώτα το TREK στην οθόνη Αφετηρίας και ανοίξτε το από εκεί.',
+  'settings.webPush.denied':
+    'Οι ειδοποιήσεις για το TREK είναι αποκλεισμένες σε αυτό το πρόγραμμα περιήγησης. Επιτρέψτε τις στις ρυθμίσεις του προγράμματος περιήγησης και δοκιμάστε ξανά.',
+  'settings.webPush.failed': 'Δεν ήταν δυνατή η ενεργοποίηση του push για αυτή τη συσκευή.',
   'settings.notificationPreferences.noChannels':
     'Δεν έχουν διαμορφωθεί κανάλια ειδοποιήσεων. Ζητήστε από έναν διαχειριστή να ρυθμίσει ειδοποιήσεις email ή webhook.',
   'settings.webhookUrl.label': 'Webhook URL',
@@ -277,6 +297,14 @@ const settings: TranslationStrings = {
   'settings.passwordTooShort': 'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες',
   'settings.passwordMismatch': 'Οι κωδικοί δεν ταιριάζουν',
   'settings.passwordWeak': 'Ο κωδικός πρέπει να περιέχει κεφαλαία, πεζά, έναν αριθμό και έναν ειδικό χαρακτήρα',
+  'settings.passwordCommon': 'Αυτός ο κωδικός είναι πολύ συνηθισμένος. Επιλέξτε έναν μοναδικό.',
+  'settings.passwordRepetitive': 'Ο κωδικός είναι υπερβολικά επαναλαμβανόμενος',
+  'settings.passwordRules': 'Απαιτήσεις κωδικού',
+  'settings.passwordRule.length': 'Τουλάχιστον 8 χαρακτήρες',
+  'settings.passwordRule.upper': 'Ένα κεφαλαίο γράμμα',
+  'settings.passwordRule.lower': 'Ένα πεζό γράμμα',
+  'settings.passwordRule.digit': 'Ένας αριθμός',
+  'settings.passwordRule.special': 'Ένας ειδικός χαρακτήρας',
   'settings.passwordChanged': 'Ο κωδικός άλλαξε επιτυχώς',
   'settings.mustChangePassword':
     'Πρέπει να αλλάξετε τον κωδικό σας πριν συνεχίσετε. Παρακαλώ ορίστε έναν νέο κωδικό παρακάτω.',
@@ -333,6 +361,9 @@ const settings: TranslationStrings = {
   'settings.currencyHint':
     'Τα ποσά στα Κόστη εμφανίζονται σε αυτό το νόμισμα μόνο για λόγους προβολής — τα αρχικά ποσά δεν αλλάζουν.',
   'settings.currencyTrip': 'Νόμισμα ταξιδιού',
+  'settings.placeLanguage': 'Ονόματα μερών',
+  'settings.placeLanguageApp': 'Ίδια με την εφαρμογή',
+  'settings.placeLanguageHint': 'Η γλώσσα στην οποία απαντούν η αναζήτηση μερών, οι προτάσεις και οι διευθύνσεις. Όταν ένα μέρος δεν έχει όνομα σε αυτή τη γλώσσα, εμφανίζεται το τοπικό του όνομα.',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Συνδεθείτε πιο γρήγορα και με προστασία από phishing χρησιμοποιώντας ένα passkey — το δαχτυλικό σας αποτύπωμα, το πρόσωπό σας, ένα PIN ή ένα κλειδί υλικού. Ο κωδικός σας παραμένει ως εφεδρεία.',
@@ -393,9 +424,9 @@ const settings: TranslationStrings = {
     'Πού εκτελείται το μοντέλο — ένας τοπικός διακομιστής Ollama ή ένα τελικό σημείο συμβατό με OpenAI.',
   'settings.aiParsing.apiKey': 'Κλειδί API',
   'settings.aiParsing.apiKeyHint': 'Αποθηκεύεται κρυπτογραφημένο. Αφήστε το κενό για να διατηρήσετε το τρέχον κλειδί.',
-  'settings.aiParsing.multimodal': 'Αποστολή εγγράφων ως εικόνες',
+  'settings.aiParsing.multimodal': 'Το μοντέλο διαβάζει εικόνες',
   'settings.aiParsing.multimodalHint':
-    'Για μοντέλα με δυνατότητα όρασης — στέλνει το αρχικό PDF αντί για το εξαγόμενο κείμενο.',
+    'Ενεργοποιήστε το για μοντέλο που διαβάζει εικόνες, ώστε μια φωτογραφία να μπορεί να εισαχθεί ή να σαρωθεί.',
   'settings.aiParsing.toast.saved': 'Οι ρυθμίσεις AI αποθηκεύτηκαν',
   'settings.aiParsing.toast.saveError': 'Δεν ήταν δυνατή η αποθήκευση των ρυθμίσεων AI',
   'settings.tabs.appearance': 'Appearance',
@@ -479,6 +510,10 @@ const settings: TranslationStrings = {
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
   'settings.general.startup': 'Εκκίνηση',
+  'settings.dayDateFirst': 'Πρώτα η ημερομηνία στους τίτλους ημερών',
+  'settings.compactUnplanned': 'Συμπαγείς δείκτες για μη προγραμματισμένα μέρη',
+  'settings.compactUnplannedHint': 'Τα μέρη που δεν έχουν προγραμματιστεί σε καμία ημέρα εμφανίζονται ως μικροί δείκτες χωρίς φωτογραφία, ώστε να ξεχωρίζουν οι προγραμματισμένες στάσεις.',
+  'settings.dayDateFirstHint': 'Κάθε ημέρα ξεκινά με την ημερομηνία της και δίπλα εμφανίζεται «Ημέρα 1» ή ο δικός της τίτλος.',
   'settings.startPage': 'Αρχική σελίδα',
   'settings.startPageDashboard': 'Πίνακας ελέγχου',
   'settings.startPageActiveTrip': 'Ενεργό ταξίδι',

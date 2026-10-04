@@ -92,6 +92,7 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     db.prepare('DELETE FROM trip_members').run();
     db.prepare('DELETE FROM days').run();
     db.prepare('DELETE FROM audit_log').run();
+    db.prepare('DELETE FROM settings').run();
     // 0b review L2 / security review F-B7: dead mock scaffolding — see
     // budget.e2e.test.ts's identical comment.
     checkPermission.mockReturnValue(true);
@@ -131,6 +132,16 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     expect(forbidden.status).toBe(403);
   });
 
+  it('201 create without a currency takes the display currency from the settings', async () => {
+    db.prepare("INSERT INTO settings (user_id, key, value) VALUES (1, 'default_currency', ?)").run(JSON.stringify('USD'));
+    const preferred = await request(server).post('/api/trips').set('Cookie', sessionCookie(1)).send({ title: 'Road trip' });
+    expect(preferred.status).toBe(201);
+    expect(preferred.body.trip).toMatchObject({ title: 'Road trip', currency: 'USD' });
+    const explicit = await request(server).post('/api/trips').set('Cookie', sessionCookie(1)).send({ title: 'Tokyo', currency: 'JPY' });
+    expect(explicit.status).toBe(201);
+    expect(explicit.body.trip).toMatchObject({ title: 'Tokyo', currency: 'JPY' });
+  });
+
   it('201 create keeps every day of a trip longer than a year (#2403)', async () => {
     // 2025-01-26 .. 2026-01-28 is 368 days; the day list used to stop at 365.
     const res = await request(server).post('/api/trips').set('Cookie', sessionCookie(1))
@@ -156,6 +167,18 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     expect(stretched.status).toBe(400);
     expect(stretched.body).toEqual({ error: `A trip can span at most ${MAX_TRIP_DAYS} days` });
     expect(db.prepare('SELECT end_date FROM trips WHERE id = ?').get(week.body.trip.id)).toEqual({ end_date: '2026-07-07' });
+  });
+
+  it('200 update with an earlier end drops the last days, and the answer stays { trip }', async () => {
+    const week = await request(server).post('/api/trips').set('Cookie', sessionCookie(1))
+      .send({ title: 'Week', start_date: '2026-07-01', end_date: '2026-07-07' });
+    const kept = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number LIMIT 5').all(week.body.trip.id);
+    const res = await request(server).put(`/api/trips/${week.body.trip.id}`).set('Cookie', sessionCookie(1))
+      .send({ end_date: '2026-07-05' });
+    expect(res.status).toBe(200);
+    expect(Object.keys(res.body)).toEqual(['trip']);
+    expect(res.body.trip).toMatchObject({ start_date: '2026-07-01', end_date: '2026-07-05', day_count: 5 });
+    expect(db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(week.body.trip.id)).toEqual(kept);
   });
 
   it('404 on a missing trip', async () => {

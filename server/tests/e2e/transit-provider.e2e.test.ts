@@ -23,6 +23,7 @@ const { db } = vi.hoisted(() => {
     email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0,
     maps_api_key TEXT, unsplash_api_key TEXT);`);
   tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
+  tmp.exec('CREATE TABLE google_api_usage (day TEXT PRIMARY KEY, calls INTEGER NOT NULL DEFAULT 0);');
   return { db: tmp };
 });
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));

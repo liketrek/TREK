@@ -75,7 +75,7 @@ export const tripRepo = {
     return onlineThenCache(
       async () => {
         const result = await tripsApi.get(tripId)
-        upsertTrip(result.trip)
+        void upsertTrip(result.trip)
         return result
       },
       async () => {

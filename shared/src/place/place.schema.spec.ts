@@ -4,9 +4,11 @@ import {
   placeImportListRequestSchema,
   placeSchema,
   placeUpdateRequestSchema,
+  placeWebsiteSchema,
 } from './place.schema';
 
 import { describe, it, expect } from 'vitest';
+import { z } from 'zod';
 
 describe('placeSchema route_color (#776)', () => {
   const place = { id: 1, trip_id: 1, name: 'Walk' };
@@ -75,5 +77,54 @@ describe('stop_type on the write routes', () => {
   it('SHARED-PLACE-023: every other key stays open, because roughly 190 callers rely on it', () => {
     const body = { name: 'A', whatever: 1, notes: 'x', lat: 53.5, tags: [{ id: 1 }] };
     expect(placeCreateRequestSchema.safeParse(body).success).toBe(true);
+  });
+});
+
+describe('placeWebsiteSchema (#2483)', () => {
+  it('SHARED-PLACE-030: a bare host from a search result parses to its https form', () => {
+    const parsed = placeWebsiteSchema.safeParse('fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët');
+    expect(parsed.success && parsed.data).toBe('https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët');
+    const relative = placeWebsiteSchema.safeParse('//www.example.fr');
+    expect(relative.success && relative.data).toBe('https://www.example.fr');
+  });
+
+  it('SHARED-PLACE-031: a value that names http(s) comes back exactly as sent', () => {
+    for (const value of [
+      'https://louvre.fr/en/visit',
+      'http://pension-alpenblick.at',
+      'https://x.example ',
+      'http://localhost:3000',
+    ]) {
+      const parsed = placeWebsiteSchema.safeParse(value);
+      expect(parsed.success && parsed.data, value).toBe(value);
+    }
+  });
+
+  it('SHARED-PLACE-032: every other scheme and free text still fail with the same message', () => {
+    for (const value of [
+      'javascript:alert(1)',
+      'data:text/html,x',
+      'mailto:a@example.fr',
+      'Chapelle',
+      '',
+      'localhost',
+    ]) {
+      const parsed = placeWebsiteSchema.safeParse(value);
+      expect(parsed.success, value).toBe(false);
+      expect(parsed.error?.issues.map((i) => i.message)).toContain('must be an http or https URL');
+    }
+  });
+
+  it('SHARED-PLACE-033: the length cap applies to what is stored', () => {
+    expect(placeWebsiteSchema.safeParse(`https://example.com/${'a'.repeat(480)}`).success).toBe(true);
+    expect(placeWebsiteSchema.safeParse(`https://example.com/${'a'.repeat(481)}`).success).toBe(false);
+    // Measured after the scheme is added, which is the value that is stored.
+    expect(placeWebsiteSchema.safeParse(`example.com/${'a'.repeat(480)}`).success).toBe(true);
+    expect(placeWebsiteSchema.safeParse(`example.com/${'a'.repeat(481)}`).success).toBe(false);
+  });
+
+  it('SHARED-PLACE-034: the tool schema an MCP client reads is still a plain capped string', () => {
+    const shape = z.toJSONSchema(z.object({ website: placeWebsiteSchema.optional() }), { io: 'input' });
+    expect(shape.properties?.website).toEqual({ type: 'string', maxLength: 500 });
   });
 });

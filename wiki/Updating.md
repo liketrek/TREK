@@ -4,7 +4,7 @@ How to update TREK to a newer version without losing data.
 
 ## Before You Update
 
-Back up your data first. Go to Admin Panel → Backups and create a manual backup, or copy your `./data` and `./uploads` directories to a safe location. See [Backups](Backups) for details.
+Back up your data first. Go to Admin Panel → **Backup** and create a manual backup, or copy your `./data` and `./uploads` directories to a safe location. See [Backups](Backups) for details.
 
 ## Image Tags
 
@@ -96,6 +96,13 @@ A few defaults change with 4.3.0. None of them needs a manual step, but they are
 - **SSO sessions on an OIDC-only instance last 30 days.** The login page sends `remember=1` on that path, so the session gets the `SESSION_DURATION_REMEMBER` lifetime (default `30d`) instead of `SESSION_DURATION` (default `24h`). Lower `SESSION_DURATION_REMEMBER` if that is too long. With password login on, the SSO button follows the Remember-me switch instead. See [OIDC-SSO](OIDC-SSO).
 - **Booked nights get a stop.** A migration puts every existing stay that has a place on its check-in day as a hotel stop, so the trips you already have show their hotels in the [Road-Trip](Road-Trip) view without anyone re-saving a booking. Under **Days** nothing changes: that stop stays hidden behind the badge the booking already shows. See [Accommodations](Accommodations).
 - **Two things are on by default.** The **Links** tab in Collab, which an admin switches off under **Admin → Addons**, and the routing counters, daily totals of the route requests the planner makes that never leave the instance. An admin reads them at `/api/route-usage/summary`; an `app_settings` row named `route_usage_enabled` with the value `false` switches them off.
+
+## Upgrading to 4.3.1
+
+Two things change with 4.3.1. Neither needs a manual step on Docker, but they are worth knowing before you pull the image:
+
+- **Booked nights lead their day.** A migration moves every booked night to the head of its check-in day, behind only a stop whose own time is at or before the check-in, and the stops without an hour follow it: a hotel booked for ten in the morning is reached at ten in the [Road-Trip](Road-Trip) view, not at a quarter past twelve behind a whole day of untimed stops. A night booked for the end of a driving day heads that day too when its stops carry no time of their own, so such a day now reads hotel first. A via point drawn on the road into that hotel from the stop that is now last is removed, because that leg no longer exists in the day, the same way a drag would remove it; the other vias follow their stops. Under **Days** nothing changes. To put a hotel back at the end, drag it down the day in the Road Trip rail, or give the first stop after it a start time at or before the check-in, which brings the untimed stops behind that one along; a time on the last stop alone leaves the hotel in the middle of the day. See [Accommodations](Accommodations#on-the-route).
+- **Source installs need a build toolchain, or `--ignore-scripts`.** The server runs better-sqlite3 13, which ships its binaries inside the package, so nothing is compiled any more; the Docker image and the Helm chart are unaffected. On an install that runs `npm ci` itself, outside Docker, a lockfile-driven `npm ci` still runs node-gyp against those binaries and stops without Python 3 and a C++ toolchain (`build-essential` on Debian/Ubuntu, the Xcode Command Line Tools on macOS, the Visual Studio Build Tools on Windows; npm/cli#9837). Either keep those installed, as [Development-environment](Development-environment) lists them, or run `npm ci --ignore-scripts`, which is what the image does.
 
 ## Encryption Key Note
 

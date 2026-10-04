@@ -1,6 +1,4 @@
-import { test, clearNotices, expect } from './shot'
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
+import { test, clearNotices, expect, seed } from './shot'
 
 /**
  * Detail pages and the surfaces that need a couple of clicks to reach.
@@ -10,9 +8,6 @@ import path from 'node:path'
  * the run instead of producing a screenshot of the wrong screen.
  */
 
-const seed = JSON.parse(
-  readFileSync(path.join(process.cwd(), 'e2e', '.tmp', 'seed.json'), 'utf8'),
-) as { tripId: number; collectionId?: number; journeyId?: number }
 
 test('collection detail', async ({ page, shot }) => {
   test.skip(!seed.collectionId, 'collections addon unavailable during seed')

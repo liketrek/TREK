@@ -5,7 +5,7 @@ import { getAuthUrl } from '../../api/authUrl'
 export function AuthedImg({ src, style }: { src: string; style?: React.CSSProperties }) {
   const [authSrc, setAuthSrc] = useState('')
   useEffect(() => {
-    getAuthUrl(src, 'download').then(setAuthSrc)
+    void getAuthUrl(src, 'download').then(setAuthSrc)
   }, [src])
   return authSrc ? <img src={authSrc} alt="" style={style} /> : null
 }

@@ -1,8 +1,13 @@
 import type { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
 
-/** The version the hand-written `db/migrations.ts` chain ended on. */
-const LEGACY_SCHEMA_VERSION = 241;
+/**
+ * The version the hand-written `db/migrations.ts` chain ended on — the highest
+ * `Legacy migration step N` any migration names. A rollback to a release that
+ * still runs that chain replays every step above this row, and the booked-night
+ * reseat (step 242) must not run twice, so this moves whenever a step is ported.
+ */
+const LEGACY_SCHEMA_VERSION = 258;
 
 /**
  * Pins the legacy `schema_version` marker.

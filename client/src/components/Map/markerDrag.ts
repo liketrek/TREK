@@ -35,6 +35,8 @@ export function makeMarkerDraggable(el: HTMLElement, placeId: number): () => voi
   // The map pans on mousedown anywhere on its surface, and a marker sits on that
   // surface. Without this the map slides away under the pointer while the drag
   // is starting, which makes the day plan an impossible target to reach.
+  // The map then never sees the press that starts a click on the marker, which is why the Leaflet
+  // renderer clears the map's pan flag itself when a pin is pressed (wireDraggablePin, #2504).
   const onMouseDown = (e: MouseEvent) => e.stopPropagation()
 
   el.addEventListener('dragstart', onDragStart)

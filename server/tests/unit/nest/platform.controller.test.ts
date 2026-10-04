@@ -17,6 +17,8 @@ import {
   applyPlatformSpa,
   applyPlatformStatic,
   storageStaticHandler,
+  isBuildFilePath,
+  PUBLIC_DIR,
 } from '../../../src/nest/platform/platform.routes';
 import { SpaFallbackFilter } from '../../../src/nest/platform/spa-fallback.filter';
 import { StorageNotFoundError, StorageInvalidKeyError } from '../../../src/nest/storage/storage.types';
@@ -495,10 +497,56 @@ describe('applyPlatformSpa', () => {
     const catchAll = calls.find((c) => c.method === 'get');
     expect(catchAll).toBeDefined();
     const res = makeRes();
-    catchAll!.handlers[0]({}, res);
+    catchAll!.handlers[0]({ path: '/trips/7' }, res);
     expect(res.headers['Cache-Control']).toBe('no-cache, no-store, must-revalidate');
     expect(String(res.body)).toContain('FILE:');
     expect(String(res.body)).toContain('index.html');
+    expect(res.sendFile).toHaveBeenCalledWith('index.html', { root: PUBLIC_DIR });
+  });
+
+  it('answers a missing build file with a 404, not index.html (#2524)', () => {
+    process.env.NODE_ENV = 'production';
+    const { app, calls } = fakeApp();
+    applyPlatformSpa(app);
+    const catchAll = calls.find((c) => c.method === 'get');
+    const res = makeRes();
+    catchAll!.handlers[0]({ path: '/assets/DashboardPage-v4ODOTOr.js' }, res);
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toEqual({ error: 'Not Found' });
+    expect(res.headers['Cache-Control']).toBe('no-store');
+    expect(res.sendFile).not.toHaveBeenCalled();
+  });
+});
+
+describe('isBuildFilePath', () => {
+  it.each([
+    '/assets/DashboardPage-v4ODOTOr.js',
+    '/assets/index-cFGeBWen.css',
+    '/assets/poppins-latin-400-normal-abc.woff2',
+    '/assets/anything-without-a-known-extension',
+    '/sw.js',
+    '/workbox-2da51cb1.js',
+    '/registerSW.js',
+    '/manifest.webmanifest',
+    '/icons/icon-192x192.png',
+    '/favicon.ico',
+    '/fonts/Inter.TTF',
+  ])('treats %s as a build file', (p) => {
+    expect(isBuildFilePath(p)).toBe(true);
+  });
+
+  it.each([
+    '/',
+    '/dashboard',
+    '/trips/12/files',
+    '/journey/3/studio',
+    '/plugins/trip-todos',
+    '/help/Atlas',
+    '/shared/0f3a9c',
+    '/public/journey/AbC_-12',
+    '/oauth/consent',
+  ])('treats the page %s as a page', (p) => {
+    expect(isBuildFilePath(p)).toBe(false);
   });
 });
 
@@ -506,22 +554,55 @@ describe('SpaFallbackFilter', () => {
   const original = process.env.NODE_ENV;
   afterEach(() => { process.env.NODE_ENV = original; });
 
-  function host(req: { method: string }, res: ReturnType<typeof makeRes>) {
+  function host(req: { method: string; path?: string }, res: ReturnType<typeof makeRes>) {
     return { switchToHttp: () => ({ getRequest: () => req, getResponse: () => res }) } as never;
   }
 
   it('serves index.html for an unmatched GET in production', () => {
     process.env.NODE_ENV = 'production';
     const res = makeRes();
-    new SpaFallbackFilter().catch(new NotFoundException('nope'), host({ method: 'GET' }, res));
+    new SpaFallbackFilter().catch(new NotFoundException('nope'), host({ method: 'GET', path: '/dashboard' }, res));
     expect(res.headers['Cache-Control']).toBe('no-cache, no-store, must-revalidate');
     expect(String(res.body)).toContain('index.html');
+  });
+
+  it('answers a GET for a chunk that is not on disk with a 404 in production (#2524)', () => {
+    process.env.NODE_ENV = 'production';
+    const res = makeRes();
+    new SpaFallbackFilter().catch(
+      new NotFoundException('Cannot GET /assets/DashboardPage-v4ODOTOr.js'),
+      host({ method: 'GET', path: '/assets/DashboardPage-v4ODOTOr.js' }, res),
+    );
+    // A 200 with index.html here is what a service worker precached as the chunk.
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toEqual({ error: 'Cannot GET /assets/DashboardPage-v4ODOTOr.js' });
+    expect(res.headers['Cache-Control']).toBe('no-store');
+    expect(res.sendFile).not.toHaveBeenCalled();
+  });
+
+  it('answers a missing top-level build file with a 404 too', () => {
+    process.env.NODE_ENV = 'production';
+    const res = makeRes();
+    new SpaFallbackFilter().catch(new NotFoundException(), host({ method: 'GET', path: '/workbox-0000aaaa.js' }, res));
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toEqual({ error: 'Not Found' });
+  });
+
+  it('answers a missing build file whose exception has no message with Not Found (#2524)', () => {
+    process.env.NODE_ENV = 'production';
+    const res = makeRes();
+    const exc = new NotFoundException();
+    Object.defineProperty(exc, 'message', { value: '' });
+    new SpaFallbackFilter().catch(exc, host({ method: 'GET', path: '/assets/gone-0000aaaa.js' }, res));
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toEqual({ error: 'Not Found' });
+    expect(res.sendFile).not.toHaveBeenCalled();
   });
 
   it('keeps the JSON 404 envelope for a non-GET miss in production', () => {
     process.env.NODE_ENV = 'production';
     const res = makeRes();
-    new SpaFallbackFilter().catch(new NotFoundException('gone'), host({ method: 'POST' }, res));
+    new SpaFallbackFilter().catch(new NotFoundException('gone'), host({ method: 'POST', path: '/dashboard' }, res));
     expect(res.statusCode).toBe(404);
     expect(res.body).toEqual({ error: 'gone' });
   });
@@ -529,7 +610,7 @@ describe('SpaFallbackFilter', () => {
   it('keeps the JSON 404 envelope outside production even for GET', () => {
     process.env.NODE_ENV = 'development';
     const res = makeRes();
-    new SpaFallbackFilter().catch(new NotFoundException('missing'), host({ method: 'GET' }, res));
+    new SpaFallbackFilter().catch(new NotFoundException('missing'), host({ method: 'GET', path: '/dashboard' }, res));
     expect(res.statusCode).toBe(404);
     expect(res.body).toEqual({ error: 'missing' });
   });
@@ -540,7 +621,7 @@ describe('SpaFallbackFilter', () => {
     const exc = new NotFoundException();
     // force an empty message so the || branch is taken
     Object.defineProperty(exc, 'message', { value: '' });
-    new SpaFallbackFilter().catch(exc, host({ method: 'GET' }, res));
+    new SpaFallbackFilter().catch(exc, host({ method: 'GET', path: '/dashboard' }, res));
     expect(res.body).toEqual({ error: 'Not Found' });
   });
 });

@@ -95,6 +95,19 @@ describe('migrate-encryption.ts app_settings parity', () => {
     }
   });
 
+  // VapidKeysService stores the Web Push signing key with encrypt_api_key.
+  // Missed by a rotation it no longer decrypts, and push stays off on every
+  // device until the old key is back.
+  it('ROTPAR-012: rotates the stored Web Push private key', () => {
+    const vapid = fs.readFileSync(
+      path.join(SERVER_ROOT, 'src', 'nest', 'notifications', 'push', 'vapid-keys.service.ts'),
+      'utf8',
+    );
+    expect(vapid).toContain("VAPID_PRIVATE_KEY_SETTING = 'web_push_vapid_private_key'");
+    expect(vapid).toContain('encrypt_api_key(keys.privateKey)');
+    expect(appSettingsLoop).toContain("'web_push_vapid_private_key'");
+  });
+
   it('ROTPAR-003: the canonical list is not empty, so ROTPAR-001 cannot pass vacuously', () => {
     expect(INSTANCE_API_KEY_NAMES.length).toBeGreaterThan(0);
   });

@@ -183,6 +183,17 @@ export async function buildApp(): Promise<INestApplication> {
     return isMcp(req) ? next() : urlencoded(req, res, next);
   });
   if (apiDocsEnabled()) setupApiDocs(app);
+  // The per-request EntityManager fork every Nest route runs inside (D6). This
+  // used to be @mikro-orm/nestjs's own middleware, which Nest 11 mounts as an
+  // app.all('/{*all}') route: Express decodes the wildcard param before the
+  // handler runs, so a malformed %-escape anywhere (GET /uploads/avatars/%ZZ)
+  // died as a 400 "Failed to decode param" instead of falling through to the
+  // 404 envelope (UPLOADS-P16). A pathless app.use has no param to decode.
+  // Registered last before init, where the module middleware used to sit.
+  // AppModule turns the module's own registration off (registerRequestContext).
+  instance.use(function mikroOrmRequestContext(_req: Request, _res: Response, next: NextFunction) {
+    withRequestContext(orm, next);
+  });
   await app.init();
   // Fail closed on unvalidated mutation bodies: every POST/PUT/PATCH @Body()
   // must carry a createZodDto class (validated by the global ZodValidationPipe)

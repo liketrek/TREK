@@ -9,7 +9,7 @@
 import { createElement } from 'react'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import type mapboxgl from 'mapbox-gl'
-import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
+import { Plane, Train, Ship, Car, Bus, Sailboat, CableCar, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
 import { getTransitMapSegments } from './transitGeometry'
 import { geodesicArcs } from './flightGeodesy'
 import { cleanEndpointName } from './reservationName'
@@ -22,8 +22,8 @@ export const RESERVATION_LINE_LAYER_ID = 'trek-reservations-lines'
 /** Sits under the coloured transit lines; named here so teardown can find it. */
 export const TRANSIT_CASING_LAYER_ID = `${RESERVATION_LINE_LAYER_ID}-transit-casing`
 
-type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transit' | 'transport_other'
-const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transit', 'transport_other']
+type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'cable_car' | 'transit' | 'transport_other'
+const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'cable_car', 'transit', 'transport_other']
 const TRANSPORT_COLOR = '#3b82f6'
 
 const TYPE_META: Record<TransportType, { icon: typeof Plane; geodesic: boolean }> = {
@@ -35,6 +35,7 @@ const TYPE_META: Record<TransportType, { icon: typeof Plane; geodesic: boolean }
   taxi: { icon: CarTaxiFront, geodesic: false },
   bicycle: { icon: Bike, geodesic: false },
   ferry: { icon: Sailboat, geodesic: true },
+  cable_car: { icon: CableCar, geodesic: false },
   transit: { icon: TramFront, geodesic: false },
   transport_other: { icon: Route, geodesic: false },
 }

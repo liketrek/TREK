@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Headers,
+  HttpCode,
   HttpException,
   Param,
   Post,
@@ -29,6 +30,8 @@ import {
   BudgetReorderCategoriesDto,
   BudgetCreateSettlementDto,
   BudgetUpdateSettlementDto,
+  BudgetFreezeRatesDto,
+  BudgetSettlementQueryDto,
 } from './budget.dto';
 
 /**
@@ -38,8 +41,9 @@ import {
  * every handler verifies trip access (404); mutations check 'budget_edit' (403);
  * create is 201, the rest 200; bespoke 404 bodies reproduced; mutations
  * broadcast over WebSocket with the forwarded X-Socket-Id. Static sub-routes
- * (summary, settlement, reorder/*) are declared before /:id so they win over the
- * param. Updating total_price on a reservation-linked item syncs the price back.
+ * (summary, settlement, freeze-rates, reorder/*) are declared before /:id so they
+ * win over the param. Updating total_price on a reservation-linked item syncs the
+ * price back.
  *
  * Bodies are validated against the @trek/shared budget schemas via budget.dto.ts
  * (global ZodValidationPipe). This replaced the legacy bespoke 400s ('Name is
@@ -67,14 +71,16 @@ export class BudgetController {
     return { summary: await this.budget.perPersonSummary(tripId) };
   }
 
+  // `base_rate` is the caller's own quote for the display currency (units per 1 trip
+  // currency), used only when the server has none; a malformed one is a 400.
   @Get('settlement')
   async settlement(
     @CurrentUser() user: User,
     @Trip() trip: TripAccess,
     @Param('tripId') tripId: string,
-    @Query('base') base?: string,
+    @Query() query: BudgetSettlementQueryDto,
   ) {
-    return this.budget.settlement(tripId, base, trip.currency || 'EUR');
+    return this.budget.settlement(tripId, query.base, trip.currency || 'EUR', query.base_rate);
   }
 
   @Get('settlements')
@@ -92,7 +98,10 @@ export class BudgetController {
   ) {
     const settlement = await this.budget.createSettlement(
       tripId,
-      { from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount, currency: body.currency, settled_at: body.settled_at },
+      {
+        from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount,
+        currency: body.currency, settled_at: body.settled_at, note: body.note, fallback_fx: body.fallback_fx,
+      },
       user.id,
     );
     // A party who is not on this trip gets the same answer as a settlement that
@@ -129,6 +138,8 @@ export class BudgetController {
       amount: body.amount,
       currency: body.currency,
       settled_at: body.settled_at,
+      note: body.note,
+      fallback_fx: body.fallback_fx,
     });
     if (!settlement) {
       throw new HttpException({ error: 'Settlement not found' }, 404);
@@ -157,6 +168,33 @@ export class BudgetController {
     return { success: true };
   }
 
+  /**
+   * Freeze a rate onto every foreign row that has none frozen yet, the ones the
+   * settlement lists as `unconverted` and the ones it still converts at today's rate:
+   * the server's own rate first, `fallback_fx` (the browser's) for a currency it cannot
+   * quote. A frozen row, a row in the trip currency and a row without a currency are
+   * never touched. The same service call as the freeze_budget_rates MCP tool, which
+   * lends no rates. 409 when the trip currency changed while the rates were fetched;
+   * nothing is written then.
+   */
+  @RequirePermission('budget_edit')
+  @Post('freeze-rates')
+  @HttpCode(200)
+  async freezeRates(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Body() body: BudgetFreezeRatesDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const healed = await this.budget.freezeMissingRates(tripId, body.fallback_fx);
+    if (!healed) {
+      throw new HttpException({ error: 'The trip currency changed. Reload and try again.' }, 409);
+    }
+    for (const item of healed.items) this.budget.broadcast(tripId, 'budget:updated', { item }, socketId);
+    for (const settlement of healed.settlements) this.budget.broadcast(tripId, 'budget:settlement-updated', { settlement }, socketId);
+    return healed;
+  }
+
   @RequirePermission('budget_edit')
   @Post()
   async create(
@@ -165,7 +203,11 @@ export class BudgetController {
     @Body() body: BudgetCreateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
+    const refusal = await this.budget.linkRefusal(tripId, body);
+    if (refusal) throw new HttpException({ error: refusal }, 400);
     const item = await this.budget.create(tripId, body);
+    // A booking mirrors the total of its expenses (#2084); a new one adds to it.
+    if (item.reservation_id) await this.budget.resyncReservationPrice(tripId, item.reservation_id, socketId);
     this.budget.broadcast(tripId, 'budget:created', { item }, socketId);
     return { item };
   }
@@ -205,6 +247,11 @@ export class BudgetController {
     @Body() body: BudgetUpdateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
+    // A body that reaches into another trip is refused whatever :id says (#2084),
+    // so the link check sits above the id gate: a malformed id must not turn
+    // that 400 into a 404.
+    const refusal = await this.budget.linkRefusal(tripId, body);
+    if (refusal) throw new HttpException({ error: refusal }, 400);
     // Plan 4 Task 8b (U6) — :id is parsed ONCE here (toRowId, not Number():
     // rule 15's NaN-into-SQL trap), and the parsed number is what flows
     // into the service instead of the raw route string reaching the
@@ -215,13 +262,13 @@ export class BudgetController {
     if (itemId === null) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }
+    // The booking an expense leaves also needs its price worked out again.
+    const before = body.reservation_id !== undefined ? await this.budget.getBudgetItem(itemId, tripId) : null;
     const updated = await this.budget.update(itemId, tripId, body);
     if (!updated) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }
-    if (updated.reservation_id && body.total_price !== undefined) {
-      await this.budget.syncReservationPrice(tripId, updated.reservation_id, updated.total_price, socketId);
-    }
+    await this.budget.resyncLinkedPrices(tripId, before?.reservation_id, updated, body, socketId);
     this.budget.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
     return { item: updated };
   }
@@ -266,6 +313,8 @@ export class BudgetController {
     if (!item) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }
+    // The payers derive the total, which the linked booking mirrors.
+    if (item.reservation_id) await this.budget.resyncReservationPrice(tripId, item.reservation_id, socketId);
     this.budget.broadcast(tripId, 'budget:updated', { item }, socketId);
     return { item };
   }

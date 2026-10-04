@@ -41,7 +41,7 @@ function setPlugins(plugins: ActivePlugin[]): void {
 }
 
 /** The settings card for a plugin (the heading's rounded container). */
-const cardFor = (name: string) => screen.getByRole('heading', { name }).closest('div.rounded-xl') as HTMLElement;
+const cardFor = (name: string) => screen.getByRole('heading', { name }).closest('section') as HTMLElement;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -160,10 +160,13 @@ describe('PluginSettingsTab', () => {
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
 
-    const select = await screen.findByRole('combobox') as HTMLSelectElement;
-    expect(select.value).toBe('c');
-    await user.selectOptions(select, 'f');
-    expect(select.value).toBe('f');
+    // A CustomSelect: the field's label names the trigger, the options open in a portal.
+    const trigger = await screen.findByRole('button', { name: 'Unit' });
+    expect(trigger).toHaveTextContent('Celsius');
+    await user.click(trigger);
+    const choices = await screen.findAllByRole('button', { name: 'Fahrenheit' });
+    await user.click(choices[choices.length - 1]);
+    expect(trigger).toHaveTextContent('Fahrenheit');
   });
 
   it('FE-COMP-PLUGINSETTINGS-009: a select field without options falls back to a text input', async () => {
@@ -323,9 +326,8 @@ describe('PluginSettingsTab', () => {
     expect(button).toBeEnabled();
   });
 
-  it('FE-COMP-PLUGINSETTINGS-018: a dangerous action asks first and a declined confirm skips it', async () => {
+  it('FE-COMP-PLUGINSETTINGS-018: a dangerous action asks first and a cancelled confirm skips it', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     let ran = 0;
     serve('weather', { actions: [{ key: 'wipe', label: 'Wipe cache', danger: true, scope: 'user' }] });
     server.use(http.post('/api/plugin-settings/weather/actions/wipe', () => {
@@ -336,14 +338,18 @@ describe('PluginSettingsTab', () => {
     render(<PluginSettingsTab />);
 
     await user.click(await screen.findByRole('button', { name: 'Wipe cache' }));
-    expect(confirmSpy).toHaveBeenCalledWith('Run this action?');
+    expect(await screen.findByText('Run this action?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByText('Run this action?')).not.toBeInTheDocument();
     expect(ran).toBe(0);
 
-    confirmSpy.mockReturnValue(true);
     await user.click(screen.getByRole('button', { name: 'Wipe cache' }));
+    await screen.findByText('Run this action?');
+    // The dialog's confirm button carries the action's label and sits last in the document.
+    const confirmButtons = screen.getAllByRole('button', { name: 'Wipe cache' });
+    await user.click(confirmButtons[confirmButtons.length - 1]!);
     await screen.findByText('Wiped');
     expect(ran).toBe(1);
-    confirmSpy.mockRestore();
   });
 
   it('FE-COMP-PLUGINSETTINGS-019: an unconfigured OAuth integration renders no connect row', async () => {

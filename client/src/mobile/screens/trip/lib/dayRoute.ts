@@ -61,12 +61,24 @@ export function optimizeDayOrder(
 }
 
 /**
+ * What the day's carrier bookings (flight, train, ferry, coach) tell the
+ * exports. `located`: one has an endpoint with coordinates on the day, which
+ * keeps the no-time bookend default from opening a leg out of a hotel only
+ * reached tonight or back into one already left (#2157), same as the drawn
+ * route. `booked`: one is booked on the day at all, located or not, which
+ * leaves a day without stops with nothing to export: the hotels at either end
+ * are joined by that booking, not by a road (#2476).
+ */
+export interface DayCarrier {
+  located?: boolean
+  booked?: boolean
+}
+
+/**
  * The day's located stops in planned order, bookended by the morning/evening
  * accommodation exactly like the drawn route. Names ride along for the deep
- * links that can label a pin with one. `dayHasCarrier` — a carrier transport
- * with a located endpoint on the day — keeps the no-time bookend default from
- * opening a leg out of a hotel only reached tonight or back into one already
- * left (#2157), same as the drawn route.
+ * links that can label a pin with one. See DayCarrier for what the day's
+ * carrier bookings change.
  */
 export function dayExportStops(
   day: Day,
@@ -74,9 +86,10 @@ export function dayExportStops(
   dayAssignments: Assignment[],
   accommodations: Accommodation[],
   bookendFromAccommodation: boolean,
-  dayHasCarrier?: boolean,
+  carrier: DayCarrier = {},
 ): NamedWaypoint[] {
   const located = dayAssignments.filter(a => a.place?.lat != null && a.place?.lng != null)
+  if (located.length === 0 && carrier.booked) return []
   const stops = located.map(a => ({ lat: a.place!.lat!, lng: a.place!.lng!, name: a.place!.name }))
   const bookends = bookendFromAccommodation ? getDayBookendHotels(day, days, accommodations) : null
   const firstStop = located[0]
@@ -86,10 +99,10 @@ export function dayExportStops(
   const lastStop = last
     ? { isPlace: true, time: last.place?.place_time ?? null, lat: last.place!.lat!, lng: last.place!.lng! }
     : undefined
-  const morning = bookends && shouldDrawMorningLeg(bookends, day, firstStop, dayHasCarrier)
+  const morning = bookends && shouldDrawMorningLeg(bookends, day, firstStop, carrier.located)
     && bookends.morning?.place_lat != null && bookends.morning?.place_lng != null
     ? { lat: bookends.morning.place_lat, lng: bookends.morning.place_lng, name: bookends.morning.place_name } : null
-  const evening = bookends && shouldDrawEveningLeg(bookends, day, lastStop, dayHasCarrier)
+  const evening = bookends && shouldDrawEveningLeg(bookends, day, lastStop, carrier.located)
     && bookends.evening?.place_lat != null && bookends.evening?.place_lng != null
     ? { lat: bookends.evening.place_lat, lng: bookends.evening.place_lng, name: bookends.evening.place_name } : null
   return [...(morning ? [morning] : []), ...stops, ...(evening ? [evening] : [])]
@@ -102,10 +115,10 @@ export function dayGoogleMapsUrl(
   dayAssignments: Assignment[],
   accommodations: Accommodation[],
   bookendFromAccommodation: boolean,
-  dayHasCarrier?: boolean,
+  carrier: DayCarrier = {},
 ): string | null {
   return generateGoogleMapsUrl(
-    dayExportStops(day, days, dayAssignments, accommodations, bookendFromAccommodation, dayHasCarrier),
+    dayExportStops(day, days, dayAssignments, accommodations, bookendFromAccommodation, carrier),
   ) || null
 }
 
@@ -117,10 +130,10 @@ export function dayCoMapsUrl(
   accommodations: Accommodation[],
   bookendFromAccommodation: boolean,
   profile: RouteProfileKey,
-  dayHasCarrier?: boolean,
+  carrier: DayCarrier = {},
 ): string | null {
   return generateCoMapsUrl(
-    dayExportStops(day, days, dayAssignments, accommodations, bookendFromAccommodation, dayHasCarrier),
+    dayExportStops(day, days, dayAssignments, accommodations, bookendFromAccommodation, carrier),
     profile,
   ) || null
 }

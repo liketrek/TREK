@@ -103,6 +103,21 @@ describe('global CSP: script-src', () => {
   });
 });
 
+describe('global CSP: media-src (#2341)', () => {
+  it('allows blob:, which is where a picked clip lives until it is uploaded', async () => {
+    // The editor previews the clip and grabs its poster frame through a <video>
+    // on an object URL. With media-src unset the browser fell back to
+    // default-src, which never admits blob:, so the preview stayed empty and
+    // the clip went up without a poster. Nothing of this shows in dev: Vite
+    // serves the document there and helmet never sees it.
+    expect(await directiveSources('media-src')).toContain('blob:');
+  });
+
+  it("keeps 'self' so the uploaded clip still plays from /api/photos", async () => {
+    expect(await directiveSources('media-src')).toContain("'self'");
+  });
+});
+
 describe('forced-HTTPS redirect', () => {
   const saved = { FORCE_HTTPS: process.env.FORCE_HTTPS, APP_URL: process.env.APP_URL };
 

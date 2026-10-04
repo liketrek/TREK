@@ -28,6 +28,8 @@ const login: TranslationStrings = {
   'login.oidcSignIn': 'Masuk dengan {name}',
   'login.oidcOnly': 'Autentikasi kata sandi dinonaktifkan. Masuk menggunakan penyedia SSO kamu.',
   'login.oidcLoggedOut': 'Kamu telah keluar. Masuk kembali menggunakan penyedia SSO kamu.',
+  'login.oidcRedirecting': 'Mengalihkan ke {name}…',
+  'login.oidcRedirectSlow': 'Masih di sini? Lanjutkan ke {name}',
   'login.demoHint': 'Coba demo — tidak perlu registrasi',
   'login.mfaTitle': 'Autentikasi dua faktor',
   'login.mfaSubtitle': 'Masukkan kode 6 digit dari aplikasi autentikator kamu.',

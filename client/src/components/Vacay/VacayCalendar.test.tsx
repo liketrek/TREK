@@ -369,7 +369,7 @@ describe('VacayCalendar', () => {
     // Now click a month card cell
     await user.click(screen.getByText('click-0'))
 
-    expect(toggleCompanyHoliday).toHaveBeenCalledWith('2025-01-01')
+    expect(toggleCompanyHoliday.mock.calls[0][0]).toBe('2025-01-01')
     expect(toggleEntry).not.toHaveBeenCalled()
   })
 

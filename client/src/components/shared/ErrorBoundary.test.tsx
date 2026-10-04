@@ -1,6 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import ErrorBoundary, { RootErrorFallback } from './ErrorBoundary';
+import * as chunkReload from '../../utils/chunkReload';
+
+// Only the Reload button's way out is replaced; the boundary's own automatic reload
+// (reloadOnceForChunk) keeps running the real code.
+vi.mock('../../utils/chunkReload', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/chunkReload')>()),
+  reloadOntoCurrentBuild: vi.fn(),
+}));
 
 // React logs every caught error itself; without this each of these tests prints a
 // full component stack and buries the real output.
@@ -146,9 +154,10 @@ describe('ErrorBoundary', () => {
   });
 
   it('FE-COMP-ERRBOUND-011: a chunk failure reloads once, then stops', () => {
+    // The recovery reload is a location.replace onto a fresh URL (chunkReload).
     const reload = vi.fn();
     Object.defineProperty(window, 'location', {
-      value: { ...window.location, reload },
+      value: { ...window.location, replace: reload },
       writable: true,
     });
 
@@ -212,5 +221,42 @@ describe('RootErrorFallback', () => {
   it('FE-COMP-ERRBOUND-016: names a stale chunk as an update rather than a crash', () => {
     render(<RootErrorFallback error={new Error(CHUNK_MESSAGE)} reset={() => {}} isChunkError />);
     expect(screen.getByText('A new version is available')).toBeInTheDocument();
+  });
+});
+
+describe('Reload button', () => {
+  let reload: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    reload = vi.fn();
+    Object.defineProperty(window, 'location', { value: { ...window.location, reload }, writable: true });
+    vi.mocked(chunkReload.reloadOntoCurrentBuild).mockClear();
+  });
+
+  // A plain reload is answered by the service worker with the shell that just
+  // failed, which is how the update screen outlived every reload (#2524).
+  it('FE-COMP-ERRBOUND-017: after a dead chunk it reloads onto the current build', () => {
+    render(<RootErrorFallback error={new Error(CHUNK_MESSAGE)} reset={() => {}} isChunkError />);
+    fireEvent.click(screen.getByText('Reload page'));
+    expect(chunkReload.reloadOntoCurrentBuild).toHaveBeenCalledTimes(1);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-ERRBOUND-018: the route fallback for a dead chunk does the same', () => {
+    sessionStorage.setItem('trek:chunk-reload', '1');
+    render(
+      <ErrorBoundary boundaryId="route" level="route">
+        <Boom message={CHUNK_MESSAGE} />
+      </ErrorBoundary>,
+    );
+    fireEvent.click(screen.getByText('Reload page'));
+    expect(chunkReload.reloadOntoCurrentBuild).toHaveBeenCalledTimes(1);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-ERRBOUND-019: any other failure keeps the plain reload', () => {
+    render(<RootErrorFallback error={new Error('boot failed')} reset={() => {}} isChunkError={false} />);
+    fireEvent.click(screen.getByText('Reload page'));
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(chunkReload.reloadOntoCurrentBuild).not.toHaveBeenCalled();
   });
 });

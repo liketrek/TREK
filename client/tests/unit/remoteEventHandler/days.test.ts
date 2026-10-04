@@ -78,6 +78,47 @@ describe('remoteEventHandler > days', () => {
     expect('20' in dayNotes).toBe(true);
   });
 
+  // A delete now closes the gap on the server and keeps the dates on their slots;
+  // the collaborators run the same reducer the deleting tab ran optimistically.
+  it('FE-WSEVT-DAY-014: day:deleted then day:reordered leaves the same numbering and dates as the server', () => {
+    useTripStore.setState({
+      trip: buildTrip({ id: 7 }),
+      selectedDayId: 20,
+      days: [
+        buildDay({ id: 10, day_number: 1, date: '2026-06-01' }),
+        buildDay({ id: 20, day_number: 2, date: '2026-06-02' }),
+        buildDay({ id: 30, day_number: 3, date: '2026-06-03' }),
+        buildDay({ id: 40, day_number: 4, date: null }),
+      ],
+      refreshDays: vi.fn(async () => {}),
+      loadReservations: vi.fn(async () => {}),
+    });
+
+    useTripStore.getState().handleRemoteEvent({ type: 'day:deleted', dayId: 20 });
+    const afterDelete = useTripStore.getState();
+    expect(afterDelete.days.map(d => [d.id, d.day_number, d.date])).toEqual([
+      [10, 1, '2026-06-01'], [30, 2, '2026-06-02'], [40, 3, '2026-06-03'],
+    ]);
+    expect(afterDelete.selectedDayId).toBeNull();
+
+    useTripStore.getState().handleRemoteEvent({ type: 'day:reordered', orderedIds: [10, 30, 40] });
+    expect(useTripStore.getState().days.map(d => [d.id, d.day_number])).toEqual([[10, 1], [30, 2], [40, 3]]);
+  });
+
+  it('FE-WSEVT-DAY-015: day:deleted asks the planner to reload its stays, which a deleted day can cancel', () => {
+    seedData();
+    const refresh = vi.fn();
+    window.addEventListener('accommodations:refresh', refresh);
+    try {
+      useTripStore.getState().handleRemoteEvent({ type: 'day:deleted', dayId: 10 });
+      expect(refresh).toHaveBeenCalledTimes(1);
+      useTripStore.getState().handleRemoteEvent({ type: 'day:updated', day: buildDay({ id: 20 }) });
+      expect(refresh).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener('accommodations:refresh', refresh);
+    }
+  });
+
   // The reorder is applied optimistically from orderedIds, then the authoritative
   // dates + re-stamped booking times are pulled (#589).
   describe('day:reordered', () => {

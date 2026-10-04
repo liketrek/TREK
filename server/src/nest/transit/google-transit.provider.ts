@@ -7,6 +7,7 @@ import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { GoogleQuotaService } from '../google-quota/google-quota.service';
 import { readTransitProvider } from './transit-provider';
 import {
   decodePolyline,
@@ -241,9 +242,12 @@ export class GoogleTransitProvider {
   constructor(
     @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
     @InjectRepository(Users) private readonly usersRepo: UsersRepository,
+    private readonly googleQuota: GoogleQuotaService,
   ) {}
 
   private async resolveKey(userId: number): Promise<{ key: string | null; source: ApiKeySource | null }> {
+    // Past the admin's daily ceiling (#1582) the key is spent until tomorrow.
+    if (await this.googleQuota.exhausted()) return { key: null, source: null };
     return resolveApiKey(this.appSettings, this.usersRepo, 'maps_api_key', userId, readEnv().maps.placesApiKey);
   }
 
@@ -260,6 +264,7 @@ export class GoogleTransitProvider {
 
   private async call(endpoint: string, label: string, apiKey: string, body: unknown, fieldMask: string): Promise<unknown> {
     console.debug(`[Google API] ${label} → ${endpoint}`);
+    await this.googleQuota.record();
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: {

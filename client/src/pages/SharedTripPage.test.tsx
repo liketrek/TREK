@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '../../tests/helpers/render';
+import { render, screen, waitFor, fireEvent, within } from '../../tests/helpers/render';
 import { Routes, Route } from 'react-router';
 import { http, HttpResponse } from 'msw';
+import { AxiosError } from 'axios';
 import { server } from '../../tests/helpers/msw/server';
+import { shareApi } from '../api/client';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { buildSettings } from '../../tests/helpers/factories';
 import { useSettingsStore } from '../store/settingsStore';
@@ -16,7 +18,9 @@ vi.mock('react-leaflet', () => ({
   ),
   TileLayer: ({ url }: { url: string }) => <div data-testid="raster-tiles" data-url={url} />,
   Marker: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  Polyline: () => <div data-testid="route-line" />,
+  Polyline: ({ positions }: { positions: [number, number][] }) => (
+    <div data-testid="route-line" data-positions={JSON.stringify(positions)} />
+  ),
   Tooltip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   useMap: () => ({
     fitBounds: vi.fn(),
@@ -60,6 +64,10 @@ function renderSharedTrip(token: string) {
   );
 }
 
+// Leaflet is mocked, so every marker the last render drew is a recorded divIcon call.
+const divIconMock = () => L.divIcon as unknown as ReturnType<typeof vi.fn>;
+const iconHtml = () => divIconMock().mock.calls.map(c => String(c[0].html));
+
 beforeEach(() => {
   // SharedTripPage does NOT require authentication — do NOT seed auth store
   resetAllStores();
@@ -91,7 +99,7 @@ describe('SharedTripPage', () => {
 
       // After data loads, trip name appears
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
     });
   });
@@ -101,7 +109,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('test-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
     });
   });
@@ -142,7 +150,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('test-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
       // Map container should be rendered
@@ -155,7 +163,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('test-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
       const bookingsTab = screen.getByRole('button', { name: /bookings/i });
@@ -172,7 +180,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('test-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
       expect(screen.queryByRole('button', { name: /packing/i })).toBeNull();
@@ -204,7 +212,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('packing-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
       const packingTab = screen.getByRole('button', { name: /packing/i });
@@ -243,7 +251,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('budget-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
       const budgetTab = screen.getByRole('button', { name: /costs/i });
@@ -283,7 +291,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('collab-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
       const collabTab = screen.getByRole('button', { name: /chat/i });
@@ -297,8 +305,8 @@ describe('SharedTripPage', () => {
     });
   });
 
-  describe('FE-PAGE-SHARED-013: Day card expands when clicked', () => {
-    it('reveals place names after clicking a collapsed day card header', async () => {
+  describe('FE-PAGE-SHARED-013: a day opens unfolded and folds with its chevron', () => {
+    it('lists the places of the day at once, hides them when folded and shows them again', async () => {
       const day = { id: 101, trip_id: 1, day_number: 1, date: '2026-07-01', title: 'Day One', notes: null };
       const place = { id: 201, trip_id: 1, name: 'Eiffel Tower', lat: 48.8584, lng: 2.2945, category_id: null, image_url: null, address: null };
 
@@ -327,19 +335,17 @@ describe('SharedTripPage', () => {
       renderSharedTrip('expand-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
-      // Eiffel Tower is only in the mocked map tooltip (1 occurrence)
-      expect(screen.getAllByText('Eiffel Tower')).toHaveLength(1);
+      // Open like the planner's days: the map tooltip and the row in the day.
+      expect(screen.getAllByText('Eiffel Tower')).toHaveLength(2);
 
-      // Click the day card header to expand it
-      fireEvent.click(screen.getByText('Day One'));
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse' }));
+      await waitFor(() => expect(screen.getAllByText('Eiffel Tower')).toHaveLength(1));
 
-      // Now Eiffel Tower also appears in the expanded day content
-      await waitFor(() => {
-        expect(screen.getAllByText('Eiffel Tower')).toHaveLength(2);
-      });
+      fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+      await waitFor(() => expect(screen.getAllByText('Eiffel Tower')).toHaveLength(2));
     });
   });
 
@@ -348,7 +354,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('test-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
       // Language picker button shows current language
@@ -374,7 +380,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('test-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
       expect(screen.getByText(/shared via/i)).toBeInTheDocument();
@@ -408,7 +414,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('bookings-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /bookings/i }));
@@ -461,7 +467,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('multileg-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
       // Expand the day to reveal the timeline
@@ -482,7 +488,7 @@ describe('SharedTripPage', () => {
       renderSharedTrip('multileg-bookings-token');
 
       await waitFor(() => {
-        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /bookings/i }));
@@ -516,13 +522,10 @@ describe('SharedTripPage', () => {
       );
       renderSharedTrip('test-token');
       // The untitled day shows the German label "Tag 1", proving the hardcoded English
-      // "Day 1" was replaced by the i18n key t('dayplan.dayN'). It appears twice since
-      // the day picker above the map was added (#1962): once as a chip, once on the card.
-      await waitFor(() => expect(screen.getAllByText('Tag 1')).toHaveLength(2));
-      const labels = screen.getAllByText('Tag 1');
-      // One of each: the picker chip carries aria-pressed, the day card's header aria-expanded.
-      expect(labels.filter((el) => el.closest('[aria-pressed]'))).toHaveLength(1);
-      expect(labels.filter((el) => el.closest('[aria-expanded]'))).toHaveLength(1);
+      // "Day 1" was replaced by the i18n key t('dayplan.dayN'). The map's select names
+      // the whole trip until a day is picked, so the card is the one place it shows.
+      await waitFor(() => expect(screen.getAllByText('Tag 1')).toHaveLength(1));
+      expect(screen.getByText('Tag 1').closest('[aria-pressed]')).not.toBeNull();
     });
   });
 
@@ -547,7 +550,7 @@ describe('SharedTripPage', () => {
       );
 
       renderSharedTrip('cad-token');
-      await waitFor(() => expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument());
       fireEvent.click(screen.getByRole('button', { name: /costs/i }));
 
       await waitFor(() => expect(screen.getByText('Hotel')).toBeInTheDocument());
@@ -580,12 +583,119 @@ describe('SharedTripPage', () => {
       );
 
       renderSharedTrip('mixed-token');
-      await waitFor(() => expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument());
       fireEvent.click(screen.getByRole('button', { name: /costs/i }));
 
       await waitFor(() => expect(screen.getByText('Dinner')).toBeInTheDocument());
       // 100 EUR / 0.8 = 125.00 NZD once the rate resolves.
       await waitFor(() => expect(screen.getAllByText(/125\.00 NZD/).length).toBeGreaterThan(0));
+    });
+  });
+
+  describe('FE-PAGE-SHARED-043: a foreign expense reads at the rate it was booked at, as in Costs (#2525)', () => {
+    it('shows the frozen-rate value in whole cents, not today\'s rate', async () => {
+      // CHF so no earlier test has cached rates for this base. Today 1 CHF buys 1.1395
+      // USD; the expense froze 1.17 when it was entered. Costs reads 801.76 / 1.17 =
+      // 685.26 CHF. Today's rate alone gives 703.61, printed as "703.607".
+      server.use(
+        http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([{ quote: 'USD', rate: 1.1395 }])),
+        http.get('/api/shared/:token', ({ params }) => {
+          if (params.token !== 'booked-token') return;
+          return HttpResponse.json({
+            trip: { id: 1, title: 'Shared Paris Trip', start_date: '2026-07-01', end_date: '2026-07-05', currency: 'CHF' },
+            baseCurrency: 'CHF',
+            days: [], assignments: {}, dayNotes: {}, places: [], reservations: [], accommodations: [], packing: [],
+            budget: [
+              { id: 1, name: 'Aparthotel Silver', total_price: 801.76, category: 'Accommodation', currency: 'USD', exchange_rate: 1.17 },
+              { id: 2, name: 'Tram pass', total_price: 100, category: 'Transport', currency: null, exchange_rate: 1 },
+            ],
+            categories: [],
+            permissions: { share_bookings: false, share_packing: false, share_budget: true, share_collab: false },
+            collab: [],
+          });
+        }),
+      );
+
+      renderSharedTrip('booked-token');
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /costs/i }));
+
+      await waitFor(() => expect(screen.getByText('Aparthotel Silver')).toBeInTheDocument());
+      // Row and its category both read the booked value; the trip total adds the
+      // 100 CHF tram pass to it.
+      // The row, its category card and the category's line in the overview.
+      await waitFor(() => expect(screen.getAllByText('685.26 CHF')).toHaveLength(3));
+      expect(screen.getByText('785.26 CHF')).toBeInTheDocument();
+      expect(screen.queryByText(/703\.6/)).toBeNull();
+      // What was entered stays beside the converted row, as the Costs list shows it.
+      expect(screen.getByText('801.76 USD')).toBeInTheDocument();
+    });
+
+    it('reads a same-day bill in the display currency exactly as typed, with the trip currency\'s quote', async () => {
+      // ZAR trip read in USD (ZAR so no earlier test has cached its rates). The bill froze
+      // 0.05911 USD per rand, today's ZAR quote. The USD quote, 16.918 rand per dollar, is
+      // rounded on its own and is not its inverse.
+      server.use(
+        http.get('https://api.frankfurter.dev/v2/rates', ({ request }) => {
+          const base = new URL(request.url).searchParams.get('base');
+          return HttpResponse.json(base === 'ZAR' ? [{ quote: 'USD', rate: 0.05911 }] : [{ quote: 'ZAR', rate: 16.918 }]);
+        }),
+        http.get('/api/shared/:token', ({ params }) => {
+          if (params.token !== 'same-day-token') return;
+          return HttpResponse.json({
+            trip: { id: 1, title: 'Shared Paris Trip', start_date: '2026-07-01', end_date: '2026-07-05', currency: 'ZAR' },
+            baseCurrency: 'USD',
+            days: [], assignments: {}, dayNotes: {}, places: [], reservations: [], accommodations: [], packing: [],
+            budget: [
+              { id: 1, name: 'Villa', total_price: 12345.67, category: 'Accommodation', currency: 'USD', exchange_rate: 0.05911 },
+            ],
+            categories: [],
+            permissions: { share_bookings: false, share_packing: false, share_budget: true, share_collab: false },
+            collab: [],
+          });
+        }),
+      );
+
+      renderSharedTrip('same-day-token');
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /costs/i }));
+
+      // Total, overview, category card and row, and no second "entered" line under the row.
+      await waitFor(() => expect(screen.getAllByText('12,345.67 USD')).toHaveLength(4));
+    });
+
+    it('reads a bill in the display currency through the trip currency too, beside what was entered', async () => {
+      // The owner reads in USD on a CHF trip. The USD bill was booked at 685.26 CHF,
+      // which today is 780.86 USD, the figure Costs and its balances use; the CHF one
+      // converts at today's rate (100 CHF = 113.95 USD).
+      server.use(
+        http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([{ quote: 'CHF', rate: 1 / 1.1395 }])),
+        http.get('/api/shared/:token', ({ params }) => {
+          if (params.token !== 'display-token') return;
+          return HttpResponse.json({
+            trip: { id: 1, title: 'Shared Paris Trip', start_date: '2026-07-01', end_date: '2026-07-05', currency: 'CHF' },
+            baseCurrency: 'USD',
+            days: [], assignments: {}, dayNotes: {}, places: [], reservations: [], accommodations: [], packing: [],
+            budget: [
+              { id: 1, name: 'Aparthotel Silver', total_price: 801.76, category: 'Accommodation', currency: 'USD', exchange_rate: 1.17 },
+              { id: 2, name: 'Tram pass', total_price: 100, category: 'Transport', currency: null, exchange_rate: 1 },
+            ],
+            categories: [],
+            permissions: { share_bookings: false, share_packing: false, share_budget: true, share_collab: false },
+            collab: [],
+          });
+        }),
+      );
+
+      renderSharedTrip('display-token');
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /costs/i }));
+
+      await waitFor(() => expect(screen.getAllByText('113.95 USD')).toHaveLength(3));
+      expect(screen.getAllByText('780.86 USD')).toHaveLength(3);
+      expect(screen.getByText('894.81 USD')).toBeInTheDocument();
+      expect(screen.getByText('801.76 USD')).toBeInTheDocument();
+      expect(screen.getByText('100.00 CHF')).toBeInTheDocument();
     });
   });
 
@@ -623,13 +733,20 @@ describe('SharedTripPage', () => {
   async function open(token: string, body: Record<string, unknown>) {
     serve(token, body);
     renderSharedTrip(token);
-    await waitFor(() => expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Shared Paris Trip' })).toBeInTheDocument());
   }
 
   function coverStyle(): string {
-    const layer = document.querySelector('div[style*="background-image"]') as HTMLElement | null;
-    return layer?.style.backgroundImage ?? '';
+    return document.querySelector('[data-testid="shared-hero"] img')?.getAttribute('src') ?? '';
   }
+
+  /** The select over the map and its step buttons. */
+  const dayPicker = () => within(screen.getByTestId('map-day-picker'));
+  const onMap = () => within(screen.getByTestId('map-container'));
+  const nextDay = () => fireEvent.click(dayPicker().getByRole('button', { name: 'Next day' }));
+  const prevDay = () => fireEvent.click(dayPicker().getByRole('button', { name: 'Previous day' }));
+  /** The card of one day, found by its title. */
+  const dayCard = (title: string) => within(screen.getByText(title).closest('article') as HTMLElement);
 
   /** The page formats dates through the active locale (en-US in tests). */
   const fmtDate = (iso: string, opts: Intl.DateTimeFormatOptions) =>
@@ -688,8 +805,9 @@ describe('SharedTripPage', () => {
         dayNotes: {},
       });
 
-      // share_map is undefined, so the Plan tab (the !== false branch) stays visible.
-      expect(screen.getByRole('button', { name: /plan/i })).toBeInTheDocument();
+      // share_map is undefined, so the plan (the !== false branch) shows; with nothing
+      // else shared there is no tab bar to choose from.
+      expect(screen.queryByRole('button', { name: /plan/i })).toBeNull();
       expect(screen.queryByRole('button', { name: /bookings/i })).toBeNull();
       expect(screen.getByTestId('map-container')).toBeInTheDocument();
       // The day card still renders even though reservations/accommodations are absent.
@@ -722,12 +840,9 @@ describe('SharedTripPage', () => {
         accommodations: [{ id: 3, place_name: 'Hotel Lutetia', start_day_id: 5, end_day_id: 5 }],
       }));
 
-      // Twice since the day picker landed (#1962): the chip above the map and the card.
-      const dayLabels = screen.getAllByText('Day 1');
-      expect(dayLabels).toHaveLength(2);
-      // One of each: the picker chip carries aria-pressed, the day card's header aria-expanded.
-      expect(dayLabels.filter((el) => el.closest('[aria-pressed]'))).toHaveLength(1);
-      expect(dayLabels.filter((el) => el.closest('[aria-expanded]'))).toHaveLength(1);
+      // On the card's head, which is also what opens the day on the map.
+      expect(screen.getAllByText('Day 1')).toHaveLength(1);
+      expect(screen.getByText('Day 1').closest('[aria-pressed]')).not.toBeNull();
       expect(screen.getByText('Hotel Lutetia')).toBeInTheDocument();
       expect(screen.getByText('0 places')).toBeInTheDocument();
       // No date row for an undated day.
@@ -779,7 +894,6 @@ describe('SharedTripPage', () => {
 
       // The count matches the rendered rows — the assignment whose place is gone is left out.
       expect(screen.getByText('3 places')).toBeInTheDocument();
-      fireEvent.click(screen.getByText('Day One'));
 
       await waitFor(() => expect(screen.getByText('Rue de Rivoli')).toBeInTheDocument());
       expect((document.querySelector('img[src="/uploads/places/louvre.jpg"]') as HTMLImageElement)).toBeInTheDocument();
@@ -787,27 +901,31 @@ describe('SharedTripPage', () => {
       expect(screen.getByText('Along the river')).toBeInTheDocument();
       // The bare place shows neither line and no time badge.
       expect(screen.getByText('Mystery Stop')).toBeInTheDocument();
-      expect(screen.getByText(/09:00 – 11:00/)).toBeInTheDocument();
+      expect(screen.getByText('09:00 → 11:00')).toBeInTheDocument();
       expect(screen.getByText(/^12:00$/)).toBeInTheDocument();
     });
 
-    it('only maps the selected day and refits the map to it', async () => {
+    it('only maps the day its card opens, and the whole trip again on a second click', async () => {
+      const pantheon = { id: 204, name: 'Pantheon', lat: 48.846, lng: 2.346, category_id: null, image_url: null };
       await open('mapday-token', payload({
         days: [day],
-        places: [withImage, withDescription],
+        places: [withImage, withDescription, pantheon],
         assignments: { '7': [{ id: 301, day_id: 7, place_id: 201, order_index: 0, place: withImage }] },
       }));
 
-      // Unselected: both places are candidates, but only the geocoded one has a marker.
-      expect(screen.getAllByText('Louvre')).toHaveLength(1);
-      expect(screen.queryByText('Seine Walk')).toBeNull();
+      // Whole trip: every geocoded place has a marker on the map (the unplanned card
+      // lists the Pantheon as well, so look only at the map's tooltips), the Pantheon too, though no day visits it.
+      expect(onMap().getByText('Pantheon')).toBeInTheDocument();
+      expect(onMap().queryByText('Seine Walk')).toBeNull();
 
-      fireEvent.click(screen.getByText('Day One'));
-      await waitFor(() => expect(screen.getAllByText('Louvre')).toHaveLength(2));
+      // Once picked, the select over the map names the day as well; the card is the one in an article.
+      const cardTitle = () => screen.getAllByText('Day One').find(el => el.closest('article')) as HTMLElement;
+      fireEvent.click(cardTitle());
+      await waitFor(() => expect(onMap().queryByText('Pantheon')).toBeNull());
+      expect(cardTitle().closest('[aria-pressed]')).toHaveAttribute('aria-pressed', 'true');
 
-      // Collapsing again restores the trip-wide marker set.
-      fireEvent.click(screen.getByText('Day One'));
-      await waitFor(() => expect(screen.getAllByText('Louvre')).toHaveLength(1));
+      fireEvent.click(cardTitle());
+      await waitFor(() => expect(onMap().getByText('Pantheon')).toBeInTheDocument());
     });
   });
 
@@ -818,10 +936,7 @@ describe('SharedTripPage', () => {
     const orsay = { id: 202, name: 'Orsay', lat: 48.85, lng: 2.32, category: null };
     const notre = { id: 203, name: 'Notre-Dame', lat: 48.853, lng: 2.35, category: null };
 
-    // Every divIcon call the last render produced, as raw html strings.
-    const iconHtml = () => (L.divIcon as unknown as ReturnType<typeof vi.fn>).mock.calls.map((c: any[]) => String(c[0].html));
-
-    beforeEach(() => (L.divIcon as unknown as ReturnType<typeof vi.fn>).mockClear());
+    beforeEach(() => divIconMock().mockClear());
 
     it('numbers the stops by order_index, not by payload order', async () => {
       await open('order-map-token', payload({
@@ -836,7 +951,7 @@ describe('SharedTripPage', () => {
         },
       }));
 
-      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
+      nextDay();
       await waitFor(() => expect(iconHtml().some((h: string) => h.includes('>1<'))).toBe(true));
 
       const html = iconHtml();
@@ -859,10 +974,10 @@ describe('SharedTripPage', () => {
         },
       }));
 
-      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
-      await waitFor(() => expect(iconHtml().some((h: string) => h.includes('1 \u00b7 3'))).toBe(true));
+      nextDay();
+      await waitFor(() => expect(iconHtml().some((h: string) => h.includes('>1, 3<'))).toBe(true));
       // One marker for the repeated place, not two with the same React key.
-      expect(iconHtml().filter((h: string) => h.includes('1 \u00b7 3'))).toHaveLength(1);
+      expect(iconHtml().filter((h: string) => h.includes('>1, 3<'))).toHaveLength(1);
     });
 
     it('leaves the trip-wide pool unnumbered, since it has no order to show', async () => {
@@ -891,10 +1006,10 @@ describe('SharedTripPage', () => {
       // No day selected: no line, even though the trip has two geocoded places.
       expect(screen.queryByTestId('route-line')).toBeNull();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
+      nextDay();
       await waitFor(() => expect(screen.getByTestId('route-line')).toBeInTheDocument());
 
-      fireEvent.click(screen.getByRole('button', { name: 'All' }));
+      prevDay();
       await waitFor(() => expect(screen.queryByTestId('route-line')).toBeNull());
     });
 
@@ -905,7 +1020,7 @@ describe('SharedTripPage', () => {
         assignments: { '7': [{ id: 301, day_id: 7, place_id: 201, order_index: 0, place: louvre }] },
       }));
 
-      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
+      nextDay();
       await waitFor(() => expect(screen.getAllByText('Louvre').length).toBeGreaterThan(1));
       expect(screen.queryByTestId('route-line')).toBeNull();
     });
@@ -923,25 +1038,41 @@ describe('SharedTripPage', () => {
         assignments: { '7': [{ id: 301, day_id: 7, place_id: 201, order_index: 0, place: louvre }] },
       }));
 
-      // All: both geocoded places are on the map, so Orsay's tooltip is present.
-      expect(screen.getByText('Orsay')).toBeInTheDocument();
+      // All: both geocoded places are on the map, so Orsay's tooltip is present (the
+      // unplanned card names Orsay too, so the check stays inside the map).
+      expect(onMap().getByText('Orsay')).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
-      await waitFor(() => expect(screen.queryByText('Orsay')).toBeNull());
+      nextDay();
+      await waitFor(() => expect(onMap().queryByText('Orsay')).toBeNull());
 
-      fireEvent.click(screen.getByRole('button', { name: 'All' }));
-      await waitFor(() => expect(screen.getByText('Orsay')).toBeInTheDocument());
+      prevDay();
+      await waitFor(() => expect(onMap().getByText('Orsay')).toBeInTheDocument());
     });
 
-    it('marks the active chip for assistive tech', async () => {
+    it('names the open day in the select and presses its card, and stops at either end', async () => {
       await open('pressed-token', payload({ days: [day], places: [louvre], assignments: {} }));
 
-      expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
-      fireEvent.click(screen.getByRole('button', { name: 'Day 1' }));
-      await waitFor(() =>
-        expect(screen.getByRole('button', { name: 'Day 1' })).toHaveAttribute('aria-pressed', 'true'),
-      );
-      expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'false');
+      expect(dayPicker().getByText('Whole trip')).toBeInTheDocument();
+      expect(dayPicker().getByRole('button', { name: 'Previous day' })).toBeDisabled();
+
+      nextDay();
+      await waitFor(() => expect(dayPicker().getByText('Day One')).toBeInTheDocument());
+      const card = screen.getAllByText('Day One').find(el => el.closest('article'));
+      expect(card?.closest('[aria-pressed]')).toHaveAttribute('aria-pressed', 'true');
+      expect(dayPicker().getByRole('button', { name: 'Next day' })).toBeDisabled();
+    });
+
+    it('opens a day picked from the list of the select', async () => {
+      await open('select-token', payload({
+        days: [day],
+        places: [louvre, orsay],
+        assignments: { '7': [{ id: 301, day_id: 7, place_id: 201, order_index: 0, place: louvre }] },
+      }));
+
+      fireEvent.click(dayPicker().getByText('Whole trip'));
+      const option = screen.getAllByText('Day One').find(el => !el.closest('article') && !el.closest('[data-testid="map-day-picker"]'));
+      fireEvent.click(option as HTMLElement);
+      await waitFor(() => expect(onMap().queryByText('Orsay')).toBeNull());
     });
   });
 
@@ -966,15 +1097,15 @@ describe('SharedTripPage', () => {
     // The payload nests the category on a day's assignments but sends it flat on the
     // trip-wide pool, so reading only the nested shape painted every marker indigo.
     it('reads the flat category_color the trip pool sends', async () => {
-      (L.divIcon as unknown as ReturnType<typeof vi.fn>).mockClear();
+      divIconMock().mockClear();
       await open('flatcat-token', payload({
         days: [],
         places: [{ id: 201, name: 'Louvre', lat: 48.86, lng: 2.33, category_color: '#ff8800', category_icon: 'landmark' }],
         assignments: {},
       }));
 
-      await waitFor(() => expect((L.divIcon as unknown as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(0));
-      const html = (L.divIcon as unknown as ReturnType<typeof vi.fn>).mock.calls.map((c: any[]) => String(c[0].html));
+      await waitFor(() => expect(iconHtml().length).toBeGreaterThan(0));
+      const html = iconHtml();
       expect(html.some((h: string) => h.includes('#ff8800'))).toBe(true);
       expect(html.some((h: string) => h.includes('#6366f1'))).toBe(false);
     });
@@ -1011,16 +1142,20 @@ describe('SharedTripPage', () => {
         ],
       }));
 
-      fireEvent.click(screen.getByText('Day One'));
-
       await waitFor(() => expect(screen.getByText('Buy museum pass')).toBeInTheDocument());
       expect(screen.getByText('08:30')).toBeInTheDocument();
       expect(screen.getByText('Anything goes')).toBeInTheDocument();
 
-      expect(screen.getByText('Air France · AF1 · CDG → TXL')).toBeInTheDocument();
-      expect(screen.getByText(/Flight home · 18:00–20:30/)).toBeInTheDocument();
-      expect(screen.getByText('ICE 599 · Gl. 7')).toBeInTheDocument();
-      expect(screen.getByText(/^ICE 599 · 09:15$/)).toBeInTheDocument();
+      // Each fact on its own, beside the time pill.
+      expect(screen.getByText('Flight home')).toBeInTheDocument();
+      expect(screen.getByText('18:00 → 20:30')).toBeInTheDocument();
+      expect(screen.getByText('Air France')).toBeInTheDocument();
+      expect(screen.getByText('AF1')).toBeInTheDocument();
+      expect(screen.getByText('CDG → TXL')).toBeInTheDocument();
+      // The title and the train number are the same words here.
+      expect(screen.getAllByText('ICE 599')).toHaveLength(2);
+      expect(screen.getByText('Platform 7')).toBeInTheDocument();
+      expect(screen.getByText('09:15')).toBeInTheDocument();
       // An unmapped transport type falls back to the generic ticket row with no subtitle.
       expect(screen.getByText('Harbour ferry')).toBeInTheDocument();
     });
@@ -1044,10 +1179,10 @@ describe('SharedTripPage', () => {
         ],
       }));
 
-      fireEvent.click(screen.getByText('Day One'));
-
-      await waitFor(() => expect(screen.getByText(/Bus 100 · 07:00/)).toBeInTheDocument());
-      expect(screen.getByText(/Regio · 08:00/)).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText('Bus 100')).toBeInTheDocument());
+      expect(screen.getByText('07:00')).toBeInTheDocument();
+      expect(screen.getByText('Regio')).toBeInTheDocument();
+      expect(screen.getByText('08:00')).toBeInTheDocument();
       // Only the airline is known, so no airport pair is appended.
       expect(screen.getByText('KLM')).toBeInTheDocument();
     });
@@ -1069,9 +1204,9 @@ describe('SharedTripPage', () => {
         ],
       }));
 
-      fireEvent.click(screen.getByText('Day One'));
-
-      await waitFor(() => expect(screen.getByText('ICE 73 · Gl. 3 · Berlin → Basel')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText('ICE 73')).toBeInTheDocument());
+      expect(screen.getByText('Platform 3')).toBeInTheDocument();
+      expect(screen.getByText('Berlin → Basel')).toBeInTheDocument();
       // The second leg has neither platform nor stations, so only its number shows.
       expect(screen.getByText('EC 51')).toBeInTheDocument();
     });
@@ -1093,10 +1228,12 @@ describe('SharedTripPage', () => {
         ],
       }));
 
-      fireEvent.click(screen.getByText('Day One'));
-
-      await waitFor(() => expect(screen.getByText('Emirates · EK46 · FRA → DXB')).toBeInTheDocument());
-      expect(screen.getByText('Emirates · EK350')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText('EK46')).toBeInTheDocument());
+      expect(screen.getByText('FRA → DXB')).toBeInTheDocument();
+      expect(screen.getAllByText('Emirates')).toHaveLength(2);
+      // The second leg has no airports of its own, so it states its number and no route.
+      expect(screen.getByText('EK350')).toBeInTheDocument();
+      expect(screen.getAllByText(/ → [A-Z]{3}$/)).toHaveLength(1);
     });
   });
 
@@ -1128,14 +1265,15 @@ describe('SharedTripPage', () => {
 
       await waitFor(() => expect(screen.getByText('Museum entry')).toBeInTheDocument());
       expect(
-        screen.getByText(fmtDate('2026-07-03T00:00:00Z', { day: 'numeric', month: 'short', timeZone: 'UTC' })),
+        screen.getByText(fmtDate('2026-07-03T00:00:00Z', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })),
       ).toBeInTheDocument();
       expect(screen.getByText('14:00')).toBeInTheDocument();
       expect(screen.getByText('Louvre')).toBeInTheDocument();
       expect(screen.getByText('Pending')).toBeInTheDocument();
 
-      // No date/time/location for the car — only the metadata airline line survives.
-      expect(screen.getByText('Sixt X9')).toBeInTheDocument();
+      // No date/time/location for the car, only its metadata, one field each.
+      expect(screen.getByText('Sixt')).toBeInTheDocument();
+      expect(screen.getByText('X9')).toBeInTheDocument();
       expect(screen.getAllByText('Confirmed')).toHaveLength(3);
       // Metadata-less bookings render the title only, no meta line.
       expect(screen.getByText('Night bus')).toBeInTheDocument();
@@ -1163,10 +1301,11 @@ describe('SharedTripPage', () => {
 
       await waitFor(() => expect(screen.getByText('IC 8 Platform 12 Bern → Zurich')).toBeInTheDocument());
       expect(screen.getByText('S3')).toBeInTheDocument();
-      // A bare date without a time renders the date chip only.
+      // A bare date without a time renders the date field only.
       expect(
-        screen.getByText(fmtDate('2026-07-04T00:00:00Z', { day: 'numeric', month: 'short', timeZone: 'UTC' })),
+        screen.getByText(fmtDate('2026-07-04T00:00:00Z', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })),
       ).toBeInTheDocument();
+      expect(screen.queryByText('Time')).toBeNull();
     });
 
     it('omits the route of a flight leg without airports', async () => {
@@ -1200,6 +1339,7 @@ describe('SharedTripPage', () => {
 
       expect(screen.queryByText('Confirmed')).toBeNull();
       expect(screen.queryByTestId('map-container')).toBeNull();
+      expect(screen.getByText('No bookings shared yet')).toBeInTheDocument();
     });
   });
 
@@ -1218,8 +1358,11 @@ describe('SharedTripPage', () => {
 
       await waitFor(() => expect(screen.getByText('Bathroom')).toBeInTheDocument());
       expect(screen.getByText('Other')).toBeInTheDocument();
-      expect(screen.getByText('Toothbrush')).toHaveStyle({ textDecoration: 'line-through' });
-      expect(screen.getByText('Towel')).toHaveStyle({ textDecoration: 'none' });
+      expect(screen.getByText('Toothbrush')).toHaveClass('line-through');
+      expect(screen.getByText('Towel')).not.toHaveClass('line-through');
+      // One of three packed, overall and in its category.
+      expect(screen.getByText('1 of 3 packed (33%)')).toBeInTheDocument();
+      expect(screen.getByText('1/2')).toBeInTheDocument();
     });
 
     it('renders nothing when the packing list is empty', async () => {
@@ -1229,6 +1372,7 @@ describe('SharedTripPage', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /packing/i }));
       expect(screen.queryByText('Other')).toBeNull();
+      expect(screen.getByText('The packing list is still empty')).toBeInTheDocument();
     });
   });
 
@@ -1247,9 +1391,11 @@ describe('SharedTripPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /costs/i }));
 
       await waitFor(() => expect(screen.getByText('Hostel')).toBeInTheDocument());
-      expect(screen.getByText('Stay')).toBeInTheDocument();
-      expect(screen.getByText('Other')).toBeInTheDocument();
-      expect(screen.getByText('—')).toBeInTheDocument();
+      // Each category twice: its line in the overview and its own card.
+      expect(screen.getAllByText('Stay')).toHaveLength(2);
+      expect(screen.getAllByText('Other')).toHaveLength(2);
+      // The priceless row states no amount rather than a placeholder.
+      expect(screen.getByText('Museum pass').closest('li')?.textContent).toBe('Museum pass');
       // The priceless row contributes 0, so the total equals the single priced row.
       expect(screen.getAllByText('80.00 GBP').length).toBeGreaterThanOrEqual(2);
     });
@@ -1277,6 +1423,7 @@ describe('SharedTripPage', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /costs/i }));
       expect(screen.queryByText('Total Costs')).toBeNull();
+      expect(screen.getByText('No expenses yet')).toBeInTheDocument();
     });
   });
 
@@ -1294,7 +1441,8 @@ describe('SharedTripPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /chat/i }));
 
       await waitFor(() => expect(screen.getByText('Morning')).toBeInTheDocument());
-      expect(screen.getByText(/Chat · 3 messages/)).toBeInTheDocument();
+      const head = screen.getByRole('heading', { name: 'Chat' }).parentElement as HTMLElement;
+      expect(within(head).getByText('3')).toBeInTheDocument();
       // Two distinct days -> exactly one separator each, none for the second message
       // of day one.
       const sep = (iso: string) => fmtDate(iso, { weekday: 'short', day: 'numeric', month: 'short' });
@@ -1312,7 +1460,8 @@ describe('SharedTripPage', () => {
       }));
 
       fireEvent.click(screen.getByRole('button', { name: /chat/i }));
-      expect(screen.queryByText(/messages/)).toBeNull();
+      expect(screen.queryByRole('heading', { name: 'Chat' })).toBeNull();
+      expect(screen.getByText('No messages yet')).toBeInTheDocument();
     });
   });
 
@@ -1337,7 +1486,7 @@ describe('SharedTripPage', () => {
       { id: 11, trip_id: 1, day_number: 3, date: '2026-07-03', title: 'Day Three' },
     ];
 
-    it('skips the days in between and leaves that day collapsed', async () => {
+    it('skips the days in between and leaves that day empty', async () => {
       await open('parking-token', payload({
         days,
         reservations: [
@@ -1348,15 +1497,13 @@ describe('SharedTripPage', () => {
         ],
       }));
 
-      // Only one day is expanded at a time, so each day is checked on its own.
-      fireEvent.click(screen.getByText('Day One'));
-      await waitFor(() => expect(screen.getByText(/Airport Parking/)).toBeInTheDocument());
-
-      fireEvent.click(screen.getByText('Day Two'));
-      await waitFor(() => expect(screen.queryByText(/Airport Parking/)).toBeNull());
-
-      fireEvent.click(screen.getByText('Day Three'));
-      await waitFor(() => expect(screen.getByText(/Airport Parking/)).toBeInTheDocument());
+      // Every day is open, so each card is checked on its own.
+      expect(dayCard('Day One').getByText('Airport Parking')).toBeInTheDocument();
+      expect(dayCard('Day Two').queryByText('Airport Parking')).toBeNull();
+      expect(dayCard('Day Two').getByText('No places planned for this day')).toBeInTheDocument();
+      expect(dayCard('Day Three').getByText('Airport Parking')).toBeInTheDocument();
+      // The drop-off and the pickup say which end of the stay they are.
+      expect(dayCard('Day One').getByText('Drop-off')).toBeInTheDocument();
     });
   });
 
@@ -1385,11 +1532,46 @@ describe('SharedTripPage', () => {
         accommodations: [{ id: 7, place_id: 602, start_day_id: 41, end_day_id: 41, place_name: 'Hotel Adlon' }],
       }));
 
-      fireEvent.click(screen.getByText('Day One'));
       // The stop the traveller placed is listed, address and all.
       await waitFor(() => expect(screen.getByText('77 Rue de Varenne')).toBeInTheDocument());
       // The booked night is not: it is already on the day as its own chip.
       expect(screen.queryByText('Unter den Linden 77')).toBeNull();
+    });
+
+    it('numbers the map and draws the day line over the traveller\'s stops only, and keeps the hotel as an unnumbered pin', async () => {
+      // Since the reseat the booked night heads its day, so counting it gave the hotel
+      // badge 1, every real stop one more than the app shows, and a line setting off
+      // from where the day ends.
+      divIconMock().mockClear();
+      const hotel = { ...place(602, 'Hotel Adlon', 'Unter den Linden 77'), lat: 52.52, lng: 13.38 };
+      const rodin = { ...place(601, 'Musee Rodin', '77 Rue de Varenne'), lat: 48.86, lng: 2.32 };
+      const orsay = { ...place(603, 'Musee d Orsay', '1 Rue de la Legion d Honneur'), lat: 48.86, lng: 2.33 };
+      await open('stay-map-token', payload({
+        days,
+        assignments: {
+          41: [
+            { id: 402, day_id: 41, order_index: 0, notes: null, accommodation_id: 7, place: hotel },
+            { id: 401, day_id: 41, order_index: 1, notes: null, accommodation_id: null, place: rodin },
+            { id: 403, day_id: 41, order_index: 2, notes: null, accommodation_id: null, place: orsay },
+          ],
+        },
+        accommodations: [{ id: 7, place_id: 602, start_day_id: 41, end_day_id: 41, place_name: 'Hotel Adlon' }],
+      }));
+
+      nextDay();
+      await waitFor(() => expect(iconHtml().some((h: string) => h.includes('>1<'))).toBe(true));
+
+      // Rodin is 1 and Orsay is 2, as in the planner; nothing wears 3 and the hotel's
+      // pin is still drawn, without a badge.
+      const html = iconHtml();
+      expect(html.filter((h: string) => h.includes('>1<'))).toHaveLength(1);
+      expect(html.filter((h: string) => h.includes('>2<'))).toHaveLength(1);
+      expect(html.some((h: string) => h.includes('>3<'))).toBe(false);
+      expect(html.filter((h: string) => !h.includes('<span'))).toHaveLength(1);
+
+      // The day line joins the two stops and does not start at the hotel.
+      const line = screen.getByTestId('route-line');
+      expect(JSON.parse(line.getAttribute('data-positions') ?? '[]')).toEqual([[48.86, 2.32], [48.86, 2.33]]);
     });
   });
 
@@ -1413,7 +1595,6 @@ describe('SharedTripPage', () => {
 
     it('renders every field the owner filled, as separate lines', async () => {
       await open('detail-token', payload({ days, assignments }));
-      fireEvent.click(screen.getByText('Day One'));
       // The name is also on the map marker's tooltip, so the list row is the one with the address under it.
       await waitFor(() => expect(screen.getByText('Rue de Rivoli, Paris')).toBeInTheDocument());
       expect(screen.getAllByText('Louvre').length).toBeGreaterThan(0);
@@ -1450,7 +1631,6 @@ describe('SharedTripPage', () => {
         }],
       };
       await open('bare-token', payload({ days, assignments: bare }));
-      fireEvent.click(screen.getByText('Day One'));
       await waitFor(() => expect(screen.getByText('Somewhere')).toBeInTheDocument());
 
       expect(screen.queryByRole('link', { name: /website/i })).toBeNull();
@@ -1477,7 +1657,7 @@ describe('SharedTripPage', () => {
           },
         ],
       }));
-      fireEvent.click(screen.getByText('Bookings'));
+      fireEvent.click(screen.getByRole('button', { name: 'Bookings' }));
       await waitFor(() => expect(screen.getByText('Night train')).toBeInTheDocument());
 
       expect(screen.getByText('Meet at the north entrance')).toBeInTheDocument();
@@ -1493,16 +1673,227 @@ describe('SharedTripPage', () => {
 
   // ── #2345: the header has to clip the decoration it bleeds ──────────────
 
-  describe('FE-PAGE-SHARED-042: the header clips the circles it bleeds (#2345)', () => {
-    it('does not let them widen the page', async () => {
-      await open('overflow-token', payload({}));
+  describe('FE-PAGE-SHARED-042: the hero clips its cover (#2345)', () => {
+    it('does not let it widen the page', async () => {
+      await open('overflow-token', payload({ trip: { id: 1, title: 'Shared Paris Trip', cover_image: 'c.jpg' } }));
 
-      // Both circles sit outside the header on purpose, so the page only stays
-      // as wide as the viewport if the header itself is the clip. The header is
-      // the first gradient panel on the page and carries the trip title.
-      const header = document.querySelector<HTMLElement>('div[style*="linear-gradient(135deg"]');
-      expect(header?.textContent).toContain('Shared Paris Trip');
-      expect(header?.style.overflow).toBe('hidden');
+      // The cover fills the hero edge to edge, so the page only stays as wide as the
+      // viewport if the hero itself is the clip.
+      const hero = screen.getByTestId('shared-hero');
+      expect(hero.textContent).toContain('Shared Paris Trip');
+      expect(hero).toHaveClass('overflow-hidden');
+    });
+  });
+
+  // ── #2505: only a 404 means the link is dead ────────────────────────────
+
+  describe('FE-PAGE-SHARED-043: a failed load is not an expired link (#2505)', () => {
+    const failWith = (status: number) =>
+      server.use(http.get('/api/shared/:token', () => HttpResponse.json({ error: 'nope' }, { status })));
+
+    it.each([500, 502, 503, 429])('keeps the link when the server answers %i', async (status) => {
+      failWith(status);
+      renderSharedTrip('test-token');
+
+      await waitFor(() => expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument());
+      expect(screen.queryByText(/link expired or invalid/i)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+    });
+
+    // A request with no response makes the api client probe /api/health for a
+    // proxy wall first; answer it the way a healthy server does.
+    const healthy = () => http.get('/api/health', () => HttpResponse.json({ status: 'ok' }));
+
+    it('keeps the link when the request never reaches the server', async () => {
+      server.use(healthy(), http.get('/api/shared/:token', () => HttpResponse.error()));
+      renderSharedTrip('test-token');
+
+      await waitFor(() => expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument());
+      expect(screen.queryByText(/link expired or invalid/i)).not.toBeInTheDocument();
+    });
+
+    it('keeps the link when the request times out', async () => {
+      // What axios rejects with once its 8s deadline passes: no response at all.
+      const timeout = new AxiosError('timeout of 8000ms exceeded', AxiosError.ECONNABORTED);
+      const spy = vi.spyOn(shareApi, 'getSharedTrip').mockRejectedValueOnce(timeout);
+      renderSharedTrip('test-token');
+
+      await waitFor(() => expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument());
+      expect(screen.queryByText(/link expired or invalid/i)).not.toBeInTheDocument();
+      spy.mockRestore();
+    });
+
+    it('still calls a 404 from the share endpoint an expired link, without a retry', async () => {
+      server.use(
+        http.get('/api/shared/:token', () => HttpResponse.json({ error: 'Invalid or expired link' }, { status: 404 })),
+      );
+      renderSharedTrip('gone-token');
+
+      await waitFor(() => expect(screen.getByText(/link expired or invalid/i)).toBeInTheDocument());
+      expect(screen.queryByText(/could not be loaded/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument();
+    });
+
+    // A reverse proxy that has no upstream for TREK (Traefik while the
+    // container is stopped or still in its start period, nginx with a missing
+    // location) answers 404 on its own. That is the restart window of the
+    // report, not a dead link.
+    it.each([
+      ['a plain text 404 from Traefik', '404 page not found\n', 'text/plain; charset=utf-8'],
+      ['an HTML 404 from nginx', '<html><head><title>404 Not Found</title></head><body></body></html>', 'text/html'],
+    ])('keeps the link on %s', async (_label, body, contentType) => {
+      server.use(
+        http.get('/api/shared/:token', () => new HttpResponse(body, { status: 404, headers: { 'content-type': contentType } })),
+      );
+      renderSharedTrip('test-token');
+
+      await waitFor(() => expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument());
+      expect(screen.queryByText(/link expired or invalid/i)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+    });
+
+    it('shows the failed screen instead of crashing when a 200 is not the share payload', async () => {
+      // An auth wall or a captive portal answering the API call with its own page.
+      let calls = 0;
+      server.use(
+        http.get('/api/shared/:token', () => {
+          calls += 1;
+          if (calls === 1) {
+            return new HttpResponse('<!doctype html><html><body>Sign in</body></html>', {
+              status: 200,
+              headers: { 'content-type': 'text/html' },
+            });
+          }
+          return HttpResponse.json({
+            trip: { id: 1, title: 'Past The Wall', start_date: '2026-07-01', end_date: '2026-07-02' },
+            days: [],
+            assignments: {},
+            dayNotes: {},
+            places: [],
+            reservations: [],
+            accommodations: [],
+            permissions: { share_map: true },
+          });
+        }),
+      );
+      renderSharedTrip('test-token');
+
+      fireEvent.click(await screen.findByRole('button', { name: /try again/i }));
+
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Past The Wall' })).toBeInTheDocument());
+      expect(calls).toBe(2);
+    });
+
+    it('loads the trip when the retry gets through', async () => {
+      let calls = 0;
+      server.use(
+        http.get('/api/shared/:token', () => {
+          calls += 1;
+          if (calls === 1) return new HttpResponse(null, { status: 503 });
+          return HttpResponse.json({
+            trip: { id: 1, title: 'Back Online Trip', start_date: '2026-07-01', end_date: '2026-07-02' },
+            days: [],
+            assignments: {},
+            dayNotes: {},
+            places: [],
+            reservations: [],
+            accommodations: [],
+            permissions: { share_map: true },
+          });
+        }),
+      );
+      renderSharedTrip('test-token');
+
+      const retry = await screen.findByRole('button', { name: /try again/i });
+      fireEvent.click(retry);
+
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Back Online Trip' })).toBeInTheDocument());
+      expect(calls).toBe(2);
+    });
+
+    it('keeps the failed screen up with a busy button while the retry runs, and sends it once', async () => {
+      let calls = 0;
+      let release: () => void = () => {};
+      server.use(
+        http.get('/api/shared/:token', async () => {
+          calls += 1;
+          if (calls === 1) return new HttpResponse(null, { status: 500 });
+          await new Promise<void>((resolve) => { release = resolve; });
+          return new HttpResponse(null, { status: 500 });
+        }),
+      );
+      renderSharedTrip('test-token');
+
+      const retry = await screen.findByRole('button', { name: /try again/i });
+      fireEvent.click(retry);
+      await waitFor(() => expect(retry).toBeDisabled());
+      expect(retry).toHaveAttribute('aria-busy', 'true');
+      expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument();
+      fireEvent.click(retry);
+
+      await waitFor(() => expect(calls).toBe(2));
+      release();
+      await waitFor(() => expect(retry).not.toBeDisabled());
+      expect(calls).toBe(2);
+      expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument();
+    });
+
+    it('lands on the expired screen when the retry finds the link gone', async () => {
+      let calls = 0;
+      server.use(
+        healthy(),
+        http.get('/api/shared/:token', () => {
+          calls += 1;
+          return calls === 1
+            ? HttpResponse.error()
+            : HttpResponse.json({ error: 'Invalid or expired link' }, { status: 404 });
+        }),
+      );
+      renderSharedTrip('test-token');
+
+      fireEvent.click(await screen.findByRole('button', { name: /try again/i }));
+
+      await waitFor(() => expect(screen.getByText(/link expired or invalid/i)).toBeInTheDocument());
+      expect(calls).toBe(2);
+    });
+  });
+
+  describe('FE-PAGE-SHARED-040: unplanned places and the travel-only link (#1758, #1712)', () => {
+    const payload = (permissions: Record<string, boolean>) => ({
+      trip: { id: 1, title: 'Shared Paris Trip', start_date: '2026-07-01', end_date: '2026-07-03' },
+      days: [
+        { id: 1, day_number: 1, date: '2026-07-01' },
+        { id: 2, day_number: 2, date: '2026-07-02' },
+      ],
+      assignments: { 1: [{ id: 11, order_index: 0, place: { id: 100, name: 'Louvre', lat: 48.86, lng: 2.34 } }] },
+      dayNotes: {},
+      places: [
+        { id: 100, name: 'Louvre', lat: 48.86, lng: 2.34 },
+        { id: 200, name: 'Sainte-Chapelle', lat: 48.85, lng: 2.35 },
+      ],
+      reservations: [],
+      accommodations: [],
+      packing: [], budget: [], categories: [], collab: [],
+      permissions: { share_map: true, share_bookings: false, ...permissions },
+    });
+
+    it('lists the places no day has picked up under the days', async () => {
+      server.use(http.get('/api/shared/:token', () => HttpResponse.json(payload({}))));
+      renderSharedTrip('unplanned-token');
+      const card = (await screen.findByText('Not planned yet')).closest('article') as HTMLElement;
+      expect(within(card).getByText('Sainte-Chapelle')).toBeInTheDocument();
+      expect(within(card).queryByText('Louvre')).toBeNull();
+      fireEvent.click(within(card).getByRole('button', { name: /collapse/i }));
+      expect(within(card).queryByText('Sainte-Chapelle')).toBeNull();
+    });
+
+    it('a travel-only link leaves out empty days and the unplanned pool', async () => {
+      server.use(http.get('/api/shared/:token', () => HttpResponse.json(payload({ share_travel_only: true }))));
+      renderSharedTrip('travel-token');
+      await screen.findByRole('heading', { name: 'Shared Paris Trip' });
+      expect(document.getElementById('shared-day-1')).not.toBeNull();
+      expect(document.getElementById('shared-day-2')).toBeNull();
+      expect(screen.queryByText('Not planned yet')).toBeNull();
     });
   });
 });

@@ -16,12 +16,12 @@ import { buildTrip } from './factories';
 export function buildTripActions(): Record<string, ReturnType<typeof vi.fn>> {
   const names = [
     'addCategory', 'addDayNote', 'addFile', 'addPackingContributor', 'addPackingItem',
-    'addPlace', 'addReservation', 'addTodoItem', 'assignPlaceToDay', 'clonePackingItem',
+    'addPlace', 'addReservation', 'addTodoItem', 'appendDatedDay', 'assignPlaceToDay', 'clonePackingItem',
     'deleteBudgetItem', 'deleteDayNote', 'deleteFile', 'deletePackingItem', 'deletePlace',
-    'deletePlacesMany', 'deleteReservation', 'deleteTodoItem', 'insertDay', 'loadBudgetItems',
+    'deleteDay', 'deletePlacesMany', 'deleteReservation', 'deleteTodoItem', 'insertDay', 'loadBudgetItems',
     'loadFiles', 'loadReservations', 'loadTrip', 'moveAssignment', 'moveDayNote', 'ratePlace',
     'refreshDays', 'removeAssignment', 'removePackingContributor', 'reorderAssignments',
-    'reorderDays', 'setAssignments', 'setPackingItemSharing', 'setSelectedDay',
+    'reorderDays', 'setAssignments', 'setPackedCount', 'setPackingItemSharing', 'setSelectedDay',
     'toggleBudgetMemberPaid', 'togglePackingItem', 'toggleReservationStatus', 'toggleTodoItem',
     'updateDayNote', 'updateDayTitle', 'updatePackingItem', 'updatePlace', 'updatePlacesMany',
     'updateReservation', 'updateTodoItem', 'updateTrip', 'uploadPlaceImage',
@@ -185,8 +185,21 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     deletePlaceIds: null,
     setDeletePlaceIds: vi.fn(),
 
+    // Adding a day from the days sheet: a trip without dates, so the single button.
+    dayAdd: { nextDate: null, blocked: null, datedBlocked: null, busy: false, onAddDated: vi.fn() },
+
+    // Deleting a day from the days sheet: no question open, nothing blocking.
+    deleteDayId: null,
+    setDeleteDayId: vi.fn(),
+    deleteDayTitle: '',
+    deleteDayLines: [],
+    deleteDayBlocked: null,
+    handleDeleteDay: vi.fn(),
+    confirmDeleteDay: vi.fn(async () => undefined),
+
     // resolveVisibleConnectionIds returns an array, and consumers call .includes().
     visibleConnections: [] as number[],
+    roadtripConnections: [] as number[],
     toggleConnection: vi.fn(),
     allConnectionsShown: false,
     toggleAllConnections: vi.fn(),

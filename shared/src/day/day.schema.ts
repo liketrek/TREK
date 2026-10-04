@@ -52,12 +52,27 @@ export const daySchema = z.object({
 });
 export type Day = z.infer<typeof daySchema>;
 
-export const dayCreateRequestSchema = z.object({
-  date: z.string().optional(),
-  notes: z.string().optional(),
-  // 1-based slot to insert a new empty day at (omit to append at the end).
-  position: z.number().int().positive().optional(),
-});
+/** The refusal for `dated` next to `date` or `position`, the same on REST, MCP and the plugin RPC. */
+export const DAY_CREATE_DATED_CONFLICT = 'dated cannot be combined with date or position';
+
+/**
+ * A new day: appended at the end, slotted in at `position`, or with `dated` the
+ * calendar day after the trip's last date, which extends the trip by one day.
+ * `dated` picks its own date and place (behind the last dated day, in front of
+ * the days without a date), so neither can be given next to it.
+ */
+export const dayCreateRequestSchema = z
+  .object({
+    date: z.string().optional(),
+    notes: z.string().optional(),
+    // 1-based slot to insert a new empty day at (omit to append at the end).
+    position: z.number().int().positive().optional(),
+    dated: z.boolean().optional(),
+  })
+  .refine((body) => !body.dated || (body.position === undefined && body.date === undefined), {
+    message: DAY_CREATE_DATED_CONFLICT,
+    path: ['dated'],
+  });
 export type DayCreateRequest = z.infer<typeof dayCreateRequestSchema>;
 
 /** Reorder whole days: the desired full sequence of this trip's day ids. */

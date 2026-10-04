@@ -71,6 +71,7 @@ import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-phot
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { noGoogleQuota } from '../../helpers/google-quota';
 import { createTestUnitOfWork, createTestAppSettingsRepo, createTestUsersRepo, createTestTagsRepo, createTestPlaceRatingsRepo, createTestAssignmentParticipantsRepo, createTestPlacesRepo, createTestTripMembersRepo, createTestDayAssignmentsRepo, createTestCategoriesRepo, createTestTripsRepo, sharedTestOrm } from '../../helpers/test-uow';
 import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
 import { createTestCollectionPlacesRepo } from '../../helpers/test-uow';
@@ -119,7 +120,7 @@ const KML_FIXTURE = path.join(__dirname, '../../fixtures/test.kml');
 const placesStorageFx = makeStorageFixture('');
 
 async function makePlacesService(
-  maps: MapsService = new MapsService(photoCacheStub, noAppSettings, noUsers, {} as never, {} as never),
+  maps: MapsService = new MapsService(photoCacheStub, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota),
 ): Promise<PlacesService> {
   return new PlacesService(
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
@@ -205,6 +206,20 @@ describe('list', () => {
     const places = (await svc.list(String(trip.id), { search: 'Eiffel' })) as any[];
     expect(places).toHaveLength(1);
     expect(places[0].name).toBe('Eiffel Tower');
+  });
+
+  it('PLACE-SVC-005b — carries where each place lies: the cached region, else the bundled borders (#2537)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const berlin = createPlace(testDb, trip.id, { name: 'Brandenburger Tor', lat: 52.5163, lng: 13.3777 });
+    const paris = createPlace(testDb, trip.id, { name: 'Louvre', lat: 48.8606, lng: 2.3376 });
+    const nowhere = createPlace(testDb, trip.id, { name: 'Unplaced' });
+    testDb.prepare('UPDATE places SET lat = NULL, lng = NULL, address = NULL WHERE id = ?').run(nowhere.id);
+    testDb.prepare('INSERT INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)').run(berlin.id, 'DE', 'DE-BE', 'Berlin');
+    const byId = new Map(((await svc.list(String(trip.id), {})) as any[]).map(p => [p.id, p]));
+    expect(byId.get(berlin.id)).toMatchObject({ country_code: 'DE', region_name: 'Berlin' });
+    expect(byId.get(paris.id)).toMatchObject({ country_code: 'FR', region_name: null });
+    expect(byId.get(nowhere.id)!.country_code).toBeNull();
   });
 
   it('PLACE-SVC-005 — attaches tags array to each place (empty when none)', async () => {
@@ -340,6 +355,23 @@ describe('update', () => {
     expect(updated.name).toBe('New');
     expect(updated.lat).toBe(48.8);
     expect(updated.lng).toBe(2.3);
+  });
+
+  it('PLACE-SVC-2472 — keeps an e-mail and hand-kept hours, trims the address, empty clears', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const week = '[{"closed":false,"open":"09:00","close":"17:00"},{"closed":false},{"closed":false},{"closed":false},{"closed":false},{"closed":true},{"closed":true}]';
+    const place = await svc.create(String(trip.id), { name: 'Bakery', email: ' shop@example.com ', opening_hours: week }) as any;
+    expect(place.email).toBe('shop@example.com');
+    expect(place.opening_hours).toBe(week);
+
+    const renamed = await svc.update(String(trip.id), String(place.id), { name: 'Baker' }) as any;
+    expect(renamed.email).toBe('shop@example.com');
+    expect(renamed.opening_hours).toBe(week);
+
+    const cleared = await svc.update(String(trip.id), String(place.id), { email: '', opening_hours: '' }) as any;
+    expect(cleared.email).toBeNull();
+    expect(cleared.opening_hours).toBeNull();
   });
 
   it('PLACE-SVC-014 — returns null for non-existent place', async () => {
@@ -1699,6 +1731,13 @@ describe('enrichImportedPlaces', () => {
     expect(searchPlaces).not.toHaveBeenCalled();
   });
 
+  it('PLACE-SVC-058b — a file import enriches its points, never its paths (#2536)', async () => {
+    const service = await enrichSvc({ getMapsKey: vi.fn(() => null) });
+    const spy = vi.spyOn(service, 'enrichImportedPlaces').mockResolvedValue();
+    service.enrichImportedFilePlaces('1', 1, [{ id: 1 }, { id: 2, route_geometry: '[[1,2],[3,4]]' }]);
+    expect(spy).toHaveBeenCalledWith('1', 1, [{ id: 1 }]);
+  });
+
   it('PLACE-SVC-059 — no-ops for an empty batch without touching the provider', async () => {
     const getMapsKey = vi.fn(() => Promise.resolve('key'));
     await (await enrichSvc({ getMapsKey })).enrichImportedPlaces('1', 1, []);
@@ -1879,6 +1918,36 @@ describe('zero-valued numeric fields', () => {
 });
 
 // ── LIKE metacharacter escaping (#1745) ───────────────────────────────────────
+
+describe('setImageFromFile (#1242)', () => {
+  const attach = (tripId: number, name: string, mime: string, size = 3) => {
+    fs.writeFileSync(path.join(placesStorageFx.root, name), 'img');
+    return Number(testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name, file_size, mime_type) VALUES (?, ?, ?, ?, ?)').run(tripId, name, name, size, mime).lastInsertRowid);
+  };
+
+  it('PLACE-SVC-IMGFILE-001 — copies an attached picture in as the place image', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id);
+    const fileId = attach(trip.id, 'holiday.jpg', 'image/jpeg');
+    const updated = await svc.setImageFromFile(String(trip.id), String(place.id), fileId) as any;
+    expect(updated.image_url).toMatch(/^\/uploads\/places\/[0-9a-f-]+\.jpg$/);
+    expect(fs.existsSync(path.join(placesStorageFx.root, path.basename(updated.image_url)))).toBe(true);
+    // A copy: the attachment itself is still there.
+    expect(fs.existsSync(path.join(placesStorageFx.root, 'holiday.jpg'))).toBe(true);
+  });
+
+  it('PLACE-SVC-IMGFILE-002 — refuses a file of another trip, a document and an oversized image', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id);
+    expect(await svc.setImageFromFile(String(trip.id), String(place.id), attach(other.id, 'x.jpg', 'image/jpeg'))).toBe('not_found');
+    expect(await svc.setImageFromFile(String(trip.id), String(place.id), attach(trip.id, 'ticket.pdf', 'application/pdf'))).toBe('not_image');
+    expect(await svc.setImageFromFile(String(trip.id), String(place.id), attach(trip.id, 'vector.svg', 'image/svg+xml'))).toBe('not_image');
+    expect(await svc.setImageFromFile(String(trip.id), String(place.id), attach(trip.id, 'huge.jpg', 'image/jpeg', 50 * 1024 * 1024))).toBe('too_large');
+  });
+});
 
 describe('list search escaping', () => {
   it('PLACE-SVC-068 — a % or _ in the search term matches literally, not as a wildcard', async () => {

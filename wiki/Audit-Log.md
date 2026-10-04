@@ -4,7 +4,7 @@ The audit log records significant actions taken on your TREK instance. Use it to
 
 ## Where to find it
 
-**Admin Panel → Audit** tab.
+**Admin Panel > Audit** tab, in the **Maintenance** group of the side navigation.
 
 ![Audit log](assets/Audit.png)
 
@@ -25,7 +25,7 @@ Actions are grouped by area below. The **Action key** is the raw value stored in
 | `user.password_reset_success` | Password reset completed |
 | `user.password_reset_fail` | Password reset attempt rejected (`reason` in details) |
 
-A request for an account that can actually be reset writes **two** rows: one with `delivered: "pending"` when the mail is handed off, one with the delivery result. Every other outcome writes a single row carrying a `reason` instead — `no_user`, `oidc_only`, `throttled_per_email` or `password_login_disabled`. Passkey logins are not a separate key: they land as `user.login` with `method: passkey` in the details.
+A request for an account that can actually be reset writes **two** rows: one with `delivered: "pending"` when the mail is handed off, one with the delivery result. Every other outcome writes a single row carrying a `reason` instead — `no_user`, `oidc_only`, `throttled_per_email` or `password_login_disabled`. Passkey logins are not a separate key: they land as `user.login` with `method: passkey` in the details, and SSO logins the same way with `method: oidc`. An account created by a first SSO login also writes `user.register` with `method: oidc`, carrying the same fields as a password signup.
 
 ### MFA
 
@@ -41,6 +41,12 @@ A request for an account that can actually be reset writes **two** rows: one wit
 | `user.passkey_register` | Passkey enrolled |
 | `user.passkey_delete` | Passkey removed (resource = the passkey's numeric ID) |
 | `user.passkey_clone_suspected` | A passkey presented a signature counter that did not advance — a possible cloned authenticator. That assertion is rejected, the credential stays enabled |
+
+### SSO
+
+| Action key | Description |
+|---|---|
+| `oidc.role_change` | An SSO login changed a user's role through the OIDC claim mapping (`from`, `to` and the claim **name** in details, never the claim's value) |
 
 ### Trips
 
@@ -78,7 +84,9 @@ A request for an account that can actually be reset writes **two** rows: one wit
 | `admin.places_details` | Places details feature toggled |
 | `admin.places_enrich` | Place enrichment feature toggled |
 | `admin.place_shadow` | Place Search Log toggled (`enabled` in details) |
+| `admin.places_google_only` | Search with Google only toggled (`enabled` in details) |
 | `admin.collab_features` | Collaboration features updated |
+| `admin.google_daily_limit` | Daily limit for Google calls saved (`daily_limit` in details, `null` for no limit) |
 | `admin.transit_provider` | Public transit backend changed (`provider` in details: `transitous` or `google`) |
 | `admin.packing_template_create` | Packing template created |
 | `admin.packing_template_delete` | Packing template deleted |
@@ -153,7 +161,7 @@ A request for an account that can actually be reset writes **two** rows: one wit
 
 ## Pagination
 
-The panel loads 100 entries at a time by default. Click **Load more** at the bottom to fetch the next page. The total count is shown above the table.
+The panel loads 100 entries at a time. Click **Load more** at the bottom to fetch the next page, or **Refresh** to reload from the newest entry. The count is shown above the table as `{loaded} loaded · {total} total`.
 
 ## IP addresses
 

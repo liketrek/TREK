@@ -4,8 +4,8 @@ import { ChevronDown, Check } from 'lucide-react'
 import { useAnchoredPosition, scrollAnchorIntoView } from '../../hooks/useAnchoredPosition'
 
 interface SelectOption {
-  // Callers use both string keys and numeric ids (e.g. day/place ids) as values;
-  // the component only does strict-equality lookups and key rendering, so either works.
+  // Callers use both string keys and numeric ids (e.g. day/place ids) as values, and
+  // the value they hold need not be of the same kind as the options: see sameValue.
   value: string | number
   label: string
   icon?: React.ReactNode
@@ -34,6 +34,22 @@ interface CustomSelectProps {
    * offer a list of identical prefixes.
    */
   menuFit?: 'anchor' | 'content'
+  /** The trigger's id, so a label outside can point at it. */
+  id?: string
+}
+
+/**
+ * Whether an option is the one the caller holds.
+ *
+ * onChange hands back the option's own value, and callers routinely store it in another
+ * form: the trip share dialog kept String(value) against options keyed by numeric user
+ * ids, so a strict comparison never found the pick and the trigger stayed on its
+ * placeholder while the invite button already knew who was chosen (#2478). An id reads
+ * the same as a number or as text, so both sides are compared as text. A caller holding
+ * nothing (null or undefined at runtime) matches no option.
+ */
+function sameValue(held: string | number | null | undefined, option: string | number): boolean {
+  return held != null && String(held) === String(option)
 }
 
 /** How wide a content-fitted menu may get before it stops reading as a menu. */
@@ -63,6 +79,7 @@ export default function CustomSelect({
   size = 'md',
   disabled = false,
   menuFit = 'anchor',
+  id,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -92,7 +109,7 @@ export default function CustomSelect({
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
 
-  const selected = options.find(o => o.value === value)
+  const selected = options.find(o => sameValue(value, o.value))
   const filtered = searchable && search
     ? (() => {
         const q = search.toLowerCase()
@@ -124,6 +141,7 @@ export default function CustomSelect({
     <div ref={ref} style={{ position: 'relative', ...style }}>
       {/* Trigger */}
       <button
+        id={id}
         type="button"
         disabled={disabled}
         onClick={() => { if (!disabled) { setOpen(o => !o); setSearch('') } }}
@@ -232,7 +250,7 @@ export default function CustomSelect({
                     </div>
                   )
                 }
-                const isSelected = option.value === value
+                const isSelected = sameValue(value, option.value)
                 return (
                   <button
                     key={option.value}

@@ -206,6 +206,53 @@ describe('OidcController /callback', () => {
     expect(ok.cookie).toHaveBeenCalledWith('trek_oidc_exchange', 'bnd', expect.objectContaining({ httpOnly: true, maxAge: 60000, sameSite: 'lax' }));
   });
 
+  it('OIDC-CB-LOGIN-001: a successful login writes the user.login row every other method writes (#2417)', async () => {
+    const res = makeRes();
+    const reqIp = { query: {}, headers: {}, ip: '203.0.113.9', cookies: { trek_oidc_state: 's' } } as unknown as Request;
+    await ctl(svc({
+      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 7 } }),
+    })).callback('c', 's', undefined, reqIp, res);
+
+    expect(writeAudit).toHaveBeenCalledTimes(1);
+    expect(writeAudit).toHaveBeenCalledWith({ userId: 7, action: 'user.login', ip: '203.0.113.9', details: { method: 'oidc' } });
+    expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
+  });
+
+  it('OIDC-CB-LOGIN-003: an account the callback creates writes the user.register row a password signup writes, then the login', async () => {
+    const res = makeRes();
+    const reqIp = { query: {}, headers: {}, ip: '203.0.113.9', cookies: { trek_oidc_state: 's' } } as unknown as Request;
+    await ctl(svc({
+      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 7, username: 'a', email: 'a@b.c', role: 'user' }, created: true }),
+    })).callback('c', 's', undefined, reqIp, res);
+
+    expect(writeAudit).toHaveBeenCalledTimes(2);
+    expect(writeAudit).toHaveBeenNthCalledWith(1, {
+      userId: 7, action: 'user.register', ip: '203.0.113.9',
+      details: { username: 'a', email: 'a@b.c', role: 'user', method: 'oidc' },
+    });
+    expect(writeAudit).toHaveBeenNthCalledWith(2, { userId: 7, action: 'user.login', ip: '203.0.113.9', details: { method: 'oidc' } });
+    expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
+  });
+
+  it('OIDC-CB-LOGIN-002: a login refused by the user lookup writes no login row', async () => {
+    const res = makeRes();
+    await ctl(svc({
+      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+      findOrCreateUser: vi.fn().mockReturnValue({ error: 'registration_disabled' }),
+    })).callback('c', 's', undefined, reqCb('s'), res);
+
+    expect(writeAudit).not.toHaveBeenCalled();
+    expect(res.redirectedTo).toBe('https://app/login?oidc_error=registration_disabled');
+  });
+
   it('audits a role change the claim mapping made, with the client IP and the claim name only', async () => {
     const res = makeRes();
     const reqIp = { query: {}, headers: {}, ip: '203.0.113.9', cookies: { trek_oidc_state: 's' } } as unknown as Request;
@@ -223,10 +270,12 @@ describe('OidcController /callback', () => {
       ip: '203.0.113.9',
       details: { from: 'admin', to: 'user', claim: 'entitlements' },
     });
+    // The login row still follows, the role change does not replace it.
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, action: 'user.login' }));
     expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
   });
 
-  it('writes no audit row when the login left the role alone', async () => {
+  it('writes no role-change row when the login left the role alone', async () => {
     const res = makeRes();
     await ctl(svc({
       exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
@@ -235,7 +284,7 @@ describe('OidcController /callback', () => {
       findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 7 } }),
     })).callback('c', 's', undefined, reqCb('s'), res);
 
-    expect(writeAudit).not.toHaveBeenCalled();
+    expect(writeAudit).not.toHaveBeenCalledWith(expect.objectContaining({ action: 'oidc.role_change' }));
     expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
   });
 

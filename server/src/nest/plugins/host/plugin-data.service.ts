@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import Database from 'better-sqlite3';
 import type { Database as Db } from 'better-sqlite3';
+import { openDatabase } from '../../../db/connection';
 import { pluginDataDir, pluginDbFile, pluginsDataRoot } from '../paths';
 
 /**
@@ -63,7 +63,7 @@ export class PluginDataDb {
   constructor(pluginId: string) {
     this.pluginId = pluginId;
     fs.mkdirSync(pluginDataDir(pluginId), { recursive: true });
-    this.db = new Database(pluginDbFile(pluginId));
+    this.db = openDatabase(pluginDbFile(pluginId));
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('foreign_keys = ON');
     openDbs.add(this);

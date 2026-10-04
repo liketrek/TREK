@@ -7,6 +7,7 @@ import {
 import JournalBody from './JournalBody'
 import { useTranslation } from '../../i18n'
 import { formatLocationName } from '../../utils/formatters'
+import { posterlessVideo } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import type { JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 
 // Labels are translation keys, like the desktop tables in
@@ -105,12 +106,18 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
                 }`}
               onClick={() => onPhotoClick(photos, 0)}
             >
-              <img
-                src={photoUrl(photos[0], 'original', publicPhotoUrl)}
-                alt=""
-                className={`w-full max-h-[50vh] ${photos[0].media_type === 'video' ? 'object-contain' : 'object-cover'
-                  }`}
-              />
+              {/* A clip is drawn from its poster, its original being the video file.
+                  Without a poster the black ground and the play badge are the hero (#2341). */}
+              {posterlessVideo(photos[0]) ? (
+                <span className="block aspect-video w-full max-h-[50vh]" />
+              ) : (
+                <img
+                  src={photoUrl(photos[0], photos[0].media_type === 'video' ? 'thumbnail' : 'original', publicPhotoUrl)}
+                  alt=""
+                  className={`w-full max-h-[50vh] ${photos[0].media_type === 'video' ? 'object-contain' : 'object-cover'
+                    }`}
+                />
+              )}
 
               {photos[0].media_type === 'video' && (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -140,12 +147,14 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
                       }`}
                     onClick={() => onPhotoClick(photos, i)}
                   >
-                    <img
-                      src={photoUrl(p, 'thumbnail', publicPhotoUrl)}
-                      alt=""
-                      className={`h-full w-full ${p.media_type === 'video' ? 'object-contain' : 'object-cover'
-                        }`}
-                    />
+                    {!posterlessVideo(p) && (
+                      <img
+                        src={photoUrl(p, 'thumbnail', publicPhotoUrl)}
+                        alt=""
+                        className={`h-full w-full ${p.media_type === 'video' ? 'object-contain' : 'object-cover'
+                          }`}
+                      />
+                    )}
 
                     {p.media_type === 'video' && (
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

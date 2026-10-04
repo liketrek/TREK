@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': '실행 취소: {action}',
   'undo.assignPlace': '장소가 날에 배정되었습니다',
   'undo.removeAssignment': '장소가 날에서 제거되었습니다',
+  'undo.clearDay': '날을 비웠습니다',
   'undo.reorder': '장소 순서가 변경되었습니다',
   'undo.optimize': '경로가 최적화되었습니다',
   'undo.deletePlace': '장소가 삭제되었습니다',
@@ -19,6 +20,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': '네이버 지도 가져오기',
   'undo.addPlace': '장소가 추가되었습니다',
   'undo.done': '실행 취소됨: {action}',
+  'undo.failed': '실행 취소하지 못했습니다: {action}',
   'undo.importBooking': '예약 확인서 가져오기',
 };
 export default undo;

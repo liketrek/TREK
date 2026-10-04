@@ -54,6 +54,22 @@ export const adminFeatureToggleRequestSchema = z.object({
 });
 export type AdminFeatureToggleRequest = z.infer<typeof adminFeatureToggleRequestSchema>;
 
+/**
+ * PUT /api/admin/google-quota (#1582): the most Google API calls TREK may make
+ * in one UTC day. Null or 0 removes the ceiling.
+ */
+export const googleQuotaUpdateRequestSchema = z.object({
+  daily_limit: z.number().int().min(0).max(10_000_000).nullable(),
+});
+export type GoogleQuotaUpdateRequest = z.infer<typeof googleQuotaUpdateRequestSchema>;
+
+/** The ceiling as stored, today's count, and whether Google is paused until tomorrow. */
+export interface GoogleQuotaStatus {
+  daily_limit: number | null;
+  used_today: number;
+  exhausted: boolean;
+}
+
 // Shared by all six packing-template create/update routes. `name` is optional so
 // the service's 'Name is required' / 'Category name is required' / 'Item name is
 // required' 400s stay the contract, and so the update routes keep treating a
@@ -80,6 +96,30 @@ export const adminAddonUpdateRequestSchema = z.object({
 });
 export type AdminAddonUpdateRequest = z.infer<typeof adminAddonUpdateRequestSchema>;
 
+/**
+ * Whether the AI Parsing model is handed a photo, stored as `vision` on that
+ * addon's config. `auto` asks a local Ollama server what the model can do and
+ * means no for a cloud provider; `on` and `off` are the admin's word.
+ */
+export const LLM_VISION_MODES = ['auto', 'on', 'off'] as const;
+export type LlmVision = (typeof LLM_VISION_MODES)[number];
+
+/**
+ * The photos handed to a model that reads images. HEIC is not here: no provider
+ * TREK talks to reads it, and a browser picking from the camera roll hands over
+ * a JPEG anyway.
+ */
+export const LLM_PHOTO_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'] as const;
+
+/** GET /api/llm/capabilities: what the caller's AI model can be handed. */
+export const llmCapabilitiesResponseSchema = z.object({ images: z.boolean() });
+export type LlmCapabilitiesResponse = z.infer<typeof llmCapabilitiesResponseSchema>;
+
+/** A stored or submitted value as a mode; anything else, a missing value included, is `auto`. */
+export function asLlmVision(value: unknown): LlmVision {
+  return (LLM_VISION_MODES as readonly unknown[]).includes(value) ? (value as LlmVision) : 'auto';
+}
+
 // Fully partial — the client PUTs one computed key at a time.
 export const adminCollabFeaturesRequestSchema = z.object({
   chat: z.boolean().optional(),
@@ -94,6 +134,20 @@ export type AdminCollabFeaturesRequest = z.infer<typeof adminCollabFeaturesReque
 // plugin-contributed channels, since the client echoes back the whole matrix.
 export const adminNotificationPreferencesRequestSchema = z.record(z.string(), z.record(z.string(), z.boolean()));
 export type AdminNotificationPreferencesRequest = z.infer<typeof adminNotificationPreferencesRequestSchema>;
+
+/**
+ * What a user's notification cell starts as, set by the admin for the whole
+ * instance (#1536): `on` (the default), `off` (the user may still turn it on)
+ * or `blocked` (off for everyone, and the user cannot turn it on).
+ */
+export const NOTIFICATION_DEFAULTS = ['on', 'off', 'blocked'] as const;
+export type NotificationDefault = (typeof NOTIFICATION_DEFAULTS)[number];
+
+/** PUT /api/admin/notification-preferences/defaults: event → channel → default. Cells left out keep theirs. */
+export const notificationDefaultsUpdateRequestSchema = z.object({
+  defaults: z.record(z.string().max(64), z.record(z.string().max(64), z.enum(NOTIFICATION_DEFAULTS))),
+});
+export type NotificationDefaultsUpdateRequest = z.infer<typeof notificationDefaultsUpdateRequestSchema>;
 
 // Heterogeneous values, and `null` is meaningful — SettingsService treats it as
 // "reset to the built-in default". z.record also rejects arrays and null bodies,

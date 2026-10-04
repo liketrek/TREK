@@ -550,6 +550,31 @@ describe('AddonsService transit provider', () => {
 });
 
 /**
+ * The Google-only switch reads like the shadow log: nobody had it before it
+ * existed, so an absent row is off, and MapsService.googleOnly() compares the
+ * same key against the same literal.
+ */
+describe('AddonsService places Google-only flag', () => {
+  it('ADDONS-SVC-095 an unset flag reads as OFF, only the literal "true" switches it on', async () => {
+    expect(rawAppSetting('places_google_only')).toBeUndefined();
+    expect(await svc.getPlacesGoogleOnly()).toEqual({ enabled: false });
+    for (const value of ['false', 'TRUE', '1', '']) {
+      setAppSetting('places_google_only', value);
+      expect(await svc.getPlacesGoogleOnly()).toEqual({ enabled: false });
+    }
+    setAppSetting('places_google_only', 'true');
+    expect(await svc.getPlacesGoogleOnly()).toEqual({ enabled: true });
+  });
+
+  it('ADDONS-SVC-096 the setter persists the literal string under its own key', async () => {
+    expect(await svc.updatePlacesGoogleOnly(true)).toEqual({ enabled: true });
+    expect(rawAppSetting('places_google_only')).toEqual({ key: 'places_google_only', value: 'true' });
+    expect(await svc.updatePlacesGoogleOnly(false)).toEqual({ enabled: false });
+    expect(rawAppSetting('places_google_only')).toEqual({ key: 'places_google_only', value: 'false' });
+  });
+});
+
+/**
  * The shadow log reads fail-CLOSED like the three flags above, for the opposite
  * reason: they need `=== 'true'` because a migration backfilled a row for
  * installs that were already using the feature. Nothing writes this key on

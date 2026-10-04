@@ -261,4 +261,42 @@ describe('useCorridorPois', () => {
     expect(result.current.failedAreas).toBeGreaterThan(0)
     expect(pois.mock.calls.length).toBeLessThan(result.current.progress.total + 1)
   })
+  it('FE-ROADTRIP-CORRIDOR-018: a ride is left out of the search, and a hit under the flight path is dropped (#2428)', async () => {
+    // A long line whose middle is a flight: boxes are asked for the two driven ends only,
+    // and nothing found between the two terminals is on the way.
+    const from = LONG[3]
+    const to = LONG[8]
+    pois.mockResolvedValue(answer(hit('under-the-flight', LONG[5].lat, LONG[5].lng), hit('on-the-road', LONG[1].lat, LONG[1].lng + 0.01)))
+    const { result } = renderHook(() => useCorridorPois(LONG, ['fuel'], 10, { gaps: [{ from, to }] }))
+    act(() => { result.current.search() })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    const asked = pois.mock.calls.map(c => c[1] as { south: number; north: number })
+    // No box covers the middle of the ride.
+    expect(asked.some(b => b.south <= LONG[5].lat && b.north >= LONG[5].lat && b.north - b.south < 0.2)).toBe(false)
+    expect(result.current.results.map(r => r.osm_id)).toEqual(['on-the-road'])
+
+    // The same line without the ride searches straight through.
+    const { result: plain } = renderHook(() => useCorridorPois(LONG, ['fuel'], 10))
+    act(() => { plain.current.search() })
+    await waitFor(() => expect(plain.current.loading).toBe(false))
+    expect(plain.current.results.map(r => r.osm_id).sort()).toEqual(['on-the-road', 'under-the-flight'])
+    expect(plain.current.progress.total).toBeGreaterThan(result.current.progress.total)
+  })
+
+  it('FE-ROADTRIP-CORRIDOR-019: the gaps are a dependency like any other, so a memoised array keeps `search` and a fresh one remakes it', () => {
+    // The caller memoises the array per day; the hook does not key it on its contents
+    // behind the lint rule's back.
+    const gaps = [{ from: LONG[3], to: LONG[8] }]
+    const categories = ['fuel']
+    const { result, rerender } = renderHook(
+      ({ options }: { options: { gaps: typeof gaps } }) => useCorridorPois(LONG, categories, 10, options),
+      { initialProps: { options: { gaps } } },
+    )
+    const search = result.current.search
+    rerender({ options: { gaps } })
+    expect(result.current.search).toBe(search)
+    rerender({ options: { gaps: [...gaps] } })
+    expect(result.current.search).not.toBe(search)
+  })
 })

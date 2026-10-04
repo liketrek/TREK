@@ -1,5 +1,5 @@
 import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
-import React, { useState } from 'react'
+import React, { useId, useState } from 'react'
 import {
   Clock, Fuel, CalendarClock, SlidersHorizontal, ChevronRight, Coins, Signpost, Ship, Check,
   Car, Zap, BatteryCharging, BatteryFull, BatteryWarning, Gauge, Route, Sparkles, Link2, Palette,
@@ -18,6 +18,9 @@ import { FS } from './typeScale'
 import DayWindowFields from './DayWindowFields'
 import SettingsHint from './SettingsHint'
 import { dayWindow } from './dayWindow'
+import { BOOKEND_ICON } from './nightBookend'
+import { useHotelBookends } from './useHotelBookends'
+import FigureBadge from './FigureBadge'
 
 /**
  * Everything that decides when the rail speaks up about the driving.
@@ -162,21 +165,30 @@ function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived
  * Disabled rather than hidden when there is no engine that can answer: an operator who
  * pointed the instance at their own OSRM has no second engine, and a switch that flips
  * and changes nothing is worse than one that says why it cannot.
+ *
+ * A `hint` is the sentence a switch needs to say what flipping it changes. It stands under
+ * the label, in the caption the panels close on, and the switch is described by it: behind a
+ * hover it was a sentence nobody found, and a screen reader never heard.
  */
-function AvoidRow({ icon: Icon, label, on, disabled, onToggle }: {
+function AvoidRow({ icon: Icon, label, hint, on, disabled, onToggle }: {
   icon: typeof Coins
   label: string
+  hint?: string
   on: boolean
   disabled: boolean
   onToggle: () => void
 }): React.ReactElement {
+  const hintId = useId()
   return (
     <div className={`flex items-center gap-3 ${disabled ? 'opacity-50' : ''}`}>
       <Icon size={16} className="shrink-0 text-content-faint" aria-hidden />
-      <span className="min-w-0 flex-1 text-body text-content-secondary">{label}</span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-body text-content-secondary">{label}</span>
+        {hint ? <span id={hintId} className="text-caption leading-snug text-content-faint">{hint}</span> : null}
+      </span>
       {disabled
         ? <span className="text-caption text-content-faint">{'—'}</span>
-        : <ToggleSwitch on={on} onToggle={onToggle} label={label} />}
+        : <ToggleSwitch on={on} onToggle={onToggle} label={label} describedBy={hint ? hintId : undefined} />}
     </div>
   )
 }
@@ -281,6 +293,7 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
   // days gets the dialog with the trip's figures in it, not a form that takes a number
   // and drops it.
   const readOnly = !onSave
+  const bookends = useHotelBookends(onSave)
 
   const legMinutes = settings.roadtrip_leg_minutes
   const dayMinutes = settings.roadtrip_day_minutes
@@ -385,7 +398,10 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
     avoiding.length && canAvoid
       ? { key: 'avoid', Icon: AVOID_ROWS.find(r => r.cls === avoiding[0])!.icon, text: t('roadtrip.avoid.badge', { count: avoiding.length }) }
       : null,
-  ].filter(Boolean) as { key: string; Icon: typeof Clock; text: string }[]
+    // A switch has no figure, so its badge is the sign alone and its words are the tooltip.
+    // Without it a trip whose days start and end at the stay said "None set" on the button.
+    bookends.on ? { key: 'bookends', Icon: BOOKEND_ICON, label: t('roadtrip.line.hotelBookends') } : null,
+  ].filter(Boolean) as { key: string; Icon: typeof Clock; text?: string; label?: string }[]
 
   return (
     <>
@@ -409,21 +425,13 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
           </span>
           {badges.length ? (
             <span className="flex flex-wrap items-center gap-1">
-              {badges.map(({ key, Icon, text }) => (
-                <span
+              {badges.map(({ key, Icon, text, label }) => (
+                <FigureBadge
                   key={key}
-                  className="inline-flex h-[16px] items-stretch overflow-hidden rounded border border-edge"
-                >
-                  <span className="flex items-center bg-surface-tertiary px-1 text-content-faint">
-                    <Icon size={9} aria-hidden />
-                  </span>
-                  <span
-                    className="flex items-center border-s border-edge bg-surface-card px-1.5 font-semibold tabular-nums text-content-secondary"
-                    style={{ fontSize: FS.label }}
-                  >
-                    {text}
-                  </span>
-                </span>
+                  lead={label ? <Icon size={9} aria-label={label} /> : <Icon size={9} aria-hidden />}
+                  value={text}
+                  tooltip={label}
+                />
               ))}
             </span>
           ) : (
@@ -657,6 +665,18 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                     disabled={readOnly}
                     onToggle={() => onSave?.('roadtrip_connect_days', !settings.roadtrip_connect_days)}
                   />}
+                  {/* Where a day begins and ends rather than what joins them: after a booked
+                      night the drive sets off from the stay, and before one it ends there.
+                      Off by default, because it adds a leg to most days of a trip that has
+                      stays and changes their kilometres and times. */}
+                  <AvoidRow
+                    icon={BOOKEND_ICON}
+                    label={t('roadtrip.line.hotelBookends')}
+                    hint={t('roadtrip.line.hotelBookendsHint')}
+                    on={bookends.on}
+                    disabled={!bookends.toggle}
+                    onToggle={() => bookends.toggle?.()}
+                  />
                   {/* Which matters most once the line IS continuous: end to end it is one
                       stroke, and a colour per day is what puts the days back into it. */}
                   <AvoidRow

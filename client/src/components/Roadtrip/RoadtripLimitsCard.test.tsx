@@ -277,6 +277,59 @@ describe('RoadtripLimitsCard', () => {
       fireEvent.click(toggle)
       expect(onSave).toHaveBeenCalledWith('roadtrip_connect_days', false)
     })
+
+    it('FE-ROADTRIP-LIMITS-018: starting and ending each day at the stay is off until it is asked for', () => {
+      const onSave = vi.fn()
+      open(onSave)
+
+      const toggle = screen.getByRole('button', { name: 'Start and end each day at your stay' })
+      // Missing is off: a trip drives as it always has until somebody switches it on.
+      expect(toggle).toHaveAttribute('aria-pressed', 'false')
+      fireEvent.click(toggle)
+      expect(onSave).toHaveBeenCalledWith('roadtrip_hotel_bookends', true)
+      expect(onSave).toHaveBeenCalledTimes(1)
+      // What it does is said under it for everybody to read, and the switch is described by
+      // that sentence, so a screen reader hears it with the switch rather than never.
+      const hint = screen.getByText(
+        'After a booked night the day starts at that stay, and before one it ends at the stay booked for that night.',
+      )
+      expect(toggle).toHaveAttribute('aria-describedby', hint.id)
+      expect(hint.id).not.toBe('')
+      expect(screen.queryByRole('tooltip')).toBeNull()
+      // A switch that needs no sentence is described by none.
+      expect(screen.getByRole('button', { name: 'Connect the days' })).not.toHaveAttribute('aria-describedby')
+    })
+
+    it('FE-ROADTRIP-LIMITS-019: switched on, it reads on and reports the way back off', () => {
+      useSettingsStore.setState({
+        settings: { roadtrip_hotel_bookends: true, distance_unit: 'metric' } as never,
+      })
+      const onSave = vi.fn()
+      open(onSave)
+
+      const toggle = screen.getByRole('button', { name: 'Start and end each day at your stay' })
+      expect(toggle).toHaveAttribute('aria-pressed', 'true')
+      fireEvent.click(toggle)
+      expect(onSave).toHaveBeenCalledWith('roadtrip_hotel_bookends', false)
+    })
+
+    it('FE-ROADTRIP-LIMITS-021: switched on, the button says so with the bed, instead of saying nothing is set', () => {
+      const off = render(<RoadtripLimitsCard onSave={vi.fn()} />)
+      expect(screen.getByText('None set')).toBeInTheDocument()
+      expect(off.container.querySelector('svg.lucide-bed-double')).toBeNull()
+      off.unmount()
+
+      useSettingsStore.setState({
+        settings: { roadtrip_hotel_bookends: true, distance_unit: 'metric' } as never,
+      })
+      const { container } = render(<RoadtripLimitsCard onSave={vi.fn()} />)
+      expect(screen.queryByText('None set')).toBeNull()
+      const bed = container.querySelector('svg.lucide-bed-double')!
+      expect(bed).toHaveAttribute('aria-label', 'Start and end each day at your stay')
+      // A sign alone: the switch has no figure to put beside it.
+      expect(bed.parentElement!.nextElementSibling).toBeNull()
+      expect(screen.getByRole('button')).toHaveAccessibleName(expect.stringContaining('Start and end each day at your stay'))
+    })
   })
 
   /**
@@ -312,6 +365,16 @@ describe('RoadtripLimitsCard', () => {
       // without a way to save: a switch withheld is not a setting that vanished.
       expect(screen.getByText('Connect the days')).toBeInTheDocument()
       expect(screen.getByText('A colour per day')).toBeInTheDocument()
+    })
+
+    it('FE-ROADTRIP-LIMITS-020: the stay switch shows its row and offers no switch', () => {
+      useSettingsStore.setState({
+        settings: { roadtrip_hotel_bookends: true, distance_unit: 'metric' } as never,
+      })
+      open(undefined)
+
+      expect(screen.queryByRole('button', { name: 'Start and end each day at your stay' })).not.toBeInTheDocument()
+      expect(screen.getByText('Start and end each day at your stay')).toBeInTheDocument()
     })
   })
 })

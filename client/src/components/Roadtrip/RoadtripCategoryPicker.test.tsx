@@ -5,12 +5,12 @@ import { fireEvent, render, screen, within } from '../../../tests/helpers/render
 import RoadtripCategoryPicker from './RoadtripCategoryPicker'
 
 /**
- * FE-CATPICK-001..008 — what the corridor is asked to look for.
+ * FE-CATPICK-001..009 — what the corridor is asked to look for.
  *
  * Multi-select, so it stays open on a click: picking "fuel and charging" is one
- * gesture rather than two round trips through a menu. The summary names the
- * kinds rather than counting them, because "Fuel, Charging" is the answer and
- * "2 kinds" is a riddle.
+ * gesture rather than two round trips through a menu. Closed, it draws the picked
+ * kinds as icons only and names them to a screen reader and in its tooltip,
+ * because "Fuel, Charging" is the answer and "2 kinds" is a riddle.
  */
 
 const KEYS = ['fuel', 'charging', 'food'] as const
@@ -40,11 +40,18 @@ describe('RoadtripCategoryPicker', () => {
     expect(screen.getByText('Looking for')).toBeInTheDocument()
   })
 
-  it('FE-CATPICK-003: the summary names the kinds, in the order they are offered', () => {
+  it('FE-CATPICK-003: closed, it names the kinds in the order they are offered, without printing them', () => {
     // Reversed on the way in: the control lists them the way it offers them, not
     // the way they happened to be clicked.
     picker(['food', 'fuel'])
-    expect(screen.getByText('Fuel, Food')).toBeInTheDocument()
+    expect(trigger()).toHaveAccessibleName('Looking for: Fuel, Food')
+    expect(screen.queryByText('Fuel, Food')).toBeNull()
+    expect(screen.queryByText('Fuel')).toBeNull()
+  })
+
+  it('FE-CATPICK-009: closed, every picked kind shows as its icon, however many there are', () => {
+    picker(['food', 'fuel', 'charging'])
+    expect(trigger().querySelectorAll('span.rounded-md svg')).toHaveLength(3)
   })
 
   it('FE-CATPICK-004: opening lists every kind', () => {

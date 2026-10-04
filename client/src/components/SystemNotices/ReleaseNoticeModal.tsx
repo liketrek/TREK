@@ -64,6 +64,14 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
         aria-describedby={bodyId}
         className="rn-panel"
       >
+        {/* A child of the panel, not the note: stacked, the panel scrolls and the
+            note is its second screen, so the button sticks to the panel's edge. */}
+        {notice.dismissible && (
+          <button type="button" className="rn-close" onClick={onDismiss} aria-label={t('common.close')}>
+            <X size={17} strokeWidth={2} />
+          </button>
+        )}
+
         {/* ── Left: the release ─────────────────────────────────────────── */}
         <div className="rn-release">
           <div className="rn-release-grain" aria-hidden="true" />
@@ -127,12 +135,6 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
 
         {/* ── Right: the note ───────────────────────────────────────────── */}
         <div className="rn-note">
-          {notice.dismissible && (
-            <button type="button" className="rn-close" onClick={onDismiss} aria-label={t('common.close')}>
-              <X size={17} strokeWidth={2} />
-            </button>
-          )}
-
           <div className="rn-note-body">
             <div className="rn-note-eyebrow">{t(release.note.eyebrowKey)}</div>
             <h3 className="rn-note-title">{t(release.note.titleKey)}</h3>

@@ -80,6 +80,10 @@ export interface Place {
   route_color?: string | null;
   website?: string | null;
   phone?: string | null;
+  /** Typed in by hand (#2472). */
+  email?: string | null;
+  /** Hand-kept opening hours as JSON text, seven days Monday first (#2472). */
+  opening_hours?: string | null;
   transport_mode?: string;
   /** What kind of stop this is on a drive (#1797); null for an ordinary place. */
   stop_type?: string | null;
@@ -119,6 +123,7 @@ export interface DayAssignment {
   assignment_end_time?: string | null;
   end_day?: number;
   leg_transport_mode?: string | null;
+  route_excluded?: number;
   incoming_leg_transport_mode?: string | null;
   /** The lodging booking that put this stop on the day, when one did. */
   accommodation_id?: number | null;
@@ -389,6 +394,10 @@ export interface Journey {
   status: 'draft' | 'active' | 'completed' | 'archived';
   /** Draw the linked trips' GPX tracks on this journey's map (#2194). 0 by default. */
   show_trip_tracks?: number;
+  /** The state the owner set by hand (#762); null follows the trip dates. */
+  status_override?: 'draft' | 'live' | 'completed' | null;
+  /** Entries without a place take the spot of their first geotagged photo (#1003). 0 by default. */
+  photo_location?: number;
   created_at: number;
   updated_at: number;
 }
@@ -432,6 +441,8 @@ export interface JourneyEntry {
    * The wire carries a boolean; journey-entry-row.ts is where the two meet.
    */
   stats_excluded: number;
+  /** 1 while the entry is a draft (#696), kept off the public share page. */
+  is_draft?: number;
   created_at: number;
   updated_at: number;
 }

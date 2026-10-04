@@ -114,6 +114,9 @@ const roadtrip: TranslationStrings = {
   'roadtrip.line.connect': 'Tage verbinden',
   'roadtrip.line.dayColors': 'Farbe je Tag',
   'roadtrip.line.hint': 'Verbindungsfahrten zählen zum Ankunftstag.',
+  'roadtrip.line.hotelBookends': 'Jeden Tag an der Unterkunft beginnen und beenden',
+  'roadtrip.line.hotelBookendsHint':
+    'Nach einer gebuchten Nacht beginnt der Tag an dieser Unterkunft, vor einer endet er an der Unterkunft dieser Nacht.',
   'roadtrip.avoid.section': 'Möglichst meiden',
   'roadtrip.avoid.toll': 'Mautstraßen',
   'roadtrip.avoid.motorway': 'Autobahnen',
@@ -219,6 +222,17 @@ const roadtrip: TranslationStrings = {
   'roadtrip.alt.slower': '{time} länger',
   'roadtrip.alt.quicker': '{time} kürzer',
   'roadtrip.alt.otherEngine': 'Zeit vom Ausweich-Router, nicht vom Haupt-Router.',
+  'roadtrip.alt.notHeld': 'Der Router des Roadtrips fährt diesen Weg nicht nach, deshalb wurde er nicht gespeichert.',
+  'roadtrip.alt.ferryNotHeld':
+    'Dieser Weg führt über eine Fähre. Trag die Fähre als Transportbuchung ein, dann folgt ihr die Fahrt. Legt sie erst am nächsten Tag an, gehören die Stopps auf der anderen Seite des Wassers auf diesen Tag.',
+  'roadtrip.alt.legChanged': 'Die Etappe hat sich während der Prüfung geändert, deshalb wurde nichts gespeichert.',
+  'roadtrip.alt.offline': 'Andere Wege werden nur online gespeichert. Verbinde dich wieder, um diesen zu nehmen.',
+  'roadtrip.alt.otherEngineStandard': 'Zeit vom Haupt-Router, nicht von dem, mit dem diese Etappe geplant wird.',
+  'roadtrip.alt.avoidNotHeld':
+    'Diesen Weg fährt der Roadtrip nur, wenn in seinen Einstellungen unter „{setting}“ die Option „{class}“ angehakt ist.',
+  'roadtrip.alt.checking': 'Der Router des Roadtrips prüft diesen Weg…',
+  'roadtrip.alt.standIn':
+    'Der Ausweich-Router hat für diese Etappe nicht geantwortet, deshalb hat der Haupt-Router sie gezeichnet. Der Ausweich-Router wird jetzt noch einmal gefragt.',
   'roadtrip.day': 'Tag {number}',
   'roadtrip.quietDay.empty': 'Noch keine Stopps — hier ablegen',
   'roadtrip.quietDay.one': 'Bisher nur {name} — hier einen Stopp ablegen',
@@ -233,6 +247,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stop.fillDefault': 'Meinen Standard nehmen',
   'roadtrip.stop.fillSet': 'Festlegen, wie voll hier getankt wird',
   'roadtrip.leg.pending': 'Keine Route',
+  'roadtrip.leg.arrivingFrom': 'Ab {name}',
   'roadtrip.stop.addTitle': 'Als Stopp hinzufügen',
   'roadtrip.stop.kind': 'Art des Stopps',
   'roadtrip.stop.landsOn': 'Tag {day}, als Stopp {position}',
@@ -266,5 +281,41 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stay.releaseBody': 'Die Nacht in „{name}“ wird entfernt. Der Stopp bleibt als Pause auf der Fahrt.',
   'roadtrip.stay.releaseBookedBody': 'Die Nacht in „{name}“ wird zusammen mit der Buchung „{booking}“ und jeder damit verknüpften Ausgabe entfernt. Der Stopp bleibt als Pause auf der Fahrt.',
   'roadtrip.stay.releaseAction': 'Als Pause behalten',
+  'roadtrip.ride.departure': 'Abfahrt {time}',
+  'roadtrip.ride.arrival': 'Ankunft {time}',
+  'roadtrip.ride.pickup': 'Abholung {time}',
+  'roadtrip.ride.return': 'Rückgabe {time}',
+  'roadtrip.ride.open': 'Buchung öffnen',
+  'roadtrip.ride.undated':
+    'Die Buchung {title} liegt auf keinem Tag dieser Reise, deshalb plant die Fahrt nicht mit ihr.',
+  'roadtrip.bookings.loose': 'Außerdem an diesem Tag gebucht',
+  'roadtrip.ride.departureFlight': 'Abflug {time}',
+  'roadtrip.ride.duration': 'Dauer laut Buchung',
+  'roadtrip.ride.checkIn': 'Check-in',
+  'roadtrip.ride.boarding': 'Einstieg',
+  'roadtrip.ride.missed': 'Verpasst',
+  'roadtrip.ride.lateBy': '{time} zu spät',
+  'roadtrip.ride.reachedAt': 'erst {time} da',
+  'roadtrip.ride.hintFlight': '{title} fliegt um {departs} ab, Check-in bis {pin}.',
+  'roadtrip.ride.hintShip': '{title} legt um {departs} ab, Check-in bis {pin}.',
+  'roadtrip.ride.hintBoarding': '{title} fährt um {departs} ab, Einstieg bis {pin}.',
+  'roadtrip.ride.lateHintFlight':
+    'Die Fahrt erreicht {place} erst um {time}. {title} fliegt um {departs} ab, Check-in bis {pin}.',
+  'roadtrip.ride.lateHintShip':
+    'Die Fahrt erreicht {place} erst um {time}. {title} legt um {departs} ab, Check-in bis {pin}.',
+  'roadtrip.ride.lateHintBoarding':
+    'Die Fahrt erreicht {place} erst um {time}. {title} fährt um {departs} ab, Einstieg bis {pin}.',
+  'roadtrip.day.rideMissed.flight': 'Flug verpasst',
+  'roadtrip.day.rideMissed.train': 'Zug verpasst',
+  'roadtrip.day.rideMissed.ferry': 'Fähre verpasst',
+  'roadtrip.day.rideMissed.cruise': 'Kreuzfahrt verpasst',
+  'roadtrip.day.rideMissed.bus': 'Bus verpasst',
+  'roadtrip.bookend.checkOut': 'Check-out',
+  'roadtrip.bookend.from': 'Tagesstart',
+  'roadtrip.bookend.back': 'Übernachtung',
+  'roadtrip.bookend.checkIn': 'Check-in',
+  'roadtrip.bookend.afterCheckOut': 'Abfahrt nach dem Check-out',
+  'roadtrip.bookend.noVia':
+    'Auf der Fahrt zur oder von der Unterkunft geht kein Zwischenpunkt. Füge dort stattdessen einen Stopp hinzu.',
 };
 export default roadtrip;

@@ -354,6 +354,32 @@ describe('tripStore', () => {
     });
   });
 
+  describe('places filters', () => {
+    it('FE-TRIP-PF-001: the rating floor starts at "all" and is shared through the store', () => {
+      expect(useTripStore.getState().placesRatingFilter).toBe('all');
+      useTripStore.getState().setPlacesRatingFilter(4);
+      expect(useTripStore.getState().placesRatingFilter).toBe(4);
+    });
+
+    it('FE-TRIP-PF-002: resetPlacesFilters lifts the pool, the categories and the rating at once', () => {
+      const s = useTripStore.getState();
+      s.setPlacesFilter('unplanned');
+      s.setPlacesCategoryFilter(new Set(['3', 'uncategorized']));
+      s.setPlacesRatingFilter(5);
+      useTripStore.getState().resetPlacesFilters();
+      const after = useTripStore.getState();
+      expect(after.placesFilter).toBe('all');
+      expect(after.placesCategoryFilter.size).toBe(0);
+      expect(after.placesRatingFilter).toBe('all');
+    });
+
+    it('FE-TRIP-PF-003: resetTrip drops the rating floor of the previous trip', () => {
+      useTripStore.getState().setPlacesRatingFilter(3);
+      useTripStore.getState().resetTrip();
+      expect(useTripStore.getState().placesRatingFilter).toBe('all');
+    });
+  });
+
   describe('addTag', () => {
     it('FE-TRIP-010: addTag creates tag and appends to tags', async () => {
       const existingTag = buildTag();

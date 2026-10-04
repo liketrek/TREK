@@ -18,6 +18,7 @@ import { decodePolyline, encodePolyline } from '../../../src/nest/transit/transi
 import { TransitService } from '../../../src/nest/transit/transit.service';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 vi.mock('../../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/app-config')>();
@@ -49,7 +50,7 @@ function makeProvider(settings: Record<string, string | undefined>): GoogleTrans
     getValue: async (key: string) => settings[key] ?? null,
   } as unknown as AppSettingsRepository;
   const usersStub = { getApiKeyColumn: async () => null } as unknown as UsersRepository;
-  return new GoogleTransitProvider(appSettingsStub, usersStub);
+  return new GoogleTransitProvider(appSettingsStub, usersStub, noGoogleQuota);
 }
 
 beforeEach(() => {

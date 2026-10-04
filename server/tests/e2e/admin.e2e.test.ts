@@ -30,7 +30,9 @@ const { db } = vi.hoisted(() => {
   // class-level JS default (`mfa_enabled = 0`, `first_seen_version = '0.0.0'`, …),
   // even though this repository's own method never names them. Fixed at the
   // source (the fixture, adding the columns the real migrated schema has), not
-  // worked around in the repository.
+  // worked around in the repository. `immich_allow_insecure_tls` (#2475,
+  // Migration20200101040400) is the same drift again: a defaulted column the
+  // entity now carries, so the native insert names it.
   tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0,
     password_hash TEXT, avatar TEXT, is_guest INTEGER DEFAULT 0,
@@ -39,7 +41,7 @@ const { db } = vi.hoisted(() => {
     must_change_password INTEGER DEFAULT 0, synology_skip_ssl INTEGER DEFAULT 0,
     first_seen_version TEXT DEFAULT '0.0.0', login_count INTEGER DEFAULT 0,
     immich_auto_upload INTEGER DEFAULT 0, airtrail_allow_insecure_tls INTEGER DEFAULT 0,
-    airtrail_write_enabled INTEGER DEFAULT 0);`);
+    airtrail_write_enabled INTEGER DEFAULT 0, immich_allow_insecure_tls INTEGER NOT NULL DEFAULT 0);`);
   tmp.exec(`CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
     key TEXT NOT NULL, value TEXT, UNIQUE(user_id, key));`);
   tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');

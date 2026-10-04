@@ -50,6 +50,7 @@
 .rn-close { box-sizing: content-box; }
 
 .rn-panel {
+  position: relative;
   width: min(1420px, calc(100% - 2px));
   max-height: 100%;
   display: grid;
@@ -67,12 +68,60 @@
   line-height: normal;
 }
 
+/* The panel's, not the note's: in the stacked layout below it has to outlast the
+   release half, which scrolls by first. */
+.rn-close {
+  position: absolute;
+  top: 22px;
+  /* Logical, so the X sits at the reading end in Arabic too. With the physical
+     right it stayed over the release half there, which the note's palette below
+     is not made for, and the stacked layout put it at the other end anyway. */
+  inset-inline-end: 22px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  z-index: 2;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.rn-close:hover { background: var(--bg-selected); color: var(--text-primary); }
+
 /* Below the two-column breakpoint the halves stack and the panel scrolls. The
    rows must go back to auto: with the single minmax row from above, the note took
    the whole panel and the release half was left with nothing but its padding. */
 @media (max-width: 1080px) {
-  .rn-panel { grid-template-columns: 1fr; grid-template-rows: auto; overflow-y: auto; }
+  .rn-panel { grid-template-columns: 1fr; grid-template-rows: auto auto; overflow-y: auto; }
+  .rn-release { grid-area: 1 / 1; }
+  .rn-note { grid-area: 2 / 1; }
   .rn-release, .rn-release-inner, .rn-note-body { overflow: visible; }
+  /* The X used to sit in the note, a whole release half below the top edge, and
+     at a tablet's width the backdrop is gone too. As a grid item over both rows
+     it sticks 22px under the top edge for the entire scroll, over either half. */
+  .rn-close {
+    position: sticky;
+    grid-row: 1 / -1;
+    grid-column: 1;
+    justify-self: end;
+    align-self: start;
+    margin: 22px;
+    /* At the top of the scroll it hangs over the release half, which is dark in
+       both themes. The note's palette is a near-transparent fill and secondary
+       ink: in the light theme that is a slate glyph on near black, roughly 1.8:1,
+       so the only way to dismiss the notice on a tablet was invisible. An opaque
+       chip with primary ink carries over either half, the way .rn-support below
+       gets a solid band once it sticks. */
+    background: color-mix(in srgb, var(--bg-card) 92%, var(--text-primary));
+    border-color: var(--border-primary);
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px oklch(0 0 0 / 0.25);
+  }
   /* Once the note has scrolled into view, the ask stays at the bottom edge. The
      band's usual tint is translucent, so it gets a solid one here. */
   .rn-support {
@@ -559,26 +608,6 @@
   flex-direction: column;
   min-height: 0;
 }
-
-.rn-close {
-  position: absolute;
-  top: 22px;
-  right: 22px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--bg-hover);
-  border: 1px solid var(--border-faint);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  z-index: 2;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.rn-close:hover { background: var(--bg-selected); color: var(--text-primary); }
 
 .rn-note-body {
   flex: 1;

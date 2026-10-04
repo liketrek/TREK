@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'Майже на місці...',
   'trip.mobilePlan': 'План',
   'trip.mobilePlaces': 'Місця',
+  'trip.panelWidth': 'Ширина панелі',
   'trip.toast.placeUpdated': 'Місце оновлено',
   'trip.toast.tripUpdated': 'Подорож оновлено',
   'trip.toast.placeAdded': 'Місце додано',
@@ -88,7 +89,10 @@ const trip: TranslationStrings = {
   'transit.transfersLabel': 'Пересадки',
   'transit.walkLabel': 'Пішки',
   'transit.searchHint': 'Шукайте справжні маршрути та додавайте їх одразу до дня — дані від Transitous.',
-  'trip.confirm.deletePlaceNight': 'Ночівля, заброньована в «{name}», зникне разом із місцем.',
-  'trip.confirm.deletePlaceBooked': 'Ночівля, заброньована в «{name}», зникне разом із місцем, а з нею бронювання «{booking}» і пов’язані витрати.',
+  'trip.confirm.deletePlaceNight': 'Також буде видалено проживання, заброньоване в «{name}».',
+  'trip.confirm.deletePlaceBooked':
+    'Також буде видалено проживання, заброньоване в «{name}», бронювання «{booking}» і пов’язані витрати.',
+  'trip.confirm.deletePlaceBookedSame':
+    'Також буде видалено проживання, заброньоване в «{name}», його бронювання і пов’язані витрати.',
 };
 export default trip;

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useId } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from '../i18n'
 import PageShell from '../components/Layout/PageShell'
@@ -7,14 +7,21 @@ import VacayPersons from '../components/Vacay/VacayPersons'
 import VacaySharedCalendars from '../components/Vacay/VacaySharedCalendars'
 import VacayStats from '../components/Vacay/VacayStats'
 import VacaySettings from '../components/Vacay/VacaySettings'
-import { Plus, Minus, ChevronLeft, ChevronRight, Settings, CalendarDays, AlertTriangle, Eye, Pencil, Trash2, Unlink, ShieldCheck, SlidersHorizontal } from 'lucide-react'
-import Modal from '../components/shared/Modal'
+import { Plus, Minus, ChevronLeft, ChevronRight, Settings, CalendarDays, Eye, Pencil, Trash2, Unlink, ShieldCheck, SlidersHorizontal, Handshake } from 'lucide-react'
+import ConfirmDialog from '../components/shared/ConfirmDialog'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../components/shared/DialogShell'
+import HelpAnchor from '../components/Help/HelpAnchor'
 import { useVacay } from './vacay/useVacay'
 
 export default function VacayPage(): React.ReactElement {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
   // chunk of its own instead of a dead limb in this one.
-  return <VacayPageDesktop />
+  return (
+    <>
+      <HelpAnchor id="vacay" />
+      <VacayPageDesktop />
+    </>
+  )
 }
 
 function VacayPageDesktop(): React.ReactElement {
@@ -167,9 +174,10 @@ function VacayPageDesktop(): React.ReactElement {
           </div>
         </div>
 
-      {/* Mobile Sidebar Drawer */}
+      {/* Mobile Sidebar Drawer. It sits just under the dialog layer, because the
+          invite, share and colour dialogs of the cards inside it open over it. */}
       {showMobileSidebar && createPortal(
-        <div className="fixed inset-0 lg:hidden" style={{ zIndex: 99980 }}>
+        <div className="fixed inset-0 lg:hidden" style={{ zIndex: 'calc(var(--z-modal) - 1)' }}>
           <div className="absolute inset-0 bg-[rgba(0,0,0,0.4)]" role="presentation" onClick={() => setShowMobileSidebar(false)} />
           <div className="absolute left-0 top-0 bottom-0 w-[280px] overflow-y-auto p-3 flex flex-col gap-3 bg-surface"
             style={{ boxShadow: '4px 0 24px rgba(0,0,0,0.15)', animation: 'slideInLeft 0.2s ease-out' }}>
@@ -179,74 +187,26 @@ function VacayPageDesktop(): React.ReactElement {
         document.body
       )}
 
-      {/* Settings Modal */}
-      <Modal isOpen={showSettings} onClose={() => setShowSettings(false)} title={t('vacay.settings')} size="3xl">
-        <VacaySettings onClose={() => setShowSettings(false)} />
-      </Modal>
+      <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
 
-      {/* Delete Year Modal */}
-      <Modal isOpen={deleteYear !== null} onClose={() => setDeleteYear(null)} title={t('vacay.removeYear')} size="sm">
-        <div className="space-y-4">
-          <div className="flex gap-3 p-3 rounded-lg bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.15)]">
-            <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-content">
-                {t('vacay.removeYearConfirm', { year: deleteYear })}
-              </p>
-              <p className="text-xs mt-1 text-content-muted">
-                {t('vacay.removeYearHint')}
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-3 justify-end">
-            <button type="button" onClick={() => setDeleteYear(null)} className="px-4 py-2 text-sm rounded-lg transition-colors border text-content-muted border-edge">
-              {t('common.cancel')}
-            </button>
-            <button type="button" onClick={async () => { await removeYear(deleteYear); setDeleteYear(null) }} className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">
-              {t('vacay.remove')}
-            </button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        isOpen={deleteYear !== null}
+        onClose={() => setDeleteYear(null)}
+        onConfirm={() => removeYear(deleteYear)}
+        title={t('vacay.removeYear')}
+        message={t('vacay.removeYearConfirm', { year: deleteYear })}
+        confirmLabel={t('vacay.remove')}
+      >
+        <p className="m-0 text-content-muted" style={fs(12.5, 'body')}>{t('vacay.removeYearHint')}</p>
+      </ConfirmDialog>
 
-      {/* Incoming invite — forced fullscreen modal */}
-      {incomingInvites.length > 0 && createPortal(
-        <div className="fixed inset-0 flex items-center justify-center px-4 bg-[rgba(0,0,0,0.7)]"
-          style={{ zIndex: 99995, backdropFilter: 'blur(8px)' }}>
-          {incomingInvites.map(inv => (
-            <div key={inv.plan_id} className="trek-modal-enter w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-surface-card">
-              <div className="px-6 pt-6 pb-4 text-center">
-                <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center text-lg font-bold bg-surface-secondary text-content">
-                  {inv.owner_username?.[0]?.toUpperCase()}
-                </div>
-                <h2 className="text-lg font-bold mb-1 text-content">
-                  {t('vacay.inviteTitle')}
-                </h2>
-                <p className="text-sm text-content-muted">
-                  <span className="font-semibold text-content">{inv.owner_username}</span> {t('vacay.inviteWantsToFuse')}
-                </p>
-              </div>
-              <div className="px-6 pb-4 space-y-2">
-                <InfoItem icon={Eye} text={t('vacay.fuseInfo1')} />
-                <InfoItem icon={Pencil} text={t('vacay.fuseInfo2')} />
-                <InfoItem icon={Trash2} text={t('vacay.fuseInfo3')} />
-                <InfoItem icon={ShieldCheck} text={t('vacay.fuseInfo4')} />
-                <InfoItem icon={Unlink} text={t('vacay.fuseInfo5')} />
-              </div>
-              <div className="px-6 pb-6 flex gap-3">
-                <button type="button" onClick={() => declineInvite(inv.plan_id)}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors border text-content-muted border-edge">
-                  {t('vacay.decline')}
-                </button>
-                <button type="button" onClick={() => acceptInvite(inv.plan_id)}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors bg-content text-surface-card">
-                  {t('vacay.acceptFusion')}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>,
-        document.body
+      {incomingInvites[0] && (
+        <FusionRequestDialog
+          key={incomingInvites[0].plan_id}
+          invite={incomingInvites[0]}
+          onAccept={acceptInvite}
+          onDecline={declineInvite}
+        />
       )}
 
       <style>{`
@@ -259,12 +219,95 @@ function VacayPageDesktop(): React.ReactElement {
   )
 }
 
-function InfoItem({ icon: Icon, text }: { icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>; text: string }): React.ReactElement {
+/** The plan's settings. They save as they change, so the frame has no footer. */
+function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }): React.ReactElement {
+  const { t } = useTranslation()
+  const labelId = useId()
   return (
-    <div className="flex items-start gap-3 px-3 py-2 rounded-lg bg-surface-secondary">
-      <Icon size={15} className="shrink-0 mt-0.5 text-content-muted" />
-      <span className="text-xs text-content">{text}</span>
-    </div>
+    <DialogShell
+      open={open}
+      onClose={onClose}
+      labelledBy={labelId}
+      width="wide"
+      // Calendars and their add form open inside, so the upper edge stays put.
+      align="top"
+      header={(
+        <DialogHeader
+          tile={<DialogTile><Settings size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={onClose}
+          title={t('vacay.settings')}
+        />
+      )}
+    >
+      <VacaySettings onClose={onClose} />
+    </DialogShell>
+  )
+}
+
+/**
+ * Someone asks to fuse their calendar with yours. The request has to be
+ * answered, so there is no close button and Escape and the backdrop leave it
+ * alone. Several requests are shown one after the other, the next once the
+ * first is answered.
+ */
+function FusionRequestDialog({ invite, onAccept, onDecline }: {
+  invite: { plan_id: number; owner_username: string }
+  onAccept: (planId: number) => void
+  onDecline: (planId: number) => void
+}): React.ReactElement {
+  const { t } = useTranslation()
+  const labelId = useId()
+  return (
+    <DialogShell
+      onClose={() => { /* never called: blocked keeps Escape and the backdrop from closing it */ }}
+      blocked
+      labelledBy={labelId}
+      width="narrow"
+      header={(
+        // DialogHeader always draws a close button, so the band is drawn here without one.
+        <header className="flex-none px-6 pb-4 pt-5" style={{ background: NEUTRAL_TINT }}>
+          <div className="flex items-start gap-3.5">
+            <DialogTile><Handshake size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>
+            <div className="min-w-0 flex-1 pt-0.5">
+              <h2 id={labelId} className="m-0 truncate font-bold tracking-[-0.01em] text-content" style={fs(20, 'subtitle')}>
+                {t('vacay.inviteTitle')}
+              </h2>
+              <p className="m-0 mt-0.5 break-words font-geist text-content-muted" style={fs(12.5)}>
+                <span className="font-semibold text-content">{invite.owner_username}</span> {t('vacay.inviteWantsToFuse')}
+              </p>
+            </div>
+          </div>
+        </header>
+      )}
+      footer={(
+        <DialogFooter>
+          <FooterSpacer />
+          <DialogButton onClick={() => onDecline(invite.plan_id)}>{t('vacay.decline')}</DialogButton>
+          <DialogButton variant="primary" onClick={() => onAccept(invite.plan_id)}>{t('vacay.acceptFusion')}</DialogButton>
+        </DialogFooter>
+      )}
+    >
+      <ul className="m-0 flex list-none flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5">
+        <InfoItem icon={Eye} text={t('vacay.fuseInfo1')} />
+        <InfoItem icon={Pencil} text={t('vacay.fuseInfo2')} />
+        <InfoItem icon={Trash2} text={t('vacay.fuseInfo3')} />
+        <InfoItem icon={ShieldCheck} text={t('vacay.fuseInfo4')} />
+        <InfoItem icon={Unlink} text={t('vacay.fuseInfo5')} />
+      </ul>
+    </DialogShell>
+  )
+}
+
+function InfoItem({ icon: Icon, text }: { icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>; text: string }): React.ReactElement {
+  return (
+    <li className="flex items-start gap-3 rounded-[10px] px-2.5 py-2">
+      <span className="grid h-7 w-7 flex-none place-items-center rounded-[9px] bg-surface-card text-content-muted shadow-sm">
+        <Icon size={14} strokeWidth={2} />
+      </span>
+      <span className="min-w-0 pt-1 leading-normal text-content" style={fs(12.5, 'body')}>{text}</span>
+    </li>
   )
 }
 

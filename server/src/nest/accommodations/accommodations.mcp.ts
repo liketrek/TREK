@@ -4,6 +4,7 @@ import {
   demoDenied, ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { placeWebsiteSchema } from '@trek/shared';
 import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
 import { PlacesService } from '../places/places.service';
@@ -130,9 +131,13 @@ export class AccommodationsMcp {
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     const dayErrors = await this.accommodations.validateAccommodationRefs(tripId, undefined, start_day_id, end_day_id);
     if (dayErrors.length > 0) return { content: [{ type: 'text' as const, text: dayErrors.map(e => e.message).join(', ') }], isError: true };
+    // The website takes the place contract create_place uses, so a bare host
+    // gains https (#2483). A value that contract refuses is left off instead of
+    // failing the booking: this tool always took any text here, '' as none.
+    const site = website ? placeWebsiteSchema.safeParse(website) : null;
     try {
       const result = await this.uow.transactional(async () => {
-        const place = await this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes: place_notes, website, phone, price, currency });
+        const place = await this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, notes: place_notes, website: site?.success ? site.data : undefined, phone, price, currency });
         const { accommodation, mirror } = await this.accommodations.createAccommodation(tripId, { place_id: place.id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes: accommodation_notes });
         return { place, accommodation, mirror };
       });

@@ -184,6 +184,10 @@ async function main() {
 
   const db = new Database(dbPath);
   db.pragma('busy_timeout = 5000');
+  // Temp files in memory, like every connection src/db/connection.ts opens: a
+  // container with a read-only root and no tmpfs on /tmp has nowhere to put
+  // them, and the rotation below runs as one long transaction (#2518).
+  db.pragma('temp_store = MEMORY');
 
   // The rollback copy has to be a consistent snapshot, not a plain file copy:
   // this script is documented as running against a live server, so in WAL mode
@@ -283,6 +287,10 @@ async function main() {
     // rotation leaves it encrypted under the old key, which reads back as "no
     // key" and silently drops the install to OpenStreetMap, so the copy is
     // pinned by tests/unit/db/migrate-encryption-parity.test.ts.
+    //
+    // web_push_vapid_private_key is the Web Push signing key VapidKeysService
+    // generates. Missed here it would no longer decrypt under the new key, and
+    // push would stay off on every device until the old key came back.
     for (const key of [
       'oidc_client_secret',
       'smtp_pass',
@@ -291,6 +299,7 @@ async function main() {
       'maps_api_key',
       'unsplash_api_key',
       'amap_api_key',
+      'web_push_vapid_private_key',
     ]) {
       const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
       if (!row?.value) continue;

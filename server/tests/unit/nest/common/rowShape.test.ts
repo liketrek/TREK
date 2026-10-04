@@ -27,6 +27,7 @@ function makeRow(overrides: Partial<AssignmentWithPlaceRow> = {}): AssignmentWit
     leg_transport_mode: null,
     incoming_leg_transport_mode: null,
     accommodation_id: null,
+    route_excluded: 0,
     created_at: '2024-01-01T00:00:00Z',
     place_name: 'Eiffel Tower',
     place_description: 'Famous landmark',

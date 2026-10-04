@@ -15,6 +15,7 @@ const trip: TranslationStrings = {
   'trip.loadingPhotos': 'Carregant les fotos del lloc...',
   'trip.mobilePlan': 'Planificació',
   'trip.mobilePlaces': 'Llocs',
+  'trip.panelWidth': 'Amplada del tauler',
   'trip.toast.placeUpdated': 'Lloc actualitzat',
   'trip.toast.placeAdded': 'Lloc afegit',
   'trip.toast.placeDeleted': 'Lloc eliminat',
@@ -88,7 +89,10 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.road': 'Sortint de camí...',
   'trip.loadingSteps.arrive': 'Gairebé hi som...',
   'trip.toast.tripUpdated': 'Viatge actualitzat',
-  'trip.confirm.deletePlaceNight': 'La nit reservada a «{name}» es perd amb el lloc.',
-  'trip.confirm.deletePlaceBooked': 'La nit reservada a «{name}» es perd amb el lloc, juntament amb la reserva «{booking}» i qualsevol despesa vinculada.',
+  'trip.confirm.deletePlaceNight': 'També s’elimina l’estada reservada a «{name}».',
+  'trip.confirm.deletePlaceBooked':
+    'També s’eliminen l’estada reservada a «{name}», la reserva «{booking}» i qualsevol despesa vinculada.',
+  'trip.confirm.deletePlaceBookedSame':
+    'També s’eliminen l’estada reservada a «{name}», la seva reserva i qualsevol despesa vinculada.',
 };
 export default trip;

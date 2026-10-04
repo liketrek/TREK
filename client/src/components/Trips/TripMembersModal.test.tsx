@@ -1,4 +1,4 @@
-// FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-056
+// FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-060
 import type { Mock } from 'vitest';
 import { act, render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -55,6 +55,33 @@ function mockClipboard(): Mock<(text: string) => Promise<void>> {
   return writeText;
 }
 
+/**
+ * A `location` whose `reload` is a spy.
+ *
+ * jsdom's own `reload` cannot be redefined, so the whole object has to be
+ * replaced, and `{ ...window.location }` is the trap: its fields are getters on
+ * the prototype, so the copy has no `href` for axios to resolve a relative URL
+ * against and the request never reaches MSW. The fields are therefore read out
+ * by name.
+ */
+/**
+ * A `location` whose `reload` is a spy, for the two flows that reload the app.
+ *
+ * jsdom's own `reload` cannot be redefined, so the whole object is replaced, and
+ * the replacement is a flat copy without the prototype's getters. That is enough
+ * for a test that only asserts the reload, but it leaves a request with nothing
+ * to resolve a relative URL against, so a test that asserts the call itself must
+ * not use this. The original is put back after every test: left in place, it
+ * broke every later case in the file.
+ */
+let realLocation: PropertyDescriptor | undefined;
+function stubReload(): Mock<() => void> {
+  const reload = vi.fn();
+  realLocation ??= Object.getOwnPropertyDescriptor(window, 'location');
+  Object.defineProperty(window, 'location', { value: { ...window.location, reload }, writable: true, configurable: true });
+  return reload;
+}
+
 beforeEach(() => {
   resetAllStores();
   server.use(
@@ -82,6 +109,10 @@ afterEach(() => {
   delete window.__addToast;
   vi.useRealTimers();
   vi.restoreAllMocks();
+  if (realLocation) {
+    Object.defineProperty(window, 'location', realLocation);
+    realLocation = undefined;
+  }
   Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true, writable: true });
 });
 
@@ -167,8 +198,8 @@ describe('TripMembersModal', () => {
 
   it('FE-COMP-MEMBERS-012: shows "you" label next to current user', async () => {
     render(<TripMembersModal {...defaultProps} />);
-    // Rendered as "(you)" — use regex to find it
-    expect(await screen.findByText(/\(you\)/i)).toBeInTheDocument();
+    // A badge beside the name on the desktop; the phone keeps "(you)".
+    expect(await screen.findByText('you')).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-013: shows remove access button for members (not owner)', async () => {
@@ -184,14 +215,12 @@ describe('TripMembersModal', () => {
     render(<TripMembersModal {...defaultProps} />);
     await screen.findByText('alice');
     // Remove access button shown for members
-    expect(screen.getByTitle('Remove access')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove access' })).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-014: remove member calls DELETE API', async () => {
     const user = userEvent.setup();
     let deleteCalled = false;
-    // Mock window.confirm to return true so deletion proceeds
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     server.use(
       http.get('/api/trips/1/members', () =>
         HttpResponse.json({
@@ -207,10 +236,11 @@ describe('TripMembersModal', () => {
     );
     render(<TripMembersModal {...defaultProps} />);
     await screen.findByText('alice');
-    const removeBtn = screen.getByTitle('Remove access');
-    await user.click(removeBtn);
+    await user.click(screen.getByRole('button', { name: 'Remove access' }));
+    // The question comes first, in the app's own dialog.
+    expect(screen.getByText('Remove access for this user?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(deleteCalled).toBe(true));
-    vi.restoreAllMocks();
   });
 
   it('FE-COMP-MEMBERS-015: modal renders when isOpen is true', () => {
@@ -409,12 +439,9 @@ describe('TripMembersModal', () => {
 
   it('FE-COMP-MEMBERS-024: leave trip calls DELETE for current user', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    Object.defineProperty(window, 'location', {
-      value: { ...window.location, reload: vi.fn() },
-      writable: true,
-      configurable: true,
-    });
+    // No reload stub here on purpose: this case asserts the DELETE, and a stubbed
+    // location is exactly what stops the request from reaching it. jsdom's own
+    // reload is a no-op that only logs.
 
     seedStore(useAuthStore, { user: memberUser, isAuthenticated: true });
     seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
@@ -437,14 +464,13 @@ describe('TripMembersModal', () => {
     render(<TripMembersModal {...defaultProps} />);
     await screen.findByText('alice');
 
-    const leaveBtn = screen.getByTitle('Leave trip');
-    await user.click(leaveBtn);
+    await user.click(screen.getByRole('button', { name: 'Leave trip' }));
+    expect(screen.getByText('Leave trip? You will lose access.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() => {
       expect(deleteCalledForUserId).toBe(String(memberUser.id));
     });
-
-    vi.restoreAllMocks();
   });
 
   it('FE-COMP-MEMBERS-025: "all have access" message shown when all users are members', async () => {
@@ -499,8 +525,8 @@ describe('TripMembersModal', () => {
     await screen.findByText('Grandma');
     // The guest carries a "Guest" badge.
     expect(screen.getAllByText('Guest').length).toBeGreaterThan(0);
-    // Access count covers owner + the real member only (2), not the guest.
-    expect(screen.getByText(/Access \(2/)).toBeInTheDocument();
+    // The head band counts the owner and the real member (2), not the guest.
+    expect(screen.getByText('2 persons')).toBeInTheDocument();
   });
 
   // ── Avatars and load failures (028-031) ───────────────────────────────────
@@ -527,7 +553,7 @@ describe('TripMembersModal', () => {
     render(<TripMembersModal {...defaultProps} />);
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to load members', 'error', undefined));
-    expect(screen.getByText(/Access \(0/)).toBeInTheDocument();
+    expect(screen.getByText('0 persons')).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-031: a failing share-link load still offers link creation', async () => {
@@ -574,6 +600,23 @@ describe('TripMembersModal', () => {
     await waitFor(() => expect(postedPerms).toMatchObject({
       share_map: true, share_bookings: true, share_packing: false, share_budget: true, share_collab: false,
     }));
+  });
+
+  it('FE-COMP-MEMBERS-033b: the two narrowing options post with the link (#1712)', async () => {
+    const user = userEvent.setup();
+    asShareOwner();
+    let postedPerms: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/trips/1/share-link', () => HttpResponse.json({ token: 'tok77', share_hide_images: true })),
+      http.post('/api/trips/1/share-link', async ({ request }) => {
+        postedPerms = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ token: 'tok77' });
+      }),
+    );
+    render(<TripMembersModal {...defaultProps} />);
+
+    await user.click(await screen.findByText('Travel & stays only'));
+    await waitFor(() => expect(postedPerms).toMatchObject({ share_travel_only: true, share_hide_images: true }));
   });
 
   it('FE-COMP-MEMBERS-034: a failing permission update is reported', async () => {
@@ -725,11 +768,29 @@ describe('TripMembersModal', () => {
     expect(addToast).toHaveBeenCalledWith('alice added', 'success', undefined);
   });
 
+  // #2478: the pick showed nowhere, only the Invite button knew about it.
+  it('FE-COMP-MEMBERS-057: the picked user shows in the field before the invite is sent', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/trips/1/members', () => HttpResponse.json({ success: true })));
+    render(<TripMembersModal {...defaultProps} />);
+
+    await screen.findByText('Invite User');
+    const trigger = screen.getByText('Select user…').closest('button') as HTMLButtonElement;
+    await user.click(trigger);
+    await user.click(await screen.findByRole('button', { name: 'alice' }));
+
+    expect(trigger).toHaveTextContent('alice');
+    expect(screen.queryByText('Select user…')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Invite' })).toBeEnabled();
+
+    // Once sent, the field is free for the next pick again.
+    await user.click(screen.getByRole('button', { name: 'Invite' }));
+    await waitFor(() => expect(trigger).toHaveTextContent('Select user…'));
+  });
+
   it('FE-COMP-MEMBERS-042: transferring ownership reloads the app', async () => {
     const onClose = vi.fn();
-    const reload = vi.fn();
-    Object.defineProperty(window, 'location', { value: { ...window.location, reload }, writable: true, configurable: true });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const reload = stubReload();
     mockRoster([{ id: memberUser.id, username: 'alice', avatar_url: null }]);
     let transferBody: Record<string, unknown> | null = null;
     server.use(
@@ -741,8 +802,9 @@ describe('TripMembersModal', () => {
     );
     render(<TripMembersModal {...defaultProps} onClose={onClose} />);
 
-    const crown = await screen.findByTitle('Make owner');
+    const crown = await screen.findByRole('button', { name: 'Make owner' });
     fireEvent.click(crown);
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
     expect(crown).toBeDisabled();
 
     await waitFor(() => expect(reload).toHaveBeenCalled());
@@ -752,56 +814,45 @@ describe('TripMembersModal', () => {
 
   it('FE-COMP-MEMBERS-043: declining the transfer confirmation does nothing', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
     mockRoster([{ id: memberUser.id, username: 'alice', avatar_url: null }]);
     let transferCalled = false;
     server.use(http.post('/api/trips/1/transfer', () => { transferCalled = true; return HttpResponse.json({}); }));
     render(<TripMembersModal {...defaultProps} />);
 
-    const crown = await screen.findByTitle('Make owner');
-    fireEvent.mouseEnter(crown);
-    expect(crown.style.color).toBe('rgb(217, 119, 6)');
-    fireEvent.mouseLeave(crown);
-    expect(crown.style.color).toBe('rgb(156, 163, 175)');
+    await user.click(await screen.findByRole('button', { name: 'Make owner' }));
+    expect(screen.getByText('Transfer ownership to alice? You will become a regular member.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    await user.click(crown);
-
+    expect(screen.queryByText('Transfer ownership to alice? You will become a regular member.')).not.toBeInTheDocument();
     expect(transferCalled).toBe(false);
-    expect(window.confirm).toHaveBeenCalledWith('Transfer ownership to alice? You will become a regular member.');
   });
 
   it('FE-COMP-MEMBERS-044: a failing transfer re-enables the button', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     mockRoster([{ id: memberUser.id, username: 'alice', avatar_url: null }]);
     server.use(http.post('/api/trips/1/transfer', () => HttpResponse.json({ error: 'Not allowed' }, { status: 403 })));
     render(<TripMembersModal {...defaultProps} />);
 
-    await user.click(await screen.findByTitle('Make owner'));
+    await user.click(await screen.findByRole('button', { name: 'Make owner' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Not allowed', 'error', undefined));
-    expect(screen.getByTitle('Make owner')).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Make owner' })).toBeEnabled();
   });
 
   it('FE-COMP-MEMBERS-045: member removal is cancellable and reports failures', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     mockRoster([{ id: memberUser.id, username: 'alice', avatar_url: null }]);
     let deletes = 0;
     server.use(http.delete('/api/trips/1/members/:userId', () => { deletes++; return HttpResponse.json({}, { status: 500 }); }));
     render(<TripMembersModal {...defaultProps} />);
 
-    const removeBtn = await screen.findByTitle('Remove access');
-    fireEvent.mouseEnter(removeBtn);
-    expect(removeBtn.style.color).toBe('rgb(239, 68, 68)');
-    fireEvent.mouseLeave(removeBtn);
-    expect(removeBtn.style.color).toBe('rgb(156, 163, 175)');
-
-    await user.click(removeBtn);
+    await user.click(await screen.findByRole('button', { name: 'Remove access' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(deletes).toBe(0);
 
-    confirmSpy.mockReturnValue(true);
-    await user.click(screen.getByTitle('Remove access'));
+    await user.click(screen.getByRole('button', { name: 'Remove access' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to remove', 'error', undefined));
     expect(screen.getByText('alice')).toBeInTheDocument();
@@ -858,10 +909,7 @@ describe('TripMembersModal', () => {
     );
     render(<TripMembersModal {...defaultProps} />);
 
-    const pencil = await screen.findByTitle('Rename');
-    fireEvent.mouseEnter(pencil);
-    fireEvent.mouseLeave(pencil);
-    await user.click(pencil);
+    await user.click(await screen.findByRole('button', { name: 'Rename' }));
 
     const input = screen.getByDisplayValue('Grandma');
     fireEvent.change(input, { target: { value: 'Granny' } });
@@ -878,7 +926,7 @@ describe('TripMembersModal', () => {
     server.use(http.put('/api/trips/1/guests/:userId', () => { renames++; return HttpResponse.json({ success: true }); }));
     render(<TripMembersModal {...defaultProps} />);
 
-    await user.click(await screen.findByTitle('Rename'));
+    await user.click(await screen.findByRole('button', { name: 'Rename' }));
     const input = screen.getByDisplayValue('Grandma');
     fireEvent.change(input, { target: { value: 'Granny' } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -895,11 +943,11 @@ describe('TripMembersModal', () => {
     server.use(http.put('/api/trips/1/guests/:userId', () => { renames++; return HttpResponse.json({ success: true }); }));
     render(<TripMembersModal {...defaultProps} />);
 
-    await user.click(await screen.findByTitle('Rename'));
+    await user.click(await screen.findByRole('button', { name: 'Rename' }));
     fireEvent.keyDown(screen.getByDisplayValue('Grandma'), { key: 'Escape' });
     expect(screen.queryByDisplayValue('Grandma')).not.toBeInTheDocument();
 
-    await user.click(screen.getByTitle('Rename'));
+    await user.click(screen.getByRole('button', { name: 'Rename' }));
     const input = screen.getByDisplayValue('Grandma');
     fireEvent.change(input, { target: { value: '   ' } });
     fireEvent.blur(input);
@@ -914,7 +962,7 @@ describe('TripMembersModal', () => {
     server.use(http.put('/api/trips/1/guests/:userId', () => HttpResponse.json({ error: 'Name taken' }, { status: 409 })));
     render(<TripMembersModal {...defaultProps} />);
 
-    await user.click(await screen.findByTitle('Rename'));
+    await user.click(await screen.findByRole('button', { name: 'Rename' }));
     const input = screen.getByDisplayValue('Grandma');
     fireEvent.change(input, { target: { value: 'Granny' } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -925,7 +973,6 @@ describe('TripMembersModal', () => {
   it('FE-COMP-MEMBERS-051: removing a guest is confirmed, refreshes costs and notifies', async () => {
     const user = userEvent.setup();
     const onMembersChanged = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     mockRoster([guestRow]);
     let deletedId: string | null = null;
     server.use(
@@ -937,15 +984,15 @@ describe('TripMembersModal', () => {
     );
     render(<TripMembersModal {...defaultProps} onMembersChanged={onMembersChanged} />);
 
-    const trash = await screen.findByTitle('Remove access');
-    fireEvent.mouseEnter(trash);
-    fireEvent.mouseLeave(trash);
+    const trash = await screen.findByRole('button', { name: 'Remove access' });
     await user.click(trash);
+    expect(screen.getByText('Remove this guest? Their assignments and cost shares will be removed too.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(deletedId).toBeNull();
 
-    confirmSpy.mockReturnValue(true);
-    fireEvent.click(screen.getByTitle('Remove access'));
-    await waitFor(() => expect(screen.getByTitle('Remove access')).toBeDisabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Remove access' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Remove access' })).toBeDisabled());
 
     await waitFor(() => expect(deletedId).toBe('3'));
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Guest removed', 'success', undefined));
@@ -954,12 +1001,12 @@ describe('TripMembersModal', () => {
 
   it('FE-COMP-MEMBERS-052: a failing guest removal is reported', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     mockRoster([guestRow]);
     server.use(http.delete('/api/trips/1/guests/:userId', () => HttpResponse.json({}, { status: 500 })));
     render(<TripMembersModal {...defaultProps} />);
 
-    await user.click(await screen.findByTitle('Remove access'));
+    await user.click(await screen.findByRole('button', { name: 'Remove access' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to remove', 'error', undefined));
     expect(screen.getByText('Grandma')).toBeInTheDocument();
@@ -979,7 +1026,7 @@ describe('TripMembersModal', () => {
     expect(screen.queryByText('Guests')).not.toBeInTheDocument();
     expect(screen.queryByText('Public Link')).not.toBeInTheDocument();
     // Nothing to remove either — a plain member can only leave themselves.
-    expect(screen.queryByTitle('Remove access')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Remove access' })).not.toBeInTheDocument();
   });
 
   // A self-hosted install served over plain HTTP has no navigator.clipboard, and
@@ -1035,5 +1082,66 @@ describe('TripMembersModal', () => {
     expect(screen.getByText('Copy')).toBeInTheDocument();
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/join/inv9'));
     view.unmount();
+  });
+});
+
+describe('TripMembersModal on a phone', () => {
+  let width: number;
+  beforeEach(() => {
+    width = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 375, configurable: true, writable: true });
+  });
+  afterEach(() => {
+    Object.defineProperty(window, 'innerWidth', { value: width, configurable: true, writable: true });
+  });
+
+  it('FE-COMP-MEMBERS-058: keeps the sheet it had, with "(you)" beside the name', async () => {
+    render(<TripMembersModal {...defaultProps} />);
+    expect(await screen.findByText(/\(you\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Access \(1/)).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MEMBERS-059: asks with the browser before a member goes, and only then removes', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    mockRoster([{ id: memberUser.id, username: 'alice', avatar_url: null }]);
+    let deletes = 0;
+    server.use(http.delete('/api/trips/1/members/:userId', () => { deletes++; return HttpResponse.json({ success: true }); }));
+    render(<TripMembersModal {...defaultProps} />);
+
+    await user.click(await screen.findByTitle('Remove access'));
+    expect(confirmSpy).toHaveBeenCalledWith('Remove access for this user?');
+    expect(deletes).toBe(0);
+
+    confirmSpy.mockReturnValue(true);
+    await user.click(screen.getByTitle('Remove access'));
+    await waitFor(() => expect(deletes).toBe(1));
+  });
+
+  it('FE-COMP-MEMBERS-060: a guest is renamed and removed through the same questions', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    mockRoster([{ id: 3, username: 'Grandma', avatar_url: null, is_guest: true }]);
+    let renamed: string | null = null;
+    let deleted = false;
+    server.use(
+      http.put('/api/trips/1/guests/:userId', async ({ request }) => {
+        renamed = ((await request.json()) as { name: string }).name;
+        return HttpResponse.json({ success: true });
+      }),
+      http.delete('/api/trips/1/guests/:userId', () => { deleted = true; return HttpResponse.json({ success: true }); }),
+    );
+    render(<TripMembersModal {...defaultProps} />);
+
+    await user.click(await screen.findByTitle('Rename'));
+    const input = screen.getByDisplayValue('Grandma');
+    fireEvent.keyDown(input, { key: 'Escape' });
+    await user.click(screen.getByTitle('Rename'));
+    fireEvent.change(screen.getByDisplayValue('Grandma'), { target: { value: 'Granny' } });
+    fireEvent.keyDown(screen.getByDisplayValue('Granny'), { key: 'Enter' });
+    await waitFor(() => expect(renamed).toBe('Granny'));
+
+    await user.click(screen.getByTitle('Remove access'));
+    await waitFor(() => expect(deleted).toBe(true));
   });
 });

@@ -183,6 +183,25 @@ describe('Tool: create_trip', () => {
       expect(testDb.prepare('SELECT COUNT(*) as c FROM trips').get()).toEqual({ c: 0 });
     });
   });
+
+  it('gives a trip without a currency the display currency from the settings, not EUR', async () => {
+    const { user } = createUser(testDb);
+    testDb.prepare("INSERT INTO settings (user_id, key, value) VALUES (?, 'default_currency', ?)").run(user.id, JSON.stringify('USD'));
+    await withHarness(user.id, async (h) => {
+      const fromSettings = parseToolResult(await h.client.callTool({ name: 'create_trip', arguments: { title: 'Road trip' } })) as any;
+      expect(fromSettings.trip.currency).toBe('USD');
+      const explicit = parseToolResult(await h.client.callTool({ name: 'create_trip', arguments: { title: 'Tokyo', currency: 'JPY' } })) as any;
+      expect(explicit.trip.currency).toBe('JPY');
+    });
+  });
+
+  it('falls back to EUR when neither the user nor the admin set a display currency', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await h.client.callTool({ name: 'create_trip', arguments: { title: 'Plain' } })) as any;
+      expect(data.trip.currency).toBe('EUR');
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -378,6 +397,33 @@ describe('Tool: update_trip', () => {
       expect((await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, day_count: 0 } })).isError).toBe(true);
       expect((await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, day_count: MAX_TRIP_DAYS + 1 } })).isError).toBe(true);
       expect(testDb.prepare('SELECT COUNT(*) as c FROM days WHERE trip_id = ?').get(trip.id)).toEqual({ c: 0 });
+    });
+  });
+
+  it('says in its description what shortening a dated trip takes, and where the result lists it', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const tool = (await h.client.listTools()).tools.find(t => t.name === 'update_trip');
+      expect(tool?.description).toContain('Shortening a dated trip deletes its last days by position');
+      expect(tool?.description).toContain('removed_days');
+    });
+  });
+
+  it('lists the days an earlier end removed, as they stood before, and none for a rename', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-07-01', end_date: '2026-07-05' });
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(trip.id) as { id: number }[];
+    await withHarness(user.id, async (h) => {
+      type Answer = { trip: { end_date: string; title: string }; removed_days?: unknown[] };
+      const shortened = parseToolResult(await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, end_date: '2026-07-03' } })) as Answer;
+      expect(shortened.trip.end_date).toBe('2026-07-03');
+      expect(shortened.removed_days).toEqual([
+        { id: days[3].id, day_number: 4, date: '2026-07-04', reason: 'overflow' },
+        { id: days[4].id, day_number: 5, date: '2026-07-05', reason: 'overflow' },
+      ]);
+      const renamed = parseToolResult(await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, title: 'Shorter' } })) as Answer;
+      expect(renamed.trip.title).toBe('Shorter');
+      expect(renamed).not.toHaveProperty('removed_days');
     });
   });
 

@@ -178,7 +178,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                     onClick={() => {
                       const user = editingUser
                       setEditingUser(null)
-                      handleDeleteUser(user)
+                      void handleDeleteUser(user)
                     }}
                   >
                     <Trash2 size={12} strokeWidth={2.2} />

@@ -784,7 +784,7 @@ async function resolveCountryCode(place: Place): Promise<string | null> {
   return null;
 }
 
-export function resolveCountryCodeSync(place: Place): string | null {
+export function resolveCountryCodeSync(place: Pick<Place, 'lat' | 'lng' | 'address'>): string | null {
   const hasCoords = !!(place.lat && place.lng);
   if (hasCoords) {
     const fromCoords = getCountryFromCoords(place.lat!, place.lng!);
@@ -940,10 +940,13 @@ function buildRegionInfo(address: Record<string, string>, preferFinest: boolean)
   };
 }
 
-export async function reverseGeocodeRegion(lat: number, lng: number, placeAddress?: string | null): Promise<RegionInfo | null> {
-  const key = cacheKeyFor(lat, lng, 'region');
-  if (regionCache.has(key)) return regionCache.get(key)!;
-
+/**
+ * The offline half of reverseGeocodeRegion: the bundled admin1 polygons, then the
+ * box-gated address fallback. Null when the bundle has no answer for the point, which
+ * is where reverseGeocodeRegion goes on to ask Nominatim. Deterministic and uncached,
+ * so it is also what the one time place_regions repair re-derives rows with (#2527).
+ */
+export async function resolveRegionFromBundle(lat: number, lng: number, placeAddress?: string | null): Promise<RegionInfo | null> {
   // Prefer resolving directly against the bundled polygons: offline, deterministic, and —
   // unlike Nominatim's address levels — guaranteed to match a feature the client can
   // actually highlight. Falls through to reverse geocoding when the country has no admin1
@@ -951,10 +954,7 @@ export async function reverseGeocodeRegion(lat: number, lng: number, placeAddres
   const coordCountry = getCountryFromCoords(lat, lng);
   if (coordCountry) {
     const fromBundle = await getRegionFromCoords(coordCountry, lat, lng);
-    if (fromBundle) {
-      regionCache.set(key, fromBundle);
-      return fromBundle;
-    }
+    if (fromBundle) return fromBundle;
   }
   // The coordinate-only lookup found no matching region — either no country polygon contains
   // the point, or a simplified admin0 border put it in the WRONG country (a place on the
@@ -969,11 +969,22 @@ export async function reverseGeocodeRegion(lat: number, lng: number, placeAddres
   // trusting a region match in it.
   const addressCountry = getCountryFromAddress(placeAddress ?? null);
   if (addressCountry && addressCountry !== coordCountry && isPointInCountryBox(addressCountry, lat, lng)) {
-    const fromAddress = await getRegionFromCoords(addressCountry, lat, lng);
-    if (fromAddress) {
-      regionCache.set(key, fromAddress);
-      return fromAddress;
-    }
+    return getRegionFromCoords(addressCountry, lat, lng);
+  }
+  return null;
+}
+
+export async function reverseGeocodeRegion(lat: number, lng: number, placeAddress?: string | null): Promise<RegionInfo | null> {
+  // The address takes part in the answer only through the country it names, so that
+  // country is part of the key. Keyed by coordinates alone, a place whose address was
+  // corrected on a border point got the old answer back from memory (#2527).
+  const key = `${cacheKeyFor(lat, lng, 'region')}|${getCountryFromAddress(placeAddress ?? null) ?? ''}`;
+  if (regionCache.has(key)) return regionCache.get(key)!;
+
+  const fromBundle = await resolveRegionFromBundle(lat, lng, placeAddress);
+  if (fromBundle) {
+    regionCache.set(key, fromBundle);
+    return fromBundle;
   }
 
   // Only reached when the bundle's own polygons for this country don't cover the point at

@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react'
 import { Car, Fuel, Zap } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
+import MToggle from '../../../components/MToggle'
 import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { useRoadtripSettings } from '../../../../hooks/useRoadtripSettings'
 import { useVehicleRange } from '../../../../components/Roadtrip/useVehicleRange'
+import { useHotelBookends } from '../../../../components/Roadtrip/useHotelBookends'
 import { blockMask } from '../../../../components/Roadtrip/RangeStrip'
 import { dayWindow } from '../../../../components/Roadtrip/dayWindow'
 import { formatDurationShort, parseAvoid } from '../../../../components/Roadtrip/roadtripModel'
@@ -21,13 +23,22 @@ import type { DistanceUnit } from '../../../../types'
  * tank runs dry, and on a phone there was nothing behind those sentences: the numbers they
  * are measured against live in a desktop dialog with seven panels and two columns. Without
  * them a warning is an opinion. So two of those panels come along, the two that decide what
- * the stage is allowed to say, and nothing else does.
+ * the stage is allowed to say, and of a third only the one switch below.
  *
- * Nothing here can be changed. That is the point rather than a gap: driving limits are set
- * once, at a table, before anybody is in the car, and a form in the passenger seat is a way
- * to break a trip while it is happening. So there is no field, no slider and no greyed-out
- * button that looks like one, and the last line says plainly where the settings are and what
- * else that screen can do that this one cannot.
+ * The figures cannot be changed here. That is the point rather than a gap: driving limits
+ * are set once, at a table, before anybody is in the car, and a form in the passenger seat is
+ * a way to break a trip while it is happening. So there is no field, no slider and no
+ * greyed-out button that looks like one, and the line under the figures says plainly where
+ * they are set and what else that screen can do that this one cannot.
+ *
+ * One switch is the exception: whether a day starts and ends at the stay. It is no figure and
+ * breaks nothing. It moves where a drawn day begins and ends, never a stored stop, and
+ * switched back off it gives exactly the stored plan again. It is also the one a traveller
+ * on the road reaches for, when the day on the phone sets off from its first place instead
+ * of the hotel they woke up in. It writes through the desktop dialog's own save
+ * (`useHotelBookends` over the planner's `saveRoadtripLimit`), and stays disabled for a
+ * reader who may not edit days. It sits below that line rather than above it, so the
+ * sentence about figures set at the desktop never reads as being about the switch too.
  */
 
 /**
@@ -70,7 +81,8 @@ function InfoCard({ label, children }: { label: string; children: ReactNode }) {
 
 /**
  * Driving figures sheet ('rtinfo'): the vehicle's range as the tank it leaves the factory
- * with, and the limits every warning on the stage is measured against. Read-only.
+ * with, and the limits every warning on the stage is measured against. Read-only but for
+ * the switch that starts and ends each day at the stay.
  */
 export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
   const { t } = useTranslation()
@@ -91,6 +103,7 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
   const fillPercent = useRoadtripSettings(s => s.roadtrip_fill_percent, tripId)
   const degradation = useRoadtripSettings(s => s.roadtrip_battery_degradation, tripId)
   const avoidRaw = useRoadtripSettings(s => s.roadtrip_avoid, tripId)
+  const bookends = useHotelBookends(planner.saveRoadtripLimit, tripId)
 
   const electric = vehicleKind === 'electric'
   const VehicleIcon = electric ? Zap : vehicleKind === 'combustion' ? Fuel : Car
@@ -228,9 +241,28 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
           </InfoCard>
         </div>
 
-        <p className="mt-3 font-geist text-[0.6875rem] leading-snug text-m-faint">
+        {/* Under the figures it speaks of, and above the switch it does not. */}
+        <p className="mt-2.5 font-geist text-[0.6875rem] leading-snug text-m-faint">
           {t('mobileTrip.rtDesktopNote')}
         </p>
+
+        {/* ── The one switch: whether a day starts and ends at the stay ── */}
+        <div className="mt-3">
+          <InfoCard label={t('roadtrip.line.section')}>
+            <div className="mt-1 flex items-center justify-between gap-3 py-2">
+              <span className="min-w-0 flex-1 text-[0.8125rem] text-m-muted">{t('roadtrip.line.hotelBookends')}</span>
+              <MToggle
+                checked={bookends.on}
+                onChange={() => bookends.toggle?.()}
+                ariaLabel={t('roadtrip.line.hotelBookends')}
+                disabled={!bookends.toggle}
+              />
+            </div>
+            <div className="font-geist text-[0.65625rem] leading-snug text-m-faint">
+              {t('roadtrip.line.hotelBookendsHint')}
+            </div>
+          </InfoCard>
+        </div>
       </div>
     </MSheet>
   )

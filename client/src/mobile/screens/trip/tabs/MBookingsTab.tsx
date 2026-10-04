@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { FileText, MapPin, Pencil, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
-import { splitReservationDateTime, formatTime, cleanAmountText } from '../../../../utils/formatters'
+import { splitReservationDateTime, formatTime, formatPriceText } from '../../../../utils/formatters'
 import { openFile } from '../../../../utils/fileDownload'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
 import MConfirmSheet from '../../settings/MConfirmSheet'
-import { ConfirmationCode, Field, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
+import { ConfirmationCode, Field, ReservationPluginSlots, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import { groupTransports, orderedEndpoints, parseTransportMeta } from './transportsModel'
 import { BOOKING_TYPE_COLOR } from './bookingsModel'
@@ -122,7 +122,7 @@ function BookingCard({ res, planner, canEdit, compact }: {
   if (meta.platform) metaCells.push({ label: t('reservations.meta.platform'), value: meta.platform })
   if (meta.seat) metaCells.push({ label: t('reservations.meta.seat'), value: meta.seat + (meta.class ? ` · ${meta.class}` : '') })
   if (meta.price != null && meta.price !== '') {
-    metaCells.push({ label: t('reservations.price'), value: `${cleanAmountText(meta.price)}${meta.priceCurrency ? ` ${meta.priceCurrency}` : ''}` })
+    metaCells.push({ label: t('reservations.price'), value: formatPriceText(meta.price, meta.priceCurrency, planner.trip?.currency, locale) })
   }
   if (meta.check_in_time) {
     metaCells.push({
@@ -247,8 +247,8 @@ function BookingCard({ res, planner, canEdit, compact }: {
                       key={f.id}
                       role="button"
                       tabIndex={0}
-                      onClick={e => { e.stopPropagation(); openFile(f.url, f.original_name) }}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openFile(f.url, f.original_name) } }}
+                      onClick={e => { e.stopPropagation(); void openFile(f.url, f.original_name) }}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); void openFile(f.url, f.original_name) } }}
                       className="flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]"
                     >
                       <FileText size={12} strokeWidth={2} className="flex-none text-m-muted" />
@@ -261,6 +261,7 @@ function BookingCard({ res, planner, canEdit, compact }: {
           </button>
         </div>
       )}
+      {!compact && <ReservationPluginSlots tripId={planner.tripId} reservationId={res.id} />}
 
       <MConfirmSheet
         open={confirmDelete}

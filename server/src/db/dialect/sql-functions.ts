@@ -952,3 +952,30 @@ export function currentTimestampKysely(platform: Platform): RawBuilder<string> {
   return unsupported(platform);
 }
 
+// ---------------------------------------------------------------------------
+// `UsersRepository.setImmichSettings` (IM4, #2475): the self-signed switch is
+// trusted for ONE server, so whether a null incoming value may keep the stored
+// choice depends on whether the URL written in the same SET list is the URL
+// already stored. Like `foundAgainState` above, the WHEN condition reads the
+// ROW'S OWN CURRENT column, which is not knowable in JS before the UPDATE runs
+// — a read-then-write would be two statements where the legacy SQL had one.
+// ---------------------------------------------------------------------------
+
+/**
+ * `CASE WHEN <keyRef> IS ? THEN COALESCE(?, <ref>) ELSE COALESCE(?, 0) END` —
+ * {@link coalesceOverride}'s "new value wins unless it is null" shape, but the
+ * stored column is only a valid fallback WHILE the key column still holds
+ * `keyValue` (the value the same UPDATE writes to it). Once the key changes,
+ * a null `value` falls back to the column's default `0` instead of a choice
+ * made for a different key. SET expressions see the row as it was before the
+ * UPDATE, so `<keyRef> IS ?` compares the STORED key with the new one even
+ * though the same statement overwrites it. `value` is bound twice on purpose:
+ * the fragment has two value slots and `raw()` binds positionally.
+ */
+export function coalesceOverrideWhileSame(platform: Platform, value: number | null, ref: string, keyRef: string, keyValue: string): RawQueryFragment {
+  if (platform instanceof SqlitePlatform) {
+    return raw(`CASE WHEN ${column(keyRef)} IS ? THEN COALESCE(?, ${column(ref)}) ELSE COALESCE(?, 0) END`, [keyValue, value, value]);
+  }
+  return unsupported(platform);
+}
+

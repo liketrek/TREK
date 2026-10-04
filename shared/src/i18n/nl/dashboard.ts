@@ -39,6 +39,10 @@ const dashboard: TranslationStrings = {
   'dashboard.copySuffix': 'kopie',
   'dashboard.restore': 'Herstellen',
   'dashboard.archived': 'Gearchiveerd',
+  'dashboard.search.placeholder': 'Zoek trips of plekken',
+  'dashboard.search.label': 'Doorzoek alle trips op titel, datum of plek',
+  'dashboard.search.clear': 'Zoekopdracht wissen',
+  'dashboard.search.empty': 'Geen trip komt overeen met ‘{query}’',
   'dashboard.status.ongoing': 'Lopend',
   'dashboard.status.today': 'Vandaag',
   'dashboard.status.tomorrow': 'Morgen',
@@ -98,7 +102,25 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftAllDesc':
     'De volledige reisplanning verschuift mee met de nieuwe datums, inclusief reserveringen en accommodaties.',
   'dashboard.dateShiftHint':
-    'Tip: om slechts een deel van je reisplanning te verschuiven, gebruik je "Dag toevoegen" in de planner.',
+    'Tip: om maar een deel van je reisplanning te verschuiven, open je in de planner ‘Dagen herordenen’, voeg je met de knop die de datum toont de dag na de reis toe en zet je die dag op de plek waar het gat moet komen.',
+  'dashboard.shrinkTitle': 'Dagen verwijderen?',
+  'dashboard.shrinkIntro': 'Bij het opslaan van de nieuwe datums worden deze dagen verwijderd:',
+  'dashboard.shrinkMoreDays': '+{count} meer',
+  'dashboard.shrinkLastDays': 'De laatste dagen vallen weg, niet de eerste',
+  'dashboard.shrinkLastDaysHint':
+    'Dagplanningen schuiven mee met de nieuwe datums, dus het zijn altijd de laatste dagen van je planning die wegvallen, ook als het begin is verschoven.',
+  'dashboard.shrinkBookingsHint':
+    'Ze blijven onder Boekingen. Een boeking waarvan de datum nog binnen de reis valt, komt terug op die dag.',
+  'dashboard.shrinkBookingsShiftHint': 'Ze blijven onder Boekingen, zonder dag.',
+  'dashboard.shrinkStayHint':
+    'Inchecken of uitchecken valt op een dag die wegvalt, dus het hele verblijf wordt verwijderd.',
+  'dashboard.shrinkStayBookedHint':
+    'Inchecken of uitchecken valt op een dag die wegvalt, dus het hele verblijf wordt verwijderd. De boeking ‘{booking}’ en de bijbehorende uitgave blijven onder Boekingen.',
+  'dashboard.shrinkStayBookingHint':
+    'Inchecken of uitchecken valt op een dag die wegvalt, dus het hele verblijf wordt verwijderd. De boeking ‘{booking}’ blijft onder Boekingen.',
+  'dashboard.shrinkConfirm': 'Dagen verwijderen en opslaan',
+  'dashboard.shrinkUnknown':
+    'De dagen van deze reis konden niet worden gecontroleerd. Hebben de nieuwe datums minder dagen, dan verwijdert opslaan de laatste dagen en alles wat daarop gepland is.',
   'dashboard.greeting.morning': 'Goedemorgen,',
   'dashboard.greeting.afternoon': 'Goedemiddag,',
   'dashboard.greeting.evening': 'Goedenavond,',

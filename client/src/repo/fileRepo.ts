@@ -8,7 +8,7 @@ export const fileRepo = {
     return onlineThenCache(
       async () => {
         const result = await filesApi.list(tripId)
-        upsertTripFiles(result.files)
+        void upsertTripFiles(result.files)
         return result
       },
       async () => ({

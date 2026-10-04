@@ -49,7 +49,7 @@ interface GalleryKyselyDB {
     lng: number | null;
   };
   journey_entry_photos: { entry_id: number; journey_photo_id: number };
-  journey_entries: { id: number; entry_date: string; entry_time: string | null };
+  journey_entries: { id: number; entry_date: string; entry_time: string | null; is_draft: number };
   journeys: { id: number; user_id: number };
 }
 
@@ -112,6 +112,42 @@ function galleryChronologicalOrderExpr(
       )
       .whereRef('jep.journey_photo_id', '=', 'gp.id'),
     unixEpochToIsoKysely(platform, eb, 'gp.created_at'),
+  );
+}
+
+/**
+ * The gallery rows a public share leaves out (#696): a photo whose every entry
+ * is a draft stays off the public page, and so do its bytes. One that also sits
+ * on a published entry, or on no entry at all (a plain gallery photo), is shown.
+ * Legacy `NOT_DRAFT_ONLY_PHOTO`, `NOT (EXISTS (SELECT 1 FROM journey_entry_photos d
+ * JOIN journey_entries de ON de.id = d.entry_id WHERE d.journey_photo_id = gp.id AND
+ * de.is_draft = 1) AND NOT EXISTS (SELECT 1 FROM journey_entry_photos p JOIN
+ * journey_entries pe ON pe.id = p.entry_id WHERE p.journey_photo_id = gp.id AND
+ * pe.is_draft = 0))`, correlated on `gp.id` the same way. Same fixed-alias typing
+ * as {@link galleryChronologicalOrderExpr}.
+ */
+function notDraftOnlyPhoto(eb: ExpressionBuilder<GalleryKyselyDB & { gp: GalleryKyselyDB['journey_photos'] }, 'gp'>) {
+  return eb.not(
+    eb.and([
+      eb.exists(
+        eb
+          .selectFrom('journey_entry_photos as d')
+          .innerJoin('journey_entries as de', 'de.id', 'd.entry_id')
+          .select('d.entry_id')
+          .whereRef('d.journey_photo_id', '=', 'gp.id')
+          .where('de.is_draft', '=', 1),
+      ),
+      eb.not(
+        eb.exists(
+          eb
+            .selectFrom('journey_entry_photos as p')
+            .innerJoin('journey_entries as pe', 'pe.id', 'p.entry_id')
+            .select('p.entry_id')
+            .whereRef('p.journey_photo_id', '=', 'gp.id')
+            .where('pe.is_draft', '=', 0),
+        ),
+      ),
+    ]),
   );
 }
 
@@ -188,7 +224,8 @@ export class JourneyPhotosRepository extends TrekRepository<JourneyPhotos> {
    * .validateShareTokenForPhoto`'s photo/journey resolution: `SELECT
    * gp.photo_id, tkp.owner_id, gp.journey_id FROM journey_photos gp JOIN
    * trek_photos tkp ON tkp.id=gp.photo_id WHERE gp.photo_id=? AND
-   * gp.journey_id=?`. Public/anonymous — reachable from
+   * gp.journey_id=? AND {NOT_DRAFT_ONLY_PHOTO}` (#696, see
+   * {@link notDraftOnlyPhoto}). Public/anonymous — reachable from
    * `JourneyPublicController` with no authentication, gated only by the
    * unguessable share token the service already checked before calling
    * this. Previously lived as `JourneyShareTokens.repository.ts`'s own
@@ -202,6 +239,7 @@ export class JourneyPhotosRepository extends TrekRepository<JourneyPhotos> {
       .select(['gp.photo_id', 'tkp.owner_id', 'gp.journey_id'])
       .where('gp.photo_id', '=', photoId)
       .where('gp.journey_id', '=', journeyId)
+      .where((eb) => notDraftOnlyPhoto(eb))
       .executeTakeFirst();
   }
 
@@ -210,7 +248,8 @@ export class JourneyPhotosRepository extends TrekRepository<JourneyPhotos> {
    * .validateShareTokenForAsset`'s owner resolution: `SELECT tkp.owner_id,
    * j.user_id AS journey_owner_id FROM journey_photos gp JOIN trek_photos
    * tkp ON tkp.id=gp.photo_id JOIN journeys j ON j.id=gp.journey_id WHERE
-   * tkp.asset_id=? AND gp.journey_id=?`. Public/anonymous, security-critical
+   * tkp.asset_id=? AND gp.journey_id=? AND {NOT_DRAFT_ONLY_PHOTO}` (#696).
+   * Public/anonymous, security-critical
    * — the service never trusts a caller-supplied owner id; only this join
    * resolves `ownerId`. Relocated the same way as {@link
    * findGalleryPhotoForValidation}/JS7.
@@ -223,6 +262,7 @@ export class JourneyPhotosRepository extends TrekRepository<JourneyPhotos> {
       .select(['tkp.owner_id', 'j.user_id as journey_owner_id'])
       .where('tkp.asset_id', '=', assetId)
       .where('gp.journey_id', '=', journeyId)
+      .where((eb) => notDraftOnlyPhoto(eb))
       .executeTakeFirst();
   }
 
@@ -382,14 +422,19 @@ export class JourneyPhotosRepository extends TrekRepository<JourneyPhotos> {
    * so the RS20 pagination rule does not independently force this ruling —
    * R1 holds anyway (a full-table-read-then-sort-in-JS is exactly what RS20
    * exists to prevent in general).
+   *
+   * JS15 (`getPublicJourney`) passes `hideDraftOnly`: the public page leaves out
+   * a photo whose every entry is a draft (#696, `AND {NOT_DRAFT_ONLY_PHOTO}`),
+   * the owner's own gallery shows everything.
    */
-  async galleryRead(journeyId: number): Promise<GalleryPhoto[]> {
+  async galleryRead(journeyId: number, opts: { hideDraftOnly?: boolean } = {}): Promise<GalleryPhoto[]> {
     const platform = this.getEntityManager().getPlatform();
     const rows = await this.kysely<GalleryKyselyDB>()
       .selectFrom('journey_photos as gp')
       .innerJoin('trek_photos as tp', 'tp.id', 'gp.photo_id')
       .select(GALLERY_COLUMNS)
       .where('gp.journey_id', '=', journeyId)
+      .$if(!!opts.hideDraftOnly, (qb) => qb.where((eb) => notDraftOnlyPhoto(eb)))
       .orderBy((eb) => galleryChronologicalOrderExpr(platform, eb), 'asc')
       .orderBy('gp.sort_order', 'asc')
       .orderBy('gp.id', 'asc')

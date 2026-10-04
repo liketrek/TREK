@@ -143,3 +143,19 @@ export async function attachStayStopsToCheckInDay(migration: Migration): Promise
 
   return stays.length;
 }
+
+/**
+ * Keeps place_regions in step with the place it was resolved from (#2527): a
+ * change to lat, lng or address drops the cached row. Legacy steps 244 and 246
+ * both create it, see there.
+ */
+export async function createPlaceRegionsFollowPlaceTrigger(migration: Migration): Promise<void> {
+  await migration.execute(`
+    CREATE TRIGGER IF NOT EXISTS trg_place_regions_follow_place
+    AFTER UPDATE OF lat, lng, address ON places
+    WHEN OLD.lat IS NOT NEW.lat OR OLD.lng IS NOT NEW.lng OR OLD.address IS NOT NEW.address
+    BEGIN
+      DELETE FROM place_regions WHERE place_id = NEW.id;
+    END
+  `);
+}

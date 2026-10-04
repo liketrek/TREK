@@ -13,6 +13,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testWebhookFailed': 'Test webhook gagal',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Memungkinkan pengguna menerima notifikasi di ponsel dan komputer mereka melalui browser, bahkan saat TREK ditutup. Memerlukan HTTPS; di iPhone dan iPad, TREK harus ditambahkan ke Layar Utama.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint': 'Notifikasi in-app selalu aktif dan tidak bisa dinonaktifkan secara global.',
   'admin.notifications.adminWebhookPanel.title': 'Admin Webhook',
@@ -46,6 +49,12 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Admin Ntfy selalu berjalan jika topik dikonfigurasi',
   'admin.notifications.adminNotificationsHint':
     'Atur saluran mana yang mengirimkan notifikasi khusus admin (mis. peringatan versi).',
+  'admin.notificationDefaults.title': 'Bawaan untuk pengguna',
+  'admin.notificationDefaults.hint': 'Keadaan awal notifikasi setiap pengguna. "Mati" masih bisa dinyalakan pengguna; "Diblokir" mematikan untuk semua orang dan tampil terkunci di pengaturan mereka. Berlaku bagi yang belum mengubah sel itu.',
+  'admin.notificationDefaults.on': 'Nyala',
+  'admin.notificationDefaults.off': 'Mati',
+  'admin.notificationDefaults.blocked': 'Diblokir',
+  'admin.notificationDefaults.cycle': 'Klik untuk: {next}',
   'admin.notifications.tripReminders.title': 'Pengingat Perjalanan',
   'admin.notifications.tripReminders.hint':
     'Mengirim notifikasi pengingat sebelum perjalanan dimulai (memerlukan hari pengingat yang diatur pada perjalanan).',
@@ -178,6 +187,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Kunci API Amap (高德地图)',
   'admin.amapKeyHint':
     'Untuk pencarian tempat di Tiongkok daratan, tempat Google tidak dapat diakses dan data OpenStreetMap sangat sedikit. Perlu kunci jenis "Web 服务" (layanan web), bukan kunci JS API. Dapatkan di console.amap.com.',
+  'admin.keyFromEnv': 'Diatur lewat {name}',
   'admin.placesProvider.title': 'Penyedia pencarian tempat',
   'admin.placesProvider.subtitle':
     'Indeks milik TREK dan OpenStreetMap menjawab setiap pencarian. Di sini dipilih siapa lagi yang ditanya bila keduanya tidak menemukan apa pun: Otomatis memilih Google bila ada kunci, lalu Amap.',
@@ -219,6 +229,17 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.title': 'Pengayaan tempat',
   'admin.placesEnrich.subtitle':
     'Menampilkan gambar dan deskripsi saat menambahkan tempat. Wikipedia dan OpenStreetMap selalu digunakan; Google ditambahkan bila Foto Tempat atau Detail Tempat aktif.',
+  'admin.placesGoogleOnly.title': 'Cari hanya dengan Google',
+  'admin.placesGoogleOnly.subtitle': 'Setiap pencarian dan setiap saran dikirim ke Google Places. Nonaktif, indeks TREK dan OpenStreetMap menjawab lebih dulu, dan Google hanya ditanya jika keduanya tidak menemukan apa pun.',
+  'admin.placesGoogleOnly.missingKey': 'Memerlukan kunci API Google Maps. Tanpa kunci, pencarian memakai indeks TREK dan OpenStreetMap, apa pun posisi sakelar ini.',
+  'admin.placesGoogleOnly.otherProvider': 'Membutuhkan Google sebagai penyedia tempat. Dengan Amap atau OpenStreetMap yang dipilih, tidak ada pencarian yang dikirim ke Google, apa pun posisi sakelar ini.',
+  'admin.googleQuota.title': 'Batas harian panggilan Google',
+  'admin.googleQuota.subtitle': 'Setelah tercapai, TREK berhenti memanggil Google sampai hari berikutnya (UTC) dan mencari dengan OpenStreetMap. Kosongkan untuk tanpa batas.',
+  'admin.googleQuota.placeholder': 'Tanpa batas',
+  'admin.googleQuota.usedToday': 'Hari ini: {used}',
+  'admin.googleQuota.usedOfLimit': 'Hari ini: {used} dari {limit}',
+  'admin.googleQuota.reached': 'Batas tercapai ({used}), Google dijeda sampai besok',
+  'admin.googleQuota.saved': 'Batas harian disimpan',
   'admin.transitProvider.title': 'Penyedia transportasi umum',
   'admin.transitProvider.subtitle': 'Layanan mana yang menjawab pencarian transportasi umum.',
   'admin.transitProvider.transitous': 'Transitous (gratis)',
@@ -429,6 +450,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider':
     'Menyumbangkan detail tambahan (ulasan, peringkat, tautan) untuk suatu tempat',
   'admin.plugins.perm.hook:search-provider': 'Menjawab pencarian tempat dari indeks sendiri, di samping hasil TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Menambahkan kategori tempat sendiri ke “Jelajahi tempat di peta”; saat Anda memilih salah satunya, plugin menerima area peta yang sedang Anda lihat',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Munculkan peringatan validasi pada perjalanan (ditampilkan di perencana)',
   'admin.plugins.perm.hook:table-contributor':
@@ -445,6 +468,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'Menerbitkan alat AI',
   'admin.plugins.mcpToolsTitle': 'Alat AI yang diterbitkan',
   'admin.plugins.mcpToolsHint': 'Asisten dapat menjalankannya atas nama pengguna. Masing-masing bertindak dengan akses yang diberikan di atas.',
+  'admin.plugins.poiCategoriesTitle': 'Kategori peta yang ditambahkannya',
   'admin.plugins.perm.mcp:tools':
     'Menerbitkan alat yang dapat dijalankan asisten AI atas nama Anda (bertindak dengan akses yang Anda berikan ke plugin di sini, bukan milik asisten)',
   'admin.plugins.perm.geolocation:read':
@@ -586,6 +610,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Menyediakan acara kalender',
   'admin.plugins.cap.placeDetails': 'Memperkaya tempat',
   'admin.plugins.cap.search': 'Menjawab pencarian',
+  'admin.plugins.cap.poiCategories': 'Menambahkan kategori peta',
   'admin.plugins.cap.warnings': 'Tandai masalah',
   'admin.plugins.cap.mapLayers': 'Menggambar di peta',
   'admin.plugins.cap.routing': 'Menyediakan routing',
@@ -662,6 +687,11 @@ const admin: TranslationStrings = {
     'Baca kunjungan dan rute terekam dari instans Dawarich yang dihubungkan sendiri oleh tiap pembaca',
   'admin.addons.catalog.llm_parsing.name': 'Analisis AI',
   'admin.addons.catalog.llm_parsing.description': 'Membaca pemesanan yang tidak dipahami pengurai bawaan, dengan model AI pilihanmu',
+  'admin.addons.llm.vision.auto': 'Otomatis',
+  'admin.addons.llm.vision.on': 'Ya',
+  'admin.addons.llm.vision.off': 'Tidak',
+  'admin.addons.llm.vision.hintLocal': 'Otomatis menanyakan ke server Ollama apakah model ini membaca gambar.',
+  'admin.addons.llm.vision.hintCloud': 'Otomatis berarti tidak untuk model cloud. Pilih Ya jika model ini membaca gambar.',
   'admin.addons.enabled': 'Aktif',
   'admin.addons.disabled': 'Nonaktif',
   'admin.addons.type.trip': 'Perjalanan',

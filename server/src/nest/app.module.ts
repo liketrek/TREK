@@ -37,6 +37,7 @@ import { DocSyncModule } from './doc-sync/doc-sync.module';
 import { FeedsModule } from './feeds/feeds.module';
 import { FilesModule } from './files/files.module';
 import { GeoModule } from './geo/geo.module';
+import { GoogleQuotaModule } from './google-quota/google-quota.module';
 import { HealthModule } from './health/health.module';
 import { HelpModule } from './help/help.module';
 import { AirtrailModule } from './integrations/airtrail.module';
@@ -62,6 +63,7 @@ import { PluginsModule } from './plugins/plugins.module';
 import { PublicApiModule } from './public-api/public-api.module';
 import { RealtimeGatewayModule } from './realtime/realtime-gateway.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { ReceiptScanModule } from './receipt-scan/receipt-scan.module';
 import { ReservationImportModule } from './reservation-import/reservation-import.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { RoadtripModule } from './roadtrip/roadtrip.module';
@@ -107,6 +109,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     SystemNoticesModule,
     GeoModule,
     MapsModule,
+    GoogleQuotaModule,
     PlaceEnrichmentModule,
     PlaceShadowModule,
     RouteUsageModule,
@@ -153,9 +156,14 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     PluginsModule,
     BookingImportModule,
     ReservationImportModule,
+    ReceiptScanModule,
     LlmParseModule,
     ManagedExtModule,
-    MikroOrmModule.forRoot(mikroOrmConfig),
+    // registerRequestContext off: bootstrap.ts mounts the per-request fork as a
+    // pathless middleware instead, because the module's own '{*all}' route
+    // turned a malformed %-escape into a 400 before any handler ran (UPLOADS-P16).
+    // Partial e2e harnesses keep the default; see tests/helpers/test-orm.ts.
+    MikroOrmModule.forRoot({ ...mikroOrmConfig, registerRequestContext: false }),
     // `DatabaseModule` (the raw better-sqlite3 `db` Proxy + `DatabaseService`
     // facade) is gone — Plan 4 Task 4 deleted it once every domain moved onto
     // repositories/`UnitOfWork`. `OrmModule` is the module that survives.

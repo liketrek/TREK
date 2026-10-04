@@ -211,6 +211,36 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect(bad.body).toEqual({ error: 'route_color must be a hex colour like #4f46e5' });
   });
 
+  // #2483: a place from the TREK index can carry its website without a scheme.
+  it('PLACES-E2E-2483-01: create and update take a website without a scheme and store it as https', async () => {
+    const created = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1))
+      .send({ name: 'Chapelle Sainte-Barbe', website: 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët' });
+    expect(created.status).toBe(201);
+    expect(created.body.place.website).toBe('https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët');
+
+    const id = created.body.place.id;
+    const updated = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1))
+      .send({ website: '//www.example.fr/patrimoine' });
+    expect(updated.status).toBe(200);
+    expect(db.prepare('SELECT website FROM places WHERE id = ?').get(id)).toEqual({ website: 'https://www.example.fr/patrimoine' });
+
+    // An explicit scheme is stored exactly as sent, and '' still clears the field.
+    const kept = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1))
+      .send({ website: 'http://Example.fr/Pfad?q=1' });
+    expect(kept.body.place.website).toBe('http://Example.fr/Pfad?q=1');
+    const cleared = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1)).send({ website: '' });
+    expect(cleared.status).toBe(200);
+  });
+
+  it('PLACES-E2E-2483-02: a script link, another scheme or a bare word is still a 400 with the same message', async () => {
+    for (const website of ['javascript:alert(1)', 'mailto:mairie@example.fr', 'Chapelle', 42]) {
+      const res = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({ name: 'Chapelle', website });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'website must be an http or https URL' });
+    }
+    expect(db.prepare('SELECT COUNT(*) AS n FROM places WHERE trip_id = 5').get()).toEqual({ n: 0 });
+  });
+
   it('409 on a stale If-Match token (#1135)', async () => {
     db.prepare("INSERT INTO places (id, trip_id, name, updated_at) VALUES (9, 5, 'Walk', '2026-01-01 00:00:00')").run();
     const res = await request(server)

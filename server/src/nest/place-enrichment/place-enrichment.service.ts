@@ -196,9 +196,10 @@ function yesNo(value: unknown): 'yes' | 'no' | string | null {
  * dropped rather than linked.
  */
 function googleMapsLink(value: unknown): string | null {
-  if (typeof value !== 'string' || !placeWebsiteSchema.safeParse(value).success) return null;
+  const parsed = placeWebsiteSchema.safeParse(value);
+  if (!parsed.success) return null;
   try {
-    return isGoogleMapsHost(new URL(value).hostname) ? value : null;
+    return isGoogleMapsHost(new URL(parsed.data).hostname) ? parsed.data : null;
   } catch {
     return null;
   }
@@ -237,8 +238,8 @@ export function collectFacts(details: Record<string, unknown> | null): PlaceFact
   // `menu_url` is a community-editable OSM tag that becomes an href on the
   // client, so it goes through the same allow-list as a place's website —
   // anything but http(s) is dropped rather than rendered as a link.
-  const menu = typeof details.menu_url === 'string' ? details.menu_url.trim() : '';
-  if (placeWebsiteSchema.safeParse(menu).success) push('menu', null, menu);
+  const menu = placeWebsiteSchema.safeParse(typeof details.menu_url === 'string' ? details.menu_url.trim() : '');
+  if (menu.success) push('menu', null, menu.data);
 
   if (yesNo(details.outdoor_seating) === 'yes') push('outdoorSeating', null);
   if (yesNo(details.takeaway) === 'yes') push('takeaway', null);
@@ -640,11 +641,11 @@ export class PlaceEnrichmentService {
       // becomes an href on the client, and the value comes from whatever the
       // configured index answered with. Anything but http(s) loses the link and
       // keeps the text, rather than being rendered as one.
-      const rawUrl = typeof got?.sourceUrl === 'string' ? got.sourceUrl : null;
+      const url = placeWebsiteSchema.safeParse(got?.sourceUrl);
       return {
         text,
         source: 'website',
-        sourceUrl: rawUrl && placeWebsiteSchema.safeParse(rawUrl).success ? rawUrl : null,
+        sourceUrl: url.success ? url.data : null,
         // Not a licensed corpus: a quoted summary from the operator's own page,
         // credited and linked back. Saying "CC-something" here would be a claim
         // about terms nobody granted.

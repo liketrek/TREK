@@ -165,11 +165,11 @@ describe('isOwner (async) — the delete_trip MCP tool', () => {
    * tool (inventory §0d), and `TripsService.isOwner` → `DatabaseService
    * .isOwner` is now `TripsRepository.isOwner` underneath — a repository
    * read reached through the MCP transport's request context (`nest-mcp
-   * /registry.ts:286-294`: `@mikro-orm/nestjs`'s `registerRequestContext`
-   * middleware forks a context for every `/mcp` route, same as any other
-   * Nest route). PRIM-ISOWN-001 above already proves the happy path (the
-   * trip is actually deleted, which requires the repository read to
-   * succeed); this is the explicit MCP-CTX-style structural assertion
+   * /registry.ts`'s `attachTool` note: bootstrap.ts's pathless
+   * `mikroOrmRequestContext` middleware forks a context for every `/mcp`
+   * request, same as any other Nest route). PRIM-ISOWN-001 above already
+   * proves the happy path (the trip is actually deleted, which requires the
+   * repository read to succeed); this is the explicit MCP-CTX-style structural assertion
    * (`mcp.test.ts`'s MCP-CTX-001/002 pattern) that no missing-context error
    * was swallowed along the way.
    */

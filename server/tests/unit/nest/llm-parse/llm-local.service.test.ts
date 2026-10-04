@@ -68,3 +68,84 @@ describe('LlmLocalService.pull', () => {
     expect(JSON.parse(init.body)).toEqual({ model: 'nuextract', stream: true });
   });
 });
+
+describe('LlmLocalService.modelCapabilities', () => {
+  const showOk = (body: unknown, headers: Record<string, string> = {}) => ({
+    ok: true,
+    headers: { get: (name: string) => headers[name] ?? null },
+    json: async () => body,
+  });
+
+  it('asks /api/show for the model and answers its capabilities', async () => {
+    const fetchFn = mockFetch(async () => showOk({ capabilities: ['completion', 'vision'] }));
+    await expect(svc().modelCapabilities('http://ollama:11434/v1', 'qwen3.5:4b')).resolves.toEqual(['completion', 'vision']);
+    expect(fetchFn.mock.calls[0][0]).toBe('http://ollama:11434/api/show');
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body)).toEqual({ model: 'qwen3.5:4b' });
+    expect(fetchFn.mock.calls[0][1].headers).not.toHaveProperty('authorization');
+  });
+
+  it('sends the configured key as the Bearer header the extraction sends', async () => {
+    const fetchFn = mockFetch(async () => showOk({ capabilities: ['vision'] }));
+    await expect(svc().modelCapabilities('http://ollama:11434/v1', 'qwen3.5:4b', 'proxy-key')).resolves.toEqual(['vision']);
+    expect(fetchFn.mock.calls[0][1].headers).toMatchObject({ authorization: 'Bearer proxy-key' });
+  });
+
+  it('remembers an answer per key, so a corrected key is asked afresh', async () => {
+    const fetchFn = mockFetch(async (_url: string, init: { headers: Record<string, string> }) =>
+      init?.headers?.authorization === 'Bearer right' ? showOk({ capabilities: ['vision'] }) : { ok: false, status: 401, body: null });
+    const s = svc();
+    await expect(s.modelCapabilities('http://ollama:11434', 'm', 'wrong')).resolves.toBeNull();
+    await expect(s.modelCapabilities('http://ollama:11434', 'm', 'right')).resolves.toEqual(['vision']);
+    await expect(s.modelCapabilities('http://ollama:11434', 'm', 'right')).resolves.toEqual(['vision']);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('asks the server once per server and model, not once per call', async () => {
+    const fetchFn = mockFetch(async () => showOk({ capabilities: ['completion'] }));
+    const s = svc();
+    await s.modelCapabilities('http://ollama:11434', 'qwen3:8b');
+    await s.modelCapabilities('http://ollama:11434', 'qwen3:8b');
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    await s.modelCapabilities('http://ollama:11434', 'qwen3.5:4b');
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('answers null for a URL it cannot use, without throwing and without a request', async () => {
+    await expect(svc().modelCapabilities('not a url', 'm')).resolves.toBeNull();
+    await expect(svc().modelCapabilities('ftp://x', 'm')).resolves.toBeNull();
+    expect(safeFetchLlmMock).not.toHaveBeenCalled();
+  });
+
+  it('answers null for an unreachable server, a model it lacks, or a body that is not Ollama\'s', async () => {
+    mockFetch(async () => { throw new Error('ECONNREFUSED'); });
+    await expect(svc().modelCapabilities('http://a:1', 'm')).resolves.toBeNull();
+    mockFetch(async () => ({ ok: false, status: 404, body: null }));
+    await expect(svc().modelCapabilities('http://b:1', 'm')).resolves.toBeNull();
+    mockFetch(async () => showOk({ capabilities: 'vision' }));
+    await expect(svc().modelCapabilities('http://c:1', 'm')).resolves.toBeNull();
+  });
+
+  it('does not read a body that declares itself larger than the cap', async () => {
+    const json = vi.fn(async () => ({ capabilities: ['vision'] }));
+    mockFetch(async () => ({ ...showOk({}), headers: { get: () => String(2 * 1024 * 1024) }, json }));
+    await expect(svc().modelCapabilities('http://d:1', 'm')).resolves.toBeNull();
+    expect(json).not.toHaveBeenCalled();
+  });
+
+  it('asks again a minute after a miss, and keeps an answer for ten', async () => {
+    vi.useFakeTimers();
+    try {
+      const s = svc();
+      mockFetch(async () => { throw new Error('down'); });
+      await s.modelCapabilities('http://e:1', 'm');
+      vi.advanceTimersByTime(61_000);
+      mockFetch(async () => showOk({ capabilities: ['vision'] }));
+      await expect(s.modelCapabilities('http://e:1', 'm')).resolves.toEqual(['vision']);
+      vi.advanceTimersByTime(9 * 60_000);
+      mockFetch(async () => showOk({ capabilities: [] }));
+      await expect(s.modelCapabilities('http://e:1', 'm')).resolves.toEqual(['vision']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

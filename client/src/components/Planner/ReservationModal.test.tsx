@@ -1,11 +1,13 @@
-// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-095
-import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
+// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-105
+import { render, screen, waitFor, fireEvent, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useAddonStore } from '../../store/addonStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { isBlurred } from '../../../tests/helpers/bookingCodeBlur';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import {
   buildUser,
@@ -75,6 +77,23 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+// The booking type is a pill in the dialog's head band, named "Booking Type: <type>":
+// open it, then pick the option from its menu.
+function typeField(): HTMLButtonElement {
+  return screen.getByRole('button', { name: /^Booking Type:/ }) as HTMLButtonElement;
+}
+async function pickType(name: RegExp) {
+  await userEvent.click(typeField());
+  // The menu is portaled after the dialog, so its option is the last match.
+  const options = screen.getAllByRole('button', { name });
+  await userEvent.click(options[options.length - 1]);
+}
+// The travelers sit in a dropdown field too; the member rows exist once it is open.
+async function openTravelers() {
+  await userEvent.click(screen.getByRole('button', { name: /Assign travelers|alice|bob/i, expanded: false }));
+  return screen.getByRole('listbox');
+}
+
 describe('ReservationModal', () => {
   // ── Rendering ──────────────────────────────────────────────────────────────
 
@@ -103,13 +122,19 @@ describe('ReservationModal', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  it('FE-PLANNER-RESMODAL-005: all 5 type buttons are visible (transport types removed)', () => {
+  it('FE-PLANNER-RESMODAL-005: the type dropdown offers the booking types (transport types removed)', async () => {
     render(<ReservationModal {...defaultProps} />);
-    expect(screen.getByRole('button', { name: /Accommodation/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Restaurant/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Event/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Tour/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Other/i })).toBeInTheDocument();
+    // A new booking starts as "Other", and the options only exist once the menu is open.
+    expect(typeField()).toHaveTextContent('Other');
+    expect(screen.queryByRole('button', { name: /^Accommodation$/i })).not.toBeInTheDocument();
+    await userEvent.click(typeField());
+    expect(screen.getByRole('button', { name: /^Accommodation$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Restaurant$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Event$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Tour$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Parking$/i })).toBeInTheDocument();
+    // The pill reads "Booking Type: Other", so only its option is named plain "Other".
+    expect(screen.getAllByRole('button', { name: /^Other$/i })).toHaveLength(1);
     expect(screen.queryByRole('button', { name: /^Flight$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Train$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Car$/i })).not.toBeInTheDocument();
@@ -118,16 +143,16 @@ describe('ReservationModal', () => {
 
   // ── Type selection ──────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-RESMODAL-006: clicking Event type button activates it', async () => {
+  it('FE-PLANNER-RESMODAL-006: picking Event in the type dropdown shows it in the field and closes the menu', async () => {
     render(<ReservationModal {...defaultProps} />);
-    const eventBtn = screen.getByRole('button', { name: /Event/i });
-    await userEvent.click(eventBtn);
-    expect(eventBtn).toHaveClass('bg-[var(--text-primary)]');
+    await pickType(/^Event$/i);
+    expect(typeField()).toHaveTextContent('Event');
+    expect(screen.queryByRole('button', { name: /^Accommodation$/i })).not.toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESMODAL-008: hotel type shows check-in/check-out time fields', async () => {
     render(<ReservationModal {...defaultProps} />);
-    await userEvent.click(screen.getByRole('button', { name: /Accommodation/i }));
+    await pickType(/Accommodation/i);
     const checkInLabels = screen.getAllByText(/Check-in/i);
     expect(checkInLabels.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Check-out/i)).toBeInTheDocument();
@@ -135,7 +160,7 @@ describe('ReservationModal', () => {
 
   it('FE-PLANNER-RESMODAL-009: restaurant type shows location field', async () => {
     render(<ReservationModal {...defaultProps} />);
-    await userEvent.click(screen.getByRole('button', { name: /Restaurant/i }));
+    await pickType(/Restaurant/i);
     expect(screen.getByPlaceholderText(/Address, Airport/i)).toBeInTheDocument();
   });
 
@@ -151,7 +176,7 @@ describe('ReservationModal', () => {
       />
     );
     // Switch to hotel type
-    await userEvent.click(screen.getByRole('button', { name: /Accommodation/i }));
+    await pickType(/Accommodation/i);
     expect(screen.queryByText(/Link to day assignment/i)).not.toBeInTheDocument();
   });
 
@@ -227,7 +252,7 @@ describe('ReservationModal', () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<ReservationModal {...defaultProps} onSave={onSave} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /Restaurant/i }));
+    await pickType(/Restaurant/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Le Jules Verne');
 
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
@@ -421,7 +446,7 @@ describe('ReservationModal', () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<ReservationModal {...defaultProps} onSave={onSave} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /Accommodation/i }));
+    await pickType(/Accommodation/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Grand Hotel');
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
@@ -435,7 +460,7 @@ describe('ReservationModal', () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<ReservationModal {...defaultProps} onSave={onSave} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /Event/i }));
+    await pickType(/Event/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Louvre Museum');
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
@@ -449,7 +474,7 @@ describe('ReservationModal', () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<ReservationModal {...defaultProps} onSave={onSave} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /Parking/i }));
+    await pickType(/Parking/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Airport Parking P1');
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
@@ -614,7 +639,7 @@ describe('ReservationModal', () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<ReservationModal {...defaultProps} onSave={onSave} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /Accommodation/i }));
+    await pickType(/Accommodation/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Grand Hotel');
 
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
@@ -623,6 +648,29 @@ describe('ReservationModal', () => {
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Grand Hotel', type: 'hotel' })
     );
+  });
+
+  it('FE-PLANNER-RESMODAL-101: an imported track is not offered as the place of a stay', async () => {
+    const hotel = buildPlace({ id: 21, name: 'Hotel Adler' });
+    const track = buildPlace({ id: 22, name: 'Rheinsteig', route_geometry: '[[50.1,7.6],[50.2,7.7]]' });
+    render(<ReservationModal {...defaultProps} places={[hotel, track]} />);
+
+    await pickType(/Accommodation/i);
+    const field = screen.getAllByText('Accommodation').find(el => el.tagName === 'LABEL')!.parentElement!;
+    await userEvent.click(within(field).getByRole('button'));
+
+    expect(screen.getByText('Hotel Adler')).toBeInTheDocument();
+    expect(screen.queryByText('Rheinsteig')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-RESMODAL-102: a stay already booked at a track still shows that track', () => {
+    const track = buildPlace({ id: 22, name: 'Rheinsteig', route_geometry: '[[50.1,7.6],[50.2,7.7]]' });
+    const days = [buildDay({ id: 1 }), buildDay({ id: 2 })];
+    const accommodations = [{ id: 7, trip_id: 1, place_id: 22, start_day_id: 1, end_day_id: 2 }];
+    const res = buildReservation({ id: 9, type: 'hotel', title: 'Hut', accommodation_id: 7 });
+    render(<ReservationModal {...defaultProps} days={days} places={[track]} accommodations={accommodations as never} reservation={res} />);
+
+    expect(screen.getByText('Rheinsteig')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-RESMODAL-043: hover styles applied to file picker items', async () => {
@@ -647,7 +695,7 @@ describe('ReservationModal', () => {
 
   it('FE-PLANNER-RESMODAL-045: tour type shows time pickers', async () => {
     render(<ReservationModal {...defaultProps} />);
-    await userEvent.click(screen.getByRole('button', { name: /^Tour$/i }));
+    await pickType(/^Tour$/i);
     await waitFor(() => {
       expect(screen.getAllByTestId('time-picker').length).toBeGreaterThan(0);
     });
@@ -656,7 +704,7 @@ describe('ReservationModal', () => {
   it('FE-PLANNER-RESMODAL-046: other type renders and saves correctly', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<ReservationModal {...defaultProps} onSave={onSave} />);
-    await userEvent.click(screen.getByRole('button', { name: /^Other$/i }));
+    await pickType(/^Other$/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Misc item');
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ type: 'other' })));
@@ -720,7 +768,7 @@ describe('ReservationModal', () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<ReservationModal {...defaultProps} onSave={onSave} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /^Accommodation$/i }));
+    await pickType(/^Accommodation$/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Hotel Test');
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
@@ -762,7 +810,7 @@ describe('ReservationModal', () => {
     render(<ReservationModal {...defaultProps} onSave={onSave} days={days} />);
 
     // Switch to hotel type
-    await userEvent.click(screen.getByRole('button', { name: /^Accommodation$/i }));
+    await pickType(/^Accommodation$/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Overlap Hotel');
 
     // Open start picker (first "Select day" trigger) and select Day 1 (id=17)
@@ -790,7 +838,7 @@ describe('ReservationModal', () => {
 
     render(<ReservationModal {...defaultProps} onSave={onSave} days={days} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /^Accommodation$/i }));
+    await pickType(/^Accommodation$/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Span Hotel');
 
     // Set end to Day 16 (id=7) first
@@ -875,7 +923,7 @@ describe('ReservationModal', () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<ReservationModal {...defaultProps} onSave={onSave} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /^Accommodation$/i }));
+    await pickType(/^Accommodation$/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Hotel Test');
     await userEvent.type(screen.getByPlaceholderText(/Address, Airport/i), 'Main Road 3');
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
@@ -1001,7 +1049,7 @@ describe('ReservationModal', () => {
     expect(screen.getByText('Linked expense')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 240, category: 'accommodation' });
+    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 240, category: 'accommodation', currency: 'EUR' });
   });
 
   it('FE-PLANNER-RESMODAL-061: a prefill without a price creates no cost entry', async () => {
@@ -1148,7 +1196,7 @@ describe('ReservationModal', () => {
     const place = buildPlace({ id: 15, name: 'Le Jules Verne', address: 'Champ de Mars' });
     render(<ReservationModal {...defaultProps} onSave={onSave} places={[place]} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /Restaurant/i }));
+    await pickType(/Restaurant/i);
     await userEvent.click(screen.getByText('—'));
     await userEvent.click(screen.getByRole('button', { name: 'Le Jules Verne' }));
 
@@ -1166,7 +1214,7 @@ describe('ReservationModal', () => {
     const days = reviewDays();
     render(<ReservationModal {...defaultProps} onSave={onSave} places={[place]} days={days} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /^Accommodation$/i }));
+    await pickType(/^Accommodation$/i);
     await userEvent.click(screen.getByText('—'));
     await userEvent.click(screen.getByRole('button', { name: 'Grand Hotel' }));
 
@@ -1215,10 +1263,11 @@ describe('ReservationModal', () => {
 
     render(<ReservationModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Museum tour');
-    await userEvent.click(screen.getByText('alice'));
-    await userEvent.click(screen.getByText('bob'));
+    const travelers = await openTravelers();
+    await userEvent.click(within(travelers).getByText('alice'));
+    await userEvent.click(within(travelers).getByText('bob'));
     // Toggling bob again removes him, so only alice is sent.
-    await userEvent.click(screen.getByText('bob'));
+    await userEvent.click(within(travelers).getByText('bob'));
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(body).not.toBeNull());
@@ -1253,7 +1302,7 @@ describe('ReservationModal', () => {
 
     render(<ReservationModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Boat trip');
-    await userEvent.click(screen.getByText('alice'));
+    await userEvent.click(within(await openTravelers()).getByText('alice'));
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.any(String), 'error', undefined));
@@ -1309,6 +1358,55 @@ describe('ReservationModal', () => {
     await waitFor(() => expect(deleted).toBe(true));
     await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.any(String), 'error', undefined));
     delete window.__addToast;
+  });
+
+  it('FE-PLANNER-RESMODAL-103: a linked cost saved without a currency is shown in the trip currency, not the display one (#2525)', () => {
+    // A booking's own cost entry is written without a currency, which means the
+    // trip's. Reading in USD on a EUR trip must not turn the 120 EUR into $120.00.
+    budgetEnabled();
+    seedStore(useSettingsStore, { settings: { default_currency: 'USD' } });
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1, currency: 'EUR' }),
+      budgetItems: [
+        { id: 7, trip_id: 1, name: 'Hotel deposit', total_price: 120, currency: null, category: 'accommodation', reservation_id: 9, members: [], payers: [], persons: 1, expense_date: null, paid_by_user_id: null },
+      ],
+    });
+    render(
+      <ReservationModal {...defaultProps} reservation={buildReservation({ id: 9, type: 'hotel', title: 'Hotel Paris' })} />,
+    );
+
+    expect(screen.getByText('Hotel deposit')).toBeInTheDocument();
+    expect(screen.getByText('120,00 €')).toBeInTheDocument();
+    expect(screen.queryByText('$120.00')).toBeNull();
+  });
+
+  it('FE-PLANNER-RESMODAL-104: an imported price keeps the currency it was quoted in, in the preview and on save (#2525)', async () => {
+    // A euro trip, a confirmation priced in dollars. The preview said $801.76 and the
+    // save sent the amount alone, which the server stored as 801.76 EUR.
+    budgetEnabled();
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR' }) });
+    const onSave = vi.fn().mockResolvedValue({ id: 82 });
+    const prefill = hotelPrefill({ metadata: { price: 801.76, priceCurrency: 'usd' } });
+    render(<ReservationModal {...defaultProps} onSave={onSave} prefill={prefill} days={reviewDays()} />);
+
+    expect(screen.getByText('$801.76')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 801.76, category: 'accommodation', currency: 'USD' });
+  });
+
+  it('FE-PLANNER-RESMODAL-105: a parsed currency that is not a code previews and saves in the trip currency', async () => {
+    budgetEnabled();
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR' }) });
+    const onSave = vi.fn().mockResolvedValue({ id: 83 });
+    const prefill = hotelPrefill({ metadata: { price: 50, priceCurrency: 'dollars' } });
+    render(<ReservationModal {...defaultProps} onSave={onSave} prefill={prefill} days={reviewDays()} />);
+
+    // The server drops such a currency too, so the preview names the one it will store.
+    expect(screen.getByText('50,00 €')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 50, category: 'accommodation' });
   });
 
   // ── File error paths ────────────────────────────────────────────────────────
@@ -1405,8 +1503,8 @@ describe('ReservationModal', () => {
     render(<ReservationModal {...defaultProps} onSave={onSave} />);
 
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Boat trip');
-    await userEvent.click(screen.getByText('Pending'));
-    await userEvent.click(screen.getByRole('button', { name: 'Confirmed' }));
+    // The status pill in the head band flips pending to confirmed.
+    await userEvent.click(screen.getByRole('button', { name: 'Set to Confirmed' }));
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
@@ -1418,7 +1516,7 @@ describe('ReservationModal', () => {
     const days = reviewDays();
     render(<ReservationModal {...defaultProps} onSave={onSave} days={days} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /^Accommodation$/i }));
+    await pickType(/^Accommodation$/i);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Grand Hotel');
     // Hotels hide the start/end rows, so these three pickers are check-in / until / check-out.
     const times = screen.getAllByTestId('time-picker');
@@ -1550,9 +1648,7 @@ describe('ReservationModal', () => {
     // asserting on the message proves nothing here. The save button is the part
     // that stayed dead with no visible reason.
     // The hotel type is labelled 'Accommodation' in the picker.
-    const hotelBtn = Array.from(document.querySelectorAll('button'))
-      .find(b => /^\s*Accommodation\s*$/.test(b.textContent || ''))!;
-    fireEvent.click(hotelBtn);
+    await pickType(/^Accommodation$/i);
     expect(save().disabled).toBe(false);
   });
 
@@ -1565,5 +1661,58 @@ describe('ReservationModal', () => {
     const times = screen.getAllByTestId('time-picker') as HTMLInputElement[];
     expect(times[0].value).toBe('16:00');
     expect(times[2].value).toBe('10:30');
+  });
+
+  // ── Blur booking codes in the edit form (#2457) ─────────────────────────────
+
+  describe('blur booking codes (#2457)', () => {
+    const blurOn = (on: boolean) => seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: on } });
+
+    it('FE-PLANNER-RESMODAL-096: the booking code field is blurred while the setting is on and the field is not focused', () => {
+      blurOn(true);
+      const res = buildReservation({ type: 'restaurant', confirmation_number: 'PNR-SECRET' });
+      render(<ReservationModal {...defaultProps} reservation={res} />);
+      const code = screen.getByDisplayValue('PNR-SECRET');
+      expect(isBlurred(code)).toBe(true);
+    });
+
+    it('FE-PLANNER-RESMODAL-097: a hotel booking hides its code the same way', () => {
+      blurOn(true);
+      const res = buildReservation({ type: 'hotel', title: 'Hotel Adlon', confirmation_number: 'HOTEL-SECRET' });
+      render(<ReservationModal {...defaultProps} reservation={res} />);
+      expect(isBlurred(screen.getByDisplayValue('HOTEL-SECRET'))).toBe(true);
+    });
+
+    it('FE-PLANNER-RESMODAL-098: focusing the field reveals the code for editing, leaving it hides it again', () => {
+      blurOn(true);
+      const res = buildReservation({ type: 'restaurant', confirmation_number: 'PNR-SECRET' });
+      render(<ReservationModal {...defaultProps} reservation={res} />);
+      const code = screen.getByDisplayValue('PNR-SECRET') as HTMLInputElement;
+      expect(isBlurred(code)).toBe(true);
+      act(() => code.focus());
+      expect(isBlurred(code)).toBe(false);
+      act(() => code.blur());
+      expect(isBlurred(code)).toBe(true);
+    });
+
+    it('FE-PLANNER-RESMODAL-099: with the setting off the code stays plain', () => {
+      blurOn(false);
+      const res = buildReservation({ type: 'restaurant', confirmation_number: 'PNR-PLAIN' });
+      render(<ReservationModal {...defaultProps} reservation={res} />);
+      expect(isBlurred(screen.getByDisplayValue('PNR-PLAIN'))).toBe(false);
+    });
+
+    it('FE-PLANNER-RESMODAL-100: a blurred code still saves unchanged, and an edit typed into it is kept', async () => {
+      blurOn(true);
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const res = buildReservation({ type: 'restaurant', title: 'Dinner', confirmation_number: 'PNR-SECRET' });
+      render(<ReservationModal {...defaultProps} onSave={onSave} reservation={res} />);
+      const code = screen.getByDisplayValue('PNR-SECRET');
+      await userEvent.clear(code);
+      await userEvent.type(code, 'PNR-NEW');
+      await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
+      await waitFor(() => expect(onSave).toHaveBeenCalled());
+      expect(onSave.mock.calls[0][0].confirmation_number).toBe('PNR-NEW');
+    });
   });
 });

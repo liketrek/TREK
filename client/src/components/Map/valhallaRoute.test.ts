@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../../tests/helpers/msw/server'
 import { useSettingsStore } from '../../store/settingsStore'
-import { valhallaBase, valhallaAvailable, valhallaRouteAvoiding, valhallaRun, runFrom, legAvoids } from './valhallaRoute'
+import { valhallaBase, valhallaAvailable, valhallaRouteAvoiding, valhallaRun, valhallaAlternates, alternatesFrom, runFrom, legAvoids } from './valhallaRoute'
 
 const FOSSGIS_VALHALLA = 'https://valhalla1.openstreetmap.de/route'
 
@@ -363,5 +363,64 @@ describe('valhallaRun over a whole day', () => {
     // guessing which stop is missing would put the wrong time against the right place.
     server.use(http.post(FOSSGIS_VALHALLA, () => HttpResponse.json(chain(2))))
     await expect(valhallaRun(stops(6), 'driving', [])).resolves.toBeNull()
+  })
+})
+
+describe('valhallaAlternates', () => {
+  /** The same leg read three ways, the second of them crossing by ferry. */
+  const withAlternates = (alternates: unknown[]) => ({
+    ...answer({ time: 11_460 }),
+    alternates,
+  })
+
+  it('VALHALLA-ALT-001: reads the preferred way, then every alternate, each with its own flags', () => {
+    const ways = alternatesFrom(withAlternates([
+      answer({ time: 12_000, has_ferry: true }),
+      answer({ time: 13_000, has_toll: true }),
+    ]))
+
+    expect(ways?.map(w => w.duration)).toEqual([11_460, 12_000, 13_000])
+    expect(ways?.map(w => w.hasFerry)).toEqual([false, true, false])
+    expect(ways?.map(w => w.hasToll)).toEqual([false, false, true])
+    expect(ways?.[1].coordinates).toEqual(SHAPE_POINTS)
+  })
+
+  it('VALHALLA-ALT-002: an alternate that cannot be read is dropped, a preferred way that cannot is no answer', () => {
+    // One bad entry is no reason to lose the leg's other ways, but the others are offered
+    // against the preferred one and mean nothing without it.
+    expect(alternatesFrom(withAlternates([{ trip: { legs: [] } }, answer({ time: 13_000 })]))?.map(w => w.duration))
+      .toEqual([11_460, 13_000])
+    expect(alternatesFrom(answer())).toHaveLength(1)
+    expect(alternatesFrom({ alternates: [answer()] })).toBeNull()
+    expect(alternatesFrom({ error_code: 442, error: 'No path could be found for input' })).toBeNull()
+  })
+
+  it('VALHALLA-ALT-003: asks for the leg between exactly its two ends, weighed the way the trip is, with the number of alternates', async () => {
+    const bodies: Record<string, unknown>[] = []
+    server.use(http.post(FOSSGIS_VALHALLA, async ({ request }) => {
+      bodies.push(await request.json() as Record<string, unknown>)
+      return HttpResponse.json(withAlternates([answer({ time: 12_000 })]))
+    }))
+
+    const ways = await valhallaAlternates(HAMBURG, BERLIN, 'driving', ['toll', 'ferry'], 2)
+    await valhallaAlternates(HAMBURG, BERLIN, 'driving', ['toll'], 0)
+
+    expect(ways).toHaveLength(2)
+    expect(bodies[0]).toMatchObject({ alternates: 2, costing: 'auto', costing_options: { auto: { use_tolls: 0, use_ferry: 0 } } })
+    expect(bodies[0].locations).toHaveLength(2)
+    // No alternates asked for, none named: the request stays the plain one.
+    expect(bodies[1]).not.toHaveProperty('alternates')
+  })
+
+  it('VALHALLA-ALT-004: a refusal is asked once more, then is no answer; an instance with its own OSRM asks nothing', async () => {
+    let calls = 0
+    server.use(http.post(FOSSGIS_VALHALLA, () => { calls++; return new HttpResponse(null, { status: 429 }) }))
+
+    await expect(valhallaAlternates(HAMBURG, BERLIN, 'driving', ['toll'], 2)).resolves.toBeNull()
+    expect(calls).toBe(2)
+
+    setSettings({ routing_base_url: 'https://osrm.example.org' })
+    await expect(valhallaAlternates(HAMBURG, BERLIN, 'driving', ['toll'], 2)).resolves.toBeNull()
+    expect(calls).toBe(2)
   })
 })

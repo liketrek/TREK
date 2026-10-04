@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { alternativeSubline, alternativesPhase, buildAlternativeOverlays, type AlternativeOverlay } from './alternativeOverlays'
+import { alternativeSubline, alternativesBusy, alternativesPhase, buildAlternativeOverlays, otherEngineNote, type AlternativeOverlay } from './alternativeOverlays'
 import { formatDurationShort } from './roadtripModel'
 import { ALT_PRIMARY, ALT_SECONDARY, ALT_LABEL_PRIMARY_BG, ALT_LABEL_SECONDARY_BG } from './alternativeColors'
 import type { RouteAlternative } from '../Map/RouteCalculator'
 
 /**
- * FE-ALTOVL-001..017: turning the router's answers into something drawable.
+ * FE-ALTOVL-001..023: turning the router's answers into something drawable.
  *
  * Two decisions live here and neither is cosmetic: which of the offered roads is
  * drawn as the one you are on, and where each label hangs. A label anchored on a
@@ -221,6 +221,56 @@ describe('buildAlternativeOverlays', () => {
     expect(out[0].note).toBe('Current')
     expect(out[1].color).toBe(ALT_SECONDARY)
   })
+
+  it('FE-ALTOVL-018: the blue belongs to the road being driven, never to the quickest offer', () => {
+    // The picker always lists the rail's road as the current one. After a choice took, the
+    // old road came back as the router's quickest and was painted blue as if still driven.
+    const out = buildAlternativeOverlays(
+      [
+        alt({ duration: 11_400, coordinates: line(20, 0), current: true }),
+        alt({ duration: 10_800, coordinates: line(20, 1) }),
+        alt({ duration: 12_000, coordinates: line(20, 2) }),
+      ],
+      LABELS,
+    )
+    expect(out.map(o => o.color)).toEqual([ALT_PRIMARY, ALT_SECONDARY, ALT_SECONDARY])
+    expect(out.map(o => o.note)).toEqual(['Current', 'Fastest', ''])
+    // Current takes part in the comparison: it is the rail's engine's own figure.
+    expect(out[0].slowerThanQuickest).toBe(600)
+  })
+
+  it('FE-ALTOVL-019: on a leg the second engine drives, its offers are the comparable ones', () => {
+    // A trip that avoids something is routed by Valhalla, rail and offers alike. Read
+    // against OSRM they would all be marked as another engine's and none could be timed.
+    const out = buildAlternativeOverlays(
+      [
+        alt({ duration: 6_778, coordinates: line(20, 0), current: true, engine: 'valhalla' }),
+        alt({ duration: 6_400, coordinates: line(20, 1), engine: 'valhalla' }),
+        alt({ duration: 5_600, coordinates: line(20, 2) }),
+      ],
+      LABELS,
+      'valhalla',
+    )
+    expect(out.map(o => o.otherEngine)).toEqual([false, false, true])
+    // The quickest is elected among Valhalla's figures, so the OSRM one cannot take it.
+    expect(out[1].note).toBe('Fastest')
+    expect(out[0].slowerThanQuickest).toBe(378)
+    expect(out[2].slowerThanQuickest).toBe(0)
+  })
+
+  it('FE-ALTOVL-020: on a leg a plugin prices, every router offer is read as another engine', () => {
+    const out = buildAlternativeOverlays(
+      [
+        alt({ duration: 9_000, coordinates: line(20, 0), current: true, engine: 'plugin' }),
+        alt({ duration: 7_200, coordinates: line(20, 1) }),
+      ],
+      LABELS,
+      'plugin',
+    )
+    expect(out.map(o => o.otherEngine)).toEqual([false, true])
+    expect(out[1].note).toBe('')
+    expect(out.every(o => o.slowerThanQuickest === 0)).toBe(true)
+  })
 })
 
 describe('alternativesPhase', () => {
@@ -253,5 +303,60 @@ describe('alternativeSubline', () => {
     // The caller words the difference; the figure is the same short duration the map prints.
     expect(alternativeSubline(overlay({ note: '', slowerThanQuickest: 1800 }), slower))
       .toBe(`${formatDurationShort(1800)} slower`)
+    // Another engine's road has no difference to print, only its own time.
+    expect(alternativeSubline(overlay({ note: '', otherEngine: true, label: '2 h', slowerThanQuickest: 0 }), slower))
+      .toBe('2 h')
+  })
+})
+
+describe('otherEngineNote', () => {
+  it('FE-ALTOVL-022: a route another engine timed is named after that engine, one the rail timed not at all', () => {
+    // On a plugin leg the offers are OSRM's. They used to be called the avoidance
+    // router's, an engine that had nothing to do with them.
+    const plugin = buildAlternativeOverlays(
+      [
+        alt({ coordinates: line(20, 0), current: true, engine: 'plugin' }),
+        alt({ coordinates: line(20, 1) }),
+        alt({ coordinates: line(20, 2), engine: 'valhalla', avoids: 'motorway' }),
+      ],
+      LABELS,
+      'plugin',
+    )
+    expect(plugin.map(o => o.engine)).toEqual(['plugin', 'osrm', 'valhalla'])
+    expect(plugin.map(otherEngineNote)).toEqual([null, 'roadtrip.alt.otherEngineStandard', 'roadtrip.alt.otherEngine'])
+    // On a trip that avoids nothing, the avoidance router's offer is the other one.
+    const plain = buildAlternativeOverlays(
+      [alt({ coordinates: line(20, 0), current: true }), alt({ coordinates: line(20, 1), engine: 'valhalla' })],
+      LABELS,
+    )
+    expect(plain.map(otherEngineNote)).toEqual([null, 'roadtrip.alt.otherEngine'])
+  })
+
+  it('FE-ALTOVL-023: a line OSRM drew in the avoidance router’s place heads the list as the other engine’s', () => {
+    const out = buildAlternativeOverlays(
+      [
+        alt({ coordinates: line(20, 0), current: true, engine: 'osrm' }),
+        alt({ coordinates: line(20, 1), engine: 'valhalla' }),
+      ],
+      LABELS,
+      'valhalla',
+    )
+    expect(out.map(otherEngineNote)).toEqual(['roadtrip.alt.otherEngineStandard', null])
+    // Nothing is measured against it: the offer is the quickest the rail's engine timed.
+    expect(out[1].note).toBe('Fastest')
+    expect(out.every(o => o.slowerThanQuickest === 0)).toBe(true)
+    // An engine no offer comes from has nothing to say.
+    expect(otherEngineNote({ otherEngine: true, engine: 'plugin' })).toBeNull()
+  })
+})
+
+describe('alternativesBusy', () => {
+  it('FE-ALTOVL-021: a picker is busy exactly while one of its offers is being checked', () => {
+    expect(alternativesBusy(null)).toBe(false)
+    expect(alternativesBusy(undefined)).toBe(false)
+    expect(alternativesBusy({ proving: null })).toBe(false)
+    // Index 0 is a real offer, not "nothing".
+    expect(alternativesBusy({ proving: 0 })).toBe(true)
+    expect(alternativesBusy({ proving: 2 })).toBe(true)
   })
 })

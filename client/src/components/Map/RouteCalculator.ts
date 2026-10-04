@@ -4,7 +4,7 @@ import type { DistanceUnit, RouteResult, RouteSegment, RouteWithLegs, SnappedWay
 import { haversineKm } from '../../utils/geo'
 import { formatDistance } from '../../utils/units'
 import { countRoute } from './routeUsageCounter'
-import { valhallaRouteAvoiding, valhallaRun, valhallaAvailable, legAvoids, type AvoidClass } from './valhallaRoute'
+import { valhallaRouteAvoiding, valhallaRun, valhallaAvailable, valhallaAlternates, valhallaSpacing, legAvoids, type AvoidClass, type ValhallaLeg } from './valhallaRoute'
 import type { RouteUsageSurface } from '@trek/shared'
 
 // FOSSGIS hosts OSRM with real per-profile routing (car/foot/bike) — the
@@ -214,6 +214,33 @@ export function parsePluginProfile(profile: string): { pluginId: string; profile
   const slash = rest.indexOf('/')
   if (slash <= 0 || slash === rest.length - 1) return null
   return { pluginId: rest.slice(0, slash), profileId: rest.slice(slash + 1) }
+}
+
+/**
+ * Which engine priced a route: OSRM, the second engine that weighs road classes away, or
+ * a route provider plugin. Their figures are three different speed models, so a figure
+ * from one read against a figure from another measures the models, not the roads.
+ */
+export type RouteEngine = 'osrm' | 'valhalla' | 'plugin'
+
+/**
+ * The classes a request really weighs away, in a stable order, and none when it cannot.
+ *
+ * Only the driving profile has classes to leave out and only Valhalla can leave them out,
+ * so every other request is asked plainly whatever the trip says. One function for the
+ * day routing and for the offers beside it, so the two cannot disagree about which engine
+ * a leg belongs to.
+ */
+export function avoidedClasses(profile: RouteProfileKey, avoid: readonly AvoidClass[]): AvoidClass[] {
+  return profile === 'driving' && avoid.length > 0 && valhallaAvailable()
+    ? [...avoid].sort((a, b) => a.localeCompare(b))
+    : []
+}
+
+/** The engine `calculateRouteWithLegs` hands a request with this profile and avoidance to. */
+export function routeEngineFor(profile: RouteProfileKey, avoid: readonly AvoidClass[]): RouteEngine {
+  if (parsePluginProfile(profile)) return 'plugin'
+  return avoidedClasses(profile, avoid).length ? 'valhalla' : 'osrm'
 }
 
 /** Fetches a full route via OSRM and returns coordinates, distance, and duration estimates for driving/walking. */
@@ -480,9 +507,7 @@ export async function calculateRouteWithLegs(
     return { coordinates: [], distance: 0, duration: 0, legs: [] }
   }
 
-  const avoiding = profile === 'driving' && avoid.length > 0 && valhallaAvailable()
-    ? [...avoid].sort((a, b) => a.localeCompare(b))
-    : []
+  const avoiding = avoidedClasses(profile, avoid)
 
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
   // The cached result carries formatted leg distances, so the active distance unit is
@@ -497,23 +522,30 @@ export async function calculateRouteWithLegs(
   // way is worse: this Map is shared with the ordinary day planner, the studio and the
   // booking geometry, none of which ask for avoidance, so an avoid-routed answer stored
   // under the plain key would hand them a road nobody drives and a second engine's
-  // times. `avoiding` is empty whenever the request goes to OSRM after all, so the key
-  // also separates the two engines.
+  // times. So the avoiding key only ever holds a Valhalla answer: when Valhalla cannot
+  // answer and OSRM drives the request after all, that answer is filed under the plain
+  // key, where it is exactly what an ordinary caller would have got. Filed under the
+  // avoiding key it stood in for the avoided road until the next reload, however soon
+  // Valhalla came back.
   const pluginScope = profile.startsWith('plugin:') ? `:${tripId ?? ''}:${dayId ?? ''}` : ''
   const avoidScope = avoiding.length ? `:avoid=${avoiding.join(',')}` : ''
-  const cacheKey = `${profile}:${getDistanceUnit()}:${coords}${pluginScope}${avoidScope}`
+  const plainKey = `${profile}:${getDistanceUnit()}:${coords}${pluginScope}`
+  const cacheKey = `${plainKey}${avoidScope}`
   const cached = routeCache.get(cacheKey)
   if (cached) return cached
 
   if (avoiding.length) {
     const routed = await routeAvoidingWithLegs(waypoints, avoiding, signal)
-    // Null is a Valhalla that could not answer at all. Falling through to OSRM keeps a
-    // day drawn rather than blank, and `avoidance` stays absent on that result so the
-    // rail can say the avoidance did not happen instead of implying it did.
     if (routed) {
       cacheRoute(cacheKey, routed)
       return routed
     }
+    // Null is a Valhalla that could not answer at all. OSRM keeps the day drawn rather
+    // than blank, and the answer says that nothing was avoided, with the reason, so the
+    // rail flags the day instead of implying the setting held on a road nobody weighed.
+    const plain = routeCache.get(plainKey) ?? await osrmWithLegs(waypoints, coords, profile, signal)
+    cacheRoute(plainKey, plain)
+    return { ...plain, avoidance: { asked: avoiding, achieved: [], fellBack: true } }
   }
 
   // Plugin profile (`plugin:<id>/<profile>`): the server invokes that routeProvider
@@ -558,6 +590,18 @@ export async function calculateRouteWithLegs(
     return result
   }
 
+  const result = await osrmWithLegs(waypoints, coords, profile, signal)
+  cacheRoute(cacheKey, result)
+  return result
+}
+
+/** The OSRM answer for a chain, one leg per waypoint pair. Throws like every OSRM call here. */
+async function osrmWithLegs(
+  waypoints: Waypoint[],
+  coords: string,
+  profile: RouteProfileKey,
+  signal?: AbortSignal,
+): Promise<RouteWithLegs> {
   // Written as literals rather than narrowing `profile`: its type is an open string union
   // (plugins name their own modes), which no comparison narrows to the three OSRM knows.
   const osrmProfile: 'driving' | 'walking' | 'cycling' =
@@ -592,9 +636,7 @@ export async function calculateRouteWithLegs(
   )
 
   const snapped = readSnapped(data, waypoints)
-  const result: RouteWithLegs = { coordinates, distance: route.distance, duration: route.duration, legs, ...(snapped ? { snapped } : {}) }
-  cacheRoute(cacheKey, result)
-  return result
+  return { coordinates, distance: route.distance, duration: route.duration, legs, ...(snapped ? { snapped } : {}) }
 }
 
 /** Store a route and drop the oldest once the cache is over its cap. */
@@ -659,6 +701,7 @@ async function routeAvoidingWithLegs(
     legs,
     snapped: run.snapped,
     avoidance: { asked: avoid, achieved: avoid.filter(cls => legAvoids(run.total, cls)) },
+    hasFerry: run.total.hasFerry,
   }
 }
 
@@ -714,7 +757,7 @@ function formatDuration(seconds: number): string {
   return `${m} min`
 }
 
-/** One way of driving a leg, as OSRM offers it. */
+/** One way of driving a leg, as a router offers it. */
 export interface RouteAlternative {
   coordinates: [number, number][]
   distance: number
@@ -724,19 +767,23 @@ export interface RouteAlternative {
   /** Set when this way exists because a road class was left out of it. */
   avoids?: AvoidClass
   /**
-   * Which engine priced this route, when it was not the one that priced the rest.
+   * Which engine priced this route. Absent means OSRM, which is what answers every route
+   * of a trip that avoids nothing, except the avoidance offer on a default install.
    *
-   * Absent for everything OSRM answered, which is every route in a list except the
-   * avoidance offer on a default install. It exists because the two engines do not
-   * agree on speed: measured over twelve European legs the per-leg drive times run
-   * from 14.7 % under OSRM's to 13.2 % over, and the sign depends on the region:
-   * Valhalla is faster on Spanish autovía and slower through a city. So a figure from
-   * one of them subtracted from a figure from the other is not a difference in
-   * driving time, it is the gap between two speed models, and the reader has no way
-   * of telling the two apart.
+   * It exists because the engines do not agree on speed: measured over twelve European
+   * legs the per-leg drive times run from 14.7 % under OSRM's to 13.2 % over, and the
+   * sign depends on the region: Valhalla is faster on Spanish autovía and slower through
+   * a city. So a figure from one of them subtracted from a figure from the other is not a
+   * difference in driving time, it is the gap between two speed models, and the reader
+   * has no way of telling the two apart.
    */
-  engine?: 'valhalla'
+  engine?: RouteEngine
+  /** Whether the way crosses by ferry, where the engine that drew it says so. */
+  hasFerry?: boolean
 }
+
+/** What two routes are compared by: their line, and their figures where there is none. */
+export type RoadLine = Pick<RouteAlternative, 'coordinates' | 'distance' | 'duration'>
 
 /**
  * Road classes worth asking the router to leave out, in the order they are tried.
@@ -780,10 +827,16 @@ const SAME_ROAD_KM = 0.5
  *
  * The geometry does not care which engine drew it, so it decides whenever there is one.
  * The numbers stay as the fallback for a line with no shape to compare.
+ *
+ * Measured both ways round. Asked only whether `b` stays near `a`, a road that runs the
+ * whole of `b` and then turns off to a point and back passed as `b`, because every point
+ * of `b` is on it; that is exactly the shape of a leg bent by a via, and the picker and
+ * the check behind a choice both have to tell it from the plain road.
  */
-function sameRoad(a: RouteAlternative, b: RouteAlternative): boolean {
-  const stray = furthestFrom(b.coordinates, a.coordinates)
-  if (stray) return stray.km < SAME_ROAD_KM
+export function sameRoad(a: RoadLine, b: RoadLine): boolean {
+  const there = furthestFrom(b.coordinates, a.coordinates)
+  const back = furthestFrom(a.coordinates, b.coordinates)
+  if (there && back) return Math.max(there.km, back.km) < SAME_ROAD_KM
   return Math.abs(a.distance - b.distance) < 200 && Math.abs(a.duration - b.duration) < 60
 }
 
@@ -862,12 +915,18 @@ async function valhallaExcluding(
   // and every routing request an instance makes still lands in the one counter.
   if (!signal?.aborted) countRoute({ ...sample, failed: !leg })
   if (!leg || !legAvoids(leg, exclude)) return null
+  return valhallaOffer(leg)
+}
+
+/** A Valhalla leg as an offer, carrying the engine that priced it and what it crosses. */
+function valhallaOffer(leg: ValhallaLeg): RouteAlternative {
   return {
     coordinates: leg.coordinates,
     distance: leg.distance,
     duration: leg.duration,
     divergence: null,
     engine: 'valhalla',
+    hasFerry: leg.hasFerry,
   }
 }
 
@@ -917,12 +976,89 @@ async function osrmExcluding(
  * It is what makes a choice persistable: saving that point as a via forces the router back
  * onto this road on every future request, without storing a polyline that would go stale
  * with the next OSM update.
+ *
+ * `avoid` is the classes the trip weighs away. A driving leg of such a trip is routed by
+ * Valhalla, so its offers come from Valhalla too, weighed the same way, and never from
+ * OSRM: a list holding both engines is what offered a road the rail was not on as the
+ * quicker one, and clicking it changed nothing.
  */
 export async function calculateAlternatives(
   from: Waypoint,
   to: Waypoint,
   profile: 'driving' | 'walking' | 'cycling' = 'driving',
-  { signal, limit = 3 }: { signal?: AbortSignal; limit?: number } = {},
+  { signal, limit = 3, avoid = [] }: { signal?: AbortSignal; limit?: number; avoid?: readonly AvoidClass[] } = {},
+): Promise<RouteAlternative[]> {
+  const avoiding = avoidedClasses(profile, avoid)
+  const routes = avoiding.length
+    ? await alternativesAvoiding(from, to, avoiding, limit, signal)
+    : await alternativesFromOsrm(from, to, profile, limit, signal)
+  if (!routes.length) return routes
+
+  // The first route is what the router would have given anyway; the others are measured
+  // against it so each one can be pinned by the point that makes it different.
+  const [primary, ...rest] = routes
+  for (const alt of rest) alt.divergence = furthestPointFrom(alt.coordinates, primary.coordinates)
+  return routes
+}
+
+/**
+ * The offers for a leg of a trip that weighs classes away, every one of them Valhalla's.
+ *
+ * Throws when Valhalla has nothing to say, so the picker reports a router that is not
+ * answering. Quietly offering OSRM's roads instead is the very mix this path exists to end.
+ *
+ * One way back gets the question the OSRM path asks too: the same drive with one more
+ * class left out, only of those the trip does not already avoid, and only where the road
+ * that comes back really is without it. Paced like the pieces of a split day, because the
+ * public instance allows one request a second.
+ */
+async function alternativesAvoiding(
+  from: Waypoint,
+  to: Waypoint,
+  avoiding: AvoidClass[],
+  limit: number,
+  signal?: AbortSignal,
+): Promise<RouteAlternative[]> {
+  const sample = {
+    profile: 'driving' as const,
+    surface: 'alternatives' as const,
+    selfHosted: !!useSettingsStore.getState().settings.routing_base_url?.trim(),
+    waypoints: 2,
+    km: haversineKm(from, to),
+  }
+  const answered = await valhallaAlternates(from, to, 'driving', avoiding, Math.max(0, limit - 1), signal)
+  if (!signal?.aborted) countRoute({ ...sample, failed: !answered })
+  if (!answered?.length) throw new Error('No route found')
+
+  const routes: RouteAlternative[] = []
+  for (const leg of answered) {
+    const offer = valhallaOffer(leg)
+    if (!routes.some(r => sameRoad(r, offer))) routes.push(offer)
+  }
+  if (routes.length >= 2) return routes
+
+  for (const cls of EXCLUDABLE_CLASSES) {
+    if (avoiding.includes(cls)) continue
+    await valhallaSpacing(signal)
+    if (signal?.aborted) break
+    const run = await valhallaRun([from, to], 'driving', [...avoiding, cls], signal)
+    if (!signal?.aborted) countRoute({ ...sample, failed: !run })
+    if (!run || !legAvoids(run.total, cls)) continue
+    const detour = valhallaOffer(run.total)
+    if (routes.some(r => sameRoad(r, detour))) continue
+    routes.push({ ...detour, avoids: cls })
+    break
+  }
+  return routes
+}
+
+/** The offers for a leg of a trip that avoids nothing: OSRM's, and one avoidance offer. */
+async function alternativesFromOsrm(
+  from: Waypoint,
+  to: Waypoint,
+  profile: 'driving' | 'walking' | 'cycling',
+  limit: number,
+  signal?: AbortSignal,
 ): Promise<RouteAlternative[]> {
   const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`
   const url = `${routeBaseFor(profile)}/${coords}?alternatives=${limit}&overview=full&geometries=geojson`
@@ -960,11 +1096,6 @@ export async function calculateAlternatives(
       }
     }
   }
-
-  // The first route is what the router would have given anyway; the others are measured
-  // against it so each one can be pinned by the point that makes it different.
-  const [primary, ...rest] = routes
-  for (const alt of rest) alt.divergence = furthestPointFrom(alt.coordinates, primary.coordinates)
   return routes
 }
 
@@ -982,31 +1113,78 @@ function furthestPointFrom(line: [number, number][], reference: [number, number]
  * nothing for it. The winner is converted once at the end, because `sameRoad` needs a
  * real distance rather than a rank, and half a degree is a different number of metres in
  * Andalusia than in Lapland.
+ *
+ * `index` is where on `line` the point sits, so points taken off one line can be put back
+ * in the order that line drives through them.
  */
-function furthestFrom(
+export function furthestFrom(
   line: [number, number][],
   reference: [number, number][],
-): { lat: number; lng: number; km: number } | null {
+): { index: number; lat: number; lng: number; km: number } | null {
   if (!line.length || !reference.length) return null
   // Every tenth vertex is plenty: alternatives differ over kilometres, not metres, and a
   // full cross product of two thousand-point lines is not worth the milliseconds.
   const step = Math.max(1, Math.floor(reference.length / 200))
-  let best: { lat: number; lng: number } | null = null
+  let bestIndex = -1
   let bestNeighbour: [number, number] | null = null
   let bestDist = -1
   for (let i = 0; i < line.length; i += Math.max(1, Math.floor(line.length / 200))) {
-    const [lat, lng] = line[i]
-    let nearest = Infinity
-    let nearestPoint: [number, number] | null = null
-    for (let j = 0; j < reference.length; j += step) {
-      const dLat = lat - reference[j][0]
-      const dLng = (lng - reference[j][1]) * Math.cos((lat * Math.PI) / 180)
-      const d = dLat * dLat + dLng * dLng
-      if (d < nearest) { nearest = d; nearestPoint = reference[j] }
-    }
-    if (nearest > bestDist) { bestDist = nearest; best = { lat, lng }; bestNeighbour = nearestPoint }
+    const near = nearestOn(line[i], reference, step)
+    if (near.d > bestDist) { bestDist = near.d; bestIndex = i; bestNeighbour = near.at }
   }
-  if (!best) return null
-  const km = bestNeighbour ? haversineKm(best, { lat: bestNeighbour[0], lng: bestNeighbour[1] }) : 0
-  return { ...best, km }
+  if (bestIndex < 0) return null
+  const [lat, lng] = line[bestIndex]
+  const km = bestNeighbour ? haversineKm({ lat, lng }, { lat: bestNeighbour[0], lng: bestNeighbour[1] }) : 0
+  return { index: bestIndex, lat, lng, km }
+}
+
+/**
+ * Where `reference` passes closest to `point`, as a squared distance in the same scaled
+ * degrees and the spot on the line it was measured to.
+ *
+ * Coarse, then fine. The sampled vertices find the stretch, and the segments either side
+ * of the nearest one find the road itself. Measured to the sampled vertex alone, a point
+ * on the very same road sat up to half a sample apart from it, which on a thousand
+ * kilometre leg is kilometres: two engines' lines of one motorway then read as two roads.
+ */
+function nearestOn(
+  point: [number, number],
+  reference: [number, number][],
+  step: number,
+): { d: number; at: [number, number] } {
+  const cos = Math.cos((point[0] * Math.PI) / 180)
+  const squared = (p: [number, number]): number => {
+    const dLat = point[0] - p[0]
+    const dLng = (point[1] - p[1]) * cos
+    return dLat * dLat + dLng * dLng
+  }
+  let nearestIndex = 0
+  let nearest = Infinity
+  for (let j = 0; j < reference.length; j += step) {
+    const d = squared(reference[j])
+    if (d < nearest) { nearest = d; nearestIndex = j }
+  }
+  let at = reference[nearestIndex]
+  const last = Math.min(reference.length - 1, nearestIndex + step)
+  for (let k = Math.max(0, nearestIndex - step); k < last; k++) {
+    const on = closestOnSegment(point, reference[k], reference[k + 1], cos)
+    const d = squared(on)
+    if (d < nearest) { nearest = d; at = on }
+  }
+  return { d: nearest, at }
+}
+
+/** The point of segment a-b closest to `p`, with longitude scaled by `cos` so the plane is fair. */
+function closestOnSegment(
+  p: [number, number],
+  a: [number, number],
+  b: [number, number],
+  cos: number,
+): [number, number] {
+  const dx = (b[1] - a[1]) * cos
+  const dy = b[0] - a[0]
+  const length = dx * dx + dy * dy
+  if (length === 0) return a
+  const t = Math.max(0, Math.min(1, (((p[1] - a[1]) * cos) * dx + (p[0] - a[0]) * dy) / length))
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
 }

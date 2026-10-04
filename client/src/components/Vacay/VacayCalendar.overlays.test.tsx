@@ -171,7 +171,7 @@ describe('VacayCalendar overlays', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Company Holiday' }))
     fireEvent.click(screen.getByText('company-5'))
 
-    await waitFor(() => expect(toggleCompanyHoliday).toHaveBeenCalledWith('2026-12-24'))
+    await waitFor(() => expect(toggleCompanyHoliday.mock.calls[0]?.[0]).toBe('2026-12-24'))
   })
 
   it('FE-COMP-VCYCAL-007b: company mode left over from an enabled plan stops logging', async () => {

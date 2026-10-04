@@ -7,7 +7,7 @@ import PhotoLightbox from '../../../components/Journey/PhotoLightbox'
 import ContributorInviteDialog from '../../../components/Journey/ContributorInviteDialog'
 import ConfirmDialog from '../../../components/shared/ConfirmDialog'
 import { ProviderPicker } from '../../../components/Journey/JourneyDetailPageProviderPicker'
-import { photoUrl } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
+import { photoUrl, posterlessVideo } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { useJourneyDetail } from '../../../pages/journeyDetail/useJourneyDetail'
 import { useJourneyStore } from '../../../store/journeyStore'
 import { useAddonStore } from '../../../store/addonStore'
@@ -49,6 +49,7 @@ export default function MJourneyDetail() {
     sidebarMapItems, tracks,
     dismissSuggestion, restoreSuggestions, openAtEntryId,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos,
+    addPickedProviderPhotos, addEntryProviderPhotos,
   } = useJourneyDetail()
 
   // The dock's FAB is a sibling of this screen: on the Gallery it becomes the
@@ -261,7 +262,7 @@ export default function MJourneyDetail() {
 
   useEffect(() => {
     let active = true
-    ;(async () => {
+    ;void (async () => {
       try {
         const addonsData = await addonsApi.enabled()
         const enabled = (addonsData.addons || []).filter(
@@ -388,7 +389,7 @@ export default function MJourneyDetail() {
                   onClick={() => openLightbox(gallery, i)}
                   className="relative aspect-square overflow-hidden rounded-[14px]"
                 >
-                  {photo.media_type === 'video' && !photo.thumbnail_path ? (
+                  {posterlessVideo(photo) ? (
                     <span className="block h-full w-full bg-[color:var(--m-ic)]" />
                   ) : (
                     <img src={photoUrl(photo, 'thumbnail')} alt={photo.caption || ''} loading="lazy" className="h-full w-full object-cover" />
@@ -629,9 +630,7 @@ export default function MJourneyDetail() {
             return entryId
           }}
           onUploadPhotos={uploadPhotos}
-          onAddProviderPhotos={async (entryId, group) => {
-            await journeyApi.addProviderPhotos(entryId, group.provider, group.assetIds, undefined, group.passphrase, group.mediaTypes)
-          }}
+          onAddProviderPhotos={addEntryProviderPhotos}
           onDelete={editingEntry.id > 0 && canEditEntries
             ? () => { const target = editingEntry; setEditingEntry(null); setDeleteTarget(target) }
             : undefined}
@@ -674,24 +673,7 @@ export default function MJourneyDetail() {
           existingAssetIds={new Set(gallery.filter(p => p.asset_id).map(p => p.asset_id!))}
           onClose={() => setPickerProvider(null)}
           onAdd={async (groups, entryId) => {
-            let added = 0
-            let anyFailed = false
-            for (const group of groups) {
-              try {
-                const result = entryId
-                  ? await journeyApi.addProviderPhotos(entryId, pickerProvider, group.assetIds, undefined, group.passphrase, group.mediaTypes)
-                  : await journeyApi.addProviderPhotosToGallery(current.id, pickerProvider, group.assetIds, group.passphrase, group.mediaTypes)
-                added += result.added || 0
-              } catch {
-                anyFailed = true
-              }
-            }
-            if (added > 0) {
-              toast.success(t('journey.photosAdded', { count: added }))
-              loadJourney(Number(id))
-            } else if (anyFailed) {
-              toast.error(t('common.error'))
-            }
+            await addPickedProviderPhotos(current.id, pickerProvider, groups, entryId)
             setPickerProvider(null)
           }}
         />

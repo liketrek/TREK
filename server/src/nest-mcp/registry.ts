@@ -15,10 +15,22 @@ import type {
 } from './types';
 import { ResourceTemplate as SdkResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { z } from 'zod';
 
 interface BoundEntry {
   entry: McpEntry;
   instance: object;
+}
+
+/**
+ * A shape is registered strict: the SDK's own z.object wrapping would strip an
+ * undeclared key and run the handler as if nothing was wrong, and strict also
+ * puts `additionalProperties: false` into tools/list. A whole schema is the
+ * author's call and passes through untouched.
+ */
+function strictInputSchema(schema: ToolOptions['inputSchema']): unknown {
+  if (schema === undefined || '_zod' in schema) return schema;
+  return z.strictObject(schema);
 }
 
 export interface McpRegistryOptions {
@@ -30,9 +42,9 @@ type AnyHandler = (this: unknown, ...handlerArgs: unknown[]) => unknown;
 
 /**
  * Structural view of the SDK registration surface. The SDK's real signatures
- * are generic over the Zod shapes; the registry passes schemas straight
- * through and binds `ctx` where the SDK would pass `extra`, so it needs (and
- * exposes) none of that type-level machinery.
+ * are generic over the Zod shapes; the registry hands schemas over as objects
+ * and binds `ctx` where the SDK would pass `extra`, so it needs (and exposes)
+ * none of that type-level machinery.
  */
 interface LooseRegistrar {
   registerTool(name: string, config: Record<string, unknown>, cb: (...cbArgs: unknown[]) => unknown): unknown;
@@ -287,11 +299,11 @@ export class McpRegistry {
   // @Delete handlers (mcp-transport.controller.ts), which are ordinary Nest routes —
   // `@Public()` only exempts the auth guard, and the raw-body parser exemption in
   // bootstrap.ts only exempts Express's JSON/urlencoded parsers. Neither opts /mcp out
-  // of `@mikro-orm/nestjs`'s per-request middleware (registerRequestContext, on by
-  // default and not overridden in mikro-orm.config.ts), which forks the EntityManager
-  // before any controller method runs. So a tool handler here already runs inside a
-  // request context; do not wrap it in withRequestContext (task-2-review.md's
-  // non-HTTP caller table confirms this path is already covered).
+  // of the per-request EntityManager fork bootstrap.ts mounts as a pathless middleware
+  // before app.init() (mikroOrmRequestContext), which runs before any controller
+  // method. So a tool handler here already runs inside a request context; do not
+  // wrap it in withRequestContext (task-2-review.md's non-HTTP caller table
+  // confirms this path is already covered).
   private attachTool(
     registrar: LooseRegistrar,
     options: ToolOptions,
@@ -303,7 +315,7 @@ export class McpRegistry {
     const config: Record<string, unknown> = {
       title: options.title,
       description: options.description,
-      inputSchema: options.inputSchema,
+      inputSchema: strictInputSchema(options.inputSchema),
       outputSchema: options.outputSchema,
       annotations: options.annotations,
       _meta: options._meta,

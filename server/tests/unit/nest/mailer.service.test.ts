@@ -268,3 +268,61 @@ describe('MailerService test send', () => {
     expect(lines.some(line => line.includes('SMTP test email sent to=admin@example.com smtp=mail.internal.example:587'))).toBe(true);
   });
 });
+
+describe('MailerService header logo (#2507)', () => {
+  interface SentAttachment {
+    cid?: string;
+    contentType?: string;
+    contentDisposition?: string;
+    content?: Buffer;
+  }
+
+  /** The options object of the most recent sendMail() call. */
+  function lastMail(): { html?: string; attachments?: SentAttachment[] } {
+    const calls = sendMail.mock.calls;
+    return calls[calls.length - 1][0] as { html?: string; attachments?: SentAttachment[] };
+  }
+
+  /**
+   * The attachment the HTML's header image resolves to. Before #2507 the logo was
+   * an SVG data: URI, which Gmail strips and Outlook blocks; it has to be a PNG
+   * part inside the message, marked inline and addressed by Content-ID.
+   */
+  function expectLogoResolves(mail: { html?: string; attachments?: SentAttachment[] }): void {
+    const cid = /<img src="cid:([^"]+)"/.exec(mail.html ?? '')?.[1];
+    expect(cid).toBeTruthy();
+    const logo = mail.attachments?.find(a => a.cid === cid);
+    expect(logo).toBeDefined();
+    expect(logo!.contentType).toBe('image/png');
+    expect(logo!.contentDisposition).toBe('inline');
+    const png = logo!.content!;
+    expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    // IHDR width and height: twice the 48px the header shows it at.
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([96, 96]);
+  }
+
+  it('MAILER-015: a notification mail carries the logo its HTML points to', async () => {
+    configureSmtp();
+
+    expect(await newMailer().sendEmail('someone@example.com', 'Subject', 'Body')).toBe(true);
+
+    expectLogoResolves(lastMail());
+  });
+
+  it('MAILER-016: the password-reset mail carries it too', async () => {
+    configureSmtp();
+
+    expect((await newMailer().sendPasswordResetEmail('someone@example.com', 'https://trek.example/reset', null)).delivered).toBe('email');
+
+    expectLogoResolves(lastMail());
+  });
+
+  it('MAILER-017: the plain-text test mail has no HTML, so it carries no logo either', async () => {
+    configureSmtp();
+
+    await newMailer().testSmtp('admin@example.com');
+
+    expect(lastMail().html).toBeUndefined();
+    expect(lastMail().attachments).toBeUndefined();
+  });
+});

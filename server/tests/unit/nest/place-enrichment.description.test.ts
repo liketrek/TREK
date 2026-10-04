@@ -201,7 +201,7 @@ describe('description source order', () => {
     // The record and its link come with the request, and the answer is cached
     // for every user of the instance under the label "Google". A link that is
     // not a Google Maps address by shape is dropped; the text stays.
-    for (const bad of ['https://phish.example/maps', 'https://google.evil.example/x', 'javascript:alert(1)', 'maps.google.com/x']) {
+    for (const bad of ['https://phish.example/maps', 'https://google.evil.example/x', 'javascript:alert(1)', 'phish.example/maps']) {
       const maps = mapsStub({
         getMapsKey: vi.fn(() => 'key'),
         fetchEditorialSummary: vi.fn(async () => 'Casual chain for wood-fired pizza.'),
@@ -224,6 +224,15 @@ describe('description source order', () => {
       });
       expect(out.description, ok).toMatchObject({ source: 'google', sourceUrl: ok });
     }
+
+    // #2483: the website contract completes a bare host, and the link is the
+    // completed one. The host check still decides, on the host it names.
+    const maps = mapsStub({
+      getMapsKey: vi.fn(() => 'key'),
+      fetchEditorialSummary: vi.fn(async () => 'Casual chain for wood-fired pizza.'),
+    });
+    const bare = await make(maps).enrich(1, { ...GOOGLE_REQ, details: { source: 'google', google_maps_url: 'maps.google.com/x' } });
+    expect(bare.description).toMatchObject({ source: 'google', sourceUrl: 'https://maps.google.com/x' });
   });
 
   it('ENRICH-075: keeps the OpenStreetMap description ahead of everything', async () => {
@@ -454,6 +463,14 @@ describe("the description on the place's own website", () => {
     });
     const ok = await make(mapsStub()).enrich(1, GERS_REQ);
     expect(ok.description).toMatchObject({ sourceUrl: 'https://losteria.net/rostock' });
+
+    // #2483: the index keeps a page the way it found it, sometimes without a
+    // scheme. The link that is stored is the completed one, never the bare text.
+    mockTrekPlacesById.mockResolvedValue({
+      description: { text: 'Pizza in Rostock.', sourceUrl: 'losteria.net/rostock' },
+    });
+    const bare = await make(mapsStub()).enrich(1, GERS_REQ);
+    expect(bare.description).toMatchObject({ sourceUrl: 'https://losteria.net/rostock' });
   });
 
   it('ENRICH-117: a description the request made up never reaches the shared cache', async () => {

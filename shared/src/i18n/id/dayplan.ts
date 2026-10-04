@@ -66,6 +66,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Peta & GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Ekspor rencana hari sebagai PDF',
+  'dayplan.pdfMine': 'Rencanaku sebagai PDF',
+  'dayplan.pdfMineSub': 'Hanya aktivitas dan pemesanan yang kamu ikuti',
   'dayplan.gpxTooltip': 'Ekspor sebagai GPX untuk peta offline dan perangkat GPS',
   'dayplan.gpxAll': 'Seluruh perjalanan',
   'dayplan.gpxPlaces': 'Hanya tempat',
@@ -78,8 +80,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Semua tempat sudah ditugaskan',
   'dayplan.mobile.noMatch': 'Tidak ditemukan',
   'dayplan.mobile.createNew': 'Buat tempat baru',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Buka semua hari', // en-fallback
+  'dayplan.collapseAll': 'Tutup semua hari', // en-fallback
   'dayplan.reorderDays': 'Atur ulang hari',
   'dayplan.reorderTitle': 'Atur ulang hari',
   'dayplan.reorderHint': 'Tempat, catatan, dan pesanan pada suatu hari ikut berpindah.',
@@ -89,5 +91,53 @@ const dayplan: TranslationStrings = {
   'dayplan.reorderUndo': 'Atur ulang hari',
   'dayplan.reorderError': 'Gagal mengatur ulang hari',
   'dayplan.addDayError': 'Gagal menambah hari',
+  'dayplan.deleteDay': 'Hapus hari',
+  'dayplan.deleteDayTitle': 'Hapus {day}?',
+  'dayplan.deleteDayBody': 'Hari tersebut dihapus dari perjalanan. Tindakan ini tidak dapat dibatalkan.',
+  'dayplan.excludeFromRoute': 'Keluarkan dari rute',
+  'dayplan.includeInRoute': 'Masukkan kembali ke rute',
+  'dayplan.offRoute': 'Di luar rute',
+  'dayplan.offRouteHint': 'Tetap ada di hari dan di peta, tetapi rute melewatinya',
+  'dayplan.clearDay': 'Kosongkan hari',
+  'dayplan.clearDayTitle': 'Kosongkan {day}?',
+  'dayplan.clearDayBody':
+    'Semua tempat dikeluarkan dari hari ini. Tempat tetap ada di perjalanan, dan hari ini tetap menyimpan catatan serta pemesanannya.',
+  'dayplan.deleteDayEmpty': 'Tidak ada rencana pada hari tersebut.',
+  'dayplan.impactPlaces': 'Tempat yang direncanakan: {count}',
+  'dayplan.impactPlacesHint': 'Tempat tetap ada di daftar tempat.',
+  'dayplan.impactNotes': 'Catatan: {count}',
+  'dayplan.impactTexts': 'Judul dan deskripsi hari: {count}',
+  'dayplan.impactDeletedHint': 'Ikut dihapus.',
+  'dayplan.impactBookings': 'Pemesanan: {count}',
+  'dayplan.impactStay': 'Menginap di {name}',
+  'dayplan.deleteDayBookingsHint': 'Tetap ada di Pemesanan, tanpa hari.',
+  'dayplan.deleteDayStayHint': 'Check-in atau check-out jatuh pada hari tersebut, jadi penginapan dibatalkan.',
+  'dayplan.deleteDayStayBookedHint':
+    'Check-in atau check-out jatuh pada hari tersebut, jadi penginapan dibatalkan bersama pemesanan “{booking}” dan pengeluarannya.',
+  'dayplan.deleteDayStayBookingHint':
+    'Check-in atau check-out jatuh pada hari tersebut, jadi penginapan dibatalkan bersama pemesanan “{booking}”.',
+  'dayplan.deleteDayStayPaidHint':
+    'Check-in atau check-out jatuh pada hari tersebut, jadi penginapan dibatalkan bersama pemesanan “{booking}” dan pengeluarannya sebesar {amount}.',
+  'dayplan.deleteDayShift': 'Hari berikutnya: {count}',
+  'dayplan.deleteDayShiftHint': 'Masing-masing maju satu tanggal.',
+  'dayplan.deleteDayShiftBookingsHint': 'Masing-masing maju satu tanggal. Pemesanan yang ikut berpindah: {count}',
+  'dayplan.deleteDayShrink': 'Perjalanan kini berakhir pada {date}',
+  'dayplan.deleteDayShrinkHint': 'Tidak ada hari tanpa tanggal yang dapat mengambil tanggal terakhir.',
+  'dayplan.impactStayShorter': 'Menginap di {name}: berkurang satu malam',
+  'dayplan.deleteDayStayShorterHint': 'Penginapan ini melewati hari tersebut dan kini check-out pada {date}.',
+  'dayplan.deleteDayStayShorterUndatedHint':
+    'Penginapan ini melewati hari tersebut dan kini berakhir satu hari lebih awal.',
+  'dayplan.deleteDaySpareDated': '{day} mendapat tanggal {date}',
+  'dayplan.deleteDaySpareDatedHint':
+    'Ini hari pertama tanpa tanggal, dan hari ini mengambil tanggal terakhir perjalanan.',
+  'dayplan.deleteDayLast': 'Perjalanan memerlukan setidaknya satu hari',
+  'dayplan.daysOffline': 'Mengubah hari memerlukan koneksi',
+  'dayplan.deleteDaySuccess': 'Hari dihapus',
+  'dayplan.deleteDayError': 'Gagal menghapus hari',
+  'dayplan.addUndatedDay': 'Tanpa tanggal',
+  'dayplan.addUndatedDayHint': 'Menambahkan hari tanpa tanggal di akhir. Tanggal perjalanan tetap sama.',
+  'dayplan.addDatedDay': 'Tambah {date}',
+  'dayplan.addDatedDayHint': 'Memperpanjang perjalanan satu hari, hingga {date}.',
+  'dayplan.tripExtended': 'Hari ditambahkan. Perjalanan kini berakhir pada {date}, satu hari lebih lambat.',
 };
 export default dayplan;

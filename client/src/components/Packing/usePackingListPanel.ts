@@ -11,7 +11,11 @@ import { useNetworkMode } from '../../hooks/useNetworkMode'
 import { useBagTotalsPing } from './useBagTotalsPing'
 import type { PackingItem, PackingBag } from '../../types'
 import { BAG_COLORS, PACKING_PLACEHOLDER_NAME } from './packingListPanel.constants'
-import { parseImportLines } from './packingListPanel.helpers'
+import { newItemSharing, parseImportLines, sortItemsByName } from './packingListPanel.helpers'
+
+const PACKING_SORT_KEY = 'trek:packing-sort'
+
+export type PackingSort = 'manual' | 'name'
 
 export interface TripMember {
   id: number
@@ -32,7 +36,8 @@ export interface PackingListPanelProps {
   tripId: number
   items: PackingItem[]
   openImportSignal?: number
-  clearCheckedSignal?: number
+  // Raised by the Lists bar's Add list button, which opens the name field here.
+  addCategorySignal?: number
   saveTemplateSignal?: number
   inlineHeader?: boolean
   // Lifted so an out-of-panel Apply Template button knows the active view (#1565).
@@ -47,8 +52,17 @@ export interface PackingListPanelProps {
  * sections below render header, filters, the grouped list, the bag sidebar/
  * modal and the import dialog.
  */
-export function usePackingList({ tripId, items, openImportSignal = 0, clearCheckedSignal = 0, saveTemplateSignal = 0, inlineHeader = true, view: viewProp, onViewChange }: PackingListPanelProps) {
+export function usePackingList({ tripId, items, openImportSignal = 0, addCategorySignal = 0, saveTemplateSignal = 0, inlineHeader = true, view: viewProp, onViewChange }: PackingListPanelProps) {
   const [filter, setFilter] = useState('alle') // 'alle' | 'offen' | 'erledigt'
+  // A-Z only changes what is shown; the manual order stays stored underneath and
+  // comes back when the switch is turned off. Remembered per browser.
+  const [sort, setSortState] = useState<PackingSort>(() => {
+    try { return localStorage.getItem(PACKING_SORT_KEY) === 'name' ? 'name' : 'manual' } catch { return 'manual' }
+  })
+  const setSort = (next: PackingSort) => {
+    setSortState(next)
+    try { localStorage.setItem(PACKING_SORT_KEY, next) } catch { /* storage unavailable: the choice lasts until reload */ }
+  }
   // Three-tier sharing (#858): 'common' = the group pool (where existing items
   // live — non-breaking), 'personal' = my own list (private + shared-to-me).
   const [ownView, setOwnView] = useState<'common' | 'personal'>('common')
@@ -64,7 +78,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const isAdmin = useAuthStore((s) => s.user?.role === 'admin')
   const currentUserId = useAuthStore((s) => s.user?.id)
   const toast = useToast()
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
 
   // Trip members & category assignees
   const [tripMembers, setTripMembers] = useState<TripMember[]>([])
@@ -119,8 +133,11 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
       if (!groups[kat]) groups[kat] = []
       groups[kat].push(item)
     }
+    if (sort === 'name') {
+      for (const kat of Object.keys(groups)) groups[kat] = sortItemsByName(groups[kat], locale)
+    }
     return groups
-  }, [viewItems, filter, t])
+  }, [viewItems, filter, sort, locale, t])
 
   const abgehakt = viewItems.filter(i => i.checked).length
   const fortschritt = viewItems.length > 0 ? Math.round((abgehakt / viewItems.length) * 100) : 0
@@ -136,8 +153,9 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
       if (placeholder) {
         await updatePackingItem(tripId, placeholder.id, { name })
       } else {
-        // New items inherit the active view's tier: Personal in "my list", Common otherwise.
-        await addPackingItem(tripId, { name, category, visibility: view === 'personal' ? 'personal' : 'common' } as Parameters<typeof addPackingItem>[1])
+        // New items inherit the active view's tier, and in "my list" the sharing the
+        // category's own items agree on (#2241).
+        await addPackingItem(tripId, { name, category, ...newItemSharing(items, category, view, currentUserId) } as Parameters<typeof addPackingItem>[1])
       }
     } catch { toast.error(t('packing.toast.addError')) }
   }
@@ -298,7 +316,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const [showImportModal, setShowImportModal] = useState(false)
   const [importText, setImportText] = useState('')
   const lastHandledImportSignal = useRef(openImportSignal)
-  const lastHandledClearSignal = useRef(clearCheckedSignal)
+  const lastHandledAddCategorySignal = useRef(addCategorySignal)
   const lastHandledSaveSignal = useRef(saveTemplateSignal)
 
   useEffect(() => {
@@ -309,12 +327,11 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   }, [openImportSignal])
 
   useEffect(() => {
-    if (clearCheckedSignal !== lastHandledClearSignal.current && clearCheckedSignal > 0) {
-      handleClearChecked()
+    if (addCategorySignal !== lastHandledAddCategorySignal.current && addCategorySignal > 0) {
+      setAddingCategory(true)
     }
-    lastHandledClearSignal.current = clearCheckedSignal
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clearCheckedSignal])
+    lastHandledAddCategorySignal.current = addCategorySignal
+  }, [addCategorySignal])
 
   useEffect(() => {
     if (saveTemplateSignal !== lastHandledSaveSignal.current && saveTemplateSignal > 0) {
@@ -399,7 +416,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
     view, setView, currentUserId,
     handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem,
     tripId, items, inlineHeader, t, canEdit, isAdmin, font, reorderPackingItems,
-    filter, setFilter, addingCategory, setAddingCategory, newCatName, setNewCatName,
+    filter, setFilter, sort, setSort, addingCategory, setAddingCategory, newCatName, setNewCatName,
     tripMembers, categoryAssignees, handleSetAssignees, allCategories, gruppiert, abgehakt, fortschritt,
     handleAddItemToCategory, handleAddNewCategory, handleRenameCategory, handleDeleteCategory, handleDeleteItem, handleClearChecked,
     bagTrackingEnabled, bags, unassignedWeightGrams, serverWeightsFresh, newBagName, setNewBagName, showAddBag, setShowAddBag, showBagModal, setShowBagModal,

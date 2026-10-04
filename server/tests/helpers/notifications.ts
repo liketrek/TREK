@@ -5,15 +5,22 @@ import { NotificationPreferencesService } from '../../src/nest/notifications/not
 import { NotificationsService } from '../../src/nest/notifications/notifications.service';
 import { NtfyService } from '../../src/nest/notifications/transports/ntfy.service';
 import { WebhookService } from '../../src/nest/notifications/transports/webhook.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestSettingsRepo, createTestUsersRepo } from './test-uow';
-import { createTestNotificationsRepo, createTestNotificationChannelPreferencesRepo } from './notifications-repos';
+import { WebPushService } from '../../src/nest/notifications/transports/web-push.service';
+import { PushSubscriptionsService } from '../../src/nest/notifications/push/push-subscriptions.service';
+import { VapidKeysService } from '../../src/nest/notifications/push/vapid-keys.service';
+import { createTestUnitOfWork, createTestAppSettingsRepo, createTestSettingsRepo, createTestUsersRepo, sharedTestOrm } from './test-uow';
+import {
+  createTestNotificationsRepo,
+  createTestNotificationChannelPreferencesRepo,
+  createTestPushSubscriptionsRepo,
+} from './notifications-repos';
 
 /**
  * A NotificationsService wired the way Nest wires it.
  *
- * The domain takes six providers since the fold, and eight places used to build
- * it by hand — every added constructor parameter was an eight-file diff. One
- * helper keeps that at one.
+ * The domain takes seven providers since Web Push joined, and eight places used
+ * to build it by hand: every added constructor parameter was an eight-file
+ * diff. One helper keeps that at one.
  *
  * Plan 3f Task 3: `NotificationsService`/`NotificationPreferencesService` no
  * longer take a `DatabaseService` — both now take repositories, resolved
@@ -49,7 +56,24 @@ export async function makeNotificationsService(db: Database.Database, realtime =
     new NotificationPreferencesService(mailer, uow, appSettings, channelPrefsRepo),
     uow,
     notificationsRepo,
+    await makeWebPushService(db),
   );
+}
+
+/** The VAPID key pair holder, on the suite's own handle (repository, UoW and ORM all from `sharedTestOrm`). */
+export async function makeVapidKeysService(db: Database.Database): Promise<VapidKeysService> {
+  const t = await sharedTestOrm(db);
+  return new VapidKeysService(await createTestAppSettingsRepo(db), await createTestUnitOfWork(db), t.orm);
+}
+
+/** The push_subscriptions table, on the suite's own handle. */
+export async function makePushSubscriptionsService(db: Database.Database): Promise<PushSubscriptionsService> {
+  return new PushSubscriptionsService(await createTestPushSubscriptionsRepo(db), await createTestUnitOfWork(db));
+}
+
+/** The Web Push transport over its two providers, on the same connection. */
+export async function makeWebPushService(db: Database.Database): Promise<WebPushService> {
+  return new WebPushService(await makeVapidKeysService(db), await makePushSubscriptionsService(db));
 }
 
 /** The preferences half on its own, over the same connection. */

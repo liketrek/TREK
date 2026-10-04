@@ -48,6 +48,8 @@ export class TripShareController {
       share_packing: body.share_packing,
       share_budget: body.share_budget,
       share_collab: body.share_collab,
+      share_travel_only: body.share_travel_only,
+      share_hide_images: body.share_hide_images,
     });
     // 201 only on first creation; an update answers 200, mirroring the legacy route.
     res.status(result.created ? 201 : 200);

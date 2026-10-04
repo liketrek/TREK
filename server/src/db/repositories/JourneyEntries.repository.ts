@@ -37,6 +37,23 @@ interface JourneyEntriesDateSortKyselyDB {
   journey_entries: { journey_id: number; entry_date: string; sort_order: number | null };
 }
 
+/** An entry waiting for a place and the geotagged photo that can give it one (#1003), {@link JourneyEntriesRepository.listPhotoPlacementCandidates}. */
+export interface PhotoPlacementRow {
+  entryId: number;
+  journeyId: number;
+  lat: number;
+  lng: number;
+}
+
+/** The narrow `trek_photos`/`journey_photos`/`journey_entry_photos`/`journey_entries`/`journeys` shape {@link JourneyEntriesRepository.listPhotoPlacementCandidates} needs. */
+interface PhotoPlacementKyselyDB {
+  trek_photos: { id: number; lat: number | null; lng: number | null };
+  journey_photos: { id: number; photo_id: number };
+  journey_entry_photos: { entry_id: number; journey_photo_id: number; sort_order: number | null };
+  journey_entries: { id: number; journey_id: number; location_lat: number | null; location_lng: number | null; type: string };
+  journeys: { id: number; photo_location: number };
+}
+
 /** `journey_entry_photos`, read cross-table (no `JourneyEntryPhotosRepository` yet — Task 2's own; the two `hasPhotos` guards in Part A only ever check existence). */
 interface JourneyEntryPhotosExistsKyselyDB {
   journey_entry_photos: { entry_id: number };
@@ -127,7 +144,8 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
   /**
    * JS13 (Plan 4 Task 8b relocation) — the public `getPublicJourney` route's
    * entry list: `SELECT je.* FROM journey_entries je WHERE je.journey_id=?
-   * AND je.type != 'skeleton' AND je.dismissed=0 ORDER BY je.entry_date,
+   * AND je.type != 'skeleton' AND je.dismissed=0 AND je.is_draft=0 (#696, a draft
+   * stays off the share link) ORDER BY je.entry_date,
    * je.sort_order`. A narrower filter than {@link listForJourney}/JG14 (adds
    * the `type != 'skeleton'` exclusion — skeletons never appear publicly —
    * and has no `id` ORDER BY tiebreak), so this is a distinct method, not a
@@ -139,7 +157,7 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
   async listPublicEntries(journeyId: number): Promise<JourneyEntry[]> {
     return await this.qb('je')
       .select(['je.*'])
-      .where({ journey: journeyId, type: { $ne: 'skeleton' }, dismissed: 0 })
+      .where({ journey: journeyId, type: { $ne: 'skeleton' }, dismissed: 0, is_draft: 0 })
       .orderBy({ entry_date: 'asc', sort_order: 'asc' })
       .execute<JourneyEntry[]>('all', false);
   }
@@ -482,7 +500,7 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
     return row ?? null;
   }
 
-  /** JG75 — `createEntry`'s INSERT (19 columns). `country_code` is resolved by the SERVICE's `countryFor` before this call, matching {@link insertSkeleton}'s own contract. */
+  /** JG75 — `createEntry`'s INSERT (20 columns, `is_draft` since #696). `country_code` is resolved by the SERVICE's `countryFor` before this call, matching {@link insertSkeleton}'s own contract. */
   async insertEntry(data: {
     journey_id: number;
     author_id: number;
@@ -501,6 +519,7 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
     pros_cons: string | null;
     visibility: string;
     sort_order: number;
+    is_draft: number;
     created_at: number;
     updated_at: number;
   }): Promise<number> {
@@ -522,6 +541,7 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
       pros_cons: data.pros_cons,
       visibility: data.visibility,
       sort_order: data.sort_order,
+      is_draft: data.is_draft,
       created_at: data.created_at,
       updated_at: data.updated_at,
     });
@@ -530,7 +550,7 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
   /**
    * JG78 — `updateEntry`'s dynamic UPDATE (R6, `presenceSet`). The SERVICE
    * resolves every field to its final bound value first (`tags`/`pros_cons`
-   * JSON-encoded, `stats_excluded`/`dismissed` boolean-coerced to 0/1,
+   * JSON-encoded, `stats_excluded`/`dismissed`/`is_draft` boolean-coerced to 0/1,
    * `country_code` recomputed whenever either `location_lat`/`location_lng`
    * is present in the patch, the skeleton→entry promotion) — this writes
    * exactly the patch it is handed, same contract every other
@@ -555,6 +575,7 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
       sort_order: number;
       stats_excluded: number;
       dismissed: number;
+      is_draft: number;
       country_code: string | null;
       updated_at: number;
     }>,
@@ -670,5 +691,59 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
       .orderBy('p.id', 'asc')
       .execute();
     return rows as JourneyTrackSourceRow[];
+  }
+
+  /**
+   * JG122 — `placeEntriesFromPhotos`'s candidate read (#1003): entries without a
+   * place that hold one of these geotagged photos, on journeys that opted in.
+   * `SELECT je.id AS entryId, je.journey_id AS journeyId, tp.lat, tp.lng FROM trek_photos tp
+   * JOIN journey_photos gp ON gp.photo_id = tp.id JOIN journey_entry_photos jep ON jep.journey_photo_id = gp.id
+   * JOIN journey_entries je ON je.id = jep.entry_id JOIN journeys j ON j.id = je.journey_id
+   * WHERE tp.id IN (…) AND tp.lat IS NOT NULL AND tp.lng IS NOT NULL AND je.location_lat IS NULL
+   * AND je.location_lng IS NULL AND je.type != 'skeleton' AND j.photo_location = 1
+   * ORDER BY je.id, jep.sort_order, jep.journey_photo_id`. The SERVICE keeps the first row per entry.
+   */
+  async listPhotoPlacementCandidates(trekPhotoIds: number[]): Promise<PhotoPlacementRow[]> {
+    if (!trekPhotoIds.length) return [];
+    const rows = await this.kysely<PhotoPlacementKyselyDB>()
+      .selectFrom('trek_photos as tp')
+      .innerJoin('journey_photos as gp', 'gp.photo_id', 'tp.id')
+      .innerJoin('journey_entry_photos as jep', 'jep.journey_photo_id', 'gp.id')
+      .innerJoin('journey_entries as je', 'je.id', 'jep.entry_id')
+      .innerJoin('journeys as j', 'j.id', 'je.journey_id')
+      .select(['je.id as entryId', 'je.journey_id as journeyId', 'tp.lat', 'tp.lng'])
+      .where('tp.id', 'in', trekPhotoIds)
+      .where('tp.lat', 'is not', null)
+      .where('tp.lng', 'is not', null)
+      .where('je.location_lat', 'is', null)
+      .where('je.location_lng', 'is', null)
+      .where('je.type', '!=', 'skeleton')
+      .where('j.photo_location', '=', 1)
+      .orderBy('je.id')
+      .orderBy('jep.sort_order')
+      .orderBy('jep.journey_photo_id')
+      .execute();
+    return rows as PhotoPlacementRow[];
+  }
+
+  /**
+   * JG123 — `placeEntriesFromPhotos`'s write: `UPDATE journey_entries SET location_lat = ?,
+   * location_lng = ?, country_code = ?, updated_at = ? WHERE id = ? AND location_lat IS NULL
+   * AND location_lng IS NULL`. Answers the affected-row count: an entry placed in the
+   * meantime is never moved, and the SERVICE only reports the ones that changed.
+   */
+  async placeIfUnplaced(
+    id: number,
+    patch: { location_lat: number; location_lng: number; country_code: string | null; updated_at: number },
+  ): Promise<number> {
+    return await this.nativeUpdate({ id, location_lat: null, location_lng: null }, patch);
+  }
+
+  /**
+   * JG124 — `nameEntryLocation`: `UPDATE journey_entries SET location_name = ? WHERE id = ?
+   * AND (location_name IS NULL OR location_name = '')`.
+   */
+  async nameLocationIfUnnamed(id: number, location_name: string): Promise<void> {
+    await this.nativeUpdate({ id, $or: [{ location_name: null }, { location_name: '' }] }, { location_name });
   }
 }

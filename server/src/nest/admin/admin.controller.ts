@@ -243,6 +243,16 @@ export class AdminController {
     return result;
   }
 
+  @Get('places-google-only')
+  getPlacesGoogleOnly() { return this.addons.getPlacesGoogleOnly(); }
+
+  @Put('places-google-only')
+  async updatePlacesGoogleOnly(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
+    const result = await this.addons.updatePlacesGoogleOnly(body.enabled);
+    await this.audit.writeAudit({ userId: user.id, action: 'admin.places_google_only', ip: getClientIp(req), details: { enabled: result.enabled } });
+    return result;
+  }
+
   @Get('places-enrich')
   getPlacesEnrich() { return this.addons.getPlacesEnrich(); }
 

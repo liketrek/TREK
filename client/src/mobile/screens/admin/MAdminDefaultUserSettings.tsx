@@ -5,7 +5,8 @@ import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
 import { MapView } from '../../../components/Map/MapView'
 import { SYMBOLS, currenciesWith } from '../../../components/Budget/BudgetPanel.constants'
-import { getApiErrorMessage, type DistanceUnit, type Place } from '../../../types'
+import { getApiErrorMessage, type DistanceUnit, type Place, type WeekStart } from '../../../types'
+import { weekStartOptions } from '../../../utils/calendarWeek'
 import { normalizeTileUrl, withTileApiKey } from '../../../utils/tileUrl'
 import {
   MAPBOX_DEFAULT_STYLE,
@@ -43,6 +44,7 @@ type Defaults = RoutingDefaults & {
   distance_unit?: DistanceUnit
   dark_mode?: string | boolean
   time_format?: string
+  week_start?: WeekStart
   default_currency?: string
   blur_booking_codes?: boolean
   map_tile_url?: string
@@ -71,7 +73,7 @@ function styleForProvider(provider: MapProvider, style?: string | null): string 
 // layer (adminApi defaults, per-change auto-save, reset-to-built-in) — only the
 // presentation is relaid on the admin mobile design system.
 export default function MAdminDefaultUserSettings(): React.ReactElement {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const toast = useToast()
   const [defaults, setDefaults] = useState<Defaults>({})
   const [loaded, setLoaded] = useState(false)
@@ -182,7 +184,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
       setMapboxStyle(nextStyle)
       patch[styleSettingKey(nextProvider)] = nextStyle
     }
-    save(patch)
+    void save(patch)
   }
 
   // No active value when the setting is unset → segmented shows no pill, matching
@@ -251,6 +253,11 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
           {/* Time Format */}
           <MAdminField label={<>{t('settings.timeFormat')} <ResetButton field="time_format" /></>}>
             <MSegmented value={defaults.time_format || ''} onChange={(v) => save({ time_format: v })} options={timeOptions} />
+          </MAdminField>
+
+          {/* Week start (#2029) */}
+          <MAdminField label={<>{t('settings.weekStart')} <ResetButton field="week_start" /></>}>
+            <MSegmented value={defaults.week_start || ''} onChange={(v) => save({ week_start: v as WeekStart })} options={weekStartOptions(locale)} />
           </MAdminField>
 
           {/* Default Currency */}
@@ -384,7 +391,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
                   onBlur={() => {
                     const nextStyle = normalizeStyleForProvider(mapProvider, mapboxStyle)
                     setMapboxStyle(nextStyle)
-                    save({ [styleKey]: nextStyle })
+                    void save({ [styleKey]: nextStyle })
                   }}
                   placeholder={defaultStyleForProvider(mapProvider)}
                 />
@@ -426,7 +433,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
         onClose={() => setCurrencyOpen(false)}
         title={t('settings.currency')}
         value={defaults.default_currency || ''}
-        onSelect={(value) => { if (value) save({ default_currency: value }) }}
+        onSelect={(value) => { if (value) void save({ default_currency: value }) }}
         options={currenciesWith(defaults.default_currency).map((c) => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
       />
 
@@ -435,7 +442,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
         onClose={() => setPresetOpen(false)}
         title={t('settings.mapTemplate')}
         value={mapTileUrl}
-        onSelect={(value) => { if (value) { setMapTileUrl(value); save({ map_tile_url: value }) } }}
+        onSelect={(value) => { if (value) { setMapTileUrl(value); void save({ map_tile_url: value }) } }}
         options={MAP_PRESETS.map((p) => ({ value: p.url, label: p.name }))}
       />
 
@@ -444,7 +451,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
         onClose={() => setStyleOpen(false)}
         title={t('admin.defaultSettings.mapboxStyle')}
         value={mapboxStyle}
-        onSelect={(value) => { if (value) { setMapboxStyle(value); save({ [styleKey]: value }) } }}
+        onSelect={(value) => { if (value) { setMapboxStyle(value); void save({ [styleKey]: value }) } }}
         options={glStylePresets.map((p) => ({ value: p.url, label: p.name }))}
       />
     </div>

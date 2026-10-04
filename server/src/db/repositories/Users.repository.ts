@@ -1,6 +1,6 @@
 import { Users } from '../entities/Users.entity';
 import { toRow, type AssertRowKeys } from './_shared/rows';
-import { coalesce, columnIncrementedBy, currentTimestamp, lower, lowerParam } from '../dialect/sql-functions';
+import { coalesce, coalesceOverrideWhileSame, columnIncrementedBy, currentTimestamp, lower, lowerParam } from '../dialect/sql-functions';
 import { TrekRepository } from './_shared/trek-repository';
 
 /**
@@ -62,6 +62,7 @@ export interface UserRow {
   airtrail_allow_insecure_tls: number | null;
   airtrail_write_enabled: number | null;
   display_name: string | null;
+  immich_allow_insecure_tls: number;
 }
 
 const _userRowKeys: AssertRowKeys<UserRow, Users> = true;
@@ -1207,16 +1208,42 @@ export class UsersRepository extends TrekRepository<Users> {
   // `encrypt_api_key`/`decrypt_api_key`/`maybe_encrypt_api_key` itself.
   // ---------------------------------------------------------------------
 
-  /** IM1 (`ImmichService.getImmichCredentials`) — `SELECT immich_url, immich_api_key FROM users WHERE id = ?`. */
-  async getImmichCredentials(id: number): Promise<{ immich_url: string | null; immich_api_key: string | null } | null> {
-    const row = await this.findOne({ id }, { fields: ['immich_url', 'immich_api_key'] });
-    return row ? { immich_url: row.immich_url ?? null, immich_api_key: row.immich_api_key ?? null } : null;
+  /**
+   * IM1 (`ImmichService.getImmichCredentials`) — `SELECT immich_url,
+   * immich_api_key, immich_allow_insecure_tls FROM users WHERE id = ?`
+   * (the TLS switch joined the read with #2475).
+   */
+  async getImmichCredentials(
+    id: number,
+  ): Promise<{ immich_url: string | null; immich_api_key: string | null; immich_allow_insecure_tls: number | null } | null> {
+    const row = await this.findOne({ id }, { fields: ['immich_url', 'immich_api_key', 'immich_allow_insecure_tls'] });
+    return row
+      ? {
+          immich_url: row.immich_url ?? null,
+          immich_api_key: row.immich_api_key ?? null,
+          immich_allow_insecure_tls: row.immich_allow_insecure_tls ?? null,
+        }
+      : null;
   }
 
-  /** IM2 (`ImmichService.getConnectionSettings`'s prefs read) — `SELECT immich_auto_upload FROM users WHERE id = ?`. */
+  /** JV1 (`JourneyService.immichAutoUploadEnabled`) — `SELECT immich_auto_upload FROM users WHERE id = ?`. */
   async getImmichAutoUpload(id: number): Promise<number | null> {
     const row = await this.findOne({ id }, { fields: ['immich_auto_upload'] });
     return row?.immich_auto_upload ?? null;
+  }
+
+  /**
+   * IM2 (`ImmichService.getConnectionSettings`'s prefs read) — `SELECT
+   * immich_auto_upload, immich_allow_insecure_tls FROM users WHERE id = ?`
+   * (the TLS switch joined the read with #2475).
+   */
+  async getImmichConnectionPrefs(
+    id: number,
+  ): Promise<{ immich_auto_upload: number | null; immich_allow_insecure_tls: number | null } | null> {
+    const row = await this.findOne({ id }, { fields: ['immich_auto_upload', 'immich_allow_insecure_tls'] });
+    return row
+      ? { immich_auto_upload: row.immich_auto_upload ?? null, immich_allow_insecure_tls: row.immich_allow_insecure_tls ?? null }
+      : null;
   }
 
   /** IM3 (`ImmichService.setImmichAutoUpload`) — `UPDATE users SET immich_auto_upload = ? WHERE id = ?`. */
@@ -1225,13 +1252,41 @@ export class UsersRepository extends TrekRepository<Users> {
   }
 
   /**
-   * IM4/IM5 (`ImmichService.saveImmichSettings`'s two branches) — `UPDATE
-   * users SET immich_url = ?, immich_api_key = ? WHERE id = ?`, byte-identical
-   * statement at both legacy sites (the URL branch's trimmed value, the else
-   * branch's `null`) — one method, per R6.
+   * IM4 (`ImmichService.saveImmichSettings`'s URL branch) — `UPDATE users SET
+   * immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = CASE WHEN
+   * immich_url IS ? THEN COALESCE(?, immich_allow_insecure_tls) ELSE
+   * COALESCE(?, 0) END WHERE id = ?` (#2475).
+   *
+   * One statement, as the legacy write was: SET expressions read the row as
+   * it was, so the CASE compares the STORED url with the new one and decides
+   * the switch inside the UPDATE itself (`coalesceOverrideWhileSame`).
+   * `allow_insecure_tls` null keeps the stored choice while the URL stays the
+   * same, and a new URL without an explicit value starts off.
    */
-  async setImmichSettings(id: number, immich_url: string | null, immich_api_key: string | null): Promise<void> {
-    await this.nativeUpdate({ id }, { immich_url, immich_api_key });
+  async setImmichSettings(
+    id: number,
+    immich_url: string,
+    immich_api_key: string | null,
+    allow_insecure_tls: number | null,
+  ): Promise<void> {
+    const platform = this.getEntityManager().getPlatform();
+    await this.nativeUpdate(
+      { id },
+      {
+        immich_url,
+        immich_api_key,
+        immich_allow_insecure_tls: coalesceOverrideWhileSame(platform, allow_insecure_tls, 'immich_allow_insecure_tls', 'immich_url', immich_url),
+      },
+    );
+  }
+
+  /**
+   * IM5 (`ImmichService.saveImmichSettings`'s disconnect branch) — `UPDATE
+   * users SET immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = 0
+   * WHERE id = ?` with a `null` URL: disconnecting always turns the switch off.
+   */
+  async clearImmichSettings(id: number, immich_api_key: string | null): Promise<void> {
+    await this.nativeUpdate({ id }, { immich_url: null, immich_api_key, immich_allow_insecure_tls: 0 });
   }
 
   /**

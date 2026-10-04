@@ -3,6 +3,10 @@ import type { TranslationStrings } from '../types';
 const shared: TranslationStrings = {
   'shared.expired': 'Ссылка устарела или недействительна',
   'shared.expiredHint': 'Эта ссылка на поездку больше не активна.',
+  'shared.loadFailed': 'Не удалось загрузить поездку',
+  'shared.loadFailedHint':
+    'Это не значит, что срок действия ссылки истёк. Проверьте подключение и повторите попытку чуть позже.',
+  'shared.retry': 'Повторить',
   'shared.readOnly': 'Режим только для чтения',
   'shared.tabPlan': 'План',
   'shared.tabBookings': 'Бронирования',
@@ -11,11 +15,18 @@ const shared: TranslationStrings = {
   'shared.tabChat': 'Чат',
   'shared.days': 'дней',
   'shared.places': 'мест',
+  'shared.unplanned': 'Ещё не запланировано',
   'shared.other': 'Прочее',
   'shared.totalBudget': 'Общие расходы',
   'shared.messages': 'сообщений',
   'shared.sharedVia': 'Поделено через',
   'shared.confirmed': 'Подтверждено',
   'shared.pending': 'Ожидает',
+  'shared.footerTagline': 'Планировщик путешествий, который вы размещаете сами. Открытый исходный код.',
+  'shared.emptyBookings': 'Бронирований пока нет',
+  'shared.emptyPacking': 'Список вещей пока пуст',
+  'shared.emptyCosts': 'Расходов пока нет',
+  'shared.emptyChat': 'Сообщений пока нет',
+  'shared.wholeTrip': 'Всё путешествие',
 };
 export default shared;

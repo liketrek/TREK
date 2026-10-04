@@ -23,3 +23,17 @@ export const rtlTextAlias = {
     '../dist/mapbox-gl-rtl-text.js',
   ),
 };
+
+/**
+ * Same shape for Plyr's icon sprite. The package publishes its JS and CSS entries
+ * and nothing else, so `plyr/dist/plyr.svg` is refused by the resolver although
+ * the file is right there. The player has to point at a copy on this origin
+ * (#2341): its default is the sprite on cdn.plyr.io, which the CSP refuses.
+ */
+export const plyrSpriteAlias = {
+  find: /^plyr\/dist\/plyr\.svg/,
+  replacement: path.join(
+    path.dirname(createRequire(import.meta.url).resolve('plyr')),
+    'plyr.svg',
+  ),
+};

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { isOutsideChina } from '@trek/shared';
+import { isOutsideChina, normalizePlaceWebsite } from '@trek/shared';
 import type {
   MapsSearchResult,
   MapsAutocompleteResult,
@@ -26,12 +26,14 @@ import { isPlacesProviderChoice, type PlacesProviderChoice } from './providers/p
 import {
   AMAP_SHORT_HOSTS,
   AmapPlacesProvider,
+  AmapTipStash,
   isAmapHost,
   isAmapPlaceId,
   parseAmapUrl,
 } from './providers/amap.provider';
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+import { GoogleQuotaService } from '../google-quota/google-quota.service';
 import { nominatimFetch, type GeoLane } from '../geo/nominatim.client';
 import {
   trekPlacesSearch,
@@ -57,6 +59,7 @@ import {
   OSM_PLACE_ID,
   CATEGORY_OSM_FILTERS,
   parsePoiCategories,
+  clampPoiBbox,
   resolveOverpassEndpoints,
   resolveOverpassTimeoutMs,
   OVERPASS_QUERY_TIMEOUT_S,
@@ -70,6 +73,14 @@ import {
   type GoogleOpeningHours,
   type OverpassPoi,
 } from './maps.helpers';
+import {
+  NEARBY_DEFAULT_LIMIT,
+  NEARBY_DEFAULT_RADIUS_M,
+  nearbyCacheKey,
+  nearbyOverpassQuery,
+  nearestFirst,
+  overpassNearbyRecords,
+} from './maps-nearby.helpers';
 
 // ── Google API call counter ───────────────────────────────────────────────────
 
@@ -131,9 +142,17 @@ function googleFetch(rawEndpoint: string, label: string, init?: RequestInit): Pr
 
 // ── Interfaces ───────────────────────────────────────────────────────────────
 
+function nominatimCategory(item: { class?: string; type?: string }): string | null {
+  if (!item.class || !item.type || item.type === 'yes') return null;
+  return item.class === 'shop' ? `shop_${item.type}` : item.type;
+}
+
 interface NominatimResult {
   osm_type: string;
   osm_id: string;
+  /** The main OSM tag, key and value: `class` "tourism" with `type` "hotel". */
+  class?: string;
+  type?: string;
   name?: string;
   display_name?: string;
   lat: string;
@@ -350,6 +369,27 @@ interface GooglePlaceResult {
   types?: string[];
   googleMapsUri?: string;
 }
+
+/** A Google place as the record every search answers with. */
+function googlePlaceRecord(p: GooglePlaceResult): Record<string, unknown> {
+  return {
+    google_place_id: p.id,
+    google_ftid: googleFtidFromMapsUrl(p.googleMapsUri),
+    name: p.displayName?.text || '',
+    address: p.formattedAddress || '',
+    // `?? null`, not `|| null`: 0 is a real coordinate (equator / prime meridian).
+    lat: p.location?.latitude ?? null,
+    lng: p.location?.longitude ?? null,
+    rating: p.rating || null,
+    website: normalizePlaceWebsite(p.websiteUri),
+    phone: p.nationalPhoneNumber || null,
+    types: p.types || [],
+    source: 'google',
+  };
+}
+
+/** A place that has shut down for good is never the answer to "where should we go" (#1341). */
+const isOpenGooglePlace = (p: GooglePlaceResult) => p.businessStatus !== 'CLOSED_PERMANENTLY';
 
 interface GoogleAutocompleteSuggestion {
   placePrediction?: {
@@ -580,11 +620,6 @@ interface PoiSearchResult {
 // see src/app-config/README.md).
 const OVERPASS_MIRRORS = resolveOverpassEndpoints();
 const OVERPASS_TIMEOUT_MS = resolveOverpassTimeoutMs();
-// Largest viewport side we send to Overpass. A country/continent-sized bbox makes
-// Overpass scan millions of elements and time out; clamping to a centred window
-// keeps the query cheap so the explore pill returns fast at ANY zoom level.
-const MAX_BBOX_SPAN_DEG = 0.5;
-
 // Short-lived cache so panning back over / re-toggling the same area doesn't
 // re-hit Overpass. Keyed by category + rounded (post-clamp) bbox.
 const POI_CACHE = new Map<string, { at: number; value: PoiSearchResult }>();
@@ -598,6 +633,12 @@ const POI_CACHE_MAX = 500;
  * nobody reads and every mirror pays for.
  */
 const POI_RESULT_CAP = 240;
+// Places near a point (#976): cached longer than the POI boxes, because the
+// likely caller is an import asking the same photo location again, and Google
+// bills every one of those.
+const NEARBY_CACHE = new Map<string, { at: number; value: { places: Record<string, unknown>[]; source: string } }>();
+const NEARBY_CACHE_TTL_MS = 30 * 60 * 1000;
+const NEARBY_CACHE_MAX = 500;
 
 // POST the query to all mirrors at once and return the first one that answers with
 // valid JSON. Throws {status:502} only if every mirror fails. Racing (rather than
@@ -672,6 +713,23 @@ type LocationBias = { low: { lat: number; lng: number }; high: { lat: number; ln
  * predates Amap, means `auto`, which keeps Google.
  */
 export const PLACES_PROVIDER_SETTING = 'places_provider';
+/**
+ * The admin switch that hands search and suggestions to Google alone. Off, the
+ * index and OpenStreetMap answer first and Google is only asked when they find
+ * nothing, which is what every install has had since 4.3.0.
+ */
+export const PLACES_GOOGLE_ONLY_SETTING = 'places_google_only';
+
+/**
+ * A details row as the cache holds it. A row written before #2483 still has a
+ * source's website as it came, `www.hotel.cn` from Amap for one, and keeps for a
+ * week (an expanded one until a refresh), so the website is normalized on the
+ * way out of the cache as well as on the way in.
+ */
+function cachedDetails(payload: string): Record<string, unknown> | null {
+  const place = JSON.parse(payload) as Record<string, unknown> | null;
+  return place && 'website' in place ? { ...place, website: normalizePlaceWebsite(place.website) } : place;
+}
 
 /**
  * Whoever holds the keyed slot beside the index for one request: Google's
@@ -709,11 +767,22 @@ export class MapsService {
     @InjectRepository(Users) private readonly usersRepo: UsersRepository,
     @InjectRepository(PlaceDetailsCache) private readonly placeDetailsCache: PlaceDetailsCacheRepository,
     @InjectRepository(Places) private readonly placesRepo: PlacesRepository,
+    private readonly googleQuota: GoogleQuotaService,
   ) {}
+
+  /** Every call to Google goes through here, so the admin's daily ceiling sees it (#1582). */
+  private async google(endpoint: string, label: string, init?: RequestInit): Promise<Response> {
+    await this.googleQuota.record();
+    return googleFetch(endpoint, label, init);
+  }
 
   /** Brand id → logo bytes, or null for "asked, has none". Insertion-ordered, so the
    *  oldest entry is the one evicted when it fills up. */
   private readonly brandLogoCache = new Map<string, { at: number; logo: BrandLogo | null }>();
+
+  /** Amap autocomplete tips for the details fallback. Here rather than on the provider:
+   *  a provider is built per request, and a pick is two requests. */
+  private readonly amapTips = new AmapTipStash();
 
   private async isSettingDisabled(key: string): Promise<boolean> {
     const value = await this.appSettings.getValue(key);
@@ -775,10 +844,16 @@ export class MapsService {
     return this.isSettingDisabled('places_photos_enabled');
   }
 
-  // ── Controller-facing surface (unchanged signatures) ───────────────────────
+  // ── Controller-facing surface ──────────────────────────────────────────────
 
-  search(userId: number, query: string, lang?: string, locationBias?: { lat: number; lng: number; radius?: number }): Promise<MapsSearchResult> {
-    return this.searchPlaces(userId, query, lang, locationBias) as Promise<MapsSearchResult>;
+  search(
+    userId: number,
+    query: string,
+    lang?: string,
+    locationBias?: { lat: number; lng: number; radius?: number },
+    provider?: 'google',
+  ): Promise<MapsSearchResult> {
+    return this.searchPlaces(userId, query, lang, locationBias, { googleOnly: provider === 'google' }) as Promise<MapsSearchResult>;
   }
 
   autocomplete(userId: number, input: string, lang?: string, locationBias?: LocationBias, sessionToken?: string): Promise<MapsAutocompleteResult> {
@@ -971,7 +1046,7 @@ export class MapsService {
               category: labelFor(p.category ?? null, p.categoryPath ?? null) ?? wanted[0],
               poi_type: p.category ?? wanted[0],
               address: p.address?.freeform ?? null,
-              website: p.contact?.website ?? null,
+              website: normalizePlaceWebsite(p.contact?.website),
               phone: p.contact?.phone ?? null,
               opening_hours: p.hours?.osm ?? null,
               // The index carries the chain and its Wikidata item, which is what
@@ -1021,7 +1096,13 @@ export class MapsService {
     return resolveApiKey(this.appSettings, this.usersRepo, 'maps_api_key', userId, readEnv().maps.placesApiKey);
   }
 
+  /**
+   * The Google key to spend, or null. Also null once today's calls reached the
+   * admin's daily ceiling (#1582), which makes every caller fall back to what a
+   * keyless install does instead of failing.
+   */
   async getMapsKey(userId: number): Promise<string | null> {
+    if (await this.googleQuota.exhausted()) return null;
     return (await this.resolveMapsKey(userId)).key;
   }
 
@@ -1065,7 +1146,9 @@ export class MapsService {
 
     if (choice !== 'amap') {
       const google = await this.resolveMapsKey(userId);
-      if (google.key) return { id: 'google', key: google.key, source: google.source };
+      // Past the daily ceiling (#1582) the key is spent for today: answer as if
+      // there were none, so `auto` moves on and OpenStreetMap fills in.
+      if (google.key && !(await this.googleQuota.exhausted())) return { id: 'google', key: google.key, source: google.source };
       // An explicit 'google' choice with no key is not a reason to query Amap
       // instead: this install is on Google and is misconfigured. OSM answers,
       // the way a keyless install has always been answered.
@@ -1074,8 +1157,43 @@ export class MapsService {
 
     const amap = await this.resolveAmapKey(userId);
     return amap.key
-      ? { id: 'amap', provider: new AmapPlacesProvider({ key: amap.key, source: amap.source, userId }) }
+      ? { id: 'amap', provider: new AmapPlacesProvider({ key: amap.key, source: amap.source, userId }, this.amapTips) }
       : null;
+  }
+
+  /**
+   * Whether this search goes to Google and nowhere else.
+   *
+   * Two ways to ask for that, both born of the same moment: the index answered
+   * a query with something that is not the place the traveller meant, and with
+   * the index and OpenStreetMap answering first, Google was never consulted as
+   * long as they found anything at all. The caller can send one search to
+   * Google (`requested`, the "search Google instead" link under the results),
+   * and the admin can make that the rule for every search and suggestion (the
+   * switch beside the key). Either way it only holds when Google holds the key
+   * slot: on an install without a Google key, or one that picked Amap or
+   * OpenStreetMap, both change nothing, and the admin panel says so.
+   *
+   * Read after the keyed provider on purpose: that lookup already walked the
+   * key chain, and a setting read ahead of it would shift the order of the
+   * app_settings reads every test of the chain stubs by position.
+   */
+  private async googleOnly(keyed: KeyedProvider | null, requested = false): Promise<boolean> {
+    if (keyed?.id !== 'google') return false;
+    if (requested) return true;
+    return (await this.appSettings.getValue(PLACES_GOOGLE_ONLY_SETTING)) === 'true';
+  }
+
+  /**
+   * Whether Amap answers before the index and OpenStreetMap (#1636): only when
+   * the admin picked Amap outright, not when it holds the slot by default, and
+   * only for a search centred inside China. Outside it Amap still answers, with
+   * the wrong place (the Eiffel Tower lands in Macau), so the gate is the point,
+   * not the provider.
+   */
+  private async amapAnswersFirst(point?: { lat: number; lng: number }): Promise<boolean> {
+    if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return false;
+    return (await this.placesProviderChoice()) === 'amap' && !isOutsideChina(point.lat, point.lng);
   }
 
   /** The Amap provider, when Amap holds the keyed slot; null otherwise. */
@@ -1101,7 +1219,7 @@ export class MapsService {
   private async providerForPlaceId(userId: number, placeId: string): Promise<AmapPlacesProvider | null> {
     if (!isAmapPlaceId(placeId)) return null;
     const amap = await this.resolveAmapKey(userId);
-    return amap.key ? new AmapPlacesProvider({ key: amap.key, source: amap.source, userId }) : null;
+    return amap.key ? new AmapPlacesProvider({ key: amap.key, source: amap.source, userId }, this.amapTips) : null;
   }
 
   /**
@@ -1197,6 +1315,9 @@ export class MapsService {
         rating: null,
         website: null,
         phone: null,
+        // What the place is, so the add form can preselect a category (#2282). A shop's
+        // value is the ware ("bakery"), so the key goes first and says it is a shop.
+        category: nominatimCategory(item),
         source: 'openstreetmap',
         ...readWikiIdentity(item.extratags),
       };
@@ -1384,20 +1505,9 @@ export class MapsService {
 
     // Clamp an oversized viewport to a centred window so the query stays cheap and
     // returns fast at any zoom, instead of timing out / 502-ing on a huge area.
-    let { south, west, north, east } = bbox;
-    let clamped = false;
-    if (north - south > MAX_BBOX_SPAN_DEG) {
-      const c = (north + south) / 2;
-      south = c - MAX_BBOX_SPAN_DEG / 2;
-      north = c + MAX_BBOX_SPAN_DEG / 2;
-      clamped = true;
-    }
-    if (east - west > MAX_BBOX_SPAN_DEG) {
-      const c = (east + west) / 2;
-      west = c - MAX_BBOX_SPAN_DEG / 2;
-      east = c + MAX_BBOX_SPAN_DEG / 2;
-      clamped = true;
-    }
+    const searchWindow = clampPoiBbox(bbox);
+    const { south, west, north, east } = searchWindow.bbox;
+    const clamped = searchWindow.clamped;
 
     // OSM `name:*` tags are keyed by language subtag: prefer the user's language
     // (the same localization the search/autocomplete path asks the geocoder for)
@@ -1462,7 +1572,7 @@ export class MapsService {
         category: categoryOfFilter.get(matched) ?? categories[0],
         poi_type: matched,
         address: addr,
-        website: tags.website || tags['contact:website'] || null,
+        website: normalizePlaceWebsite(tags.website) ?? normalizePlaceWebsite(tags['contact:website']),
         phone: tags.phone || tags['contact:phone'] || null,
         opening_hours: tags.opening_hours || null,
         cuisine: tags.cuisine || null,
@@ -1972,7 +2082,7 @@ export class MapsService {
   ): Promise<{ name: string; attribution: string | null }[]> {
     if (!isGooglePlaceId(placeId) || cap < 1) return [];
     try {
-      const res = await googleFetch(
+      const res = await this.google(
         `https://places.googleapis.com/v1/places/${placeId}`,
         `fetchGooglePhotoRefs(${placeId})`,
         { headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'photos' } },
@@ -1991,7 +2101,7 @@ export class MapsService {
   /** Image bytes for one photo reference. Null on any miss; the caller skips it. */
   async fetchGooglePhotoBytes(photoName: string, apiKey: string, maxHeightPx = 400): Promise<Buffer | null> {
     try {
-      const res = await googleFetch(
+      const res = await this.google(
         `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=${maxHeightPx}`,
         `fetchGooglePhotoBytes(${photoName})`,
         { headers: { 'X-Goog-Api-Key': apiKey } },
@@ -2014,7 +2124,7 @@ export class MapsService {
   async fetchEditorialSummary(placeId: string, apiKey: string, lang?: string): Promise<string | null> {
     if (!isGooglePlaceId(placeId)) return null;
     try {
-      const res = await googleFetch(
+      const res = await this.google(
         `https://places.googleapis.com/v1/places/${placeId}?languageCode=${toApiLang(lang)}`,
         `fetchEditorialSummary(${placeId})`,
         { headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'editorialSummary' } },
@@ -2034,7 +2144,7 @@ export class MapsService {
     query: string,
     lang?: string,
     locationBias?: { lat: number; lng: number; radius?: number },
-    opts: { googleIdentityOnly?: boolean } = {},
+    opts: { googleIdentityOnly?: boolean; googleOnly?: boolean } = {},
   ): Promise<{ places: Record<string, unknown>[]; source: string }> {
     const keyed = await this.keyedProvider(userId);
     const { key: apiKey, source: keySource } = keyed?.id === 'google' ? keyed : { key: null, source: null };
@@ -2061,7 +2171,23 @@ export class MapsService {
     // the same question twice. `null` means it never ran.
     let osmAnswer: Record<string, unknown>[] | null = null;
 
-    if (this.trekPlacesEnabled() && !(opts.googleIdentityOnly && apiKey)) {
+    // Amap first where the admin picked it and the search is about China (#1636):
+    // there the index and OpenStreetMap are thin and Amap is the map people use.
+    // Its answer is kept, so the Amap slot further down never pays for the same
+    // question twice. A failure drops through to the usual order.
+    let amapAnswer: Record<string, unknown>[] | null = null;
+    if (keyed?.id === 'amap' && (await this.amapAnswersFirst(locationBias))) {
+      amapAnswer = await keyed.provider.searchText(query, lang, locationBias).catch((err: unknown) => {
+        console.warn('Amap search failed, falling back:', (err as Error).message);
+        return null;
+      });
+      if (amapAnswer && amapAnswer.length > 0) return { places: amapAnswer, source: 'amap' };
+    }
+
+    // A search sent to Google on purpose, or the admin's "Google only" switch,
+    // skips the pair the same way: the search then reads exactly as it did
+    // before 4.3.0 on an install with a key.
+    if (this.trekPlacesEnabled() && !(opts.googleIdentityOnly && apiKey) && !(await this.googleOnly(keyed, opts.googleOnly))) {
       // Both at once. The index is a dataset of businesses and is very good
       // at those; OpenStreetMap is where the temples, bridges, riverside
       // walks and viewpoints are, and a travel search asks for those
@@ -2109,7 +2235,7 @@ export class MapsService {
     // Amap in the slot Google otherwise holds: asked only once the index and
     // OpenStreetMap came back empty, exactly like the Google call below.
     if (keyed?.id === 'amap') {
-      const places = await keyed.provider.searchText(query, lang, locationBias);
+      const places = amapAnswer ?? (await keyed.provider.searchText(query, lang, locationBias));
       return { places, source: 'amap' };
     }
 
@@ -2140,7 +2266,7 @@ export class MapsService {
       };
     }
 
-    const response = await googleFetch('https://places.googleapis.com/v1/places:searchText', 'searchText', {
+    const response = await this.google('https://places.googleapis.com/v1/places:searchText', 'searchText', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2163,24 +2289,82 @@ export class MapsService {
     // go" (#1341). Temporarily closed stays: a restaurant on holiday next month is
     // still worth planning around. Anything without the field is a non-business
     // result (a park, a viewpoint) and is kept.
-    const places = (data.places || [])
-      .filter((p: GooglePlaceResult) => p.businessStatus !== 'CLOSED_PERMANENTLY')
-      .map((p: GooglePlaceResult) => ({
-      google_place_id: p.id,
-      google_ftid: googleFtidFromMapsUrl(p.googleMapsUri),
-      name: p.displayName?.text || '',
-      address: p.formattedAddress || '',
-      // `?? null`, not `|| null`: 0 is a real coordinate (equator / prime meridian).
-      lat: p.location?.latitude ?? null,
-      lng: p.location?.longitude ?? null,
-      rating: p.rating || null,
-      website: p.websiteUri || null,
-      phone: p.nationalPhoneNumber || null,
-      types: p.types || [],
-      source: 'google',
-    }));
+    const places = (data.places || []).filter(isOpenGooglePlace).map(googlePlaceRecord);
 
     return { places, source: 'google' };
+  }
+
+  // ── Places near a point (#976) ─────────────────────────────────────────────
+
+  /**
+   * Places of any kind around a coordinate, nearest first, in the shape a search
+   * answers with plus `distance_m`. For "what is here" where no name was typed:
+   * a photo's location, a pin on the map.
+   *
+   * Same order as the search: the TREK index first, free and storable; Google
+   * only with a key and only when the index has nothing (or the admin set Google
+   * only); OpenStreetMap otherwise. Google bills per call, so every answer is
+   * cached for a while and the circle and count are capped by the contract.
+   */
+  async nearbyPlaces(
+    userId: number,
+    lat: number,
+    lng: number,
+    opts: { radius?: number; limit?: number; lang?: string } = {},
+  ): Promise<{ places: Record<string, unknown>[]; source: string }> {
+    const radius = opts.radius ?? NEARBY_DEFAULT_RADIUS_M;
+    const limit = opts.limit ?? NEARBY_DEFAULT_LIMIT;
+    const lang = toApiLang(opts.lang);
+    const key = nearbyCacheKey(lat, lng, radius, limit, lang);
+    const cached = NEARBY_CACHE.get(key);
+    if (cached && Date.now() - cached.at < NEARBY_CACHE_TTL_MS) return cached.value;
+
+    const value = await this.lookUpNearby(userId, { lat, lng }, radius, limit, lang);
+    if (NEARBY_CACHE.size >= NEARBY_CACHE_MAX) NEARBY_CACHE.delete(NEARBY_CACHE.keys().next().value as string);
+    NEARBY_CACHE.set(key, { at: Date.now(), value });
+    return value;
+  }
+
+  private async lookUpNearby(
+    userId: number,
+    origin: { lat: number; lng: number },
+    radius: number,
+    limit: number,
+    lang: string,
+  ): Promise<{ places: Record<string, unknown>[]; source: string }> {
+    const keyed = await this.keyedProvider(userId);
+    if (this.trekPlacesEnabled() && !(await this.googleOnly(keyed))) {
+      // Never throws upward, like the search: a slow index drops to the next source.
+      const found = await trekPlacesNearby(origin.lat, origin.lng, { radius, limit }).catch((err: unknown) => {
+        console.warn('TREK Places nearby failed, falling back:', (err as Error).message);
+        return [];
+      });
+      if (found.length > 0) return { places: nearestFirst(found.map(toPlaceRecord), origin, limit), source: 'trek-places' };
+    }
+
+    if (keyed?.id === 'google') {
+      const response = await this.google('https://places.googleapis.com/v1/places:searchNearby', 'searchNearby', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': keyed.key, 'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK },
+        body: JSON.stringify({
+          maxResultCount: limit,
+          rankPreference: 'DISTANCE',
+          languageCode: lang,
+          locationRestriction: { circle: { center: { latitude: origin.lat, longitude: origin.lng }, radius } },
+        }),
+      });
+      const data = (await response.json()) as { places?: GooglePlaceResult[]; error?: { message?: string } };
+      if (!response.ok) {
+        logKeyFailure('searchNearby', response.status, userId, keyed.source);
+        throw Object.assign(new Error(data.error?.message || 'Google Places API error'), { status: response.status });
+      }
+      const places = (data.places || []).filter(isOpenGooglePlace).map(googlePlaceRecord);
+      return { places: nearestFirst(places, origin, limit), source: 'google' };
+    }
+
+    const osmLang = lang.split('-')[0].toLowerCase();
+    const elements = await overpassFetch(nearbyOverpassQuery(origin.lat, origin.lng, radius, limit));
+    return { places: overpassNearbyRecords(elements, origin, osmLang, limit), source: 'openstreetmap' };
   }
 
   // ── Autocomplete (Google or Nominatim fallback) ────────────────────────────
@@ -2201,8 +2385,22 @@ export class MapsService {
     // could get every instance blocked at once. The index removes that.
     //
     // Same contract as search: never throws upward, falls through to what this
-    // method did before.
-    if (this.trekPlacesEnabled()) {
+    // method did before. The admin's "Google only" switch skips the index here
+    // too, so the suggestions and the search agree on where they come from.
+    // Amap first inside China when the admin picked it, as in the search (#1636).
+    let amapTips: MapsAutocompleteResult['suggestions'] | null = null;
+    const boxCentre = locationBias
+      ? { lat: (locationBias.low.lat + locationBias.high.lat) / 2, lng: (locationBias.low.lng + locationBias.high.lng) / 2 }
+      : undefined;
+    if (keyed?.id === 'amap' && (await this.amapAnswersFirst(boxCentre))) {
+      amapTips = await keyed.provider.autocomplete(input, lang, locationBias).catch((err: unknown) => {
+        console.warn('Amap autocomplete failed, falling back:', (err as Error).message);
+        return null;
+      });
+      if (amapTips && amapTips.length > 0) return { suggestions: amapTips, source: 'amap' };
+    }
+
+    if (this.trekPlacesEnabled() && !(await this.googleOnly(keyed))) {
       try {
         const centre = locationBias
           ? {
@@ -2272,7 +2470,7 @@ export class MapsService {
     }
 
     if (keyed?.id === 'amap') {
-      const suggestions = await keyed.provider.autocomplete(input, lang, locationBias);
+      const suggestions = amapTips ?? (await keyed.provider.autocomplete(input, lang, locationBias));
       return { suggestions, source: 'amap' };
     }
 
@@ -2297,7 +2495,7 @@ export class MapsService {
       };
     }
 
-    const response = await googleFetch('https://places.googleapis.com/v1/places:autocomplete', 'autocomplete', {
+    const response = await this.google('https://places.googleapis.com/v1/places:autocomplete', 'autocomplete', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2493,14 +2691,14 @@ export class MapsService {
     // Check DB cache first (lean mask, expanded=0) — 7-day TTL
     const DETAILS_TTL = 7 * 24 * 60 * 60 * 1000;
     const cached = await this.placeDetailsCache.findEntry(placeId, langKey, 0);
-    if (cached && Date.now() - cached.fetched_at < DETAILS_TTL) return { place: JSON.parse(cached.payload_json) };
+    if (cached && Date.now() - cached.fetched_at < DETAILS_TTL) return { place: cachedDetails(cached.payload_json) };
 
     // Closes the autocomplete session this lookup belongs to, so Google bills
     // the search once instead of per keystroke. A cache hit above never reaches
     // here, which is billing-neutral: an unclosed session is charged as a plain
     // autocomplete session.
     const sessionParam = sessionToken ? `&sessionToken=${encodeURIComponent(sessionToken)}` : '';
-    const response = await googleFetch(
+    const response = await this.google(
       `https://places.googleapis.com/v1/places/${placeId}?languageCode=${langKey}${sessionParam}`,
       `getPlaceDetails(${placeId})`,
       {
@@ -2531,7 +2729,7 @@ export class MapsService {
       lng: data.location?.longitude ?? null,
       rating: data.rating || null,
       rating_count: data.userRatingCount || null,
-      website: data.websiteUri || null,
+      website: normalizePlaceWebsite(data.websiteUri),
       phone: data.nationalPhoneNumber || null,
       opening_hours: data.regularOpeningHours?.weekdayDescriptions || null,
       open_now: data.regularOpeningHours?.openNow ?? null,
@@ -2576,7 +2774,7 @@ export class MapsService {
     const langKey = toApiLang(lang);
     const DETAILS_TTL = 7 * 24 * 60 * 60 * 1000;
     const cached = await this.placeDetailsCache.findEntry(placeId, langKey, 0);
-    if (cached && Date.now() - cached.fetched_at < DETAILS_TTL) return { place: JSON.parse(cached.payload_json) };
+    if (cached && Date.now() - cached.fetched_at < DETAILS_TTL) return { place: cachedDetails(cached.payload_json) };
 
     const place = await provider.placeDetails(placeId, lang);
     if (!place) return { place: null };
@@ -2622,10 +2820,10 @@ export class MapsService {
     // Check DB cache for expanded result
     if (!refresh) {
       const cached = await this.placeDetailsCache.findEntry(placeId, langKey, 1);
-      if (cached) return { place: JSON.parse(cached.payload_json) };
+      if (cached) return { place: cachedDetails(cached.payload_json) };
     }
 
-    const response = await googleFetch(
+    const response = await this.google(
       `https://places.googleapis.com/v1/places/${placeId}?languageCode=${langKey}`,
       `getPlaceDetailsExpanded(${placeId})`,
       {
@@ -2656,7 +2854,7 @@ export class MapsService {
       lng: data.location?.longitude ?? null,
       rating: data.rating || null,
       rating_count: data.userRatingCount || null,
-      website: data.websiteUri || null,
+      website: normalizePlaceWebsite(data.websiteUri),
       phone: data.nationalPhoneNumber || null,
       opening_hours: data.regularOpeningHours?.weekdayDescriptions || null,
       open_now: data.regularOpeningHours?.openNow ?? null,
@@ -2769,7 +2967,7 @@ export class MapsService {
           if (!apiKey) return null;
 
           // Fetch details to get the photo name
-          const detailsRes = await googleFetch(
+          const detailsRes = await this.google(
             `https://places.googleapis.com/v1/places/${placeId}`,
             `getPlacePhoto/details(${placeId})`,
             {
@@ -2799,7 +2997,7 @@ export class MapsService {
           const attribution = photo.authorAttributions?.[0]?.displayName || null;
 
           // Fetch actual image bytes
-          const mediaRes = await googleFetch(
+          const mediaRes = await this.google(
             `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=400`,
             `getPlacePhoto/media(${placeId})`,
             { headers: { 'X-Goog-Api-Key': apiKey } },

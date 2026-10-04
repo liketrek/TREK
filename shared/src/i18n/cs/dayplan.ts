@@ -57,6 +57,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Mapy a GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Exportovat denní plán do PDF',
+  'dayplan.pdfMine': 'Můj plán jako PDF',
+  'dayplan.pdfMineSub': 'Jen aktivity a rezervace, kterých se účastníte',
   'dayplan.gpxTooltip': 'Exportovat jako GPX pro offline mapy a GPS zařízení',
   'dayplan.gpxAll': 'Celá cesta',
   'dayplan.gpxPlaces': 'Jen místa',
@@ -78,8 +80,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Všechna místa přiřazena',
   'dayplan.mobile.noMatch': 'Žádná shoda',
   'dayplan.mobile.createNew': 'Vytvořit nové místo',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Rozbalit všechny dny', // en-fallback
+  'dayplan.collapseAll': 'Sbalit všechny dny', // en-fallback
   'dayplan.reorderDays': 'Změnit pořadí dnů',
   'dayplan.reorderTitle': 'Změnit pořadí dnů',
   'dayplan.reorderHint': 'Místa, poznámky a rezervace daného dne se přesunou spolu s ním.',
@@ -89,5 +91,52 @@ const dayplan: TranslationStrings = {
   'dayplan.reorderUndo': 'Změnit pořadí dnů',
   'dayplan.reorderError': 'Nepodařilo se změnit pořadí dnů',
   'dayplan.addDayError': 'Nepodařilo se přidat den',
+  'dayplan.deleteDay': 'Smazat den',
+  'dayplan.deleteDayTitle': 'Smazat {day}?',
+  'dayplan.deleteDayBody': 'Den bude z cesty odebrán. Tuto akci nelze vrátit zpět.',
+  'dayplan.excludeFromRoute': 'Vynechat z trasy',
+  'dayplan.includeInRoute': 'Vrátit do trasy',
+  'dayplan.offRoute': 'Mimo trasu',
+  'dayplan.offRouteHint': 'Zůstává ve dni i na mapě, ale trasa ho vynechá',
+  'dayplan.clearDay': 'Vyprázdnit den',
+  'dayplan.clearDayTitle': 'Vyprázdnit {day}?',
+  'dayplan.clearDayBody':
+    'Všechna místa se z tohoto dne odeberou. Místa zůstanou v cestě a den si ponechá své poznámky i rezervace.',
+  'dayplan.deleteDayEmpty': 'Na tento den není nic naplánováno.',
+  'dayplan.impactPlaces': 'Naplánovaná místa: {count}',
+  'dayplan.impactPlacesHint': 'Zůstanou v seznamu míst.',
+  'dayplan.impactNotes': 'Poznámky: {count}',
+  'dayplan.impactTexts': 'Názvy a popisy dne: {count}',
+  'dayplan.impactDeletedHint': 'Budou také smazány.',
+  'dayplan.impactBookings': 'Rezervace: {count}',
+  'dayplan.impactStay': 'Ubytování v {name}',
+  'dayplan.deleteDayBookingsHint': 'Zůstanou v Rezervacích, bez dne.',
+  'dayplan.deleteDayStayHint': 'Příjezd nebo odjezd připadá na tento den, proto se ubytování zruší.',
+  'dayplan.deleteDayStayBookedHint':
+    'Příjezd nebo odjezd připadá na tento den, proto se ubytování zruší spolu s rezervací „{booking}“ a jejím výdajem.',
+  'dayplan.deleteDayStayBookingHint':
+    'Příjezd nebo odjezd připadá na tento den, proto se ubytování zruší spolu s rezervací „{booking}“.',
+  'dayplan.deleteDayStayPaidHint':
+    'Příjezd nebo odjezd připadá na tento den, proto se ubytování zruší spolu s rezervací „{booking}“ a jejím výdajem {amount}.',
+  'dayplan.deleteDayShift': 'Pozdější dny: {count}',
+  'dayplan.deleteDayShiftHint': 'Každý se posune o jedno datum dříve.',
+  'dayplan.deleteDayShiftBookingsHint':
+    'Každý se posune o jedno datum dříve. Rezervace, které se posunou s nimi: {count}',
+  'dayplan.deleteDayShrink': 'Cesta nyní končí {date}',
+  'dayplan.deleteDayShrinkHint': 'Nezbývá žádný den bez data, který by převzal poslední datum.',
+  'dayplan.impactStayShorter': 'Ubytování v {name}: o noc kratší',
+  'dayplan.deleteDayStayShorterHint': 'Odjezd je teď {date}, protože zasahuje přes tento den.',
+  'dayplan.deleteDayStayShorterUndatedHint': 'Zasahuje přes tento den, teď končí o den dříve.',
+  'dayplan.deleteDaySpareDated': '{day} dostane datum {date}',
+  'dayplan.deleteDaySpareDatedHint': 'Je to první den bez data a převezme poslední datum cesty.',
+  'dayplan.deleteDayLast': 'Cesta musí mít alespoň jeden den',
+  'dayplan.daysOffline': 'Změna dnů vyžaduje připojení',
+  'dayplan.deleteDaySuccess': 'Den smazán',
+  'dayplan.deleteDayError': 'Den se nepodařilo smazat',
+  'dayplan.addUndatedDay': 'Bez data',
+  'dayplan.addUndatedDayHint': 'Přidá na konec den bez data. Termín cesty zůstane stejný.',
+  'dayplan.addDatedDay': 'Přidat {date}',
+  'dayplan.addDatedDayHint': 'Přidá {date} a prodlouží cestu o jeden den.',
+  'dayplan.tripExtended': 'Den přidán. Cesta teď končí {date}, o den později.',
 };
 export default dayplan;

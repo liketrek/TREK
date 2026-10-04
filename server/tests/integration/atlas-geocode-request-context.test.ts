@@ -1,21 +1,23 @@
 /**
  * Atlas background-geocode request-context ratchet (L5, task-7-review.md).
  *
- * `AtlasService`'s `/stats` (AT4) and `/regions` (AT29) handlers fire an
- * un-awaited IIFE after the response that reverse-geocodes a place and
- * writes through `PlaceRegionsRepository.upsertRegion` — a repository
- * method, so it validates it is running inside a request context
- * (`AsyncLocalStorage`-carried EntityManager fork) rather than the global
- * one. The reviewer traced this with a real `buildApp()` boot, a 1.2s-delayed
- * `reverseGeocodeRegion` and a spy on `upsertRegion` catching whatever it
- * would otherwise swallow: `GET /stats` writes `FR`/`FR-IDF` after the
- * response, `GET /regions` writes two places about 2.4s apart, and in both
- * cases `AsyncLocalStorage` carries the request fork with zero
- * `cannotUseGlobalContext` errors — no `withRequestContext` wrap is needed
- * in production code. Landed as a ratchet so a future refactor that breaks
- * that carry (e.g. detaching the IIFE onto a timer or a queue) fails loudly
- * here instead of only in a live-traffic gap between a response and its
- * background write.
+ * `AtlasService`'s `/stats` (AT4) and `/regions` (AT29) handlers start
+ * `cacheRegionsInBackground` after the response: a detached loop that
+ * reverse-geocodes a place and writes through
+ * `PlaceRegionsRepository.upsertRegionWhileUnmoved` (#2527) — a repository
+ * method, so it validates it is running inside a request context rather than
+ * the global one. The reviewer traced this with a real `buildApp()` boot, a
+ * 1.2s-delayed `reverseGeocodeRegion` and a spy on the write catching
+ * whatever it would otherwise swallow: `GET /stats` writes `FR`/`FR-IDF`
+ * after the response, `GET /regions` writes two places about 2.4s apart, and
+ * in both cases `AsyncLocalStorage` carried the request fork with zero
+ * `cannotUseGlobalContext` errors. The loop now forks its own request context
+ * with `withRequestContext` all the same, like every other detached chain;
+ * because the carry would keep an HTTP-driven case green with that wrap
+ * removed, the load-bearing proof is ATLAS-CTX-001 in `atlas.service.test.ts`,
+ * which starts the loop from a bare context. This file stays as the parity
+ * proof for the real routes: the writes still land after the response, with
+ * the same timing, and nothing reaches the error log.
  */
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
@@ -56,8 +58,8 @@ let nestApp: INestApplication;
 let app: Application;
 const errors: unknown[] = [];
 beforeAll(async () => {
-  const orig = PlaceRegionsRepository.prototype.upsertRegion;
-  PlaceRegionsRepository.prototype.upsertRegion = async function (...a: Parameters<typeof orig>) {
+  const orig = PlaceRegionsRepository.prototype.upsertRegionWhileUnmoved;
+  PlaceRegionsRepository.prototype.upsertRegionWhileUnmoved = async function (...a: Parameters<typeof orig>) {
     try {
       return await orig.apply(this, a);
     } catch (e) {

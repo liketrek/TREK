@@ -8,7 +8,7 @@ export const budgetRepo = {
     return onlineThenCache(
       async () => {
         const result = await budgetApi.list(tripId)
-        upsertBudgetItems(result.items)
+        void upsertBudgetItems(result.items)
         return result
       },
       async () => ({

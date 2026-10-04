@@ -19,6 +19,7 @@ import { Trips } from '../../db/entities/Trips.entity';
 import { TripMembers } from '../../db/entities/TripMembers.entity';
 import { Plugins } from '../../db/entities/Plugins.entity';
 import { PluginUserErasureQueue } from '../../db/entities/PluginUserErasureQueue.entity';
+import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
 import { TokensModule } from '../tokens/tokens.module';
 import { AuthPublicController } from './auth-public.controller';
 import { AuthController } from './auth.controller';
@@ -111,7 +112,9 @@ import { AllowedFileTypesModule } from '../files/allowed-file-types.module';
     // `nest/plugins`), narrowed off the Plan 3b Task 5 "stays raw" ruling to
     // share `enqueueHookUserDataErasures` with `PluginRuntimeService
     // .enqueueUserErasure` rather than re-implementing the same filter twice.
-    MikroOrmModule.forFeature([AppSettings, Users, WebauthnCredentials, WebauthnChallenges, InviteTokens, McpTokens, OauthTokens, PasswordResetTokens, BudgetItems, JourneyShareTokens, Journeys, JourneyEntries, JourneyContributors, ShareTokens, Trips, TripMembers, Plugins, PluginUserErasureQueue])],
+    // PushSubscriptions: AuthService drops every Web Push device of the user
+    // on password change/reset (Web Push, #894), owned by `nest/notifications`.
+    MikroOrmModule.forFeature([AppSettings, Users, WebauthnCredentials, WebauthnChallenges, InviteTokens, McpTokens, OauthTokens, PasswordResetTokens, BudgetItems, JourneyShareTokens, Journeys, JourneyEntries, JourneyContributors, ShareTokens, Trips, TripMembers, Plugins, PluginUserErasureQueue, PushSubscriptions])],
   controllers: [AuthPublicController, AuthController, PasskeyController],
   providers: [AuthService, UserProfileService, RegistrationInvitesService, PasskeyService, UserCleanupService, WebauthnConfigService, AuthMcp],
   exports: [AuthService, RegistrationInvitesService, PasskeyService, UserCleanupService],

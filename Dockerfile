@@ -27,7 +27,8 @@ COPY client/ ./client/
 RUN npm run build --workspace=client
 
 # ── Stage 3: server ──────────────────────────────────────────────────────────
-# --ignore-scripts skips native builds (better-sqlite3); they happen in the production stage.
+# --ignore-scripts: nothing here needs a postinstall, tsc only reads types. The one
+# native module, better-sqlite3, ships its binaries inside the npm tarball since 13.x.
 FROM node:24-alpine AS server-builder
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -52,13 +53,22 @@ COPY server/package.json ./server/
 # changeset, so it costs nothing. Everything copied after this point carries
 # --chown=node:node for the same reason — a recursive chown in a later layer
 # would copy up every inode it touches and duplicate the whole tree in the image.
+#
+# No compiler in this stage. better-sqlite3 13.x carries prebuilt binaries for
+# amd64 and arm64 inside its tarball, so there is nothing left to build: the old
+# python3 + build-essential fallback compiled it against whatever Node headers
+# the base image had that day, and 24.19+ headers give an addon that aborts with
+# "Assertion failed: (env) != nullptr" the first time a statement is collected
+# (#2421). --ignore-scripts because a lockfile-driven npm ci still synthesises
+# `node-gyp rebuild` for the binding.gyp it finds, blind to the package's
+# gypfile:false (npm/cli#9837). The only other install scripts among the runtime
+# deps are esbuild's binary check, redundant next to its optional platform
+# package, and a telemetry ping.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends tzdata dumb-init wget ca-certificates python3 build-essential \
+    apt-get install -y --no-install-recommends tzdata dumb-init wget ca-certificates \
     libkitinerary-bin libsqlite3-0 && \
-    npm ci --workspace=server --omit=dev && \
+    npm ci --workspace=server --omit=dev --ignore-scripts && \
     ln -sf "$(find /usr/lib -name kitinerary-extractor -type f | head -1)" /usr/local/bin/kitinerary-extractor; \
-    apt-get purge -y python3 build-essential && \
-    apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx && \
     chown -R node:node /app
 
@@ -112,6 +122,17 @@ ENV NODE_USE_ENV_PROXY=1
 ENV PORT=3000
 ARG APP_VERSION=dev
 ENV APP_VERSION=${APP_VERSION}
+
+# OCI metadata: Renovate, Watchtower and the registries read the source label to
+# link an image update to its release notes (#1498). The release workflows add
+# the commit and the build time; a local build carries everything else.
+LABEL org.opencontainers.image.title="TREK" \
+      org.opencontainers.image.description="Self-hosted collaborative travel planner" \
+      org.opencontainers.image.url="https://github.com/liketrek/TREK" \
+      org.opencontainers.image.source="https://github.com/liketrek/TREK" \
+      org.opencontainers.image.documentation="https://github.com/liketrek/TREK/wiki" \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.version="${APP_VERSION}"
 
 EXPOSE 3000
 

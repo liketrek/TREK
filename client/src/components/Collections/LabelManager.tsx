@@ -1,6 +1,8 @@
-import React, { useState } from 'react'
-import { Plus, Trash2, Loader2 } from 'lucide-react'
-import Modal from '../shared/Modal'
+import React, { useId, useState } from 'react'
+import { Plus, Settings2, Trash2, Loader2 } from 'lucide-react'
+import { DialogButton, DialogHeader, DialogSection, DialogShell, DialogTile, NEUTRAL_TINT, fs } from '../shared/DialogShell'
+import { INPUT, PANEL } from '../shared/dialogParts'
+import { Tooltip } from '../shared/Tooltip'
 import type { CollectionLabel, CollectionLabelUpdateRequest } from '@trek/shared'
 import type { TranslationFn } from '../../types'
 
@@ -19,17 +21,26 @@ interface LabelManagerProps {
 /** Swatch row shared by the create form and each row's recolor control. */
 function Swatches({ value, onPick }: { value: string; onPick: (c: string) => void }): React.ReactElement {
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      {SWATCHES.map(c => (
-        <button
-          key={c}
-          type="button"
-          onClick={() => onPick(c)}
-          className={`w-5 h-5 rounded-full border transition-transform ${value.toLowerCase() === c ? 'border-content scale-110' : 'border-transparent'}`}
-          style={{ background: c }}
-          aria-label={c}
-        />
-      ))}
+    <div className="flex flex-none flex-wrap items-center gap-1.5">
+      {SWATCHES.map(c => {
+        const on = value.toLowerCase() === c
+        return (
+          <button
+            key={c}
+            type="button"
+            onClick={() => onPick(c)}
+            aria-label={c}
+            aria-pressed={on}
+            className="h-5 w-5 rounded-full p-0 transition-transform"
+            style={{
+              background: c,
+              outline: on ? '2px solid var(--text-primary)' : '2px solid transparent',
+              outlineOffset: 1.5,
+              transform: on ? 'scale(1.08)' : 'scale(1)',
+            }}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -58,22 +69,28 @@ function LabelRow({ label, onUpdate, onDelete, t }: {
   }
 
   return (
-    <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-edge bg-surface-card">
-      <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: color }} />
+    <div className="flex items-center gap-2.5 rounded-[12px] bg-surface-secondary py-1.5 pl-3 pr-1.5">
+      <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: color }} />
+      {/* Transparent on the row until pointed at or typed in; the dark: variants
+          outrank the global dark rule that paints every input. */}
       <input
         value={name}
         onChange={e => setName(e.target.value)}
         onBlur={commitName}
         onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
         maxLength={60}
-        className="flex-1 min-w-0 bg-transparent text-[13px] text-content outline-none"
+        className="-ml-1.5 min-w-0 flex-1 rounded-[8px] border-0 bg-transparent px-1.5 py-1 font-semibold text-content outline-none hover:bg-surface-card focus:bg-surface-card focus:shadow-sm dark:bg-transparent dark:hover:bg-surface-card dark:focus:bg-surface-card"
+        style={fs(13, 'body')}
         aria-label={t('collections.labels.name')}
       />
       <Swatches value={color} onPick={pickColor} />
-      {busy && <Loader2 size={14} className="animate-spin text-content-faint shrink-0" />}
-      <button type="button" onClick={() => onDelete(label.id)} className="p-1 text-content-faint hover:text-danger shrink-0" aria-label={t('common.delete')}>
-        <Trash2 size={14} />
-      </button>
+      {busy && <Loader2 size={14} className="flex-none animate-spin text-content-faint" />}
+      <Tooltip label={t('common.delete')}>
+        <button type="button" onClick={() => onDelete(label.id)} aria-label={t('common.delete')}
+          className="grid h-7 w-7 flex-none place-items-center rounded-full text-content-faint hover:bg-surface-card hover:text-danger">
+          <Trash2 size={13} />
+        </button>
+      </Tooltip>
     </div>
   )
 }
@@ -86,6 +103,7 @@ export default function LabelManager({ isOpen, labels, onCreate, onUpdate, onDel
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState(SWATCHES[0])
   const [adding, setAdding] = useState(false)
+  const labelId = useId()
 
   const add = async () => {
     const trimmed = newName.trim()
@@ -100,40 +118,55 @@ export default function LabelManager({ isOpen, labels, onCreate, onUpdate, onDel
     }
   }
 
+  // Every change is saved as it is made, so there is nothing to confirm in a footer.
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t('collections.labels.manage')} size="sm">
-      <div className="flex flex-col gap-3">
+    <DialogShell
+      open={isOpen}
+      onClose={onClose}
+      labelledBy={labelId}
+      width="narrow"
+      header={(
+        <DialogHeader
+          tile={<DialogTile><Settings2 size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={onClose}
+          title={t('collections.labels.manage')}
+        />
+      )}
+    >
+      <DialogSection label={t('collections.labels.title')}>
         {labels.length === 0 ? (
-          <p className="text-center text-[13px] text-content-faint py-4">{t('collections.labels.empty')}</p>
+          <p className="m-0 rounded-[12px] bg-surface-secondary px-4 py-5 text-center text-content-faint" style={fs(12.5, 'body')}>{t('collections.labels.empty')}</p>
         ) : (
-          <div className="flex flex-col gap-1.5 max-h-[46vh] overflow-y-auto -mx-1 px-1">
+          <div className="flex flex-col gap-1.5">
             {labels.map(l => <LabelRow key={l.id} label={l} onUpdate={onUpdate} onDelete={onDelete} t={t} />)}
           </div>
         )}
 
-        <div className="flex flex-col gap-2 pt-3 border-t border-edge">
+        <div className={`${PANEL} mt-3`}>
           <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ background: newColor }} />
+            <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: newColor }} />
             <input
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') add() }}
+              onKeyDown={e => { if (e.key === 'Enter') void add() }}
               maxLength={60}
               placeholder={t('collections.labels.namePlaceholder')}
-              className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[13px] outline-none focus:border-accent"
+              className={`${INPUT} flex-1`}
             />
-            <button
-              type="button"
+            <DialogButton
+              variant="primary"
               onClick={add}
               disabled={!newName.trim() || adding}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent text-white text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 shrink-0"
+              icon={adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} strokeWidth={2.2} />}
             >
-              {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} {t('collections.labels.add')}
-            </button>
+              {t('collections.labels.add')}
+            </DialogButton>
           </div>
           <Swatches value={newColor} onPick={setNewColor} />
         </div>
-      </div>
-    </Modal>
+      </DialogSection>
+    </DialogShell>
   )
 }

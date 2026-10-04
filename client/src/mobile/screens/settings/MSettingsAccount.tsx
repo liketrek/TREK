@@ -27,6 +27,8 @@ import { getApiErrorMessage } from '../../../types'
 import type { UserWithOidc } from '../../../types'
 import { MSetCard, MSetEyebrow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
 import MConfirmSheet from './MConfirmSheet'
+import PasswordChecklist from '../../../components/shared/PasswordChecklist'
+import { passwordErrorKey } from '../../../utils/passwordError'
 
 const MFA_BACKUP_SESSION_KEY = 'trek_mfa_backup_codes_pending'
 
@@ -190,7 +192,8 @@ export default function MSettingsAccount() {
   const changePassword = async () => {
     if (!currentPassword) return toast.error(t('settings.currentPasswordRequired'))
     if (!newPassword) return toast.error(t('settings.passwordRequired'))
-    if (newPassword.length < 8) return toast.error(t('settings.passwordTooShort'))
+    const weak = passwordErrorKey(newPassword)
+    if (weak) return toast.error(t(weak))
     if (newPassword !== confirmPassword) return toast.error(t('settings.passwordMismatch'))
     try {
       await authApi.changePassword({ current_password: currentPassword, new_password: newPassword })
@@ -369,6 +372,7 @@ export default function MSettingsAccount() {
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder={t('settings.newPassword')}
           />
+          <PasswordChecklist password={newPassword} className="mt-2" />
           <MSetInput
             type="password"
             className="mt-2"
@@ -643,7 +647,7 @@ function MPasskeysCard({ demoMode }: { demoMode?: boolean }): React.ReactElement
                       value={renameVal}
                       onChange={(e) => setRenameVal(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleRename(c.id)
+                        if (e.key === 'Enter') void handleRename(c.id)
                         if (e.key === 'Escape') setRenamingId(null)
                       }}
                     />

@@ -116,7 +116,7 @@ function setOnLine(value: boolean): void {
 }
 
 /** The Section wrapper card that carries the given heading. */
-const card = (title: string) => screen.getByText(title).closest('div.rounded-xl') as HTMLElement;
+const card = (title: string) => screen.getByText(title).closest('section') as HTMLElement;
 
 /** The Stat tile that carries the given label. */
 const stat = (label: string) => screen.getByText(label).parentElement as HTMLElement;
@@ -272,12 +272,14 @@ describe('OfflineTab', () => {
     render(<OfflineTab />);
 
     await screen.findByText('When a conflict happens');
-    const select = screen.getByRole('combobox') as HTMLSelectElement;
-    expect(select.value).toBe('ask');
-
-    await user.selectOptions(select, 'server');
+    // A CustomSelect: the row's label names the trigger, the options open in a portal.
+    const trigger = screen.getByRole('button', { name: 'When a conflict happens' });
+    expect(trigger).toHaveTextContent('Ask me each time');
+    await user.click(trigger);
+    const choices = await screen.findAllByRole('button', { name: 'Always keep the server version' });
+    await user.click(choices[choices.length - 1]);
     expect(getOfflinePrefs().conflictStrategy).toBe('server');
-    await waitFor(() => expect(select.value).toBe('server'));
+    await waitFor(() => expect(trigger).toHaveTextContent('Always keep the server version'));
   });
 
   it('FE-COMP-OFFLINETAB-011: Prepare renders live progress and the done marker', async () => {
@@ -510,23 +512,24 @@ describe('OfflineTab', () => {
     expect(screen.queryByText('Trips')).not.toBeInTheDocument();
   });
 
-  it('FE-COMP-OFFLINETAB-023: Clear cache asks first and a declined confirm keeps the data', async () => {
+  it('FE-COMP-OFFLINETAB-023: Clear cache asks first and a cancelled confirm keeps the data', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     cache([{ trip: paris }]);
     render(<OfflineTab />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Clear cache' })).toBeEnabled());
     await user.click(screen.getByRole('button', { name: 'Clear cache' }));
 
-    expect(confirmSpy).toHaveBeenCalledWith('Clear all offline trip data? You can re-sync anytime while online.');
+    expect(await screen.findByText('Clear all offline trip data? You can re-sync anytime while online.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByText('Clear all offline trip data? You can re-sync anytime while online.')).not.toBeInTheDocument();
     expect(h.clearAll).not.toHaveBeenCalled();
     expect(within(card('Offline cache')).getByText('Paris')).toBeInTheDocument();
   });
 
   it('FE-COMP-OFFLINETAB-024: confirming Clear cache wipes the database and reloads', async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     cache([{ trip: paris }]);
     render(<OfflineTab />);
 
@@ -534,6 +537,11 @@ describe('OfflineTab', () => {
     h.syncMetaToArray.mockResolvedValue([]);
     h.tripsCount.mockResolvedValue(0);
     await user.click(screen.getByRole('button', { name: 'Clear cache' }));
+    await screen.findByText('Clear all offline trip data? You can re-sync anytime while online.');
+    expect(h.clearAll).not.toHaveBeenCalled();
+    // The dialog's own confirm button is the last "Clear cache" in the document.
+    const confirmButtons = screen.getAllByRole('button', { name: 'Clear cache' });
+    await user.click(confirmButtons[confirmButtons.length - 1]!);
 
     expect(h.clearAll).toHaveBeenCalledTimes(1);
     await screen.findByText('No trips cached yet. Connect to the internet to sync.');

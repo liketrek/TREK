@@ -23,7 +23,17 @@ import { BudgetCategoryOrder } from '../../db/entities/BudgetCategoryOrder.entit
 import { PackingBags } from '../../db/entities/PackingBags.entity';
 import { PackingItems } from '../../db/entities/PackingItems.entity';
 import { TodoItems } from '../../db/entities/TodoItems.entity';
-import { MAX_TRIP_DAYS, tripSpanDays, type ActiveTrip, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
+import {
+  MAX_TRIP_DAYS,
+  planDayGrid,
+  resolveDayGridRange,
+  tripSpanDays,
+  type ActiveTrip,
+  type DayGridPlan,
+  type DayGridRemoval,
+  type TrekWsPayload,
+  type TrekWsTripEventName,
+} from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import type { Trip, User } from '../../types';
@@ -33,11 +43,11 @@ import { ReservationsService } from '../reservations/reservations.service';
 import { VacayService } from '../vacay/vacay.service';
 import { UnsplashService } from '../unsplash/unsplash.service';
 import { StorageService } from '../storage/storage.service';
+import { SettingsService } from '../settings/settings.service';
+import { escapeLikePattern } from '../places/places.helpers';
 import { NotFoundError, ValidationError } from '../common/domain-errors';
 import { UnitOfWork } from '../database/unit-of-work';
 import { legacyBoundIntegerText } from '../common/row-id';
-
-export const MS_PER_DAY = 86400000;
 
 /**
  * The date range is refused, not cut short: generateDays used to clip the day
@@ -100,6 +110,8 @@ export interface UpdateTripResult {
   newTitle: string;
   newReminder: number;
   oldReminder: number;
+  /** The day rows a changed range took away, as they stood before; empty when none went. */
+  removedDays: DayGridRemoval[];
 }
 
 export interface DeleteTripInfo {
@@ -143,15 +155,16 @@ export interface GuestMember {
 /**
  * Trip aggregate root, DI-native. Membership, the calendar export and the two
  * read aggregates live in their own domains now; what is left is the write core
- * plus day generation, which is why the constructor is eight parameters instead
- * of fourteen. The SQL moved 1:1 from the legacy
+ * plus day generation, which is why the constructor is far shorter than the
+ * fourteen parameters it started with. The SQL moved 1:1 from the legacy
  * services/tripService.ts: identical statements, the `||` falsy-coercion
  * defaults, the post-write TRIP_SELECT re-selects and the mixed
  * named/positional parameter styles are all preserved byte-for-byte.
  * Post-migration quirk fixes on top of the 1:1 move: the multi-statement
  * deletes (remove, deleteGuest's re-split + user delete) run in
- * db.transaction(), and listMembers' owner row COALESCEs display_name like
- * the member rows. Auth (canAccessTrip), per-field permission checks and
+ * db.transaction(), listMembers' owner row COALESCEs display_name like
+ * the member rows, and create() defaults the currency to the owner's display
+ * currency instead of the legacy EUR literal. Auth (canAccessTrip), per-field permission checks and
  * audit logging stay in the controller (1:1 with the legacy route);
  * trip:updated / trip:deleted broadcasts stay in the controller too — this
  * service emits none.
@@ -175,6 +188,7 @@ export class TripsService {
     // `TripOwnerGuard`. `EntityManager` is `@Global()` (`MikroOrmModule
     // .forRoot`'s core module), so no module needs new wiring.
     private readonly em: EntityManager,
+    private readonly settings: SettingsService,
   ) {}
 
   // Plan 3c Task 7: the raw better-sqlite3 handle used to back `remove`'s
@@ -194,6 +208,17 @@ export class TripsService {
 
   private get daysRepo() {
     return this.em.getRepository(Days);
+  }
+
+  /**
+   * The currency a trip gets when the caller names none: the person's display
+   * currency, admin default merged in, else EUR. The trip dialog pre-fills the
+   * same value on the client, so a trip created through MCP or a plugin lands
+   * in the currency the person reads amounts in instead of always in EUR.
+   */
+  private async defaultCurrencyFor(userId: number): Promise<string> {
+    const preferred = (await this.settings.getUserSettings(userId)).default_currency;
+    return typeof preferred === 'string' && preferred.trim() ? preferred.trim() : 'EUR';
   }
 
   // Plan 3g Task 4 (TP32/TP33) — `journey_entries`' trip-wide skeleton
@@ -317,127 +342,46 @@ export class TripsService {
   // ── Day generation ────────────────────────────────────────────────────────
 
   /**
-   * TP1–TP13 (inventory §11b), all through `DaysRepository` — statement order
-   * and the two-phase renumber (negative pass then positive pass, sequential
-   * `for…of`, never `Promise.all`: order is load-bearing against
-   * `UNIQUE(trip_id, day_number)`, the same discipline Task 2's own
-   * `DaysService` conversion kept) preserved byte-for-byte. Inherits the
-   * caller's transaction — `updateTrip`'s `:423` `uow.transactional` block —
-   * or runs with none at all when called from `create` (R5/§18.6, unchanged
-   * by this conversion; no transaction is opened HERE either way).
+   * Lay the trip's day rows out for a range, by the shared planDayGrid rule the
+   * trip dialog warns by: the plan says which row takes which position and date
+   * and which rows go, and this carries it out. The two-phase numbering keeps
+   * UNIQUE(trip_id, day_number) quiet while rows swap places. A removed day
+   * takes its assignments, notes and every stay checking in or out on it along
+   * through the foreign keys, as it always has (#909). Returns the plan it ran.
    *
-   * TP1/TP4/TP8/TP13 (four legacy sites, one shared repository method):
-   * `listOrderedForReorder` orders `ASC` by `day_number` where TP1's own
-   * statement has no `ORDER BY` at all — harmless: TP1's result only ever
-   * feeds `.filter()`/re-`.sort()` calls below, never relies on read order.
+   * TP77/TP78 read the grid, then TP2/TP9/TP10/TP11 (all `DaysRepository`)
+   * carry it out, sequentially (`for…of`, never `Promise.all`: order is
+   * load-bearing against `UNIQUE(trip_id, day_number)`). The whole rebuild
+   * runs in one `uow.transactional` — a savepoint when `updateTrip`'s own
+   * block already holds the transaction, its own transaction from `create`.
    */
-  async generateDays(tripId: number | bigint | string, startDate: string | null, endDate: string | null, dayCount?: number) {
+  async generateDays(tripId: number | bigint | string, startDate: string | null, endDate: string | null, dayCount?: number): Promise<DayGridPlan> {
     const trip_id = Number(tripId);
-    const existing = await this.daysRepo.listOrderedForReorder(trip_id); // TP1
+    return await this.uow.transactional(async () => {
+      const existing = await this.daysRepo.listForDayGrid(trip_id); // TP77
+      const stays = await this.daysRepo.listDayGridStays(trip_id); // TP78
 
-    // Two-phase renumber to avoid UNIQUE(trip_id, day_number) collisions.
-    //
-    // Task 9 fix wave (A-L4a): the FIRST (negative) pass is not pinned by
-    // any test — a mutation that removes or skips it survives the suite,
-    // because no test's fixture forces two days to swap `day_number`s (the
-    // only scenario where skipping straight to the positive pass would hit
-    // a live UNIQUE collision on a still-occupied target number). It is
-    // still correct, production-necessary code, not dead code: this
-    // helper's callers (`generateDays`'s regenerate/compact paths) reorder
-    // day rows whose numbers can genuinely collide mid-pass, and the
-    // negative pass is what clears every target number before any of them
-    // is reused. Documented per the review's ruling rather than added a
-    // test, since the equivalent-mutation gap is the ABSENCE of a
-    // swap-shaped fixture, not a defect in this code.
-    const renumber = async (days: { id: number }[]) => {
-      for (let i = 0; i < days.length; i++) await this.daysRepo.setDayNumber(days[i].id, -(i + 1)); // TP2
-      for (let i = 0; i < days.length; i++) await this.daysRepo.setDayNumber(days[i].id, i + 1); // TP2
-    };
+      const plan = planDayGrid({
+        days: existing.map(d => ({ id: d.id, day_number: d.day_number, date: d.date, hasPlanItems: !!d.has_plan_items })),
+        stays,
+        startDate,
+        endDate,
+        dayCount,
+      });
 
-    if (!startDate || !endDate) {
-      // Nullify all dated days instead of deleting them — preserves assignments/notes/accommodations
-      const withDates = existing.filter(d => d.date);
-      for (const d of withDates) await this.daysRepo.clearDate(d.id); // TP3
-
-      // Now all days are dateless — adjust count toward dayCount target
-      const allDays = await this.daysRepo.listOrderedForReorder(trip_id); // TP4
-      const targetCount = Math.min(Math.max(dayCount ?? (allDays.length || 7), 1), MAX_TRIP_DAYS);
-      const needed = targetCount - allDays.length;
-      if (needed > 0) {
-        for (let i = 0; i < needed; i++) await this.daysRepo.insertDay({ trip_id, day_number: allDays.length + i + 1, date: null }); // TP5
-      } else if (needed < 0) {
-        // Only trim trailing empty days to avoid destroying content
-        const candidates = await this.daysRepo.listTrailingEmptyIds(trip_id, -needed); // TP6
-        for (const id of candidates) await this.daysRepo.deleteById(id); // TP7
+      const dateBefore = new Map(existing.map(d => [d.id, d.date]));
+      for (let i = 0; i < existing.length; i++) await this.daysRepo.setDayNumber(existing[i].id, -(i + 1)); // TP2
+      for (let i = 0; i < plan.rows.length; i++) {
+        const row = plan.rows[i];
+        if (row.id === null) await this.daysRepo.insertDay({ trip_id, day_number: i + 1, date: row.date }); // TP10
+        // A row that had no date and gets none is only renumbered, so an odd
+        // stored value is left as it was, the way the rebuild always treated it.
+        else if (row.date === null && !dateBefore.get(row.id)) await this.daysRepo.setDayNumber(row.id, i + 1); // TP2
+        else await this.daysRepo.setDayNumberAndDate(row.id, i + 1, row.date); // TP9
       }
-      const remaining = await this.daysRepo.listOrderedForReorder(trip_id); // TP8
-      await renumber(remaining);
-      return;
-    }
-
-    const [sy, sm, sd] = startDate.split('-').map(Number);
-    const startMs = Date.UTC(sy, sm - 1, sd);
-    const numDays = tripSpanDays(startDate, endDate);
-
-    const targetDates: string[] = [];
-    for (let i = 0; i < numDays; i++) {
-      const d = new Date(startMs + i * MS_PER_DAY);
-      const yyyy = d.getUTCFullYear();
-      const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-      const dd = String(d.getUTCDate()).padStart(2, '0');
-      targetDates.push(`${yyyy}-${mm}-${dd}`);
-    }
-
-    // Split into dated (sorted by day_number = position) and dateless (spare pool)
-    const dated = existing.filter(d => d.date).sort((a, b) => a.day_number - b.day_number);
-    const dateless = existing.filter(d => !d.date).sort((a, b) => a.day_number - b.day_number);
-
-    // Phase 1: stamp all existing days with negative day_numbers to free up slots
-    const allExisting = [...dated, ...dateless];
-    for (let i = 0; i < allExisting.length; i++) await this.daysRepo.setDayNumber(allExisting[i].id, -(i + 1)); // TP2
-
-    let datelessIdx = 0;
-
-    for (let i = 0; i < targetDates.length; i++) {
-      const date = targetDates[i];
-      if (i < dated.length) {
-        // Positional remap: existing dated day i gets new date — keeps all children
-        await this.daysRepo.setDayNumberAndDate(dated[i].id, i + 1, date); // TP9
-      } else if (datelessIdx < dateless.length) {
-        // Reuse a dateless day — keeps its assignments, notes, etc.
-        await this.daysRepo.setDayNumberAndDate(dateless[datelessIdx].id, i + 1, date); // TP9
-        datelessIdx++;
-      } else {
-        await this.daysRepo.insertDay({ trip_id, day_number: i + 1, date }); // TP10
-      }
-    }
-
-    // Overflow dated days (trip shrunk): delete them (issue #909).
-    // Cascade removes their assignments, notes, and accommodations.
-    for (let i = targetDates.length; i < dated.length; i++) {
-      await this.daysRepo.deleteById(dated[i].id); // TP11
-    }
-
-    // Any remaining unused dateless days: drop the empty placeholders so day_count
-    // reflects the dated range, but keep ones that still hold content (assignments,
-    // notes, accommodations) — mirrors the dateless-path trimming above (#1083).
-    // Base must be max(targetDates.length, dated.length) to avoid colliding with
-    // positives already assigned by the main loop or the overflow loop above.
-    const maxAssigned = Math.max(targetDates.length, dated.length);
-    let keptDateless = 0;
-    for (let i = datelessIdx; i < dateless.length; i++) {
-      const empty = await this.daysRepo.isEmptyDay(dateless[i].id); // TP12
-      if (empty) {
-        await this.daysRepo.deleteById(dateless[i].id); // TP11
-      } else {
-        await this.daysRepo.setDayNumber(dateless[i].id, maxAssigned + keptDateless + 1); // TP2
-        keptDateless++;
-      }
-    }
-
-    // Final renumber to compact and eliminate any gaps/negatives
-    const remaining = await this.daysRepo.listOrderedForReorder(trip_id); // TP13
-    await renumber(remaining);
+      for (const gone of plan.removed) await this.daysRepo.deleteById(gone.id); // TP11
+      return plan;
+    });
   }
 
   // ── Trip CRUD ─────────────────────────────────────────────────────────────
@@ -459,7 +403,7 @@ export class TripsService {
       description: data.description || null,
       start_date: data.start_date || null,
       end_date: data.end_date || null,
-      currency: data.currency || 'EUR',
+      currency: data.currency || (await this.defaultCurrencyFor(userId)),
       reminder_days: rd,
     });
 
@@ -488,6 +432,25 @@ export class TripsService {
   /** TP21 — `TripsRepository.activeTrip`: the triple `CASE WHEN … relevance` projection and the double-`CASE WHEN` `ORDER BY`. */
   async activeTrip(userId: number, today = new Date().toISOString().slice(0, 10)) {
     return await this.tripsRepo.activeTrip(userId, today) as ActiveTrip & { relevance: number } | undefined;
+  }
+
+  /**
+   * The user's trips, archived ones included, with places whose name or address
+   * contains `query` (#2190). Up to three names per trip; a query under two
+   * characters matches nothing, it would match every place there is.
+   */
+  async searchPlaces(userId: number, query: string): Promise<{ trip_id: number; places: string[] }[]> {
+    const q = query.trim();
+    if (q.length < 2) return [];
+    const like = `%${escapeLikePattern(q)}%`;
+    const rows = await this.tripsRepo.searchPlaceNames(userId, like); // TP79
+    const byTrip = new Map<number, string[]>();
+    for (const row of rows) {
+      const names = byTrip.get(row.trip_id) ?? [];
+      if (names.length < 3 && !names.includes(row.name)) names.push(row.name);
+      byTrip.set(row.trip_id, names);
+    }
+    return [...byTrip].map(([trip_id, places]) => ({ trip_id, places }));
   }
 
   /** TP22 — `TripsRepository.findRaw` (shared with `TripReadModelService.getTripSummary`, TR-B, per the inventory's own note that they are the identical statement). */
@@ -554,13 +517,14 @@ export class TripsService {
     if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
       await this.vacay.shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);
 
+    let removedDays: DayGridRemoval[] = [];
     if (regenerate) {
       await this.uow.transactional(async () => {
         // Accommodations have no absolute date columns, so their pre-change dates must be
         // snapshotted before generateDays re-dates the day rows in place.
         const prevDays = await this.daysRepo.listOrderedForReorder(tripIdNum); // TP26
         const prevDateByDayId = new Map(prevDays.map(d => [d.id, d.date]));
-        await this.generateDays(tripId, newStart || null, newEnd || null, dayCount);
+        removedDays = (await this.generateDays(tripId, newStart || null, newEnd || null, dayCount)).removed;
         if (data.date_shift_mode === 'shift_all') {
           // Explicit "shift everything": bookings stay glued to their (re-dated) day rows,
           // so re-stamp reservation_time to follow — same rules as reorderDays/insertDay.
@@ -599,7 +563,7 @@ export class TripsService {
     // same reasoning as `create`'s TP19 re-select above.
     const updatedTrip = await this.tripsRepo.findForViewer(tripId, userId);
 
-    return { updatedTrip, changes, isAdminEdit, ownerEmail, newTitle, newReminder, oldReminder };
+    return { updatedTrip, changes, isAdminEdit, ownerEmail, newTitle, newReminder, oldReminder, removedDays };
   }
 
   /**
@@ -613,12 +577,9 @@ export class TripsService {
     const { start_date, end_date } = data;
     if (start_date && end_date && new Date(end_date) < new Date(start_date))
       throw new ValidationError('End date must be after start date');
-    const newStart = start_date !== undefined ? start_date : trip.start_date;
-    const newEnd = end_date !== undefined ? end_date : trip.end_date;
-    const dayCount = data.day_count ? Math.min(Math.max(Number(data.day_count) || 7, 1), MAX_TRIP_DAYS) : undefined;
-    const regenerate = newStart !== trip.start_date || newEnd !== trip.end_date || dayCount !== undefined;
-    if (regenerate && newStart && newEnd) assertTripSpan(newStart, newEnd);
-    return { newStart, newEnd, dayCount, regenerate };
+    const range = resolveDayGridRange(trip, data);
+    if (range.regenerate && range.newStart && range.newEnd) assertTripSpan(range.newStart, range.newEnd);
+    return range;
   }
 
   async update(tripId: string | number, userId: number, body: UpdateTripData, role: string) {

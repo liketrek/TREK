@@ -26,6 +26,9 @@ function makeReservation() {
   } as any
 }
 
+/** The journey's title in the head band, a button that turns into the rename field. */
+const titleButton = () => screen.getByRole('button', { name: /^Fernsehturm/ })
+
 function makeProps(overrides = {}) {
   return {
     reservation: makeReservation(),
@@ -61,8 +64,8 @@ describe('TransitJourneyModal', () => {
     const user = userEvent.setup()
     const onSave = vi.fn().mockResolvedValue({})
     render(<TransitJourneyModal {...makeProps({ onSave })} />)
-    // The title renames inline in the header via its pencil.
-    await user.click(screen.getByLabelText('Edit'))
+    // The title renames inline in the header: a click on it opens the field.
+    await user.click(titleButton())
     const titleInput = screen.getByDisplayValue('Fernsehturm → Zoo')
     await user.clear(titleInput)
     await user.type(titleInput, 'Zum Zoo')
@@ -145,7 +148,8 @@ describe('TransitJourneyModal', () => {
     expect(screen.queryByRole('button', { name: /^Delete$/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Change route/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Save$/ })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Close/ })).toBeInTheDocument()
+    // The round X in the head band and the Close that finishes the footer.
+    expect(screen.getAllByRole('button', { name: /^Close$/ })).toHaveLength(2)
   })
 
   it('FE-PLANNER-TRANSITJOURNEY-009: metadata stored as a JSON string is parsed into the itinerary', () => {
@@ -177,7 +181,7 @@ describe('TransitJourneyModal', () => {
   it('FE-PLANNER-TRANSITJOURNEY-012: Escape while renaming restores the previous title', async () => {
     const user = userEvent.setup()
     render(<TransitJourneyModal {...makeProps()} />)
-    await user.click(screen.getByLabelText('Edit'))
+    await user.click(titleButton())
     const input = screen.getByDisplayValue('Fernsehturm → Zoo')
     await user.clear(input)
     await user.type(input, 'Scrapped')
@@ -191,7 +195,7 @@ describe('TransitJourneyModal', () => {
   it('FE-PLANNER-TRANSITJOURNEY-013: blurring the title input closes inline editing but keeps the typed name', async () => {
     const user = userEvent.setup()
     render(<TransitJourneyModal {...makeProps()} />)
-    await user.click(screen.getByLabelText('Edit'))
+    await user.click(titleButton())
     const input = screen.getByDisplayValue('Fernsehturm → Zoo')
     await user.clear(input)
     await user.type(input, 'Zum Zoo')

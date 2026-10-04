@@ -18,6 +18,8 @@ export class ShareTokens {
   share_collab?: number | null = 0;
   created_at?: string | null;
   expires_at?: string | null;
+  share_travel_only: number & Opt = 0;
+  share_hide_images: number & Opt = 0;
   createdByRef!: Ref<Users>;
 }
 
@@ -38,6 +40,8 @@ export const ShareTokensSchema = defineEntity({
     share_collab: p.integer().nullable(),
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     expires_at: p.text().nullable(),
+    share_travel_only: p.integer().default(0),
+    share_hide_images: p.integer().default(0),
     createdByRef: () => p.manyToOne(Users).ref().joinColumn('created_by').hidden(),
   },
 });

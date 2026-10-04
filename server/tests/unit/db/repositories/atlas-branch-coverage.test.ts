@@ -46,7 +46,7 @@ describe('BucketListRepository.update — the no-op empty-patch branch (AT35)', 
   it('an empty write leaves the row untouched', async () => {
     const repo = await createTestBucketListRepo(testDb);
     const { user } = createUser(testDb);
-    const id = await repo.insertItem({ user_id: user.id, name: 'Kyoto', lat: null, lng: null, country_code: null, notes: null, target_date: null });
+    const id = await repo.insertItem({ user_id: user.id, name: 'Kyoto', lat: null, lng: null, country_code: null, notes: null, target_date: null, region_code: null });
 
     await repo.update(id, user.id, {});
 

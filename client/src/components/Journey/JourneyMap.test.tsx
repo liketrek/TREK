@@ -27,6 +27,10 @@ vi.mock('leaflet', () => {
     setView: vi.fn(),
     flyTo: vi.fn(),
     panTo: vi.fn(),
+    // Runs the callback at once on a map with a view, else on its load event.
+    // The default is the loaded map; the two "no view yet" tests below hold
+    // the callback back and release it by hand.
+    whenReady: vi.fn((cb: () => void) => { cb(); }),
     getZoom: vi.fn(() => 10),
     // Leaflet throws "Set map center and zoom first." out of these until the map
     // has a view; the loaded map is the default here, FE-COMP-JOURNEYMAP-050
@@ -334,13 +338,21 @@ describe('JourneyMap', () => {
     expect(mockedMap().flyTo).not.toHaveBeenCalled();
   });
 
-  it('FE-COMP-JOURNEYMAP-018: focusMarker swallows leaflet errors when the map has no view yet', () => {
+  it('FE-COMP-JOURNEYMAP-018: focusMarker waits for the first view when the map has none yet', () => {
     const ref = React.createRef<JourneyMapHandle>();
     render(<JourneyMap ref={ref} checkins={[]} entries={entriesWithCoords} />);
-    vi.mocked(mockedMap().panTo).mockImplementationOnce(() => { throw new Error('Set map center and zoom first'); });
+    // Leaflet does not refuse a pan on a viewless map, it takes it as the first
+    // view with the zoom undefined, and the tile layer then aborts the load event
+    // before the markers are added. So the pan has to wait for the fit.
+    let onLoad: (() => void) | null = null;
+    vi.mocked(mockedMap().whenReady).mockImplementationOnce((cb: () => void) => { onLoad = cb; });
 
-    expect(() => act(() => { ref.current!.focusMarker('e1'); })).not.toThrow();
-    expect(mockedMap().flyTo).not.toHaveBeenCalled();
+    act(() => { ref.current!.focusMarker('e1'); });
+    expect(mockedMap().panTo).not.toHaveBeenCalled();
+
+    act(() => { onLoad!(); });
+    expect(mockedMap().panTo).toHaveBeenCalledWith({ lat: 0, lng: 0 }, { animate: true, duration: 0.5 });
+    expect(mockedMap().setView).not.toHaveBeenCalledWith({ lat: 0, lng: 0 }, 12);
   });
 
   it('FE-COMP-JOURNEYMAP-019: invalidateSize forwards to the leaflet map', () => {
@@ -482,14 +494,22 @@ describe('JourneyMap', () => {
     }
   });
 
-  it('FE-COMP-JOURNEYMAP-029: activeMarkerId falls back to setView while the map has no view yet', () => {
+  it('FE-COMP-JOURNEYMAP-029: activeMarkerId waits for the first view while the map has none yet', () => {
     vi.useFakeTimers();
     try {
       render(<JourneyMap checkins={[]} entries={entriesWithCoords} activeMarkerId="e1" />);
-      vi.mocked(mockedMap().panTo).mockImplementationOnce(() => { throw new Error('Set map center and zoom first'); });
+      // The 50 ms timer can beat the rAF that sets the first view, in a
+      // background tab most of all. A pan at that point used to become the first
+      // view itself, with no zoom, and left the map without its markers; the next
+      // rebuild then crashed the page in Leaflet's icon removal.
+      let onLoad: (() => void) | null = null;
+      vi.mocked(mockedMap().whenReady).mockImplementationOnce((cb: () => void) => { onLoad = cb; });
       act(() => { vi.advanceTimersByTime(60); });
-      // The catch is where a map with no view at all gets its first one.
-      expect(mockedMap().setView).toHaveBeenCalledWith({ lat: 0, lng: 0 }, 12);
+      expect(mockedMap().panTo).not.toHaveBeenCalled();
+      expect(mockedMap().setView).not.toHaveBeenCalledWith({ lat: 0, lng: 0 }, 12);
+
+      act(() => { onLoad!(); });
+      expect(mockedMap().panTo).toHaveBeenCalledWith({ lat: 0, lng: 0 }, { animate: true, duration: 0.5 });
       expect(mockedMap().flyTo).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();

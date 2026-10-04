@@ -1,4 +1,4 @@
-// FE-TP-HOOK-001 to FE-TP-HOOK-119
+// FE-TP-HOOK-001 to FE-TP-HOOK-177
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { TranslationProvider } from '../../i18n/TranslationContext'
@@ -11,15 +11,15 @@ import { usePermissionsStore } from '../../store/permissionsStore'
 import { usePluginStore } from '../../store/pluginStore'
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
-import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment, buildReservation } from '../../../tests/helpers/factories'
+import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment, buildReservation, buildBudgetItem } from '../../../tests/helpers/factories'
 import {
   addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi,
   healthApi, airtrailApi, mapsApi,
 } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
-import { offlineDb } from '../../db/offlineDb'
+import { offlineDb, saveImportFiles, getImportFiles } from '../../db/offlineDb'
 import { getCached, fetchPhoto } from '../../services/photoService'
-import type { Place, Reservation, Settings } from '../../types'
+import type { Accommodation, Place, Reservation, Settings } from '../../types'
 
 // ── Router ────────────────────────────────────────────────────────────────────
 // Only useParams/useNavigate/useSearchParams are consumed by the hook, so the
@@ -102,6 +102,8 @@ interface PlannerActions {
   reorderAssignments: ReturnType<typeof vi.fn>
   reorderDays: ReturnType<typeof vi.fn>
   insertDay: ReturnType<typeof vi.fn>
+  appendDatedDay: ReturnType<typeof vi.fn>
+  deleteDay: ReturnType<typeof vi.fn>
   updateDayTitle: ReturnType<typeof vi.fn>
   addReservation: ReturnType<typeof vi.fn>
   updateReservation: ReturnType<typeof vi.fn>
@@ -129,6 +131,8 @@ function makeActions(): PlannerActions {
     reorderAssignments: vi.fn(async () => undefined),
     reorderDays: vi.fn(async () => undefined),
     insertDay: vi.fn(async () => undefined),
+    appendDatedDay: vi.fn(async () => ({ id: 99, date: '2026-06-04' })),
+    deleteDay: vi.fn(async () => undefined),
     updateDayTitle: vi.fn(async () => undefined),
     addReservation: vi.fn(async () => ({ id: 77 })),
     updateReservation: vi.fn(async () => ({ id: 77 })),
@@ -640,6 +644,23 @@ describe('useTripPlanner — map derivations', () => {
     expect(result.current.mapPlaces.map(p => p.id)).toEqual([2])
   })
 
+  it('FE-TP-HOOK-177: losing the last track moves the "Tracks" filter back to all', async () => {
+    // The phone map has no places list mounted, so this hook is what keeps the
+    // filter from pointing at a pool no control offers any more.
+    seedTrip({
+      places: [geo(1), geo(2, { route_geometry: '[[1,2]]' })],
+      placesFilter: 'tracks',
+    })
+
+    const { result } = await renderPlanner()
+    expect(useTripStore.getState().placesFilter).toBe('tracks')
+
+    act(() => { useTripStore.setState({ places: [geo(1)] }) })
+
+    await waitFor(() => expect(useTripStore.getState().placesFilter).toBe('all'))
+    expect(result.current.mapPlaces.map(p => p.id)).toEqual([1])
+  })
+
   it('FE-TP-HOOK-027: the category filter honours the uncategorized bucket', async () => {
     seedTrip({
       places: [geo(1, { category_id: 3 }), geo(2, { category_id: null })],
@@ -652,6 +673,20 @@ describe('useTripPlanner — map derivations', () => {
 
     act(() => { useTripStore.setState({ placesCategoryFilter: new Set(['3']) }) })
     expect(result.current.mapPlaces.map(p => p.id)).toEqual([1])
+  })
+
+  it('FE-TP-HOOK-176: the rating floor the lists set also thins the markers', async () => {
+    seedTrip({
+      places: [geo(1, { rating_avg: 4.5 }), geo(2, { rating_avg: 3 }), geo(3, { rating_avg: null })],
+      placesRatingFilter: 4,
+    })
+
+    const { result } = await renderPlanner()
+
+    expect(result.current.mapPlaces.map(p => p.id)).toEqual([1])
+
+    act(() => { useTripStore.getState().setPlacesRatingFilter('all') })
+    expect(result.current.mapPlaces.map(p => p.id)).toEqual([1, 2, 3])
   })
 
   it('FE-TP-HOOK-028: the unplanned filter drops places that sit on a day', async () => {
@@ -1058,6 +1093,44 @@ describe('useTripPlanner — add place entry points', () => {
     expect(mapsApi.reverse).not.toHaveBeenCalled()
   })
 
+  it('FE-TP-HOOK-141: a plugin POI prefills with its own id, and a website only when it is a web address', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+    const trailhead = {
+      lat: 47.1, lng: 11.2, name: 'Trailhead', address: 'Hut 1', website: 'https://trails.example/th-1', phone: '+43 1',
+      osm_id: 'plugin:trail-finder:th-1', category: 'plugin:trail-finder/trailheads', source: 'plugin:trail-finder',
+      details: [{ label: 'Length', value: '12 km' }], icon: 'Signpost', color: '#2f855a',
+    }
+
+    act(() => { result.current.openAddPlaceFromPoi(trailhead) })
+
+    // Only the fields the form has: the details, icon and colour stay on the map.
+    expect(result.current.prefillCoords).toMatchObject({
+      lat: 47.1, lng: 11.2, name: 'Trailhead', address: 'Hut 1', website: 'https://trails.example/th-1', phone: '+43 1',
+      osm_id: 'plugin:trail-finder:th-1', stop_type: null, duration_minutes: undefined,
+    })
+    expect(mapsApi.reverse).not.toHaveBeenCalled()
+
+    act(() => { result.current.openAddPlaceFromPoi({ ...trailhead, website: 'javascript:alert(1)' }) })
+    expect(result.current.prefillCoords?.website).toBeUndefined()
+    act(() => { result.current.openAddPlaceFromPoi({ ...trailhead, website: 'trails.example' }) })
+    expect(result.current.prefillCoords?.website).toBe('https://trails.example')
+  })
+
+  it('FE-TP-HOOK-142: a plugin POI tapped on the map opens the same prefilled form', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+
+    act(() => {
+      result.current.handlePoiClick({
+        lat: 47.1, lng: 11.2, name: 'Trailhead', address: null, website: null, phone: null, osm_id: 'plugin:trail-finder:th-1',
+      })
+    })
+
+    expect(result.current.showPlaceForm).toBe(true)
+    expect(result.current.prefillCoords).toMatchObject({ name: 'Trailhead', osm_id: 'plugin:trail-finder:th-1', website: undefined })
+  })
+
   it('FE-TP-HOOK-050: the pool editor resolves a place\'s lone assignment for its times', async () => {
     const place = buildPlace({ id: 1, lat: 1, lng: 2 })
     seedTrip({
@@ -1203,6 +1276,7 @@ describe('useTripPlanner — place CRUD', () => {
     const place = buildPlace({ id: 1, lat: 1, lng: 2, route_geometry: '[[1,2]]', route_color: '#ff0000' })
     seedTrip({
       places: [place],
+      days: [buildDay({ id: 7, day_number: 1 })],
       assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place, order_index: 2 })] },
     })
 
@@ -1244,6 +1318,7 @@ describe('useTripPlanner — place CRUD', () => {
     const b = buildPlace({ id: 2, lat: 3, lng: 4 })
     seedTrip({
       places: [a, b],
+      days: [buildDay({ id: 7, day_number: 1 })],
       assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place: a, order_index: 0 })] },
     })
 
@@ -1259,6 +1334,30 @@ describe('useTripPlanner — place CRUD', () => {
     await act(async () => { await result.current.undo() })
     expect(actions.addPlace).toHaveBeenCalledTimes(2)
     expect(actions.assignPlaceToDay).toHaveBeenCalledWith(42, 7, 900, 0)
+  })
+
+  it('FE-TP-HOOK-134: bringing a deleted place back skips a day deleted since, and still restores the rest', async () => {
+    const place = buildPlace({ id: 1, lat: 1, lng: 2 })
+    seedTrip({
+      places: [place],
+      days: [buildDay({ id: 7, day_number: 1 }), buildDay({ id: 8, day_number: 2 })],
+      assignments: {
+        '7': [buildAssignment({ id: 10, day_id: 7, place, order_index: 0 })],
+        '8': [buildAssignment({ id: 11, day_id: 8, place, order_index: 3 })],
+      },
+    })
+    const { result } = await renderPlanner()
+    act(() => { result.current.handleDeletePlace(1) })
+    await act(async () => { await result.current.confirmDeletePlace() })
+
+    // Day 7 went in the meantime.
+    act(() => { useTripStore.setState({ days: [buildDay({ id: 8, day_number: 1 })] }) })
+    await act(async () => { await result.current.handleUndo() })
+
+    expect(actions.addPlace).toHaveBeenCalledTimes(1)
+    expect(actions.assignPlaceToDay).toHaveBeenCalledTimes(1)
+    expect(actions.assignPlaceToDay).toHaveBeenCalledWith(42, 8, 900, 3)
+    expect(toasts).toContainEqual(expect.objectContaining({ type: 'info', message: 'Undone: Place deleted' }))
   })
 
   it('FE-TP-HOOK-059: an explicit id list leaves the queued bulk selection untouched', async () => {
@@ -1312,6 +1411,25 @@ describe('useTripPlanner — place CRUD', () => {
     // A place without a night adds nothing to the question.
     act(() => { result.current.handleDeletePlace(2) })
     expect(result.current.deletePlaceNote).toBeNull()
+  })
+
+  it('FE-TP-HOOK-140: a booking named after its hotel is not quoted a second time', async () => {
+    const hotel = buildPlace({ id: 1, name: 'Rostock', lat: 54.09, lng: 12.1 })
+    seedTrip({
+      places: [hotel],
+      reservations: [buildReservation({ id: 9, type: 'hotel', title: 'Rostock', accommodation_id: 7 })],
+    })
+    vi.mocked(accommodationRepo.list).mockResolvedValue({
+      accommodations: [{ id: 7, trip_id: 42, place_id: 1, start_day_id: 5, end_day_id: 6 }] as never,
+    })
+
+    const { result } = await renderPlanner()
+    await waitFor(() => expect(result.current.tripAccommodations).toHaveLength(1))
+    const { result: i18n } = renderHook(() => useTranslation(), { wrapper })
+
+    act(() => { result.current.handleDeletePlace(1) })
+    expect(result.current.deletePlaceNote).toBe(i18n.current.t('trip.confirm.deletePlaceBookedSame', { name: 'Rostock' }))
+    expect(result.current.deletePlaceNote).toBe('This also deletes the stay booked at “Rostock”, its booking and any expense linked to it.')
   })
 
   it('FE-TP-HOOK-119: a bulk delete warns once any of the places carries a night, booking or not', async () => {
@@ -1398,6 +1516,30 @@ describe('useTripPlanner — day plan CRUD', () => {
     await act(async () => { await result.current.handleAssignToDay(1, 7, 2) })
 
     expect(toasts.some(t => t.message === 'day is full')).toBe(true)
+  })
+
+  it('FE-TP-HOOK-121: a place with a start of its own is stored where the day list draws it', async () => {
+    // The list sorts the day by start and the road trip drives the stored order, so
+    // 10:00 goes between 09:00 and 11:00 whether it was dropped at the end or on top.
+    const place = buildPlace({ id: 1, place_time: '10:00' })
+    const early = buildPlace({ id: 2, place_time: '09:00' })
+    const late = buildPlace({ id: 3, place_time: '11:00' })
+    seedTrip({
+      places: [place, early, late],
+      assignments: {
+        '7': [
+          buildAssignment({ id: 20, day_id: 7, place: early, order_index: 0 }),
+          buildAssignment({ id: 21, day_id: 7, place: late, order_index: 1 }),
+        ],
+      },
+    })
+
+    const { result } = await renderPlanner()
+    await act(async () => { await result.current.handleAssignToDay(1, 7) })
+    await act(async () => { await result.current.handleAssignToDay(1, 7, 0) })
+
+    expect(actions.assignPlaceToDay).toHaveBeenNthCalledWith(1, 42, 7, 1, 1)
+    expect(actions.assignPlaceToDay).toHaveBeenNthCalledWith(2, 42, 7, 1, 1)
   })
 
   it('FE-TP-HOOK-066: removing an assignment can be undone back to its old position', async () => {
@@ -1830,6 +1972,202 @@ describe('useTripPlanner — bookings and transports', () => {
 
     expect(toasts.some(t => t.message === 'referenced')).toBe(true)
   })
+
+  it('FE-TP-HOOK-164: a transit journey opens in the full transport editor and leaves the journey view', async () => {
+    seedTrip()
+    const journey = buildReservation({ id: 9, type: 'transit', day_id: 7 })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.setTransitJourney(journey) })
+    act(() => { result.current.openTransportEditor(journey) })
+
+    expect(result.current.editingTransport).toBe(journey)
+    expect(result.current.transportModalDayId).toBe(7)
+    expect(result.current.transportModalAutomated).toBe(false)
+    expect(result.current.transitPrefill).toBeNull()
+    expect(result.current.transitJourney).toBeNull()
+    expect(result.current.showTransportModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-165: changing a journey\'s route seeds the transit search with its stops', async () => {
+    seedTrip()
+    const journey = buildReservation({
+      id: 9, type: 'transit', day_id: 7,
+      endpoints: [
+        { role: 'from', name: 'Kyoto', lat: 34.9, lng: 135.7 },
+        { role: 'to', name: 'Osaka', lat: 34.7, lng: 135.5 },
+      ] as never,
+    })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.changeTransitRoute(journey) })
+
+    expect(result.current.transitPrefill).toEqual({
+      from: { name: 'Kyoto', lat: 34.9, lng: 135.7 },
+      to: { name: 'Osaka', lat: 34.7, lng: 135.5 },
+    })
+    expect(result.current.editingTransport).toBe(journey)
+    expect(result.current.transportModalDayId).toBe(7)
+    expect(result.current.transportModalAutomated).toBe(true)
+    expect(result.current.showTransportModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-166: a journey without stops or day seeds an empty search', async () => {
+    seedTrip()
+    const journey = buildReservation({ id: 9, type: 'transit', day_id: null })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.changeTransitRoute(journey) })
+
+    expect(result.current.transitPrefill).toEqual({ from: null, to: null })
+    expect(result.current.transportModalDayId).toBeNull()
+  })
+})
+
+describe("useTripPlanner — the plan's booking detail", () => {
+  const routedTrain = (over: Partial<Reservation> = {}) => buildReservation({
+    id: 20, type: 'train', title: 'Shinkansen', day_id: 7,
+    endpoints: [
+      { role: 'from', name: 'Tokyo', lat: 35.68, lng: 139.76, sequence: 0 },
+      { role: 'to', name: 'Kyoto', lat: 34.98, lng: 135.75, sequence: 1 },
+    ] as never,
+    ...over,
+  })
+
+  it("FE-TP-HOOK-167: a booking opens by id, shows the store's copy and closes by itself once it is gone", async () => {
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    expect(result.current.bookingDetail).toBeNull()
+
+    act(() => { result.current.openBookingDetail(dinner) })
+    expect(result.current.bookingDetail).toBe(dinner)
+
+    const renamed = { ...dinner, title: 'Dinner at Kikunoi' }
+    act(() => { useTripStore.setState({ reservations: [renamed] }) })
+    expect(result.current.bookingDetail).toBe(renamed)
+
+    act(() => { useTripStore.setState({ reservations: [] }) })
+    expect(result.current.bookingDetail).toBeNull()
+
+    act(() => { useTripStore.setState({ reservations: [renamed] }) })
+    act(() => { result.current.closeBookingDetail() })
+    expect(result.current.bookingDetail).toBeNull()
+  })
+
+  it('FE-TP-HOOK-168: Edit opens the transport editor for a transport and the booking editor for anything else', async () => {
+    const train = routedTrain()
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [train, dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingDetail(train) })
+    expect(result.current.bookingDetailEditor).toBe(result.current.openTransportEditor)
+    act(() => { result.current.bookingDetailEditor!(train) })
+    expect(result.current.editingTransport).toBe(train)
+    expect(result.current.showTransportModal).toBe(true)
+    expect(result.current.showReservationModal).toBe(false)
+
+    act(() => { result.current.openBookingDetail(dinner) })
+    act(() => { result.current.bookingDetailEditor!(dinner) })
+    expect(result.current.editingReservation).toBe(dinner)
+    expect(result.current.showReservationModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-169: without day_edit a transport has no editor and a journey no route change', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { day_edit: 'admin' } })
+    const train = routedTrain()
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [train, dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingDetail(train) })
+    expect(result.current.bookingDetailEditor).toBeUndefined()
+    expect(result.current.bookingDetailChangeRoute).toBeUndefined()
+
+    // The booking editor asks for reservation_edit only, as on the Bookings tab.
+    act(() => { result.current.openBookingDetail(dinner) })
+    expect(typeof result.current.bookingDetailEditor).toBe('function')
+  })
+
+  it('FE-TP-HOOK-170: without reservation_edit a booking has no editor, while a journey keeps its route change', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { reservation_edit: 'admin' } })
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingDetail(dinner) })
+
+    expect(result.current.bookingDetailEditor).toBeUndefined()
+    expect(result.current.bookingDetailChangeRoute).toBe(result.current.changeTransitRoute)
+  })
+
+  it('FE-TP-HOOK-171: On map switches a route on and opens its day, and a second press switches it off', async () => {
+    const train = routedTrain()
+    seedTrip({ reservations: [train] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.showBookingOnMap(train) })
+
+    expect(result.current.visibleConnections).toEqual([20])
+    expect(actions.setSelectedDay).toHaveBeenCalledWith(7)
+    expect(result.current.activeTab).toBe('plan')
+
+    act(() => { result.current.showBookingOnMap(train) })
+    expect(result.current.visibleConnections).toEqual([])
+  })
+
+  it('FE-TP-HOOK-172: On map for a booking at a place selects that place on its day', async () => {
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner', place_id: 33, day_id: 7 })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.showBookingOnMap(dinner) })
+
+    expect(actions.setSelectedDay).toHaveBeenCalledWith(7)
+    expect(result.current.selectedPlaceId).toBe(33)
+  })
+  it('FE-TP-HOOK-173: a booking opened from the day list asks for day_edit before its editor, as that row did', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { day_edit: 'admin' } })
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingFromDayList(dinner) })
+    expect(result.current.bookingDetail).toBe(dinner)
+    expect(result.current.bookingDetailEditor).toBeUndefined()
+
+    // The same booking from anywhere else keeps the booking editor's own right.
+    act(() => { result.current.openBookingDetail(dinner) })
+    expect(typeof result.current.bookingDetailEditor).toBe('function')
+  })
+
+  it('FE-TP-HOOK-174: with day_edit the day list hands a booking to its editor like any other place', async () => {
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingFromDayList(dinner) })
+    act(() => { result.current.bookingDetailEditor!(dinner) })
+
+    expect(result.current.editingReservation).toBe(dinner)
+    expect(result.current.showReservationModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-175: a booking is on the map while its route is switched on', async () => {
+    const train = routedTrain()
+    seedTrip({ reservations: [train] })
+
+    const { result } = await renderPlanner()
+    expect(result.current.isBookingOnMap(train)).toBe(false)
+
+    act(() => { result.current.showBookingOnMap(train) })
+    expect(result.current.isBookingOnMap(train)).toBe(true)
+  })
 })
 
 describe('useTripPlanner — booking import review', () => {
@@ -1993,6 +2331,86 @@ describe('useTripPlanner — booking import review', () => {
   })
 })
 
+describe('useTripPlanner — a receipt scanned from Costs', () => {
+  const RECEIPT = { merchant: 'Café', date: '2026-09-20', total: 12.5, currency: 'EUR', items: [{ name: 'Tart', price: 12.5 }] }
+
+  it('FE-TP-HOOK-160: a read receipt opens the expense editor pre-filled, with the photo to attach, and clears the widget', async () => {
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-r', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT, sourceFiles: [photo],
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense).toEqual({
+      name: 'Café', amount: 12.5, currency: 'EUR', date: '2026-09-20', lines: [{ name: 'Tart', price: 12.5 }], receiptFiles: [photo],
+    })
+    expect(result.current.showReservationModal).toBe(false)
+    expect(useBackgroundTasksStore.getState().tasks).toHaveLength(0)
+
+    act(() => { result.current.clearReceiptExpense() })
+    expect(result.current.receiptExpense).toBeNull()
+  })
+
+  it('FE-TP-HOOK-162: after a reload the photo comes back from IndexedDB for the review', async () => {
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    await saveImportFiles('job-db', [photo])
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-db', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT,
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense?.receiptFiles?.map(f => f.name)).toEqual(['bill.jpg'])
+    await waitFor(async () => expect(await getImportFiles('job-db')).toEqual([]))
+  })
+
+  it('FE-TP-HOOK-161: a scan that read nothing just clears the widget', async () => {
+    seedTrip()
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-n', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: null,
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(useBackgroundTasksStore.getState().tasks).toHaveLength(0))
+    expect(result.current.receiptExpense).toBeNull()
+  })
+
+  it('FE-TP-HOOK-163: a member who may add expenses but not upload files gets the reading without the photo', async () => {
+    // The photo goes up through the file upload on save, and a refused upload
+    // used to take the whole expense down with it.
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { file_upload: 'trip_owner' } })
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-u', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT, sourceFiles: [photo],
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense).toMatchObject({ name: 'Café', amount: 12.5, receiptFiles: [] })
+  })
+})
+
 describe('useTripPlanner — misc state', () => {
   it('FE-TP-HOOK-095: the map tile url falls back to the default basemap', async () => {
     seedTrip()
@@ -2090,6 +2508,21 @@ describe('useTripPlanner — misc state', () => {
 
     expect(result.current.showPlaceForm).toBe(false)
     expect(result.current.prefillCoords).toBeNull()
+  })
+
+  it('FE-TP-HOOK-120: without place_edit rights the place editor and the delete dialog stay shut (#2446)', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { place_edit: 'admin' } })
+    const place = buildPlace({ id: 1, lat: 1, lng: 2 })
+    seedTrip({ places: [place], assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place })] } })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openPlaceEditor(place, 10) })
+    act(() => { result.current.handleDeletePlace(1) })
+
+    expect(result.current.showPlaceForm).toBe(false)
+    expect(result.current.editingPlace).toBeNull()
+    expect(result.current.deletePlaceId).toBeNull()
   })
 
   it('FE-TP-HOOK-102: a member roster refresh replaces the cached list', async () => {
@@ -2210,5 +2643,313 @@ describe('useTripPlanner — dropping a hit on the drive', () => {
     act(() => { result.current.dropPoiOnRoute('node:does-not-exist', 53.5, 9.9) })
 
     expect(result.current.stopDraft).toBeNull()
+  })
+})
+
+describe('useTripPlanner: deleting a day', () => {
+  // Dated 1 to 3 June on a trip running 1 to 3 June, with a place on the middle day.
+  function seedDays(extra: Partial<TripStoreState> = {}) {
+    const place = buildPlace({ id: 70 })
+    return seedTrip({
+      trip: buildTrip({ id: 42, title: 'Kyoto', start_date: '2026-06-01', end_date: '2026-06-03' }),
+      days: [
+        buildDay({ id: 1, day_number: 1, date: '2026-06-01', title: null }),
+        buildDay({ id: 2, day_number: 2, date: '2026-06-02', title: 'Harbour day' }),
+        buildDay({ id: 3, day_number: 3, date: '2026-06-03', title: null }),
+      ],
+      assignments: { '1': [], '2': [buildAssignment({ id: 20, day_id: 2, place })], '3': [] },
+      dayNotes: { '1': [], '2': [], '3': [] },
+      ...extra,
+    } as Partial<TripStoreState>)
+  }
+
+  it('FE-TP-HOOK-122: asking needs day_edit; with it the question names the day and lists what goes with it', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { day_edit: 'admin' } })
+    seedDays()
+    const denied = await renderPlanner()
+    act(() => { denied.result.current.handleDeleteDay(2) })
+    expect(denied.result.current.deleteDayId).toBeNull()
+    denied.unmount()
+
+    seedStore(useAuthStore, { user: buildUser({ id: 1 }) })
+    usePermissionsStore.setState({ permissions: {} })
+    const { result } = await renderPlanner()
+    act(() => { result.current.handleDeleteDay(2) })
+
+    expect(result.current.deleteDayId).toBe(2)
+    expect(result.current.deleteDayTitle).toBe('Delete Harbour day?')
+    expect(result.current.deleteDayLines.map(l => l.key)).toEqual(['places', 'texts', 'shift', 'shrink'])
+    expect(result.current.deleteDayLines.find(l => l.key === 'places')?.text).toBe('Planned places: 1')
+  })
+
+  it('FE-TP-HOOK-135: the open question comes as one object for the reorder dialog, whose answers close it', async () => {
+    seedDays()
+    const { result } = await renderPlanner()
+    expect(result.current.deleteDayQuestion).toBeNull()
+
+    act(() => { result.current.handleDeleteDay(2) })
+    const asked = result.current.deleteDayQuestion
+    expect(asked?.dayId).toBe(2)
+    expect(asked?.title).toBe('Delete Harbour day?')
+    expect(asked?.lines).toBe(result.current.deleteDayLines)
+
+    act(() => { asked?.onCancel() })
+    expect(result.current.deleteDayQuestion).toBeNull()
+    expect(actions.deleteDay).not.toHaveBeenCalled()
+
+    act(() => { result.current.handleDeleteDay(2) })
+    await act(async () => { result.current.deleteDayQuestion?.onConfirm() })
+    await waitFor(() => expect(actions.deleteDay).toHaveBeenCalledWith(42, 2))
+    expect(result.current.deleteDayQuestion).toBeNull()
+  })
+
+  it('FE-TP-HOOK-123: confirming deletes through the store, closes the question and reloads the stays', async () => {
+    seedDays()
+    const { result } = await renderPlanner()
+    act(() => { result.current.handleDeleteDay(2) })
+    vi.mocked(accommodationRepo.list).mockClear()
+
+    await act(async () => { await result.current.confirmDeleteDay() })
+
+    expect(actions.deleteDay).toHaveBeenCalledWith(42, 2)
+    expect(result.current.deleteDayId).toBeNull()
+    expect(accommodationRepo.list).toHaveBeenCalledWith(42)
+    expect(updateRouteForDay).toHaveBeenCalled()
+    expect(toasts).toContainEqual(expect.objectContaining({ type: 'success', message: 'Day deleted' }))
+
+    // A refusal is said in the traveller's language, and nothing is reloaded.
+    actions.deleteDay.mockRejectedValueOnce(new Error('A trip needs at least one day.'))
+    vi.mocked(accommodationRepo.list).mockClear()
+    act(() => { result.current.handleDeleteDay(3) })
+    await act(async () => { await result.current.confirmDeleteDay() })
+    expect(toasts).toContainEqual(expect.objectContaining({ type: 'error', message: 'Failed to delete day' }))
+    expect(accommodationRepo.list).not.toHaveBeenCalled()
+
+    // Without an open question there is nothing to confirm.
+    actions.deleteDay.mockClear()
+    await act(async () => { await result.current.confirmDeleteDay() })
+    expect(actions.deleteDay).not.toHaveBeenCalled()
+  })
+
+  it('FE-TP-HOOK-124: the last day and a missing connection block the question, and say why', async () => {
+    seedDays({ days: [buildDay({ id: 1, day_number: 1, date: '2026-06-01' })] } as Partial<TripStoreState>)
+    const single = await renderPlanner()
+    expect(single.result.current.deleteDayBlocked).toBe('A trip needs at least one day')
+    act(() => { single.result.current.handleDeleteDay(1) })
+    expect(single.result.current.deleteDayId).toBeNull()
+    single.unmount()
+
+    env.forcedOffline = true
+    seedDays()
+    const { result } = await renderPlanner()
+    expect(result.current.deleteDayBlocked).toBe('Changing days needs a connection')
+    act(() => { result.current.handleDeleteDay(2) })
+    expect(result.current.deleteDayId).toBeNull()
+  })
+
+  it('FE-TP-HOOK-125: undoing a day reorder skips the days deleted since, and steps aside once a day was added', async () => {
+    seedDays()
+    const { result } = await renderPlanner()
+    await act(async () => { result.current.handleReorderDays([3, 1, 2]) })
+    await waitFor(() => expect(result.current.canUndo).toBe(true))
+
+    // Day 2 went in the meantime: the old order without it is still one the server takes.
+    useTripStore.setState({ days: [buildDay({ id: 3, day_number: 1 }), buildDay({ id: 1, day_number: 2 })] })
+    await act(async () => { await result.current.undo() })
+    expect(actions.reorderDays).toHaveBeenLastCalledWith(42, [1, 3])
+
+    // A day added since leaves the old order short of one, so the undo does nothing.
+    await act(async () => { result.current.handleReorderDays([1, 3]) })
+    await waitFor(() => expect(result.current.canUndo).toBe(true))
+    useTripStore.setState({
+      days: [buildDay({ id: 1, day_number: 1 }), buildDay({ id: 3, day_number: 2 }), buildDay({ id: 9, day_number: 3 })],
+    })
+    actions.reorderDays.mockClear()
+    await act(async () => { await result.current.undo() })
+    expect(actions.reorderDays).not.toHaveBeenCalled()
+  })
+
+  it('FE-TP-HOOK-130: the open panel of the deleted day closes, here and when a fellow traveller deletes it', async () => {
+    seedDays()
+    const { result } = await renderPlanner()
+    const [first, second, third] = useTripStore.getState().days
+
+    act(() => { result.current.setShowDayDetail(second) })
+    expect(result.current.showDayDetail?.id).toBe(2)
+    act(() => { result.current.handleDeleteDay(2) })
+    await act(async () => { await result.current.confirmDeleteDay() })
+    expect(result.current.showDayDetail).toBeNull()
+
+    // A panel on another day stays open through the delete.
+    act(() => { result.current.setShowDayDetail(first) })
+    act(() => { result.current.handleDeleteDay(3) })
+    await act(async () => { await result.current.confirmDeleteDay() })
+    expect(result.current.showDayDetail?.id).toBe(1)
+
+    // Removed by someone else: the day leaves the store, and its panel goes with it.
+    act(() => { result.current.setShowDayDetail(third) })
+    act(() => { useTripStore.setState({ days: [first, second] }) })
+    expect(result.current.showDayDetail).toBeNull()
+  })
+
+  it('FE-TP-HOOK-131: undo steps on the deleted day are dropped, the others stay', async () => {
+    seedDays({ selectedDayId: 1, places: [buildPlace({ id: 70 })] } as Partial<TripStoreState>)
+    const { result } = await renderPlanner()
+
+    await act(async () => { await result.current.handleAssignToDay(70, 1) })
+    await act(async () => { await result.current.handleAssignToDay(70, 2) })
+    expect(result.current.canUndo).toBe(true)
+
+    act(() => { result.current.handleDeleteDay(2) })
+    await act(async () => { await result.current.confirmDeleteDay() })
+
+    // The step on day 2 is gone; the one on day 1 is still the next to undo.
+    actions.removeAssignment.mockClear()
+    await act(async () => { await result.current.handleUndo() })
+    expect(actions.removeAssignment).toHaveBeenCalledTimes(1)
+    expect(actions.removeAssignment).toHaveBeenCalledWith(42, 1, 555)
+    expect(result.current.canUndo).toBe(false)
+  })
+
+  it('FE-TP-HOOK-132: an undo that fails says so instead of claiming it was undone', async () => {
+    seedDays({ selectedDayId: 1, places: [buildPlace({ id: 70 })] } as Partial<TripStoreState>)
+    const { result } = await renderPlanner()
+    await act(async () => { await result.current.handleAssignToDay(70, 1) })
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    actions.removeAssignment.mockRejectedValueOnce(new Error('Not found'))
+
+    await act(async () => { await result.current.handleUndo() })
+
+    expect(toasts).toContainEqual(expect.objectContaining({ type: 'error', message: 'Could not undo: Place assigned to day' }))
+    expect(toasts.some(t => t.type === 'info' && t.message.startsWith('Undone'))).toBe(false)
+    spy.mockRestore()
+  })
+
+  it('FE-TP-HOOK-133: the question names the paid stay by its sum, the stay a night shorter and the day that takes the last date', async () => {
+    vi.mocked(accommodationRepo.list).mockResolvedValue({
+      accommodations: [
+        { id: 9, trip_id: 42, start_day_id: 1, end_day_id: 3, place_name: 'Harbour Hotel' },
+        { id: 10, trip_id: 42, start_day_id: 2, end_day_id: 3, place_name: 'Pension Alma' },
+      ] as Accommodation[],
+    })
+    seedDays({
+      days: [
+        buildDay({ id: 1, day_number: 1, date: '2026-06-01', title: null }),
+        buildDay({ id: 2, day_number: 2, date: '2026-06-02', title: null }),
+        buildDay({ id: 3, day_number: 3, date: '2026-06-03', title: null }),
+        buildDay({ id: 4, day_number: 4, date: null, title: null }),
+      ],
+      trip: buildTrip({ id: 42, start_date: '2026-06-01', end_date: '2026-06-03', currency: 'EUR' }),
+      reservations: [buildReservation({ id: 80, day_id: 2, type: 'hotel', title: 'Alma, 1 night', accommodation_id: 10 })],
+      budgetItems: [buildBudgetItem({ reservation_id: 80, total_price: 95, currency: null })],
+    } as Partial<TripStoreState>)
+    const { result } = await renderPlanner()
+    await waitFor(() => expect(result.current.tripAccommodations).toHaveLength(2))
+
+    act(() => { result.current.handleDeleteDay(2) })
+
+    const lines = result.current.deleteDayLines
+    expect(lines.map(l => l.key)).toEqual(['stay-10', 'stay-short-9', 'places', 'shift', 'spare'])
+    expect(lines[0].hint).toContain('together with the booking “Alma, 1 night” and its expense of')
+    expect(lines[0].hint).toContain('95')
+    expect(lines[1].text).toBe('Stay at Harbour Hotel: one night less')
+    expect(lines[1].hint).toMatch(/^Check-out is now on .*Jun 2, as it runs across this day\.$/)
+    expect(lines[4].text).toMatch(/^Day 4 takes the date .*Jun 3/)
+  })
+})
+
+describe('useTripPlanner: adding a day', () => {
+  // A trip running 1 to 3 June with one day per date and a spare day without one.
+  function seedDated(extra: Partial<TripStoreState> = {}) {
+    return seedTrip({
+      trip: buildTrip({ id: 42, title: 'Kyoto', start_date: '2026-06-01', end_date: '2026-06-03' }),
+      days: [
+        buildDay({ id: 1, day_number: 1, date: '2026-06-01' }),
+        buildDay({ id: 2, day_number: 2, date: '2026-06-02' }),
+        buildDay({ id: 3, day_number: 3, date: '2026-06-03' }),
+        buildDay({ id: 4, day_number: 4, date: null }),
+      ],
+      ...extra,
+    } as Partial<TripStoreState>)
+  }
+
+  it('FE-TP-HOOK-126: a trip with dates offers the day after its end date; one without dates offers none', async () => {
+    seedDated()
+    const dated = await renderPlanner()
+    expect(dated.result.current.dayAdd).toMatchObject({ nextDate: '2026-06-04', blocked: null, datedBlocked: null, busy: false })
+    dated.unmount()
+
+    seedTrip({ trip: buildTrip({ id: 42, start_date: null, end_date: null }), days: [buildDay({ id: 1, day_number: 1, date: null })] } as Partial<TripStoreState>)
+    const { result } = await renderPlanner()
+    expect(result.current.dayAdd.nextDate).toBeNull()
+    act(() => { result.current.dayAdd.onAddDated() })
+    expect(actions.appendDatedDay).not.toHaveBeenCalled()
+  })
+
+  it('FE-TP-HOOK-127: without day_edit neither kind of day is added', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { day_edit: 'admin' } })
+    seedDated()
+    const { result } = await renderPlanner()
+
+    act(() => { result.current.dayAdd.onAddDated() })
+    act(() => { result.current.handleAddDay() })
+
+    expect(actions.appendDatedDay).not.toHaveBeenCalled()
+    expect(actions.insertDay).not.toHaveBeenCalled()
+  })
+
+  it('FE-TP-HOOK-128: one day at a time, and the toast names the new end date', async () => {
+    seedDated()
+    let finish: (day: { id: number; date: string }) => void = () => {}
+    actions.appendDatedDay.mockImplementation(() => new Promise(resolve => { finish = resolve }))
+    const { result } = await renderPlanner()
+
+    act(() => { result.current.dayAdd.onAddDated() })
+    expect(result.current.dayAdd.busy).toBe(true)
+    // A double click, and a click on the other button while the first is on its way.
+    act(() => { result.current.dayAdd.onAddDated() })
+    act(() => { result.current.handleAddDay() })
+    expect(actions.appendDatedDay).toHaveBeenCalledTimes(1)
+    expect(actions.appendDatedDay).toHaveBeenCalledWith(42)
+    expect(actions.insertDay).not.toHaveBeenCalled()
+
+    await act(async () => { finish({ id: 99, date: '2026-06-04' }) })
+    await waitFor(() => expect(result.current.dayAdd.busy).toBe(false))
+    expect(toasts).toContainEqual(expect.objectContaining({ type: 'success', message: expect.stringMatching(/^Day added\. The trip now ends on .*Jun 4/) }))
+
+    // Free again: the next click goes through.
+    await act(async () => { result.current.handleAddDay() })
+    expect(actions.insertDay).toHaveBeenCalledWith(42, undefined)
+    await waitFor(() => expect(result.current.dayAdd.busy).toBe(false))
+  })
+
+  it('FE-TP-HOOK-129: a failure is said in the traveller language; offline and at the day limit nothing is asked', async () => {
+    seedDated()
+    actions.appendDatedDay.mockRejectedValueOnce(new Error('A trip can span at most 999 days'))
+    const failing = await renderPlanner()
+    await act(async () => { failing.result.current.dayAdd.onAddDated() })
+    await waitFor(() => expect(toasts).toContainEqual(expect.objectContaining({ type: 'error', message: 'Failed to add day' })))
+    await waitFor(() => expect(failing.result.current.dayAdd.busy).toBe(false))
+    failing.unmount()
+
+    actions.appendDatedDay.mockClear()
+    env.forcedOffline = true
+    seedDated()
+    const offline = await renderPlanner()
+    expect(offline.result.current.dayAdd.blocked).toBe('Changing days needs a connection')
+    act(() => { offline.result.current.dayAdd.onAddDated() })
+    act(() => { offline.result.current.handleAddDay() })
+    expect(actions.appendDatedDay).not.toHaveBeenCalled()
+    expect(actions.insertDay).not.toHaveBeenCalled()
+    offline.unmount()
+
+    env.forcedOffline = false
+    seedDated({ trip: buildTrip({ id: 42, start_date: '2026-01-01', end_date: '2028-09-25' }) } as Partial<TripStoreState>)
+    const { result } = await renderPlanner()
+    expect(result.current.dayAdd.datedBlocked).toBe('A trip can span at most 999 days')
+    act(() => { result.current.dayAdd.onAddDated() })
+    expect(actions.appendDatedDay).not.toHaveBeenCalled()
   })
 })

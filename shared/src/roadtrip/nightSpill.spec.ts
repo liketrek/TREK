@@ -1,3 +1,4 @@
+import { withStationaryJoins } from './nightBookends';
 import { spillChains } from './nightSpill';
 import type { QuietDay, RoadtripDay, RoadtripStop } from './planning-types';
 import type { RouteSegment } from './planning-types';
@@ -357,6 +358,132 @@ describe('spillChains', () => {
     expect(chains[1]!.spills).toEqual([]);
   });
 
+  // A pinned stop the drive reaches late reads EARLIER on the clock than the stop before
+  // it, because the schedule keeps the traveller's hour and flags the lateness. That is
+  // not a night: the schedule itself files the stop on day 0. Counted as one, the stop
+  // and every stop behind it left for the top of the next day's card, which reads as the
+  // road trip shuffling the day.
+  it('FE-NIGHTSPILL-022: a pinned stop reached late behind a stop without an hour stays on its day', () => {
+    // 09:00 + 1 h, a three hour drive to Celle (13:00), three more to a 12:00 in Hannover.
+    const plan = [
+      day(1, 1, [
+        stop({ assignmentId: 1, name: 'Hamburg', time: '09:00', dwellMinutes: 60 }),
+        stop({ assignmentId: 2, name: 'Celle' }),
+        stop({ assignmentId: 3, name: 'Hannover', time: '12:00' }),
+      ]),
+      day(2, 2, [stop({ assignmentId: 4, name: 'Goslar' })]),
+    ];
+
+    const chains = spillChains(plan, [], everyLeg(180));
+
+    expect(chains[0]!.stops.map((s) => s.name)).toEqual(['Hamburg', 'Celle', 'Hannover']);
+    expect(chains[0]!.schedule.warnings).toContainEqual({ index: 2, code: 'late', minutes: 240 });
+    expect(chains[1]!.stops.map((s) => s.name)).toEqual(['Goslar']);
+    expect(chains[1]!.spills).toEqual([]);
+  });
+
+  it('FE-NIGHTSPILL-023: a day stored against its hours keeps every stop on its own card', () => {
+    // The order a stop dragged onto the day header used to be stored in: at the end,
+    // behind stops with later hours. 10:00 after 14:00 is a stop reached late, not tomorrow.
+    const plan = [
+      day(1, 1, [
+        stop({ assignmentId: 1, name: 'Lübeck', time: '14:00', dwellMinutes: 60 }),
+        stop({ assignmentId: 2, name: 'Wismar', time: '10:00' }),
+        stop({ assignmentId: 3, name: 'Rostock', time: '16:00' }),
+      ]),
+      day(2, 2, [stop({ assignmentId: 4, name: 'Stralsund' })]),
+    ];
+
+    const chains = spillChains(plan, [], everyLeg(30));
+
+    expect(chains[0]!.stops.map((s) => s.name)).toEqual(['Lübeck', 'Wismar', 'Rostock']);
+    expect(chains[0]!.schedule.warnings).toContainEqual({ index: 1, code: 'late', minutes: 330 });
+    expect(chains[1]!.stops.map((s) => s.name)).toEqual(['Stralsund']);
+    expect(chains[1]!.spills).toEqual([]);
+  });
+
+  it('FE-NIGHTSPILL-024: the stop behind one reached late is timed on from its pinned hour', () => {
+    // The schedule carries on from Wismar's 10:00, so Kühlungsborn comes out at 10:30:
+    // earlier than Lübeck's 14:00, later than the hour the drive just went on from.
+    const plan = [
+      day(1, 1, [
+        stop({ assignmentId: 1, name: 'Lübeck', time: '14:00', dwellMinutes: 60 }),
+        stop({ assignmentId: 2, name: 'Wismar', time: '10:00' }),
+        stop({ assignmentId: 3, name: 'Kühlungsborn' }),
+      ]),
+      day(2, 2, [stop({ assignmentId: 4, name: 'Stralsund' })]),
+    ];
+
+    const chains = spillChains(plan, [], everyLeg(30));
+
+    expect(chains[0]!.stops.map((s) => s.name)).toEqual(['Lübeck', 'Wismar', 'Kühlungsborn']);
+    expect(chains[0]!.schedule.entries[2]!.arrival).toBe('10:30');
+    expect(chains[1]!.stops.map((s) => s.name)).toEqual(['Stralsund']);
+    expect(chains[1]!.spills).toEqual([]);
+  });
+
+  it('FE-NIGHTSPILL-025: a stop reached late after midnight still takes the stops behind it along', () => {
+    // 20:00 + 1 h, four hours to a 00:30 in Berlin: late, and tomorrow. The leg out of
+    // Berlin never routed, so Potsdam has no clock of its own and goes where Berlin goes.
+    const plan = [
+      day(1, 1, [
+        stop({ assignmentId: 1, name: 'Hamburg', time: '20:00', dwellMinutes: 60 }),
+        stop({ assignmentId: 2, name: 'Berlin', time: '00:30' }),
+        stop({ assignmentId: 3, name: 'Potsdam' }),
+      ]),
+      day(2, 2, [stop({ assignmentId: 4, name: 'Dresden', time: '12:00' })]),
+    ];
+    const legFor = (from: RoadtripStop) => (from.name === 'Berlin' ? undefined : everyLeg(240)());
+
+    const chains = spillChains(plan, [], legFor);
+
+    expect(chains[0]!.stops.map((s) => s.name)).toEqual(['Hamburg']);
+    expect(chains[1]!.stops.map((s) => s.name)).toEqual(['Berlin', 'Potsdam', 'Dresden']);
+    expect(chains[1]!.schedule.warnings).toContainEqual({ index: 0, code: 'late', minutes: 30 });
+  });
+
+  it('FE-NIGHTSPILL-026: the clock going back past a late hour is still a night', () => {
+    // FE-NIGHTSPILL-006 with a night at Wittenberg: 23:00, reached late, eight hours on
+    // and fifty minutes to Leipzig at 07:50. That is later than Cobbelsdorf's 07:00 but
+    // earlier than the 23:00 it was timed on from, so it is tomorrow morning.
+    const plan = [
+      day(1, 1, [
+        stop({ assignmentId: 1, name: 'Cobbelsdorf', time: '07:00', dwellMinutes: 45 }),
+        stop({ assignmentId: 2, name: 'Wittenberg', time: '23:00', dwellMinutes: 480 }),
+        stop({ assignmentId: 3, name: 'Leipzig' }),
+      ]),
+      day(2, 2, [stop({ assignmentId: 4, name: 'Dresden', time: '12:00' })]),
+    ];
+
+    const chains = spillChains(plan, [], everyLeg(50));
+
+    expect(chains[0]!.stops.map((s) => s.name)).toEqual(['Cobbelsdorf', 'Wittenberg']);
+    expect(chains[1]!.stops.map((s) => s.name)).toEqual(['Leipzig', 'Dresden']);
+    expect(chains[1]!.schedule.entries[0]!.arrival).toBe('07:50');
+  });
+
+  it('FE-NIGHTSPILL-027: a stop without a clock follows a night drive out of a late hour', () => {
+    // 06:00 + 12 h, three hours to a 20:00 in Kassel: late. An hour there, ten hours
+    // through the night to Munich at 07:00, and Garmisch behind it never routed.
+    const plan = [
+      day(1, 1, [
+        stop({ assignmentId: 1, name: 'Hamburg', time: '06:00', dwellMinutes: 720 }),
+        stop({ assignmentId: 2, name: 'Kassel', time: '20:00', dwellMinutes: 60 }),
+        stop({ assignmentId: 3, name: 'München' }),
+        stop({ assignmentId: 4, name: 'Garmisch' }),
+      ]),
+      day(2, 2, [stop({ assignmentId: 5, name: 'Innsbruck' })]),
+    ];
+    const legMinutes: Record<string, number> = { Hamburg: 180, Kassel: 600 };
+    const legFor = (from: RoadtripStop) => (legMinutes[from.name] ? everyLeg(legMinutes[from.name]!)() : undefined);
+
+    const chains = spillChains(plan, [], legFor);
+
+    expect(chains[0]!.stops.map((s) => s.name)).toEqual(['Hamburg', 'Kassel']);
+    expect(chains[0]!.schedule.warnings).toContainEqual({ index: 1, code: 'late', minutes: 60 });
+    expect(chains[1]!.stops.map((s) => s.name)).toEqual(['München', 'Garmisch', 'Innsbruck']);
+  });
+
   describe('a stay that runs past midnight carries the clock into the next day', () => {
     // Standing somewhere for twenty-four hours is not over when the date changes. The
     // day after used to begin at nothing, so a trip whose second day had no pinned time
@@ -443,5 +570,48 @@ describe('spillChains', () => {
       expect(chains.find((c) => c.dayNumber === 2)!.schedule.entries[0]!.arrival).toBeNull();
       expect(chains.find((c) => c.dayNumber === 3)!.schedule.entries[0]!.arrival).toBe('08:11');
     });
+  });
+});
+
+describe('a booked night reached after midnight', () => {
+  const bookend = (phase: 'morning' | 'evening') => ({
+    phase,
+    accommodationId: 5,
+    reservationId: null,
+    checkingOut: false,
+    checkingIn: false,
+    checkOut: null,
+  });
+
+  it('FE-NIGHTSPILL-028: the drive back to the hotel goes on the next card, and the morning waits for it', () => {
+    // 20:00 + 1 h and four hours back to the hotel: in at 01:00. The night at the hotel
+    // is one spot, so the morning sets out no earlier than that.
+    const plan = [
+      day(1, 1, [
+        stop({ assignmentId: 1, name: 'Hamburg', time: '20:00', dwellMinutes: 60 }),
+        stop({
+          assignmentId: -6_000_000_003,
+          name: 'Back to the hotel',
+          lat: 52,
+          lng: 13,
+          bookend: bookend('evening'),
+        }),
+      ]),
+      day(2, 2, [
+        stop({ assignmentId: -6_000_000_004, name: 'From the hotel', lat: 52, lng: 13, bookend: bookend('morning') }),
+        stop({ assignmentId: 3, name: 'Dresden' }),
+      ]),
+    ];
+
+    const chains = spillChains(
+      plan,
+      [],
+      withStationaryJoins(() => ({ ...everyLeg(240)(), vias: [] })),
+    );
+
+    expect(chains[0]!.stops.map((s) => s.name)).toEqual(['Hamburg']);
+    expect(chains[1]!.stops.map((s) => s.name)).toEqual(['Back to the hotel', 'From the hotel', 'Dresden']);
+    expect(chains[1]!.spills).toEqual([expect.objectContaining({ at: 0, count: 1, fromDayNumber: 1 })]);
+    expect(chains[1]!.schedule.entries.map((e) => e.arrival)).toEqual(['01:00', '01:00', '05:00']);
   });
 });

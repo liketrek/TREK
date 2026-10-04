@@ -43,6 +43,7 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
   const currentUser = useAuthStore((s) => s.user)
+  const maxUploadMb = useAuthStore((s) => s.maxUploadMb)
   const canManageSync = canManageDocSync(currentUser, trip)
   const docSyncOffered = useDocSyncOffered(tripId, canManageSync)
   const { t, locale } = useTranslation()
@@ -63,7 +64,7 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
 
   // onUpdate doubles as the "files changed" signal towards the parent; the arguments carry no payload.
   const refreshFiles = useCallback(async () => {
-    if (onUpdate) onUpdate(0, {} as any)
+    if (onUpdate) void onUpdate(0, {} as any)
   }, [onUpdate])
 
   const handleStar = async (fileId: number) => {
@@ -137,7 +138,13 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    maxSize: 50 * 1024 * 1024,
+    maxSize: maxUploadMb * 1024 * 1024,
+    // A file over the limit used to vanish without a word; say why it was left out.
+    onDropRejected: rejections => {
+      if (rejections.some(r => r.errors.some(e => e.code === 'file-too-large'))) {
+        toast.error(t('files.uploadErrorSize', { max: maxUploadMb }))
+      }
+    },
     noClick: false,
   })
 
@@ -178,7 +185,7 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
 
   useEffect(() => {
     if (previewFile) {
-      getAuthUrl(previewFile.url, 'download').then(setPreviewFileUrl)
+      void getAuthUrl(previewFile.url, 'download').then(setPreviewFileUrl)
     } else {
       setPreviewFileUrl('')
     }

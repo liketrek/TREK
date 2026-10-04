@@ -66,3 +66,25 @@ describe('BudgetItemsRepository — share.service.ts SH14 read', () => {
     expect(await budgetItemsRepo.listPublicForShare(trip.id)).toEqual([]);
   });
 });
+
+describe('BudgetItemsRepository — reservations.service.ts RS49 delete', () => {
+  it('deleteByIds — removes exactly the listed rows, as legacy `DELETE ... WHERE id IN (...)` does', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const first = createBudgetItem(testDb, trip.id, { name: 'Flight' });
+    const second = createBudgetItem(testDb, trip.id, { name: 'Seat' });
+    const kept = createBudgetItem(testDb, trip.id, { name: 'Hotel' });
+
+    await budgetItemsRepo.deleteByIds([first.id, second.id]);
+    expect((testDb.prepare('SELECT id FROM budget_items WHERE trip_id = ?').all(trip.id) as { id: number }[]).map((r) => r.id))
+      .toEqual([kept.id]);
+  });
+
+  it('deleteByIds — an empty list deletes nothing', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const kept = createBudgetItem(testDb, trip.id);
+    await budgetItemsRepo.deleteByIds([]);
+    expect(testDb.prepare('SELECT id FROM budget_items WHERE id = ?').get(kept.id)).toEqual({ id: kept.id });
+  });
+});

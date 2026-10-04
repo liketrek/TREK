@@ -1,4 +1,4 @@
-// FE-RN-001 to FE-RN-014
+// FE-RN-001 to FE-RN-016
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
@@ -208,5 +208,16 @@ describe('ReleaseNoticeModal', () => {
     expect(wide.querySelector('.trek-mark .pill-bg')).toBeNull()
     // The places card keeps the pill: that one is about the index.
     expect(cards[0].querySelector('.trek-mark .pill-bg')).not.toBeNull()
+  })
+
+  it('FE-RN-016: the close button belongs to the panel, not the note', () => {
+    // Below 1080px the panel scrolls and the note is its second screen, so the
+    // stylesheet sticks the button to the panel's own top edge. That only works
+    // while it is a child of .rn-panel; put it back in the note and it scrolls a
+    // whole release half out of reach with every CSS assertion still green.
+    renderModal(releaseNotice())
+    const close = screen.getByRole('button', { name: 'Close' })
+    expect(close.parentElement?.classList.contains('rn-panel')).toBe(true)
+    expect(close.closest('.rn-note')).toBeNull()
   })
 })

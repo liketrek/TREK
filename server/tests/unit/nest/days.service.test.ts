@@ -8,6 +8,7 @@
  * stayed behind when the accommodation CRUD moved to accommodations/ — mostly
  * the SKIP paths (booking without a day, snapshot without a date, stay that
  * must not be re-anchored), which the happy-path integration test never walks.
+ * DAY-SVC-091 through DAY-SVC-097 and DAY-SVC-099 cover the dated append.
  * Uses a real in-memory SQLite DB so SQL logic is exercised faithfully.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
@@ -49,9 +50,9 @@ vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 import { db as testDb } from '../../../src/db/database';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment, createDayAccommodation, createDayNote, createTag } from '../../helpers/factories';
+import { createUser, createTrip, createDay, createPlace, createDayAssignment, createDayAccommodation, createDayNote, createTag, createReservation } from '../../helpers/factories';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { DaysService, DayReorderError, addDays } from '../../../src/nest/days/days.service';
+import { DaysService, DayReorderError, DayAppendError, NO_DATES_MESSAGE, addDays } from '../../../src/nest/days/days.service';
 // Was days.bridge, deleted with the other three that had no consumer outside the
 // container. The assertions stayed; they point at the service now.
 const bridgeGetDay = async (id: string | number, tripId: string | number) => await svc.getDay(id, tripId);
@@ -67,6 +68,8 @@ import {
   createTestReservationsRepo,
   createTestReservationEndpointsRepo,
   createTestDayAccommodationsRepo,
+  createTestRoadtripViasRepo,
+  createTestRoadtripDayBoundariesRepo,
 } from '../../helpers/test-uow';
 
 let svc: DaysService;
@@ -83,6 +86,8 @@ beforeAll(async () => {
     await createTestReservationsRepo(testDb),
     await createTestReservationEndpointsRepo(testDb),
     await createTestDayAccommodationsRepo(testDb),
+    await createTestRoadtripViasRepo(testDb),
+    await createTestRoadtripDayBoundariesRepo(testDb),
   );
 });
 let accommodations: Awaited<ReturnType<typeof makeAccommodationsService>>;
@@ -264,13 +269,22 @@ describe('update', () => {
   });
 });
 
-describe('remove', () => {
-  it('DAY-SVC-015 — deletes the day', async () => {
+// DAY-SVC-015 pinned the bare delete this class used to own. Deleting a day moved
+// to DayRemovalService with the renumbering and the stay cancellation around it;
+// its cases are DAY-DEL-001 to DAY-DEL-018 in day-removal.service.test.ts.
+
+describe('getTripForViewer', () => {
+  it('DAY-SVC-098: reads the trip in list shape, ownership from the viewer, without the feed token', async () => {
     const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id) as any;
-    await svc.remove(day.id);
-    expect(await svc.getDay(day.id, trip.id)).toBeUndefined();
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-06-01', end_date: '2026-06-02' });
+    testDb.prepare('UPDATE trips SET feed_token = ? WHERE id = ?').run('secret-feed', trip.id);
+
+    expect(await svc.getTripForViewer(trip.id, user.id)).toMatchObject({
+      id: trip.id, end_date: '2026-06-02', day_count: 2, place_count: 0, is_owner: 1, feed_token: null,
+    });
+    expect(await svc.getTripForViewer(trip.id, member.id)).toMatchObject({ id: trip.id, is_owner: 0 });
+    expect(await svc.getTripForViewer(99999, user.id)).toBeUndefined();
   });
 });
 
@@ -637,6 +651,91 @@ describe('resyncAccommodationDays', () => {
     expect(testDb.prepare('SELECT day_id, reservation_time FROM reservations WHERE id = ?').get(res))
       .toMatchObject({ day_id: null, reservation_time: null });
   });
+
+  // The stop a booking wrote goes along when the stay is carried to another day row.
+  const stopsOn = (dayId: number) =>
+    testDb.prepare('SELECT place_id, order_index, accommodation_id FROM day_assignments WHERE day_id = ? ORDER BY order_index').all(dayId) as
+      { place_id: number; order_index: number; accommodation_id: number | null }[];
+  const addVia = (dayId: number, afterOrderIndex: number) =>
+    Number(testDb.prepare('INSERT INTO roadtrip_vias (day_id, after_order_index, sequence, lat, lng) VALUES (?, ?, 0, 48.1, 11.5)')
+      .run(dayId, afterOrderIndex).lastInsertRowid);
+  const viasOn = (dayId: number) =>
+    testDb.prepare('SELECT id, after_order_index FROM roadtrip_vias WHERE day_id = ? ORDER BY id').all(dayId) as
+      { id: number; after_order_index: number }[];
+
+  it('DAY-SVC-056: the carried stop is seated by its check-in on its new day, and both days keep their roads in place', async () => {
+    // The trip gained a day at the front: d1 now holds the day before, d2 the stay's
+    // date. The night used to be appended behind d2's unpinned stops, the very order
+    // a night booked today no longer gets, and neither day's roads were re-pinned.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const d1 = createDay(testDb, trip.id, { date: '2026-05-01' });
+    const d2 = createDay(testDb, trip.id, { date: '2026-05-02' });
+    const [hotel, a, b, c, d] = ['Rostock', 'Aral', 'Hafen', 'Museum', 'Markt'].map(name => createPlace(testDb, trip.id, { name }));
+    const { accommodation } = await accommodations.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: d1.id, end_day_id: d1.id, check_in: '10:00' }) as any;
+    createDayAssignment(testDb, d1.id, a.id);
+    createDayAssignment(testDb, d1.id, b.id);
+    createDayAssignment(testDb, d2.id, c.id);
+    createDayAssignment(testDb, d2.id, d.id);
+    expect(stopsOn(d1.id).map(s => s.place_id)).toEqual([hotel.id, a.id, b.id]);
+    const outOfHotel = addVia(d1.id, 0);
+    const outOfA = addVia(d1.id, 1);
+    const outOfC = addVia(d2.id, 0);
+    testDb.prepare('UPDATE days SET date = ? WHERE id = ?').run('2026-04-30', d1.id);
+    testDb.prepare('UPDATE days SET date = ? WHERE id = ?').run('2026-05-01', d2.id);
+
+    await svc.resyncAccommodationDays(trip.id, new Map([[d1.id, '2026-05-01'], [d2.id, '2026-05-02']]));
+
+    expect(testDb.prepare('SELECT start_day_id FROM day_accommodations WHERE id = ?').get(accommodation.id)).toMatchObject({ start_day_id: d2.id });
+    expect(stopsOn(d2.id)).toEqual([
+      { place_id: hotel.id, order_index: 0, accommodation_id: accommodation.id },
+      { place_id: c.id, order_index: 1, accommodation_id: null },
+      { place_id: d.id, order_index: 2, accommodation_id: null },
+    ]);
+    expect(stopsOn(d1.id).map(s => [s.place_id, s.order_index])).toEqual([[a.id, 0], [b.id, 1]]);
+    // The hotel's road on d1 had no stop ahead to fall back on and goes; A's follows A
+    // to leg zero. On d2 the road out of C is one number further on, behind C.
+    expect(viasOn(d1.id)).toEqual([{ id: outOfA, after_order_index: 0 }]);
+    expect(viasOn(d1.id).map(v => v.id)).not.toContain(outOfHotel);
+    expect(viasOn(d2.id)).toEqual([{ id: outOfC, after_order_index: 1 }]);
+  });
+
+  it('DAY-SVC-057: a day that already holds the place by hand keeps that stop, and the booking rides along with it', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const d1 = createDay(testDb, trip.id, { date: '2026-05-01' });
+    const d2 = createDay(testDb, trip.id, { date: '2026-05-02' });
+    const hotel = createPlace(testDb, trip.id, { name: 'Rostock' });
+    const { accommodation } = await accommodations.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: d1.id, end_day_id: d1.id }) as any;
+    const own = createDayAssignment(testDb, d2.id, hotel.id);
+    testDb.prepare('UPDATE days SET date = ? WHERE id = ?').run('2026-04-30', d1.id);
+    testDb.prepare('UPDATE days SET date = ? WHERE id = ?').run('2026-05-01', d2.id);
+
+    await svc.resyncAccommodationDays(trip.id, new Map([[d1.id, '2026-05-01'], [d2.id, '2026-05-02']]));
+
+    expect(testDb.prepare('SELECT start_day_id FROM day_accommodations WHERE id = ?').get(accommodation.id)).toMatchObject({ start_day_id: d2.id });
+    expect(stopsOn(d1.id)).toEqual([]);
+    expect(stopsOn(d2.id)).toEqual([{ place_id: hotel.id, order_index: own.order_index, accommodation_id: null }]);
+  });
+
+  it('DAY-SVC-058: a stay whose end alone moves leaves its stop where it is', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const d1 = createDay(testDb, trip.id, { date: '2026-05-01' });
+    const d2 = createDay(testDb, trip.id, { date: '2026-05-02' });
+    const d3 = createDay(testDb, trip.id, { date: '2026-05-03' });
+    const [hotel, a] = ['Rostock', 'Aral'].map(name => createPlace(testDb, trip.id, { name }));
+    const { accommodation } = await accommodations.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: d1.id, end_day_id: d2.id, check_in: '10:00' }) as any;
+    createDayAssignment(testDb, d1.id, a.id);
+    testDb.prepare('UPDATE days SET date = ? WHERE id = ?').run('2026-05-03', d2.id);
+    testDb.prepare('UPDATE days SET date = ? WHERE id = ?').run('2026-05-02', d3.id);
+
+    await svc.resyncAccommodationDays(trip.id, new Map([[d1.id, '2026-05-01'], [d2.id, '2026-05-02'], [d3.id, '2026-05-03']]));
+
+    expect(testDb.prepare('SELECT start_day_id, end_day_id FROM day_accommodations WHERE id = ?').get(accommodation.id))
+      .toMatchObject({ start_day_id: d1.id, end_day_id: d3.id });
+    expect(stopsOn(d1.id).map(s => [s.place_id, s.order_index])).toEqual([[hotel.id, 0], [a.id, 1]]);
+  });
 });
 
 describe('reorder', () => {
@@ -836,6 +935,8 @@ describe('DaysService.canEdit', () => {
       await createTestReservationsRepo(testDb),
       await createTestReservationEndpointsRepo(testDb),
       await createTestDayAccommodationsRepo(testDb),
+      await createTestRoadtripViasRepo(testDb),
+      await createTestRoadtripDayBoundariesRepo(testDb),
     );
     const trip = { id: 1, user_id: 1 } as never;
 
@@ -849,5 +950,161 @@ describe('DaysService.canEdit', () => {
 
     checkPermission.mockReturnValue(false);
     expect(await withStub.canEdit(trip, { id: 2, role: 'user' } as never)).toBe(false);
+  });
+});
+
+/**
+ * appendDated: "Add day with date" in the reorder dialog, create_day with `dated`
+ * and the plugin RPC. The new day takes the calendar day after the last date of
+ * the trip and goes right behind the last dated day; nothing already there moves date.
+ */
+describe('DaysService.appendDated', () => {
+  type Row = { id: number; day_number: number; date: string | null };
+  const rows = (tripId: number): Row[] =>
+    testDb.prepare('SELECT id, day_number, date FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as Row[];
+  const endDate = (tripId: number) =>
+    (testDb.prepare('SELECT end_date FROM trips WHERE id = ?').get(tripId) as { end_date: string | null }).end_date;
+  const boundaries = (tripId: number) =>
+    testDb.prepare('SELECT day_number, from_assignment_id FROM roadtrip_day_boundaries WHERE trip_id = ? ORDER BY day_number').all(tripId);
+
+  it('DAY-SVC-091 appends the day after the end date, with its notes, and moves the end date to it', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-10-10', end_date: '2026-10-12' });
+    const before = rows(trip.id);
+
+    const result = await svc.appendDated(trip.id, user.id, 'Late checkout');
+
+    expect(result.day).toMatchObject({ trip_id: trip.id, day_number: 4, date: '2026-10-13', notes: 'Late checkout', assignments: [], notes_items: [] });
+    expect(result.endDate).toBe('2026-10-13');
+    expect(result.boundaries).toBeNull();
+    expect(result.trip).toMatchObject({ id: trip.id, end_date: '2026-10-13', day_count: 4, is_owner: 1, feed_token: null });
+    expect(rows(trip.id)).toEqual([...before, { id: result.day.id, day_number: 4, date: '2026-10-13' }]);
+    expect(endDate(trip.id)).toBe('2026-10-13');
+  });
+
+  it('DAY-SVC-092 puts the new day in front of the days without a date, which keep their content and stay undated', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-10-10', end_date: '2026-10-11' });
+    const [d1, d2] = rows(trip.id);
+    const spare = createDay(testDb, trip.id, { title: 'Buffer day' });
+    const other = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const stop = createDayAssignment(testDb, spare.id, place.id);
+
+    const { day } = await svc.appendDated(trip.id, user.id);
+
+    expect(rows(trip.id)).toEqual([
+      d1, d2,
+      { id: day.id, day_number: 3, date: '2026-10-12' },
+      { id: spare.id, day_number: 4, date: null },
+      { id: other.id, day_number: 5, date: null },
+    ]);
+    expect(testDb.prepare('SELECT day_id FROM day_assignments WHERE id = ?').get(stop.id)).toEqual({ day_id: spare.id });
+    expect(await svc.getDay(spare.id, trip.id)).toMatchObject({ title: 'Buffer day' });
+  });
+
+  it('DAY-SVC-093 anchors on a day dated past the end date, so no date is given twice', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-10-10', end_date: '2026-10-11' });
+    const [, d2] = rows(trip.id);
+    testDb.prepare('UPDATE days SET date = ? WHERE id = ?').run('2026-10-14', d2.id);
+
+    const result = await svc.appendDated(trip.id, user.id);
+
+    expect(result.day.date).toBe('2026-10-15');
+    expect(endDate(trip.id)).toBe('2026-10-15');
+  });
+
+  it('DAY-SVC-094 refuses a trip without dates and writes nothing', async () => {
+    const { user } = createUser(testDb);
+    const dateless = createTrip(testDb, user.id);
+    createDay(testDb, dateless.id);
+    const halfDated = createTrip(testDb, user.id);
+    testDb.prepare('UPDATE trips SET start_date = ? WHERE id = ?').run('2026-10-10', halfDated.id);
+
+    for (const trip of [dateless, halfDated]) {
+      const before = rows(trip.id);
+      await expect(svc.appendDated(trip.id, user.id)).rejects.toThrow(new DayAppendError(NO_DATES_MESSAGE));
+      expect(rows(trip.id)).toEqual(before);
+      expect(endDate(trip.id)).toBeNull();
+    }
+  });
+
+  it('DAY-SVC-095 refuses a day past the day limit and writes nothing', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    // A full-length range without its 999 rows: the limit reads the range, not the rows.
+    testDb.prepare('UPDATE trips SET start_date = ?, end_date = ? WHERE id = ?').run('2026-01-01', addDays('2026-01-01', 998), trip.id);
+    createDay(testDb, trip.id, { date: '2026-01-01' });
+    const before = rows(trip.id);
+
+    await expect(svc.appendDated(trip.id, user.id)).rejects.toThrow(new DayAppendError('A trip can span at most 999 days'));
+    expect(rows(trip.id)).toEqual(before);
+    expect(endDate(trip.id)).toBe(addDays('2026-01-01', 998));
+  });
+
+  it('DAY-SVC-096 moves the road trip boundaries of the days behind it back by one, the last one first', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-10-10', end_date: '2026-10-11' });
+    const [d1] = rows(trip.id);
+    const spareA = createDay(testDb, trip.id);
+    const spareB = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const stops = [d1, spareA, spareB].map(d => createDayAssignment(testDb, d.id, place.id));
+    const boundary = testDb.prepare(
+      'INSERT INTO roadtrip_day_boundaries (trip_id, day_number, from_assignment_id, to_assignment_id, fraction) VALUES (?, ?, ?, NULL, 1)',
+    );
+    boundary.run(trip.id, 1, stops[0].id);
+    boundary.run(trip.id, 3, stops[1].id);
+    boundary.run(trip.id, 4, stops[2].id);
+
+    const result = await svc.appendDated(trip.id, user.id);
+
+    const moved = [
+      { day_number: 1, from_assignment_id: stops[0].id },
+      { day_number: 4, from_assignment_id: stops[1].id },
+      { day_number: 5, from_assignment_id: stops[2].id },
+    ];
+    expect(boundaries(trip.id)).toEqual(moved);
+    expect(result.boundaries?.map(b => ({ day_number: b.day_number, from_assignment_id: b.from_assignment_id }))).toEqual(moved);
+  });
+
+  it('DAY-SVC-097 moves no booking, while insert() still dates the days without one', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-10-10', end_date: '2026-10-11' });
+    const [, d2] = rows(trip.id);
+    const reservation = createReservation(testDb, trip.id, { day_id: d2.id });
+    testDb.prepare('UPDATE reservations SET reservation_time = ? WHERE id = ?').run('2026-10-11T19:30', reservation.id);
+    const spare = createDay(testDb, trip.id);
+
+    await svc.appendDated(trip.id, user.id);
+    expect(testDb.prepare('SELECT day_id, reservation_time FROM reservations WHERE id = ?').get(reservation.id))
+      .toEqual({ day_id: d2.id, reservation_time: '2026-10-11T19:30' });
+    expect(rows(trip.id).find(r => r.id === spare.id)).toMatchObject({ day_number: 4, date: null });
+
+    // The older path is untouched: an insert re-dates every row, the spare day included.
+    const inserted = await svc.insert(trip.id);
+    expect(rows(trip.id).find(r => r.id === spare.id)).toMatchObject({ date: '2026-10-13' });
+    expect(inserted).toMatchObject({ day_number: 5, date: '2026-10-14' });
+  });
+
+  it('DAY-SVC-099 announces the day to the others, moved boundaries to everyone and the trip to the others', async () => {
+    const all = vi.fn();
+    const others = vi.fn();
+    const day = { id: 7, trip_id: 1, day_number: 3, date: '2026-10-12', assignments: [], notes_items: [] } as never;
+    const moved = [{ day_number: 4, from_assignment_id: 2, to_assignment_id: null, fraction: 1 }];
+
+    svc.announceDatedAppend({ day, endDate: '2026-10-12', boundaries: moved, trip: { id: 1 } }, { all, others });
+    expect(others.mock.calls).toEqual([
+      ['day:reordered', { day }],
+      ['trip:updated', { trip: { id: 1 } }],
+    ]);
+    expect(all.mock.calls).toEqual([['roadtripBoundary:changed', { boundaries: moved }]]);
+
+    all.mockClear();
+    others.mockClear();
+    svc.announceDatedAppend({ day, endDate: '2026-10-12', boundaries: null, trip: undefined }, { all, others });
+    expect(others.mock.calls).toEqual([['day:reordered', { day }]]);
+    expect(all).not.toHaveBeenCalled();
   });
 });

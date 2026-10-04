@@ -3,6 +3,9 @@ import type { TranslationStrings } from '../types';
 const shared: TranslationStrings = {
   'shared.expired': '링크가 만료되었거나 유효하지 않습니다',
   'shared.expiredHint': '이 공유 여행 링크는 더 이상 유효하지 않습니다.',
+  'shared.loadFailed': '이 여행을 불러올 수 없습니다',
+  'shared.loadFailedHint': '링크가 만료되었다는 뜻은 아닙니다. 연결 상태를 확인한 뒤 잠시 후 다시 시도해 주세요.',
+  'shared.retry': '다시 시도',
   'shared.readOnly': '읽기 전용 공유 보기',
   'shared.tabPlan': '계획',
   'shared.tabBookings': '예약',
@@ -11,11 +14,18 @@ const shared: TranslationStrings = {
   'shared.tabChat': '채팅',
   'shared.days': '일',
   'shared.places': '장소',
+  'shared.unplanned': '아직 계획되지 않음',
   'shared.other': '기타',
   'shared.totalBudget': '총 비용',
   'shared.messages': '메시지',
   'shared.sharedVia': '공유 경로',
   'shared.confirmed': '확정됨',
   'shared.pending': '대기 중',
+  'shared.footerTagline': '직접 호스팅하는 여행 플래너. 오픈 소스.',
+  'shared.emptyBookings': '아직 공유된 예약이 없습니다',
+  'shared.emptyPacking': '짐 목록이 아직 비어 있습니다',
+  'shared.emptyCosts': '아직 지출이 없습니다',
+  'shared.emptyChat': '아직 메시지가 없습니다',
+  'shared.wholeTrip': '전체 여행',
 };
 export default shared;

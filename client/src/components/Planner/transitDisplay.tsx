@@ -15,6 +15,7 @@ export interface TransitLegDisplay {
   line_text_color?: string | null
   duration?: number
   headsign?: string | null
+  agency?: string | null
   stops?: number
   from?: { name?: string; time?: string | null; track?: string | null }
   to?: { name?: string; time?: string | null; track?: string | null }
@@ -117,6 +118,8 @@ export interface TransitMetaItem {
   text: string
   /** De-emphasised (operator names and the like). */
   dim?: boolean
+  /** Set in capitals, for a count with its unit ("15 MIN", "5 STOPS"). */
+  caps?: boolean
 }
 
 /**
@@ -127,14 +130,15 @@ export function TransitMetaBadges({ items, size = 'md' }: { items: TransitMetaIt
   const font = size === 'sm' ? 'calc(10px * var(--fs-scale-caption, 1))' : 'calc(10.5px * var(--fs-scale-caption, 1))'
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-      {items.filter(i => i.text).map(({ icon: Icon, text, dim }, i) => (
+      {items.filter(i => i.text).map(({ icon: Icon, text, dim, caps }, i) => (
         <span
           key={i}
           className={dim ? 'bg-surface-card text-content-faint' : 'bg-surface-card text-content-muted'}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             padding: size === 'sm' ? '1px 6px' : '2px 8px', borderRadius: 6,
-            fontSize: font, fontWeight: 500, whiteSpace: 'nowrap',
+            fontSize: font, fontWeight: caps ? 600 : 500, whiteSpace: 'nowrap',
+            textTransform: caps ? 'uppercase' : undefined, letterSpacing: caps ? '0.04em' : undefined,
             border: '1px solid var(--border-faint)',
           }}
         >

@@ -22,7 +22,7 @@
  * C1 verbatim — left that version green, because the mutation only changes
  * what `onApplicationBootstrap` does, and nothing here ever called it.
  *
- * This version drives the seven jobs for real: `CronRegistrarService`'s
+ * This version drives the eight jobs for real: `CronRegistrarService`'s
  * `isEnabled()` (false under `NODE_ENV=test`, `SCHED-GATE`) is forced true so
  * each job's own `onApplicationBootstrap` doesn't return before reaching its
  * boot sweep, `register()` is stubbed to a no-op so no timer is armed (its
@@ -30,8 +30,8 @@
  * `runOnBoot` is wrapped with a spy that calls straight through to the real,
  * production-wired implementation (`orm` is `app.get(MikroORM)` — pinned by
  * orm-request-context-seams.test.ts) while collecting every promise it
- * returns. Three of the seven jobs (`JourneyThumbsJob`, `PlacePhotoCacheJob`,
- * `TrekPhotoCacheJob`) call `runOnBoot` fire-and-forget
+ * returns. Four of the eight jobs (`JourneyThumbsJob`, `PlacePhotoCacheJob`,
+ * `TrekPhotoCacheJob`, `PlaceRegionsRepairJob`) call `runOnBoot` fire-and-forget
  * (`void this.registrar.runOnBoot(...)`) rather than awaiting it, so a
  * mutation that routes one of them back to a bare `void this.sweep()` — i.e.
  * bypassing `runOnBoot` (and this spy) altogether — produces a promise this
@@ -41,18 +41,20 @@
  * its promise was never in `collected`.
  *
  * task-6-rereview2.md M2: the log-line assertion alone is timing-based, not
- * structural, and in practice only `journey-thumbs-boot` makes it
- * load-bearing — the other six sweeps are raw SQL that never reaches the EM,
- * so a job silently routed back to a bare `void this.sweep()` (bypassing
- * `runOnBoot` entirely) would fail here only for journey-thumbs; the per-job
- * unit test is what actually catches the rest. This file drives all seven
- * jobs' REAL `onApplicationBootstrap`, each of which routes through
- * `runOnBoot` — but that routing itself was previously unasserted here. The
- * second expectation below asserts it directly: every one of the seven boot
+ * structural, and in practice only `journey-thumbs-boot` and
+ * `place-regions-repair-boot` make it load-bearing — the other six sweeps are
+ * raw SQL that never reaches the EM, so a job silently routed back to a bare
+ * `void this.sweep()` (bypassing `runOnBoot` entirely) would fail here only for
+ * those two; the per-job unit test is what actually catches the rest. This
+ * file drives all eight jobs' REAL `onApplicationBootstrap`, each of which
+ * routes through `runOnBoot` — but that routing itself was previously
+ * unasserted here. The
+ * second expectation below asserts it directly: every one of the eight boot
  * names was passed to `runOnBoot`, so a job re-routed around the registrar
  * fails HERE, not only in its own `*-00N` per-job suite. `journey-thumbs-boot`
- * remains the one sweep whose body reaches a repository, so it is still what
- * the log-line assertion below is actually exercising.
+ * and `place-regions-repair-boot` remain the sweeps whose bodies reach a
+ * repository, so they are what the log-line assertion below is actually
+ * exercising.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import type { INestApplication } from '@nestjs/common';
@@ -83,6 +85,7 @@ import { DocSyncJob } from '../../src/nest/doc-sync/doc-sync.job';
 import { AirtrailSyncJob } from '../../src/nest/integrations/airtrail-sync.job';
 import { DawarichSyncJob } from '../../src/nest/integrations/dawarich-sync.job';
 import { AirportsService } from '../../src/nest/airports/airports.service';
+import { PlaceRegionsRepairJob } from '../../src/nest/atlas/place-regions-repair.job';
 
 describe('Every onApplicationBootstrap boot sweep runs inside a request context', () => {
   let app: INestApplication;
@@ -96,7 +99,7 @@ describe('Every onApplicationBootstrap boot sweep runs inside a request context'
     testDb.close();
   });
 
-  it('BOOT-SWEEP-001: the seven jobs\' plus AirportsService\'s REAL onApplicationBootstrap, driven through the real production-wired CronRegistrarService, each routes through runOnBoot (structurally asserted), and journey-thumbs — the one sweep that reaches a repository today — never logs cannotUseGlobalContext / "global EntityManager"', async () => {
+  it('BOOT-SWEEP-001: the eight jobs\' plus AirportsService\'s REAL onApplicationBootstrap, driven through the real production-wired CronRegistrarService, each routes through runOnBoot (structurally asserted), and journey-thumbs and place-regions-repair — the sweeps that reach a repository today — never log cannotUseGlobalContext / "global EntityManager"', async () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const registrar = app.get(CronRegistrarService);
     const isEnabledSpy = vi.spyOn(registrar, 'isEnabled').mockReturnValue(true);
@@ -113,11 +116,12 @@ describe('Every onApplicationBootstrap boot sweep runs inside a request context'
     });
     try {
       // Real onApplicationBootstrap calls, not hand-called runOnBoot — the whole
-      // point of I2's fix. Three are fire-and-forget (void return type); four are
+      // point of I2's fix. Four are fire-and-forget (void return type); four are
       // awaited because the job's own onApplicationBootstrap awaits runOnBoot.
       app.get(JourneyThumbsJob).onApplicationBootstrap();
       app.get(PlacePhotoCacheJob).onApplicationBootstrap();
       app.get(TrekPhotoCacheJob).onApplicationBootstrap();
+      app.get(PlaceRegionsRepairJob).onApplicationBootstrap();
       await app.get(ReminderJobsService).onApplicationBootstrap();
       await app.get(DocSyncJob).onApplicationBootstrap();
       await app.get(AirtrailSyncJob).onApplicationBootstrap();
@@ -125,7 +129,7 @@ describe('Every onApplicationBootstrap boot sweep runs inside a request context'
       // Plan 3d Task 0: `AirportsService` is a service, not a `*.job.ts`
       // provider (it has no `register()`/cron tick of its own — no
       // `isEnabled()` gate either, inventory §12), so it sits outside the
-      // seven-job loop above; its `onApplicationBootstrap` still routes its
+      // eight-job loop above; its `onApplicationBootstrap` still routes its
       // raw-SQL flight-endpoint backfill through the same `runOnBoot` choke
       // point and belongs in this ratchet's name list.
       await app.get(AirportsService).onApplicationBootstrap();
@@ -153,6 +157,7 @@ describe('Every onApplicationBootstrap boot sweep runs inside a request context'
         'docsync-boot',
         'journey-thumbs-boot',
         'place-photo-cache-boot',
+        'place-regions-repair-boot',
         'reminder-jobs-boot',
         'trek-photo-cache-boot',
       ]);

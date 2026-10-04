@@ -5,6 +5,8 @@ import { ChargingMcp } from '../../../src/nest/roadtrip/charging.mcp';
 import { RoadtripHazardsMcp } from '../../../src/nest/roadtrip/roadtrip-hazards.mcp';
 import { GoogleRouteMcp } from '../../../src/nest/roadtrip/google-route.mcp';
 import { DayBoundariesMcp } from '../../../src/nest/roadtrip/day-boundaries.mcp';
+import { createTestRegistry } from '../../../src/nest-mcp';
+import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../../src/mcp/nest-mcp-policy';
 
 const ctx = { userId: 5 } as McpContext;
 describe('roadtrip read tools', () => {
@@ -69,6 +71,18 @@ describe('roadtrip read tools', () => {
     expect(realtime.broadcast).not.toHaveBeenCalled();
   });
 
+  it('tells the assistant that a boundary over a booked night is ignored while the stay switch is on', async () => {
+    const tool = new DayBoundariesMcp({} as never, {} as never, {} as never, {} as never, {} as never, { isAddonEnabled: () => true } as never);
+    const registry = createTestRegistry([tool], { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess });
+    const descriptions: Record<string, string> = {};
+    await registry.attach(
+      { registerTool: (name: string, config: Record<string, unknown>) => { descriptions[name] = String(config.description); } } as never,
+      { ...ctx, scopes: null },
+    );
+    expect(descriptions.set_day_boundary).toContain(
+      'With roadtrip_hotel_bookends on, a boundary between two stops a booked night separates is ignored: the night ends the day.',
+    );
+  });
   it('does not expose manual boundaries to nonmembers', async () => {
     const boundaries = { list: vi.fn(() => [{ day_number: 1 }]) };
     const tripsRepo = { findAccessible: vi.fn(async () => false) };

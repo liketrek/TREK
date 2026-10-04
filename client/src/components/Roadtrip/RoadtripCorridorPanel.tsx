@@ -11,6 +11,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { formatDistance } from '../../utils/units'
 import CustomSelect from '../shared/CustomSelect'
 import RoadtripCategoryPicker from './RoadtripCategoryPicker'
+import RoadtripDayPicker from './RoadtripDayPicker'
 import { serviceColor } from './roadtripModel'
 import { alongLabel, offRouteLabel } from './corridorSearchModel'
 import { CORRIDOR_CATEGORY_BY_KEY, manualStopKindFor } from './stopKinds'
@@ -296,9 +297,9 @@ function ResultGroup({ category, pois, dayId, insertIndexFor, onAddPoi, onFocusP
  * the list answers "which of these" and the map answers "which side of the road".
  *
  * Three cards down one column, the same shapes the rail opposite uses: what to look for,
- * how the search is getting on, and what it found. The day it searches sits in the
- * header rather than among the filters — it is the question's subject, not one of its
- * conditions.
+ * how the search is getting on, and what it found. The day it searches sits beside what
+ * it looks for, in the same dropdown, so the question reads as one line: these kinds,
+ * along this day.
  */
 export default function RoadtripCorridorPanel({
   corridor, routes, onAddPoi, onFocusPoint, onAddManual, tripId, canImport,
@@ -318,11 +319,6 @@ export default function RoadtripCorridorPanel({
    */
   const panel = useElementSize<HTMLDivElement>()
   const narrow = panel.width > 0 && panel.width < NARROW_PANEL_PX
-
-  const dayOptions = routes.days.map(d => ({
-    value: String(d.dayId),
-    label: t('roadtrip.day', { number: d.dayNumber }),
-  }))
 
   const grouped = CORRIDOR_CATEGORY_KEYS
     .map(key => ({ key, pois: corridor.visible.filter(p => p.category === key) }))
@@ -378,40 +374,37 @@ export default function RoadtripCorridorPanel({
 
   return (
     <div ref={panel.ref} className="flex h-full min-h-0 flex-col gap-3 px-3.5 pb-3.5 pt-3">
-      {/* Header: the panel's name, and the day the question is about.
-
-          Pulled at, the name is the first thing to go. It repeats what the column
-          already is, the day picker beside it is the part somebody came here to change,
-          and a heading that shortens to an ellipsis says less than no heading at all. */}
+      {/* Header: the panel's name. Pulled at, it is the first thing to go: it repeats
+          what the column already is, and a heading that shortens to an ellipsis says less
+          than no heading at all. */}
       <div className="flex flex-shrink-0 items-center gap-2.5 px-1">
         {narrow ? null : (
           <h2 className="min-w-0 truncate font-semibold tracking-[-0.022em] text-content" style={{ fontSize: FS.panelTitle }}>
             {t('roadtrip.poi.title')}
           </h2>
         )}
-        {dayOptions.length > 1 ? (
-          <div className="ms-auto min-w-0">
-            <CustomSelect
-              value={corridor.dayId}
-              onChange={value => corridor.setDayId(String(value))}
-              options={dayOptions}
-              size="sm"
-            />
-          </div>
-        ) : null}
-        {tripId !== undefined && tripId > 0 && canImport && <GoogleRouteImport tripId={tripId} dayId={corridor.day?.dayId} />}
+        {tripId !== undefined && tripId > 0 && canImport && (
+          <span className="ms-auto"><GoogleRouteImport tripId={tripId} dayId={corridor.day?.dayId} /></span>
+        )}
       </div>
 
       {/* What to look for. */}
       <div className={`flex flex-shrink-0 flex-col gap-3.5 ${CARD} px-4 pb-3.5 pt-3.5`}>
         <div className="flex flex-col gap-2">
           <span className={EYEBROW} style={{ fontSize: FS.label }}>{t('roadtrip.poi.looking')}</span>
-          <RoadtripCategoryPicker
-            keys={CORRIDOR_CATEGORY_KEYS}
-            meta={CATEGORY_META}
-            selected={corridor.categories}
-            onToggle={corridor.toggleCategory}
-          />
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <RoadtripCategoryPicker
+                keys={CORRIDOR_CATEGORY_KEYS}
+                meta={CATEGORY_META}
+                selected={corridor.categories}
+                onToggle={corridor.toggleCategory}
+              />
+            </div>
+            {routes.days.length > 1 ? (
+              <RoadtripDayPicker days={routes.days} value={corridor.dayId} onChange={corridor.setDayId} />
+            ) : null}
+          </div>
         </div>
 
         <span className="h-px bg-edge-faint" aria-hidden />

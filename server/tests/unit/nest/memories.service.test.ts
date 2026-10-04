@@ -120,8 +120,8 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
     await svc.immichGetConnectionSettings(7);
     expect(immich.getConnectionSettings).toHaveBeenCalledWith(7);
 
-    await svc.immichSaveSettings(7, 'u', 'k', '1.2.3.4');
-    expect(immich.saveImmichSettings).toHaveBeenCalledWith(7, 'u', 'k', '1.2.3.4');
+    await svc.immichSaveSettings(7, 'u', 'k', '1.2.3.4', true);
+    expect(immich.saveImmichSettings).toHaveBeenCalledWith(7, 'u', 'k', '1.2.3.4', true);
 
     await svc.immichSetAutoUpload(7, true);
     expect(immich.setImmichAutoUpload).toHaveBeenCalledWith(7, true);
@@ -129,8 +129,8 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
     await svc.immichGetConnectionStatus(7);
     expect(immich.getConnectionStatus).toHaveBeenCalledWith(7);
 
-    await svc.immichTestConnection('u', 'k');
-    expect(immich.testConnection).toHaveBeenCalledWith('u', 'k');
+    await svc.immichTestConnection('u', 'k', true);
+    expect(immich.testConnection).toHaveBeenCalledWith('u', 'k', true);
 
     await svc.immichBrowseTimeline(7);
     expect(immich.browseTimeline).toHaveBeenCalledWith(7);

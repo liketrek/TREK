@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Desfés: {action}',
   'undo.assignPlace': 'Lloc assignat al dia',
   'undo.removeAssignment': 'Lloc eliminat del dia',
+  'undo.clearDay': 'Dia buidat',
   'undo.reorder': 'Llocs reordenats',
   'undo.optimize': 'Ruta optimitzada',
   'undo.deletePlace': 'Lloc eliminat',
@@ -18,6 +19,7 @@ const undo: TranslationStrings = {
   'undo.importNaverList': 'Importació de Naver Maps',
   'undo.addPlace': 'Lloc afegit',
   'undo.done': 'Desfet: {action}',
+  'undo.failed': "No s'ha pogut desfer: {action}",
   'undo.importBooking': 'Importa confirmació de reserva',
 
   'undo.changeCategory': 'Categoria canviada',

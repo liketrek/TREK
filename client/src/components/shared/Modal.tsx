@@ -1,7 +1,10 @@
-import React, { useEffect, useCallback, useRef } from 'react'
+import React, { useEffect, useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { lockBodyScroll } from '../../utils/bodyScrollLock'
+import { useTranslation } from '../../i18n'
+import { Tooltip } from './Tooltip'
+import { focusDialog, trapTab } from './dialogFocus'
 
 const sizeClasses: Record<string, string> = {
   sm: 'max-w-sm',
@@ -24,38 +27,57 @@ interface ModalProps {
   size?: string
   footer?: React.ReactNode
   hideCloseButton?: boolean
+  /**
+   * Where the panel stands on a wide screen. Centred by default; 'top' pins its
+   * upper edge, so a dialog whose content changes height grows and shrinks at
+   * the bottom only instead of jumping. Phones always start at the top.
+   */
+  align?: 'center' | 'top'
 }
 
-export default function Modal({
-  isOpen,
+export default function Modal({ isOpen, ...frame }: ModalProps) {
+  return isOpen ? <ModalFrame {...frame} /> : null
+}
+
+function ModalFrame({
   onClose,
   title,
   children,
   size = 'md',
   footer,
   hideCloseButton = false,
-}: ModalProps) {
+  align = 'center',
+}: Omit<ModalProps, 'isOpen'>) {
+  const { t } = useTranslation()
+  const panelRef = useRef<HTMLDivElement>(null)
+  const mouseDownTarget = useRef<EventTarget | null>(null)
+  // Read while rendering, before a field inside can take the focus with autoFocus.
+  const [focusedBefore] = useState(() => document.activeElement)
+
   const handleEsc = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose()
   }, [onClose])
 
   useEffect(() => {
-    if (!isOpen) return
     document.addEventListener('keydown', handleEsc)
     return () => document.removeEventListener('keydown', handleEsc)
-  }, [isOpen, handleEsc])
+  }, [handleEsc])
 
   // Separate from the key listener so a new onClose identity does not release
   // and re-take the lock on every render. The shared lock is ref-counted: this
   // modal must not clear a lock another overlay is still holding (#1809).
+  useEffect(() => lockBodyScroll(), [])
+
+  // The focus moves into the dialog when it opens (the first text field on a
+  // desktop) and back to whatever opened it when it closes, the way DialogShell
+  // does it (#1302). Without this Tab ran through the page behind first.
   useEffect(() => {
-    if (!isOpen) return
-    return lockBodyScroll()
-  }, [isOpen])
-
-  const mouseDownTarget = useRef<EventTarget | null>(null)
-
-  if (!isOpen) return null
+    const panel = panelRef.current
+    if (panel) focusDialog(panel)
+    return () => {
+      if (focusedBefore instanceof HTMLElement && focusedBefore.isConnected) focusedBefore.focus()
+    }
+  }, [focusedBefore])
 
   return createPortal(
     <div
@@ -63,7 +85,7 @@ export default function Modal({
       // click-away, the panel only keeps that click from reaching it. Escape
       // and the header's close button are the keyboard route out.
       role="presentation"
-      className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center px-4 trek-modal-backdrop trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
+      className={`fixed inset-0 z-[10000] flex items-start ${align === 'top' ? '' : 'sm:items-center'} justify-center px-4 trek-modal-backdrop trek-backdrop-enter bg-[rgba(15,23,42,0.5)]`}
       style={{ paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }}
       onMouseDown={e => { mouseDownTarget.current = e.target }}
       onClick={e => {
@@ -72,9 +94,12 @@ export default function Modal({
       }}
     >
       <div
+        ref={panelRef}
         role="presentation"
+        tabIndex={-1}
+        onKeyDown={e => { if (panelRef.current) trapTab(e, panelRef.current) }}
         className={`
-          trek-modal-enter
+          trek-modal-enter outline-none
           rounded-2xl overflow-hidden shadow-2xl w-full ${sizeClasses[size] || sizeClasses.md}
           flex flex-col
           max-h-[calc(100dvh-var(--bottom-nav-h)-90px)] sm:max-h-[calc(100dvh-90px)]
@@ -86,12 +111,15 @@ export default function Modal({
         <div className="flex items-center justify-between p-6 flex-shrink-0 border-b border-edge-secondary">
           <h2 className="text-lg font-semibold text-content">{title}</h2>
           {!hideCloseButton && (
+            <Tooltip label={t('common.close')}>
             <button type="button"
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              aria-label={t('common.close')}
+              className="p-2 rounded-lg text-content-faint hover:text-content-secondary hover:bg-surface-hover transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
+            </Tooltip>
           )}
         </div>
 

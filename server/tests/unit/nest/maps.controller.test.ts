@@ -49,14 +49,20 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       const search = vi.fn().mockResolvedValue({ places: [], source: 'osm' });
       const res = await makeController({ search }).search(user, { query: 'berlin' }, 'de');
       expect(res).toEqual({ places: [], source: 'osm' });
-      expect(search).toHaveBeenCalledWith(3, 'berlin', 'de', undefined);
+      expect(search).toHaveBeenCalledWith(3, 'berlin', 'de', undefined, undefined);
+    });
+
+    it('forwards the provider a search is sent to alone', async () => {
+      const search = vi.fn().mockResolvedValue({ places: [], source: 'google' });
+      await makeController({ search }).search(user, { query: 'x', provider: 'google' }, 'de');
+      expect(search).toHaveBeenCalledWith(3, 'x', 'de', undefined, 'google');
     });
 
     it('forwards a valid locationBias to the service', async () => {
       const search = vi.fn().mockResolvedValue({ places: [], source: 'osm' });
       const bias = { lat: 1, lng: 2, radius: 5000 };
       await makeController({ search }).search(user, { query: 'x', locationBias: bias }, 'de');
-      expect(search).toHaveBeenCalledWith(3, 'x', 'de', bias);
+      expect(search).toHaveBeenCalledWith(3, 'x', 'de', bias, undefined);
     });
 
     it('maps a service error to its status + message', async () => {
@@ -70,6 +76,26 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       const search = vi.fn().mockRejectedValue('boom');
       expect(await thrown(() => makeController({ search }).search(user, { query: 'x' }))).toEqual({
         status: 500, body: { error: 'Search error' },
+      });
+    });
+  });
+
+  describe('POST /nearby', () => {
+    it('forwards the point, the circle, the count and the language', async () => {
+      const nearbyPlaces = vi.fn().mockResolvedValue({ places: [], source: 'trek-places' });
+      const res = await makeController({ nearbyPlaces }).nearby(user, { lat: 52.5, lng: 13.4, radius: 300, limit: 5 }, 'de');
+      expect(res).toEqual({ places: [], source: 'trek-places' });
+      expect(nearbyPlaces).toHaveBeenCalledWith(3, 52.5, 13.4, { radius: 300, limit: 5, lang: 'de' });
+    });
+
+    it('maps a provider error to its status, and anything else to 500', async () => {
+      const refused = vi.fn().mockRejectedValue(withError(429, 'Quota exceeded'));
+      expect(await thrown(() => makeController({ nearbyPlaces: refused }).nearby(user, { lat: 1, lng: 2 }))).toEqual({
+        status: 429, body: { error: 'Quota exceeded' },
+      });
+      const broken = vi.fn().mockRejectedValue('boom');
+      expect(await thrown(() => makeController({ nearbyPlaces: broken }).nearby(user, { lat: 1, lng: 2 }))).toEqual({
+        status: 500, body: { error: 'Nearby search error' },
       });
     });
   });

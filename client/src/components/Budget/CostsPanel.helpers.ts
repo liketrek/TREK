@@ -11,8 +11,10 @@
  * Amounts are the raw input strings, parsed on use (same as customAmounts).
  */
 
-import type { BudgetParticipantFinal } from '@trek/shared'
-import { currencyDecimals } from '../../utils/formatters'
+import type { BudgetParticipantFinal, ReceiptRead } from '@trek/shared'
+import { amountToInputString, currencyDecimals } from '../../utils/formatters'
+import type { ExpensePrefill } from './CostsPanel'
+import type { BudgetItem } from '../../types'
 
 // The split and receipt fields guard their own precision on every keystroke, so the
 // guard has to follow the currency: a three-decimal one (KWD, BHD, …) seeds three
@@ -263,4 +265,60 @@ export function calculateTicketShares(items: TicketItem[]): { shares: Record<num
   }
 
   return { shares: finalShares, total: totalCents / 100 }
+}
+
+/**
+ * Where a new expense's editor starts from a prefill: a booking's price, or a
+ * scanned receipt, which also brings its currency, day, lines and photo. Both
+ * editors (the desktop modal and the phone sheet) seed from this one place.
+ *
+ * A prefill without a currency is in `base`, which is also what the currency
+ * field starts on. Receipt lines seed the Ticket split, shared by everyone like
+ * a line added by hand, while the split itself stays Equally until the person
+ * switches.
+ */
+export function newExpenseSeed(prefill: ExpensePrefill | undefined, base: string, peopleIds: number[], today: string) {
+  const currency = (prefill?.currency || base).toUpperCase()
+  return {
+    currency,
+    day: prefill?.date || today,
+    total: prefill?.amount != null ? amountToInputString(prefill.amount, currency) : '',
+    ticketItems: (prefill?.lines ?? []).map((line, i): TicketItem => ({
+      id: `receipt-${i}`,
+      name: line.name,
+      price: amountToInputString(line.price, currency),
+      participants: new Set(peopleIds),
+    })),
+    receiptFiles: prefill?.receiptFiles ?? [],
+  }
+}
+
+/** A scanned receipt as the prefill of a new expense, with its photo to attach on save. */
+export function receiptToPrefill(receipt: ReceiptRead, photos: File[]): ExpensePrefill {
+  return {
+    name: receipt.merchant ?? undefined,
+    amount: receipt.total ?? undefined,
+    currency: receipt.currency ?? undefined,
+    date: receipt.date ?? undefined,
+    lines: receipt.items,
+    receiptFiles: photos,
+  }
+}
+
+/**
+ * The expense editor a trip page shows, if any. Two things open it: a booking's
+ * Costs block (edit that expense, or start one from the booking's price) and a
+ * receipt scanned from Costs. The booking wins, since it is what the person just
+ * clicked; `key` remounts the editor when one hands over to the other, so each
+ * starts from its own seed.
+ */
+export function expenseEditorFor(
+  booking: { editing: BudgetItem | null; prefill?: ExpensePrefill } | null,
+  closeBooking: () => void,
+  receipt: ExpensePrefill | null,
+  closeReceipt: () => void,
+): { key: string; editing: BudgetItem | null; prefill?: ExpensePrefill; close: () => void } | null {
+  if (booking) return { key: 'booking', editing: booking.editing, prefill: booking.prefill, close: closeBooking }
+  if (receipt) return { key: 'receipt', editing: null, prefill: receipt, close: closeReceipt }
+  return null
 }

@@ -1,7 +1,9 @@
-import { createPortal } from 'react-dom'
-import { X, MapPin } from 'lucide-react'
+import { useId } from 'react'
+import { MapPin, Tag } from 'lucide-react'
 import { getCategoryIcon } from '../shared/categoryIcons'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { useTranslation } from '../../i18n'
+import { tintOf } from './planParts'
 import type { Category } from '../../types'
 
 interface PlacesBulkCategoryModalProps {
@@ -11,56 +13,71 @@ interface PlacesBulkCategoryModalProps {
   onClose: () => void
 }
 
-const rowStyle: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 9, width: '100%',
-  padding: '8px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
-  fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))', textAlign: 'left',
+/**
+ * A category's icon on a wash of its colour, the square the category lists of the
+ * places column are made of. Without a category it is the neutral pin.
+ */
+export function CategoryTile({ category, size = 24 }: { category?: Pick<Category, 'icon' | 'color'> | null; size?: number }) {
+  if (!category) {
+    return (
+      <span className="grid flex-none place-items-center rounded-[7px] bg-surface-tertiary text-content-faint" style={{ width: size, height: size }}>
+        <MapPin size={Math.round(size * 0.5)} strokeWidth={2.2} />
+      </span>
+    )
+  }
+  const Icon = getCategoryIcon(category.icon)
+  const color = category.color || 'var(--text-muted)'
+  return (
+    <span className="grid flex-none place-items-center rounded-[7px]" style={{ width: size, height: size, background: tintOf(color, 16) }}>
+      <Icon size={Math.round(size * 0.5)} strokeWidth={2.2} style={{ color }} />
+    </span>
+  )
 }
-const hoverOn = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'var(--bg-hover)' }
-const hoverOff = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'transparent' }
+
+const ROW = 'flex w-full items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left hover:bg-surface-hover'
 
 /**
  * Popup for the Places selection toolbar: pick one category to apply to every
- * currently-selected place. Reuses the category swatch styling from the header's
- * filter dropdown; clicking a row applies immediately and closes.
+ * currently-selected place. Clicking a row applies it at once and closes.
  */
 export function PlacesBulkCategoryModal({ count, categories, onPick, onClose }: PlacesBulkCategoryModalProps) {
   const { t } = useTranslation()
-  return createPortal(
-    <div
-      role="presentation"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+  const titleId = useId()
+  return (
+    <DialogShell
+      onClose={onClose}
+      labelledBy={titleId}
+      width="narrow"
+      header={(
+        <DialogHeader
+          tile={<DialogTile><Tag size={20} strokeWidth={1.9} className="text-content" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={titleId}
+          onClose={onClose}
+          title={t('places.changeCategory')}
+          sub={t('places.selectionCount', { count })}
+        />
+      )}
+      footer={(
+        <DialogFooter>
+          <FooterSpacer />
+          <DialogButton onClick={onClose}>{t('common.cancel')}</DialogButton>
+        </DialogFooter>
+      )}
     >
-      <div className="bg-surface-card text-content" style={{
-        borderRadius: 14, padding: '18px 20px', width: '100%', maxWidth: 380,
-        boxShadow: '0 16px 48px rgba(0,0,0,0.22)', border: '1px solid var(--border-faint)', fontFamily: 'inherit',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>{t('places.changeCategory')}</span>
-          <button type="button" onClick={onClose} aria-label={t('common.close')} className="text-content-muted" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}>
-            <X size={15} strokeWidth={2} />
+      <div className="flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5">
+        {categories.map(c => (
+          <button type="button" key={c.id} onClick={() => onPick(c.id)} className={ROW} style={fs(13, 'body')}>
+            <CategoryTile category={c} size={28} />
+            <span className="min-w-0 flex-1 truncate font-medium text-content">{c.name}</span>
           </button>
-        </div>
-        <p className="text-content-faint" style={{ fontSize: 12, marginBottom: 12 }}>{t('places.selectionCount', { count })}</p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 300, overflowY: 'auto' }}>
-          {categories.map(c => {
-            const CatIcon = getCategoryIcon(c.icon)
-            return (
-              <button type="button" key={c.id} onClick={() => onPick(c.id)} className="text-content bg-transparent" style={rowStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
-                <CatIcon size={14} strokeWidth={2} color={c.color || 'var(--text-muted)'} />
-                <span style={{ flex: 1 }}>{c.name}</span>
-              </button>
-            )
-          })}
-          <button type="button" onClick={() => onPick(null)} className="text-content-muted bg-transparent" style={{ ...rowStyle, borderTop: categories.length > 0 ? '1px solid var(--border-faint)' : 'none', marginTop: categories.length > 0 ? 2 : 0 }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
-            <MapPin size={14} strokeWidth={2} color="var(--text-faint)" />
-            <span style={{ flex: 1 }}>{t('places.noCategory')}</span>
-          </button>
-        </div>
+        ))}
+        {categories.length > 0 && <div className="mx-2 my-1 h-px bg-edge-faint" />}
+        <button type="button" onClick={() => onPick(null)} className={ROW} style={fs(13, 'body')}>
+          <CategoryTile size={28} />
+          <span className="min-w-0 flex-1 truncate font-medium text-content-muted">{t('places.noCategory')}</span>
+        </button>
       </div>
-    </div>,
-    document.body,
+    </DialogShell>
   )
 }

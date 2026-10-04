@@ -553,9 +553,7 @@ export class VacayService {
 
     if (company_holidays_enabled === true) {
       const companyDates = await this.companyHolidays.listForPlan(planId);
-      for (const { date } of companyDates) {
-        await this.entries.deleteForPlanAndDate(planId, date);
-      }
+      for (const { date, fraction } of companyDates) await this.makeRoomForCompanyHoliday(planId, date, fraction);
     }
 
     const updatedPlan = (await this.plans.findById(planId))!;
@@ -819,7 +817,7 @@ export class VacayService {
           const memberPlan = await this.getOwnPlan(m.user_id);
           await this.entries.updatePlanIdForUser(memberPlan.id, plan.id, m.user_id);
           for (const ch of companyHolidayRows) {
-            await this.companyHolidays.insertIgnore(memberPlan.id, ch.date, ch.note ?? '');
+            await this.companyHolidays.insertIgnore(memberPlan.id, ch.date, ch.note ?? '', ch.fraction);
           }
         }
         await this.members.deleteForPlan(plan.id);
@@ -827,7 +825,7 @@ export class VacayService {
         const ownPlan = await this.getOwnPlan(userId);
         await this.entries.updatePlanIdForUser(ownPlan.id, plan.id, userId);
         for (const ch of companyHolidayRows) {
-          await this.companyHolidays.insertIgnore(ownPlan.id, ch.date, ch.note ?? '');
+          await this.companyHolidays.insertIgnore(ownPlan.id, ch.date, ch.note ?? '', ch.fraction);
         }
         await this.members.deleteForPlanAndUser(plan.id, userId);
       }
@@ -1146,9 +1144,13 @@ export class VacayService {
   }
 
   async toggleEntry(userId: number, planId: number, date: string, fraction?: unknown, kind?: unknown, socketId?: string): Promise<{ action?: string; fraction?: number; kind?: string; error?: string }> {
-    const frac = normalizeFraction(fraction);
-    const knd = normalizeKind(kind);
     const plan = await this.plans.findById(planId);
+    // Half the day is the company's already (#2439): what is left is half a day.
+    const company = plan?.company_holidays_enabled
+      ? await this.companyHolidays.findByPlanAndDate(planId, date) // VC132
+      : null;
+    const frac = company && company.fraction < 1 ? 0.5 : normalizeFraction(fraction);
+    const knd = normalizeKind(kind);
     const weekendBlocked = plan ? isBlockedWeekend(plan, date) : false;
     const existing = await this.entries.findByUserDatePlan(userId, date, planId);
     if (existing) {
@@ -1172,18 +1174,35 @@ export class VacayService {
     return { action: 'added', fraction: frac, kind: knd };
   }
 
-  async toggleCompanyHoliday(planId: number, date: string, note: string | undefined, socketId: string | undefined): Promise<{ action: string }> {
-    const existing = await this.companyHolidays.findByPlanAndDate(planId, date);
-    if (existing) {
-      await this.companyHolidays.deleteById(existing.id);
-      await this.notifyPlanUsers(planId, socketId);
-      return { action: 'removed' };
-    } else {
-      await this.companyHolidays.insertHoliday(planId, date, note || '');
-      await this.entries.deleteForPlanAndDate(planId, date);
-      await this.notifyPlanUsers(planId, socketId);
-      return { action: 'added' };
-    }
+  /**
+   * A company holiday on or off, whole or half (#2439). The same click again clears
+   * it; the other size converts it in place, the way a vacation entry toggles. A
+   * whole company holiday leaves no room for leave that day; a half one leaves half.
+   */
+  async toggleCompanyHoliday(planId: number, date: string, note: string | undefined, socketId: string | undefined, fraction?: unknown): Promise<{ action: string; fraction?: number }> {
+    const frac = normalizeFraction(fraction);
+    const result = await this.uow.transactional(async () => {
+      const existing = await this.companyHolidays.findByPlanAndDate(planId, date); // VC118
+      if (existing && existing.fraction === frac) {
+        await this.companyHolidays.deleteById(existing.id); // VC119
+        return { action: 'removed' };
+      }
+      if (existing) {
+        await this.companyHolidays.updateFraction(existing.id, frac); // VC133
+      } else {
+        await this.companyHolidays.insertHoliday(planId, date, note || '', frac); // VC120
+      }
+      await this.makeRoomForCompanyHoliday(planId, date, frac);
+      return { action: existing ? 'updated' : 'added', fraction: frac };
+    });
+    await this.notifyPlanUsers(planId, socketId);
+    return result;
+  }
+
+  /** What a company holiday leaves of the day's leave: nothing for a whole one, half for a half one. */
+  private async makeRoomForCompanyHoliday(planId: number, date: string, fraction: number): Promise<void> {
+    if (fraction >= 1) await this.entries.deleteForPlanAndDate(planId, date); // VC30/VC121
+    else await this.entries.halveForPlanAndDate(planId, date); // VC134
   }
 
   // -------------------------------------------------------------------------

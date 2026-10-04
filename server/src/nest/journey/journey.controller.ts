@@ -26,7 +26,7 @@ import { StorageService } from '../storage/storage.service';
 import { journeyThumbName } from '../memories/thumbnail.service';
 import { JourneyService } from './journey.service';
 import { JourneyBookService } from './journey-book.service';
-import { PhotoCaptureBackfillService } from '../memories/photo-capture-backfill.service';
+import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
 import { ADDON_IDS } from '../../addons';
@@ -36,7 +36,8 @@ import {
   JourneyAddTripDto, JourneyContributorAddDto, JourneyContributorUpdateDto, JourneyCreateDto,
   JourneyEntryCreateDto, JourneyEntryPhotoUploadDto, JourneyEntryUpdateDto, JourneyGalleryVideoDto,
   JourneyLinkPhotoDto, JourneyPhotoUpdateDto, JourneyPreferencesDto, JourneyProviderPhotosDto,
-  JourneyReorderEntriesDto, JourneyShareLinkDto, JourneyUpdateDto,
+  JourneyReorderEntriesDto,
+  JourneyReorderEntryPhotosDto, JourneyShareLinkDto, JourneyUpdateDto,
   BookSaveDto,
 } from './journey.dto';
 import { isVideoMime, isVideoExtension, MAX_VIDEO_SIZE } from '../files/files.constants';
@@ -155,7 +156,7 @@ export class JourneyController {
     private readonly journey: JourneyService,
     private readonly storage: StorageService,
     private readonly books: JourneyBookService,
-    private readonly captureBackfill: PhotoCaptureBackfillService,
+    private readonly photoCapture: JourneyPhotoCaptureService,
   ) {}
 
   /**
@@ -189,16 +190,6 @@ export class JourneyController {
       if (f.path) { try { fs.unlinkSync(f.path); } catch { /* best-effort */ } }
       await this.storage.delete('journey', f.filename).catch(() => {});
     }
-  }
-
-  // The add call carries only an asset id, so when and where the picture was taken
-  // are fetched from the provider afterwards rather than trusted from the client
-  // (#1614). Detached: a slow or unreachable provider must not hold up the add.
-  private backfillCapture(photos: unknown[], userId: number): void {
-    const ids = photos
-      .map(p => (p as { photo_id?: number } | null)?.photo_id)
-      .filter((id): id is number => typeof id === 'number');
-    this.captureBackfill.schedule(ids, userId);
   }
 
   // ── Static prefix routes (before /:id) ──────────────────────────────────
@@ -239,6 +230,14 @@ export class JourneyController {
       throw new HttpException({ error: 'Entry not found' }, 404);
     }
     return result;
+  }
+
+  @Put('entries/:entryId/photos/reorder')
+  async reorderEntryPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: JourneyReorderEntryPhotosDto, @Headers('x-socket-id') socketId?: string) {
+    if (!(await this.journey.reorderEntryPhotos(Number(entryId), user.id, body.orderedIds, socketId))) {
+      throw new HttpException({ error: 'Entry not found' }, 404);
+    }
+    return { success: true };
   }
 
   @Delete('entries/:entryId')
@@ -288,7 +287,11 @@ export class JourneyController {
     if (!results.length) {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
-    this.backfillCapture(results, user.id);
+    // When and where the picture was taken is read from the file afterwards
+    // (#1614). Detached, so the add never waits for it, and without the journey
+    // refresh the provider adds send (#1587): the client uploads one file per
+    // request and reloads once after the last.
+    this.photoCapture.scheduleUpload(results, user.id);
     return { photos: results };
   }
 
@@ -353,7 +356,7 @@ export class JourneyController {
         const photo = await this.journey.addProviderPhoto(Number(entryId), user.id, String(body.provider), String(id), body.caption as string | undefined, pp, mt);
         if (photo) added.push(photo);
       }
-      this.backfillCapture(added, user.id);
+      this.photoCapture.scheduleForEntry(Number(entryId), added, user.id);
       return { photos: added, added: added.length };
     }
     if (!body.provider || !body.asset_id) {
@@ -363,7 +366,7 @@ export class JourneyController {
     if (!photo) {
       throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
     }
-    this.backfillCapture([photo], user.id);
+    this.photoCapture.scheduleForEntry(Number(entryId), [photo], user.id);
     return photo;
   }
 
@@ -450,8 +453,9 @@ export class JourneyController {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
     // An uploaded file carries its own EXIF; reading it is what puts the photo on
-    // the map later. Detached, like the provider branch.
-    this.backfillCapture(photos, user.id);
+    // the map later. Detached, like the provider branch, but without its journey
+    // refresh: one file per request would mean one reload per photo (#1587).
+    this.photoCapture.scheduleUpload(photos, user.id);
     return { photos };
   }
 
@@ -511,7 +515,7 @@ export class JourneyController {
         const photo = await this.journey.addProviderPhotoToGallery(Number(id), user.id, String(body.provider), String(aid), undefined, pp, mt);
         if (photo) added.push(photo);
       }
-      this.backfillCapture(added, user.id);
+      this.photoCapture.scheduleForJourney(Number(id), added, user.id);
       return { photos: added, added: added.length };
     }
     if (!body.provider || !body.asset_id) {
@@ -521,7 +525,7 @@ export class JourneyController {
     if (!photo) {
       throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
     }
-    this.backfillCapture([photo], user.id);
+    this.photoCapture.scheduleForJourney(Number(id), [photo], user.id);
     return photo;
   }
 

@@ -10,7 +10,7 @@ import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-RTSTAY-001 to FE-MOB-RTSTAY-025
+// FE-MOB-RTSTAY-001 to FE-MOB-RTSTAY-026
 //
 // The sheet renders inside the real TranslationProvider, so the copy is asserted
 // in English.
@@ -320,5 +320,31 @@ describe('MRtStaySheet', () => {
       expect(shell.closeSheet).toHaveBeenCalledTimes(1)
       expect(setAssignmentTimes).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('MRtStaySheet and a booked night at the edge of the stage', () => {
+  beforeEach(() => {
+    resetAllStores()
+  })
+
+  it('FE-MOB-RTSTAY-026: the arrival is the stop of the place, not the hotel the day sets out from there', () => {
+    // The morning's hotel stands on Bremen's place at the head of the card, with a clock of
+    // its own. Found by the place, it put 07:10 in the preview for a stop reached at 22:30.
+    const hotel = {
+      ...STAGE.stops[1],
+      assignmentId: -6_000_000_022,
+      ownerIndex: 0,
+      stopType: 'hotel',
+      bookend: { phase: 'morning', accommodationId: 5, reservationId: null, checkingOut: false, checkingIn: false, checkOut: null },
+    }
+    const withHotel = {
+      ...STAGE,
+      stops: [hotel, ...STAGE.stops],
+      schedule: { entries: [{ arrival: '07:10', departure: '07:10', anchored: false, dayOffset: 0 }, ...STAGE.schedule.entries], warnings: [] },
+    } as unknown as RoadtripDay
+    renderSheet({ roadtripRoutes: { days: [withHotel] } }, { sheet: { id: 'rtstay', payload: { placeId: 202, minutes: 30, name: 'Bremen Marktplatz' } } })
+    expect(screen.getByText('22:30')).toBeInTheDocument()
+    expect(screen.queryByText('07:10')).not.toBeInTheDocument()
   })
 })

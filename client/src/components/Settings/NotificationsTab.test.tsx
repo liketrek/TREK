@@ -2,7 +2,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import { render, screen, waitFor } from '../../../tests/helpers/render';
+import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
 import { ToastContainer } from '../shared/Toast';
@@ -1185,3 +1185,67 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
     expect(await screen.findByText('Test failed.')).toBeInTheDocument();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Web Push (#894)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The Push column comes from the server like every other; what this tab adds is
+// the per-device card, shown only while the admin has the channel switched on.
+// jsdom has no push APIs, so the real hook reads this "browser" as unable to
+// receive push, which is exactly what the card must then say.
+
+const pushMatrix = (active: boolean) => ({
+  preferences: { trip_invite: { inapp: true, push: true } },
+  channels: [
+    { id: 'inapp', source: 'builtin', labelKey: 'settings.notificationPreferences.inapp', active: true, configured: true },
+    { id: 'push', source: 'builtin', labelKey: 'settings.notificationPreferences.push', active, configured: false },
+  ],
+  event_types: ['trip_invite'],
+  implemented_combos: { trip_invite: ['inapp', 'push'] },
+});
+
+describe('NotificationsTab: Web Push', () => {
+  beforeEach(() => {
+    resetAllStores();
+    seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
+  });
+
+  it('FE-COMP-NOTIFICATIONS-PUSH-001: an active push channel gets its column and the device card', async () => {
+    mockMatrix(pushMatrix(true));
+    render(<NotificationsTab />);
+
+    expect(await screen.findByText('Push notifications on this device')).toBeInTheDocument();
+    expect(screen.getByText('Push')).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(/push/i);
+  });
+
+  it('FE-COMP-NOTIFICATIONS-PUSH-002: no card and no column while the admin has push off', async () => {
+    mockMatrix(pushMatrix(false));
+    render(<NotificationsTab />);
+
+    await screen.findByText(/in-app/i);
+    expect(screen.queryByText('Push notifications on this device')).not.toBeInTheDocument();
+    expect(screen.queryByText('Push')).not.toBeInTheDocument();
+  });
+});
+
+describe('NotificationsTab — cells the admin blocked (#1536)', () => {
+  it('FE-COMP-NOTIFICATIONS-LOCK-001: shows a lock instead of a switch, and sends nothing for it', async () => {
+    let puts = 0
+    server.use(
+      http.get('/api/notifications/preferences', () => HttpResponse.json({
+        ...minimalMatrix,
+        preferences: { trip_invite: { inapp: true, email: false } },
+        locked: { trip_invite: ['email'] },
+      })),
+      http.put('/api/notifications/preferences', () => { puts += 1; return HttpResponse.json({ success: true }) }),
+    )
+    render(<NotificationsTab />)
+    const lock = await screen.findByRole('img', { name: 'Turned off for everyone by the admin' })
+    fireEvent.click(lock)
+    // The in-app switch for the same event is still there and still a switch.
+    expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1)
+    expect(puts).toBe(0)
+  })
+})

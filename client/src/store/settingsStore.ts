@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { settingsApi } from '../api/client'
 import type { Settings } from '../types'
-import { DEFAULT_APPEARANCE } from '@trek/shared'
+import { DEFAULT_APPEARANCE, DEFAULT_WEEK_START } from '@trek/shared'
 import { getApiErrorMessage } from '../types'
 import { SUPPORTED_LANGUAGE_CODES } from '../i18n/supportedLanguages'
 import { normalizeTileUrl, stripTileApiKey } from '../utils/tileUrl'
@@ -84,6 +84,7 @@ export const DEFAULT_SETTINGS: Settings = {
   temperature_unit: 'celsius',
   distance_unit: 'metric',
   time_format: '24h',
+  week_start: DEFAULT_WEEK_START,
   show_place_description: false,
   optimize_from_accommodation: true,
   map_provider: 'leaflet',

@@ -3,6 +3,9 @@ import type { TranslationStrings } from '../types';
 const shared: TranslationStrings = {
   'shared.expired': 'Link wygasł lub jest nieprawidłowy',
   'shared.expiredHint': 'Ten link do podróży jest już nieaktywny.',
+  'shared.loadFailed': 'Nie udało się wczytać tej podróży',
+  'shared.loadFailedHint': 'Nie oznacza to, że link wygasł. Sprawdź połączenie i spróbuj ponownie za chwilę.',
+  'shared.retry': 'Spróbuj ponownie',
   'shared.readOnly': 'Widok udostępniony tylko do odczytu',
   'shared.tabPlan': 'Plan',
   'shared.tabBookings': 'Rezerwacje',
@@ -11,11 +14,18 @@ const shared: TranslationStrings = {
   'shared.tabChat': 'Czat',
   'shared.days': 'dni',
   'shared.places': 'miejsca',
+  'shared.unplanned': 'Jeszcze niezaplanowane',
   'shared.other': 'Inne',
   'shared.totalBudget': 'Koszty całkowite',
   'shared.messages': 'wiadomości',
   'shared.sharedVia': 'Udostępnione przez',
   'shared.confirmed': 'Potwierdzone',
   'shared.pending': 'Oczekujące',
+  'shared.footerTagline': 'Planer podróży, który hostujesz sam. Open source.',
+  'shared.emptyBookings': 'Nie udostępniono jeszcze żadnych rezerwacji',
+  'shared.emptyPacking': 'Lista pakowania jest jeszcze pusta',
+  'shared.emptyCosts': 'Brak wydatków',
+  'shared.emptyChat': 'Brak wiadomości',
+  'shared.wholeTrip': 'Cała podróż',
 };
 export default shared;

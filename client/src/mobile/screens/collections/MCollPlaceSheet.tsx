@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { Camera, Check, Copy, ExternalLink, Loader2, MapPin, Pencil, Trash2, X } from 'lucide-react'
+import { Camera, Check, Copy, ExternalLink, Loader2, MapPin, Navigation, Pencil, Trash2, X } from 'lucide-react'
 import type { CollectionLabel, CollectionLink, CollectionPlace, CollectionStatus } from '@trek/shared'
 import type { Category, TranslationFn } from '../../../types'
 import { mapsApi } from '../../../api/client'
@@ -16,6 +16,8 @@ import MCollCategoryPicker from './MCollCategoryPicker'
 import MCollLinksEditor from './MCollLinksEditor'
 import { STATUS_SPEC } from './collectionsMobileModel'
 import { CancelPill, Eyebrow, INPUT_CLS, PrimaryPill, TEXTAREA_CLS } from './MCollSheetKit'
+import { getNavigationTargets, navigationTargetLabel, openNavigationTarget } from '../../../components/Planner/placeNavigation'
+import { NavigationMenu } from '../../../components/shared/NavigationMenu'
 
 function linkHost(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
@@ -70,6 +72,8 @@ export default function MCollPlaceSheet({
   const [labelIds, setLabelIds] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [fetchedPhoto, setFetchedPhoto] = useState<string | null>(null)
+  const [navOpen, setNavOpen] = useState(false)
+  const navBtnRef = useRef<HTMLButtonElement | null>(null)
   const heldId = held?.id
 
   // Reseed the form + cover fetch when a different place is opened.
@@ -150,6 +154,7 @@ export default function MCollPlaceSheet({
   const assignedLabels = labels.filter(l => (held?.label_ids ?? []).includes(l.id))
   const toggleLabel = (id: number) => setLabelIds(labelIds.includes(id) ? labelIds.filter(x => x !== id) : [...labelIds, id])
 
+  const navTargets = getNavigationTargets(held)
   const actionBtn =
     'flex flex-1 items-center justify-center gap-[6px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-2 py-[11px] text-[0.78125rem] font-semibold text-m-ink'
 
@@ -329,7 +334,31 @@ export default function MCollPlaceSheet({
                     ))}
                   </div>
                 )}
-                <div className="mt-[14px] flex gap-2">
+                {/* Collections are a store of places to go to, so the way there leads
+                    the actions, as it does in the trip's place sheet (#2091). One
+                    app offered opens straight away; more open the same picker. */}
+                {navTargets.length > 0 && (
+                  <>
+                    <button
+                      ref={navBtnRef}
+                      type="button"
+                      onClick={() => (navTargets.length === 1 ? openNavigationTarget(navTargets[0]) : setNavOpen(true))}
+                      className="mt-[14px] flex w-full items-center justify-center gap-[6px] rounded-[13px] bg-[color:var(--m-act)] px-2 py-[11px] text-[0.78125rem] font-semibold text-[color:var(--m-actfg)]"
+                    >
+                      <Navigation size={14} strokeWidth={2.2} />
+                      {navTargets.length === 1 ? navigationTargetLabel(navTargets[0], t) : t('inspector.navigation')}
+                    </button>
+                    {navOpen && (
+                      <NavigationMenu
+                        targets={navTargets}
+                        anchor={navBtnRef.current}
+                        onClose={() => setNavOpen(false)}
+                        title={t('inspector.openWith')}
+                      />
+                    )}
+                  </>
+                )}
+                <div className={`${navTargets.length > 0 ? 'mt-2' : 'mt-[14px]'} flex gap-2`}>
                   {canEdit && (
                     <button type="button" onClick={() => setEditing(true)} className={actionBtn}>
                       <Pencil size={13} strokeWidth={2.2} /> {t('common.edit')}

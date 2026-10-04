@@ -9,6 +9,8 @@ import {
   budgetReorderCategoriesRequestSchema,
   budgetCreateSettlementRequestSchema,
   budgetUpdateSettlementRequestSchema,
+  budgetFreezeRatesRequestSchema,
+  budgetSettlementQuerySchema,
 } from '@trek/shared';
 
 /**
@@ -26,3 +28,6 @@ export class BudgetReorderItemsDto extends createZodDto(budgetReorderItemsReques
 export class BudgetReorderCategoriesDto extends createZodDto(budgetReorderCategoriesRequestSchema) {}
 export class BudgetCreateSettlementDto extends createZodDto(budgetCreateSettlementRequestSchema) {}
 export class BudgetUpdateSettlementDto extends createZodDto(budgetUpdateSettlementRequestSchema) {}
+export class BudgetFreezeRatesDto extends createZodDto(budgetFreezeRatesRequestSchema) {}
+/** GET …/settlement query (`base`, and `base_rate` coerced from the query string). */
+export class BudgetSettlementQueryDto extends createZodDto(budgetSettlementQuerySchema) {}

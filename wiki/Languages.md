@@ -1,6 +1,6 @@
 # Languages
 
-TREK ships with translations for 23 languages. You can change your language at any time without logging out.
+TREK ships with translations for 27 languages, the [Help Center](Help-Center) guides included. You can change your language at any time without logging out.
 
 ## Supported languages
 
@@ -9,11 +9,13 @@ TREK ships with translations for 23 languages. You can change your language at a
 | `de` | Deutsch |
 | `en` | English |
 | `es` | Español |
+| `et` | Eesti |
 | `fr` | Français |
 | `hu` | Magyar |
 | `nl` | Nederlands |
 | `br` | Português (Brasil) |
 | `cs` | Česky |
+| `sk` | Slovenčina |
 | `pl` | Polski |
 | `ru` | Русский |
 | `zh` | 简体中文 |
@@ -21,14 +23,20 @@ TREK ships with translations for 23 languages. You can change your language at a
 | `it` | Italiano |
 | `tr` | Türkçe |
 | `ar` | العربية |
+| `az` | Azərbaycanca |
 | `id` | Bahasa Indonesia |
 | `ja` | 日本語 |
 | `ko` | 한국어 |
+| `th` | ไทย |
 | `uk` | Українська |
 | `gr` | Ελληνικά |
 | `sv` | Svenska |
 | `vi` | Tiếng Việt |
 | `ca` | Català |
+
+## Place names in another language
+
+Place search, suggestions, place details and addresses follow the app language by default. **Settings → General → Language & region → Place names** lets them answer in another language while the interface stays in yours, for example English place names in a German app. Where a place has no name in the chosen language, its local name is shown. See [Display-Settings](Display-Settings#place-names).
 
 ## RTL support
 

@@ -189,6 +189,79 @@ export function dayStartEpochSeconds(day: string, tzOffsetMinutes = 0): number {
 }
 
 
+// 'YYYY:MM:DD HH:MM:SS' as EXIF writes it. The dashed date is what some
+// converters produce and what exifr's own reviver accepted, so it keeps working,
+// and so does a field written with one digit ('2026:5:30 9:05:00'), which that
+// reviver read as well. Whatever follows the time is checked on its own below.
+// No end anchor on purpose: a greedy tail in front of '$' makes a long run of
+// digits cost quadratic time, and the stamp is text any upload can set.
+const EXIF_STAMP = /^(\d{4})[:-](\d{1,2})[:-](\d{1,2})[ T](\d{1,2}):(\d{1,2}):(\d{1,2})(?:\.\d+)?/;
+// A stamp with nanoseconds and a zone is 36 characters. A longer one is no
+// stamp, and is not worth reading.
+const EXIF_STAMP_MAX = 64;
+// '+02:00' is what the spec asks for; '+0200', 'Z', 'UTC' and 'GMT' say the same thing.
+const EXIF_ZONE = /^(?:(Z|UTC|GMT)|([+-])(\d{2}):?(\d{2}))$/i;
+
+/** An EXIF zone ('+02:00', an OffsetTime* tag or a stamp's own) in minutes east of UTC, or null when it is not one. */
+function exifZoneMinutes(value: unknown): number | null {
+    if (typeof value !== 'string') return null;
+    const m = EXIF_ZONE.exec(value.trim());
+    if (!m) return null;
+    if (m[1]) return 0;
+    const hours = Number(m[3]);
+    const minutes = Number(m[4]);
+    // Real zones run from -12:00 to +14:00; anything past that is a broken tag.
+    if (hours > 14 || minutes > 59) return null;
+    return (m[2] === '-' ? -1 : 1) * (hours * 60 + minutes);
+}
+
+
+/**
+ * The instant an EXIF capture stamp names, as an ISO string, or null.
+ *
+ * EXIF stores the photographer's wall clock ('2026:05:30 15:52:19') and, in a
+ * separate tag, the zone it was read in ('+02:00'). Handing the file to exifr
+ * with its defaults turns the stamp into a Date in the server's zone and never
+ * looks at the offset, so a photo taken in France and uploaded to a server in
+ * Chicago was stored seven hours late (#2512). This takes the raw stamp and
+ * applies the first well-formed offset in `offsets`. A stamp that carries its
+ * own zone ('... UTC', 'Z', '+02:00', the form exifr's reviver comment names)
+ * needs none of them: that zone is the most specific answer there is.
+ *
+ * Without one, the server's zone is all there is to go on. That is what every
+ * upload got before, and it stays right for a server in the photographer's zone.
+ *
+ * A stamp that is not a real moment (blank, the zeros a camera without a clock
+ * writes, 30 February, 25 o'clock) is null, not whatever Date rolls it over to.
+ */
+export function exifCaptureInstant(stamp: unknown, offsets: unknown[]): string | null {
+    if (typeof stamp !== 'string') return null;
+    const text = stamp.trim();
+    if (text.length > EXIF_STAMP_MAX) return null;
+    const m = EXIF_STAMP.exec(text);
+    if (!m) return null;
+    const suffix = text.slice(m[0].length).trim();
+    // After the time there is either nothing or a zone; anything else ('CEST',
+    // '+2', 'later') is not a stamp. A zone that is out of range leaves the
+    // decision to the tags.
+    if (suffix && !EXIF_ZONE.test(suffix)) return null;
+    const [year, month, day, hour, minute, second] = m.slice(1, 7).map(Number);
+    const wall = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+    // Date.UTC quietly rolls an impossible part into the next one (and reads
+    // years below 100 as 19xx), so the parts have to survive the round trip. It
+    // is checked on the UTC reading so a local DST gap does not count as invalid.
+    if (wall.getUTCFullYear() !== year || wall.getUTCMonth() !== month - 1 || wall.getUTCDate() !== day
+        || wall.getUTCHours() !== hour || wall.getUTCMinutes() !== minute || wall.getUTCSeconds() !== second) {
+        return null;
+    }
+    const offset = exifZoneMinutes(suffix) ?? offsets.map(exifZoneMinutes).find(o => o !== null);
+    const instant = offset == null
+        ? new Date(year, month - 1, day, hour, minute, second)
+        : new Date(wall.getTime() - offset * 60000);
+    return instant.toISOString();
+}
+
+
 export type AssetInfo = {
     id: string;
     takenAt: string | null;
@@ -211,6 +284,30 @@ export type AssetInfo = {
     height?: number | null;
     fileSize?: number | null;
     fileName?: string | null;
+}
+
+const NODE_OPERATOR_HINT = /;\s*if the root CA is installed locally.*$/is;
+
+/**
+ * Why a request to a provider never got an answer, worded for the settings card.
+ *
+ * undici rejects with a bare "fetch failed" and keeps the reason on `cause`
+ * (an unknown host, a refused connection, a self-signed certificate), so the
+ * message alone gave the user nothing to act on (#2475). The first cause that
+ * says something is appended; an error without one reads exactly as before.
+ * Node's own advice to operators that rides along on a certificate error
+ * ("try running Node.js with --use-system-ca") is cut off: whoever reads the
+ * card cannot act on it.
+ */
+export function describeFetchFailure(err: unknown): string {
+    if (!(err instanceof Error)) return 'Connection failed';
+    let cause: unknown = err.cause;
+    for (let depth = 0; depth < 3 && cause instanceof Error; depth++) {
+        const reason = cause.message.replace(NODE_OPERATOR_HINT, '').trim();
+        if (reason && reason !== err.message) return `${err.message} (${reason})`;
+        cause = cause.cause;
+    }
+    return err.message;
 }
 
 /**

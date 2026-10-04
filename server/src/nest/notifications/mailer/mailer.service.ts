@@ -12,6 +12,7 @@ import { AppSettings } from '../../../db/entities/AppSettings.entity';
 import { Settings } from '../../../db/entities/Settings.entity';
 import { Users } from '../../../db/entities/Users.entity';
 import { buildEmailHtml, buildPasswordResetHtml } from './email-html';
+import { emailLogoAttachment } from './email-logo';
 import { describeSmtpFailure, describeSmtpGap, parseSmtpPort, type SmtpTarget } from './smtp-diagnostics';
 
 interface SmtpConfig {
@@ -191,6 +192,7 @@ export class MailerService {
         subject: `TREK — ${strings.subject}`,
         text: `${strings.greeting}, ${to}\n\n${strings.body}\n\n${strings.ctaIntro}: ${resetUrl}\n\n${strings.expiry}\n${strings.ignore}`,
         html: buildPasswordResetHtml(strings.subject, strings, to, resetUrl, lang),
+        attachments: [emailLogoAttachment()],
       });
       logInfo(`Password reset email sent to=${to}`);
       return { delivered: 'email' };
@@ -219,6 +221,7 @@ export class MailerService {
         subject: `TREK — ${subject}`,
         text: body,
         html: buildEmailHtml(subject, body, lang, navigateTarget),
+        attachments: [emailLogoAttachment()],
       });
       logInfo(`Email sent to=${to} subject="${subject}"`);
       logDebug(`Email smtp=${config.host}:${config.port} from=${config.from} to=${to}`);

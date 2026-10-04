@@ -1,6 +1,6 @@
 import { Image, Play } from 'lucide-react'
 import type { JourneyPhoto } from '../../store/journeyStore'
-import { photoUrl } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
+import { photoUrl, posterlessVideo } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 
 export function PhotoImg({ photo, className, style }: { photo: JourneyPhoto; className?: string; style?: React.CSSProperties }) {
   const src = photoUrl(photo, 'thumbnail')
@@ -11,12 +11,16 @@ export function PhotoImg({ photo, className, style }: { photo: JourneyPhoto; cla
       className={`relative overflow-hidden ${isVideo ? 'bg-black' : ''} ${className || ''}`}
       style={style}
     >
-      <img
-        src={src}
-        alt=""
-        className={`w-full h-full ${isVideo ? 'object-contain' : 'object-cover'}`}
-        loading="lazy"
-      />
+      {/* A clip without a poster keeps the black tile and the play badge; asking
+          for its thumbnail would only draw the broken-image glyph over them. */}
+      {!posterlessVideo(photo) && (
+        <img
+          src={src}
+          alt=""
+          className={`w-full h-full ${isVideo ? 'object-contain' : 'object-cover'}`}
+          loading="lazy"
+        />
+      )}
 
       {isVideo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

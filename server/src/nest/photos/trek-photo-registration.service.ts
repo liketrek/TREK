@@ -124,20 +124,23 @@ export class TrekPhotoRegistrationService {
    * and a later, emptier answer must not blank what is already there.
    *
    * A photo with neither is the normal case, not a failure. The all-empty
-   * early return and the pair-or-neither coordinate guard both stay here —
-   * the repository's `patchCaptureMetadata` issues the COALESCE write
-   * unconditionally once called.
+   * early return and the pair-or-neither coordinate guard both stay here.
+   *
+   * Answers whether the row learned anything. The repository only counts a
+   * row whose missing column actually receives a value: SQLite counts a
+   * matched row as changed even when every COALESCE kept the old value, and
+   * the caller broadcasts a journey refresh on it (#1587).
    */
   async recordCaptureMetadata(
     photoId: number,
     meta: { takenAt?: string | null; lat?: number | null; lng?: number | null },
-  ): Promise<void> {
+  ): Promise<boolean> {
     const { takenAt = null, lat = null, lng = null } = meta;
-    if (takenAt == null && lat == null && lng == null) return;
+    if (takenAt == null && lat == null && lng == null) return false;
     // Coordinates are stored as a pair or not at all — a lone latitude is not a
     // place, and half a pair would put the photo on the null island.
     const hasPair = Number.isFinite(lat) && Number.isFinite(lng);
-    await this.trekPhotos.patchCaptureMetadata(photoId, takenAt, hasPair ? lat : null, hasPair ? lng : null);
+    return await this.trekPhotos.patchCaptureMetadata(photoId, takenAt, hasPair ? lat : null, hasPair ? lng : null);
   }
 
   /**

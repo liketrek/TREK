@@ -3,13 +3,14 @@ import { installGlobalErrorHandlers } from './globalErrorHandlers';
 
 let teardown: () => void;
 let consoleError: ReturnType<typeof vi.spyOn>;
+// A chunk failure reloads through chunkReload's fresh reload, a location.replace.
 let reload: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   sessionStorage.clear();
   consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
   reload = vi.fn();
-  Object.defineProperty(window, 'location', { value: { ...window.location, reload }, writable: true });
+  Object.defineProperty(window, 'location', { value: { ...window.location, replace: reload }, writable: true });
   teardown = installGlobalErrorHandlers();
 });
 

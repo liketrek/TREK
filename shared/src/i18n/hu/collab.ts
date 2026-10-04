@@ -25,6 +25,8 @@ const collab: TranslationStrings = {
   'collab.links.delete': 'Link törlése',
   'collab.links.edit': 'Link szerkesztése',
   'collab.links.open': 'Link megnyitása',
+  'collab.links.confirmDeleteTitle': 'Törlöd a linket?',
+  'collab.links.confirmDeleteBody': 'Ez a link véglegesen törlődik.',
   'collab.whatsNext.title': 'Mi következik',
   'collab.whatsNext.today': 'Ma',
   'collab.whatsNext.tomorrow': 'Holnap',

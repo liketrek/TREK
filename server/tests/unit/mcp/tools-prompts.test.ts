@@ -90,6 +90,7 @@ import type { EntityManager } from '@mikro-orm/core';
 // getTripSummary is the same controllable mock the legacy path used.
 const tripsStub = {
   canAccessTrip: (tripId: number, userId: number) => testDb.prepare(CAN_ACCESS_TRIP_SQL).get(userId, tripId, userId),
+  getRaw: async (tripId: number) => testDb.prepare('SELECT * FROM trips WHERE id = ?').get(tripId),
 } as unknown as TripsService;
 // getTripSummary moved to TripReadModelService with the trip split; the mock is
 // the same controllable one, one constructor slot further along.
@@ -119,6 +120,7 @@ let promptGuards: McpToolGuardsService;
 let tripsMcp: TripsMcp;
 let promptPackingService: PackingService;
 let packingMcp: PackingMcp;
+let promptBudget: BudgetService;
 let budgetMcp: BudgetMcp;
 let tripPromptsMcp: TripPromptsMcp;
 beforeAll(async () => {
@@ -151,8 +153,9 @@ beforeAll(async () => {
     await createTestTripMembersRepo(testDb),
   );
   packingMcp = new PackingMcp(promptPackingService, authStub, addonsStub, promptGuards);
+  promptBudget = new BudgetService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new ExchangeRatesService(), new RealtimeService(), await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb)));
   budgetMcp = new BudgetMcp(
-  new BudgetService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new ExchangeRatesService(), new RealtimeService(), await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb))),
+  promptBudget,
   new ExchangeRatesService(),
   new RuntimeEnvService(),
   new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)),
@@ -178,7 +181,7 @@ beforeEach(() => {
   // real getTripSummary object shape ({ items, total, ... }) that prompts.ts reads
   // via budget.items/budget.total; packing stays an array (the packing prompt
   // tolerates it).
-  mockGetTripSummary.mockImplementation((tripId: any) => {
+  mockGetTripSummary.mockImplementation(async (tripId: any) => {
     const trip = testDb.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as any;
     if (!trip) return null;
     const members = testDb.prepare(`
@@ -188,6 +191,8 @@ beforeEach(() => {
     `).all(tripId) as any[];
     const budgetRows = testDb.prepare('SELECT * FROM budget_items WHERE trip_id = ?').all(tripId) as any[];
     const packingRows = testDb.prepare('SELECT * FROM packing_items WHERE trip_id = ?').all(tripId) as any[];
+    // The totals come from the same BudgetService.tripTotals the real summary uses.
+    const totals = await promptBudget.tripTotals(tripId, trip.currency || 'EUR');
     return {
       trip,
       days: [],
@@ -195,8 +200,10 @@ beforeEach(() => {
       budget: {
         items: budgetRows,
         item_count: budgetRows.length,
-        total: budgetRows.reduce((sum, i) => sum + (i.total_price || 0), 0),
+        total: totals.total,
+        by_category: totals.byCategory,
         currency: trip.currency,
+        unconverted_item_ids: totals.unconverted,
       },
       packing: packingRows, // array shape; packing prompt tolerates it
       reservations: [],
@@ -448,19 +455,18 @@ describe('Prompt: packing-list', () => {
     expect(text).toMatch(/\[[ x]\]/);
   });
 
-  it('uses tripId as title fallback when getTripSummary returns null (covers || {} branch)', async () => {
+  it('reads the trip title without building the whole trip summary (#2525)', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Null Trip' });
     createPackingItem(testDb, trip.id, { name: 'Toothbrush', category: 'Hygiene' });
-
-    // Null out the getTripSummary call inside packing-list (line 94: || {})
-    mockGetTripSummary.mockReturnValueOnce(null);
+    mockGetTripSummary.mockClear();
 
     const client = await buildServer(user.id);
     const text = await invokePromptText(client, 'packing-list', { tripId: trip.id });
     expect(text).toContain('Toothbrush');
-    // Falls back to 'Trip' literal since trip?.title is undefined (getTripSummary null → || {})
-    expect(text).toContain('Packing List: Trip');
+    expect(text).toContain('Packing List: Null Trip');
+    // The summary adds the budget up, and that can wait on a rates fetch.
+    expect(mockGetTripSummary).not.toHaveBeenCalled();
   });
 });
 
@@ -541,6 +547,50 @@ describe('Prompt: budget-overview', () => {
     expect(text).toContain('Accommodation');
     expect(text).toContain('550'); // Transport total
     expect(text).toContain('300'); // Accommodation total
+  });
+
+  it('prints a foreign-currency bill at the rate it was booked at, not as that many euros (#2525)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Dollar Trip' });
+    await promptBudget.createBudgetItem(trip.id, {
+      name: 'Aparthotel Silver', category: 'Accommodation', currency: 'USD', exchange_rate: 1.17,
+      payers: [{ user_id: user.id, amount: 801.76 }], members: [{ user_id: user.id }],
+    });
+    createBudgetItem(testDb, trip.id, { name: 'Dinner', category: 'Food', total_price: 100 });
+
+    const client = await buildServer(user.id);
+    const text = await invokePromptText(client, 'budget-overview', { tripId: trip.id });
+    // 801.76 USD at 1.17 is 685.26 EUR. Summed as stored it read "Total: 901.76 EUR".
+    expect(text).toContain('Total: 785.26 EUR');
+    expect(text).toContain('- Accommodation: 685.26 EUR');
+    expect(text).toContain('- Food: 100 EUR');
+    expect(text).not.toContain('801.76');
+  });
+
+  it('says how many expenses no exchange rate could put into the total', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Dong Trip' });
+    // Stored with the "not frozen" rate 1, and no rates to convert it with.
+    await promptBudget.createBudgetItem(trip.id, {
+      name: 'Pho', category: 'Food', currency: 'VND', total_price: 8920000, members: [{ user_id: user.id }],
+    });
+    createBudgetItem(testDb, trip.id, { name: 'Dinner', category: 'Food', total_price: 100 });
+
+    const client = await buildServer(user.id);
+    const text = await invokePromptText(client, 'budget-overview', { tripId: trip.id });
+    expect(text).toContain('Total: 100 EUR');
+    expect(text).toContain('1 expense(s) not counted yet: no exchange rate.');
+    expect(text).not.toContain('8920000');
+  });
+
+  it('adds no such line when every expense converts', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Euro Trip' });
+    createBudgetItem(testDb, trip.id, { name: 'Dinner', category: 'Food', total_price: 100 });
+
+    const client = await buildServer(user.id);
+    const text = await invokePromptText(client, 'budget-overview', { tripId: trip.id });
+    expect(text).not.toContain('not counted yet');
   });
 
   it('renders "No expenses recorded." when budget array is empty', async () => {

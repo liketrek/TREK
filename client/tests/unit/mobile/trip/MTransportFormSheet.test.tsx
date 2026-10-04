@@ -3,12 +3,18 @@ import MTransportFormSheet from '../../../../src/mobile/screens/trip/sheets/MTra
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { useAddonStore } from '../../../../src/store/addonStore'
 import { useTripStore } from '../../../../src/store/tripStore'
+import { useAuthStore } from '../../../../src/store/authStore'
+import { server } from '../../../helpers/msw/server'
+import { http, HttpResponse } from 'msw'
+import { buildBudgetItem, buildUser } from '../../../helpers/factories'
+import { useSettingsStore } from '../../../../src/store/settingsStore'
+import { isBlurred } from '../../../helpers/bookingCodeBlur'
 import type { Day, Reservation, TripMember } from '../../../../src/types'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
-import { act, fireEvent, render, screen } from '../../../helpers/render'
+import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-TRFRM-001 to FE-MOB-TRFRM-048
+// FE-MOB-TRFRM-001 to FE-MOB-TRFRM-059
 //
 // The sheet's own pickers (airport/location search, day select, time picker) and
 // the embedded transit panel are replaced by minimal controlled stand-ins so the
@@ -63,9 +69,10 @@ vi.mock('../../../../src/components/Planner/AirportSelect', () => ({
 }))
 
 vi.mock('../../../../src/components/Planner/LocationSelect', () => ({
-  default: ({ value, onChange }: { value: { name: string } | null; onChange: (l: unknown) => void }) => (
+  default: ({ value, onChange, places }: { value: { name: string } | null; onChange: (l: unknown) => void; places?: { name: string }[] }) => (
     <input
       aria-label="location-select"
+      data-picks={(places ?? []).map(p => p.name).join('|')}
       value={value?.name ?? ''}
       onChange={e => onChange(LOCATIONS[e.target.value] ?? null)}
     />
@@ -91,11 +98,23 @@ vi.mock('../../../../src/components/Planner/TransitSearchPanel', () => ({
 }))
 
 vi.mock('../../../../src/mobile/screens/trip/sheets/PlFileAttach', () => ({
-  default: ({ files, onAdd, onRemove }: { files: File[]; onAdd: (f: File[]) => void; onRemove: (i: number) => void }) => (
+  default: ({ files, onAdd, onRemove, canAttach = true, attached = [], linkable = [], onLink }: {
+    files: File[]
+    onAdd: (f: File[]) => void
+    onRemove: (i: number) => void
+    canAttach?: boolean
+    attached?: { id: number; original_name: string }[]
+    linkable?: { id: number; original_name: string }[]
+    onLink?: (f: { id: number; original_name: string }) => Promise<boolean>
+  }) => (
     <div>
-      <button type="button" onClick={() => onAdd([new File(['x'], 'extra.pdf')])}>attach-file</button>
+      {canAttach && <button type="button" onClick={() => onAdd([new File(['x'], 'extra.pdf')])}>attach-file</button>}
       {files.map((f, i) => (
         <button key={`${f.name}-${i}`} type="button" onClick={() => onRemove(i)}>{`drop-${f.name}`}</button>
+      ))}
+      {attached.map(f => <span key={f.id}>{`attached-${f.original_name}`}</span>)}
+      {linkable.map(f => (
+        <button key={f.id} type="button" onClick={() => { void onLink?.(f) }}>{`link-${f.original_name}`}</button>
       ))}
     </div>
   ),
@@ -823,6 +842,18 @@ describe('MTransportFormSheet', () => {
     expect((addFile.mock.calls[0][1] as FormData).get('description')).toBe('Rental car')
   })
 
+  it('FE-MOB-TRFRM-029b: a parsed price keeps the currency it was quoted in (#2525)', async () => {
+    const handleSaveTransport = makeSave()
+    const planner = makePlanner({
+      transportPrefill: { type: 'train', title: 'Amtrak', metadata: { price: 117, priceCurrency: 'USD' }, endpoints: [] },
+      handleSaveTransport,
+    })
+    renderSheet(planner)
+    await submit()
+    // Sent without it, the server stored 117 in the trip currency.
+    expect(handleSaveTransport.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 117, category: 'transport', currency: 'USD' })
+  })
+
   it('FE-MOB-TRFRM-030: a prefill without a price and with the budget addon off skips the cost entry', async () => {
     seedStore(useAddonStore, { addons: [] })
     const handleSaveTransport = makeSave()
@@ -831,7 +862,7 @@ describe('MTransportFormSheet', () => {
       handleSaveTransport,
     })
     renderSheet(planner)
-    expect(screen.queryByRole('button', { name: 'reservations.createExpense' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Create expense' })).not.toBeInTheDocument()
     await submit()
     expect(handleSaveTransport.mock.calls[0][0]).not.toHaveProperty('create_budget_entry')
   })
@@ -895,7 +926,7 @@ describe('MTransportFormSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'reservations.type.ferry' }))
     typeTitle('Ferry ticket')
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'reservations.createExpense' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Create expense' }))
     })
     expect(handleSaveTransport).toHaveBeenCalledTimes(1)
     expect(onOpenExpense).toHaveBeenCalledWith({
@@ -956,5 +987,159 @@ describe('MTransportFormSheet', () => {
     renderSheet(makePlanner({ transportModalDayId: 13 }))
     fireEvent.click(screen.getByRole('button', { name: 'reservations.type.bus' }))
     expect(daySelects().map(s => s.value)).toEqual(['13', '13'])
+  })
+
+  // ── Blur booking codes in the edit sheet (#2457) ───────────────────────────
+
+  describe('blur booking codes (#2457)', () => {
+    /** Both sources the phone reads the preference from: the settings store and planner.settings. */
+    function plannerWithBlur(on: boolean, overrides: Record<string, unknown> = {}) {
+      useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, blur_booking_codes: on } })
+      return makePlanner({
+        settings: { time_format: '24h', date_format: 'DD.MM.YYYY', default_currency: 'EUR', distance_unit: 'km', blur_booking_codes: on },
+        ...overrides,
+      })
+    }
+    const codeFields = () => screen.getAllByPlaceholderText('reservations.confirmationPlaceholder') as HTMLInputElement[]
+
+    const layover = () => ({
+      id: 45, trip_id: 1, type: 'flight', title: 'FRA-IST-HND', status: 'pending',
+      day_id: 11, end_day_id: 12, confirmation_number: 'BOOK1',
+      metadata: {
+        legs: [
+          { from: 'FRA', to: 'IST', confirmation_number: 'ABC123', dep_day_id: 11, dep_time: '10:20', arr_day_id: 11, arr_time: '14:05' },
+          { from: 'IST', to: 'HND', confirmation_number: 'XYZ789', dep_day_id: 11, dep_time: '16:30', arr_day_id: 12, arr_time: '09:00' },
+        ],
+      },
+      endpoints: [
+        { id: 1, reservation_id: 45, role: 'from', sequence: 0, name: 'Frankfurt (FRA)', code: 'FRA', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin', local_date: null, local_time: null },
+        { id: 2, reservation_id: 45, role: 'stop', sequence: 1, name: 'Istanbul (IST)', code: 'IST', lat: 41.27, lng: 28.75, timezone: 'Europe/Istanbul', local_date: null, local_time: null },
+        { id: 3, reservation_id: 45, role: 'to', sequence: 2, name: 'Tokyo (HND)', code: 'HND', lat: 35.55, lng: 139.78, timezone: 'Asia/Tokyo', local_date: null, local_time: null },
+      ],
+    } as unknown as Reservation)
+
+    it('FE-MOB-TRFRM-049: the booking code and every segment code are blurred while the setting is on', () => {
+      renderSheet(plannerWithBlur(true, { editingTransport: layover() }))
+      const codes = codeFields()
+      expect(codes.map(i => i.value)).toEqual(['ABC123', 'XYZ789', 'BOOK1'])
+      expect(codes.map(i => isBlurred(i))).toEqual([true, true, true])
+    })
+
+    it('FE-MOB-TRFRM-050: focusing a code field reveals it for editing, leaving it hides it again', () => {
+      renderSheet(plannerWithBlur(true, { editingTransport: layover() }))
+      const field = codeFields()[2]
+      expect(isBlurred(field)).toBe(true)
+      act(() => field.focus())
+      expect(isBlurred(field)).toBe(false)
+      act(() => field.blur())
+      expect(isBlurred(field)).toBe(true)
+    })
+
+    it('FE-MOB-TRFRM-051: with the setting off every code field stays plain', () => {
+      renderSheet(plannerWithBlur(false, { editingTransport: layover() }))
+      expect(codeFields().map(i => isBlurred(i))).toEqual([false, false, false])
+    })
+
+    it('FE-MOB-TRFRM-052: blurred codes still save unchanged', async () => {
+      const handleSaveTransport = makeSave()
+      renderSheet(plannerWithBlur(true, { editingTransport: layover(), handleSaveTransport }))
+      await submit('common.update')
+      const payload = handleSaveTransport.mock.calls[0][0]
+      const legs = (payload.metadata as { legs: Record<string, unknown>[] }).legs
+      expect(legs.map(l => l.confirmation_number)).toEqual(['ABC123', 'XYZ789'])
+      expect(payload.confirmation_number).toBe('BOOK1')
+    })
+  })
+
+  it('FE-MOB-TRFRM-053: the manual From and To fields offer the trip places that have a location, each once (#2468)', () => {
+    renderSheet(makePlanner({
+      places: [
+        { id: 1, name: 'Fushimi Inari', lat: 34.97, lng: 135.77 },
+        { id: 2, name: 'No pin yet', lat: null, lng: null },
+        { id: 3, name: 'Fushimi Inari', lat: 34.97, lng: 135.77 },
+      ],
+    }))
+    fireEvent.click(screen.getByRole('button', { name: 'reservations.type.bus' }))
+
+    const fields = locationInputs()
+    expect(fields).toHaveLength(2)
+    for (const field of fields) expect(field).toHaveAttribute('data-picks', 'Fushimi Inari')
+  })
+
+  // ── Files and costs of a saved transport (#2084) ───────────────────────────
+
+  const SHINKANSEN = {
+    id: 61, trip_id: 1, type: 'train', title: 'Shinkansen', status: 'confirmed', day_id: 12, metadata: {}, endpoints: [],
+  } as unknown as Reservation
+  const TRIP_FILES = [
+    { id: 7, trip_id: 1, reservation_id: 61, original_name: 'eticket.pdf', url: '/uploads/eticket.pdf', deleted_at: null },
+    { id: 8, trip_id: 1, original_name: 'railpass.pdf', url: '/uploads/railpass.pdf', deleted_at: null },
+  ]
+
+  it('FE-MOB-TRFRM-054: an edited transport lists its files and links another trip file to itself', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1 }) })
+    seedStore(useTripStore, { trip: { id: 1, user_id: 1, currency: 'EUR' } as never, files: TRIP_FILES as never })
+    let body: unknown = null
+    server.use(
+      http.post('/api/trips/1/files/8/link', async ({ request }) => {
+        body = await request.json()
+        return HttpResponse.json({ success: true })
+      }),
+      http.get('/api/trips/1/files', () => HttpResponse.json({ files: TRIP_FILES })),
+    )
+    renderSheet(makePlanner({ editingTransport: SHINKANSEN }))
+    expect(screen.getByText('attached-eticket.pdf')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'link-railpass.pdf' }))
+    await waitFor(() => expect(body).toEqual({ reservation_id: 61 }))
+  })
+
+  it('FE-MOB-TRFRM-055: without upload permission the files of a transport are still shown, without the picker', () => {
+    seedStore(useTripStore, { files: TRIP_FILES as never })
+    renderSheet(makePlanner({ editingTransport: SHINKANSEN, canUploadFiles: false }))
+    expect(screen.getByText('attached-eticket.pdf')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'attach-file' })).not.toBeInTheDocument()
+    // Nobody is signed in here, so linking is not offered either.
+    expect(screen.queryByRole('button', { name: 'link-railpass.pdf' })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-TRFRM-056: a linked expense of the transport opens in the cost sheet for editing', () => {
+    const fare = buildBudgetItem({ id: 90, trip_id: 1, name: 'Train fare', total_price: 140, reservation_id: 61 })
+    seedStore(useTripStore, { trip: { id: 1, currency: 'EUR' } as never, budgetItems: [fare] })
+    const onOpenExpense = vi.fn()
+    renderSheet(makePlanner({ editingTransport: SHINKANSEN }), onOpenExpense)
+    fireEvent.click(screen.getByText('Train fare'))
+    expect(onOpenExpense).toHaveBeenCalledWith({ editItem: fare })
+  })
+
+  it('FE-MOB-TRFRM-057: a new transport has nothing to link its costs to yet', () => {
+    seedStore(useTripStore, { trip: { id: 1, currency: 'EUR' } as never, budgetItems: [buildBudgetItem({ id: 91, trip_id: 1, name: 'Loose' })] })
+    renderSheet(makePlanner())
+    expect(screen.getByRole('button', { name: 'Create expense' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Link' })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-TRFRM-058: files attached while editing a transport are uploaded against it (#2534)', async () => {
+    const handleSaveTransport = makeSave(SHINKANSEN)
+    const addFile = vi.fn(async (_tripId: number, _form: FormData) => undefined)
+    renderSheet(makePlanner({ editingTransport: SHINKANSEN, handleSaveTransport, tripActions: { addFile } }))
+    fireEvent.click(screen.getByRole('button', { name: 'attach-file' }))
+
+    await submit('common.update')
+    expect(addFile).toHaveBeenCalledTimes(1)
+    const fd = addFile.mock.calls[0][1] as FormData
+    expect(fd.get('reservation_id')).toBe('61')
+    expect(fd.get('description')).toBe('Shinkansen')
+    expect((fd.get('file') as File).name).toBe('extra.pdf')
+  })
+
+  it('FE-MOB-TRFRM-059: a failed transport edit keeps the attached files off the server', async () => {
+    const handleSaveTransport = vi.fn(async (_payload: SavePayload) => undefined)
+    const addFile = vi.fn(async (_tripId: number, _form: FormData) => undefined)
+    renderSheet(makePlanner({ editingTransport: SHINKANSEN, handleSaveTransport, tripActions: { addFile } }))
+    fireEvent.click(screen.getByRole('button', { name: 'attach-file' }))
+
+    await submit('common.update')
+    expect(handleSaveTransport).toHaveBeenCalled()
+    expect(addFile).not.toHaveBeenCalled()
   })
 })

@@ -14,7 +14,12 @@ import { placeWebsiteSchema } from '@trek/shared'
  * have not updated yet — the same split as safeHexColor.
  */
 export function safeHttpUrl(value: string | null | undefined): string | null {
-  return typeof value === 'string' && placeWebsiteSchema.safeParse(value).success ? value : null
+  if (typeof value !== 'string') return null
+  const parsed = placeWebsiteSchema.safeParse(value)
+  // The contract completes a bare host to https on the way in (#2483), but the
+  // value handed to window.open here is the one stored, and "louvre.fr" would
+  // resolve against this app. So only a value already in its final form passes.
+  return parsed.success && parsed.data === value ? value : null
 }
 
 /**

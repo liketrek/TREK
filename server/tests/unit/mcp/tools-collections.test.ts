@@ -320,6 +320,27 @@ describe('Tool: save_place_to_collection', () => {
   });
 });
 
+// #2483: the tool spreads the REST save contract, so a bare host from
+// search_place is saved with https here too.
+describe('Tool: save_place_to_collection and a website without a scheme (#2483)', () => {
+  it('MCP-COLL-2483-01: stores https for a bare host and still refuses a script link', async () => {
+    const { user } = createUser(testDb);
+    const col = seedCollection(user.id, 'Bretagne');
+    const site = 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët';
+    await withHarness(user.id, async (h) => {
+      const saved = parseToolResult(await h.client.callTool({
+        name: 'save_place_to_collection',
+        arguments: { collection_id: col, name: 'Chapelle Sainte-Barbe', website: site },
+      })) as { place: { website: string } };
+      expect(saved.place.website).toBe(`https://${site}`);
+
+      const refused = await h.client.callTool({ name: 'save_place_to_collection', arguments: { collection_id: col, name: 'Hostile', website: 'javascript:alert(1)' } });
+      expect(refused.isError).toBe(true);
+    });
+    expect(testDb.prepare('SELECT website FROM collection_places WHERE collection_id = ?').all(col)).toEqual([{ website: `https://${site}` }]);
+  });
+});
+
 describe('Tool: save_trip_places_to_collection', () => {
   it('copies trip places, skipping duplicates', async () => {
     const { user } = createUser(testDb);

@@ -240,6 +240,13 @@ describe('buildEmailHtml', () => {
     expect(html).toContain('notifications enabled in TREK');
   });
 
+  it('links notification preferences to the notifications settings tab', () => {
+    const html = buildEmailHtml('Subject', 'Body', 'en');
+    expect(html).toMatch(
+      /<a href="https?:\/\/[^"]+\/settings\?tab=notifications"[^>]*>Manage preferences in Settings<\/a>/,
+    );
+  });
+
   it('uses German i18n strings for lang=de', () => {
     const html = buildEmailHtml('Subject', 'Body', 'de');
     expect(html).toContain('TREK aktiviert');
@@ -250,6 +257,14 @@ describe('buildEmailHtml', () => {
     const unknown = buildEmailHtml('Subject', 'Body', 'xx');
     // Both should have the same footer text
     expect(unknown).toContain('notifications enabled in TREK');
+  });
+
+  it('points the header logo at an inline part by Content-ID, not at a data: URI (#2507)', () => {
+    const html = buildEmailHtml('Subject', 'Body', 'en');
+    // Gmail strips data: URIs and Outlook blocks them, which left a broken image
+    // in the header of every mail.
+    expect(html).not.toContain('data:');
+    expect(html).toMatch(/<img src="cid:[^"]+" alt="TREK" width="48" height="48"/);
   });
 });
 
@@ -475,7 +490,7 @@ describe('GHSA-7pqc-fj3c-9346 (live path): buildBuiltinChannels sendToUser resol
       )
       .run();
     const liveNtfy = new NtfyService(await createTestSettingsRepo(liveDb), await createTestAppSettingsRepo(liveDb));
-    const ntfyChannel = buildBuiltinChannels({ mailer: {} as never, webhook: {} as never, ntfy: liveNtfy }).find((c) => c.id === 'ntfy')!;
+    const ntfyChannel = buildBuiltinChannels({ mailer: {} as never, webhook: {} as never, ntfy: liveNtfy, push: {} as never }).find((c) => c.id === 'ntfy')!;
 
     const mockFetch = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
     mockFetch.mockClear();

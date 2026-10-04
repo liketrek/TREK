@@ -226,83 +226,6 @@ describe('DaysRepository — Task 2 additions', () => {
       expect(await days.existsInTrip('not-a-number', trip.id)).toBe(false);
     });
   });
-
-  // ── Plan 3c Task 7 (TripsService.generateDays: TP3, TP6, TP12) ─────────────
-
-  describe('clearDate (TP3)', () => {
-    it('DAYREPO-021: nullifies the date without deleting the row — assignments/notes/accommodations survive', async () => {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
-      const day = createDay(testDb, trip.id, { date: '2026-01-01' });
-      const place = createPlace(testDb, trip.id);
-      createDayAssignment(testDb, day.id, place.id);
-      await days.clearDate(day.id);
-      const row = testDb.prepare('SELECT date FROM days WHERE id = ?').get(day.id) as { date: string | null };
-      expect(row.date).toBeNull();
-      expect(testDb.prepare('SELECT id FROM day_assignments WHERE day_id = ?').get(day.id)).toBeDefined();
-    });
-  });
-
-  describe('isEmptyDay (TP12) — three counts across day_assignments/day_notes/day_accommodations', () => {
-    it('DAYREPO-022: true for a day with nothing on it; false once it holds an assignment, a note, or an accommodation (start OR end)', async () => {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
-      const empty = createDay(testDb, trip.id);
-      const withAssignment = createDay(testDb, trip.id);
-      const withNote = createDay(testDb, trip.id);
-      const withAccomStart = createDay(testDb, trip.id);
-      // Task 7 review M1: a check-out day (#1083) — this day is ONLY ever
-      // `end_day_id` of the booking, never `start_day_id`. The original
-      // version of this test set BOTH start and end to the same day, which
-      // never actually exercised the `{ endDay: day_id }` half of the `$or`
-      // — that half could be deleted from `isEmptyDay` and this test would
-      // still pass, because the day would still match via `startDay`. A
-      // genuinely two-day-spanning accommodation is required to pin it.
-      const withAccomEnd = createDay(testDb, trip.id);
-      const place = createPlace(testDb, trip.id);
-      createDayAssignment(testDb, withAssignment.id, place.id);
-      createDayNote(testDb, withNote.id, trip.id);
-      createDayAccommodation(testDb, trip.id, place.id, withAccomStart.id, withAccomEnd.id);
-
-      expect(await days.isEmptyDay(empty.id)).toBe(true);
-      expect(await days.isEmptyDay(withAssignment.id)).toBe(false);
-      expect(await days.isEmptyDay(withNote.id)).toBe(false);
-      expect(await days.isEmptyDay(withAccomStart.id)).toBe(false);
-      // Mutation-proof: this day is NEVER `start_day_id` for any accommodation
-      // — it can only read `false` here via the `{ endDay: day_id }` clause.
-      expect(await days.isEmptyDay(withAccomEnd.id)).toBe(false);
-    });
-  });
-
-  describe('listTrailingEmptyIds (TP6) — ORDER BY day_number DESC, first `limit` empty days', () => {
-    it('DAYREPO-023: a non-empty day in the middle is skipped, not a stopping point — matches the legacy WHERE-filter-then-LIMIT semantics', async () => {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
-      const d1 = createDay(testDb, trip.id, { day_number: 1 }); // empty
-      const d2 = createDay(testDb, trip.id, { day_number: 2 }); // holds a note — excluded, not a stop
-      const d3 = createDay(testDb, trip.id, { day_number: 3 }); // empty
-      const d4 = createDay(testDb, trip.id, { day_number: 4 }); // empty
-      createDayNote(testDb, d2.id, trip.id);
-
-      // limit=2: stops as soon as 2 empty days are collected, in day_number
-      // DESC order — d2 is never even reached.
-      expect(await days.listTrailingEmptyIds(trip.id, 2)).toEqual([d4.id, d3.id]);
-
-      // limit=3: d4, d3 collected; d2 examined and SKIPPED (not empty, and
-      // not a stopping point either); d1 examined and collected — matching
-      // the legacy `WHERE NOT EXISTS(...) ×3 ORDER BY day_number DESC LIMIT
-      // 3` exactly (it filters every day up front, then takes the top 3 of
-      // what's left — d2 was never a candidate to begin with).
-      expect(await days.listTrailingEmptyIds(trip.id, 3)).toEqual([d4.id, d3.id, d1.id]);
-    });
-
-    it('DAYREPO-024: a limit of 0 returns nothing without querying', async () => {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
-      createDay(testDb, trip.id);
-      expect(await days.listTrailingEmptyIds(trip.id, 0)).toEqual([]);
-    });
-  });
 });
 
 // ── Plan 3c Task 8 (`TripsService.copy`, TP39) — additive ───────────────────
@@ -382,5 +305,84 @@ describe('DaysRepository.listPlanDays (RPL1, roadtrip-plan.service.ts::context)'
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     expect(await days.listPlanDays(trip.id)).toEqual([]);
+  });
+});
+
+// ── Plan 3c Task 7 (`TripsService.generateDays` on the shared planDayGrid: TP77, TP78) ──
+
+describe('DaysRepository.listForDayGrid (TP77, trips.service.ts::generateDays)', () => {
+  it('DAYREPO-031: id/day_number/date plus has_plan_items as 0/1, set by an assignment or a note and never by a stay, ordered by day_number, scoped to the trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const withNote = createDay(testDb, trip.id, { day_number: 3 });
+    const bare = createDay(testDb, trip.id, { day_number: 1, date: '2026-06-01' });
+    const withAssignment = createDay(testDb, trip.id, { day_number: 2, date: '2026-06-02' });
+    // A stay is not a plan item: the plan reads stays separately (TP78) and
+    // this flag must stay 0 for a day that only checks a stay in or out.
+    const withStay = createDay(testDb, trip.id, { day_number: 4 });
+    createDay(testDb, other.id, { day_number: 1 });
+    const place = createPlace(testDb, trip.id);
+    createDayAssignment(testDb, withAssignment.id, place.id);
+    createDayNote(testDb, withNote.id, trip.id);
+    createDayAccommodation(testDb, trip.id, place.id, withStay.id, withStay.id);
+
+    const legacy = testDb.prepare(`
+      SELECT d.id, d.day_number, d.date,
+        EXISTS (SELECT 1 FROM day_assignments da WHERE da.day_id = d.id)
+          OR EXISTS (SELECT 1 FROM day_notes dn WHERE dn.day_id = d.id) AS has_plan_items
+      FROM days d WHERE d.trip_id = ? ORDER BY d.day_number ASC
+    `).all(trip.id);
+    const rows = await days.listForDayGrid(trip.id);
+    expect(rows).toEqual(legacy);
+    expect(rows.map((r) => [r.id, r.has_plan_items])).toEqual([[bare.id, 0], [withAssignment.id, 1], [withNote.id, 1], [withStay.id, 0]]);
+    expect(rows.map((r) => r.date)).toEqual(['2026-06-01', '2026-06-02', null, null]);
+  });
+
+  it('DAYREPO-032: empty array for a trip with no days', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    expect(await days.listForDayGrid(trip.id)).toEqual([]);
+  });
+});
+
+describe('DaysRepository.listDayGridStays (TP78, trips.service.ts::generateDays)', () => {
+  it('DAYREPO-033: start_day_id/end_day_id of every stay checking in OR out on one of the trip\'s days, a stay on another trip\'s days left out', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const d1 = createDay(testDb, trip.id, { day_number: 1 });
+    const d2 = createDay(testDb, trip.id, { day_number: 2 });
+    const foreign = createDay(testDb, other.id, { day_number: 1 });
+    const place = createPlace(testDb, trip.id);
+    const otherPlace = createPlace(testDb, other.id);
+    createDayAccommodation(testDb, trip.id, place.id, d1.id, d2.id);
+    createDayAccommodation(testDb, trip.id, place.id, d2.id, d2.id);
+    createDayAccommodation(testDb, other.id, otherPlace.id, foreign.id, foreign.id);
+    // Only the check-out day is one of this trip's: reached through the
+    // `end_day_id IN` half alone, so that half cannot be dropped unnoticed.
+    createDayAccommodation(testDb, other.id, otherPlace.id, foreign.id, d1.id);
+
+    const legacy = testDb.prepare(`
+      SELECT dac.start_day_id, dac.end_day_id FROM day_accommodations dac
+      WHERE dac.start_day_id IN (SELECT id FROM days WHERE trip_id = ?)
+         OR dac.end_day_id IN (SELECT id FROM days WHERE trip_id = ?)
+    `).all(trip.id, trip.id);
+    const rows = await days.listDayGridStays(trip.id);
+    expect(rows).toEqual(legacy);
+    const byDay = (a: { start_day_id: number; end_day_id: number }, b: { start_day_id: number; end_day_id: number }) =>
+      a.start_day_id - b.start_day_id || a.end_day_id - b.end_day_id;
+    expect([...rows].sort(byDay)).toEqual([
+      { start_day_id: d1.id, end_day_id: d2.id },
+      { start_day_id: d2.id, end_day_id: d2.id },
+      { start_day_id: foreign.id, end_day_id: d1.id },
+    ]);
+  });
+
+  it('DAYREPO-034: empty array when no stay touches the trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createDay(testDb, trip.id);
+    expect(await days.listDayGridStays(trip.id)).toEqual([]);
   });
 });

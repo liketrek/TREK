@@ -1,19 +1,22 @@
-import { AlertTriangle, Bike, CarFront, Footprints, Fuel, Hourglass, Moon, Pin, Plus, RotateCcw, Shuffle, Sunrise, X, Zap } from 'lucide-react'
+import { AlertTriangle, Bike, CarFront, Clock, Footprints, Fuel, Hourglass, Moon, Pin, Plus, RotateCcw, Shuffle, Sunrise, X, Zap } from 'lucide-react'
 import type { CSSProperties, ReactNode } from 'react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import MIconBtn from '../../../components/MIconBtn'
 import { formatDurationShort, serviceColor } from '../../../../components/Roadtrip/roadtripModel'
+import { bookingOpens, carrierIcon, rideReading, terminalReading, type CheckInReading, type RideEnd } from '../../../../components/Roadtrip/carrierRide'
+import { BOOKEND_DISC, BOOKEND_ICON, bookendBadge } from '../../../../components/Roadtrip/nightBookend'
+import { bookingClock, bookingIcon } from '../../../../components/Roadtrip/stopBookings'
 import { STOP_KIND_BY_KEY } from '../../../../components/Roadtrip/stopKinds'
 import { formatDistance } from '../../../../utils/units'
 import { formatClockTime } from '../../../../utils/formatters'
-import type { StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
+import type { BookendReading, RoadtripRow, StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
 import type { RefuelSearch } from '../../../../components/Roadtrip/useRefuelSearch'
 import { REFUEL_EMPTY_KEY, REFUEL_WORDS, refuelBandState, type RefuelCandidate } from '../../../../components/Roadtrip/refuelSuggestion'
 import type { DistanceUnit, RouteSegment, ScheduleWarning } from '@trek/shared/roadtrip'
-import type { TranslationFn } from '../../../../types'
+import type { Reservation, TranslationFn } from '../../../../types'
 
 /**
- * The four row types of the mobile drive chain, plus the two bands that interrupt it.
+ * The row types of the mobile drive chain, plus the two bands that interrupt it.
  *
  * What the desktop rail does in five stacked 8px badges per stop, this does in at most
  * two 10.5px marks: on touch there is no hover, so a badge nobody can explain is worse
@@ -52,6 +55,16 @@ export interface RowChrome {
  */
 function Disc({ row, t, onPickKind }: { row: StopRow; t: TranslationFn; onPickKind?: () => void }) {
   const kind = row.stop.stopType ? STOP_KIND_BY_KEY[row.stop.stopType] : undefined
+  // A terminal wears the booking's icon and is not a control: nobody turns an airport
+  // into a petrol station.
+  if (row.stop.carrier) {
+    const Icon = carrierIcon(row.stop.carrier.type)
+    return (
+      <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-[color:var(--m-ic)] text-m-ink">
+        <Icon size={15} strokeWidth={2.1} aria-hidden="true" />
+      </span>
+    )
+  }
   const face = row.service && kind
     ? (
       <span
@@ -85,9 +98,23 @@ function Disc({ row, t, onPickKind }: { row: StopRow; t: TranslationFn; onPickKi
   )
 }
 
-function Mark({ icon, children, tone }: { icon: ReactNode; children: ReactNode; tone?: 'warn' }) {
+/**
+ * A small pill: an icon and a word or figure. With `value` the figure sits in a pill of its
+ * own inside it, the phone's badge in a badge, and `label` is the sentence a screen reader
+ * hears in place of the two, since a row that opens a booking sheet has no other place to
+ * say it.
+ */
+function Mark({ icon, children, tone, value, label }: {
+  icon: ReactNode
+  children: ReactNode
+  tone?: 'warn'
+  value?: ReactNode
+  label?: string
+}) {
   return (
     <span
+      role={label ? 'img' : undefined}
+      aria-label={label}
       className="inline-flex h-[22px] items-center gap-[4px] rounded-full px-[8px] font-geist text-[0.65625rem] font-semibold"
       style={tone === 'warn'
         ? { background: 'color-mix(in srgb, var(--m-st-pending) 14%, transparent)', color: 'var(--m-st-pending)' }
@@ -95,6 +122,7 @@ function Mark({ icon, children, tone }: { icon: ReactNode; children: ReactNode; 
     >
       {icon}
       {children}
+      {value !== undefined && <span className="ms-[2px] rounded-full bg-[color:var(--m-card)] px-[6px] tabular-nums">{value}</span>}
     </span>
   )
 }
@@ -102,8 +130,8 @@ function Mark({ icon, children, tone }: { icon: ReactNode; children: ReactNode; 
 /** The short form of a finding: the number only, the sentence waits in the sheet. */
 function warningMark(warning: ScheduleWarning, chrome: RowChrome): ReactNode {
   const { t, unit } = chrome
-  if (warning.code === 'late') {
-    return <Mark tone="warn" icon={<AlertTriangle size={10} strokeWidth={2} />}>{`+${warning.minutes ?? 0} min`}</Mark>
+  if (warning.code === 'late' || warning.code === 'missedLeave') {
+    return <Mark tone="warn" icon={<AlertTriangle size={10} strokeWidth={2} />}>{`+${formatDurationShort((warning.minutes ?? 0) * 60)}`}</Mark>
   }
   if (warning.code === 'range') {
     return <Mark tone="warn" icon={<Fuel size={10} strokeWidth={2} />}>{formatDistance(warning.sinceKm ?? 0, unit)}</Mark>
@@ -115,10 +143,25 @@ function warningMark(warning: ScheduleWarning, chrome: RowChrome): ReactNode {
 }
 
 /**
- * A stop of the stage. The whole row is the tap target, at least 46px tall, which is
- * why it is a div with role rather than a button: the desktop needs controls nested
- * inside its row, and a button inside a button is not markup.
+ * A row of the stage that is its own tap target, at least 46px tall, which is why it is a
+ * div with role rather than a button: the desktop needs controls nested inside its row,
+ * and a button inside a button is not markup.
  */
+function TapRow({ onOpen, children }: { onOpen: () => void; children: ReactNode }) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen() } }}
+      className="grid cursor-pointer items-center gap-x-[10px] py-1" style={{ gridTemplateColumns: '34px 1fr auto' }}
+    >
+      {children}
+    </div>
+  )
+}
+
+/** A stop of the stage; see `TapRow`. */
 export function RtStopRow({ row, chrome, onOpen, onPickKind }: {
   row: StopRow
   chrome: RowChrome
@@ -127,7 +170,13 @@ export function RtStopRow({ row, chrome, onOpen, onPickKind }: {
   onPickKind?: () => void
 }) {
   const { t, unit } = chrome
+  if (row.stop.carrier) return <RtTerminalRow row={row} chrome={chrome} onOpen={onOpen} />
   const marks: ReactNode[] = []
+  if (row.stop.night && row.stop.checkInTime) {
+    marks.push(
+      <Mark key="checkin" icon={null} value={formatClockTime(row.stop.checkInTime, chrome.is12h)}>{t('roadtrip.bookend.checkIn')}</Mark>,
+    )
+  }
   if (row.dwellMinutes) {
     marks.push(
       <Mark key="dwell" icon={<Hourglass size={10} strokeWidth={2} />}>{formatDurationShort(row.dwellMinutes * 60)}</Mark>,
@@ -143,13 +192,7 @@ export function RtStopRow({ row, chrome, onOpen, onPickKind }: {
   }
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen() } }}
-      className="grid cursor-pointer items-center gap-x-[10px] py-1" style={{ gridTemplateColumns: '34px 1fr auto' }}
-    >
+    <TapRow onOpen={onOpen}>
       <span className="flex justify-center"><Disc row={row} t={t} onPickKind={onPickKind} /></span>
       <span className="min-w-0 py-2">
         <span className={`block text-[0.875rem] leading-[1.25] ${row.service ? 'truncate font-medium text-m-muted' : 'line-clamp-2 font-semibold text-m-ink'}`}>
@@ -164,13 +207,243 @@ export function RtStopRow({ row, chrome, onOpen, onPickKind }: {
           {formatClockTime(row.time, chrome.is12h)}
         </span>
       )}
-    </div>
+    </TapRow>
+  )
+}
+
+/**
+ * A booked night at the edge of the stage: the hotel the day sets out from, or the one it
+ * ends at. Laid out like a stop, on the hotel stop's own disc with the bed a stay wears,
+ * with no number and no kind to pick: it is the stay's place, not a stop of the day. Under
+ * it the latest hour the room is handed back, on the morning it is, and the one finding a
+ * row has room for. The whole row opens the booking behind the night, or the stay.
+ */
+export function RtBookendRow({ row, bookend, chrome, onOpen }: {
+  row: StopRow
+  bookend: BookendReading
+  chrome: RowChrome
+  onOpen: () => void
+}) {
+  const badge = bookendBadge(bookend, row.entry, chrome.t, chrome.is12h)
+  return (
+    <TapRow onOpen={onOpen}>
+      <span className="flex justify-center">
+        <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full" style={BOOKEND_DISC}>
+          <BOOKEND_ICON size={15} strokeWidth={2.1} aria-hidden="true" />
+        </span>
+      </span>
+      <span className="min-w-0 py-2">
+        <span className="line-clamp-2 block text-[0.875rem] font-semibold leading-[1.25] text-m-ink">{bookend.name}</span>
+        <span className="mt-[4px] flex flex-wrap items-center gap-[5px]">
+          <Mark
+            tone={badge.warning ? 'warn' : undefined}
+            icon={badge.warning ? <AlertTriangle size={10} strokeWidth={2} /> : null}
+            value={badge.value ?? undefined}
+            label={badge.warning ? [badge.lead, badge.value, badge.hint].filter(Boolean).join(' ') : undefined}
+          >
+            {badge.lead}
+          </Mark>
+          {row.warning && warningMark(row.warning, chrome)}
+        </span>
+      </span>
+      {row.time && (
+        <span dir="ltr" className="whitespace-nowrap text-[0.8125rem] font-medium tabular-nums text-m-faint">
+          {formatClockTime(row.time, chrome.is12h)}
+        </span>
+      )}
+    </TapRow>
   )
 }
 
 const LEG_ICONS: Record<string, typeof CarFront> = {
   walking: Footprints,
   cycling: Bike,
+}
+
+/** The ride between two terminals, drawn in the dash the chain's legs wear, laid on its side. */
+const RIDE_CONN: CSSProperties = {
+  backgroundImage: 'repeating-linear-gradient(90deg, var(--m-conn) 0 4px, transparent 4px 8px)',
+}
+
+/** A terminal's code, or the name of one without it. On the card it takes the chain's own ground. */
+function RtChip({ text, onCard }: { text: string; onCard?: boolean }) {
+  return (
+    <span className={`block max-w-[7.5rem] flex-none truncate rounded-full px-[7px] py-px font-geist text-[0.6875rem] font-semibold text-m-ink ${
+      onCard ? 'bg-[color:var(--m-ic)]' : 'bg-[color:var(--m-card)]'
+    }`}
+    >
+      {text}
+    </span>
+  )
+}
+
+/** The timetable's clock at one end, with the day it falls on and its role said to a screen reader. */
+function RtClock({ end, t }: { end: RideEnd; t: TranslationFn }) {
+  if (!end.clock) return null
+  return (
+    <span dir="ltr" className="flex-none whitespace-nowrap text-[0.8125rem] font-semibold tabular-nums text-m-ink">
+      <span aria-hidden="true">
+        {end.clock}
+        {end.dayOffset > 0 && <span className="ms-px text-[0.6875rem]">{`+${end.dayOffset}`}</span>}
+      </span>
+      <span className="sr-only">{end.dayOffset > 0 ? `${end.label} ${t('roadtrip.warn.overnight')}` : end.label}</span>
+    </span>
+  )
+}
+
+/** The check-in as one mark with the hour, or the lateness, in a pill inside it; see `carrierRide`. */
+function CheckInMark({ checkIn }: { checkIn: CheckInReading }) {
+  const warning = checkIn.state !== 'ok'
+  return (
+    <Mark
+      tone={warning ? 'warn' : undefined}
+      icon={warning ? <AlertTriangle size={10} strokeWidth={2} /> : null}
+      value={checkIn.value}
+      label={checkIn.hint}
+    >
+      {checkIn.lead}
+    </Mark>
+  )
+}
+
+/**
+ * A terminal whose ride lands on another day, or a hire car's desk: the code and the place,
+ * the timetable's clock, and on a departure the check-in, which carries the lateness the
+ * row's own mark would otherwise repeat. A desk says which one it is. The tap opens the
+ * booking, as the rail's row does.
+ */
+function RtTerminalRow({ row, chrome, onOpen }: { row: StopRow; chrome: RowChrome; onOpen: () => void }) {
+  const { t, is12h } = chrome
+  const { end, desk, checkIn } = terminalReading(row.stop, row.entry, row.warning ? [row.warning] : [], t, is12h)
+  const warning = checkIn && row.warning?.code === 'late' ? null : row.warning
+  return (
+    <TapRow onOpen={onOpen}>
+      <span className="flex justify-center"><Disc row={row} t={t} /></span>
+      <span className="min-w-0 py-2">
+        <span className="flex min-w-0 items-center gap-[6px]">
+          {end.code && <RtChip text={end.code} onCard />}
+          <span className="line-clamp-2 min-w-0 text-[0.875rem] font-semibold leading-[1.25] text-m-ink">{end.place}</span>
+        </span>
+        {(desk || checkIn || warning) && (
+          <span className="mt-[4px] flex flex-wrap items-center gap-[5px]">
+            {desk && <span className="font-geist text-[0.65625rem] font-medium text-m-muted">{desk}</span>}
+            {checkIn && <CheckInMark checkIn={checkIn} />}
+            {warning && warningMark(warning, chrome)}
+          </span>
+        )}
+      </span>
+      {end.clock ? <RtClock end={end} t={t} /> : row.time && (
+        <span dir="ltr" className="whitespace-nowrap text-[0.8125rem] font-medium tabular-nums text-m-faint">
+          {formatClockTime(row.time, is12h)}
+        </span>
+      )}
+    </TapRow>
+  )
+}
+
+/**
+ * A ride that leaves and lands on the day, as one block in the chain (#2428), in the same
+ * four lines the rail draws: the booking with its minutes, the two codes with their
+ * timetable clocks and the ride between them, the places, and the check-in carrying
+ * whatever the drive makes of it. One block on one disc, because it is one thing, and
+ * three rows read as three places the day went to. A ride the drive cannot catch is
+ * edged in the warning colour. The block is the tap target and opens the booking, the
+ * same sheet the map's endpoint badge opens.
+ */
+export function RtRideRow({ row, chrome, onOpen }: {
+  row: Extract<RoadtripRow, { kind: 'ride' }>
+  chrome: RowChrome
+  onOpen?: () => void
+}) {
+  const Icon = carrierIcon(row.carrier.type)
+  const ride = rideReading({
+    departure: row.departure.stop,
+    arrival: row.arrival.stop,
+    entries: [row.departure.entry, row.arrival.entry],
+    warnings: row.departure.warning ? [row.departure.warning] : [],
+    seg: row.seg,
+  }, chrome.t, chrome.is12h)
+  const body = (
+    <>
+      <span className="min-w-0 truncate text-[0.75rem] font-semibold text-m-ink">{ride.title}</span>
+      <span className="flex min-w-0 items-center gap-[6px]">
+        <RtChip text={ride.from.chip} />
+        <RtClock end={ride.from} t={chrome.t} />
+        <span className="h-[2px] min-w-[12px] flex-1" style={RIDE_CONN} aria-hidden="true" />
+        <RtClock end={ride.to} t={chrome.t} />
+        <RtChip text={ride.to.chip} />
+      </span>
+      {(ride.from.placeLine || ride.to.placeLine) && (
+        <span className="flex min-w-0 justify-between gap-2 font-geist text-[0.65625rem] text-m-muted">
+          <span className="min-w-0 truncate">{ride.from.placeLine}</span>
+          <span className="min-w-0 truncate text-end">{ride.to.placeLine}</span>
+        </span>
+      )}
+      {(ride.checkIn || ride.duration) && (
+        <span className="flex flex-wrap items-center gap-[5px]">
+          {ride.checkIn && <CheckInMark checkIn={ride.checkIn} />}
+          {ride.duration && <Mark icon={<Clock size={10} strokeWidth={2} />}>{ride.duration}</Mark>}
+        </span>
+      )}
+    </>
+  )
+  const cls = `my-1 flex min-w-0 flex-col gap-[7px] rounded-[16px] border bg-[color:var(--m-ic)] px-[11px] py-[8px] text-start ${
+    ride.checkIn?.state === 'missed' ? 'border-[color:var(--m-st-pending)]' : 'border-transparent'
+  }`
+  return (
+    <div className="grid items-center gap-x-[10px] py-1" style={{ gridTemplateColumns: '34px 1fr' }}>
+      <span className="flex justify-center">
+        <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-[color:var(--m-ic)] text-m-ink">
+          <Icon size={15} strokeWidth={2.1} aria-hidden="true" />
+        </span>
+      </span>
+      {onOpen ? (
+        <button type="button" onClick={onOpen} className={cls}>{body}</button>
+      ) : (
+        <span className={cls}>{body}</span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The bookings a stop carries, under its row (#2428): the table, the tickets, the tour,
+ * each a chip with the booking panel's icon, its name and the clock it starts at. Chips
+ * because a booking is a fact about the stop and not a stop of its own. A chip that
+ * opens is a button; one this reader may not open stays a plain chip, the rule the rail
+ * follows too (`bookingOpens`).
+ */
+export function RtBookingChips({ bookings, chrome, canEdit, onOpen }: {
+  bookings: Reservation[]
+  chrome: RowChrome
+  /** Whether a table's or a ticket's editor opens for this reader; see `bookingOpens`. */
+  canEdit: boolean
+  onOpen?: (reservation: Reservation) => void
+}) {
+  return (
+    <div className="grid gap-x-[10px] pb-2" style={{ gridTemplateColumns: '34px 1fr' }}>
+      <span aria-hidden="true" />
+      <span className="flex flex-wrap gap-[6px]">
+        {bookings.map(r => {
+          const Icon = bookingIcon(r.type)
+          const clock = bookingClock(r)
+          const body = (
+            <>
+              <Icon size={11} strokeWidth={2} className="flex-none text-m-muted" aria-hidden="true" />
+              <span className="min-w-0 truncate text-[0.75rem] font-medium text-m-ink">{r.title}</span>
+              {clock && <span className="flex-none font-geist text-[0.65625rem] tabular-nums text-m-faint">{formatClockTime(clock, chrome.is12h)}</span>}
+            </>
+          )
+          const cls = 'inline-flex h-[28px] max-w-full items-center gap-[5px] rounded-full border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-[10px]'
+          return onOpen && bookingOpens(r, canEdit) ? (
+            <button key={r.id} type="button" onClick={() => onOpen(r)} className={`${cls} text-start`}>{body}</button>
+          ) : (
+            <span key={r.id} className={cls}>{body}</span>
+          )
+        })}
+      </span>
+    </div>
+  )
 }
 
 /**
@@ -213,10 +486,16 @@ function legText(seg: RouteSegment | undefined, { t, unit }: RowChrome): string 
  * reads as a button that was pressed and stuck. Offline it keeps its place but dims,
  * because a choice is saved as a via and vias are online only. Without `onAlternatives`
  * (no permission, or a leg that cannot be rerouted) the column stays empty.
+ *
+ * With `origin` it is the drive in from where the day before ended, at the head of the
+ * card. The stop it leaves is not on this card, so its name goes above the pill; without
+ * it the chain would open on a drive from nowhere.
  */
-export function RtLegRow({ seg, mode, chrome, onAlternatives, alternativesOpen = false, alternativesDisabled = false }: {
+export function RtLegRow({ seg, mode, origin, chrome, onAlternatives, alternativesOpen = false, alternativesDisabled = false }: {
   seg: RouteSegment | undefined
   mode: string | null
+  /** The place the drive leaves from, named when it is not the stop drawn above it. */
+  origin?: string
   chrome: RowChrome
   /** Asks for other ways of driving this leg. Absent means the leg offers none. */
   onAlternatives?: () => void
@@ -227,6 +506,12 @@ export function RtLegRow({ seg, mode, chrome, onAlternatives, alternativesOpen =
   const { t } = chrome
   const Icon = mode && LEG_ICONS[mode] ? LEG_ICONS[mode] : mode?.startsWith('plugin:') ? Zap : CarFront
   const text = legText(seg, chrome)
+  const pill = (
+    <span className="my-1.5 flex min-w-0 items-center gap-[7px] rounded-[13px] bg-[color:var(--m-ic)] px-[11px] py-[7px]">
+      <Icon size={14} strokeWidth={2} className="flex-none text-m-muted" aria-hidden="true" />
+      <span className="truncate text-[0.75rem] font-semibold tabular-nums text-m-ink">{text}</span>
+    </span>
+  )
   return (
     <div className="grid items-center gap-x-[10px]" style={{ gridTemplateColumns: '34px 1fr auto' }}>
       {/* flex-col, not flex: in a row the dashes would stretch sideways and read as
@@ -235,10 +520,14 @@ export function RtLegRow({ seg, mode, chrome, onAlternatives, alternativesOpen =
       <span className="flex min-h-[40px] flex-col items-center" aria-hidden="true">
         <span className="w-[2px] flex-1" style={{ backgroundImage: 'repeating-linear-gradient(var(--m-conn) 0 4px, transparent 4px 8px)' }} />
       </span>
-      <span className="my-1.5 flex min-w-0 items-center gap-[7px] rounded-[13px] bg-[color:var(--m-ic)] px-[11px] py-[7px]">
-        <Icon size={14} strokeWidth={2} className="flex-none text-m-muted" aria-hidden="true" />
-        <span className="truncate text-[0.75rem] font-semibold tabular-nums text-m-ink">{text}</span>
-      </span>
+      {origin ? (
+        <span className="min-w-0">
+          <span className="mt-1.5 block truncate font-geist text-[0.65625rem] font-semibold text-m-muted">
+            {t('roadtrip.leg.arrivingFrom', { name: origin })}
+          </span>
+          {pill}
+        </span>
+      ) : pill}
       {onAlternatives ? (
         <button
           type="button"

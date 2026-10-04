@@ -8,6 +8,8 @@ TREK has two SSRF guards, both in `ssrfGuard.ts`. Which one applies depends on t
 
 **The strict guard** (`safeFetch` / `safeFetchFollow`, built on `checkSsrf`) covers most outbound traffic: Immich, Synology Photos, AirTrail, Dawarich, the document stores behind [Document-Sync](Document-Sync) (Paperless-ngx, Papra, Nextcloud, OpenCloud and Synology), notification webhooks, ntfy, Unsplash, and place lookups. It resolves the hostname to an IP address before allowing the connection and blocks loopback, link-local and private ranges. Only the private ranges open up, and only with `ALLOW_INTERNAL_NETWORK=true`. The two tables below describe this guard.
 
+[Web Push](Notifications#web-push) deliveries go through the strict guard as well, with two narrower rules: they only ever go to the known push services (Google, Mozilla, Apple and Microsoft), and private ranges stay closed for them even with `ALLOW_INTERNAL_NETWORK=true`, because a push service is never on your LAN.
+
 **The relaxed guard** (`safeFetchAdminConfigured`, also exported as `safeFetchLlm`) covers endpoints that are expected to live on your own network: OIDC (discovery, token, userinfo, JWKS), the LLM providers behind the AI Parsing addon (a local Ollama or any OpenAI-compatible endpoint), and plugin OAuth token exchanges. The self-hosted routing engines an admin sets for the [Road-Trip](Road-Trip) addon (**Own routing engine**, **Own Valhalla instance**) go through it too when the server asks them itself, which it does for the MCP road trip tools. The planner asks them from the browser, so they must also be reachable from your users' devices. It deliberately permits loopback and LAN targets, so a model server on `localhost` or an identity provider on your LAN works **without** `ALLOW_INTERNAL_NETWORK`. It still resolves every hostname, re-checks every redirect hop, and always blocks link-local and cloud-metadata addresses (`169.254.0.0/16`, the full `fe80::/10`, and the AWS and Alibaba metadata addresses). The only way past is a single address listed in `ALLOW_LINK_LOCAL_IPS`, see [below](#a-link-local-address-you-need).
 
 **No guard** applies to the addresses an admin sets in the environment for place search: `TREK_PLACES_URL`, `NOMINATIM_URL` and `OVERPASS_URL`. They are configuration rather than user input, so a self-run copy of the [TREK Places API](TREK-Places-API), a Nominatim or an Overpass instance on your LAN or in the same Docker network is reached without `ALLOW_INTERNAL_NETWORK`.
@@ -19,11 +21,12 @@ Under the strict guard, these ranges are blocked whatever `ALLOW_INTERNAL_NETWOR
 | Range | Description |
 |---|---|
 | `127.0.0.0/8`, `::1` | Loopback |
-| `0.0.0.0/8` | Unspecified |
+| `0.0.0.0/8`, `::` | Unspecified |
 | `169.254.0.0/16`, `fe80::/10` | Link-local / cloud metadata endpoints |
-| `::ffff:127.x.x.x`, `::ffff:169.254.x.x` | IPv4-mapped loopback and link-local |
+| `fd00:ec2::/32`, `100.100.100.200`, `100.100.100.100` | AWS (IMDSv6) and Alibaba Cloud metadata. They sit inside the ULA and CGNAT ranges below and stay blocked when those open up |
+| IPv4-mapped, IPv4-compatible and NAT64/6to4/Teredo forms of the above | e.g. `::ffff:127.0.0.1`, `::169.254.169.254`, `64:ff9b::a9fe:a9fe` |
 
-The IPv6 link-local rule covers the whole `fe80::/10` prefix (`fe80:` to `febf:`), under the relaxed guard as well.
+The IPv6 link-local rule covers the whole `fe80::/10` prefix (`fe80:` to `febf:`). The link-local and metadata rows hold under the relaxed guard as well.
 
 The one way past this table is `ALLOW_LINK_LOCAL_IPS`, for a single IPv4 link-local address, see [below](#a-link-local-address-you-need).
 
@@ -41,7 +44,7 @@ The one way past this table is `ALLOW_LINK_LOCAL_IPS`, for a single IPv4 link-lo
 
 The hostname `localhost` is matched at the hostname stage too, but it normally resolves to a loopback address (`127.0.0.1` or `::1`), which the always-blocked loopback rule catches first, so under the strict guard it is blocked no matter how `ALLOW_INTERNAL_NETWORK` is set. On a host that maps `localhost` somewhere else, the hostname rule still applies and it stays blocked unless `ALLOW_INTERNAL_NETWORK=true`. The relaxed guard allows `localhost` outright, which is what makes a local Ollama the supported default for AI Parsing.
 
-`*.local` and `*.internal` hostnames are permitted when `ALLOW_INTERNAL_NETWORK=true`: the guard still resolves them to an IP and enforces all IP-level rules, so any such hostname that resolves to a loopback or link-local address remains blocked regardless.
+`*.local` and `*.internal` hostnames are permitted when `ALLOW_INTERNAL_NETWORK=true`: the guard still resolves them to an IP and enforces all IP-level rules, so TREK never connects to a loopback or link-local address such a hostname resolves to, and a hostname with no other address remains blocked regardless.
 
 ## When to enable
 
@@ -69,9 +72,15 @@ ALLOW_LINK_LOCAL_IPS=169.254.1.2
 
 Several addresses are separated by commas. The list is read at startup, so restart TREK after changing it.
 
+## Behind an outbound proxy
+
+With `HTTP_PROXY` or `HTTPS_PROXY` set, requests through the strict and the relaxed guard go through that proxy too, unless `NO_PROXY` names the target host. The guard still checks the target first, so a blocked address is refused before anything reaches the proxy. From there on the proxy makes the connection itself, which means the DNS pinning below does not apply to proxied requests: the proxy you chose is the network boundary. Put your LAN services (Immich, a document store, your identity provider) into `NO_PROXY` when the proxy cannot reach them. See [Environment-Variables](Environment-Variables#outbound-https-proxy).
+
 ## DNS rebinding protection
 
-Even with `ALLOW_INTERNAL_NETWORK=true`, TREK pins the DNS resolution to prevent rebinding attacks. When the guard checks a URL, it resolves the hostname once and records the IP. The outbound connection is then made directly to that IP using a pinned dispatcher (via undici), so the hostname cannot re-resolve to a different address between the check and the actual request.
+Even with `ALLOW_INTERNAL_NETWORK=true`, TREK pins the DNS resolution to prevent rebinding attacks. When the guard checks a URL, it resolves the hostname once and records the addresses it may use. The outbound connection is then made directly to those addresses using a pinned dispatcher (via undici), so the hostname cannot re-resolve to a different address between the check and the actual request.
+
+A hostname can resolve to several addresses, and a LAN DNS server often hands out a host's IPv6 link-local address (`fe80::`) next to its IPv4 one. TREK never connects to an address the guard blocks: it leaves that address out and connects over the ones that remain. Only a hostname whose addresses are all blocked is refused. Under the strict guard, a private address among the rest still needs `ALLOW_INTERNAL_NETWORK=true`.
 
 ## Audit log
 

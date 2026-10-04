@@ -204,14 +204,7 @@ export async function valhallaRun(
     // rate limit on the last piece of a split day would otherwise throw away the pieces
     // that already answered and ask for all of them again — three times over, against a
     // host that allows one request a second.
-    let run = await requestRun(base, chunk, profile, avoid, signal)
-    for (let attempt = 0; !run && attempt < CHUNK_RETRIES && !signal?.aborted; attempt++) {
-      // Not when the host just proved it is not a Valhalla at all: that answer will not
-      // change on a second ask, and asking anyway is the request the memo exists to save.
-      if (notValhalla.has(base)) break
-      await pause(CHUNK_PAUSE_MS, signal)
-      run = await requestRun(base, chunk, profile, avoid, signal)
-    }
+    const run = await askWithRetry(base, () => requestRun(base, chunk, profile, avoid, signal), signal)
     // A day is one answer or none. Half a day of legs would be worse than no answer:
     // the schedule chains leg times blindly and cannot tell that it is missing some, so
     // it would print a complete, plausible, wrong timetable rather than a gap.
@@ -260,14 +253,39 @@ function pause(ms: number, signal?: AbortSignal): Promise<void> {
   })
 }
 
-/** One request, at most ten locations. */
-async function requestRun(
-  base: string,
+/**
+ * Waits out the host's one request a second before the next question is put.
+ *
+ * For a caller that asks this engine several things in a row on its own, such as the
+ * offers for one leg: the same pause the pieces of a split day keep, so a picker cannot
+ * fire at a pace the day routing was careful never to.
+ */
+export function valhallaSpacing(signal?: AbortSignal): Promise<void> {
+  return pause(CHUNK_PAUSE_MS, signal)
+}
+
+/**
+ * One question, and one more try after a pause when it earned no answer.
+ *
+ * Not when the host just proved it is not a Valhalla at all: that answer will not change
+ * on a second ask, and asking anyway is the request the memo exists to save.
+ */
+async function askWithRetry<T>(base: string, ask: () => Promise<T | null>, signal?: AbortSignal): Promise<T | null> {
+  let answer = await ask()
+  for (let attempt = 0; !answer && attempt < CHUNK_RETRIES && !signal?.aborted; attempt++) {
+    if (notValhalla.has(base)) break
+    await pause(CHUNK_PAUSE_MS, signal)
+    answer = await ask()
+  }
+  return answer
+}
+
+/** The request body for a chain of waypoints, weighted away from `avoid`. */
+function routeBody(
   waypoints: Waypoint[],
   profile: 'driving' | 'walking' | 'cycling',
   avoid: readonly AvoidClass[],
-  signal?: AbortSignal,
-): Promise<Omit<ValhallaRun, 'snapped'> | null> {
+): Record<string, unknown> {
   const costing = COSTING[profile]
   // All of them in one request: the options are independent weightings, so asking to
   // leave out tolls and ferries together is one question rather than two routes to
@@ -275,13 +293,16 @@ async function requestRun(
   // away together answered 656.9 km against 339.2 km for the plain route.
   const options: Record<string, number> = {}
   for (const cls of avoid) options[AVOID_OPTION[cls]] = 0
-  const body = {
+  return {
     locations: waypoints.map(w => ({ lat: w.lat, lon: w.lng, radius: SNAP_RADIUS_M })),
     costing,
     costing_options: { [costing]: options },
     directions_options: { units: 'kilometers' },
   }
+}
 
+/** The parsed answer to one POST, or null for every failure. */
+async function postRoute(base: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
   try {
     const response = await fetch(`${base}/route`, {
       method: 'POST',
@@ -299,10 +320,64 @@ async function requestRun(
       if (response.status === 404 || response.status === 405) notValhalla.add(base)
       return null
     }
-    return runFrom(await response.json())
+    return await response.json()
   } catch {
     return null
   }
+}
+
+/** One request, at most ten locations. */
+async function requestRun(
+  base: string,
+  waypoints: Waypoint[],
+  profile: 'driving' | 'walking' | 'cycling',
+  avoid: readonly AvoidClass[],
+  signal?: AbortSignal,
+): Promise<Omit<ValhallaRun, 'snapped'> | null> {
+  const data = await postRoute(base, routeBody(waypoints, profile, avoid), signal)
+  return data === null ? null : runFrom(data)
+}
+
+/**
+ * The ways of driving one leg this engine would offer, its preferred one first, or null.
+ *
+ * The offers for a trip that avoids something have to come from the engine that routes
+ * that trip's days, or the list and the rail describe two different drives: OSRM's
+ * quickest road beside a day Valhalla had routed was offered as the faster way, and
+ * taking it changed nothing. Valhalla answers `alternates` between exactly two locations,
+ * which is all one leg is, and weighs every one of them the way it weighed the day.
+ */
+export async function valhallaAlternates(
+  from: Waypoint,
+  to: Waypoint,
+  profile: 'driving' | 'walking' | 'cycling',
+  avoid: readonly AvoidClass[],
+  count: number,
+  signal?: AbortSignal,
+): Promise<ValhallaLeg[] | null> {
+  const base = valhallaBase()
+  if (!base || notValhalla.has(base)) return null
+  const body = { ...routeBody([from, to], profile, avoid), ...(count > 0 ? { alternates: count } : {}) }
+  return askWithRetry(base, async () => {
+    const data = await postRoute(base, body, signal)
+    return data === null ? null : alternatesFrom(data)
+  }, signal)
+}
+
+/**
+ * Every way in an answer that asked for alternates: `trip` first, then each
+ * `alternates[].trip`, read the way `runFrom` reads a single leg.
+ *
+ * Null when the preferred one cannot be read, because the others are offered against it.
+ * An alternate that cannot be read is dropped on its own: one bad entry is no reason to
+ * lose the leg's other ways.
+ */
+export function alternatesFrom(data: unknown): ValhallaLeg[] | null {
+  const primary = runFrom(data)
+  if (!primary) return null
+  const extra = (data as { alternates?: unknown })?.alternates
+  const others = Array.isArray(extra) ? extra.map(alt => runFrom(alt)?.total ?? null) : []
+  return [primary.total, ...others.filter((leg): leg is ValhallaLeg => leg !== null)]
 }
 
 /**

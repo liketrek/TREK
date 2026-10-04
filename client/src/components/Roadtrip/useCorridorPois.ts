@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { roadtripSearchRepo } from '../../repo/roadtripSearchRepo'
 import { useTranslation } from '../../i18n'
-import { corridorTiles, projectOntoRoute, simplifyLine, sliceAtMeters, type Bbox, type LatLng } from './corridor'
+import { corridorTiles, drivenPieces, inRiddenRange, projectOntoRoute, riddenRanges, simplifyLine, type Bbox, type LatLng } from './corridor'
 import { DESKTOP_CORRIDOR_BUDGET, type CorridorBudget } from './corridorSearchModel'
 import type { Poi } from '../Map/poiCategories'
 
@@ -85,9 +85,22 @@ export function useCorridorPois(
    * is not a desk and a search that keeps the radio warm for a minute is a search that
    * costs battery somebody is navigating on.
    */
-  options?: { budget?: CorridorBudget },
+  options?: {
+    budget?: CorridorBudget
+    /**
+     * Stretches of the line the car never drives (#2428): a flight, a ferry, a train
+     * between two terminals. The line runs straight from one terminal to the other
+     * there, and boxing that would search open sea, or the countryside under a flight
+     * path, and offer what it found as being on the way. Each pair is projected onto the
+     * spine and the stretch between the two is left out of the search, and a hit that
+     * lands in it is dropped. Memoised by the caller: the array's identity is what
+     * recreates `search`, so a fresh one every render would recreate it every render.
+     */
+    gaps?: { from: LatLng; to: LatLng }[]
+  },
 ): CorridorSearch {
   const budget = options?.budget ?? DESKTOP_CORRIDOR_BUDGET
+  const gaps = options?.gaps
   const { locale } = useTranslation()
   const [results, setResults] = useState<CorridorPoi[]>([])
   const [progress, setProgress] = useState({ done: 0, total: 0 })
@@ -137,9 +150,9 @@ export function useCorridorPois(
     // Only the TILE line is cut, never the spine: every `alongKm` in a result is a
     // distance along the spine, and so is every entry in `stopsAlongKm`. Cutting the
     // spine would renumber both the moment the window moved, and a hit would land at the
-    // wrong position in the day's chain.
-    const tileLine = window ? sliceAtMeters(spine, window.fromKm * 1000, window.toKm * 1000) : spine
-    const allTiles = corridorTiles(tileLine, widthKm)
+    // wrong position in the day's chain. The MCP corridor tool cuts the same way.
+    const ridden = riddenRanges(spine, gaps ?? [])
+    const allTiles = drivenPieces(spine, ridden, window).flatMap(piece => corridorTiles(piece, widthKm))
     const tiles = allTiles.slice(0, budget.maxTiles)
     const startedAt = Date.now()
     const outOfTime = (): boolean => budget.deadlineMs != null && Date.now() - startedAt > budget.deadlineMs
@@ -184,7 +197,7 @@ export function useCorridorPois(
           for (const poi of data.pois) {
             if (seen.has(poi.osm_id)) continue
             const hit = projectOntoRoute({ lat: poi.lat, lng: poi.lng }, spine)
-            if (!hit || hit.offRouteKm > widthKm) continue
+            if (!hit || hit.offRouteKm > widthKm || inRiddenRange(ridden, hit.alongKm)) continue
             seen.set(poi.osm_id, {
               ...poi, address: poi.address ?? null, website: poi.website ?? null, phone: poi.phone ?? null,
               opening_hours: poi.opening_hours ?? null, cuisine: poi.cuisine ?? null,
@@ -251,7 +264,7 @@ export function useCorridorPois(
       setError(failures === jobs.length && failures > 0)
       setLoading(false)
     })()
-  }, [spine, categories, widthKm, locale, budget.maxTiles, budget.maxRetries, budget.deadlineMs])
+  }, [spine, categories, widthKm, locale, budget.maxTiles, budget.maxRetries, budget.deadlineMs, gaps])
 
   useEffect(() => () => abortRef.current?.abort(), [])
 

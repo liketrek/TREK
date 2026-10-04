@@ -8,6 +8,9 @@ export interface PackingTemplateItemRow {
   category_id: number;
   name: string;
   sort_order: number;
+  weight_grams: number | null;
+  quantity: number;
+  bag_name: string | null;
 }
 
 const _packingTemplateItemRowKeys: AssertRowKeys<PackingTemplateItemRow, PackingTemplateItems> = true;
@@ -16,6 +19,9 @@ const _packingTemplateItemRowKeys: AssertRowKeys<PackingTemplateItemRow, Packing
 export interface PackingTemplateApplyRow {
   name: string;
   category: string;
+  weight_grams: number | null;
+  quantity: number;
+  bag_name: string | null;
 }
 
 interface PackingTemplateItemsKyselyDB {
@@ -25,7 +31,7 @@ interface PackingTemplateItemsKyselyDB {
 
 /** The insert-only shape for `insertTemplateItem` (PK57/PK86) — `id` is autoincrement and omitted. */
 interface PackingTemplateItemsInsertKyselyDB {
-  packing_template_items: { category_id: number | string; name: string; sort_order: number };
+  packing_template_items: { category_id: number | string; name: string; sort_order: number; weight_grams?: number | null; quantity?: number; bag_name?: string | null };
 }
 
 /** `packing_template_items` — the leaf tier of the packing template tree. Kysely throughout: `category_id` is `persist(false)`. */
@@ -35,7 +41,8 @@ export class PackingTemplateItemsRepository extends TrekRepository<PackingTempla
   }
 
   /**
-   * PK50 (`applyTemplate`) — `SELECT ti.name, tc.name as category FROM
+   * PK50 (`applyTemplate`) — `SELECT ti.name, tc.name as category,
+   * ti.weight_grams, ti.quantity, ti.bag_name FROM
    * packing_template_items ti JOIN packing_template_categories tc ON
    * ti.category_id = tc.id WHERE tc.template_id = ? ORDER BY tc.sort_order,
    * ti.sort_order`. `template_id: number` (Plan 4 Task 8b, U6 — the
@@ -46,7 +53,7 @@ export class PackingTemplateItemsRepository extends TrekRepository<PackingTempla
     return await this.db()
       .selectFrom('packing_template_items as ti')
       .innerJoin('packing_template_categories as tc', 'tc.id', 'ti.category_id')
-      .select(['ti.name', 'tc.name as category'])
+      .select(['ti.name', 'tc.name as category', 'ti.weight_grams', 'ti.quantity', 'ti.bag_name'])
       .where('tc.template_id', '=', template_id)
       .orderBy('tc.sort_order', 'asc')
       .orderBy('ti.sort_order', 'asc')
@@ -71,14 +78,35 @@ export class PackingTemplateItemsRepository extends TrekRepository<PackingTempla
 
   /**
    * PK57 (`saveAsTemplate`'s per-item loop)/PK86 (`createTemplateItem`) —
-   * the same `INSERT INTO packing_template_items (category_id, name,
-   * sort_order) VALUES (?, ?, ?)`, one method, both call sites. Returns the
-   * new row's id. Named `insertTemplateItem`, not `insert` — the latter
-   * collides with `TrekRepository`/`EntityRepository`'s own same-named
-   * method.
+   * `INSERT INTO packing_template_items (category_id, name, sort_order)
+   * VALUES (?, ?, ?)` (PK86), and since #1131 PK57's `INSERT INTO
+   * packing_template_items (category_id, name, sort_order, weight_grams,
+   * quantity, bag_name) VALUES (?, ?, ?, ?, ?, ?)`. One method, both call
+   * sites; the optional keys PK86 leaves out stay `undefined`, which
+   * Kysely drops from the column list, so they take their SQL defaults.
+   * Returns the new row's id. Named `insertTemplateItem`, not `insert` —
+   * the latter collides with `TrekRepository`/`EntityRepository`'s own
+   * same-named method.
    */
-  async insertTemplateItem(category_id: number | string, name: string, sort_order: number): Promise<number> {
-    const result = await this.kysely<PackingTemplateItemsInsertKyselyDB>().insertInto('packing_template_items').values({ category_id, name, sort_order }).executeTakeFirstOrThrow();
+  async insertTemplateItem(row: {
+    category_id: number | string;
+    name: string;
+    sort_order: number;
+    weight_grams?: number | null;
+    quantity?: number;
+    bag_name?: string | null;
+  }): Promise<number> {
+    const result = await this.kysely<PackingTemplateItemsInsertKyselyDB>()
+      .insertInto('packing_template_items')
+      .values({
+        category_id: row.category_id,
+        name: row.name,
+        sort_order: row.sort_order,
+        weight_grams: row.weight_grams,
+        quantity: row.quantity,
+        bag_name: row.bag_name,
+      })
+      .executeTakeFirstOrThrow();
     return Number(result.insertId);
   }
 

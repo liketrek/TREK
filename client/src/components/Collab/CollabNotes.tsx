@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useId, useMemo } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { sanitizedMarkdownComponents, sanitizedMarkdownPlugins } from '../shared/markdownSanitize'
-import { createPortal } from 'react-dom'
-import { Plus, Pencil, X, StickyNote, Settings, ExternalLink } from 'lucide-react'
+import { Plus, Pencil, StickyNote, Settings, ExternalLink } from 'lucide-react'
+import CollabPanelHead, { HEAD_ACTION } from './CollabPanelHead'
+import { Tooltip } from '../shared/Tooltip'
+import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, PILL, fs } from '../shared/DialogShell'
 import { collabApi } from '../../api/client'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
@@ -294,60 +296,41 @@ function CollabNotesLoading({ t }: NotesState) {
   )
 }
 
-function CollabNotesHeader({ t, canEdit, setShowSettings, setShowNewModal }: NotesState) {
+function CollabNotesHeader({ t, canEdit, setShowSettings, setShowNewModal, notes }: NotesState) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', flexShrink: 0 }}>
-      <h3 style={{
-        fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-muted)', margin: 0, fontFamily: FONT,
-        letterSpacing: 0.3, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 7,
-      }}>
-        <StickyNote size={14} color="var(--text-faint)" />
-        {t('collab.notes.title')}
-      </h3>
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-        {canEdit && <button type="button" onClick={() => setShowSettings(true)} title={t('collab.notes.categorySettings')}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', transition: 'color 0.12s' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-          <Settings size={14} />
-        </button>}
-        {canEdit && <button type="button" onClick={() => setShowNewModal(true)}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 99, padding: '6px 12px', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, fontFamily: FONT, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          <Plus size={12} />
-          {t('collab.notes.new')}
-        </button>}
-      </div>
-    </div>
+    <CollabPanelHead
+      icon={StickyNote}
+      title={t('collab.notes.title')}
+      count={notes.length}
+      actions={canEdit && (
+        <>
+          <Tooltip label={t('collab.notes.categorySettings')}>
+            <button type="button" onClick={() => setShowSettings(true)} aria-label={t('collab.notes.categorySettings')}
+              className="grid h-7 w-7 place-items-center rounded-full bg-surface-card text-content-muted shadow-sm hover:text-content">
+              <Settings size={13} />
+            </button>
+          </Tooltip>
+          <button type="button" onClick={() => setShowNewModal(true)} className={HEAD_ACTION}>
+            <Plus size={12} /> {t('collab.notes.new')}
+          </button>
+        </>
+      )}
+    />
   )
 }
 
-function CollabCategoryPills({ categories, activeCategory, setActiveCategory, t }: NotesState) {
+/** The category filter, drawn like the filter tabs in the other trip tabs' bars. */
+function CollabCategoryPills({ categories, activeCategory, setActiveCategory, getCategoryColor, t }: NotesState) {
+  const pill = (active: boolean) =>
+    `inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 font-semibold transition-colors ${active ? 'bg-surface-card text-content shadow-sm' : 'text-content-muted hover:text-content'}`
   return (
-    <div style={{ display: 'flex', gap: 4, padding: '8px 12px 0', overflowX: 'auto', flexShrink: 0 }}>
-      <button type="button"
-        onClick={() => setActiveCategory(null)}
-        style={{
-          flexShrink: 0, borderRadius: 99, padding: '3px 10px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, fontFamily: FONT,
-          border: activeCategory === null ? '1px solid var(--accent)' : '1px solid var(--border-faint)',
-          background: activeCategory === null ? 'var(--accent)' : 'transparent',
-          color: activeCategory === null ? 'var(--accent-text)' : 'var(--text-secondary)',
-          cursor: 'pointer', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em',
-        }}
-      >
+    <div className="flex flex-none gap-1 overflow-x-auto px-3 pt-3" style={fs(12, 'body')}>
+      <button type="button" onClick={() => setActiveCategory(null)} aria-pressed={activeCategory === null} className={pill(activeCategory === null)}>
         {t('collab.notes.all')}
       </button>
       {categories.map(cat => (
-        <button type="button"
-          key={cat}
-          onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
-          style={{
-            flexShrink: 0, borderRadius: 99, padding: '3px 10px', fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600, fontFamily: FONT,
-            border: activeCategory === cat ? '1px solid var(--accent)' : '1px solid var(--border-faint)',
-            background: activeCategory === cat ? 'var(--accent)' : 'transparent',
-            color: activeCategory === cat ? 'var(--accent-text)' : 'var(--text-secondary)',
-            cursor: 'pointer', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em',
-          }}
-        >
+        <button type="button" key={cat} onClick={() => setActiveCategory(prev => prev === cat ? null : cat)} aria-pressed={activeCategory === cat} className={pill(activeCategory === cat)}>
+          <span className="h-2 w-2 flex-none rounded-full" style={{ background: getCategoryColor(cat) }} />
           {cat}
         </button>
       ))}
@@ -369,8 +352,8 @@ function CollabNotesGrid(S: NotesState) {
         /* ── Notes grid — 2 columns ── */
         <div style={{
           display: 'grid',
-          gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(2, 1fr)',
-          gap: 8,
+          gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(2, minmax(0, 1fr))',
+          gap: 10,
         }}>
           {sortedNotes.map(note => (
             <NoteCard
@@ -400,114 +383,91 @@ function linkHost(url: string): string {
 }
 
 function ViewNoteModal(S: NotesState) {
-  const { viewingNote, setViewingNote, canEdit, setEditingNote, getCategoryColor, t, setPreviewFile } = S
+  const { viewingNote, setViewingNote, canEdit, setEditingNote, getCategoryColor, t, setPreviewFile, previewFile } = S
+  const labelId = useId()
   if (!viewingNote) return null
   // A member without collab_edit only ever gets this modal, so the link has to
   // be here too (#2222). Allow-listed like the card tile: the field takes any
   // string, and a javascript: one would run in this origin.
   const websiteHref = safeExternalHref(viewingNote.website)
-  return createPortal(
-    <div
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 10000, padding: 16,
-      }}
-      role="presentation"
-      onClick={e => { if (e.target === e.currentTarget) setViewingNote(null) }}
+  const close = () => setViewingNote(null)
+  const color = viewingNote.category ? getCategoryColor(viewingNote.category) : null
+  const attachments = viewingNote.attachments || []
+  return (
+    <DialogShell
+      onClose={close}
+      labelledBy={labelId}
+      width="editor"
+      // A file opened from here sits on top; Escape and the backdrop belong to it then.
+      blocked={!!previewFile}
+      header={(
+        <DialogHeader
+          tile={<DialogTile><StickyNote size={20} strokeWidth={1.9} style={{ color: color ?? 'var(--text-muted)' }} /></DialogTile>}
+          tint={color ? `color-mix(in srgb, ${color} 12%, transparent)` : NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={close}
+          title={viewingNote.title}
+          pills={viewingNote.category && (
+            <span className={PILL}>
+              <span className="h-2 w-2 flex-none rounded-full" style={{ background: color }} />
+              {viewingNote.category}
+            </span>
+          )}
+        />
+      )}
+      footer={canEdit ? (
+        <DialogFooter>
+          <FooterSpacer />
+          <DialogButton variant="primary" onClick={() => { close(); setEditingNote(viewingNote) }} icon={<Pencil size={14} strokeWidth={2} />}>
+            {t('common.edit')}
+          </DialogButton>
+        </DialogFooter>
+      ) : undefined}
     >
-      <div
-        style={{
-          background: 'var(--bg-card)', borderRadius: 16,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-          width: 'min(700px, calc(100vw - 32px))', maxHeight: '80vh',
-          overflow: 'hidden', display: 'flex', flexDirection: 'column',
-        }}
-      >
-        <div style={{
-          padding: '16px 20px 12px', borderBottom: '1px solid var(--border-primary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-        }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'calc(17px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{viewingNote.title}</div>
-            {viewingNote.category && (
-              <span style={{
-                display: 'inline-block', marginTop: 4, fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
-                color: getCategoryColor(viewingNote.category),
-                background: `${getCategoryColor(viewingNote.category)}18`,
-                padding: '2px 8px', borderRadius: 6,
-              }}>{viewingNote.category}</span>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-            {canEdit && <button type="button" onClick={() => { setViewingNote(null); setEditingNote(viewingNote) }}
-              style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              <Pencil size={16} />
-            </button>}
-            <button type="button" onClick={() => setViewingNote(null)}
-              style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-        <div className="collab-note-md-full" style={{ padding: '16px 20px', overflowY: 'auto', fontSize: 'calc(14px * var(--fs-scale-body, 1))', color: 'var(--text-primary)', lineHeight: 1.7 }}>
+      <DialogSection label={t('collab.notes.content')}>
+        <div className="collab-note-md-full text-content" style={{ ...fs(14, 'body'), lineHeight: 1.7 }}>
           <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={sanitizedMarkdownPlugins} components={sanitizedMarkdownComponents}>{viewingNote.content || ''}</Markdown>
-          {websiteHref && (
-            <a href={websiteHref} target="_blank" rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12,
-                padding: '6px 12px', borderRadius: 999, border: '1px solid var(--border-primary)',
-                fontSize: 'calc(12px * var(--fs-scale-caption, 1))', fontWeight: 600,
-                color: 'var(--text-primary)', textDecoration: 'none',
-              }}>
-              <ExternalLink size={13} color="var(--text-muted)" /> {linkHost(websiteHref)}
-            </a>
-          )}
-          {(viewingNote.attachments || []).length > 0 && (
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-primary)' }}>
-              <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>{t('files.title')}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {(viewingNote.attachments || []).map(a => {
-                  const isImage = a.mime_type?.startsWith('image/')
-                  const ext = (a.original_name || '').split('.').pop()?.toUpperCase() || '?'
-                  return (
-                    <div key={a.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, maxWidth: 72 }}>
-                      {isImage ? (
-                        <AuthedImg src={a.url} alt={a.original_name}
-                          style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', transition: 'transform 0.12s, box-shadow 0.12s' }}
-                          onClick={() => setPreviewFile(a)}
-                          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
-                          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }} />
-                      ) : (
-                        <button type="button" title={a.original_name} onClick={() => setPreviewFile(a)}
-                          style={{
-                            width: 64, height: 64, borderRadius: 8, cursor: 'pointer',
-                            background: a.mime_type === 'application/pdf' ? '#ef44441a' : 'var(--bg-secondary)',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
-                            transition: 'transform 0.12s, box-shadow 0.12s',
-                            border: 'none', padding: 0, fontFamily: 'inherit',
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
-                          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}>
-                          <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
-                        </button>
-                      )}
-                      <span style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{a.original_name}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
         </div>
-      </div>
-    </div>,
-    document.body
+      </DialogSection>
+      {websiteHref && (
+        <DialogSection label={t('collab.notes.website')}>
+          <a href={websiteHref} target="_blank" rel="noopener noreferrer"
+            className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1.5 font-semibold text-content no-underline hover:opacity-80" style={fs(12, 'body')}>
+            <ExternalLink size={13} className="flex-none text-content-muted" />
+            <span className="truncate">{linkHost(websiteHref)}</span>
+          </a>
+        </DialogSection>
+      )}
+      {attachments.length > 0 && (
+        <DialogSection label={t('files.title')}>
+          <div className="flex flex-wrap gap-2.5">
+            {attachments.map(a => {
+              const isImage = a.mime_type?.startsWith('image/')
+              const isPdf = a.mime_type === 'application/pdf'
+              const ext = (a.original_name || '').split('.').pop()?.toUpperCase() || '?'
+              return (
+                <div key={a.id} className="flex w-[72px] flex-col items-center gap-1">
+                  {isImage ? (
+                    <AuthedImg src={a.url} alt={a.original_name}
+                      style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 12, cursor: 'pointer' }}
+                      onClick={() => setPreviewFile(a)} />
+                  ) : (
+                    <Tooltip label={a.original_name || ext}>
+                      <button type="button" onClick={() => setPreviewFile(a)} aria-label={a.original_name || ext}
+                        className={`grid h-16 w-16 place-items-center rounded-[12px] font-geist font-bold tracking-[.03em] transition-transform hover:scale-[1.06] ${isPdf ? 'bg-danger-soft text-danger' : 'bg-surface-secondary text-content-muted'}`}
+                        style={fs(10)}>
+                        {ext}
+                      </button>
+                    </Tooltip>
+                  )}
+                  <span className="w-full truncate text-center text-content-faint" style={fs(9.5)}>{a.original_name}</span>
+                </div>
+              )
+            })}
+          </div>
+        </DialogSection>
+      )}
+    </DialogShell>
   )
 }
 

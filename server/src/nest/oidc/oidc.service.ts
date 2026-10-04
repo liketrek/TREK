@@ -634,17 +634,31 @@ export class OidcService implements OnModuleDestroy {
   // Find or create user by OIDC sub / email
   // -------------------------------------------------------------------------
 
+  /**
+   * The claim a new account's username comes from (#1677). OIDC_USERNAME_CLAIM
+   * names one, typically `preferred_username` for providers whose `name` is the
+   * full "Jane Doe"; when it is unset, or the provider leaves that claim empty,
+   * the old order applies. Only read when an account is created: a username the
+   * user has changed since is never overwritten on a later login.
+   */
+  private usernameSource(userInfo: OidcUserInfo): string | undefined {
+    const claimKey = readEnv().oidc.usernameClaim;
+    const claimed = claimKey ? userInfo[claimKey] : undefined;
+    if (typeof claimed === 'string' && claimed.trim()) return claimed.trim();
+    return userInfo.name || userInfo.preferred_username;
+  }
+
   async findOrCreateUser(
     userInfo: OidcUserInfo,
     config: OidcConfig,
     inviteToken?: string,
-  ): Promise<{ user: User; roleChange?: OidcRoleChange } | { error: string }> {
+  ): Promise<{ user: User; roleChange?: OidcRoleChange; created?: true } | { error: string }> {
     // Defense-in-depth for direct callers — the controller redirects on a
     // missing email before it ever calls this; the same code flows through its
     // `oidc_error=' + result.error` pass-through if reached here.
     if (!userInfo.email) return { error: 'no_email' };
     const email = userInfo.email.trim().toLowerCase();
-    const name = userInfo.name || userInfo.preferred_username || email.split('@')[0];
+    const name = this.usernameSource(userInfo) || email.split('@')[0];
     const sub = userInfo.sub;
     const picture = safeOidcPicture(userInfo.picture);
 
@@ -790,7 +804,9 @@ export class OidcService implements OnModuleDestroy {
       // legacy INSERT-then-reselect structure exactly.
       const created = await this.usersRepo.findById(insertedId);
       if (!created) throw new Error('findOrCreateUser: read-back after insert found no row');
-      return { user: toClientUser(created) };
+      // The one branch that makes an account. The caller writes the registration row
+      // off this, so it has to be set here and nowhere else.
+      return { user: toClientUser(created), created: true };
     } catch (err) {
       if (err === inviteRaceError) {
         console.warn(`[OIDC] Invite token ${inviteToken?.slice(0, 8)}... exhausted — concurrent callback won the last slot`);

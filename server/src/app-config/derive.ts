@@ -206,6 +206,9 @@ export function deriveOidc(raw: RawEnv) {
     only: parseBool(raw.OIDC_ONLY) === true,
     adminClaim: raw.OIDC_ADMIN_CLAIM || 'groups',
     adminValue: raw.OIDC_ADMIN_VALUE,
+    // Unset keeps the old order (name, then preferred_username), so an instance
+    // that never sets it names new accounts exactly as before (#1677).
+    usernameClaim: raw.OIDC_USERNAME_CLAIM?.trim() || undefined,
   };
 }
 
@@ -298,12 +301,21 @@ export function deriveIntegrations(raw: RawEnv) {
   };
 }
 
+export function deriveFiles(raw: RawEnv) {
+  return {
+    /** Largest document a user may upload to a trip, a booking or a note (#1364). Videos keep their own cap. */
+    uploadLimitMb: positiveNumberOr(raw.FILE_UPLOAD_LIMIT_MB, 50),
+  };
+}
+
 export function deriveBackup(raw: RawEnv) {
   return {
     uploadLimitMb: positiveNumberOr(raw.BACKUP_UPLOAD_LIMIT_MB, 500),
     maxDecompressedMb: positiveNumberOr(raw.BACKUP_MAX_DECOMPRESSED_MB, 5 * 1024),
     /** backupService only bundles data/.encryption_key into archives when the key does NOT come from env. */
     encryptionKeyFromEnv: !!raw.ENCRYPTION_KEY,
+    /** Archive restored on the first start, while no database exists yet (#1089). Null when unset or blank. */
+    restoreFromBackup: raw.RESTORE_FROM_BACKUP?.trim() || null,
   };
 }
 
@@ -331,6 +343,26 @@ export function deriveNet(raw: RawEnv) {
   return {
     allowInternalNetwork: parseBool(raw.ALLOW_INTERNAL_NETWORK) === true,
     allowLinkLocalIps: parseLinkLocalAllowList(raw.ALLOW_LINK_LOCAL_IPS).ips,
+    // The variables Node's own env proxy reads, both spellings, so the guarded
+    // requests below follow the same proxy as everything else (#1754).
+    proxy: {
+      http: (raw.HTTP_PROXY ?? raw.http_proxy)?.trim() || undefined,
+      https: (raw.HTTPS_PROXY ?? raw.https_proxy)?.trim() || undefined,
+      noProxy: ((raw.NO_PROXY ?? raw.no_proxy) || '')
+        .split(',')
+        .map(entry => entry.trim().toLowerCase())
+        .filter(Boolean),
+    },
+  };
+}
+
+export function derivePush(raw: RawEnv) {
+  return {
+    // Trimmed, and blank counts as unset: the schema validated the trimmed value,
+    // so a padded key must not reach the crypto as a different string.
+    vapidPublicKey: raw.VAPID_PUBLIC_KEY?.trim() || undefined,
+    vapidPrivateKey: raw.VAPID_PRIVATE_KEY?.trim() || undefined,
+    vapidSubject: raw.VAPID_SUBJECT?.trim() || undefined,
   };
 }
 
@@ -350,9 +382,11 @@ export function deriveAll(raw: RawEnv) {
     webauthn: deriveWebauthn(raw),
     integrations: deriveIntegrations(raw),
     backup: deriveBackup(raw),
+    files: deriveFiles(raw),
     db: deriveDb(raw),
     paths: derivePaths(raw),
     net: deriveNet(raw),
+    push: derivePush(raw),
   };
 }
 

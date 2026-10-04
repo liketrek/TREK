@@ -44,6 +44,7 @@ import { PackingItems } from './PackingItems.entity';
 import { PackingTemplates } from './PackingTemplates.entity';
 import { PasswordResetTokens } from './PasswordResetTokens.entity';
 import { PlaceRatings } from './PlaceRatings.entity';
+import { PushSubscriptions } from './PushSubscriptions.entity';
 import { ReservationTravelers } from './ReservationTravelers.entity';
 import { Settings } from './Settings.entity';
 import { ShareTokens } from './ShareTokens.entity';
@@ -112,6 +113,7 @@ export class Users {
   airtrail_allow_insecure_tls?: number | null = 0;
   airtrail_write_enabled?: number | null = 0;
   display_name?: string | null;
+  immich_allow_insecure_tls: number & Opt = 0;
   assignment_participants_collection = new Collection<AssignmentParticipants>(this);
   audit_log_collection = new Collection<AuditLog>(this);
   bucket_list_collection = new Collection<BucketList>(this);
@@ -163,6 +165,7 @@ export class Users {
   packing_templates_collection = new Collection<PackingTemplates>(this);
   password_reset_tokens_collection = new Collection<PasswordResetTokens>(this);
   place_ratings_collection = new Collection<PlaceRatings>(this);
+  push_subscriptions_collection = new Collection<PushSubscriptions>(this);
   reservation_travelers_collection = new Collection<ReservationTravelers>(this);
   settings_collection = new Collection<Settings>(this);
   share_tokens_collection = new Collection<ShareTokens>(this);
@@ -245,6 +248,7 @@ export const UsersSchema = defineEntity({
     airtrail_allow_insecure_tls: p.integer().nullable(),
     airtrail_write_enabled: p.integer().nullable(),
     display_name: p.text().nullable(),
+    immich_allow_insecure_tls: p.integer().default(0),
     assignment_participants_collection: () => p.oneToMany(AssignmentParticipants).mappedBy('user').hidden(),
     audit_log_collection: () => p.oneToMany(AuditLog).mappedBy('user').hidden(),
     bucket_list_collection: () => p.oneToMany(BucketList).mappedBy('user').hidden(),
@@ -296,6 +300,7 @@ export const UsersSchema = defineEntity({
     packing_templates_collection: () => p.oneToMany(PackingTemplates).mappedBy('createdByRef').hidden(),
     password_reset_tokens_collection: () => p.oneToMany(PasswordResetTokens).mappedBy('user').hidden(),
     place_ratings_collection: () => p.oneToMany(PlaceRatings).mappedBy('user').hidden(),
+    push_subscriptions_collection: () => p.oneToMany(PushSubscriptions).mappedBy('user').hidden(),
     reservation_travelers_collection: () => p.oneToMany(ReservationTravelers).mappedBy('user').hidden(),
     settings_collection: () => p.oneToMany(Settings).mappedBy('user').hidden(),
     share_tokens_collection: () => p.oneToMany(ShareTokens).mappedBy('createdByRef').hidden(),

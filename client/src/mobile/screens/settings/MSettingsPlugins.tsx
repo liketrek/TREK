@@ -117,7 +117,7 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
   const runAction = (a: PluginAction) => {
     // Danger actions confirm first (native sheet in place of window.confirm).
     if (a.danger) { setConfirmAction(a); return }
-    performAction(a)
+    void performAction(a)
   }
 
   const save = async () => {
@@ -258,7 +258,7 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
         confirmLabel={confirmAction?.label}
         cancelLabel={t('common.cancel')}
         danger
-        onConfirm={() => { const a = confirmAction; setConfirmAction(null); if (a) performAction(a) }}
+        onConfirm={() => { const a = confirmAction; setConfirmAction(null); if (a) void performAction(a) }}
       />
     </>
   )

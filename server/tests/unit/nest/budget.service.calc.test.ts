@@ -988,6 +988,165 @@ describe('calculateSettlement: unpaid expenses (#2225)', () => {
   });
 });
 
+// ── Rows no rate can convert (the VND/AUD report) ───────────────────────────
+// A foreign row with no frozen rate and no live one used to be read 1:1, as if it
+// were already in the trip currency: 8,920,000 VND became 8,920,000 AUD of debt.
+
+describe('calculateSettlement: unconverted rows', () => {
+  const four = () => [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(1, 3, 'carol'), makeMember(1, 4, 'dave')];
+  const vndBill = (exchange_rate: number) => ({ ...makeItem(1, 8920000), currency: 'VND', exchange_rate } as BudgetItem);
+  const none = { item_ids: [], settlement_ids: [], currencies: [] };
+
+  it('VND/AUD regression: an unfrozen 8,920,000 VND bill on an AUD trip with no rates is left out whole, Σ balances 0, no VND-scale balance', async () => {
+    setupDb(
+      [vndBill(1), makeItem(2, 40)],
+      [...four(), makeMember(2, 2, 'bob'), makeMember(2, 3, 'carol')],
+      [makePayer(1, 1, 8920000, 'alice'), makePayer(2, 2, 40, 'bob')],
+    );
+    const result = await budget.calculateSettlement(1, { base: 'AUD', tripCurrency: 'AUD', rates: null });
+    expect(result.unconverted).toEqual({ item_ids: [1], settlement_ids: [], currencies: ['VND'] });
+    expect(result.currency).toBe('AUD');
+    // Only the 40 AUD dinner settles; the bill moves nobody, its payer included.
+    expect(result.balances.map(b => [b.user_id, b.balance])).toEqual([[2, 20], [3, -20]]);
+    expect(centSum(result.balances.map(b => b.balance))).toBe(0);
+    expect(result.balances.every(b => Math.abs(b.balance) < 1000)).toBe(true);
+    expect(result.finalBudgets.flatMap(f => f.sources.fronted.map(r => r.item_id))).toEqual([2]);
+  });
+
+  it('VND/AUD regression: frozen at 18241.3 it books 489.00 AUD, split 4 ways +366.75 / -122.25 x3', async () => {
+    setupDb([vndBill(18241.3)], four(), [makePayer(1, 1, 8920000, 'alice')]);
+    const result = await budget.calculateSettlement(1, { base: 'AUD', tripCurrency: 'AUD', rates: null });
+    expect(result.unconverted).toEqual(none);
+    expect(result.balances.map(b => b.balance)).toEqual([366.75, -122.25, -122.25, -122.25]);
+    expect(result.finalBudgets.find(f => f.user_id === 1)!.expenses).toBe(489);
+  });
+
+  it('a foreign row the rates do not quote is left out and listed while others convert live', async () => {
+    setupDb(
+      [vndBill(1), { ...makeItem(2, 65), currency: 'USD', exchange_rate: 1 } as BudgetItem],
+      [...four(), makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob')],
+      [makePayer(1, 1, 8920000, 'alice'), makePayer(2, 1, 65, 'alice')],
+    );
+    const result = await budget.calculateSettlement(1, { base: 'AUD', tripCurrency: 'AUD', rates: { AUD: 1, USD: 0.65 } });
+    expect(result.unconverted).toEqual({ item_ids: [1], settlement_ids: [], currencies: ['VND'] });
+    // 65 USD at today's 0.65 per dollar is 100 AUD, half of it Bob's.
+    expect(result.balances.map(b => [b.user_id, b.balance])).toEqual([[1, 50], [2, -50]]);
+  });
+
+  it('a frozen row converts without any rates (unchanged)', async () => {
+    setupDb(
+      [{ ...makeItem(1, 110), currency: 'USD', exchange_rate: 1.1 } as BudgetItem],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 110, 'alice')],
+    );
+    const result = await budget.calculateSettlement(1, { base: 'EUR', tripCurrency: 'EUR', rates: null });
+    expect(result.unconverted).toEqual(none);
+    expect(result.balances.find(b => b.user_id === 2)!.balance).toBe(-50);
+  });
+
+  it('trip-currency and NULL-currency rows with rate 1 count as they are', async () => {
+    setupDb(
+      [{ ...makeItem(1, 100), currency: 'aud', exchange_rate: 1 } as BudgetItem, { ...makeItem(2, 60), currency: null, exchange_rate: 1 } as BudgetItem],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob'), makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob')],
+      [makePayer(1, 1, 100, 'alice'), makePayer(2, 1, 60, 'alice')],
+    );
+    const result = await budget.calculateSettlement(1, { base: 'AUD', tripCurrency: 'AUD', rates: null });
+    expect(result.unconverted).toEqual(none);
+    expect(result.balances.find(b => b.user_id === 2)!.balance).toBe(-80);
+  });
+
+  it('planning-only and unpaid unconvertible rows are listed but never touch balances', async () => {
+    setupDb(
+      [
+        { ...makeItem(1, 500000), currency: 'VND', exchange_rate: 1 } as BudgetItem, // planning-only
+        { ...makeItem(2, 700000), currency: 'VND', exchange_rate: 1 } as BudgetItem, // nobody paid yet
+        makeItem(3, 30),
+      ],
+      [makeMember(2, 1, 'alice'), makeMember(2, 2, 'bob'), makeMember(3, 1, 'alice'), makeMember(3, 2, 'bob')],
+      [makePayer(3, 1, 30, 'alice')],
+    );
+    const result = await budget.calculateSettlement(1, { base: 'AUD', tripCurrency: 'AUD', rates: null });
+    expect(result.unconverted).toEqual({ item_ids: [1, 2], settlement_ids: [], currencies: ['VND'] });
+    expect(result.balances.map(b => [b.user_id, b.balance])).toEqual([[1, 15], [2, -15]]);
+  });
+
+  it('an unfrozen foreign transfer without a quote is left out and listed in settlement_ids', async () => {
+    setupDb(
+      [makeItem(1, 100)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 100, 'alice')],
+      [makeSettlementRow(9, 2, 1, 1000000, 'VND', 1)],
+    );
+    const result = await budget.calculateSettlement(1, { base: 'AUD', tripCurrency: 'AUD', rates: null });
+    expect(result.unconverted).toEqual({ item_ids: [], settlement_ids: [9], currencies: ['VND'] });
+    // A million dong did not square a 50 dollar debt 20,000 times over.
+    expect(result.balances.find(b => b.user_id === 2)!.balance).toBe(-50);
+    expect(result.finalBudgets.every(f => f.sources.moved.length === 0)).toBe(true);
+    // Still on the ledger list, so it can be edited or undone.
+    expect(result.settlements.map(s => s.id)).toEqual([9]);
+  });
+
+  it('a NULL-currency transfer still reads in the display currency', async () => {
+    setupDb(
+      [makeItem(1, 100)],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 100, 'alice')],
+      [makeSettlementRow(9, 2, 1, 62.5, null, 1)],
+    );
+    const result = await budget.calculateSettlement(1, { base: 'USD', tripCurrency: 'EUR', rates: { EUR: 1, USD: 1.25 } });
+    expect(result.currency).toBe('USD');
+    expect(result.unconverted).toEqual(none);
+    expect(result.balances.map(b => b.balance)).toEqual([0, 0]);
+  });
+
+  it('base EUR on an AUD trip without quote or baseRate answers in AUD with currency \'AUD\'', async () => {
+    setupDb([makeItem(1, 100)], [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')], [makePayer(1, 1, 100, 'alice')]);
+    for (const rates of [null, { AUD: 1, USD: 0.65 }]) {
+      const result = await budget.calculateSettlement(1, { base: 'EUR', tripCurrency: 'AUD', rates });
+      // Trip cents, labelled as what they are rather than printed as euros.
+      expect(result.currency).toBe('AUD');
+      expect(result.balances.map(b => b.balance)).toEqual([50, -50]);
+    }
+  });
+
+  it('baseRate stands in for the missing display quote and a transfer frozen at it cancels its flow to the cent (#2525)', async () => {
+    const bill = () => [makeItem(1, 123.45)];
+    const pair = () => [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')];
+    const paid = () => [makePayer(1, 1, 123.45, 'alice')];
+    setupDb(bill(), pair(), paid());
+    const before = await budget.calculateSettlement(1, { base: 'USD', tripCurrency: 'EUR', rates: null, baseRate: 1.1429 });
+    expect(before.currency).toBe('USD');
+    // Bob's 61.73 EUR at the browser's 1.1429 dollars per euro.
+    expect(before.flows.map(f => f.amount)).toEqual([70.55]);
+
+    // Bob pays what settle-up offers, frozen at the same browser quote (fallback_fx).
+    setupDb(bill(), pair(), paid(), [makeSettlementRow(9, 2, 1, 70.55, 'USD', 1.1429)]);
+    const after = await budget.calculateSettlement(1, { base: 'USD', tripCurrency: 'EUR', rates: null, baseRate: 1.1429 });
+    expect(after.balances.map(b => b.balance)).toEqual([0, 0]);
+    expect(after.flows).toEqual([]);
+  });
+
+  it('a server quote wins over baseRate', async () => {
+    setupDb([makeItem(1, 123.45)], [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')], [makePayer(1, 1, 123.45, 'alice')]);
+    const result = await budget.calculateSettlement(1, { base: 'USD', tripCurrency: 'EUR', rates: { EUR: 1, USD: 1.1429 }, baseRate: 2 });
+    expect(result.currency).toBe('USD');
+    expect(result.flows.map(f => f.amount)).toEqual([70.55]);
+  });
+
+  it('baseRate never converts a row', async () => {
+    setupDb(
+      [{ ...makeItem(1, 100), currency: 'EUR', exchange_rate: 1 } as BudgetItem],
+      [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
+      [makePayer(1, 1, 100, 'alice')],
+    );
+    // 0.61 EUR per AUD would convert this bill arithmetically; it only relabels the result.
+    const result = await budget.calculateSettlement(1, { base: 'EUR', tripCurrency: 'AUD', rates: null, baseRate: 0.61 });
+    expect(result.currency).toBe('EUR');
+    expect(result.unconverted).toEqual({ item_ids: [1], settlement_ids: [], currencies: ['EUR'] });
+    expect(result.balances).toEqual([]);
+  });
+});
+
 // ── freezeForeignRate (write-path FX freeze, #1445) ───────────────────────────
 // The trip seeded by beforeEach/seedBaseline is EUR — every case here relies on
 // that baseline instead of reconfiguring a `FROM trips` stub.
@@ -1063,14 +1222,14 @@ describe('applySettlementUpdate', () => {
     ).run();
 
     const res = await budget.applySettlementUpdate(7, 1, { from_user_id: 2, to_user_id: 1, amount: 10.126 });
-    // Quirk fix: currency/exchange_rate/settled_at are presence-gated CASE guards —
-    // omitted from this update, so the row keeps what it already had (NULL/1/NULL)
-    // while from/to/amount (rounded) take the new values. Checked against the
-    // persisted row rather than a mocked `run` call, now that there is a real one.
+    // Quirk fix: currency/exchange_rate/settled_at/note are presence-gated CASE guards —
+    // omitted from this update, so the row keeps what it already had (NULL/1/NULL/NULL,
+    // the note since #2340) while from/to/amount (rounded) take the new values. Checked
+    // against the persisted row rather than a mocked `run` call, now that there is a real one.
     const row = testDb.prepare(
-      'SELECT from_user_id, to_user_id, amount, currency, exchange_rate, settled_at FROM budget_settlements WHERE id = ?',
+      'SELECT from_user_id, to_user_id, amount, currency, exchange_rate, settled_at, note FROM budget_settlements WHERE id = ?',
     ).get(7);
-    expect(row).toEqual({ from_user_id: 2, to_user_id: 1, amount: 10.13, currency: null, exchange_rate: 1, settled_at: null });
+    expect(row).toEqual({ from_user_id: 2, to_user_id: 1, amount: 10.13, currency: null, exchange_rate: 1, settled_at: null, note: null });
     expect(res).toMatchObject({ id: 7, from_user_id: 2, to_user_id: 1, amount: 10.13 });
   });
 });

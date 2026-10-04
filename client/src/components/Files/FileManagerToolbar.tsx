@@ -1,23 +1,29 @@
 import { FolderSync, Star, Trash2 } from 'lucide-react'
 import type { FileManagerState } from './useFileManager'
+import { Tooltip } from '../shared/Tooltip'
 
+/** A 36 px icon control on the bar; open, it is raised like the active filter tab beside it. */
+const BAR_BTN = 'relative grid h-9 w-9 flex-none place-items-center rounded-[10px]'
+const BODY = { fontSize: 'calc(13px * var(--fs-scale-body, 1))' }
+
+/**
+ * The bar on top of Files, in the shape the other trip tabs open with: the
+ * tab's name, the kinds of file to narrow to, and the tools on the right.
+ */
 export function FileManagerToolbar(S: FileManagerState) {
-  const { showTrash, t, files, filterType, setFilterType, toggleTrash, setShowDocSync, docSyncOffered } = S
+  const { showTrash, t, files, filterType, setFilterType, toggleTrash, setShowDocSync, docSyncOffered, trashFiles, can, trip, handleEmptyTrash } = S
+  const trashLabel = t('files.trash') || 'Trash'
   return (
-    <div style={{ padding: '24px 28px 0', flexShrink: 0 }} className="max-md:!px-4 max-md:!pt-4">
-      <div style={{
-        background: 'var(--bg-tertiary)', borderRadius: 18,
-        padding: '14px 16px 14px 22px',
-        display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-      }}>
-        <h2 style={{ margin: 0, fontSize: 'calc(18px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
-          {showTrash ? (t('files.trash') || 'Trash') : t('files.title')}
+    <div className="flex-none px-7 pt-6 max-md:px-4 max-md:pt-4">
+      <div className="flex flex-wrap items-center gap-2.5 rounded-[18px] bg-surface-tertiary py-3 pl-[22px] pr-3">
+        <h2 className="m-0 shrink-0 text-subtitle font-semibold tracking-[-0.01em] text-content">
+          {showTrash ? trashLabel : t('files.title')}
         </h2>
 
         {!showTrash && (
           <>
-            <div className="hidden md:block" style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
-            <div className="hidden md:inline-flex" style={{ gap: 4, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+            <div className="mx-1.5 hidden h-[22px] w-px shrink-0 bg-edge-faint md:block" />
+            <div className="hidden min-w-0 flex-1 flex-wrap gap-1 md:inline-flex">
               {[
                 { id: 'all', label: t('files.filterAll') },
                 ...(files.some(f => f.starred) ? [{ id: 'starred', icon: Star } as const] : []),
@@ -36,64 +42,51 @@ export function FileManagerToolbar(S: FileManagerState) {
                   : tab.id === 'collab' ? files.filter(f => f.note_id).length
                   : 0
                 return (
-                  <button type="button" key={tab.id} onClick={() => setFilterType(tab.id)}
-                    style={{
-                      appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '6px 12px', borderRadius: 99, fontSize: 'calc(13px * var(--fs-scale-body, 1))', whiteSpace: 'nowrap',
-                      background: active ? 'var(--bg-card)' : 'transparent',
-                      color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-                      fontWeight: active ? 500 : 400,
-                      boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                      transition: 'all 0.15s ease',
-                    }}
+                  <button type="button" key={tab.id} onClick={() => setFilterType(tab.id)} aria-pressed={active}
+                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 ${active ? 'bg-surface-card font-medium text-content shadow-sm' : 'text-content-muted hover:text-content'}`}
+                    style={BODY}
                   >
-                    {TabIcon ? <TabIcon size={13} fill={active ? '#facc15' : 'none'} color={active ? '#facc15' : 'currentColor'} /> : null}
+                    {TabIcon ? <TabIcon size={13} fill={active ? '#facc15' : 'none'} color={active ? '#facc15' : 'currentColor'} /> /* theme-lint-disable: the star keeps its gold */ : null}
                     {'label' in tab && tab.label}
-                    <span style={{
-                      fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 600,
-                      background: active ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)',
-                      color: 'var(--text-faint)',
-                      padding: '1px 6px', borderRadius: 99, minWidth: 16, textAlign: 'center',
-                    }}>{count}</span>
+                    <span className="min-w-4 rounded-full bg-surface-tertiary px-1.5 text-center font-geist font-bold text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))' }}>{count}</span>
                   </button>
                 )
               })}
             </div>
           </>
         )}
+        {showTrash && <span className="flex-1" />}
 
         {/* Opens the sync panel. Placed next to the trash rather than in a menu
             because the question it answers, "where do these documents live",
             belongs on the same screen as the documents. Only where there is
             something behind it: see useDocSyncOffered. */}
         {docSyncOffered && (
-          <button type="button" onClick={() => setShowDocSync(true)} title={t('docsync.title')} style={{
-            appearance: 'none', border: '1px solid var(--edge)', cursor: 'pointer', fontFamily: 'inherit',
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '9px 12px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
-            background: 'transparent', color: 'var(--content-muted)', flexShrink: 0, marginLeft: 'auto',
-          }}>
-            <FolderSync size={14} strokeWidth={2.5} /> <span className="hidden sm:inline">{t('docsync.title')}</span>
+          <Tooltip label={t('docsync.title')}>
+            <button type="button" onClick={() => setShowDocSync(true)} aria-label={t('docsync.title')}
+              className="inline-flex h-9 flex-none items-center gap-1.5 rounded-[10px] bg-surface-card px-3 font-medium text-content-secondary hover:text-content" style={BODY}>
+              <FolderSync size={14} strokeWidth={2.2} /> <span className="hidden sm:inline">{t('docsync.title')}</span>
+            </button>
+          </Tooltip>
+        )}
+
+        {/* Emptying the trash is the one thing to do in it, so it sits on the bar. */}
+        {showTrash && trashFiles.length > 0 && can('file_delete', trip) && (
+          <button type="button" onClick={handleEmptyTrash}
+            className="inline-flex h-9 flex-none items-center gap-1.5 rounded-[10px] bg-danger-soft px-3.5 font-medium text-danger hover:opacity-90" style={BODY}>
+            <Trash2 size={14} strokeWidth={2} />
+            {t('files.emptyTrash') || 'Empty Trash'}
           </button>
         )}
 
-        {/* The first of the two takes the free space, so without the sync
-            button the trash sits flush right the way it always has. */}
-        <button type="button" onClick={toggleTrash} style={{
-          appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '9px 14px', borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
-          background: 'var(--accent)', color: 'var(--accent-text)',
-          flexShrink: 0, marginLeft: docSyncOffered ? undefined : 'auto',
-          opacity: showTrash ? 1 : 0.88,
-          transition: 'opacity 0.15s ease',
-        }}
-          onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-          onMouseLeave={e => e.currentTarget.style.opacity = showTrash ? '1' : '0.88'}
-        >
-          <Trash2 size={14} strokeWidth={2.5} /> <span className="hidden sm:inline">{t('files.trash') || 'Trash'}</span>
-        </button>
+        {/* The trash is a place to look, not the tab's main action: an icon on
+            the bar, raised while it is open. */}
+        <Tooltip label={trashLabel}>
+          <button type="button" onClick={toggleTrash} aria-label={trashLabel} aria-pressed={showTrash}
+            className={`${BAR_BTN} ${showTrash ? 'bg-surface-card text-content shadow-sm' : 'text-content-muted hover:bg-surface-card hover:text-content'}`}>
+            <Trash2 size={15} strokeWidth={2} />
+          </button>
+        </Tooltip>
       </div>
     </div>
   )

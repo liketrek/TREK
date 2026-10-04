@@ -13,7 +13,7 @@ Go to **Settings → Account**, find the **Two-factor authentication (2FA)** sec
 1. A QR code and a text secret are displayed. Scan the QR code with your authenticator app.
    > **Note:** The setup session expires after **15 minutes**. If you do not complete setup within that window, start again.
 2. Enter the 6-digit code shown in your authenticator app and click **Enable 2FA**.
-3. Save your **10 backup codes**. These are single-use codes shown only once — store them somewhere safe (a password manager, printed paper). Each code has the format `XXXX-XXXX`.
+3. Save your **10 backup codes**. These are single-use codes shown only once, so store them somewhere safe (a password manager, printed paper). Each code has the format `XXXX-XXXX`. The **Backup codes** box offers **Copy codes**, **Download TXT** and **Print / PDF**.
 4. 2FA is now active on your account.
 
 ## Logging in with 2FA

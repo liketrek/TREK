@@ -39,9 +39,9 @@ function renderSection() {
   );
 }
 
+// The switch carries its row's label as its accessible name.
 function multimodalToggle(): HTMLElement {
-  const row = screen.getByText('Send documents as images').parentElement as HTMLElement;
-  return row.querySelector('button') as HTMLElement;
+  return screen.getByRole('button', { name: 'Model reads images' });
 }
 
 async function pickProvider(user: ReturnType<typeof userEvent.setup>, current: RegExp, next: string) {

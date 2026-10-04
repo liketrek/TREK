@@ -204,7 +204,7 @@ export default function MCollEditSheet({ target, onClose, onCreated, onRequestDe
           <input
             value={coverQuery}
             onChange={e => setCoverQuery(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); searchCover() } }}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void searchCover() } }}
             placeholder={t('dashboard.unsplashSearchPlaceholder')}
             className="min-w-0 flex-1 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-3 py-[10px] font-geist text-[0.71875rem] text-m-ink outline-none placeholder:text-m-faint"
           />

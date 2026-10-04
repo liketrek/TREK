@@ -89,4 +89,45 @@ describe('usePlannerHistory', () => {
     expect(result.current.canUndo).toBe(false);
     expect(result.current.lastActionLabel).toBeNull();
   });
+
+  it('FE-HOOK-HIST-009: undo tells whether the step went through, failed, or there was none', async () => {
+    const { result } = renderHook(() => usePlannerHistory());
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    act(() => {
+      result.current.pushUndo('Works', vi.fn());
+      result.current.pushUndo('Fails', vi.fn().mockRejectedValue(new Error('Not found')));
+    });
+    let outcome: boolean | null = null;
+    await act(async () => { outcome = await result.current.undo(); });
+    expect(outcome).toBe(false);
+    await act(async () => { outcome = await result.current.undo(); });
+    expect(outcome).toBe(true);
+    await act(async () => { outcome = await result.current.undo(); });
+    expect(outcome).toBeNull();
+    spy.mockRestore();
+  });
+
+  it('FE-HOOK-HIST-010: forgetting a day drops the steps tagged with it and keeps the rest in order', async () => {
+    const { result } = renderHook(() => usePlannerHistory());
+    const untagged = vi.fn();
+    const otherDay = vi.fn();
+    act(() => {
+      result.current.pushUndo('Untagged', untagged);
+      result.current.pushUndo('Day 3', otherDay, [3]);
+      result.current.pushUndo('Day 2', vi.fn(), [2]);
+      result.current.pushUndo('Move 2 to 3', vi.fn(), [3, 2]);
+    });
+    act(() => { result.current.forgetDay(2); });
+    expect(result.current.lastActionLabel).toBe('Day 3');
+
+    // A day no step is tagged with changes nothing.
+    act(() => { result.current.forgetDay(99); });
+    expect(result.current.lastActionLabel).toBe('Day 3');
+
+    await act(async () => { await result.current.undo(); });
+    expect(otherDay).toHaveBeenCalledOnce();
+    await act(async () => { await result.current.undo(); });
+    expect(untagged).toHaveBeenCalledOnce();
+    expect(result.current.canUndo).toBe(false);
+  });
 });

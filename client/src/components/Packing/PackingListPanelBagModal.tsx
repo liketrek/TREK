@@ -1,7 +1,8 @@
 import { X, Plus } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
-import { bagFillPct, bagTotalWeight, countsTowardsMyLoad, unassignedTotalWeight } from './packingListPanel.helpers'
+import { bagFillPct, bagTotalWeight, countsTowardsMyLoad, packedWeight, perPersonLoads, unassignedTotalWeight } from './packingListPanel.helpers'
 import { BagCard } from './PackingListPanelBagCard'
+import { PackingWeightSummary } from './PackingWeightSummary'
 
 export function BagModal(S: PackingState) {
   const {
@@ -63,25 +64,21 @@ export function BagModal(S: PackingState) {
           )
         })()}
 
-        {/* Total */}
-        <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 12, marginTop: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>
-            <span>{t('packing.totalWeight')}</span>
-            <span>{(() => {
-              // Same rule as the rows above it: a grand total mixing true bag
-              // weights with a per-viewer remainder would be worse than either.
-              const w = bags.reduce((s, b) => s + bagWeightOf(b), 0)
-                + unassignedTotalWeight(unassignedWeightGrams, myItems.filter(i => !i.bag_id), serverWeightsFresh)
-              return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g`
-            })()}</span>
-          </div>
+        {/* Total, packed share and who carries what (#1131) */}
+        <div style={{ marginTop: 8, border: '1px solid var(--border-secondary)', borderRadius: 16, overflow: 'hidden' }}>
+          <PackingWeightSummary t={t} topRule={false}
+            // Same rule as the rows above it: a grand total mixing true bag
+            // weights with a per-viewer remainder would be worse than either.
+            total={bags.reduce((s, b) => s + bagWeightOf(b), 0) + unassignedTotalWeight(unassignedWeightGrams, myItems.filter(i => !i.bag_id), serverWeightsFresh)}
+            packed={packedWeight(myItems)}
+            people={perPersonLoads(bags, bagWeightOf)} />
         </div>
 
         {/* Add bag */}
         {canEdit && (showAddBag ? (
           <div style={{ display: 'flex', gap: 6, marginTop: 14 }}>
             <input autoFocus value={newBagName} onChange={e => setNewBagName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleCreateBag(); if (e.key === 'Escape') { setShowAddBag(false); setNewBagName('') } }}
+              onKeyDown={e => { if (e.key === 'Enter') void handleCreateBag(); if (e.key === 'Escape') { setShowAddBag(false); setNewBagName('') } }}
               placeholder={t('packing.bagName')}
               style={{ flex: 1, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none' }} />
             <button type="button" onClick={handleCreateBag} disabled={!newBagName.trim()}

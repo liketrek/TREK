@@ -17,17 +17,20 @@ import MobileShell from './mobile/MobileShell'
 import MRouteFallback from './mobile/components/MRouteFallback'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import { lazyWithRetry } from './utils/lazyWithRetry'
+import { reconcileAppVersion } from './utils/versionHandover'
 import { useIsPhone } from './mobile/useIsPhone'
 import { TranslationProvider, useTranslation } from './i18n'
 import { authApi, isAuthPublicPath } from './api/client'
 import { tripRepo } from './repo/tripRepo'
 import { readStartDestination, tripStartPath, DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB, SETTINGS_WAIT_MS, START_DESTINATION_ROUTE } from './utils/startDestination'
+import { takeResumeRoute, useRememberRoute } from './utils/resumeRoute'
 import { usePermissionsStore, PermissionLevel } from './store/permissionsStore'
 import { useInAppNotificationListener } from './hooks/useInAppNotificationListener.ts'
 import { useRoadtripPreferencesSync } from './hooks/useRoadtripPreferencesSync'
 import { registerSyncTriggers, unregisterSyncTriggers } from './sync/syncTriggers'
 import OfflineBanner from './components/Layout/OfflineBanner'
 import { SystemNoticeHost } from './components/SystemNotices/SystemNoticeHost.js'
+import HelpPanel from './components/Help/HelpPanel'
 // Notice action registrations (side-effect imports):
 import './pages/Trips/noticeActions.js'
 import { managedRoutes } from './managed'
@@ -142,6 +145,7 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   // instance across a navigation and the error would follow the user around.
   return (
     <MobileShell isPhone={isPhone}>
+      <RouteMemory />
       <ErrorBoundary
         key={location.pathname}
         boundaryId="route"
@@ -212,6 +216,12 @@ function ViewportRoute({ phone: Phone, desktop: Desktop }: {
  * didn't set it. Only 'active_trip' costs the one lookup that finds the trip,
  * and any failure along the way lands on the dashboard.
  */
+/** Remembers the protected route for the installed app's relaunch (#1024). Renders nothing. */
+function RouteMemory() {
+  useRememberRoute()
+  return null
+}
+
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuthStore()
   const settingsLoaded = useSettingsStore((s) => s.isLoaded)
@@ -231,6 +241,10 @@ function RootRedirect() {
 
   useEffect(() => {
     if (isLoading || !isAuthenticated || target) return
+    // The installed app coming back after the system threw it away (#1024):
+    // back to the trip and tab it was in, ahead of the start page.
+    const resume = takeResumeRoute()
+    if (resume) { setTarget(resume); return }
     const mirrored = readStartDestination()
     if (!mirrored && !settingsLoaded && !settingsGaveUp) {
       // Ask for the settings instead of waiting for whoever else might. The
@@ -284,7 +298,7 @@ function RouteFallback() {
 }
 
 export default function App() {
-  const { loadUser, isAuthenticated, demoMode, setManaged, setDemoMode, setDevMode, setIsPrerelease, setAppVersion, setHasMapsKey, setHasAmapKey, setServerTimezone, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled, setPlaceShadowEnabled } = useAuthStore()
+  const { loadUser, isAuthenticated, demoMode, setManaged, setDemoMode, setDevMode, setIsPrerelease, setAppVersion, setHasMapsKey, setHasAmapKey, setPlacesProvider, setServerTimezone, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled, setPlaceShadowEnabled } = useAuthStore()
   const { loadSettings } = useSettingsStore()
   const { loadAddons } = useAddonStore()
   const { loadPlugins } = usePluginStore()
@@ -301,7 +315,7 @@ export default function App() {
         loadUser()
       }
     }
-    authApi.getAppConfig().then(async (config: { managed?: boolean; demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; has_amap_key?: boolean; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; places_enrich_enabled?: boolean; place_shadow_enabled?: boolean; permissions?: Record<string, PermissionLevel> }) => {
+    authApi.getAppConfig().then(async (config: { managed?: boolean; demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; has_amap_key?: boolean; places_provider?: string; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; places_enrich_enabled?: boolean; place_shadow_enabled?: boolean; max_upload_mb?: number; permissions?: Record<string, PermissionLevel> }) => {
       setManaged(!!config?.managed)
       setDemoMode(!!config?.demo_mode)
       if (config?.dev_mode) setDevMode(true)
@@ -309,6 +323,7 @@ export default function App() {
       if (config?.version) setAppVersion(config.version)
       if (config?.has_maps_key !== undefined) setHasMapsKey(config.has_maps_key)
       if (config?.has_amap_key !== undefined) setHasAmapKey(config.has_amap_key)
+      if (config?.places_provider) setPlacesProvider(config.places_provider)
       if (config?.timezone) setServerTimezone(config.timezone)
       if (config?.require_mfa !== undefined) setAppRequireMfa(!!config.require_mfa)
       if (config?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(config.trip_reminders_enabled)
@@ -317,49 +332,10 @@ export default function App() {
       if (config?.places_details_enabled !== undefined) setPlacesDetailsEnabled(config.places_details_enabled)
       if (config?.places_enrich_enabled !== undefined) setPlacesEnrichEnabled(config.places_enrich_enabled)
       if (config?.place_shadow_enabled !== undefined) setPlaceShadowEnabled(config.place_shadow_enabled)
+      if (typeof config?.max_upload_mb === 'number' && config.max_upload_mb > 0) useAuthStore.getState().setMaxUploadMb(config.max_upload_mb)
       if (config?.permissions) usePermissionsStore.getState().setPermissions(config.permissions)
-
-      // A version is a short release tag and nothing else. It arrives over the
-      // wire and is written to this device's storage, so it is rebuilt from the
-      // characters a tag may contain and kept only when nothing had to be
-      // stripped. Anything else is ignored, which also keeps a malformed value
-      // from being compared against the stored marker and starting an update on
-      // every launch.
-      const reportedVersion = typeof config?.version === 'string' ? config.version : ''
-      const version = reportedVersion.replace(/[^\w.+-]/g, '').slice(0, 64)
-      if (version && version === reportedVersion) {
-        const storedVersion = localStorage.getItem('trek_app_version')
-        // Record the version BEFORE acting on it. The old code wrote the marker
-        // after the purge and outside its try, so a throwing setItem (private
-        // mode, blocked site data, quota) left the caches deleted, the marker
-        // unwritten and the reload unreached, and the purge then repeated on
-        // every single launch, permanently (#2228).
-        try { localStorage.setItem('trek_app_version', version) } catch { /* site data blocked */ }
-        if (storedVersion && storedVersion !== version) {
-          // A newer build is deployed. Ask the service worker to fetch it and
-          // hand over; Workbox ('autoUpdate' + skipWaiting + clientsClaim)
-          // installs the new precache and only then drops the outdated one, so
-          // there is never a moment without an app shell.
-          //
-          // This used to delete EVERY Cache Storage bucket and unregister EVERY
-          // worker instead. That left the device with no shell and no worker
-          // until a fresh ~22 MB precache finished (minutes on mobile data),
-          // and anyone who closed the app or lost signal in that window was
-          // left with a PWA that could no longer start offline at all. It also
-          // threw away the map tiles and file blobs the user had deliberately
-          // downloaded for offline use (#2228).
-          try {
-            const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined
-            if (reg) {
-              navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload(), { once: true })
-              await reg.update()
-              return
-            }
-          } catch { /* fall through to a plain reload */ }
-          window.location.reload()
-          return
-        }
-      }
+      // Last, since a new release reloads the page from here.
+      await reconcileAppVersion(config?.version)
     }).catch(() => {})
   }, [])
 
@@ -419,6 +395,7 @@ export default function App() {
   return (
     <TranslationProvider>
       {!hideAuthedWidgets && <ErrorBoundary boundaryId="widget:system-notice" fallback={null}><SystemNoticeHost /></ErrorBoundary>}
+      {!hideAuthedWidgets && <ErrorBoundary boundaryId="widget:help-panel" fallback={null}><HelpPanel /></ErrorBoundary>}
       <ErrorBoundary boundaryId="widget:toast" fallback={null}><ToastContainer /></ErrorBoundary>
       {!hideAuthedWidgets && <ErrorBoundary boundaryId="widget:background-tasks" fallback={null}><BackgroundTasksWidget /></ErrorBoundary>}
       {!hideAuthedWidgets && (isPhone ? <MSaveToCollectionSheet /> : <SaveToCollectionModal />)}

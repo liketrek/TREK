@@ -37,6 +37,7 @@ const { db } = vi.hoisted(() => {
     is_private INTEGER NOT NULL DEFAULT 0,
     owner_id INTEGER,
     updated_at DATETIME,
+    packed_quantity INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );`);
   tmp.exec(`CREATE TABLE packing_bags (
@@ -89,7 +90,10 @@ const { db } = vi.hoisted(() => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     category_id INTEGER NOT NULL,
     name TEXT NOT NULL,
-    sort_order INTEGER NOT NULL DEFAULT 0
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    weight_grams INTEGER,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    bag_name TEXT
   );`);
   // StorageRegistryService (behind StorageModule, now in this module chain) reads
   // this at onModuleInit.
@@ -370,6 +374,18 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
     const res = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ checked: 1 });
     expect(res.status).toBe(200);
     expect(res.body.item.checked).toBe(1);
+  });
+
+  it('counts packed pieces and ticks the item once the count is full (#2296)', async () => {
+    const id = insertItem(tripId, 'Shirts');
+    await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ quantity: 3 });
+    const partial = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ packed_quantity: 2 });
+    expect(partial.status).toBe(200);
+    expect(partial.body.item).toMatchObject({ packed_quantity: 2, checked: 0 });
+    const full = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ packed_quantity: 3 });
+    expect(full.body.item).toMatchObject({ packed_quantity: null, checked: 1 });
+    const negative = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ packed_quantity: -1 });
+    expect(negative.status).toBe(400);
   });
 
   it('whitespace-only bag name still gets the bespoke 400', async () => {

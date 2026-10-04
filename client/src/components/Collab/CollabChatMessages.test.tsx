@@ -158,7 +158,7 @@ describe('ChatMessages', () => {
       [buildMsg({ id: 1, text: 'one' }), buildMsg({ id: 2, text: 'two' })],
       { hoveredId: 1 },
     )
-    const actions = screen.getAllByTitle('collab.chat.reply').map(b => b.parentElement!)
+    const actions = screen.getAllByRole('button', { name: 'collab.chat.reply' }).map(b => b.parentElement!)
     expect(actions[0].getAttribute('style')).toContain('opacity: 1')
     expect(actions[1].getAttribute('style')).toContain('opacity: 0')
   })
@@ -243,7 +243,7 @@ describe('ChatMessages', () => {
     const { setReplyTo, handleDelete } = renderMessages([
       buildMsg({ id: 3, user_id: 1, username: 'me', text: 'mine' }),
     ])
-    const replyBtn = screen.getByTitle('collab.chat.reply')
+    const replyBtn = screen.getByRole('button', { name: 'collab.chat.reply' })
     fireEvent.mouseEnter(replyBtn)
     expect(replyBtn.style.transform).toBe('scale(1.2)')
     fireEvent.mouseLeave(replyBtn)
@@ -251,7 +251,7 @@ describe('ChatMessages', () => {
     fireEvent.click(replyBtn)
     expect(setReplyTo).toHaveBeenCalledWith(expect.objectContaining({ id: 3 }))
 
-    const deleteBtn = screen.getByTitle('common.delete')
+    const deleteBtn = screen.getByRole('button', { name: 'common.delete' })
     fireEvent.mouseEnter(deleteBtn)
     expect(deleteBtn.style.background).toBe('rgb(239, 68, 68)')
     fireEvent.mouseLeave(deleteBtn)

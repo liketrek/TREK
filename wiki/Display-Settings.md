@@ -1,6 +1,6 @@
 # General Settings
 
-The General tab (Settings → General) controls your locale preferences and a few map-related display options. All changes save immediately to your account and persist across devices.
+The General tab (Settings → General) controls your locale preferences and a few planner and map display options. Each setting is a row in a card: a switch, a segmented control or a dropdown on the right. All changes save immediately to your account and persist across devices.
 
 ![General Settings](assets/UsrSettings.png)
 
@@ -8,7 +8,7 @@ The General tab (Settings → General) controls your locale preferences and a fe
 
 Open the user menu in the top navigation bar, select **Settings**, and stay on the **General** tab — it is the tab the page opens on.
 
-The tab is split into three sections: **Startup** (where opening TREK lands), **Language & region** (currency, language, temperature, distance, time format) and **Travel & map** (booking route labels, always show booking routes, explore places on the map, blur booking codes, optimize route from accommodation).
+The tab is split into three sections: **Startup** (where opening TREK lands), **Language & region** (currency, language, place names, temperature, distance, time format, week start) and **Travel & map** (open places in, date first in day headings, booking route labels, always show booking routes, compact markers for unplanned places, explore places on the map, blur booking codes, optimize route from accommodation).
 
 > Color mode (Light / Dark / Auto) is **not** here — it lives on the **Appearance** tab. See [Appearance-Settings](Appearance-Settings).
 
@@ -68,11 +68,15 @@ Your **display currency** — the currency you want to *read* amounts in on the 
 
 > This is **not** the trip's currency, which is set on the trip itself and is the base its balances are calculated in. The distinction matters — see [Currencies](Currencies).
 
-An administrator can set an instance-wide default in Admin → Default User Settings. It is not only a starting value for new accounts: it is merged in every time your settings are loaded, so it applies to anyone whose own display currency is empty. Picking a specific currency of your own overrides it. **Trip currency** does not, because it stores an empty value that counts as "not set", so the admin default takes effect again on your next reload.
+An administrator can set an instance-wide default in **Admin → User Defaults**. It is not only a starting value for new accounts: it is merged in every time your settings are loaded, so it applies to anyone whose own display currency is empty. Picking a specific currency of your own overrides it. **Trip currency** does not, because it stores an empty value that counts as "not set", so the admin default takes effect again on your next reload.
 
 ## Language
 
-Select your preferred language from the button grid (desktop) or dropdown (mobile). The change takes effect immediately without a page reload. See [Languages](Languages) for the full list of supported languages.
+Select your preferred language from the row of buttons (a narrow window shows a dropdown instead). The change takes effect immediately without a page reload. See [Languages](Languages) for the full list of supported languages.
+
+## Place names
+
+The language place search, typed suggestions, place details and addresses answer in. **Same as the app** (the default) follows the language above. Pick another one to keep the interface in your language while places come back in, say, English or the local language of your trip. Where a place has no name in the chosen language, its local name is shown.
 
 ## Temperature unit
 
@@ -99,27 +103,47 @@ Affects all time displays throughout the app.
 | 24h | 14:30 |
 | 12h | 2:30 PM |
 
+## Week starts on
+
+The first column of every calendar in TREK: trip dates, bookings, expenses, to-dos, journal entries and photo date ranges. Choose **Monday** (the default), **Sunday** or **Saturday**; the choices show the day names in your language, and so do the weekday headers of the calendars.
+
+An administrator can set the default for everyone under **Admin → User Defaults**; your own choice always wins. Vacay keeps its own **Week start** per plan, see [Vacay](Vacay).
+
+The poll deadline on the phone uses the browser's own date field, which follows the device's region rather than this setting.
+
+## Open places in
+
+Which map app the navigate buttons open. **Ask every time** (the default) keeps the list of every map app a place can be opened in. Pick **Google Maps**, **Waze**, **Apple Maps**, **OpenStreetMap**, **CoMaps**, **高德地图** or, on Android, **Other map app** (a `geo:` link your phone hands to the map app of your choice), and the button opens that app straight away. Apple Maps is not offered on Android. When a place cannot be opened in the app you picked (Amap outside China, Waze for a place without coordinates), the full list appears as before. See [Opening a place in a map app](Places-and-Search#opening-a-place-in-a-map-app).
+
+## Date first in day headings
+
+When on, every day in the day plan leads with its calendar date and shows "Day 1" or the day's own title next to it. Off by default, which keeps the day's name first and the date second.
+
 ## Booking route labels
 
-Shows or hides station / airport names on the endpoint markers of booking routes on the map. When off, only the icon is shown. Set to **On** or **Off**.
+Shows or hides station / airport names on the endpoint markers of booking routes on the map. When off, only the icon is shown. A switch, on or off.
 
 ## Explore places on the map
 
-Shows a row of category buttons on the trip map for finding nearby restaurants, accommodation, sights and more. TREK's own place index answers first and OpenStreetMap fills in; see [Exploring the map by category](Places-and-Search#exploring-the-map-by-category). Set to **On** or **Off**.
+Shows a row of category buttons on the trip map for finding nearby restaurants, accommodation, sights and more. TREK's own place index answers first and OpenStreetMap fills in, and installed plugins can add buttons of their own; see [Exploring the map by category](Places-and-Search#exploring-the-map-by-category). A switch, on by default.
 
 ## Always show booking routes
 
-When **On**, every booking that has a route (flight, train, car leg, etc.) shows its route line on the map automatically, on every trip, without needing the per-booking toggle. Set to **On** or **Off** — off by default.
+When **On**, every booking that has a route (flight, train, car leg, etc.) shows its route line on the map automatically, on every trip, without needing the per-booking toggle. A switch, off by default.
 
 This only sets the *default* for a trip you haven't touched before. If you've already used the per-booking toggle or the trip's "show all / hide all" button (in the day-plan toolbar) on a given trip, that choice is remembered for that trip and isn't overridden by changing this setting afterwards.
 
+## Compact markers for unplanned places
+
+When on, places not planned into any day show on the trip map as small markers without their photo, so the planned stops stand out. Off by default.
+
 ## Blur booking codes
 
-When enabled, confirmation codes and reference numbers are blurred until you hover or tap. Set to **On** or **Off**.
+When enabled, confirmation codes and reference numbers are blurred until you hover or tap. A switch, off by default.
 
 ## Optimize route from accommodation
 
-When **On** (the default), the **Optimize** button in the day's route tools anchors the route on that day's accommodation instead of only reordering the places among themselves: an ordinary day becomes a loop out from the hotel and back to it, a transfer day a run from the hotel you check out of to the one you check into that evening. Set to **On** or **Off**.
+When **On** (the default), the **Optimize** button in the day's route tools anchors the route on that day's accommodation instead of only reordering the places among themselves: an ordinary day becomes a loop out from the hotel and back to it, a transfer day a run from the hotel you check out of to the one you check into that evening. A switch.
 
 A day without an accommodation, or one whose hotel has no coordinates, is optimized from its first place as before. Locked and timed places keep their slots either way. See [Route-Optimization](Route-Optimization).
 

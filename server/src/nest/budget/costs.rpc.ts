@@ -73,9 +73,11 @@ export class CostsRpc {
     const parsed = budgetCreateItemRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid cost: ${schemaMessage(parsed.error)}`);
     await this.requireCostEdit(tripId, actor);
+    await this.refuseForeignLinks(tripId, parsed.data);
     // BudgetService.create freezes the FX rate and resolves members/payers, so the
     // plugin path produces the same row the web app would.
     const item = await this.budget.create(String(tripId), parsed.data);
+    if (item.reservation_id) await this.budget.resyncReservationPrice(tripId, item.reservation_id);
     this.realtime.broadcast(tripId, 'budget:created', { item });
     return item;
   }
@@ -89,13 +91,22 @@ export class CostsRpc {
     const parsed = budgetUpdateItemRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid cost: ${schemaMessage(parsed.error)}`);
     await this.requireCostEdit(tripId, actor);
+    await this.refuseForeignLinks(tripId, parsed.data);
+    const before = parsed.data.reservation_id !== undefined ? await this.budget.getBudgetItem(itemId, tripId) : null;
     // update re-freezes the FX rate on a currency change, exactly like create.
     // Plan 4 Task 8b (U6) — itemId is already a real row id (num() above);
     // BudgetService.update's id param no longer needs the String() wrapper.
     const item = await this.budget.update(itemId, String(tripId), parsed.data);
     if (item == null) throw new ForbiddenResource(`no cost ${itemId} on trip ${tripId}`);
+    await this.budget.resyncLinkedPrices(tripId, before?.reservation_id, item, parsed.data);
     this.realtime.broadcast(tripId, 'budget:updated', { item });
     return item;
+  }
+
+  /** A booking or place the cost links to has to be on the same trip, as over REST and MCP. */
+  private async refuseForeignLinks(tripId: number, data: { reservation_id?: number | null; place_id?: number | null }): Promise<void> {
+    const refusal = await this.budget.linkRefusal(tripId, data);
+    if (refusal) throw new ForbiddenResource(refusal);
   }
 
   @PluginMethod('costs.delete', { permission: 'db:write:costs' })

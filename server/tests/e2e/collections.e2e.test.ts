@@ -132,6 +132,37 @@ describe('Collections e2e (real auth guard + real service + temp SQLite)', () =>
     expect(placed.reservation_status).toBe('none'); // itinerary defaults
   });
 
+  // #2483: a place from the TREK index can carry its website without a scheme,
+  // and the save dialog has no website field to correct it in.
+  it('COLLECTIONS-E2E-089: saving a place whose website has no scheme stores it as https', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Bretagne' })).body;
+    const saved = await request(server).post('/api/addons/collections/places')
+      .set('Cookie', sessionCookie(ownerId)).send({
+        collection_id: col.id,
+        name: 'Chapelle Sainte-Barbe',
+        lat: 48.0286,
+        lng: -3.4862,
+        osm_id: 'gers:ceba0e62-172b-4343-bb3b-78b915a18383',
+        website: 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
+      });
+    expect(saved.status).toBe(200);
+    expect(saved.body.place.website).toBe('https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët');
+    expect(db.prepare('SELECT website FROM collection_places WHERE id = ?').get(saved.body.place.id)).toEqual({
+      website: 'https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
+    });
+  });
+
+  it('COLLECTIONS-E2E-090: a script link on save is still a 400 and stores nothing', async () => {
+    const col = (await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Script links' })).body;
+    for (const website of ['javascript:alert(1)', 'mailto:mairie@example.fr', 'Chapelle']) {
+      const res = await request(server).post('/api/addons/collections/places')
+        .set('Cookie', sessionCookie(ownerId)).send({ collection_id: col.id, name: 'Chapelle', website });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/^website: /);
+    }
+    expect(db.prepare('SELECT COUNT(*) AS n FROM collection_places WHERE collection_id = ?').get(col.id)).toEqual({ n: 0 });
+  });
+
   // Regression for #1437: editing a place (PATCH without a status field) must NOT
   // reset a 'want'/'visited' place back to 'idea'.
   it('COLLECTIONS-E2E-012: PATCH without status leaves the saved status unchanged', async () => {

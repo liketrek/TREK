@@ -59,6 +59,9 @@ function rateLimit(userId: number, bucket: string, max: number) {
  * days/reservations bridge imports became injected services; the itinerary
  * schemas/helpers live in the colocated transit-itinerary.helpers.ts.
  */
+// The shared place schema stays open for REST; a tool refuses a key it did not declare.
+const transitPlaceInput = z.strictObject(transitPlaceSchema.shape);
+
 @McpController()
 export class TransitMcp {
   constructor(
@@ -81,7 +84,7 @@ export class TransitMcp {
       query: z.string().min(2).max(200),
       language: z.string().min(2).max(5).optional(),
       near: z
-        .object(transitCoordinatesSchema.shape)
+        .strictObject(transitCoordinatesSchema.shape)
         .optional()
         .describe('Optional coordinates used to bias nearby results'),
     },
@@ -106,8 +109,8 @@ export class TransitMcp {
     description:
       'Search scheduled public-transit routes between two coordinates, via whichever backend the instance is configured for. Returns itineraries that can be passed unchanged to create_transit_journey. `dropped` counts provider itineraries that failed validation and are therefore absent from the results — a non-zero value means the provider offered routes this tool could not represent.',
     inputSchema: {
-      from: transitPlaceSchema,
-      to: transitPlaceSchema,
+      from: transitPlaceInput,
+      to: transitPlaceInput,
       time: z
         .string()
         .datetime({ offset: true })
@@ -167,8 +170,8 @@ export class TransitMcp {
     inputSchema: {
       tripId: z.number().int().positive(),
       dayId: z.number().int().positive().describe('Trip day on which the journey departs'),
-      from: transitPlaceSchema,
-      to: transitPlaceSchema,
+      from: transitPlaceInput,
+      to: transitPlaceInput,
       itinerary: transitItinerarySchema,
       notes: z.string().max(1000).optional(),
     },

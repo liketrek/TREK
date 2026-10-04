@@ -1,7 +1,7 @@
 import { AlertTriangle, Check, Loader2, Shuffle, X } from 'lucide-react'
 import MBadge from '../../../components/MBadge'
 import MIconBtn from '../../../components/MIconBtn'
-import { alternativeSubline, type AlternativeOverlay } from '../../../../components/Roadtrip/alternativeOverlays'
+import { alternativeSubline, otherEngineNote, type AlternativeOverlay } from '../../../../components/Roadtrip/alternativeOverlays'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { formatDistance } from '../../../../utils/units'
 import { badgeLabel } from './stageBadges'
@@ -31,6 +31,7 @@ export interface MRtAlternativesBarProps {
 export default function MRtAlternativesBar({ planner, alts }: MRtAlternativesBarProps) {
   const { t } = planner
   const title = t('roadtrip.alt.title')
+  const note = alts.picked ? otherEngineNote(alts.picked) : null
 
   return (
     <section
@@ -55,9 +56,9 @@ export default function MRtAlternativesBar({ planner, alts }: MRtAlternativesBar
       <div className="flex h-11 flex-none items-center gap-2.5">
         {/* The desk hides this sentence in a tooltip on the chip. There is no hover here,
             so it stands beside the button whose choice it qualifies. */}
-        {alts.picked?.otherEngine && (
+        {note && (
           <span className="line-clamp-2 min-w-0 flex-1 font-geist text-[0.65625rem] leading-[1.35] text-m-muted">
-            {t('roadtrip.alt.otherEngine')}
+            {t(note)}
           </span>
         )}
         <button
@@ -68,7 +69,7 @@ export default function MRtAlternativesBar({ planner, alts }: MRtAlternativesBar
           // Saving keeps the fill: the button is busy with the choice, not unavailable.
           className={`flex h-11 min-w-0 items-center justify-center gap-[7px] rounded-full bg-m-act px-5 text-[0.8125rem] font-semibold text-m-actfg ${
             alts.saving ? '' : 'disabled:bg-[color:var(--m-ic)] disabled:text-m-faint'
-          } ${alts.picked?.otherEngine ? 'flex-none' : 'flex-1'}`}
+          } ${note ? 'flex-none' : 'flex-1'}`}
         >
           {alts.saving
             ? <Loader2 size={15} strokeWidth={2.2} className="flex-none animate-spin" aria-hidden="true" />
@@ -116,7 +117,7 @@ function AlternativesBody({ planner, alts }: MRtAlternativesBarProps) {
   // Scrolls sideways rather than wrapping, because the row has a fixed height. The negative
   // margin lets a chip slide under the bar's own edge instead of stopping short of it.
   return (
-    <div className="-mx-[14px] flex h-full snap-x gap-2 overflow-x-auto px-[14px]">
+    <div className="-mx-[14px] flex h-full snap-x gap-2 overflow-x-auto px-[14px]" aria-busy={alts.saving}>
       {alts.overlays.map(alt => (
         <AlternativeChip
           key={alt.index}

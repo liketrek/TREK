@@ -3,15 +3,15 @@ import type { SqliteConnection } from '@mikro-orm/sqlite';
 import { reseatBookedNights } from '../reseat-booked-nights';
 
 /**
- * Legacy migration step 242 (`db/migrations.ts`'s own last step).
+ * Legacy migration step 242 (`db/migrations.ts`).
  *
  * Seat every booked night where its check-in says, the way a night booked
- * today is seated (`AccommodationsService.positionForCheckIn`) — see
- * `reseat-booked-nights.ts`'s own header for the full rule. Every trip
- * planned before that ordering change keeps the old, wrong order until
- * somebody edits its check-in; this brings them forward the same way step
- * 229/230 (`Migration20200101034900`) brought the day stop itself forward for
- * older bookings.
+ * today is seated (`night-seat.ts`'s `seatAmong`, which
+ * `AccommodationsService` applies) — see `reseat-booked-nights.ts`'s own
+ * header for the full rule. Every trip planned before that ordering change
+ * keeps the old, wrong order until somebody edits its check-in; this brings
+ * them forward the same way step 229/230 (`Migration20200101034900`) brought
+ * the day stop itself forward for older bookings.
  *
  * Plan 4 Task 5c's finding: unlike ruling 7's assumption, nothing in the
  * numbered chain ever called `reseatBookedNights` — the two migrations near

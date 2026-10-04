@@ -4,7 +4,7 @@ import type { RoadtripDayBoundary } from './day-boundary.schema';
 import type { SpillChain } from './nightSpill';
 import type { RoadtripDay, RoadtripStop, RoutedLeg } from './planning-types';
 import type { DistanceUnit } from './planning-types';
-import { formatClock, hasChosenArrival, leaveAfter, parseClock } from './roadtripModel';
+import { formatClock, hasChosenArrival, isStoredStop, leaveAfter, parseClock } from './roadtripModel';
 import { formatDurationShort } from './roadtripModel';
 import { formatDistance } from './units';
 
@@ -70,7 +70,13 @@ function portion(leg: RoutedLeg, from: number, to: number, unit: DistanceUnit): 
   };
 }
 
-function stationary(stop: RoadtripStop): RoutedLeg {
+/**
+ * The leg of a drive that goes nowhere: from a stop to the same spot, nothing measured.
+ *
+ * Between the last stop of a day and the marker that closes it, and between a booked
+ * night's hotel in the evening and the same hotel the next morning (`withStationaryJoins`).
+ */
+export function stationary(stop: RoadtripStop): RoutedLeg {
   const at: [number, number] = [stop.lat, stop.lng];
   return {
     line: [],
@@ -108,13 +114,36 @@ export function planDayWindow(
   const failed = (issue: WindowPlan['issue']): WindowPlan => ({ chains: [], legFor: lookup, issue });
   if (!stops.length) return { chains: [], legFor: lookup, issue: null };
   const positions = new Map(stops.map(({ stop }, i) => [stop.assignmentId, i]));
+  // Where a day ended at stop `i` really ends: behind tonight's hotel when the booked night
+  // stands right after it on the same day. Ended at the stop, the hotel would be put on the
+  // morning after, a drive to bed made the next day.
+  const behindTonight = (i: number): number => {
+    const next = stops[i + 1]?.stop;
+    return next?.bookend?.phase === 'evening' && next.ownerDayId === stops[i]!.stop.ownerDayId ? i + 1 : i;
+  };
+  // A stop set to end its day ends it there, or behind tonight's hotel right after it.
+  const endsDayHere = (i: number): boolean => {
+    if (stops[i]!.stop.endDay) return behindTonight(i) === i;
+    return i > 0 && !!stops[i - 1]!.stop.endDay && behindTonight(i - 1) === i;
+  };
   const targets = new Map<number, number>();
   let lastTarget = -1;
   for (const boundary of [...boundaries].sort((a, b) => a.day_number - b.day_number)) {
     const from = positions.get(boundary.from_assignment_id);
     const to = boundary.to_assignment_id === null ? null : positions.get(boundary.to_assignment_id);
+    // A boundary between two stops a booked night now stands between is left alone: the
+    // night ends the day there already, and the two are no longer next to each other only
+    // because the hotel stands in between.
+    if (
+      from !== undefined &&
+      to !== null &&
+      to !== undefined &&
+      to > from + 1 &&
+      stops.slice(from + 1, to).every(({ stop }) => stop.bookend)
+    )
+      continue;
     if (from === undefined || (to !== null && to !== from + 1)) return failed('conflict');
-    const target = from + (to === null ? 0 : boundary.fraction);
+    const target = to === null ? behindTonight(from) : from + boundary.fraction;
     if (target <= lastTarget) return failed('conflict');
     targets.set(boundary.day_number, target);
     lastTarget = target;
@@ -178,6 +207,10 @@ export function planDayWindow(
     const last = chain.stops[chain.stops.length - 1]!;
     const end: RoadtripStop = {
       ...at,
+      // A marker placed where a terminal or a booked night's hotel stands is a marker, not
+      // the terminal or the hotel.
+      carrier: undefined,
+      bookend: undefined,
       assignmentId: -2000000000 - number * 2,
       name: labels.end,
       time: null,
@@ -215,6 +248,33 @@ export function planDayWindow(
     // When the drive into this stop set out, on this day's clock: for one a night broke
     // up, the morning it went on.
     let setOut: number | null = null;
+    // A ride from its departure terminal to its arrival runs on the booking's clock and
+    // through the night if it must: no day end is placed on a flight and no morning
+    // resumes on one. The clock follows the ride, and the day counter follows the clock,
+    // to the day the booking lands on. A road leg gets the window's treatment below.
+    if (
+      previous?.carrier?.role === 'departure' &&
+      stop.carrier?.role === 'arrival' &&
+      previous.carrier.reservationId === stop.carrier.reservationId
+    ) {
+      const leg = legs[i - 1]!;
+      clock += leg.seg.duration / 60;
+      while (number < day.dayNumber && clock >= 1440) {
+        clock -= 1440;
+        number += 1;
+      }
+      // The booking's days are what it says they are, whatever its clocks add up to.
+      if (number !== day.dayNumber) {
+        number = day.dayNumber;
+        clock = ((clock % 1440) + 1440) % 1440;
+      }
+      if (pin !== null) clock = pin;
+      putLeg(previous, stop, leg);
+      position = i;
+      append(stop, clock);
+      previous = stop;
+      continue;
+    }
     if (previous && number < day.dayNumber && !targets.has(number)) {
       if (window.endMode !== 'stop') clock = Math.max(clock, window.end);
       previous = night(previous);
@@ -242,17 +302,34 @@ export function planDayWindow(
       let early: number | null = null;
       if (pin !== null) early = pin - minutes;
       else if (leave !== null && leave - minutes >= 0) early = leave - minutes;
-      if (early !== null && early < clock && chainAt(number).stops.every((s) => s.automaticNight)) {
+      // The hotel the day wakes up in is part of the morning, not a stop in the way of it:
+      // the day sets out from there early just the same. Everything before this leg moves
+      // back by the same minutes, so the marker keeps the drive to the hotel it has, which
+      // is none when the night was spent there.
+      const morning = chainAt(number);
+      if (
+        early !== null &&
+        early < clock &&
+        morning.stops.every((s) => s.automaticNight || s.bookend?.phase === 'morning')
+      ) {
+        const shift = early - clock;
+        const moved = (at: string | null): number => (parseClock(at) ?? clock) + shift;
+        if (early < 0 || moved(morning.schedule.entries[0]!.arrival) < 0) return failed('conflict');
+        for (const entry of morning.schedule.entries) {
+          entry.arrival = formatClock(Math.round(moved(entry.arrival)));
+          entry.departure = formatClock(Math.round(moved(entry.departure)));
+        }
         clock = early;
-        if (clock < 0) return failed('conflict');
-        const startEntry = chainAt(number).schedule.entries[0]!;
-        startEntry.arrival = formatClock(Math.round(clock));
-        startEntry.departure = formatClock(Math.round(clock));
       }
       if (pin !== null && clock + minutes > pin + 1) return failed('conflict');
 
       let fraction = 0;
-      const split = pin === null && (leg.seg.mode === 'driving' || leg.seg.mode === undefined);
+      // The drive to tonight's hotel is never cut by the window, and never put off to the
+      // morning: the night is booked there, so the day ends there, later than the window
+      // says if it must. Cut, the day ended on the road and the hotel was reached the next
+      // morning, just before the day set out from it again.
+      const split =
+        pin === null && stop.bookend?.phase !== 'evening' && (leg.seg.mode === 'driving' || leg.seg.mode === undefined);
       if (split && !targets.has(number) && window.endMode === 'stop' && clock + minutes > window.end + 0.000001) {
         if (minutes > window.end - window.start) return failed('legTooLong');
         previous = night(previous);
@@ -312,7 +389,9 @@ export function planDayWindow(
     }
     let dwell = left ? left.departure - clock : Math.max(0, stop.dwellMinutes ?? 0);
     while (dwell > 0) {
-      const remaining = targets.has(number) ? dwell : Math.max(0, window.end - clock);
+      // The wait at a terminal is the booking's, not the window's: a check-in that runs
+      // past the travel hours is not a day ending at the airport.
+      const remaining = targets.has(number) || stop.carrier ? dwell : Math.max(0, window.end - clock);
       const spend = Math.min(dwell, remaining);
       clock += spend;
       dwell -= spend;
@@ -329,7 +408,7 @@ export function planDayWindow(
         }
       }
     }
-    if (target === position || (!targets.has(number) && stop.endDay && i < stops.length - 1)) {
+    if (target === position || (!targets.has(number) && endsDayHere(i) && i < stops.length - 1)) {
       previous = night(previous, i === stops.length - 1);
       if (issue) return failed(issue);
     }
@@ -367,9 +446,17 @@ export function planDayWindow(
   };
 }
 
+/**
+ * Where a stop inserted at `index` of a card lands on the day it is stored on.
+ *
+ * In front of the stop at that index, which is its own index there. Behind the card's last
+ * stop, one further on, unless that stop is a terminal or tonight's hotel: those stand
+ * behind the stored stops with the index the next stored stop would have, which is the
+ * position a stop added at the end of the day takes.
+ */
 export function roadtripInsertion(day: Pick<RoadtripDay, 'stops'>, index: number) {
   const stop = day.stops[Math.min(Math.max(0, index), day.stops.length - 1)]!;
-  return stop
-    ? { dayId: stop.ownerDayId, position: stop.ownerIndex + (stop.automaticNight || index >= day.stops.length ? 1 : 0) }
-    : null;
+  if (!stop) return null;
+  const behind = stop.automaticNight || (index >= day.stops.length && isStoredStop(stop));
+  return { dayId: stop.ownerDayId, position: stop.ownerIndex + (behind ? 1 : 0) };
 }

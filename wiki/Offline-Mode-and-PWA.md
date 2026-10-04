@@ -18,7 +18,20 @@ TREK must be served over **HTTPS** — the install prompt does not appear on pla
 
 Once installed, TREK launches in **standalone** mode (fullscreen, no browser UI) using the TREK icon.
 
-The installed app starts at the app root, so the **Start page** setting decides what you see when you tap the icon — the dashboard, or straight into your active trip on a tab of your choice. See [Display-Settings](Display-Settings).
+The installed app starts at the app root, so the **Start page** setting decides what you see when you tap the icon: the dashboard, or straight into your active trip on a tab of your choice. See [Display-Settings](Display-Settings).
+
+### The app reopens where it was
+
+Phones close an installed app in the background soon after you switch away from it, for example to a map app for directions. When you open TREK again within six hours, the installed app goes back to where you were instead of the start page: the same trip, on the same tab and the same day of the plan, or the Journey, Collections, Vacay, Atlas or Files page you had open. After six hours, or after logging out, it starts at the start page again. This only happens in the installed app; in a browser tab, opening the address starts as usual.
+
+### Push notifications
+
+Web Push shows TREK notifications on a phone or computer even while TREK is closed. It needs two things from the setup above:
+
+- **HTTPS everywhere.** Browsers only allow push on a secure origin. On plain `http://` (for example a LAN address) the card under **Settings → Notifications** says that push needs HTTPS.
+- **The installed app on iPhone and iPad.** iOS and iPadOS 16.4 or later deliver push only to TREK added to the Home Screen. Install it as described above, open it from the Home Screen icon, and switch push on there. In a Safari tab the card asks you to add TREK to the Home Screen first.
+
+Push is switched on per device: each phone, tablet or browser you want to receive notifications on needs its own **Turn on for this device**. Logging out switches it off for that device. The admin has to enable the Web Push channel first, and which events arrive follows the **Push** column. See [Notifications](Notifications).
 
 ## What works offline
 
@@ -52,8 +65,9 @@ On login, when the browser comes back online, and when you lift **Force offline 
 
 **Sync scope and eviction**
 
-- Only ongoing and future trips are cached (trips whose `end_date` is today or later, or has no end date).
+- Ongoing and future trips are cached (trips whose `end_date` is today or later, or has no end date).
 - Trips that ended more than 7 days ago are automatically evicted from IndexedDB on the next sync.
+- A finished trip is cached too when you switch it on yourself under **Settings → Offline → What to store offline**, and it is then kept regardless of its dates.
 
 ## Settings → Offline
 
@@ -70,7 +84,7 @@ The **Offline** tab gives you control over what is stored on this device and let
 ### What to store offline
 
 - **Store map tiles offline** — map tiles use the most storage by far. Turn this off to keep only trip data and documents on the device; the pre-downloaded tile cache is cleared immediately.
-- **Per-trip toggle** — each trip has its own on/off switch. Turning a trip off evicts its cached read data from the device (your unsynced edits are kept and still sync).
+- **Trips**: each trip has its own switch, with **Stored offline** or **Not stored** under its name. Turning a trip off evicts its cached read data from the device (your unsynced edits are kept and still sync). A finished trip is marked *Finished. Only stored if you switch it on.*: it is left out by default, and switching it on keeps it on the device.
 
 ### Sync conflicts
 
@@ -78,7 +92,7 @@ If a change you made offline collides with a newer change on the server, it is s
 
 ### Stats & cache
 
-The stats panel shows cached trips, pending changes, conflicts and failed changes. **Clear cache** removes all offline data from IndexedDB (you can re-sync any time while online). Each cached trip entry shows its date range, place/file count and last successful sync.
+The stats panel shows cached trips, pending changes, conflicts and failed changes. **Clear cache** removes all offline data from IndexedDB after you confirm it in TREK's dialog (you can re-sync any time while online). Each cached trip entry shows its date range, place/file count and last successful sync.
 
 ## Limitations
 
@@ -94,3 +108,4 @@ The stats panel shows cached trips, pending changes, conflicts and failed change
 
 - [User-Settings](User-Settings)
 - [Display-Settings](Display-Settings)
+- [Notifications](Notifications)

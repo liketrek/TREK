@@ -1,9 +1,10 @@
 import { test as setup, expect } from '@playwright/test'
 import { dismissSystemNotices } from './helpers'
+import { E2E_STATE_FILE } from '../playwright.config'
 
 // Relative to the config dir (client/), matching `storageState` in
 // playwright.config.ts. Playwright runs from the client workspace root.
-const stateFile = 'e2e/.tmp/state.json'
+const stateFile = E2E_STATE_FILE
 
 // Credentials match e2e/server-launch.mjs (ADMIN_EMAIL/ADMIN_PASSWORD). The
 // seeded admin is created with must_change_password=1, so the first login goes

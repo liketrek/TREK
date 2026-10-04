@@ -1,7 +1,7 @@
 import type { BookElement, BookPageNumbers, BookPageSetup, BookShapeId, JourneyStats } from '@trek/shared'
 import {
   AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowDown, ArrowUp,
-  ChevronsDown, ChevronsUp, Copy, Italic, Lock, Trash2, Unlock,
+  ChevronsDown, ChevronsUp, ClipboardCopy, Copy, Italic, Lock, Trash2, Unlock,
 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useStudioStore } from '../../store/studioStore'
@@ -15,6 +15,7 @@ import { formatBookCoords } from './entryText'
 import { iconComponent, iconLabel, searchIcons } from './iconLibrary'
 import { Choice, Line, NumField, Section, Switch } from './StudioControls'
 import type { JourneySource } from './StudioSidebar'
+import { Tooltip } from '../shared/Tooltip'
 
 /** How many icons the swap grid offers at once. A search narrows it below this. */
 const ICON_CHOICES = 60
@@ -78,6 +79,7 @@ export function StudioInspector({
   const commit = useStudioStore(s => s.commit)
   const raise = useStudioStore(s => s.raise)
   const duplicate = useStudioStore(s => s.duplicate)
+  const copy = useStudioStore(s => s.copy)
   const removeElements = useStudioStore(s => s.removeElements)
 
   const spread = doc?.spreads[spreadIndex]
@@ -232,6 +234,15 @@ export function StudioInspector({
           {sel.length > 1 && <em>{sel.length}</em>}
         </span>
         <span className="st-head-acts">
+          <Tooltip label={t('journey.studio.copyToPage')}>
+            <button type="button"
+              className="st-act"
+              onClick={() => copy(spreadIndex, selection)}
+              aria-label={t('journey.studio.copyToPage')}
+            >
+              <ClipboardCopy size={14} />
+            </button>
+          </Tooltip>
           <button type="button"
             className="st-act"
             onClick={() => duplicate(spreadIndex, selection)}

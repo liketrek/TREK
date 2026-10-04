@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { dayCoMapsUrl, dayExportStops, dayGoogleMapsUrl } from './dayRoute'
 import type { Accommodation, Assignment, Day } from '../../../../types'
 
-// FE-MOBILE-DAYROUTE-001 to FE-MOBILE-DAYROUTE-009
+// FE-MOBILE-DAYROUTE-001 to FE-MOBILE-DAYROUTE-011
 
 const days = [
   { id: 10, day_number: 1 },
@@ -47,18 +47,18 @@ describe('dayExportStops', () => {
 
   it('FE-MOBILE-DAYROUTE-006: with a carrier on the day, the not-yet-reached check-in hotel is not prepended (#2157)', () => {
     // Arrival day: you fly in, so the hotel may end the list but must not start it.
-    const stops = dayExportStops(days[0], days, [homeNear], [hotel], true, true)
+    const stops = dayExportStops(days[0], days, [homeNear], [hotel], true, { located: true })
     expect(stops.map(s => s.name)).toEqual(['Home', 'Hotel Lutetia'])
   })
 
   it('FE-MOBILE-DAYROUTE-007: with a carrier on the day, the already-left check-out hotel is not appended (#2157)', () => {
     // Check-out day: the hotel starts the day, nothing routes back to it after the flight home.
-    const stops = dayExportStops(days[2], days, [homeNear], [hotel], true, true)
+    const stops = dayExportStops(days[2], days, [homeNear], [hotel], true, { located: true })
     expect(stops.map(s => s.name)).toEqual(['Hotel Lutetia', 'Home'])
   })
 
   it('FE-MOBILE-DAYROUTE-008: without a carrier the no-time loop still closes (#2009 preserved)', () => {
-    const stops = dayExportStops(days[0], days, [louvre], [hotel], true, false)
+    const stops = dayExportStops(days[0], days, [louvre], [hotel], true, { located: false })
     expect(stops.map(s => s.name)).toEqual(['Hotel Lutetia', 'Louvre', 'Hotel Lutetia'])
   })
 
@@ -68,6 +68,25 @@ describe('dayExportStops', () => {
     const farHome = stop(5, 'Home', 21.28, -157.83)
     const stops = dayExportStops(days[2], days, [farHome], [hotel], true)
     expect(stops.map(s => s.name)).toEqual(['Hotel Lutetia', 'Home'])
+  })
+
+  // Day 2 checks out of one stay and into the next, with no stop of its own.
+  const hotelA = { ...hotel, place_name: 'Hotel A', start_day_id: 10, end_day_id: 20 } as Accommodation
+  const hotelB = { ...hotel, place_lat: 53.55, place_lng: 9.99, place_name: 'Hotel B', start_day_id: 20, end_day_id: 30 } as Accommodation
+
+  it('FE-MOBILE-DAYROUTE-010: a flight between the two stays leaves nothing to export (#2476)', () => {
+    // Located or not, the flight is how the day gets from one hotel to the other; a
+    // driving route between them is the stretch nobody drives.
+    expect(dayExportStops(days[1], days, [], [hotelA, hotelB], true, { located: true, booked: true })).toEqual([])
+    expect(dayExportStops(days[1], days, [], [hotelA, hotelB], true, { booked: true })).toEqual([])
+    expect(dayGoogleMapsUrl(days[1], days, [], [hotelA, hotelB], true, { booked: true })).toBeNull()
+    expect(dayCoMapsUrl(days[1], days, [], [hotelA, hotelB], true, 'driving', { booked: true })).toBeNull()
+  })
+
+  it('FE-MOBILE-DAYROUTE-011: without a booking the move is still the drive from one stay to the next (#1297)', () => {
+    expect(dayExportStops(days[1], days, [], [hotelA, hotelB], true).map(s => s.name)).toEqual(['Hotel A', 'Hotel B'])
+    // A stop of its own keeps the day exportable even with the flight booked.
+    expect(dayExportStops(days[1], days, [louvre], [hotelA, hotelB], true, { located: true, booked: true }).map(s => s.name)).toContain('Louvre')
   })
 })
 

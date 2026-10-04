@@ -8,6 +8,9 @@
     <!-- Pre-paint appearance (FOUC fix). External classic script so it runs
          before first paint AND complies with the prod CSP (script-src 'self'). -->
     <script src="/theme-boot.js"></script>
+    <!-- Recovers a shell whose entry module cannot load (#2524). Classic for the
+         same reasons, and ahead of the entry, which it has to watch. -->
+    <script src="/shell-guard.js"></script>
 
     <!-- PWA / iOS -->
     <meta name="theme-color" content="#09090b" />

@@ -22,6 +22,10 @@ export const roadtripPreferencesSchema = z
     roadtrip_service_stops_in_days: z.boolean().optional(),
     roadtrip_day_colors: z.boolean().optional(),
     roadtrip_show_hazards: z.boolean().optional(),
+    // Whether a day after a booked night starts at the stay and a day before one ends
+    // there (`hotelBookendsOn`). Missing means off, so a trip drives as it always has
+    // until somebody switches it on.
+    roadtrip_hotel_bookends: z.boolean().optional(),
     roadtrip_avoid: z
       .string()
       .max(32)

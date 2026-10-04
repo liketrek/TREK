@@ -98,10 +98,41 @@ describe('DayAccommodationsRepository — fully seeded world', () => {
 
   it('DY20 listForResync — matches the legacy statement, both persist(false) mirror columns present', async () => {
     const { trip, named } = seed();
-    const legacy = testDb.prepare('SELECT id, start_day_id, end_day_id FROM day_accommodations WHERE trip_id = ?').all(trip.id);
+    const legacy = testDb.prepare('SELECT id, start_day_id, end_day_id, check_in FROM day_accommodations WHERE trip_id = ?').all(trip.id);
     const typed = await repo.listForResync(trip.id);
     expect(typed).toEqual(legacy);
-    expect(typed.find((r) => r.id === named.id)).toMatchObject({ start_day_id: named.start_day_id, end_day_id: named.end_day_id });
+    expect(typed.find((r) => r.id === named.id)).toMatchObject({ start_day_id: named.start_day_id, end_day_id: named.end_day_id, check_in: '15:00' });
+  });
+
+  it('DY41 listIdsCheckingInOrOutOn — matches the legacy statement: check-in day, check-out day, not a day only run across', async () => {
+    const { trip, days, named, bare } = seed();
+    const legacy = (dayId: number) => (testDb.prepare(
+      'SELECT id FROM day_accommodations WHERE trip_id = ? AND (start_day_id = ? OR end_day_id = ?) ORDER BY id',
+    ).all(trip.id, dayId, dayId) as { id: number }[]).map((r) => r.id);
+    for (const day of days) expect(await repo.listIdsCheckingInOrOutOn(trip.id, day.id)).toEqual(legacy(day.id));
+    expect(await repo.listIdsCheckingInOrOutOn(trip.id, days[0].id)).toEqual([named.id]);
+    expect(await repo.listIdsCheckingInOrOutOn(trip.id, days[1].id)).toEqual([named.id]);
+    expect(await repo.listIdsCheckingInOrOutOn(trip.id, days[3].id)).toEqual([bare.id]);
+    expect(await repo.listIdsCheckingInOrOutOn(trip.id, days[4].id)).toEqual([]);
+  });
+
+  it('DY41 listIdsCheckingInOrOutOn — scoped by trip (another trip\'s day matches nothing here)', async () => {
+    const { trip, otherStay } = seed();
+    expect(await repo.listIdsCheckingInOrOutOn(trip.id, otherStay.start_day_id)).toEqual([]);
+  });
+
+  it('RPL3 listRoadtripStays — matches the legacy LEFT JOIN places + MIN(reservation) statement, id order', async () => {
+    const { trip, named, bare, booking } = seed();
+    const legacy = testDb.prepare(`
+      SELECT a.id, a.place_id, a.start_day_id, a.end_day_id, a.check_in, a.check_out,
+        p.name AS place_name, p.lat AS place_lat, p.lng AS place_lng,
+        (SELECT MIN(r.id) FROM reservations r WHERE r.accommodation_id = a.id) AS reservation_id
+      FROM day_accommodations a LEFT JOIN places p ON p.id = a.place_id WHERE a.trip_id = ? ORDER BY a.id`).all(trip.id);
+    const typed = await repo.listRoadtripStays(trip.id);
+    expect(typed).toEqual(legacy);
+    expect(typed.map((r) => r.id)).toEqual([named.id, bare.id]);
+    expect(typed.find((r) => r.id === named.id)?.reservation_id).toBe(booking.id);
+    expect(typed.find((r) => r.id === bare.id)?.reservation_id).toBeNull();
   });
 
   it('PL16 listForPlace — matches the legacy statement, scoped by trip AND place', async () => {

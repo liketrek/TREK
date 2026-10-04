@@ -15,6 +15,7 @@ import type {
   VacayUpdateStatsRequest, VacayShareRequest, VacayShareUpdateRequest,
   VacayYearSettingsRequest,
 } from '@trek/shared'
+import { toggledCompanyHolidays, type CompanyHoliday } from '../components/Vacay/companyHolidays'
 
 const ax = apiClient
 
@@ -43,7 +44,7 @@ interface VacayYearsResponse {
 
 interface VacayEntriesResponse {
   entries: VacayEntry[]
-  companyHolidays: { date: string; note?: string }[]
+  companyHolidays: CompanyHoliday[]
 }
 
 interface VacayStatsResponse {
@@ -78,7 +79,7 @@ interface VacayApi {
   removeYear: (year: number) => Promise<VacayYearsResponse>
   getEntries: (year: number) => Promise<VacayEntriesResponse>
   toggleEntry: (date: string, targetUserId?: number, fraction?: 0.5 | 1, kind?: 'vacation' | 'comp') => Promise<unknown>
-  toggleCompanyHoliday: (date: string) => Promise<unknown>
+  toggleCompanyHoliday: (date: string, fraction?: number) => Promise<unknown>
   getStats: (year: number) => Promise<VacayStatsResponse>
   updateStats: (year: number, days: number, targetUserId?: number) => Promise<unknown>
   getHolidays: (year: number, country: string) => Promise<VacayHolidayRaw[]>
@@ -109,7 +110,7 @@ const api: VacayApi = {
   removeYear: (year) => ax.delete(`/addons/vacay/years/${year}`).then((r: AxiosResponse) => r.data),
   getEntries: (year) => ax.get(`/addons/vacay/entries/${year}`).then((r: AxiosResponse) => r.data),
   toggleEntry: (date, targetUserId, fraction, kind) => ax.post('/addons/vacay/entries/toggle', { date, target_user_id: targetUserId, fraction, kind } satisfies VacayToggleEntryRequest).then((r: AxiosResponse) => r.data),
-  toggleCompanyHoliday: (date) => ax.post('/addons/vacay/entries/company-holiday', { date } satisfies VacayCompanyHolidayRequest).then((r: AxiosResponse) => r.data),
+  toggleCompanyHoliday: (date, fraction) => ax.post('/addons/vacay/entries/company-holiday', { date, fraction: fraction === 0.5 ? 0.5 : 1 } satisfies VacayCompanyHolidayRequest).then((r: AxiosResponse) => r.data),
   getStats: (year) => ax.get(`/addons/vacay/stats/${year}`).then((r: AxiosResponse) => r.data),
   updateStats: (year, days, targetUserId) => ax.put(`/addons/vacay/stats/${year}`, { vacation_days: days, target_user_id: targetUserId } satisfies VacayUpdateStatsRequest).then((r: AxiosResponse) => r.data),
   getHolidays: (year, country) => ax.get(`/addons/vacay/holidays/${year}/${country}`).then((r: AxiosResponse) => r.data),
@@ -184,7 +185,7 @@ interface VacayState {
   isFused: boolean
   years: number[]
   entries: VacayEntry[]
-  companyHolidays: { date: string; note?: string }[]
+  companyHolidays: CompanyHoliday[]
   stats: VacayStat[]
   selectedYear: number
   selectedUserId: number | null
@@ -212,7 +213,8 @@ interface VacayState {
   removeYear: (year: number) => Promise<void>
   loadEntries: (year?: number) => Promise<void>
   toggleEntry: (date: string, targetUserId?: number, fraction?: 0.5 | 1, kind?: 'vacation' | 'comp') => Promise<void>
-  toggleCompanyHoliday: (date: string) => Promise<void>
+  /** Whole (1) or half (0.5) company holiday (#2439); the same size again clears it. */
+  toggleCompanyHoliday: (date: string, fraction?: number) => Promise<void>
   loadStats: (year?: number) => Promise<void>
   updateVacationDays: (year: number, days: number, targetUserId?: number) => Promise<void>
   loadHolidays: (year?: number) => Promise<void>
@@ -367,16 +369,15 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     }
   },
 
-  toggleCompanyHoliday: async (date: string) => {
+  toggleCompanyHoliday: async (date: string, fraction = 1) => {
     // Optimistic like toggleEntry; a company holiday also overrides personal
     // entries on that day, so refetch entries afterwards to reconcile.
     const prevEntries = get().entries
     const prevCompany = get().companyHolidays
     const prevStats = get().stats
-    const has = prevCompany.some(h => h.date === date)
-    set({ companyHolidays: has ? prevCompany.filter(h => h.date !== date) : [...prevCompany, { date }] })
+    set({ companyHolidays: toggledCompanyHolidays(prevCompany, date, fraction) })
     try {
-      await api.toggleCompanyHoliday(date)
+      await api.toggleCompanyHoliday(date, fraction)
       await get().loadEntries()
       await get().loadStats()
     } catch (e) {

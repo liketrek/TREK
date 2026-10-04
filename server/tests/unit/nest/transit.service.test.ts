@@ -16,6 +16,7 @@ import type { AppSettingsRepository } from '../../../src/db/repositories/AppSett
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 vi.mock('../../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/app-config')>();
@@ -28,7 +29,7 @@ const fetchMock = vi.fn();
 // exercising the MOTIS path — the Google branch has its own suite.
 const noAppSettings = { getValue: async () => null } as unknown as AppSettingsRepository;
 const noUsers = { getApiKeyColumn: async () => null } as unknown as UsersRepository;
-const svc = new TransitService(new GoogleTransitProvider(noAppSettings, noUsers));
+const svc = new TransitService(new GoogleTransitProvider(noAppSettings, noUsers, noGoogleQuota));
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);

@@ -1,5 +1,5 @@
 /**
- * The five road-trip MCP tools.
+ * The five road-trip MCP tools, and the shared driving settings beside them.
  *
  * They had no test at all, and the shared harness seeds the addon disabled, so
  * `when: roadtripAddonOn` kept them from ever attaching: the handler bodies had
@@ -293,6 +293,61 @@ describe('road-trip MCP tools', () => {
       delete process.env.DEMO_MODE;
     }
     expect(testDb.prepare('SELECT COUNT(*) c FROM roadtrip_vias').get()).toEqual({ c: 0 });
+  });
+
+  it('MCP-ROADTRIP-012: the stay switch is off until it is set, and round-trips through the settings tools', async () => {
+    const { user, trip } = scenario();
+    const stored = () =>
+      testDb.prepare("SELECT value FROM roadtrip_preferences WHERE trip_id = ? AND key = 'roadtrip_hotel_bookends'").get(trip.id);
+
+    await withHarness(user.id, async (h) => {
+      const before = parseToolResult(await h.client.callTool({ name: 'get_roadtrip_settings', arguments: { tripId: trip.id } })) as {
+        settings: Record<string, unknown>;
+      };
+      // Missing means off: nothing is written for a trip that never touched it.
+      expect(before.settings).not.toHaveProperty('roadtrip_hotel_bookends');
+      expect(stored()).toBeUndefined();
+
+      const saved = await h.client.callTool({
+        name: 'update_roadtrip_settings',
+        arguments: { tripId: trip.id, settings: { roadtrip_hotel_bookends: true } },
+      });
+      expect(saved.isError).toBeFalsy();
+      const after = parseToolResult(await h.client.callTool({ name: 'get_roadtrip_settings', arguments: { tripId: trip.id } })) as {
+        settings: Record<string, unknown>;
+      };
+      expect(after.settings.roadtrip_hotel_bookends).toBe(true);
+    });
+    expect(stored()).toEqual({ value: 'true' });
+  });
+
+  it('MCP-ROADTRIP-013: a stay switch that is not a boolean is refused, and nothing is stored', async () => {
+    const { user, trip } = scenario();
+
+    await withHarness(user.id, async (h) => {
+      for (const value of ['yes', 1, null]) {
+        const res = await h.client.callTool({
+          name: 'update_roadtrip_settings',
+          arguments: { tripId: trip.id, settings: { roadtrip_hotel_bookends: value } },
+        });
+        expect(res.isError, String(value)).toBeTruthy();
+      }
+    });
+    expect(testDb.prepare('SELECT COUNT(*) c FROM roadtrip_preferences WHERE trip_id = ?').get(trip.id)).toEqual({ c: 0 });
+  });
+
+  it('MCP-ROADTRIP-014: both via tools say that a via on the drive into a booked night is kept and not used', async () => {
+    // The planner refuses that click with a sentence; a tool stores the via as asked, so
+    // the note on the tool is the only place the assistant can learn it changes nothing.
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const tools = (await h.client.listTools()).tools;
+      for (const name of ['add_route_via', 'add_route_vias']) {
+        const description = tools.find(t => t.name === name)?.description ?? '';
+        expect(description, name).toContain('roadtrip_hotel_bookends');
+        expect(description, name).toContain('kept but not used');
+      }
+    });
   });
 
   it('MCP-ROADTRIP-009: removing one that is not on the day is refused, not silently ignored', async () => {

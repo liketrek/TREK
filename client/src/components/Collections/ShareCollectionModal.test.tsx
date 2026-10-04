@@ -57,6 +57,13 @@ function memberRow(username: string): HTMLElement {
   return nameCell.parentElement as HTMLElement
 }
 
+/** The confirm button of the leave question. The question is drawn over the
+ *  dialog, whose own Leave list button stays in the page, so it is the last one. */
+function confirmLeaveButton(): HTMLElement {
+  const buttons = screen.getAllByRole('button', { name: 'Leave list' })
+  return buttons[buttons.length - 1]
+}
+
 describe('ShareCollectionModal', () => {
   beforeEach(() => {
     resetAllStores()
@@ -90,7 +97,8 @@ describe('ShareCollectionModal', () => {
 
   it('FE-COMP-COLSHARE-002: the title names the list and the roster is counted', () => {
     setup()
-    expect(screen.getByRole('heading', { name: 'Share “Tokyo 2026”' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Share list' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tokyo 2026' })).toBeInTheDocument()
     expect(screen.getByText('Members')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
   })
@@ -257,7 +265,7 @@ describe('ShareCollectionModal', () => {
   it('FE-COMP-COLSHARE-022: a confirmed leave calls the store and hands back to the page', async () => {
     const { props } = setup({ isOwner: false })
     fireEvent.click(screen.getByRole('button', { name: 'Leave list' }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'Leave list' })[0])
+    fireEvent.click(confirmLeaveButton())
     await waitFor(() => expect(actions.leave).toHaveBeenCalledWith(7))
     expect(addToast).toHaveBeenCalledWith('You left the list', 'success', undefined)
     expect(props.onAfterLeave).toHaveBeenCalledTimes(1)
@@ -267,7 +275,7 @@ describe('ShareCollectionModal', () => {
     actions.leave.mockRejectedValue({ response: { data: { error: 'Owners cannot leave' } } })
     const { props } = setup({ isOwner: false })
     fireEvent.click(screen.getByRole('button', { name: 'Leave list' }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'Leave list' })[0])
+    fireEvent.click(confirmLeaveButton())
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Owners cannot leave', 'error', undefined))
     expect(props.onAfterLeave).not.toHaveBeenCalled()
   })
@@ -286,9 +294,7 @@ describe('ShareCollectionModal', () => {
 
   it('FE-COMP-COLSHARE-025: the modal close button calls onClose', () => {
     const { props } = setup()
-    // The Modal chrome's only unnamed control is its close button.
-    const header = screen.getByRole('heading', { name: 'Share “Tokyo 2026”' }).parentElement as HTMLElement
-    fireEvent.click(header.querySelector('button') as HTMLButtonElement)
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(props.onClose).toHaveBeenCalledTimes(1)
   })
 })

@@ -53,6 +53,8 @@ export class Places {
   fill_percent?: number | null;
   amap_poi_id?: string | null;
   source?: string | null;
+  email?: string | null;
+  opening_hours?: string | null;
   place_tags = new Collection<Tags>(this);
   budget_items_collection = new Collection<BudgetItems>(this);
   dawarich_visit_suggestions_collection = new Collection<DawarichVisitSuggestions>(this);
@@ -106,6 +108,8 @@ export const PlacesSchema = defineEntity({
     fill_percent: p.integer().nullable(),
     amap_poi_id: p.text().nullable(),
     source: p.text().nullable(),
+    email: p.text().nullable(),
+    opening_hours: p.text().nullable(),
     place_tags: () => p.manyToMany(Tags).pivotTable('place_tags').joinColumn('place_id').inverseJoinColumn('tag_id').hidden(),
     budget_items_collection: () => p.oneToMany(BudgetItems).mappedBy('place').hidden(),
     dawarich_visit_suggestions_collection: () => p.oneToMany(DawarichVisitSuggestions).mappedBy('acceptedPlace').hidden(),

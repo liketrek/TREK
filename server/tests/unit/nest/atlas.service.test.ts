@@ -38,8 +38,8 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation } from '../../helpers/factories';
 import { getCountryFromCoords, getCountryFromAddress, isPointInCountryBox, reverseGeocodeCountry, getRegionGeo, getCountryGeo } from '../../../src/nest/atlas/atlas-geo';
 import { cacheKeyFor, getCached, setCached } from '../../../src/nest/geo/nominatim.client';
-import { AtlasService, BucketItemExistsError } from '../../../src/nest/atlas/atlas.service';
-import { createTestUnitOfWork, createTestTripsRepo, createTestPlacesRepo, createTestReservationEndpointsRepo } from '../../helpers/test-uow';
+import { AtlasService, BucketItemExistsError, bucketRegionCode } from '../../../src/nest/atlas/atlas.service';
+import { createTestUnitOfWork, createTestTripsRepo, createTestPlacesRepo, createTestReservationEndpointsRepo, sharedTestOrm } from '../../helpers/test-uow';
 import {
   createTestBucketListRepo,
   createTestHiddenCountriesRepo,
@@ -48,10 +48,15 @@ import {
   createTestVisitedRegionsRepo,
   createTestPlaceRegionsRepo,
 } from '../../helpers/atlas-repos';
+import type { PlaceRegionsRepository } from '../../../src/db/repositories/PlaceRegions.repository';
+import { PlaceRegions } from '../../../src/db/entities/PlaceRegions.entity';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 
 // Direct construction over the shared test connection — no TestingModule (repo
 // convention for DI-native service unit tests).
 let atlas: AtlasService;
+// Kept so the #2527 race tests can step in between a lookup and its cache write.
+let placeRegionsRepo: PlaceRegionsRepository;
 
 function insertReservationEndpoint(
   db: any,
@@ -84,11 +89,12 @@ beforeAll(async () => {
     await createTestHiddenRegionsRepo(testDb),
     await createTestVisitedCountriesRepo(testDb),
     await createTestVisitedRegionsRepo(testDb),
-    await createTestPlaceRegionsRepo(testDb),
+    (placeRegionsRepo = await createTestPlaceRegionsRepo(testDb)),
     await createTestTripsRepo(testDb),
     await createTestPlacesRepo(testDb),
     await createTestReservationEndpointsRepo(testDb),
     await createTestUnitOfWork(testDb),
+    (await sharedTestOrm(testDb)).orm,
   );
 });
 
@@ -1170,6 +1176,125 @@ describe('getVisitedRegions', () => {
   });
 });
 
+// ── A place that moves (#2527) ───────────────────────────────────────────────
+
+describe('a place that moves keeps no stale region', () => {
+  function cachedCountryOf(placeId: number): string | undefined {
+    const row = testDb.prepare('SELECT country_code FROM place_regions WHERE place_id = ?').get(placeId) as
+      | { country_code: string }
+      | undefined;
+    return row?.country_code;
+  }
+
+  // The lookup runs in the background; the first one in a worker also loads the admin-1 bundle.
+  async function settledCountryOf(placeId: number): Promise<string | undefined> {
+    for (let i = 0; i < 150; i++) {
+      const code = cachedCountryOf(placeId);
+      if (code) return code;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    return undefined;
+  }
+
+  it('ATLAS-SVC-2527a: a lookup still running when the place moves does not write the old country back', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Lyon, then Munich' });
+    const place = insertPlaceWithCoords(testDb, trip.id, 'Hotel', 45.764, 4.8357, 'Lyon, France');
+
+    // The Atlas load starts resolving Lyon, and the place is corrected before it answers.
+    // The repository reads are async here, so the move is placed deterministically
+    // between the lookup's answer and its cache write.
+    const write = placeRegionsRepo.upsertRegionWhileUnmoved.bind(placeRegionsRepo);
+    const step = vi.spyOn(placeRegionsRepo, 'upsertRegionWhileUnmoved').mockImplementationOnce(async (at, info) => {
+      testDb
+        .prepare('UPDATE places SET lat = ?, lng = ?, address = ? WHERE id = ?')
+        .run(48.1374, 11.5755, 'Marienplatz, Munich, Germany', place.id);
+      return write(at, info);
+    });
+    await atlas.visitedRegions(user.id);
+    await vi.waitFor(() => expect(step).toHaveBeenCalled(), { timeout: 3000 });
+    step.mockRestore();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(cachedCountryOf(place.id)).toBeUndefined();
+
+    // The next load resolves where the place is now.
+    expect((await atlas.stats(user.id)).countries.map((c) => c.code)).toEqual(['DE']);
+    await atlas.visitedRegions(user.id);
+    expect(await settledCountryOf(place.id)).toBe('DE');
+  });
+
+  it('ATLAS-SVC-2527b: a place deleted while its lookup runs leaves nothing behind', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Cancelled' });
+    const place = insertPlaceWithCoords(testDb, trip.id, 'Hotel', 43.2965, 5.3698, 'Marseille, France');
+
+    const write = placeRegionsRepo.upsertRegionWhileUnmoved.bind(placeRegionsRepo);
+    const step = vi.spyOn(placeRegionsRepo, 'upsertRegionWhileUnmoved').mockImplementationOnce(async (at, info) => {
+      testDb.prepare('DELETE FROM places WHERE id = ?').run(place.id);
+      return write(at, info);
+    });
+    await atlas.visitedRegions(user.id);
+    await vi.waitFor(() => expect(step).toHaveBeenCalled(), { timeout: 3000 });
+    step.mockRestore();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM place_regions').get()).toEqual({ n: 0 });
+  });
+});
+
+// ── The background lookup's request context ──────────────────────────────────
+
+/**
+ * `cacheRegionsInBackground` runs after the Atlas request that started it has
+ * answered, so it forks its own request context. This case starts the loop from
+ * the test's bare top-level context, which sits in no AsyncLocalStorage context
+ * at all, unlike a real HTTP request through Nest's middleware, and gives it a
+ * `PlaceRegionsRepository` on an `allowGlobalContext: false` ORM, the production
+ * setting: the write is refused as `cannotUseGlobalContext` unless the loop's own
+ * `withRequestContext` fork is live, and the loop's catch would swallow that
+ * refusal, so the row never landing is what fails here. An HTTP-driven test
+ * cannot tell, because `AsyncLocalStorage` carries the request's fork into the
+ * loop whether it wraps itself or not.
+ */
+describe('the background lookup runs inside its own request context', () => {
+  let strict: TestOrm;
+  beforeAll(async () => {
+    strict = await createTestOrm(testDb, { allowGlobalContext: false });
+  });
+  afterAll(async () => {
+    await strict.close();
+  });
+
+  it('ATLAS-CTX-001: the detached geocode loop, started from a bare (non-request) context, still caches the region', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Manchester Trip' });
+    // The bundled GB polygons answer without Nominatim (ATLAS-UNIT-021), so no fetch is involved.
+    const place = insertPlaceWithCoords(testDb, trip.id, 'Old Trafford', 53.4631, -2.2913);
+    // Only the repository the loop writes through is strict; the rest of the service is not exercised here.
+    const bare = new AtlasService(
+      await createTestBucketListRepo(testDb),
+      await createTestHiddenCountriesRepo(testDb),
+      await createTestHiddenRegionsRepo(testDb),
+      await createTestVisitedCountriesRepo(testDb),
+      await createTestVisitedRegionsRepo(testDb),
+      strict.repo(PlaceRegions),
+      await createTestTripsRepo(testDb),
+      await createTestPlacesRepo(testDb),
+      await createTestReservationEndpointsRepo(testDb),
+      await createTestUnitOfWork(testDb),
+      strict.orm,
+    );
+
+    // Private on purpose; bracket notation reaches it without an `any`.
+    bare['cacheRegionsInBackground']([place]);
+
+    await vi.waitFor(
+      () => expect(testDb.prepare('SELECT country_code FROM place_regions WHERE place_id = ?').get(place.id)).toEqual({ country_code: 'GB' }),
+      { timeout: 5000 },
+    );
+  });
+});
+
 // ── unmarkRegionVisited — tombstones + country cascade ──────────────────────
 
 // Places are region-resolved by a fire-and-forget background task (see reverseGeocodeRegion
@@ -1299,6 +1424,17 @@ describe('atlas quirk fixes', () => {
     const unmarked = await atlas.countryPlaces(user.id, 'FR');
     expect(unmarked.manually_marked).toBe(false);
     expect(unmarked.marked_source).toBeNull();
+  });
+
+  it('ATLAS-SVC-031b: keeps a wished-for region of the same country, drops any other (#1901)', async () => {
+    const { user } = createUser(testDb);
+    const bavaria = await atlas.createBucketItem(user.id, { name: 'Bayern', country_code: 'DE', region_code: 'de-by' }) as { region_code: string | null };
+    expect(bavaria.region_code).toBe('DE-BY');
+    const foreign = await atlas.createBucketItem(user.id, { name: 'Berlin', country_code: 'FR', region_code: 'DE-BE' }) as { region_code: string | null };
+    expect(foreign.region_code).toBeNull();
+    const noCountry = await atlas.createBucketItem(user.id, { name: 'Somewhere', region_code: 'DE-HH' }) as { region_code: string | null };
+    expect(noCountry.region_code).toBeNull();
+    expect(bucketRegionCode('DE-BY; DROP', 'DE')).toBeNull();
   });
 
   it('ATLAS-SVC-032: updateBucketItem persists lat/lng of exactly 0 (equator/prime meridian)', async () => {
@@ -1970,5 +2106,61 @@ describe('personal figures on a shared trip in stats() (#1966, AT6)', () => {
       expect(codes).toContain('AU');
       expect(codes).toContain('BE');
     }
+  });
+});
+
+// ── nextTrip (#2542, feeds GET /api/v1/stats) ───────────────────────────────
+
+describe('nextTrip', () => {
+  it('ATLAS-NEXT-001: returns null when nothing is ahead', async () => {
+    const { user } = createUser(testDb);
+    expect(await atlas.nextTrip(user.id)).toBeNull();
+    createTrip(testDb, user.id, { title: 'Been there', start_date: PAST_START, end_date: PAST_END });
+    expect(await atlas.nextTrip(user.id)).toBeNull();
+  });
+
+  it('ATLAS-NEXT-002: picks the nearest trip that has not started, with the days until it', async () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Later', start_date: isoOffsetDays(90), end_date: isoOffsetDays(95) });
+    const soon = createTrip(testDb, user.id, { title: 'Soon', start_date: FUTURE_START, end_date: FUTURE_END });
+    const stamp = testDb.prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)');
+    stamp.run(insertPlaceWithCoords(testDb, soon.id, 'Lisboa', 38.72, -9.14).id, 'pt', 'PT-11', 'Lisboa');
+
+    expect(await atlas.nextTrip(user.id)).toEqual({
+      title: 'Soon',
+      start_date: FUTURE_START,
+      end_date: FUTURE_END,
+      days_until: 30,
+      countries: ['PT'],
+    });
+  });
+
+  it('ATLAS-NEXT-003: a trip under way is the last trip, not the next one', async () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Now', start_date: isoOffsetDays(-2), end_date: isoOffsetDays(3) });
+    expect(await atlas.nextTrip(user.id)).toBeNull();
+    expect((await atlas.lastTrip(user.id))?.title).toBe('Now');
+  });
+
+  it('ATLAS-NEXT-004: a trip starting tomorrow is one day away', async () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Tomorrow', start_date: isoOffsetDays(1) });
+    expect(await atlas.nextTrip(user.id)).toMatchObject({ title: 'Tomorrow', days_until: 1, end_date: null });
+  });
+
+  it('ATLAS-NEXT-005: a trip without a start date has nothing to count down to', async () => {
+    const { user } = createUser(testDb);
+    createTrip(testDb, user.id, { title: 'Someday', end_date: FUTURE_END });
+    expect(await atlas.nextTrip(user.id)).toBeNull();
+  });
+
+  it('ATLAS-NEXT-006: a shared trip counts for the member, and equal starts resolve by id', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const first = createTrip(testDb, owner.id, { title: 'First', start_date: FUTURE_START, end_date: FUTURE_END });
+    const second = createTrip(testDb, owner.id, { title: 'Second', start_date: FUTURE_START, end_date: FUTURE_END });
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(first.id, member.id);
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(second.id, member.id);
+    expect((await atlas.nextTrip(member.id))?.title).toBe('First');
   });
 });

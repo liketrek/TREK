@@ -89,3 +89,15 @@ describe('computeJourneyLifecycle — local today at the midnight window', () =>
     expect(computeJourneyLifecycle('active', null, '2026-08-24')).toBe('completed') // ended yesterday
   })
 })
+
+describe('status set by hand (#762)', () => {
+  it('wins over the trip dates and over having no trip, but not over archived', () => {
+    expect(computeJourneyLifecycle('active', null, null, 'live')).toBe('live')
+    expect(computeJourneyLifecycle('active', null, null, 'completed')).toBe('completed')
+    expect(computeJourneyLifecycle('active', '2000-01-01', '2000-01-02', 'draft')).toBe('draft')
+    expect(computeJourneyLifecycle('archived', null, null, 'live')).toBe('archived')
+    expect(computeJourneyLifecycle('active', null, null, null)).toBe('draft')
+    expect(computeJourneyLifecycle('active', null, null, 'bogus')).toBe('draft')
+  })
+})
+

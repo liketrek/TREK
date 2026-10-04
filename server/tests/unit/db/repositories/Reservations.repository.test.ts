@@ -689,6 +689,36 @@ describe('ReservationsRepository — share.service.ts reads (SH-family)', () => 
     expect(typed).toEqual(legacy);
     expect(typed.map((s) => s.id).sort((a, b) => a - b)).toEqual([noBooking.id, liveLinked.id].sort((a, b) => a - b));
   });
+
+  it('listPublicStayPlaceIdsForShare — matches the legacy DISTINCT read, hand-added and live-booked stays in, staged-booked stays out', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const otherDay = createDay(testDb, other.id);
+    const handAdded = createPlace(testDb, trip.id, { name: 'Hand added' });
+    const live = createPlace(testDb, trip.id, { name: 'Live booking' });
+    const staged = createPlace(testDb, trip.id, { name: 'Staged booking' });
+    const elsewhere = createPlace(testDb, other.id, { name: 'Other trip' });
+    createDayAccommodation(testDb, trip.id, handAdded.id, day.id, day.id);
+    // Two nights at the same place: DISTINCT folds them into one id.
+    createDayAccommodation(testDb, trip.id, handAdded.id, day.id, day.id);
+    const liveStay = createDayAccommodation(testDb, trip.id, live.id, day.id, day.id);
+    const stagedStay = createDayAccommodation(testDb, trip.id, staged.id, day.id, day.id);
+    createDayAccommodation(testDb, other.id, elsewhere.id, otherDay.id, otherDay.id);
+    const liveRes = createReservation(testDb, trip.id, { type: 'hotel', title: 'Live' });
+    const stagedRes = createReservation(testDb, trip.id, { type: 'hotel', title: 'Staged' });
+    testDb.prepare('UPDATE reservations SET accommodation_id = ? WHERE id = ?').run(String(liveStay.id), liveRes.id);
+    testDb.prepare("UPDATE reservations SET accommodation_id = ?, ingest_state = 'staged' WHERE id = ?").run(String(stagedStay.id), stagedRes.id);
+
+    const legacy = (testDb.prepare(`
+      SELECT DISTINCT a.place_id FROM day_accommodations a
+      WHERE a.trip_id = ? AND ${publicStaySql('a')}`).all(trip.id) as { place_id: number }[]).map((r) => r.place_id);
+
+    const typed = await reservationsRepo.listPublicStayPlaceIdsForShare(trip.id);
+    expect([...typed].sort((a, b) => a - b)).toEqual([...legacy].sort((a, b) => a - b));
+    expect([...typed].sort((a, b) => a - b)).toEqual([handAdded.id, live.id].sort((a, b) => a - b));
+  });
 });
 
 describe('ReservationsRepository — public-api.service.ts reads', () => {

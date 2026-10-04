@@ -79,11 +79,13 @@ import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
 import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
 import { DocumentProviders } from '../../../src/db/entities/DocumentProviders.entity';
 import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
+import { PushSubscriptions } from '../../../src/db/entities/PushSubscriptions.entity';
 import { budgetRepoArgs } from '../../helpers/budget-repos';
 import { createTestShareTokensRepo, createTestPluginsRepo, createTestPluginUserErasureQueueRepo } from '../../helpers/share-repos';
 import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
 import { createTestJourneysRepo, createTestJourneyEntriesRepo, createTestJourneyContributorsRepo } from '../../helpers/journey-repos';
 import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
+import { createTestPushSubscriptionsRepo } from '../../helpers/notifications-repos';
 
 const realtime = new RealtimeService();
 
@@ -106,6 +108,7 @@ beforeAll(async () => {
     permissions, new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)), webauthn, userCleanup, new MailerService(await createTestUsersRepo(testDb), await createTestSettingsRepo(testDb), await createTestAppSettingsRepo(testDb)), new EphemeralTokenService(), new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)), await createTestUnitOfWork(testDb),
     await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestInviteTokensRepo(testDb), await createTestMcpTokensRepo(testDb),
     await createTestOauthTokensRepo(testDb), await createTestWebauthnCredentialsRepo(testDb), await createTestPasswordResetTokensRepo(testDb),
+    await createTestPushSubscriptionsRepo(testDb),
   );
   const t = await sharedTestOrm(testDb);
   svc = new AdminService(
@@ -121,6 +124,7 @@ beforeAll(async () => {
   await createTestTripsRepo(testDb),
   await createTestPlacesRepo(testDb),
   t.repo(TripFiles),
+  t.repo(PushSubscriptions),
   await createTestAddonsService(testDb),
   new PasskeyService(auth, webauthn, await createTestUnitOfWork(testDb), await createTestWebauthnCredentialsRepo(testDb), await createTestWebauthnChallengesRepo(testDb), await createTestUsersRepo(testDb)),
   auth,

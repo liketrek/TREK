@@ -157,6 +157,8 @@ export default function MAtlasCountryPopup({ atlas }: MAtlasCountryPopupProps) {
         name: confirmAction.name,
         country_code: confirmAction.code,
         target_date: targetDate,
+        // A region wish hatches that region on the map, not the whole country (#1901).
+        region_code: confirmAction.regionCode ?? null,
       })
       setBucketList((prev) => [r.data.item, ...prev])
     } catch (err) {

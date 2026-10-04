@@ -30,8 +30,8 @@ function day(over: Partial<RoadtripDay> = {}): RoadtripDay {
   return {
     dayId: 7, dayNumber: 1, date: null, title: null,
     stops: [
-      { assignmentId: 1, ownerDayId: 1, ownerIndex: 0, placeId: 10, name: 'A', lat: START.lat, lng: START.lng, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
-      { assignmentId: 2, ownerDayId: 1, ownerIndex: 1, placeId: 20, name: 'B', lat: END.lat, lng: END.lng, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
+      { assignmentId: 1, ownerDayId: 7, ownerIndex: 0, placeId: 10, name: 'A', lat: START.lat, lng: START.lng, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
+      { assignmentId: 2, ownerDayId: 7, ownerIndex: 1, placeId: 20, name: 'B', lat: END.lat, lng: END.lng, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null },
     ],
     legs: [], legVias: [], driveWarnings: [], dayWarning: null, schedule: { entries: [], warnings: [] },
     geometry: [[START.lat, START.lng], [END.lat, END.lng]],
@@ -83,7 +83,7 @@ beforeEach(() => {
 
 describe('useFollowTrack', () => {
   it('clears the original leg when an automatic pause splits its displayed days', async () => {
-    const [a, b] = day().stops
+    const [a, b] = day().stops.map(s => ({ ...s, ownerDayId: 1 }))
     const end = { ...a, assignmentId: -10, automaticNight: { phase: 'end' as const, fromDayNumber: 1 } }
     const start = { ...end, assignmentId: -11, automaticNight: { phase: 'start' as const, fromDayNumber: 1 } }
     const split = routes([
@@ -237,6 +237,45 @@ describe('useFollowTrack', () => {
     expect(vias.addMany).not.toHaveBeenCalled()
     expect(result.current.dayId).toBeNull()
     expect(result.current.error).toBeNull()
+  })
+
+  it('FE-FOLLOWHOOK-013: the hotel a day sets out from and comes back to is no stop the track is fitted between', async () => {
+    const [a, b] = day().stops
+    const bookend = (phase: 'morning' | 'evening', ownerIndex: number) => ({
+      ...a, assignmentId: phase === 'morning' ? -6_000_000_014 : -6_000_000_015, ownerIndex, placeId: 900, lat: 51.9, lng: 13.5, stopType: 'hotel',
+      bookend: { phase, accommodationId: 5, reservationId: null, checkingOut: false, checkingIn: false, checkOut: null },
+    })
+    answersStraight()
+    const vias = viasStub()
+    const { result } = renderHook(() => useFollowTrack(1, [TRACK], routes([day({ stops: [bookend('morning', 0), a, b, bookend('evening', 2)] })]), vias))
+    act(() => { result.current.open(7) })
+    await act(async () => { await result.current.apply(3) })
+
+    // One leg, A to B: a via fitted to the drive to or from the hotel would be filed behind
+    // a stop it does not leave from.
+    const [, written, legs] = (vias.addMany as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(legs).toEqual([0])
+    expect(written.every((v: { after_order_index: number }) => v.after_order_index === 0)).toBe(true)
+    await act(async () => { await result.current.clear() })
+    expect(vias.addMany).toHaveBeenLastCalledWith(7, [], [0], null)
+  })
+
+  it('FE-FOLLOWHOOK-014: nor is a terminal, and a day a night drive split over two cards is fitted whole', async () => {
+    const [a, b] = day().stops
+    const terminal = (role: 'departure' | 'arrival') => ({
+      ...a, assignmentId: role === 'departure' ? -3_000_000_140 : -3_000_000_141, ownerIndex: 1, placeId: -70,
+      carrier: { reservationId: 70, type: 'flight', role, title: 'LH 2020', code: null, at: null },
+    })
+    const next = { ...b, assignmentId: 3, ownerDayId: 8, ownerIndex: 0, placeId: 30, name: 'C' }
+    const cards = routes([
+      day({ stops: [a, terminal('departure'), terminal('arrival')] }),
+      day({ dayId: 8, dayNumber: 2, stops: [b, next] }),
+    ])
+    const vias = viasStub()
+    const { result } = renderHook(() => useFollowTrack(1, [TRACK], cards, vias))
+    act(() => { result.current.open(7) })
+    await act(async () => { await result.current.clear() })
+    expect(vias.addMany).toHaveBeenCalledWith(7, [], [0], null)
   })
 
   it('FE-FOLLOWHOOK-009: a day with nothing to drive between is not applied to', async () => {

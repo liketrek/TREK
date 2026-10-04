@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { adminApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
-import { RefreshCw, ClipboardList } from 'lucide-react'
+import { RefreshCw, ClipboardList, Loader2 } from 'lucide-react'
+import { fs } from '../shared/DialogShell'
+import { SETTINGS_BUTTON, SettingsCard, SettingsHint, StatusPill } from '../Settings/settingsKit'
 
 interface AuditEntry {
   id: number
@@ -18,6 +20,10 @@ interface AuditEntry {
 interface AuditLogPanelProps {
   serverTimezone?: string
 }
+
+const TH = 'whitespace-nowrap px-3.5 py-2.5 text-left font-geist font-bold uppercase tracking-[.08em] text-content-faint'
+const TD = 'px-3.5 py-2.5 align-top'
+const CODE = 'font-geist tabular-nums'
 
 export default function AuditLogPanel({ serverTimezone }: AuditLogPanelProps): React.ReactElement {
   const { t, locale } = useTranslation()
@@ -96,74 +102,86 @@ export default function AuditLogPanel({ serverTimezone }: AuditLogPanelProps): R
     return '—'
   }
 
+  let body: React.ReactNode
+  if (loading && entries.length === 0) {
+    body = (
+      <div className="flex items-center justify-center gap-2 py-10 text-content-faint" style={fs(12.5, 'body')}>
+        <Loader2 size={15} className="animate-spin" />
+        <span>{t('common.loading')}</span>
+      </div>
+    )
+  } else if (entries.length === 0) {
+    body = <SettingsHint className="py-6 text-center">{t('admin.audit.empty')}</SettingsHint>
+  } else {
+    body = (
+      <div className={`overflow-x-auto rounded-[12px] border border-edge-faint bg-surface-card transition-opacity ${loading ? 'opacity-60' : ''}`}>
+        <table className="w-full min-w-[720px] border-collapse">
+          <thead>
+            <tr className="border-b border-edge-faint bg-surface-secondary" style={fs(9.5)}>
+              <th className={TH}>{t('admin.audit.col.time')}</th>
+              <th className={TH}>{t('admin.audit.col.user')}</th>
+              <th className={TH}>{t('admin.audit.col.action')}</th>
+              <th className={TH}>{t('admin.audit.col.resource')}</th>
+              <th className={TH}>{t('admin.audit.col.ip')}</th>
+              <th className={TH}>{t('admin.audit.col.details')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-edge-faint" style={fs(12, 'body')}>
+            {entries.map((e) => (
+              <tr key={e.id} className="hover:bg-surface-secondary">
+                <td className={`${TD} ${CODE} whitespace-nowrap text-content-muted`}>{fmtTime(e.created_at)}</td>
+                <td className={`${TD} font-medium text-content`}>
+                  {/* A table cell ignores max-width under auto layout, so the box inside truncates. */}
+                  <span className="block max-w-[180px] truncate" title={userLabel(e)}>{userLabel(e)}</span>
+                </td>
+                <td className={`${TD} whitespace-nowrap`}>
+                  <span className={`${CODE} inline-block rounded-[6px] bg-surface-tertiary px-1.5 py-[1px] text-content`}>{e.action}</span>
+                </td>
+                <td className={`${TD} ${CODE} max-w-[160px] break-all text-content-muted`}>{e.resource || '—'}</td>
+                <td className={`${TD} ${CODE} whitespace-nowrap text-content-muted`}>{e.ip || '—'}</td>
+                <td className={`${TD} ${CODE} max-w-[300px] break-all text-content-faint`}>{fmtDetails(e.details)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-semibold text-lg m-0 flex items-center gap-2 text-content">
-            <ClipboardList size={20} />
-            {t('admin.tabs.audit')}
-          </h2>
-          <p className="text-sm m-0 mt-1 text-content-muted">{t('admin.audit.subtitle')}</p>
-        </div>
+    <SettingsCard
+      icon={ClipboardList}
+      title={t('admin.tabs.audit')}
+      hint={t('admin.audit.subtitle')}
+      badge={<StatusPill>{t('admin.audit.showing', { count: entries.length, total })}</StatusPill>}
+      action={
         <button
           type="button"
           disabled={loading}
           onClick={() => loadFirstPage()}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-opacity disabled:opacity-50 border-edge text-content bg-surface-card"
+          className={SETTINGS_BUTTON}
+          style={fs(12.5, 'body')}
         >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={14} strokeWidth={2.2} className={loading ? 'animate-spin' : ''} />
           {t('admin.audit.refresh')}
         </button>
-      </div>
-
-      <p className="text-xs m-0 text-content-faint">
-        {t('admin.audit.showing', { count: entries.length, total })}
-      </p>
-
-      {loading && entries.length === 0 ? (
-        <div className="py-12 text-center text-sm text-content-muted">{t('common.loading')}</div>
-      ) : entries.length === 0 ? (
-        <div className="py-12 text-center text-sm text-content-muted">{t('admin.audit.empty')}</div>
-      ) : (
-        <div className="rounded-xl border overflow-x-auto border-edge bg-surface-card">
-          <table className="w-full text-sm border-collapse min-w-[720px]">
-            <thead>
-              <tr className="border-b text-left border-edge-secondary">
-                <th className="p-3 font-semibold whitespace-nowrap text-content-secondary">{t('admin.audit.col.time')}</th>
-                <th className="p-3 font-semibold whitespace-nowrap text-content-secondary">{t('admin.audit.col.user')}</th>
-                <th className="p-3 font-semibold whitespace-nowrap text-content-secondary">{t('admin.audit.col.action')}</th>
-                <th className="p-3 font-semibold whitespace-nowrap text-content-secondary">{t('admin.audit.col.resource')}</th>
-                <th className="p-3 font-semibold whitespace-nowrap text-content-secondary">{t('admin.audit.col.ip')}</th>
-                <th className="p-3 font-semibold text-content-secondary">{t('admin.audit.col.details')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((e) => (
-                <tr key={e.id} className="border-b align-top border-edge-secondary">
-                  <td className="p-3 whitespace-nowrap font-mono text-xs text-content">{fmtTime(e.created_at)}</td>
-                  <td className="p-3 text-content">{userLabel(e)}</td>
-                  <td className="p-3 font-mono text-xs text-content">{e.action}</td>
-                  <td className="p-3 font-mono text-xs break-all max-w-[140px] text-content-muted">{e.resource || '—'}</td>
-                  <td className="p-3 font-mono text-xs whitespace-nowrap text-content-muted">{e.ip || '—'}</td>
-                  <td className="p-3 font-mono text-xs break-all max-w-[280px] text-content-faint">{fmtDetails(e.details)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      }
+    >
+      {body}
 
       {entries.length < total && (
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => loadMore()}
-          className="text-sm font-medium underline-offset-2 hover:underline disabled:opacity-50 text-content-secondary"
-        >
-          {t('admin.audit.loadMore')}
-        </button>
+        <div className="flex justify-center">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => loadMore()}
+            className={SETTINGS_BUTTON}
+            style={fs(12.5, 'body')}
+          >
+            {t('admin.audit.loadMore')}
+          </button>
+        </div>
       )}
-    </div>
+    </SettingsCard>
   )
 }

@@ -1,7 +1,7 @@
-import type { BudgetParticipantFinal, CostCategory } from '@trek/shared'
+import type { BudgetParticipantFinal, BudgetUnconverted, CostCategory } from '@trek/shared'
 import { paidByUser, readUserNote, settlementDate, splitEqualShares } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CATEGORY_LIST } from '../../../../components/Budget/costsCategories'
-import { convertBooked } from '../../../../hooks/useExchangeRates'
+import { convertBooked, convertedLine, tripAmountOf } from '../../../../hooks/useExchangeRates'
 import { currencyDecimals } from '../../../../utils/formatters'
 import type { BudgetItem } from '../../../../types'
 
@@ -19,6 +19,8 @@ export interface CostsCtx {
   me: number
   /** The trip's own currency — what a NULL `budget_items.currency` means. */
   tripCurrency: string
+  /** The currency everything is shown in, the base `convert` converts to. */
+  displayCurrency: string
   convert: (amount: number, currency: string | null | undefined) => number
 }
 
@@ -30,6 +32,15 @@ export function currencyOf(e: BudgetItem, ctx: CostsCtx): string {
 /** An amount of this expense in the display currency, at the rate the expense was booked at. */
 export function booked(amount: number, e: BudgetItem, ctx: CostsCtx): number {
   return convertBooked(amount, e.currency, e.exchange_rate, ctx.tripCurrency, ctx.convert)
+}
+
+/**
+ * The line under an amount of this expense the list shows converted, what was entered and
+ * where it went (#2525); null when there is nothing to explain. `shown` is the display
+ * value printed beside it.
+ */
+export function lineOf(amount: number, e: BudgetItem, ctx: CostsCtx, shown: number) {
+  return convertedLine(amount, e.currency, e.exchange_rate, ctx.tripCurrency, ctx.displayCurrency, shown)
 }
 
 /** Expense total converted to the display/base currency, at its booked rate. */
@@ -97,6 +108,8 @@ export interface CostsSettlement {
   // The day the transfer actually happened; editable, unlike created_at (when it
   // was recorded). Null/absent on rows predating this field.
   settled_at?: string | null
+  /** A free-text note on the payment (#2340). */
+  note?: string | null
 }
 
 export interface CostsSettlementResponse {
@@ -105,6 +118,10 @@ export interface CostsSettlementResponse {
   settlements: CostsSettlement[]
   /** What the trip ends up costing each participant — netted server-side off the same ledger as `balances`. */
   finalBudgets: BudgetParticipantFinal[]
+  /** The currency the figures are in: the display currency, or the trip's own without a quote for it. */
+  currency?: string
+  /** Rows no rate could convert, left out of every figure above. */
+  unconverted?: BudgetUnconverted
 }
 
 // ── hero / tile totals (spec §3.1-§3.3) ────────────────────────────────────
@@ -315,12 +332,17 @@ export function buildCostsCsv(items: BudgetItem[], opts: CsvBuildOptions): { fil
     }
   }
 
-  const header = ['Date', 'Name', 'Category', 'Amount', 'Currency', `Amount (${opts.base})`, 'Note']
+  // Read in another currency than the trip's, what each row counts as in the trip currency
+  // too, the figure every sum is built from (#2525). Same columns as the desktop export.
+  const trip = opts.ctx.tripCurrency.toUpperCase()
+  const tripCol = trip !== opts.base.toUpperCase()
+  const header = ['Date', 'Name', 'Category', 'Amount', 'Currency', ...(tripCol ? [`Amount (${trip})`] : []), `Amount (${opts.base})`, 'Note']
   const rows = [header.join(sep)]
   const sorted = items.slice().sort((a, b) => (a.expense_date || '').localeCompare(b.expense_date || ''))
   for (const e of sorted) {
     const cur = currencyOf(e, opts.ctx)
     const note = readUserNote(e)
+    const inTrip = tripAmountOf(e.total_price || 0, e.currency, e.exchange_rate, trip, opts.ctx.convert)
     rows.push(
       [
         esc(fmtDate(e.expense_date || '')),
@@ -328,6 +350,7 @@ export function buildCostsCsv(items: BudgetItem[], opts: CsvBuildOptions): { fil
         esc(opts.t(catMeta(e.category).labelKey)),
         (e.total_price || 0).toFixed(currencyDecimals(cur)),
         cur,
+        ...(tripCol ? [inTrip.toFixed(currencyDecimals(trip))] : []),
         baseTotal(e, opts.ctx).toFixed(currencyDecimals(opts.base)),
         esc(note),
       ].join(sep),

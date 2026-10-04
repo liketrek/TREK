@@ -44,6 +44,10 @@ import { RoadtripDayTracks } from '../../db/entities/RoadtripDayTracks.entity';
 import { RoadtripPreferences } from '../../db/entities/RoadtripPreferences.entity';
 import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
 import { Plugins } from '../../db/entities/Plugins.entity';
+import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { ReservationDayPositions } from '../../db/entities/ReservationDayPositions.entity';
 
 /** Road trip domain (#1797): the points a drive is routed through. Registered in AppModule. */
 @Module({
@@ -64,6 +68,10 @@ import { Plugins } from '../../db/entities/Plugins.entity';
   // `Plugins` (Plan 3j Task 3): `RoadtripRouterService`'s RRT1/RRT2 call
   // `declaredProfiles`, now `PluginsRepository`-typed; `PluginsRuntimeModule`
   // registers the same entity but does not export the repository token.
+  // `DayAccommodations`/`Reservations`/`ReservationEndpoints`/
+  // `ReservationDayPositions`: `RoadtripPlanService`'s RPL3-RPL5 reads (the
+  // booked nights and the carrier bookings that seam the drive) plus the RPL6
+  // terminal and RS19 day-position reads it joins onto them.
   imports: [
     McpSharedModule,
     PermissionsModule,
@@ -73,7 +81,7 @@ import { Plugins } from '../../db/entities/Plugins.entity';
     SettingsModule,
     PluginsRuntimeModule,
     MapsModule, PlacesModule, AssignmentsModule,
-    MikroOrmModule.forFeature([Trips, Days, Places, Users, DayAssignments, RoadtripVias, RoadtripDayTracks, RoadtripPreferences, RoadtripDayBoundaries, Plugins]),
+    MikroOrmModule.forFeature([Trips, Days, Places, Users, DayAssignments, RoadtripVias, RoadtripDayTracks, RoadtripPreferences, RoadtripDayBoundaries, Plugins, DayAccommodations, Reservations, ReservationEndpoints, ReservationDayPositions]),
   ],
   controllers: [ChargingController, ChargingLookupController, GoogleRouteController, RoadtripSearchController, RoadtripPreferencesController, RoadtripController, DayBoundariesController, RoadtripHazardsController],
   providers: [ChargingMcp, ChargingService, GoogleRouteService, GoogleRouteMcp,

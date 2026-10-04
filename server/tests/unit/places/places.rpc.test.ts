@@ -177,4 +177,22 @@ describe('PlacesRpc', () => {
     expect(res.error.message).toBe('no place 7 on trip 1');
     expect(f.realtime.broadcast).not.toHaveBeenCalled();
   });
+
+  // #2483: the same parse the REST controller and the MCP tools apply, so a
+  // plugin that hands over a bare host stores the https form, not the text.
+  it('PLACES-RPC-2483-01 a website without a scheme is stored with https, a script link is BAD_PARAMS', async () => {
+    const f = build();
+    const host = f.host('db:write:places');
+    const site = 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët';
+    expect((await host.dispatch(req('places.create', { tripId: 1, input: { name: 'Chapelle', website: site } }), 42)).ok).toBe(true);
+    expect(f.places.create).toHaveBeenCalledWith('1', { name: 'Chapelle', website: `https://${site}` });
+
+    expect((await host.dispatch(req('places.update', { tripId: 1, placeId: 7, input: { website: '//www.example.fr' } }), 42)).ok).toBe(true);
+    expect(f.places.update).toHaveBeenCalledWith('1', '7', { website: 'https://www.example.fr' });
+
+    const refused = (await host.dispatch(req('places.create', { tripId: 1, input: { name: 'X', website: 'javascript:alert(1)' } }), 42)) as RpcError;
+    expect(refused.error.code).toBe('BAD_PARAMS');
+    expect(refused.error.message).toBe('invalid place: website must be an http or https URL');
+    expect(f.places.create).toHaveBeenCalledTimes(1);
+  });
 });

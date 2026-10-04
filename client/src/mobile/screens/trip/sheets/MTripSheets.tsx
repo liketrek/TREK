@@ -5,10 +5,12 @@ import AirTrailImportModal from '../../../../components/Planner/AirTrailImportMo
 import TripFormModal from '../../../../components/Trips/TripFormModal'
 import TripMembersModal from '../../../../components/Trips/TripMembersModal'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
+import { expenseEditorFor } from '../../../../components/Budget/CostsPanel.helpers'
 import { useAuthStore } from '../../../../store/authStore'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { useTripStore } from '../../../../store/tripStore'
 import MConfirmSheet from '../../settings/MConfirmSheet'
+import MDayImpactList from '../../../components/MDayImpactList'
 import MDaySheet from './MDaySheet'
 import MDaysSheet from './MDaysSheet'
 import MAccommodationSheet from './MAccommodationSheet'
@@ -23,6 +25,7 @@ import MNoteSheet, { type MNoteSheetPayload } from './MNoteSheet'
 import MImportSheet from './MImportSheet'
 import MExportSheet from './MExportSheet'
 import MMehrSheet from './MMehrSheet'
+import MPlacesFilterSheet from '../places/MPlacesFilterSheet'
 import MRtStopSheet from '../roadtrip/MRtStopSheet'
 import MRtStaySheet from '../roadtrip/MRtStaySheet'
 import MRtKindSheet from '../roadtrip/MRtKindSheet'
@@ -58,6 +61,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
     else if (req.prefill) setBookingExpense({ editing: null, prefill: req.prefill })
   }
   const costsBase = (displayCurrency || trip?.currency || 'EUR').toUpperCase()
+  const expenseEditor = expenseEditorFor(bookingExpense, () => setBookingExpense(null), planner.receiptExpense, planner.clearReceiptExpense)
 
   return (
     <>
@@ -88,6 +92,12 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         onClose={shell.closeSheet}
       />
       <MImportSheet planner={planner} open={sheet?.id === 'import'} onClose={shell.closeSheet} />
+      <MPlacesFilterSheet
+        open={sheet?.id === 'placesFilter'}
+        onClose={shell.closeSheet}
+        places={planner.places}
+        categories={planner.categories}
+      />
 
       {/* ── Planner-flag editors (also serve ?create= and the import review) ── */}
       <MPlaceEditSheet planner={planner} onOpenExpense={openBookingExpense} />
@@ -141,16 +151,17 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         />
       )}
 
-      {bookingExpense && (
+      {expenseEditor && (
         <MCostSheet
+          key={expenseEditor.key}
           tripId={tripId}
           base={costsBase}
           people={planner.tripMembers}
           me={meId}
-          editing={bookingExpense.editing}
-          prefill={bookingExpense.prefill}
-          onClose={() => setBookingExpense(null)}
-          onSaved={() => { setBookingExpense(null); loadBudgetItems(tripId) }}
+          editing={expenseEditor.editing}
+          prefill={expenseEditor.prefill}
+          onClose={expenseEditor.close}
+          onSaved={() => { expenseEditor.close(); loadBudgetItems(tripId) }}
         />
       )}
 
@@ -201,6 +212,34 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
           planner.setDeletePlaceId(null)
         }}
       />
+
+      {/* Clear-day confirm behind the day sheet's "Clear day" (#2470). */}
+      <MConfirmSheet
+        open={planner.clearDayId != null}
+        onClose={planner.cancelClearDay}
+        title={planner.clearDayTitle}
+        message={t('dayplan.clearDayBody')}
+        confirmLabel={t('dayplan.clearDay')}
+        cancelLabel={t('common.cancel')}
+        danger
+        onConfirm={() => { void planner.confirmClearDay() }}
+      />
+
+      {/* Delete-day confirm behind the days sheet's delete buttons. Mounted
+          last, so it opens over that sheet; the list of what goes with the day
+          comes ready made from the planner, the same one the desktop shows. */}
+      <MConfirmSheet
+        open={planner.deleteDayId != null}
+        onClose={() => planner.setDeleteDayId(null)}
+        title={planner.deleteDayTitle}
+        message={t('dayplan.deleteDayBody')}
+        confirmLabel={t('dayplan.deleteDay')}
+        cancelLabel={t('common.cancel')}
+        danger
+        onConfirm={() => { void planner.confirmDeleteDay() }}
+      >
+        <MDayImpactList lines={planner.deleteDayLines} label={planner.deleteDayTitle} />
+      </MConfirmSheet>
     </>
   )
 }

@@ -5,11 +5,12 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import { useTripStore } from '../../../../src/store/tripStore'
 import MRoadtripTab from '../../../../src/mobile/screens/trip/roadtrip/MRoadtripTab'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
-import type { Day, Place } from '../../../../src/types'
-import type { RoadtripDay, RoadtripRoutes, RouteSegment } from '@trek/shared/roadtrip'
+import type { Day, Place, Reservation } from '../../../../src/types'
+import type { CarrierTerminal, RoadtripDay, RoadtripRoutes, RoadtripStop, RouteSegment } from '@trek/shared/roadtrip'
 import type { LegAlternatives } from '../../../../src/components/Roadtrip/useRouteAlternatives'
+import { openLeg } from '../../../helpers/legAlternatives'
 
-// FE-MOB-RTTAB-001 to FE-MOB-RTTAB-053
+// FE-MOB-RTTAB-001 to FE-MOB-RTTAB-066
 //
 // The stage bar pictures the place its day ends at. It reads that place out of the trip
 // store rather than the planner, the unfiltered list, so the picture tests seed the store.
@@ -107,13 +108,13 @@ function stage(over: Partial<RoadtripDay> = {}): RoadtripDay {
         { arrival: '12:40', departure: null, anchored: false, dayOffset: 0 },
         { arrival: '22:00', departure: null, anchored: false, dayOffset: 0 },
       ],
-      warnings: [],
+      warnings: [{ index: 2, code: 'late', minutes: 25 }],
     },
     legVias: [[], [], []],
     geometry: [],
     distance: 412_000,
     duration: 18_000,
-    driveWarnings: [{ index: 2, code: 'late', minutes: 25 }],
+    driveWarnings: [],
     dayWarning: null,
     spills: [{ at: 0, count: 1, fromDayNumber: 1, departure: '23:10', leg: undefined }],
     dryPoints: [{ legIndex: 1, intoLegKm: 82, drivenMeters: 82_000, sinceKm: 520, lat: 35.2, lng: 137.5 }],
@@ -624,7 +625,7 @@ describe('MRoadtripTab', () => {
     function withPicker(open: Partial<LegAlternatives>, over: Partial<TripPlanner> = {}): TripPlanner {
       const base = buildPlanner()
       return planner({
-        routeAlternatives: { ...base.routeAlternatives, open: { dayId: 2, index: 0, routes: [], loading: true, error: false, ...open } },
+        routeAlternatives: { ...base.routeAlternatives, open: openLeg({ dayId: 2, drive: { kind: 'leg', index: 0 }, loading: true, ...open }) },
         ...over,
       })
     }
@@ -669,13 +670,13 @@ describe('MRoadtripTab', () => {
       expect(p.refuel.close).toHaveBeenCalledTimes(1)
       // Day 2, the card: the leg's first stop is stored on day 1, and the planner works
       // that out from the card itself, the way the desk rail asks.
-      expect(p.askRouteAlternatives).toHaveBeenCalledWith(2, 0)
+      expect(p.askRouteAlternatives).toHaveBeenCalledWith(2, { kind: 'leg', index: 0 })
       expect(p.askRouteAlternatives).not.toHaveBeenCalledWith(1, expect.anything())
       expect(shell.toggleRtView).toHaveBeenCalledTimes(1)
     })
 
     it('FE-MOB-RTTAB-047: the leg with the picker open shows pressed, and tapping it goes back to the answer without asking again', () => {
-      const p = withPicker({ index: 0 })
+      const p = withPicker({ drive: { kind: 'leg', index: 0 } })
       const { shell } = renderTab(p)
 
       const [open, other] = askButtons()
@@ -727,10 +728,316 @@ describe('MRoadtripTab', () => {
       first.unmount()
 
       // The chain is a look back at the stage, not a way out of the question.
-      const here = withPicker({ dayId: 2, index: 1 })
+      const here = withPicker({ dayId: 2, drive: { kind: 'leg', index: 1 } })
       renderTab(here)
       expect(here.routeAlternatives.close).not.toHaveBeenCalled()
       expect(askButtons()[1]).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    /**
+     * The stage joined to the day before by the road from where that day ended, with no
+     * night drive between them: the drive in is drawn at the head of this card.
+     */
+    const joinedStage = () => stage({
+      spills: [],
+      arrivingLeg: seg('95 km', '1 h 10 min'),
+      arrivingFrom: {
+        assignmentId: 499, ownerDayId: 1, ownerIndex: 2, placeId: 99, name: 'Hakone',
+        lat: 35.23, lng: 139.02, time: null, dwellMinutes: null,
+        legMode: null, incomingLegMode: null, stopType: null,
+      },
+      arrivingLine: [[35.23, 139.02], [35.36, 138.73]],
+    } as Partial<RoadtripDay>)
+    const joined = (over: Partial<TripPlanner> = {}) => planner({ roadtripRoutes: routes({ days: [joinedStage()] }), ...over })
+
+    it('FE-MOB-RTTAB-058: the drive in from the day before heads the chain, names where it leaves, and asks as the drive it is', () => {
+      // #2461: the phone had no row for this drive at all, so it could neither be read
+      // nor offered another way.
+      const p = joined()
+      renderTab(p)
+
+      const origin = screen.getByText('roadtrip.leg.arrivingFrom:Hakone')
+      expect(screen.getByText('roadtrip.leg.driveText:95 km,1 h 10 min')).toBeInTheDocument()
+      // Above the first stop, where the desk rail draws its band.
+      expect(origin.compareDocumentPosition(screen.getByText('Fuji Viewpoint')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      // A drive, not a stop: the count and the numbering stay as they were.
+      expect(screen.getByText('roadtrip.day.stopCount:2')).toBeInTheDocument()
+      expect(screen.queryByText('3')).toBeNull()
+
+      // The drive in, then the two legs the stage offered before.
+      expect(askButtons()).toHaveLength(3)
+      fireEvent.click(askButtons()[0])
+      expect(p.askRouteAlternatives).toHaveBeenCalledWith(2, { kind: 'arriving' })
+    })
+
+    it('FE-MOB-RTTAB-059: the drive in and the first leg are told apart while a picker is open on either', () => {
+      const onDriveIn = withPicker({ drive: { kind: 'arriving' } }, { roadtripRoutes: routes({ days: [joinedStage()] }) })
+      const first = renderTab(onDriveIn)
+      expect(askButtons().map(b => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false'])
+      // Pressed, it goes back to the answer instead of asking again.
+      fireEvent.click(askButtons()[0])
+      expect(onDriveIn.askRouteAlternatives).not.toHaveBeenCalled()
+      first.unmount()
+
+      renderTab(withPicker({ drive: { kind: 'leg', index: 0 } }, { roadtripRoutes: routes({ days: [joinedStage()] }) }))
+      expect(askButtons().map(b => b.getAttribute('aria-pressed'))).toEqual(['false', 'true', 'false'])
+    })
+
+    it('FE-MOB-RTTAB-060: a reader sees the drive in without the question', () => {
+      renderTab(joined({ can: vi.fn(() => false) }))
+      expect(screen.getByText('roadtrip.leg.arrivingFrom:Hakone')).toBeInTheDocument()
+      expect(askButtons()).toHaveLength(0)
+    })
+  })
+
+  // The rides and the hire car the routing round seams into the day, and the day's
+  // other bookings (#2428). The rows themselves are pinned in MRoadtripRows.test; this
+  // is the wiring: which sheet a tap on them opens, and for whom.
+  describe('a ride, a hire desk and the day\'s bookings', () => {
+    const entry = (arrival: string, departure: string | null = arrival) => ({ arrival, departure, anchored: true, dayOffset: 0 })
+    const real = (assignmentId: number, placeId: number, name: string): RoadtripStop => ({
+      assignmentId, ownerDayId: 2, ownerIndex: 0, placeId, name,
+      lat: 53.55, lng: 9.99, time: null, dwellMinutes: null, legMode: null, incomingLegMode: null, stopType: null,
+    } as unknown as RoadtripStop)
+    // A synthetic stop, keyed off its booking the way the routing round keys it.
+    const terminal = (carrier: CarrierTerminal, name: string): RoadtripStop => ({
+      ...real(-(carrier.reservationId * 10 + (carrier.role === 'departure' || carrier.role === 'pickup' ? 0 : 1)), -carrier.reservationId, name),
+      carrier,
+    })
+    const flight = (role: 'departure' | 'arrival'): CarrierTerminal =>
+      ({ reservationId: 70, type: 'flight', role, title: 'LH 2020', code: null, at: role === 'departure' ? '13:20' : '14:30' })
+    const desk = (role: 'pickup' | 'return'): CarrierTerminal =>
+      ({ reservationId: 90, type: 'car', role, title: 'Sixt Hamburg', code: null, at: role === 'pickup' ? '09:00' : '11:30' })
+
+    /** Kyoto Station, a flight to Munich, then Munich: the ride is one block between two numbered stops. */
+    const flightStage = () => stage({
+      stops: [
+        real(503, 103, 'Kyoto Station'),
+        terminal(flight('departure'), 'Hamburg Airport'),
+        terminal(flight('arrival'), 'Munich Airport'),
+        real(505, 105, 'Munich'),
+      ],
+      legs: [seg('12 km', '20 min'), { ...seg('', '1 h 10 min'), distance: 0, duration: 4200 }, seg('30 km', '35 min')],
+      schedule: { entries: [entry('09:00'), entry('12:20', '13:20'), entry('14:30'), entry('15:30')], warnings: [] },
+      legVias: [[], [], []], driveWarnings: [], spills: [], dryPoints: [],
+    })
+
+    /** A hire car picked up before the first stop: the desk is a row of its own on the road. */
+    const rentalStage = () => stage({
+      stops: [terminal(desk('pickup'), 'Sixt Hauptbahnhof'), real(503, 103, 'Kyoto Station'), real(505, 105, 'Munich')],
+      legs: [seg('12 km', '20 min'), seg('30 km', '35 min')],
+      schedule: { entries: [entry('09:00'), entry('09:20', '09:50'), entry('10:50')], warnings: [] },
+      legVias: [[], []], driveWarnings: [], spills: [], dryPoints: [],
+    })
+
+    const booking = (over: Partial<Reservation>): Reservation =>
+      ({ id: 1, trip_id: 7, title: 'Booking', type: 'restaurant', status: 'confirmed', day_id: 2, ...over }) as Reservation
+
+    it('FE-MOB-RTTAB-054: a tap on a terminal opens its booking in the transport sheet, and no kind is offered on it', () => {
+      const { shell } = renderTab(planner({ roadtripRoutes: routes({ days: [rentalStage()] }) }))
+
+      fireEvent.click(screen.getByText('Sixt Hauptbahnhof'))
+
+      expect(shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: 90 })
+      expect(shell.openSheet).not.toHaveBeenCalledWith('rtstop', expect.anything())
+      // The desk is unnumbered and its disc is no control: only the two real stops
+      // offer to become a stop on the way, and the count says two.
+      expect(screen.getAllByRole('button', { name: 'roadtrip.stop.makeService' })).toHaveLength(2)
+      expect(screen.getByText('reservations.span.pickup')).toBeInTheDocument()
+      expect(screen.getByText('roadtrip.ride.pickup:09:00')).toHaveClass('sr-only')
+      expect(screen.getByText('roadtrip.day.stopCount:2')).toBeInTheDocument()
+    })
+
+    it('FE-MOB-RTTAB-055: a ride is one block that opens its booking, between the two stops it joins', () => {
+      const { shell } = renderTab(planner({ roadtripRoutes: routes({ days: [flightStage()] }) }))
+
+      expect(screen.getByText('LH 2020')).toBeInTheDocument()
+      expect(screen.getByText('1 h 10 min')).toBeInTheDocument()
+      expect(screen.getByText('roadtrip.ride.departureFlight:13:20')).toBeInTheDocument()
+      expect(screen.getByText('roadtrip.ride.arrival:14:30')).toBeInTheDocument()
+      // Kyoto is 1 and Munich is 2: the terminals between them take no number.
+      expect(screen.getByText('1')).toBeInTheDocument()
+      expect(screen.getByText('2')).toBeInTheDocument()
+      expect(screen.queryByText('3')).toBeNull()
+
+      fireEvent.click(screen.getByText('Munich Airport'))
+
+      expect(shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: 70 })
+      expect(shell.openSheet).toHaveBeenCalledTimes(1)
+    })
+
+    it('FE-MOB-RTTAB-066: a flight the drive reaches after take-off is said on the ride, where the stage only ever showed it on time', () => {
+      const pinned = flightStage()
+      const late = stage({
+        ...pinned,
+        // The departure pinned an hour ahead for the check-in, the drive to it ten hours late.
+        stops: pinned.stops.map((s, i) => (i === 1 ? { ...s, time: '12:20' } : s)),
+        schedule: { ...pinned.schedule, warnings: [{ index: 1, code: 'late', minutes: 600 }] },
+      })
+      renderTab(planner({ roadtripRoutes: routes({ days: [late] }) }))
+
+      const mark = screen.getByRole('img', { name: /^roadtrip\.ride\.lateHintFlight:LH 2020,13:20,12:20,Hamburg Airport,22:20/ })
+      expect(mark).toHaveTextContent('roadtrip.ride.missed')
+      expect(within(mark).getByText('roadtrip.ride.reachedAt:22:20')).toBeInTheDocument()
+    })
+
+    it('FE-MOB-RTTAB-056: a table hangs under its stop as a chip, one booked for no stop is listed under the day, and the night is neither', () => {
+      const reservations = [
+        booking({ id: 11, title: 'Tisch Bullerei', reservation_time: '2026-05-02T19:30', assignment_id: 503 }),
+        booking({ id: 13, title: 'Elbphilharmonie', type: 'event', reservation_time: '2026-05-02T20:00', place_id: 999 }),
+        booking({ id: 14, title: 'Tomorrow', type: 'event', day_id: 1, place_id: 105 }),
+        booking({ id: 15, title: 'Hotel Hafen', type: 'hotel', place_id: 105 }),
+      ]
+      const p = planner({ roadtripRoutes: routes({ days: [flightStage()] }), reservations })
+      const { shell } = renderTab(p)
+
+      const kyoto = screen.getByText('Kyoto Station').closest('[role="button"]') as HTMLElement
+      // The chip sits in the block right after its stop's row.
+      expect(within(kyoto.nextElementSibling as HTMLElement).getByText('Tisch Bullerei')).toBeInTheDocument()
+      expect(screen.getByText('19:30')).toBeInTheDocument()
+      expect(screen.getByText('roadtrip.bookings.loose')).toBeInTheDocument()
+      expect(screen.getByText('Elbphilharmonie')).toBeInTheDocument()
+      // Another day's booking is not this day's, and the night is the stay, not a chip.
+      expect(screen.queryByText('Tomorrow')).toBeNull()
+      expect(screen.queryByText('Hotel Hafen')).toBeNull()
+      // The chips are the stop's, not stops: the count stays at two.
+      expect(screen.getByText('roadtrip.day.stopCount:2')).toBeInTheDocument()
+
+      // A chip opens its booking in the editor, the way the place sheet opens a linked one.
+      fireEvent.click(screen.getByText('Tisch Bullerei'))
+      expect(p.setEditingReservation).toHaveBeenCalledWith(reservations[0])
+      expect(p.setShowReservationModal).toHaveBeenCalledWith(true)
+      expect(shell.openSheet).not.toHaveBeenCalled()
+    })
+
+    it('FE-MOB-RTTAB-057: a transport chip goes to the transport sheet, and a table is not even a button for a member who may not edit bookings', () => {
+      const reservations = [
+        booking({ id: 16, title: 'Taxi to the pier', type: 'taxi', reservation_time: '2026-05-02T08:15', assignment_id: 503 }),
+        booking({ id: 13, title: 'Elbphilharmonie', type: 'event', place_id: 999 }),
+      ]
+      const p = planner({
+        roadtripRoutes: routes({ days: [flightStage()] }),
+        reservations,
+        can: (action: string) => action !== 'reservation_edit',
+      })
+      const { shell } = renderTab(p)
+
+      fireEvent.click(screen.getByText('Taxi to the pier'))
+      expect(shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: 16 })
+
+      // The event has only its editor, which this member may not open, so the chip is a
+      // plain chip and not a control that does nothing when tapped (#2012).
+      expect(screen.getByText('Elbphilharmonie').closest('button')).toBeNull()
+      fireEvent.click(screen.getByText('Elbphilharmonie'))
+      expect(p.setEditingReservation).not.toHaveBeenCalled()
+      expect(p.setShowReservationModal).not.toHaveBeenCalled()
+      expect(shell.openSheet).toHaveBeenCalledTimes(1)
+    })
+
+    it('FE-MOB-RTTAB-061: a ride on no day is named above the stage and opens in the transport sheet; one on a day is not (#2461)', () => {
+      // The map draws the crossing all the same, so without the line the chain going
+      // round it by road looked like the plan.
+      const terminals = [
+        { role: 'from', sequence: 0, name: 'IJmuiden', code: null, lat: 52.4581, lng: 4.5879 },
+        { role: 'to', sequence: 1, name: 'Port of Tyne', code: null, lat: 54.9925, lng: -1.4522 },
+      ]
+      const reservations = [
+        booking({ id: 70, title: 'IJmuiden to Newcastle', type: 'ferry', day_id: null, endpoints: terminals } as unknown as Partial<Reservation>),
+        booking({ id: 71, title: 'Dated ferry', type: 'ferry', endpoints: terminals } as unknown as Partial<Reservation>),
+      ]
+      const { shell } = renderTab(planner({ reservations }))
+
+      const notice = screen.getByText('roadtrip.ride.undated:IJmuiden to Newcastle').closest('[role="status"]') as HTMLElement
+      expect(within(notice).getAllByRole('listitem')).toHaveLength(1)
+      expect(screen.queryByText('roadtrip.ride.undated:Dated ferry')).toBeNull()
+
+      fireEvent.click(within(notice).getByRole('button', { name: 'roadtrip.ride.open' }))
+      expect(shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: 70 })
+    })
+
+    describe('a booked night at the edge of the stage', () => {
+      const bookend = (phase: 'morning' | 'evening', ownerIndex: number): RoadtripStop => ({
+        ...real(phase === 'morning' ? -6_000_000_004 : -6_000_000_005, 900, 'Hotel Alpenblick'),
+        ownerIndex,
+        lat: 47.2,
+        lng: 11.4,
+        stopType: 'hotel',
+        bookend: { phase, accommodationId: 5, reservationId: 41, checkingOut: phase === 'morning', checkingIn: false, checkOut: phase === 'morning' ? '10:00' : null },
+      })
+      /** Out of the hotel on its check-out morning, two places, and into the night's hotel. */
+      const hotelStage = (first: RoadtripStop[] = []) => stage({
+        stops: [...first, bookend('morning', 0), real(503, 103, 'Kyoto Station'), { ...real(505, 105, 'Munich'), ownerIndex: 1 }, bookend('evening', 2)],
+        legs: [...first.map((): RouteSegment => ({ ...seg('', ''), distance: 0, from: [47.2, 11.4], to: [47.2, 11.4] })), seg('12 km', '20 min'), seg('30 km', '35 min'), seg('40 km', '45 min')],
+        schedule: {
+          entries: [...first.map(() => entry('08:00')), entry('08:40'), entry('09:00', '09:30'), entry('10:05'), entry('10:50')],
+          warnings: [],
+        },
+        legVias: [[], [], [], []], driveWarnings: [], spills: [], dryPoints: [],
+      })
+      const hotelBooking = booking({ id: 41, title: 'Hotel Alpenblick', type: 'hotel', day_id: 1 })
+
+      it('FE-MOB-RTTAB-062: the stage leaves from the hotel and comes back to one, with no number and no kind on either', () => {
+        renderTab(planner({ roadtripRoutes: routes({ days: [hotelStage()] }) }))
+
+        expect(screen.getAllByText('Hotel Alpenblick')).toHaveLength(2)
+        expect(screen.getByText('roadtrip.bookend.checkOut').parentElement).toHaveTextContent('10:00')
+        expect(screen.getByText('roadtrip.bookend.back')).toBeInTheDocument()
+        // Only the two places offer to become a stop on the way, and the count says two.
+        expect(screen.getAllByRole('button', { name: 'roadtrip.stop.makeService' })).toHaveLength(2)
+        expect(screen.getByText('roadtrip.day.stopCount:2')).toBeInTheDocument()
+        // The stage starts when the hotel is left and ends when the next one is reached.
+        const start = screen.getByText('mobileTrip.rtStart').parentElement as HTMLElement
+        expect(within(start).getByText('08:40')).toBeInTheDocument()
+        const arrive = screen.getByText('roadtrip.stay.arrive').parentElement as HTMLElement
+        expect(within(arrive).getByText('10:50')).toBeInTheDocument()
+      })
+
+      it('FE-MOB-RTTAB-063: a tap opens the booking behind the night, or the stay for somebody who may not edit bookings', () => {
+        const editor = planner({ roadtripRoutes: routes({ days: [hotelStage()] }), reservations: [hotelBooking] })
+        const first = renderTab(editor)
+        fireEvent.click(screen.getByText('roadtrip.bookend.back'))
+        expect(editor.setEditingReservation).toHaveBeenCalledWith(hotelBooking)
+        expect(editor.setShowReservationModal).toHaveBeenCalledWith(true)
+        expect(first.shell.openSheet).not.toHaveBeenCalled()
+        first.unmount()
+
+        const dayEditor = planner({
+          roadtripRoutes: routes({ days: [hotelStage()] }),
+          reservations: [hotelBooking],
+          can: (action: string) => action !== 'reservation_edit',
+        })
+        const { shell } = renderTab(dayEditor)
+        fireEvent.click(screen.getByText('roadtrip.bookend.checkOut'))
+        expect(shell.openSheet).toHaveBeenCalledWith('accommodation', { dayId: 2, accId: 5 })
+        expect(dayEditor.setEditingReservation).not.toHaveBeenCalled()
+      })
+
+      it('FE-MOB-RTTAB-064: a reader gets the hotel as a place, and the morning marker there is the hotel row', () => {
+        const reader = planner({
+          roadtripRoutes: routes({ days: [hotelStage([{ ...bookend('morning', 0), assignmentId: -2_000_000_003, bookend: undefined, automaticNight: { phase: 'start', fromDayNumber: 1 } } as RoadtripStop])] }),
+          can: vi.fn(() => false),
+        })
+        const { shell } = renderTab(reader)
+
+        expect(screen.queryByText('roadtrip.window.resume')).toBeNull()
+        fireEvent.click(screen.getByText('roadtrip.bookend.checkOut'))
+        expect(reader.handlePlaceClick).toHaveBeenCalledWith(900)
+        expect(shell.openSheet).not.toHaveBeenCalled()
+      })
+
+      it('FE-MOB-RTTAB-065: a stage that only drives from one stay to the next says its drive and no count of stops', () => {
+        const transfer = stage({
+          stops: [bookend('morning', 0), { ...bookend('evening', 0), name: 'Wallinga', lat: 48, lng: 12 }],
+          legs: [seg('172 km', '2 h')],
+          schedule: { entries: [entry('08:00'), entry('10:00')], warnings: [] },
+          legVias: [[]], driveWarnings: [], spills: [], dryPoints: [],
+        })
+        renderTab(planner({ roadtripRoutes: routes({ days: [transfer] }) }))
+
+        expect(screen.getByText('Wallinga')).toBeInTheDocument()
+        expect(screen.getByText('roadtrip.bookend.back')).toBeInTheDocument()
+        expect(screen.queryByText(/roadtrip\.day\.stopCount/)).toBeNull()
+      })
     })
   })
 

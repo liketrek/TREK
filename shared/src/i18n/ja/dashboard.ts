@@ -39,6 +39,10 @@ const dashboard: TranslationStrings = {
   'dashboard.copySuffix': 'コピー',
   'dashboard.restore': '復元',
   'dashboard.archived': 'アーカイブ済み',
+  'dashboard.search.placeholder': '旅行や場所を検索',
+  'dashboard.search.label': 'タイトル・日付・場所ですべての旅行を検索',
+  'dashboard.search.clear': '検索をクリア',
+  'dashboard.search.empty': '「{query}」に一致する旅行はありません',
   'dashboard.status.ongoing': '進行中',
   'dashboard.status.today': '今日',
   'dashboard.status.tomorrow': '明日',
@@ -110,7 +114,24 @@ const dashboard: TranslationStrings = {
     '日別計画は新しい日程に合わせて移動しますが、予約と宿泊先は旅行期間内にある限り元の日付のままになります。',
   'dashboard.dateShiftAll': 'すべてを移動する',
   'dashboard.dateShiftAllDesc': '予約や宿泊先を含む旅程全体が新しい日程に合わせて移動します。',
-  'dashboard.dateShiftHint': 'ヒント：旅程の一部だけを移動したい場合は、プランナーの「日付を追加」を使用してください。',
+  'dashboard.dateShiftHint':
+    'ヒント：旅程の一部だけをずらしたい場合は、プランナーの「日付を並べ替え」を開き、日付が表示されたボタンで旅行終了の翌日を追加して、その日を空けたい位置へ移動してください。',
+  'dashboard.shrinkTitle': '日を削除しますか？',
+  'dashboard.shrinkIntro': '新しい日付を保存すると、次の日が削除されます：',
+  'dashboard.shrinkMoreDays': 'ほか{count}日',
+  'dashboard.shrinkLastDays': '削除されるのは最初ではなく最後の日です',
+  'dashboard.shrinkLastDaysHint':
+    '各日のプランは新しい日付と一緒に移動するため、開始日を変えた場合でも、削除されるのは常にプランの最後の日です。',
+  'dashboard.shrinkBookingsHint': '予約に残ります。日付がまだ旅行の期間内にある予約は、その日に戻ります。',
+  'dashboard.shrinkBookingsShiftHint': '日付なしで予約に残ります。',
+  'dashboard.shrinkStayHint': '削除される日にチェックインまたはチェックアウトするため、宿泊全体が削除されます。',
+  'dashboard.shrinkStayBookedHint':
+    '削除される日にチェックインまたはチェックアウトするため、宿泊全体が削除されます。予約「{booking}」とその支出は予約に残ります。',
+  'dashboard.shrinkStayBookingHint':
+    '削除される日にチェックインまたはチェックアウトするため、宿泊全体が削除されます。予約「{booking}」は予約に残ります。',
+  'dashboard.shrinkConfirm': '日を削除して保存',
+  'dashboard.shrinkUnknown':
+    'この旅行の日を確認できませんでした。新しい日付の日数が少ない場合、保存すると最後の日とそこに予定されているものがすべて削除されます。',
   'dashboard.greeting.morning': 'おはようございます、',
   'dashboard.greeting.afternoon': 'こんにちは、',
   'dashboard.greeting.evening': 'こんばんは、',

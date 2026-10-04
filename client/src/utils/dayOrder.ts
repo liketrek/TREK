@@ -1,3 +1,4 @@
+import { getDayBookendHotels, getDayOrder, hotelIsTheStop, isDayInAccommodationRange } from '@trek/shared'
 import type { Day, Accommodation, RouteAnchors } from '../types'
 import { parseTimeToMinutes } from './dayMerge'
 import { haversineKm, withinDayTripRange } from './geo'
@@ -12,8 +13,9 @@ import { haversineKm, withinDayTripRange } from './geo'
  */
 export type CarrierEdge = 'departure' | 'arrival' | null
 
-export const getDayOrder = (day: Day, days: Day[]): number =>
-  day.day_number ?? days.indexOf(day)
+// Which stay a day wakes up in and which one it sleeps in is read in @trek/shared, so every
+// reader of a day's nights makes the same choice. Days keeps importing it from here.
+export { getDayBookendHotels, getDayOrder, isDayInAccommodationRange }
 
 type EdgeStop = { isPlace: boolean; time?: string | null; carrierEdge?: CarrierEdge; lat?: number; lng?: number }
 
@@ -30,59 +32,6 @@ const noTimeLoopHolds = (hotel: Accommodation, stop?: EdgeStop, dayHasCarrier?: 
   if (dayHasCarrier) return false
   if (stop?.lat == null || stop.lng == null || hotel.place_lat == null || hotel.place_lng == null) return true
   return withinDayTripRange({ lat: hotel.place_lat, lng: hotel.place_lng }, { lat: stop.lat, lng: stop.lng })
-}
-
-/**
- * The hotel and the day's edge waypoint are one and the same spot.
- *
- * Booking a night also puts its hotel on the check-in day as a stop, so that day's
- * last waypoint IS the hotel far more often than not, and the bookend leg drawn to
- * it would be a zero-kilometre round trip: in the drawn line, in the sidebar's leg
- * list and in every exported directions link, which would carry the hotel twice in
- * a row. Compared by coordinates, because the bookend comes off the stay row and
- * the waypoint off the assignment, and the same tie holds for two places pinned at
- * the same spot.
- */
-const hotelIsTheStop = (hotel: Accommodation | undefined, stop?: EdgeStop): boolean =>
-  !!hotel && hotel.place_lat != null && hotel.place_lng != null
-  && stop?.lat != null && stop.lng != null
-  && hotel.place_lat === stop.lat && hotel.place_lng === stop.lng
-
-// The two hotels that bookend a day: the one you woke up in (morning) and the one you sleep in
-// tonight (evening). On a transfer day these differ; on any other day both are the single hotel.
-// The morning hotel is keyed off "checked in on an earlier day and still in range" (i.e. you slept
-// there) rather than "checks out today", so it stays correct when an overlapping or long stay does
-// not end exactly on the transfer day.
-export const getDayBookendHotels = (
-  day: Day,
-  days: Day[],
-  accommodations: Accommodation[],
-): { morning?: Accommodation; evening?: Accommodation; morningIsSleptHere?: boolean; eveningIsOvernight?: boolean } => {
-  const inRange = accommodations.filter(a =>
-    a.place_lat != null && a.place_lng != null &&
-    isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days),
-  )
-  if (inRange.length === 0) return {}
-
-  const dayOrd = getDayOrder(day, days)
-  const orderOf = (id: number) => {
-    const d = days.find(x => x.id === id)
-    return d ? getDayOrder(d, days) : dayOrd
-  }
-  const checkIn = inRange.find(a => a.start_day_id === day.id) // the hotel you arrive at tonight
-  const sleptHere = inRange.find(a => orderOf(a.start_day_id) < dayOrd) // the hotel you woke up in
-
-  return {
-    morning: sleptHere ?? checkIn ?? inRange[0],
-    evening: checkIn ?? sleptHere ?? inRange[0],
-    // Provenance for the drawing consumers (map + sidebar). A hotel↔transport bookend
-    // is only real when you actually used the hotel: morningIsSleptHere is true only
-    // when you woke up there (not a check-in fallback on an arrival day), and
-    // eveningIsOvernight is true only when you sleep there tonight (you check in today,
-    // or an earlier stay continues past today). The optimizer keeps using the values.
-    morningIsSleptHere: sleptHere != null,
-    eveningIsOvernight: checkIn != null || (sleptHere != null && orderOf(sleptHere.end_day_id) > dayOrd),
-  }
 }
 
 // Derives route anchors from the accommodation(s) active on a day. A single hotel is the day's home
@@ -182,23 +131,4 @@ export const shouldDrawEveningLeg = (
   if (checkOut == null) return noTimeLoopHolds(e, lastStop, dayHasCarrier)
   const stop = parseTimeToMinutes(lastStop.time)
   return stop != null && stop <= checkOut
-}
-
-export const isDayInAccommodationRange = (
-  day: Day,
-  startDayId: number,
-  endDayId: number,
-  days: Day[],
-): boolean => {
-  const startDay = days.find(d => d.id === startDayId)
-  const endDay = days.find(d => d.id === endDayId)
-  if (!startDay || !endDay) {
-    // Endpoint days not in the loaded array (e.g. sparse test data or partial load).
-    // Fall back to numeric ID range — acceptable since non-monotonic IDs only arise when
-    // both endpoints are present in a fully-loaded trip's days list.
-    return day.id >= Math.min(startDayId, endDayId) && day.id <= Math.max(startDayId, endDayId)
-  }
-  const lo = Math.min(getDayOrder(startDay, days), getDayOrder(endDay, days))
-  const hi = Math.max(getDayOrder(startDay, days), getDayOrder(endDay, days))
-  return getDayOrder(day, days) >= lo && getDayOrder(day, days) <= hi
 }
