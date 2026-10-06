@@ -2582,7 +2582,7 @@ describe('DayPlanSidebar', () => {
   // ferry from IJmuiden to the Port of Tyne in the evening. The slot written here is the
   // one every other reader takes from then on, the road trip included.
   const crossing = (newcastleAt: string | null, withAmsterdam = true) => {
-    const day = buildDay({ id: 10, date: '2026-10-06', title: 'Day 2' })
+    const day = buildDay({ id: 10, date: '2025-10-06', title: 'Day 2' })
     const amsterdam = buildPlace({ id: 1, name: 'Amsterdam', lat: 52.3731, lng: 4.8926 })
     const newcastle = buildPlace({ id: 2, name: 'Newcastle', lat: 54.9783, lng: -1.6178, place_time: newcastleAt })
     const stops = [
@@ -2591,7 +2591,7 @@ describe('DayPlanSidebar', () => {
     ].filter(a => withAmsterdam || a.id !== 11)
     const ferry = buildReservation({
       id: 69, type: 'ferry', title: 'IJmuiden to Newcastle', day_id: 10,
-      reservation_time: '2026-10-06T17:30', reservation_end_time: '2026-10-06T23:00',
+      reservation_time: '2025-10-06T17:30', reservation_end_time: '2025-10-06T23:00',
       endpoints: [
         { role: 'from', sequence: 0, name: 'IJmuiden', code: null, lat: 52.4581, lng: 4.5879, timezone: null, local_date: null, local_time: null },
         { role: 'to', sequence: 1, name: 'Port of Tyne', code: null, lat: 54.9925, lng: -1.4522, timezone: null, local_date: null, local_time: null },
@@ -2632,12 +2632,12 @@ describe('DayPlanSidebar', () => {
     // Worked out over Amsterdam alone, the clock closed the day at 1.5: behind the hotel
     // for the road trip, which then drove to Newcastle overland before the crossing.
     const { reservationsApi } = await import('../../api/client')
-    const day = buildDay({ id: 10, date: '2026-10-06', title: 'Day 2' })
+    const day = buildDay({ id: 10, date: '2025-10-06', title: 'Day 2' })
     const amsterdam = buildPlace({ id: 1, name: 'Amsterdam', lat: 52.3731, lng: 4.8926 })
     const hotel = buildPlace({ id: 3, name: 'Hotel Newcastle', lat: 54.975, lng: -1.61 })
     const ferry = buildReservation({
       id: 69, type: 'ferry', title: 'IJmuiden to Newcastle', day_id: 10,
-      reservation_time: '2026-10-06T17:30', reservation_end_time: '2026-10-06T23:00',
+      reservation_time: '2025-10-06T17:30', reservation_end_time: '2025-10-06T23:00',
       endpoints: [
         { role: 'from', sequence: 0, name: 'IJmuiden', code: null, lat: 52.4581, lng: 4.5879, timezone: null, local_date: null, local_time: null },
         { role: 'to', sequence: 1, name: 'Port of Tyne', code: null, lat: 54.9925, lng: -1.4522, timezone: null, local_date: null, local_time: null },
@@ -4012,9 +4012,9 @@ describe('DayPlanSidebar', () => {
     // Day 2 checks out of a Munich hotel and into a Hamburg one, and nothing else is
     // planned on it. The booked night's own stop never reaches the list.
     const movingDays = [
-      buildDay({ id: 10, date: '2026-11-03', title: 'Day 1' }),
-      buildDay({ id: 11, date: '2026-11-04', title: 'Day 2' }),
-      buildDay({ id: 12, date: '2026-11-05', title: 'Day 3' }),
+      buildDay({ id: 10, date: '2025-11-03', title: 'Day 1' }),
+      buildDay({ id: 11, date: '2025-11-04', title: 'Day 2' }),
+      buildDay({ id: 12, date: '2025-11-05', title: 'Day 3' }),
     ]
     const stays: Accommodation[] = [
       { id: 1, trip_id: 1, start_day_id: 10, end_day_id: 11, place_lat: 48.137, place_lng: 11.575, place_name: 'Hotel A' },
@@ -4024,7 +4024,7 @@ describe('DayPlanSidebar', () => {
       ({ role, sequence: role === 'from' ? 0 : 1, name, code: null, lat, lng, timezone: null, local_date: null, local_time: null })
     const flight = (located: boolean) => buildReservation({
       id: 77, type: 'flight', title: 'LH 2078', day_id: 11, end_day_id: 11,
-      reservation_time: '2026-11-04T15:15:00', reservation_end_time: '2026-11-04T17:20:00',
+      reservation_time: '2025-11-04T15:15:00', reservation_end_time: '2025-11-04T17:20:00',
       endpoints: located ? [airport('from', 'MUC', 48.353, 11.786), airport('to', 'HAM', 53.63, 9.988)] : [],
     })
 
@@ -4062,7 +4062,7 @@ describe('DayPlanSidebar', () => {
       const user = userEvent.setup()
       const { generateGoogleMapsUrl } = await import('../Map/RouteCalculator')
       const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
-      const day = buildDay({ id: 10, date: '2026-11-03', title: 'Day 1' })
+      const day = buildDay({ id: 10, date: '2025-11-03', title: 'Day 1' })
       const assignments = {
         '10': [
           buildAssignment({ id: 1, day_id: 10, order_index: 0, place: buildPlace({ id: 1, name: 'Elbphilharmonie', lat: 53.541, lng: 9.984 }) }),
