@@ -15,7 +15,7 @@ vi.mock('../../api/websocket', () => ({
   removeListener: vi.fn(),
 }));
 
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import PhotoLightbox from './PhotoLightbox';
 
@@ -153,7 +153,7 @@ describe('PhotoLightbox', () => {
       <PhotoLightbox
         photos={[{ id: 'v1', src: '/videos/1.mp4', caption: null, mediaType: 'video' }]}
         onClose={vi.fn()}
-      />,
+      />
     );
     // The player loads on demand now — plyr no longer ships with the journal.
     expect(await screen.findByTestId('video-player')).toHaveAttribute('src', '/videos/1.mp4');
@@ -241,8 +241,18 @@ describe('PhotoLightbox', () => {
     render(<PhotoLightbox photos={samplePhotos} onClose={onClose} />);
     const img = screen.getByRole('img');
     const overlay = img.closest('div[style*="position: fixed"]') as HTMLElement;
-    fireEvent.touchStart(overlay, { touches: [{ clientX: 100, clientY: 100 }, { clientX: 200, clientY: 100 }] });
-    fireEvent.touchMove(overlay, { touches: [{ clientX: 50, clientY: 100 }, { clientX: 250, clientY: 100 }] });
+    fireEvent.touchStart(overlay, {
+      touches: [
+        { clientX: 100, clientY: 100 },
+        { clientX: 200, clientY: 100 },
+      ],
+    });
+    fireEvent.touchMove(overlay, {
+      touches: [
+        { clientX: 50, clientY: 100 },
+        { clientX: 250, clientY: 100 },
+      ],
+    });
     fireEvent.touchEnd(overlay, { touches: [], changedTouches: [{ clientX: 250, clientY: 100 }] });
     expect(img.style.transform).toContain('scale(2)');
     expect(onClose).not.toHaveBeenCalled();

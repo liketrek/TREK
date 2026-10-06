@@ -1,16 +1,25 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { Users } from '../../../src/db/entities/Users.entity';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createUser } from '../../helpers/factories';
-import { Users } from '../../../src/db/entities/Users.entity';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
 
-beforeAll(async () => { t = await createTestOrm(testDb); });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('createTestOrm', () => {
   it('ORM-001: reads through the very handle it was given', async () => {

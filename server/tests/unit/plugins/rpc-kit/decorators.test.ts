@@ -3,8 +3,6 @@
  * enforced by tsc and cannot be asserted here; what these tests pin is what each
  * decorator RECORDS, because that is what validate() and bindInto() later read.
  */
-import { describe, it, expect } from 'vitest';
-import { SCOPE_OPTIONS_METADATA } from '@nestjs/common/constants';
 import {
   PluginController,
   PluginHook,
@@ -12,6 +10,9 @@ import {
   PluginOpenMethod,
 } from '../../../../src/nest/plugins/host/rpc-kit/decorators';
 import { getEntry, isPluginController, type ClassRef } from '../../../../src/nest/plugins/host/rpc-kit/metadata';
+import { SCOPE_OPTIONS_METADATA } from '@nestjs/common/constants';
+
+import { describe, it, expect } from 'vitest';
 
 const entryOf = (ctor: unknown, methodName: string) => getEntry(ctor as ClassRef, methodName);
 

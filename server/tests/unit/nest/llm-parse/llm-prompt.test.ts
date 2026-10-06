@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from '../../../../src/nest/llm-parse/llm-prompt';
 import { KI_RESERVATION_TYPES } from '@trek/shared';
+
+import { describe, it, expect } from 'vitest';
 
 /** The slice of JSON Schema these assertions read. */
 interface SchemaNode {
@@ -47,7 +48,8 @@ describe('llm-prompt', () => {
     expect(item.required).toEqual(['@type', 'reservationFor']);
     expect(rf.type).toBe('object');
     expect(rf.additionalProperties).toBe(true);
-    for (const field of ['name', 'address', 'telephone', 'url']) expect(rf.properties[field]).toEqual({ type: 'string' });
+    for (const field of ['name', 'address', 'telephone', 'url'])
+      expect(rf.properties[field]).toEqual({ type: 'string' });
     expect(rf.properties.geo.properties).toEqual({ latitude: { type: 'number' }, longitude: { type: 'number' } });
   });
 
@@ -69,9 +71,7 @@ describe('llm-prompt', () => {
 
   it('nests no object deeper than two levels below reservationFor (#2477)', () => {
     const depth = (node: SchemaNode): number =>
-      node.type === 'object' && node.properties
-        ? 1 + Math.max(0, ...Object.values(node.properties).map(depth))
-        : 0;
+      node.type === 'object' && node.properties ? 1 + Math.max(0, ...Object.values(node.properties).map(depth)) : 0;
     // reservationFor itself, then e.g. departureAirport, then its geo.
     expect(depth(item.properties.reservationFor)).toBe(3);
   });

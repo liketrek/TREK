@@ -30,6 +30,9 @@ export class RoadtripPreferencesRepository extends TrekRepository<RoadtripPrefer
    * `key`, the key itself).
    */
   async upsertValue(trip_id: number, key: string, value: string): Promise<void> {
-    await this.upsert({ trip: trip_id, key, value }, { onConflictFields: ['trip', 'key'], onConflictAction: 'merge', onConflictMergeFields: ['value'] });
+    await this.upsert(
+      { trip: trip_id, key, value },
+      { onConflictFields: ['trip', 'key'], onConflictAction: 'merge', onConflictMergeFields: ['value'] },
+    );
   }
 }

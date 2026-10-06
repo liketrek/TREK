@@ -15,10 +15,10 @@ export interface OauthClientRow {
   name: string;
   client_id: string;
   client_secret_hash: string;
-  redirect_uris: string;  // JSON array
+  redirect_uris: string; // JSON array
   allowed_scopes: string; // JSON array
   created_at: string | null;
-  is_public: number;      // 0 | 1
+  is_public: number; // 0 | 1
   created_via: string;
   allows_client_credentials: number; // 0 | 1
 }
@@ -129,7 +129,18 @@ export class OauthClientsRepository extends TrekRepository<OauthClients> {
     const rows = await this.find(
       { user: userId },
       {
-        fields: ['id', 'user', 'name', 'client_id', 'redirect_uris', 'allowed_scopes', 'created_at', 'is_public', 'created_via', 'allows_client_credentials'],
+        fields: [
+          'id',
+          'user',
+          'name',
+          'client_id',
+          'redirect_uris',
+          'allowed_scopes',
+          'created_at',
+          'is_public',
+          'created_via',
+          'allows_client_credentials',
+        ],
         orderBy: { created_at: 'desc' },
       },
     );
@@ -213,7 +224,18 @@ export class OauthClientsRepository extends TrekRepository<OauthClients> {
     const row = await this.findOne(
       { id },
       {
-        fields: ['id', 'user', 'name', 'client_id', 'redirect_uris', 'allowed_scopes', 'created_at', 'is_public', 'created_via', 'allows_client_credentials'],
+        fields: [
+          'id',
+          'user',
+          'name',
+          'client_id',
+          'redirect_uris',
+          'allowed_scopes',
+          'created_at',
+          'is_public',
+          'created_via',
+          'allows_client_credentials',
+        ],
       },
     );
     return row
@@ -247,10 +269,7 @@ export class OauthClientsRepository extends TrekRepository<OauthClients> {
    * unscoped read.
    */
   async findOwned(id: string, userId: number): Promise<OauthClientOwnedRow | null> {
-    const row = await this.findOne(
-      { id, user: userId },
-      { fields: ['id', 'client_id', 'is_public'] },
-    );
+    const row = await this.findOne({ id, user: userId }, { fields: ['id', 'client_id', 'is_public'] });
     return row ? { id: row.id as string, client_id: row.client_id, is_public: row.is_public } : null;
   }
 
@@ -288,7 +307,14 @@ export class OauthClientsRepository extends TrekRepository<OauthClients> {
       { fields: ['client_id', 'name', 'redirect_uris', 'allowed_scopes', 'is_public', 'created_via'] },
     );
     return row
-      ? { client_id: row.client_id, name: row.name, redirect_uris: row.redirect_uris, allowed_scopes: row.allowed_scopes, is_public: row.is_public, created_via: row.created_via }
+      ? {
+          client_id: row.client_id,
+          name: row.name,
+          redirect_uris: row.redirect_uris,
+          allowed_scopes: row.allowed_scopes,
+          is_public: row.is_public,
+          created_via: row.created_via,
+        }
       : null;
   }
 
@@ -309,7 +335,9 @@ export class OauthClientsRepository extends TrekRepository<OauthClients> {
       { client_id: clientId },
       { fields: ['client_id', 'client_secret_hash', 'is_public'] },
     );
-    return row ? { client_id: row.client_id, client_secret_hash: row.client_secret_hash, is_public: row.is_public } : null;
+    return row
+      ? { client_id: row.client_id, client_secret_hash: row.client_secret_hash, is_public: row.is_public }
+      : null;
   }
 
   // ---------------------------------------------------------------------

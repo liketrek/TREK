@@ -1,9 +1,9 @@
 // FE-COMP-PLUGINACTIVITY-001 to FE-COMP-PLUGINACTIVITY-010
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../../tests/helpers/msw/server';
+import { render, screen, waitFor, within } from '../../../tests/helpers/render';
 import PluginActivityPanel from './PluginActivityPanel';
 
 interface ActivityRow {
@@ -67,7 +67,9 @@ describe('PluginActivityPanel', () => {
     render(<PluginActivityPanel />);
 
     const table = await screen.findByRole('table');
-    const headers = within(table).getAllByRole('columnheader').map(th => th.textContent);
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map((th) => th.textContent);
     expect(headers).toEqual(['Plugin', 'Action', 'Resource', 'When', 'Result']);
     expect(within(table).getByText('Weather')).toBeInTheDocument();
     expect(within(table).getByText('trips.read')).toBeInTheDocument();
@@ -119,10 +121,12 @@ describe('PluginActivityPanel', () => {
   it('FE-COMP-PLUGINACTIVITY-010: Refresh re-reads the log', async () => {
     const user = userEvent.setup();
     let calls = 0;
-    server.use(http.get('/api/plugin-activity', () => {
-      calls += 1;
-      return HttpResponse.json({ activity: calls === 1 ? [] : [row({ plugin_name: 'Second pass' })] });
-    }));
+    server.use(
+      http.get('/api/plugin-activity', () => {
+        calls += 1;
+        return HttpResponse.json({ activity: calls === 1 ? [] : [row({ plugin_name: 'Second pass' })] });
+      })
+    );
     render(<PluginActivityPanel />);
 
     await screen.findByText('No plugin activity yet.');

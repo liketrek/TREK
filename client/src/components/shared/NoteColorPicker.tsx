@@ -1,11 +1,11 @@
-import { Ban } from 'lucide-react'
-import { NOTE_COLORS } from '@trek/shared'
-import { useTranslation } from '../../i18n'
+import { NOTE_COLORS } from '@trek/shared';
+import { Ban } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 interface Props {
   /** The picked colour, or null for the neutral card. */
-  value: string | null
-  onChange: (color: string | null) => void
+  value: string | null;
+  onChange: (color: string | null) => void;
 }
 
 /**
@@ -17,8 +17,8 @@ interface Props {
  * an eighth option.
  */
 export default function NoteColorPicker({ value, onChange }: Props) {
-  const { t } = useTranslation()
-  const selected = 'outline outline-2 outline-[var(--accent)] outline-offset-2 scale-110'
+  const { t } = useTranslation();
+  const selected = 'outline outline-2 outline-[var(--accent)] outline-offset-2 scale-110';
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -28,14 +28,16 @@ export default function NoteColorPicker({ value, onChange }: Props) {
         aria-pressed={value === null}
         aria-label={t('notes.color.none')}
         title={t('notes.color.none')}
-        className={`w-7 h-7 rounded-full grid place-items-center border-2 border-dashed transition-transform duration-150 hover:scale-110 motion-reduce:hover:scale-100 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${
-          value === null ? `border-solid border-transparent bg-surface-hover ${selected}` : 'border-edge-secondary hover:border-edge'
+        className={`grid h-7 w-7 place-items-center rounded-full border-2 border-dashed transition-transform duration-150 hover:scale-110 focus-visible:outline-2 focus-visible:outline-[var(--accent)] motion-reduce:transition-none motion-reduce:hover:scale-100 ${
+          value === null
+            ? `border-solid border-transparent bg-surface-hover ${selected}`
+            : 'border-edge-secondary hover:border-edge'
         }`}
       >
         <Ban size={12} className="text-content-faint" />
       </button>
 
-      {NOTE_COLORS.map(color => (
+      {NOTE_COLORS.map((color) => (
         <button
           key={color}
           type="button"
@@ -43,14 +45,14 @@ export default function NoteColorPicker({ value, onChange }: Props) {
           aria-pressed={value === color}
           aria-label={t(`notes.color.${COLOR_NAMES[color]}`)}
           title={t(`notes.color.${COLOR_NAMES[color]}`)}
-          className={`w-7 h-7 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/15 transition-transform duration-150 hover:scale-110 motion-reduce:hover:scale-100 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${
+          className={`h-7 w-7 rounded-full ring-1 ring-inset ring-black/10 transition-transform duration-150 hover:scale-110 focus-visible:outline-2 focus-visible:outline-[var(--accent)] motion-reduce:transition-none motion-reduce:hover:scale-100 dark:ring-white/15 ${
             value === color ? selected : ''
           }`}
           style={{ backgroundColor: color }}
         />
       ))}
     </div>
-  )
+  );
 }
 
 /** Names rather than hex codes in the label, so a screen reader says something useful. */
@@ -62,4 +64,4 @@ const COLOR_NAMES: Record<string, string> = {
   '#0891b2': 'cyan',
   '#2563eb': 'blue',
   '#9333ea': 'purple',
-}
+};

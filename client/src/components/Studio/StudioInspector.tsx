@@ -1,24 +1,36 @@
-import type { BookElement, BookPageNumbers, BookPageSetup, BookShapeId, JourneyStats } from '@trek/shared'
+import type { BookElement, BookPageNumbers, BookPageSetup, BookShapeId, JourneyStats } from '@trek/shared';
 import {
-  AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowDown, ArrowUp,
-  ChevronsDown, ChevronsUp, ClipboardCopy, Copy, Italic, Lock, Trash2, Unlock,
-} from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
-import { useStudioStore } from '../../store/studioStore'
-import { photoSrc } from './bookRender'
-import { BOOK_FONTS, BOOK_FONT_ORDER, hasWeight, nearestWeight } from './bookFonts'
-import { FRAME_SHAPES, SHAPE_GROUPS } from './shapes'
-import { ShapeGlyph } from './StudioElementsPanel'
-import { TravelInspector } from './StudioTravelInspector'
-import { Swatches } from './StudioSwatches'
-import { formatBookCoords } from './entryText'
-import { iconComponent, iconLabel, searchIcons } from './iconLibrary'
-import { Choice, Line, NumField, Section, Switch } from './StudioControls'
-import type { JourneySource } from './StudioSidebar'
-import { Tooltip } from '../shared/Tooltip'
+  AlignCenter,
+  AlignJustify,
+  AlignLeft,
+  AlignRight,
+  ArrowDown,
+  ArrowUp,
+  ChevronsDown,
+  ChevronsUp,
+  ClipboardCopy,
+  Copy,
+  Italic,
+  Lock,
+  Trash2,
+  Unlock,
+} from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { useStudioStore } from '../../store/studioStore';
+import { Tooltip } from '../shared/Tooltip';
+import { BOOK_FONTS, BOOK_FONT_ORDER, hasWeight, nearestWeight } from './bookFonts';
+import { photoSrc } from './bookRender';
+import { formatBookCoords } from './entryText';
+import { iconComponent, iconLabel, searchIcons } from './iconLibrary';
+import { FRAME_SHAPES, SHAPE_GROUPS } from './shapes';
+import { Choice, Line, NumField, Section, Switch } from './StudioControls';
+import { ShapeGlyph } from './StudioElementsPanel';
+import type { JourneySource } from './StudioSidebar';
+import { Swatches } from './StudioSwatches';
+import { TravelInspector } from './StudioTravelInspector';
 
 /** How many icons the swap grid offers at once. A search narrows it below this. */
-const ICON_CHOICES = 60
+const ICON_CHOICES = 60;
 
 /**
  * Properties of whatever is selected.
@@ -57,33 +69,33 @@ export function StudioInspector({
   t,
   locale,
 }: {
-  spreadIndex: number
-  page: BookPageSetup
-  setPageNumbers: (patch: Partial<BookPageNumbers>) => void
+  spreadIndex: number;
+  page: BookPageSetup;
+  setPageNumbers: (patch: Partial<BookPageNumbers>) => void;
   /** Live journey figures, so a travel element can be brought up to date. */
-  stats: JourneyStats | null
+  stats: JourneyStats | null;
   /** The journal itself, so a bound mark can be re-set from it. */
-  source: JourneySource
-  t: (k: string) => string
-  locale: string
+  source: JourneySource;
+  t: (k: string) => string;
+  locale: string;
 }) {
-  const [iconQuery, setIconQuery] = useState('')
+  const [iconQuery, setIconQuery] = useState('');
   /*
    * A page of results, memoised because the inspector re-renders on every
    * pointer move of a drag and the library is fourteen hundred names long.
    */
-  const iconChoices = useMemo(() => searchIcons(iconQuery).slice(0, ICON_CHOICES), [iconQuery])
-  const doc = useStudioStore(s => s.doc)
-  const selection = useStudioStore(s => s.selection)
-  const update = useStudioStore(s => s.updateElement)
-  const commit = useStudioStore(s => s.commit)
-  const raise = useStudioStore(s => s.raise)
-  const duplicate = useStudioStore(s => s.duplicate)
-  const copy = useStudioStore(s => s.copy)
-  const removeElements = useStudioStore(s => s.removeElements)
+  const iconChoices = useMemo(() => searchIcons(iconQuery).slice(0, ICON_CHOICES), [iconQuery]);
+  const doc = useStudioStore((s) => s.doc);
+  const selection = useStudioStore((s) => s.selection);
+  const update = useStudioStore((s) => s.updateElement);
+  const commit = useStudioStore((s) => s.commit);
+  const raise = useStudioStore((s) => s.raise);
+  const duplicate = useStudioStore((s) => s.duplicate);
+  const copy = useStudioStore((s) => s.copy);
+  const removeElements = useStudioStore((s) => s.removeElements);
 
-  const spread = doc?.spreads[spreadIndex]
-  const sel = spread?.elements.filter(e => selection.includes(e.id)) ?? []
+  const spread = doc?.spreads[spreadIndex];
+  const sel = spread?.elements.filter((e) => selection.includes(e.id)) ?? [];
 
   if (!sel.length) {
     /*
@@ -92,10 +104,12 @@ export function StudioInspector({
      * numbers have nowhere else to go: they are not a property of any element,
      * because the number a page carries depends on where its spread sits.
      */
-    const folios = page.pageNumbers
+    const folios = page.pageNumbers;
     return (
       <aside className="st-panel st-inspector">
-        <div className="st-panel-head"><span>{t('journey.studio.document')}</span></div>
+        <div className="st-panel-head">
+          <span>{t('journey.studio.document')}</span>
+        </div>
         <div className="st-panel-scroll">
           <Section label={t('journey.studio.pageNumbers')}>
             <Switch
@@ -110,10 +124,11 @@ export function StudioInspector({
                   <Line label={t('journey.studio.position')}>
                     <Choice
                       value={folios.position}
-                      options={(['outer', 'inner', 'centre'] as const).map(pos => ({
-                        value: pos, label: t(`journey.studio.folio.${pos}`),
+                      options={(['outer', 'inner', 'centre'] as const).map((pos) => ({
+                        value: pos,
+                        label: t(`journey.studio.folio.${pos}`),
                       }))}
-                      onPick={position => setPageNumbers({ position })}
+                      onPick={(position) => setPageNumbers({ position })}
                     />
                   </Line>
                 </div>
@@ -124,7 +139,7 @@ export function StudioInspector({
                     min={0}
                     max={9999}
                     step={1}
-                    onChange={v => setPageNumbers({ startAt: Math.round(v) })}
+                    onChange={(v) => setPageNumbers({ startAt: Math.round(v) })}
                   />
                   <NumField
                     label={t('journey.studio.size')}
@@ -133,7 +148,7 @@ export function StudioInspector({
                     max={48}
                     step={0.5}
                     unit="pt"
-                    onChange={v => setPageNumbers({ size: v })}
+                    onChange={(v) => setPageNumbers({ size: v })}
                   />
                 </div>
                 <div style={{ marginTop: 10 }}>
@@ -144,7 +159,7 @@ export function StudioInspector({
                     max={60}
                     step={0.5}
                     unit="mm"
-                    onChange={v => setPageNumbers({ margin: v })}
+                    onChange={(v) => setPageNumbers({ margin: v })}
                   />
                 </div>
                 <div style={{ marginTop: 10 }}>
@@ -158,10 +173,7 @@ export function StudioInspector({
                     the row stays reachable and simply reads as inactive. */}
                 <div style={{ marginTop: 10, opacity: folios.autoColor ? 0.45 : 1 }}>
                   <Line label={t('journey.studio.colour')} wide>
-                    <Swatches
-                      value={folios.color}
-                      onPick={c => setPageNumbers({ color: c, autoColor: false })}
-                    />
+                    <Swatches value={folios.color} onPick={(c) => setPageNumbers({ color: c, autoColor: false })} />
                   </Line>
                 </div>
               </>
@@ -176,22 +188,27 @@ export function StudioInspector({
           </p>
         </div>
       </aside>
-    )
+    );
   }
 
-  const el = sel[0]
-  const one = sel.length === 1
+  const el = sel[0];
+  const one = sel.length === 1;
 
   // A property edit is one undo step on its own; only drags open a gesture.
-  const set = (patch: Partial<BookElement>) => commit(d => ({
-    ...d,
-    spreads: d.spreads.map((sp, i) => (i !== spreadIndex ? sp : {
-      ...sp,
-      elements: sp.elements.map(e => (selection.includes(e.id) ? ({ ...e, ...patch } as BookElement) : e)),
-    })),
-  }))
+  const set = (patch: Partial<BookElement>) =>
+    commit((d) => ({
+      ...d,
+      spreads: d.spreads.map((sp, i) =>
+        i !== spreadIndex
+          ? sp
+          : {
+              ...sp,
+              elements: sp.elements.map((e) => (selection.includes(e.id) ? ({ ...e, ...patch } as BookElement) : e)),
+            }
+      ),
+    }));
 
-  const live = (patch: Partial<BookElement>) => update(spreadIndex, el.id, patch)
+  const live = (patch: Partial<BookElement>) => update(spreadIndex, el.id, patch);
 
   /**
    * Stretch the picture over the page it is on, or over both pages, bleed
@@ -203,23 +220,23 @@ export function StudioInspector({
    * undo. Which page is the one under the frame's centre; a cover has only
    * the one.
    */
-  const fill = (scope: 'page' | 'spread') => commit(d => ({
-    ...d,
-    spreads: d.spreads.map((sp, i) => {
-      if (i !== spreadIndex) return sp
-      const bleed = page.bleed
-      const onRight = sp.role === 'inner' && scope === 'page'
-        && el.frame.x + el.frame.w / 2 >= page.pageWidth
-      const frame = {
-        x: onRight ? page.pageWidth - bleed : -bleed,
-        y: -bleed,
-        w: (scope === 'spread' ? 2 : 1) * page.pageWidth + 2 * bleed,
-        h: page.pageHeight + 2 * bleed,
-      }
-      const filled = { ...el, frame, rotation: 0, fit: 'cover' } as BookElement
-      return { ...sp, elements: [filled, ...sp.elements.filter(e => e.id !== el.id)] }
-    }),
-  }))
+  const fill = (scope: 'page' | 'spread') =>
+    commit((d) => ({
+      ...d,
+      spreads: d.spreads.map((sp, i) => {
+        if (i !== spreadIndex) return sp;
+        const bleed = page.bleed;
+        const onRight = sp.role === 'inner' && scope === 'page' && el.frame.x + el.frame.w / 2 >= page.pageWidth;
+        const frame = {
+          x: onRight ? page.pageWidth - bleed : -bleed,
+          y: -bleed,
+          w: (scope === 'spread' ? 2 : 1) * page.pageWidth + 2 * bleed,
+          h: page.pageHeight + 2 * bleed,
+        };
+        const filled = { ...el, frame, rotation: 0, fit: 'cover' } as BookElement;
+        return { ...sp, elements: [filled, ...sp.elements.filter((e) => e.id !== el.id)] };
+      }),
+    }));
 
   return (
     <aside className="st-panel st-inspector">
@@ -235,7 +252,8 @@ export function StudioInspector({
         </span>
         <span className="st-head-acts">
           <Tooltip label={t('journey.studio.copyToPage')}>
-            <button type="button"
+            <button
+              type="button"
               className="st-act"
               onClick={() => copy(spreadIndex, selection)}
               aria-label={t('journey.studio.copyToPage')}
@@ -243,7 +261,8 @@ export function StudioInspector({
               <ClipboardCopy size={14} />
             </button>
           </Tooltip>
-          <button type="button"
+          <button
+            type="button"
             className="st-act"
             onClick={() => duplicate(spreadIndex, selection)}
             title={t('journey.studio.duplicate')}
@@ -251,7 +270,8 @@ export function StudioInspector({
           >
             <Copy size={14} />
           </button>
-          <button type="button"
+          <button
+            type="button"
             className={`st-act ${el.locked ? 'is-on' : ''}`}
             onClick={() => set({ locked: !el.locked })}
             title={t(el.locked ? 'journey.studio.unlock' : 'journey.studio.lock')}
@@ -260,7 +280,8 @@ export function StudioInspector({
           >
             {el.locked ? <Lock size={14} /> : <Unlock size={14} />}
           </button>
-          <button type="button"
+          <button
+            type="button"
             className="st-act is-danger"
             onClick={() => removeElements(spreadIndex, selection)}
             title={t('journey.studio.delete')}
@@ -279,11 +300,13 @@ export function StudioInspector({
                 className="st-input st-textarea"
                 value={el.text}
                 rows={5}
-                onChange={e => live({ text: e.target.value, overridden: true })}
-                onBlur={e => set({ text: e.target.value, overridden: true })}
+                onChange={(e) => live({ text: e.target.value, overridden: true })}
+                onBlur={(e) => set({ text: e.target.value, overridden: true })}
               />
               {el.binding && !el.overridden && (
-                <p className="st-hint" style={{ paddingTop: 6 }}>{t('journey.studio.boundHint')}</p>
+                <p className="st-hint" style={{ paddingTop: 6 }}>
+                  {t('journey.studio.boundHint')}
+                </p>
               )}
               {/*
                 How a point is set. Only a coordinate binding has the question,
@@ -301,12 +324,11 @@ export function StudioInspector({
                         { value: 'dms' as const, label: t('journey.studio.coordsDms') },
                         { value: 'decimal' as const, label: t('journey.studio.coordsDecimal') },
                       ]}
-                      onPick={f => {
-                        const entry = source.entries.find(e => e.id === el.binding!.entryId)
-                        const text = entry?.lat != null && entry.lng != null
-                          ? formatBookCoords(entry.lat, entry.lng, f)
-                          : el.text
-                        set({ binding: { ...el.binding!, format: f }, text })
+                      onPick={(f) => {
+                        const entry = source.entries.find((e) => e.id === el.binding!.entryId);
+                        const text =
+                          entry?.lat != null && entry.lng != null ? formatBookCoords(entry.lat, entry.lng, f) : el.text;
+                        set({ binding: { ...el.binding!, format: f }, text });
                       }}
                     />
                   </Line>
@@ -321,44 +343,55 @@ export function StudioInspector({
                 is a different question from "serif or sans".
               */}
               <div className="st-fonts">
-                {BOOK_FONT_ORDER.map(id => {
-                  const font = BOOK_FONTS[id]
+                {BOOK_FONT_ORDER.map((id) => {
+                  const font = BOOK_FONTS[id];
                   return (
-                    <button type="button"
+                    <button
+                      type="button"
                       key={id}
                       className={`st-font ${el.font === id ? 'is-on' : ''}`}
                       style={{ fontFamily: font.stack }}
-                      onClick={() => set({
-                        font: id,
-                        // A family that does not ship this weight would render a
-                        // synthesised bold — a smeared regular in print — so the
-                        // weight moves to the nearest one it really has.
-                        weight: nearestWeight(id, el.weight) as typeof el.weight,
-                      })}
+                      onClick={() =>
+                        set({
+                          font: id,
+                          // A family that does not ship this weight would render a
+                          // synthesised bold — a smeared regular in print — so the
+                          // weight moves to the nearest one it really has.
+                          weight: nearestWeight(id, el.weight) as typeof el.weight,
+                        })
+                      }
                       title={font.name}
                     >
                       {font.name}
                     </button>
-                  )
+                  );
                 })}
               </div>
               <div style={{ marginTop: 10 }}>
                 <Line label={t('journey.studio.weight')}>
                   <Choice
                     value={el.weight}
-                    options={([400, 500, 600, 700] as const).map(w => ({
+                    options={([400, 500, 600, 700] as const).map((w) => ({
                       value: w,
                       label: String(w),
                       disabled: !hasWeight(el.font, w),
                       title: hasWeight(el.font, w) ? undefined : t('journey.studio.weightMissing'),
                     }))}
-                    onPick={weight => set({ weight })}
+                    onPick={(weight) => set({ weight })}
                   />
                 </Line>
                 <Line label={t('journey.studio.align')}>
                   <div className="st-row">
-                    {([['left', AlignLeft], ['center', AlignCenter], ['right', AlignRight], ['justify', AlignJustify]] as const).map(([a, Icon]) => (
-                      <button type="button"
+                    {(
+                      [
+                        ['left', AlignLeft],
+                        ['center', AlignCenter],
+                        ['right', AlignRight],
+                        ['justify', AlignJustify],
+                      ] as const
+                    ).map(([a, Icon]) => (
+                      <button
+                        type="button"
                         key={a}
                         className={`st-chip is-icon ${el.align === a ? 'is-on' : ''}`}
                         onClick={() => set({ align: a })}
@@ -370,7 +403,8 @@ export function StudioInspector({
                     {/* Italic sits with the alignment because both are things
                         you do to a line rather than to a typeface. It had no
                         control at all before, though the renderer drew it. */}
-                    <button type="button"
+                    <button
+                      type="button"
                       className={`st-chip is-icon ${el.italic ? 'is-on' : ''}`}
                       onClick={() => set({ italic: !el.italic })}
                       title={t('journey.studio.italic')}
@@ -383,8 +417,23 @@ export function StudioInspector({
                 </Line>
               </div>
               <div className="st-grid2" style={{ marginTop: 10 }}>
-                <NumField label={t('journey.studio.size')} value={el.size} min={4} max={200} step={0.5} unit="pt" onChange={v => set({ size: v })} />
-                <NumField label={t('journey.studio.leading')} value={el.leading} min={0.7} max={3} step={0.05} onChange={v => set({ leading: v })} />
+                <NumField
+                  label={t('journey.studio.size')}
+                  value={el.size}
+                  min={4}
+                  max={200}
+                  step={0.5}
+                  unit="pt"
+                  onChange={(v) => set({ size: v })}
+                />
+                <NumField
+                  label={t('journey.studio.leading')}
+                  value={el.leading}
+                  min={0.7}
+                  max={3}
+                  step={0.05}
+                  onChange={(v) => set({ leading: v })}
+                />
               </div>
               <div style={{ marginTop: 10 }}>
                 {/*
@@ -399,14 +448,14 @@ export function StudioInspector({
                   max={1}
                   step={0.01}
                   unit="em"
-                  onChange={v => set({ tracking: v })}
+                  onChange={(v) => set({ tracking: v })}
                 />
               </div>
             </Section>
 
             <Section label={t('journey.studio.colour')}>
               <Line label={t('journey.studio.text')} wide>
-                <Swatches value={el.color} onPick={c => set({ color: c })} />
+                <Swatches value={el.color} onPick={(c) => set({ color: c })} />
               </Line>
             </Section>
           </>
@@ -418,10 +467,11 @@ export function StudioInspector({
               <Line label={t('journey.studio.crop')} wide>
                 <Choice
                   value={el.fit}
-                  options={(['cover', 'contain'] as const).map(f => ({
-                    value: f, label: t(`journey.studio.fit.${f}`),
+                  options={(['cover', 'contain'] as const).map((f) => ({
+                    value: f,
+                    label: t(`journey.studio.fit.${f}`),
                   }))}
-                  onPick={fit => set({ fit })}
+                  onPick={(fit) => set({ fit })}
                 />
               </Line>
               {/*
@@ -439,7 +489,9 @@ export function StudioInspector({
                   hint={t('journey.studio.focalHint')}
                 />
               ) : (
-                <p className="st-hint" style={{ paddingTop: 8 }}>{t('journey.studio.emptyFrame')}</p>
+                <p className="st-hint" style={{ paddingTop: 8 }}>
+                  {t('journey.studio.emptyFrame')}
+                </p>
               )}
             </Section>
 
@@ -447,25 +499,28 @@ export function StudioInspector({
               <Line label={t('journey.studio.look')} wide>
                 <Choice
                   value={el.filter}
-                  options={(['none', 'bw', 'warm', 'cool', 'fade', 'contrast'] as const).map(f => ({
-                    value: f, label: t(`journey.studio.filter.${f}`),
+                  options={(['none', 'bw', 'warm', 'cool', 'fade', 'contrast'] as const).map((f) => ({
+                    value: f,
+                    label: t(`journey.studio.filter.${f}`),
                   }))}
-                  onPick={filter => set({ filter })}
+                  onPick={(filter) => set({ filter })}
                 />
               </Line>
               <div style={{ marginTop: 10 }}>
                 <Line label={t('journey.studio.frameStyle')} wide>
                   <Choice
                     value={el.frameStyle}
-                    options={([
-                      ['none', 'plainFrame'],
-                      ['polaroid', 'polaroidFrame'],
-                      ['white', 'whiteFrame'],
-                      ['shadow', 'shadowFrame'],
-                      ['film', 'filmFrame'],
-                      ['tape', 'tapeFrame'],
-                    ] as const).map(([style, key]) => ({ value: style, label: t(`journey.studio.${key}`) }))}
-                    onPick={frameStyle => set({ frameStyle })}
+                    options={(
+                      [
+                        ['none', 'plainFrame'],
+                        ['polaroid', 'polaroidFrame'],
+                        ['white', 'whiteFrame'],
+                        ['shadow', 'shadowFrame'],
+                        ['film', 'filmFrame'],
+                        ['tape', 'tapeFrame'],
+                      ] as const
+                    ).map(([style, key]) => ({ value: style, label: t(`journey.studio.${key}`) }))}
+                    onPick={(frameStyle) => set({ frameStyle })}
                   />
                 </Line>
               </div>
@@ -481,7 +536,7 @@ export function StudioInspector({
                     max={60}
                     step={0.5}
                     unit="mm"
-                    onChange={v => set({ radius: v })}
+                    onChange={(v) => set({ radius: v })}
                   />
                 </div>
               )}
@@ -489,15 +544,17 @@ export function StudioInspector({
 
             <Section label={t('journey.studio.mask')} defaultOpen={false}>
               <div className="st-mini-shapes">
-                <button type="button"
+                <button
+                  type="button"
                   className={`st-mini-shape ${el.mask ? '' : 'is-on'}`}
                   onClick={() => set({ mask: null })}
                   title={t('journey.studio.maskNone')}
                 >
                   <span className="st-mini-none" />
                 </button>
-                {FRAME_SHAPES.filter(sh => sh !== 'rect').map(sh => (
-                  <button type="button"
+                {FRAME_SHAPES.filter((sh) => sh !== 'rect').map((sh) => (
+                  <button
+                    type="button"
                     key={sh}
                     className={`st-mini-shape ${el.mask === sh ? 'is-on' : ''}`}
                     onClick={() => set({ mask: sh })}
@@ -518,8 +575,9 @@ export function StudioInspector({
                   a placed shape keeps its position, size and colour, which
                   deleting and re-adding would not. */}
               <div className="st-mini-shapes">
-                {SHAPE_GROUPS.flatMap(g => g.shapes).map((sh: BookShapeId) => (
-                  <button type="button"
+                {SHAPE_GROUPS.flatMap((g) => g.shapes).map((sh: BookShapeId) => (
+                  <button
+                    type="button"
                     key={sh}
                     className={`st-mini-shape ${el.shape === sh ? 'is-on' : ''}`}
                     onClick={() => set({ shape: sh })}
@@ -539,7 +597,7 @@ export function StudioInspector({
                   max={60}
                   step={0.5}
                   unit="mm"
-                  onChange={v => set({ radius: v })}
+                  onChange={(v) => set({ radius: v })}
                 />
               </div>
             </Section>
@@ -552,24 +610,28 @@ export function StudioInspector({
                 no way to reach the line you could actually see.
               */}
               <Line label={t('journey.studio.fill')} wide>
-                <Swatches value={el.fill ?? '#111111'} onPick={c => set({ fill: c })} />
+                <Swatches value={el.fill ?? '#111111'} onPick={(c) => set({ fill: c })} />
               </Line>
               <Line label={t('journey.studio.stroke')} wide>
                 <Swatches
                   value={el.stroke ?? '#141414'}
-                  onPick={c => set({ stroke: c, strokeWidth: el.strokeWidth || 0.5 })}
+                  onPick={(c) => set({ stroke: c, strokeWidth: el.strokeWidth || 0.5 })}
                 />
               </Line>
               <div style={{ marginTop: 10 }}>
                 <Switch
                   label={t('journey.studio.fillOn')}
                   on={el.fill !== null}
-                  onToggle={() => set({
-                    // Turning the fill off on a shape with no stroke would make
-                    // it invisible, so the outline comes on with it.
-                    fill: el.fill === null ? '#111111' : null,
-                    ...(el.fill !== null && !el.stroke ? { stroke: '#141414', strokeWidth: el.strokeWidth || 0.5 } : {}),
-                  })}
+                  onToggle={() =>
+                    set({
+                      // Turning the fill off on a shape with no stroke would make
+                      // it invisible, so the outline comes on with it.
+                      fill: el.fill === null ? '#111111' : null,
+                      ...(el.fill !== null && !el.stroke
+                        ? { stroke: '#141414', strokeWidth: el.strokeWidth || 0.5 }
+                        : {}),
+                    })
+                  }
                 />
                 <Switch
                   label={t('journey.studio.gradient')}
@@ -586,7 +648,7 @@ export function StudioInspector({
                         { value: 'down' as const, label: t('journey.studio.gradientDown') },
                         { value: 'up' as const, label: t('journey.studio.gradientUp') },
                       ]}
-                      onPick={gradient => set({ gradient })}
+                      onPick={(gradient) => set({ gradient })}
                     />
                   </Line>
                 </div>
@@ -597,17 +659,21 @@ export function StudioInspector({
               <Line label={t('journey.studio.strokeStyle')} wide>
                 <Choice
                   value={el.strokeStyle}
-                  options={([
-                    ['solid', 'strokeSolid'],
-                    ['dashed', 'strokeDashed'],
-                    ['dotted', 'strokeDotted'],
-                  ] as const).map(([style, key]) => ({ value: style, label: t(`journey.studio.${key}`) }))}
-                  onPick={strokeStyle => set({
-                    strokeStyle,
-                    // A stroke style with no stroke is invisible, so asking for
-                    // dashes turns the outline on rather than doing nothing.
-                    ...(el.stroke ? {} : { stroke: el.fill ?? '#141414', strokeWidth: el.strokeWidth || 0.5 }),
-                  })}
+                  options={(
+                    [
+                      ['solid', 'strokeSolid'],
+                      ['dashed', 'strokeDashed'],
+                      ['dotted', 'strokeDotted'],
+                    ] as const
+                  ).map(([style, key]) => ({ value: style, label: t(`journey.studio.${key}`) }))}
+                  onPick={(strokeStyle) =>
+                    set({
+                      strokeStyle,
+                      // A stroke style with no stroke is invisible, so asking for
+                      // dashes turns the outline on rather than doing nothing.
+                      ...(el.stroke ? {} : { stroke: el.fill ?? '#141414', strokeWidth: el.strokeWidth || 0.5 }),
+                    })
+                  }
                 />
               </Line>
               <div style={{ marginTop: 10 }}>
@@ -618,7 +684,7 @@ export function StudioInspector({
                   max={20}
                   step={0.1}
                   unit="mm"
-                  onChange={v => set({ strokeWidth: v, ...(v > 0 && !el.stroke ? { stroke: '#141414' } : {}) })}
+                  onChange={(v) => set({ strokeWidth: v, ...(v > 0 && !el.stroke ? { stroke: '#141414' } : {}) })}
                 />
               </div>
             </Section>
@@ -638,16 +704,17 @@ export function StudioInspector({
               <input
                 className="st-input"
                 value={iconQuery}
-                onChange={e => setIconQuery(e.target.value)}
+                onChange={(e) => setIconQuery(e.target.value)}
                 placeholder={t('journey.studio.searchIcons')}
                 aria-label={t('journey.studio.searchIcons')}
                 spellCheck={false}
               />
               <div className="st-mini-shapes" style={{ marginTop: 8 }}>
-                {iconChoices.map(name => {
-                  const Glyph = iconComponent(name)
+                {iconChoices.map((name) => {
+                  const Glyph = iconComponent(name);
                   return (
-                    <button type="button"
+                    <button
+                      type="button"
                       key={name}
                       className={`st-mini-shape ${el.name === name ? 'is-on' : ''}`}
                       onClick={() => set({ name })}
@@ -656,14 +723,14 @@ export function StudioInspector({
                     >
                       <Glyph strokeWidth={1.7} />
                     </button>
-                  )
+                  );
                 })}
               </div>
             </Section>
 
             <Section label={t('journey.studio.colour')}>
               <Line label={t('journey.studio.icon')} wide>
-                <Swatches value={el.color} onPick={c => set({ color: c })} />
+                <Swatches value={el.color} onPick={(c) => set({ color: c })} />
               </Line>
               <div style={{ marginTop: 10 }}>
                 <NumField
@@ -672,7 +739,7 @@ export function StudioInspector({
                   min={0.25}
                   max={4}
                   step={0.25}
-                  onChange={v => set({ lineWidth: v })}
+                  onChange={(v) => set({ lineWidth: v })}
                 />
               </div>
             </Section>
@@ -692,10 +759,32 @@ export function StudioInspector({
         {one && (
           <Section label={t('journey.studio.position')} defaultOpen={false}>
             <div className="st-grid2">
-              <NumField label="X" value={el.frame.x} unit="mm" onChange={v => set({ frame: { ...el.frame, x: v } })} />
-              <NumField label="Y" value={el.frame.y} unit="mm" onChange={v => set({ frame: { ...el.frame, y: v } })} />
-              <NumField label={t('journey.studio.width')} value={el.frame.w} min={4} unit="mm" onChange={v => set({ frame: { ...el.frame, w: v } })} />
-              <NumField label={t('journey.studio.height')} value={el.frame.h} min={4} unit="mm" onChange={v => set({ frame: { ...el.frame, h: v } })} />
+              <NumField
+                label="X"
+                value={el.frame.x}
+                unit="mm"
+                onChange={(v) => set({ frame: { ...el.frame, x: v } })}
+              />
+              <NumField
+                label="Y"
+                value={el.frame.y}
+                unit="mm"
+                onChange={(v) => set({ frame: { ...el.frame, y: v } })}
+              />
+              <NumField
+                label={t('journey.studio.width')}
+                value={el.frame.w}
+                min={4}
+                unit="mm"
+                onChange={(v) => set({ frame: { ...el.frame, w: v } })}
+              />
+              <NumField
+                label={t('journey.studio.height')}
+                value={el.frame.h}
+                min={4}
+                unit="mm"
+                onChange={(v) => set({ frame: { ...el.frame, h: v } })}
+              />
             </div>
             <div className="st-grid2" style={{ marginTop: 10 }}>
               <NumField
@@ -705,7 +794,7 @@ export function StudioInspector({
                 max={180}
                 step={1}
                 unit="°"
-                onChange={v => set({ rotation: v })}
+                onChange={(v) => set({ rotation: v })}
               />
               <NumField
                 label={t('journey.studio.opacity')}
@@ -714,7 +803,7 @@ export function StudioInspector({
                 max={100}
                 step={5}
                 unit="%"
-                onChange={v => set({ opacity: Math.min(1, Math.max(0, v / 100)) })}
+                onChange={(v) => set({ opacity: Math.min(1, Math.max(0, v / 100)) })}
               />
             </div>
           </Section>
@@ -722,16 +811,36 @@ export function StudioInspector({
 
         <Section label={t('journey.studio.arrange')} defaultOpen={false}>
           <div className="st-row">
-            <button type="button" className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'front')} title={t('journey.studio.toFront')}>
+            <button
+              type="button"
+              className="st-chip is-icon"
+              onClick={() => raise(spreadIndex, el.id, 'front')}
+              title={t('journey.studio.toFront')}
+            >
               <ChevronsUp size={14} />
             </button>
-            <button type="button" className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'up')} title={t('journey.studio.forward')}>
+            <button
+              type="button"
+              className="st-chip is-icon"
+              onClick={() => raise(spreadIndex, el.id, 'up')}
+              title={t('journey.studio.forward')}
+            >
               <ArrowUp size={14} />
             </button>
-            <button type="button" className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'down')} title={t('journey.studio.backward')}>
+            <button
+              type="button"
+              className="st-chip is-icon"
+              onClick={() => raise(spreadIndex, el.id, 'down')}
+              title={t('journey.studio.backward')}
+            >
               <ArrowDown size={14} />
             </button>
-            <button type="button" className="st-chip is-icon" onClick={() => raise(spreadIndex, el.id, 'back')} title={t('journey.studio.toBack')}>
+            <button
+              type="button"
+              className="st-chip is-icon"
+              onClick={() => raise(spreadIndex, el.id, 'back')}
+              title={t('journey.studio.toBack')}
+            >
               <ChevronsDown size={14} />
             </button>
           </div>
@@ -747,11 +856,21 @@ export function StudioInspector({
           */}
           {one && el.kind === 'photo' && (
             <div className="st-row" style={{ marginTop: 6 }}>
-              <button type="button" className="st-chip" onClick={() => fill('page')} title={t('journey.studio.fillHint')}>
+              <button
+                type="button"
+                className="st-chip"
+                onClick={() => fill('page')}
+                title={t('journey.studio.fillHint')}
+              >
                 {t('journey.studio.fillPage')}
               </button>
               {spread.role === 'inner' && (
-                <button type="button" className="st-chip" onClick={() => fill('spread')} title={t('journey.studio.fillHint')}>
+                <button
+                  type="button"
+                  className="st-chip"
+                  onClick={() => fill('spread')}
+                  title={t('journey.studio.fillHint')}
+                >
                   {t('journey.studio.fillSpread')}
                 </button>
               )}
@@ -760,7 +879,7 @@ export function StudioInspector({
         </Section>
       </div>
     </aside>
-  )
+  );
 }
 
 /**
@@ -772,47 +891,54 @@ export function StudioInspector({
  * image answers the question by showing it.
  */
 function FocalPad({
-  photoId, x, y, onDrag, onCommit, hint,
+  photoId,
+  x,
+  y,
+  onDrag,
+  onCommit,
+  hint,
 }: {
-  photoId: number
-  x: number
-  y: number
-  onDrag: (x: number, y: number) => void
-  onCommit: (x: number, y: number) => void
-  hint: string
+  photoId: number;
+  x: number;
+  y: number;
+  onDrag: (x: number, y: number) => void;
+  onCommit: (x: number, y: number) => void;
+  hint: string;
 }) {
-  const box = useRef<HTMLDivElement>(null)
-  const last = useRef({ x, y })
+  const box = useRef<HTMLDivElement>(null);
+  const last = useRef({ x, y });
 
   const from = (e: React.PointerEvent) => {
-    const r = box.current!.getBoundingClientRect()
-    const nx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
-    const ny = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))
-    last.current = { x: nx, y: ny }
-    return last.current
-  }
+    const r = box.current!.getBoundingClientRect();
+    const nx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    const ny = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    last.current = { x: nx, y: ny };
+    return last.current;
+  };
 
   return (
     <div className="st-focal-wrap">
       <div
         className="st-focal"
         ref={box}
-        onPointerDown={e => {
-          (e.target as Element).setPointerCapture(e.pointerId)
-          const p = from(e)
-          onDrag(p.x, p.y)
+        onPointerDown={(e) => {
+          (e.target as Element).setPointerCapture(e.pointerId);
+          const p = from(e);
+          onDrag(p.x, p.y);
         }}
-        onPointerMove={e => {
-          if (!e.currentTarget.hasPointerCapture?.(e.pointerId)) return
-          const p = from(e)
-          onDrag(p.x, p.y)
+        onPointerMove={(e) => {
+          if (!e.currentTarget.hasPointerCapture?.(e.pointerId)) return;
+          const p = from(e);
+          onDrag(p.x, p.y);
         }}
         onPointerUp={() => onCommit(last.current.x, last.current.y)}
       >
         <img src={photoSrc(photoId, false)} alt="" draggable={false} />
         <span className="st-focal-dot" style={{ left: `${x * 100}%`, top: `${y * 100}%` }} />
       </div>
-      <p className="st-hint" style={{ padding: '6px 0 0' }}>{hint}</p>
+      <p className="st-hint" style={{ padding: '6px 0 0' }}>
+        {hint}
+      </p>
     </div>
-  )
+  );
 }

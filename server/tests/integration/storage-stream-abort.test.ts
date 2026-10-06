@@ -14,19 +14,19 @@
  * photo-resolver, trek-photo-cache, backup, /uploads/photos) funnels
  * through, per storage.service.ts's own docblock.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import express from 'express';
-import http from 'node:http';
-import type { AddressInfo } from 'node:net';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { Readable } from 'node:stream';
-
 import { LocalDriver } from '../../src/nest/storage/drivers/local.driver';
 import type { StorageRegistryService, ResolvedCategory } from '../../src/nest/storage/storage-registry.service';
 import { StorageService } from '../../src/nest/storage/storage.service';
 import type { ObjectStat, StorageDriver } from '../../src/nest/storage/storage.types';
+
+import express from 'express';
+import fs from 'node:fs';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import os from 'node:os';
+import path from 'node:path';
+import { Readable } from 'node:stream';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 
 /** Trickles chunks on a timer so a real client has time to abort mid-stream
  *  regardless of machine/CI speed — the S3-network-latency stand-in. */
@@ -284,7 +284,9 @@ describe('storage stream abort — real socket (C3 repro)', () => {
           .get(`${baseUrl}/ok`, (res) => {
             const chunks: Buffer[] = [];
             res.on('data', (c: Buffer) => chunks.push(c));
-            res.on('end', () => resolve({ status: res.statusCode ?? 0, body: JSON.parse(Buffer.concat(chunks).toString('utf8')) }));
+            res.on('end', () =>
+              resolve({ status: res.statusCode ?? 0, body: JSON.parse(Buffer.concat(chunks).toString('utf8')) }),
+            );
             res.on('error', reject);
           })
           .on('error', reject);

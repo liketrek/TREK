@@ -1,18 +1,14 @@
-import { randomUUID } from 'node:crypto';
-import type { DocsyncErrorCode } from '@trek/shared';
 import { readCappedJson, readCappedText, discardBody } from '../../../utils/cappedFetch';
-import {
-  providerFetch,
-  statusErrorCode,
-  type TransportFailure,
-  type TransportFailureCode,
-} from './provider-http';
 import {
   PROVIDER_JSON_MAX_BYTES,
   PROVIDER_MAX_PAGES,
   PROVIDER_TIMEOUT_MS,
   PROVIDER_TRANSFER_TIMEOUT_MS,
 } from '../doc-sync.constants';
+import { providerFetch, statusErrorCode, type TransportFailure, type TransportFailureCode } from './provider-http';
+import type { DocsyncErrorCode } from '@trek/shared';
+
+import { randomUUID } from 'node:crypto';
 
 /**
  * Thin HTTP client for the Paperless-ngx REST API.
@@ -270,9 +266,7 @@ function parseDocument(row: unknown): PaperlessDocument | null {
   if (!isRecord(row)) return null;
   const id = asNumber(row.id);
   if (id === null) return null;
-  const tagIds = Array.isArray(row.tags)
-    ? row.tags.filter((tag): tag is number => typeof tag === 'number')
-    : [];
+  const tagIds = Array.isArray(row.tags) ? row.tags.filter((tag): tag is number => typeof tag === 'number') : [];
   return {
     id,
     title: asString(row.title) ?? '',
@@ -432,11 +426,7 @@ export class PaperlessClient {
    * token header, the pinned API version, the timeout and the TLS decision are
    * made in exactly one place.
    */
-  private async request(
-    creds: PaperlessCreds,
-    path: string,
-    options: RequestOptions = {},
-  ): Promise<Response> {
+  private async request(creds: PaperlessCreds, path: string, options: RequestOptions = {}): Promise<Response> {
     const url = new URL(apiBase(creds.baseUrl) + path);
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, value);
@@ -484,11 +474,7 @@ export class PaperlessClient {
     return response;
   }
 
-  private async requestJson<T>(
-    creds: PaperlessCreds,
-    path: string,
-    options: RequestOptions = {},
-  ): Promise<T> {
+  private async requestJson<T>(creds: PaperlessCreds, path: string, options: RequestOptions = {}): Promise<T> {
     const response = await this.request(creds, path, options);
     const data = await readCappedJson<T>(response, MAX_JSON_BYTES);
     if (data === undefined) {
@@ -557,9 +543,7 @@ export class PaperlessClient {
   }
 
   async createTag(creds: PaperlessCreds, name: string): Promise<PaperlessTag> {
-    const tag = parseTag(
-      await this.requestJson<unknown>(creds, '/tags/', { method: 'POST', json: { name } }),
-    );
+    const tag = parseTag(await this.requestJson<unknown>(creds, '/tags/', { method: 'POST', json: { name } }));
     if (tag === null) {
       throw new PaperlessError('provider_error', 'Paperless answered an unknown tag shape');
     }
@@ -699,11 +683,7 @@ export class PaperlessClient {
    * Replace the bytes of an existing document, keeping its id, tags and custom
    * fields. Answers the consume task's id.
    */
-  async updateVersion(
-    creds: PaperlessCreds,
-    documentId: number,
-    file: PaperlessUploadFile,
-  ): Promise<string> {
+  async updateVersion(creds: PaperlessCreds, documentId: number, file: PaperlessUploadFile): Promise<string> {
     return this.postMultipart(creds, `/documents/${documentId}/update_version/`, [], file);
   }
 
@@ -775,10 +755,7 @@ export class PaperlessClient {
       if (status === 'success' && task !== null) {
         const documentId = task.documentIds[0];
         if (documentId === undefined) {
-          throw new PaperlessError(
-            'provider_error',
-            'Paperless finished the upload without naming a document',
-          );
+          throw new PaperlessError('provider_error', 'Paperless finished the upload without naming a document');
         }
         return { documentId };
       }

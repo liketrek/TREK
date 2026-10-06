@@ -1,6 +1,7 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { Observable, catchError, throwError } from 'rxjs';
+
 import * as fs from 'fs';
+import { Observable, catchError, throwError } from 'rxjs';
 
 /**
  * Unlink whatever multer spooled when the request dies before the handler.
@@ -20,7 +21,7 @@ import * as fs from 'fs';
 export class SpoolCleanupInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     return next.handle().pipe(
-      catchError(err => {
+      catchError((err) => {
         const req = context.switchToHttp().getRequest<{ files?: Array<{ path?: string }>; file?: { path?: string } }>();
         const spooled = [...(req.files ?? []), ...(req.file ? [req.file] : [])];
         for (const file of spooled) {

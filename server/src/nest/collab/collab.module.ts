@@ -1,28 +1,28 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { MulterModule } from '@nestjs/platform-express';
-import { CollabController, collabNoteFileFilter, MAX_NOTE_FILE_SIZE } from './collab.controller';
-import { CollabService } from './collab.service';
-import { CollabRpc } from './collab.rpc';
+import { CollabLinks } from '../../db/entities/CollabLinks.entity';
+import { CollabMessageReactions } from '../../db/entities/CollabMessageReactions.entity';
+import { CollabMessages } from '../../db/entities/CollabMessages.entity';
+import { CollabNotes } from '../../db/entities/CollabNotes.entity';
+import { CollabPollVotes } from '../../db/entities/CollabPollVotes.entity';
+import { CollabPolls } from '../../db/entities/CollabPolls.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { AddonsModule } from '../addons/addons.module';
+import { AuthModule } from '../auth/auth.module';
+import { RateLimitModule } from '../common/rate-limit.module';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { PermissionsModule } from '../permissions/permissions.module';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
-import { CollabMcp } from './collab.mcp';
-import { PermissionsModule } from '../permissions/permissions.module';
-import { AuthModule } from '../auth/auth.module';
-import { AddonsModule } from '../addons/addons.module';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
-import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
-import { RateLimitModule } from '../common/rate-limit.module';
-import { CollabNotes } from '../../db/entities/CollabNotes.entity';
-import { CollabMessageReactions } from '../../db/entities/CollabMessageReactions.entity';
-import { CollabPolls } from '../../db/entities/CollabPolls.entity';
-import { CollabPollVotes } from '../../db/entities/CollabPollVotes.entity';
-import { CollabLinks } from '../../db/entities/CollabLinks.entity';
-import { CollabMessages } from '../../db/entities/CollabMessages.entity';
-import { Trips } from '../../db/entities/Trips.entity';
+import { CollabController, collabNoteFileFilter, MAX_NOTE_FILE_SIZE } from './collab.controller';
+import { CollabMcp } from './collab.mcp';
+import { CollabRpc } from './collab.rpc';
+import { CollabService } from './collab.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   imports: [
@@ -42,8 +42,24 @@ import { Trips } from '../../db/entities/Trips.entity';
     // `CollabService.notifyCollab`'s CB55 `getTitle` read only, the same
     // "registered here only for one read, never the owning module" shape
     // `FilesModule`'s own forFeature list documents).
-    MikroOrmModule.forFeature([CollabNotes, CollabMessageReactions, CollabPolls, CollabPollVotes, CollabLinks, CollabMessages, Trips]),
-    McpSharedModule, NotificationsModule, PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, AddonsModule, RateLimitModule],
+    MikroOrmModule.forFeature([
+      CollabNotes,
+      CollabMessageReactions,
+      CollabPolls,
+      CollabPollVotes,
+      CollabLinks,
+      CollabMessages,
+      Trips,
+    ]),
+    McpSharedModule,
+    NotificationsModule,
+    PermissionsModule,
+    AuthModule,
+    RealtimeModule,
+    PluginGuardsModule,
+    AddonsModule,
+    RateLimitModule,
+  ],
   controllers: [CollabController],
   providers: [CollabService, CollabMcp, CollabRpc],
   // For in-container consumers (CollabRpc).

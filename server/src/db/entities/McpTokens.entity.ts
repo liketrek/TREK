@@ -1,7 +1,7 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { McpTokensRepository } from '../repositories/McpTokens.repository';
 import { DbTimestampType } from '../types';
 import { Users } from './Users.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class McpTokens {
   [EntityRepositoryType]?: McpTokensRepository;

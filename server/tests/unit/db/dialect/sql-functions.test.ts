@@ -1,11 +1,3 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { Platform } from '@mikro-orm/core';
-import { expressionBuilder, type ExpressionBuilder } from 'kysely';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
-import { Users } from '../../../../src/db/entities/Users.entity';
 import {
   absDifference,
   caseWhenEquals,
@@ -46,7 +38,16 @@ import {
   trim,
   unixEpochToIsoKysely,
 } from '../../../../src/db/dialect/sql-functions';
+import { Users } from '../../../../src/db/entities/Users.entity';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
 import { createJourney, createJourneyEntry } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { Platform } from '@mikro-orm/core';
+
+import { expressionBuilder, type ExpressionBuilder } from 'kysely';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /** The `users` columns the Kysely-expression tests below read/write, narrowed the same way every other Kysely-typed repository method in this program declares its own `TDB`. */
 interface UsersKyselyDB {
@@ -61,15 +62,24 @@ interface UsersKyselyDB {
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
 
-beforeAll(async () => { t = await createTestOrm(testDb); });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('sql-functions (sqlite)', () => {
   it('SQLF-001: dateOf yields the calendar date of a stored timestamp', async () => {
     const { user } = createUser(testDb);
     testDb.prepare("UPDATE users SET created_at = '2026-09-21 13:05:09' WHERE id = ?").run(user.id);
-    const row = await t.em.createQueryBuilder(Users, 'u')
+    const row = await t.em
+      .createQueryBuilder(Users, 'u')
       .select([dateOf(t.em.getPlatform(), 'u.created_at').as('d')])
       .where({ id: user.id })
       .execute('get', false);
@@ -79,7 +89,8 @@ describe('sql-functions (sqlite)', () => {
   it('SQLF-002: dateAdd shifts by whole days', async () => {
     const { user } = createUser(testDb);
     testDb.prepare("UPDATE users SET created_at = '2026-09-21 13:05:09' WHERE id = ?").run(user.id);
-    const row = await t.em.createQueryBuilder(Users, 'u')
+    const row = await t.em
+      .createQueryBuilder(Users, 'u')
       .select([dateAdd(t.em.getPlatform(), 'u.created_at', 10).as('d')])
       .where({ id: user.id })
       .execute('get', false);
@@ -88,7 +99,8 @@ describe('sql-functions (sqlite)', () => {
 
   it('SQLF-003: currentTimestamp is the DB clock in the wire format', async () => {
     createUser(testDb);
-    const row = await t.em.createQueryBuilder(Users, 'u')
+    const row = await t.em
+      .createQueryBuilder(Users, 'u')
       .select([currentTimestamp(t.em.getPlatform()).as('now')])
       .limit(1)
       .execute('get', false);
@@ -109,7 +121,8 @@ describe('sql-functions (sqlite)', () => {
   it('SQLF-006: dateAdd shifts backwards for a negative day count', async () => {
     const { user } = createUser(testDb);
     testDb.prepare("UPDATE users SET created_at = '2026-09-21 13:05:09' WHERE id = ?").run(user.id);
-    const row = await t.em.createQueryBuilder(Users, 'u')
+    const row = await t.em
+      .createQueryBuilder(Users, 'u')
       .select([dateAdd(t.em.getPlatform(), 'u.created_at', -10).as('d')])
       .where({ id: user.id })
       .execute('get', false);
@@ -123,7 +136,9 @@ describe('sql-functions (sqlite)', () => {
     expect(() => dateAdd(foreign, 'u.created_at', 1)).toThrow(/no implementation for platform FakePlatform/);
     expect(() => currentTimestamp(foreign)).toThrow(/no implementation for platform FakePlatform/);
     expect(() => columnRef(foreign, 'u.max_uses')).toThrow(/no implementation for platform FakePlatform/);
-    expect(() => columnIncrementedBy(foreign, 'u.used_count', 1)).toThrow(/no implementation for platform FakePlatform/);
+    expect(() => columnIncrementedBy(foreign, 'u.used_count', 1)).toThrow(
+      /no implementation for platform FakePlatform/,
+    );
     expect(() => lower(foreign, 'u.email')).toThrow(/no implementation for platform FakePlatform/);
     expect(() => lowerParam(foreign, 'x')).toThrow(/no implementation for platform FakePlatform/);
   });
@@ -161,14 +176,16 @@ describe('sql-functions (sqlite)', () => {
   it('SQLF-009: columnRef compares one column against another (not a bound value)', async () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET login_count = 5, password_version = 3 WHERE id = ?').run(user.id);
-    const below = await t.em.createQueryBuilder(Users, 'u')
+    const below = await t.em
+      .createQueryBuilder(Users, 'u')
       .select('*')
       .where({ id: user.id, password_version: { $lt: columnRef(t.em.getPlatform(), 'login_count') } })
       .execute('get', false);
     expect((below as { id: number } | undefined)?.id).toBe(user.id);
 
     testDb.prepare('UPDATE users SET login_count = 1 WHERE id = ?').run(user.id);
-    const notBelow = await t.em.createQueryBuilder(Users, 'u')
+    const notBelow = await t.em
+      .createQueryBuilder(Users, 'u')
       .select('*')
       .where({ id: user.id, password_version: { $lt: columnRef(t.em.getPlatform(), 'login_count') } })
       .execute('get', false);
@@ -178,19 +195,27 @@ describe('sql-functions (sqlite)', () => {
   it('SQLF-010: columnIncrementedBy writes <col> + n / <col> - n, never a bound-parameter add', async () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET login_count = 10 WHERE id = ?').run(user.id);
-    await t.em.createQueryBuilder(Users, 'u')
+    await t.em
+      .createQueryBuilder(Users, 'u')
       .update({ login_count: columnIncrementedBy(t.em.getPlatform(), 'login_count', 3) })
       .where({ id: user.id })
       .execute('run');
     t.clear();
-    expect((testDb.prepare('SELECT login_count FROM users WHERE id = ?').get(user.id) as { login_count: number }).login_count).toBe(13);
+    expect(
+      (testDb.prepare('SELECT login_count FROM users WHERE id = ?').get(user.id) as { login_count: number })
+        .login_count,
+    ).toBe(13);
 
-    await t.em.createQueryBuilder(Users, 'u')
+    await t.em
+      .createQueryBuilder(Users, 'u')
       .update({ login_count: columnIncrementedBy(t.em.getPlatform(), 'login_count', -5) })
       .where({ id: user.id })
       .execute('run');
     t.clear();
-    expect((testDb.prepare('SELECT login_count FROM users WHERE id = ?').get(user.id) as { login_count: number }).login_count).toBe(8);
+    expect(
+      (testDb.prepare('SELECT login_count FROM users WHERE id = ?').get(user.id) as { login_count: number })
+        .login_count,
+    ).toBe(8);
   });
 
   it('SQLF-011: columnIncrementedBy rejects a non-integer amount', () => {
@@ -218,7 +243,8 @@ describe('sql-functions (sqlite)', () => {
     // back through the raw connection, stores that exact same shape — not
     // just the fragment text in isolation.
     const { user } = createUser(testDb);
-    await t.em.createQueryBuilder(Users, 'u')
+    await t.em
+      .createQueryBuilder(Users, 'u')
       .update({ created_at: currentTimestamp(t.em.getPlatform()) })
       .where({ id: user.id })
       .execute('run');
@@ -297,7 +323,8 @@ describe('sql-functions (sqlite)', () => {
   it('SQLF-018: trim strips leading/trailing whitespace', async () => {
     const { user } = createUser(testDb, { username: '  Padded Name  ' });
     const platform = t.em.getPlatform();
-    const row = await t.em.createQueryBuilder(Users, 'u')
+    const row = await t.em
+      .createQueryBuilder(Users, 'u')
       .select([trim(platform, 'u.username').as('n')])
       .where({ id: user.id })
       .execute('get', false);
@@ -310,13 +337,15 @@ describe('sql-functions (sqlite)', () => {
     const { user: withoutName } = createUser(testDb, { username: 'no-display-name' });
     const platform = t.em.getPlatform();
 
-    const a = await t.em.createQueryBuilder(Users, 'u')
+    const a = await t.em
+      .createQueryBuilder(Users, 'u')
       .select([coalesce(platform, 'u.display_name', 'u.username').as('name')])
       .where({ id: withName.id })
       .execute('get', false);
     expect((a as { name: string }).name).toBe('Display Name');
 
-    const b = await t.em.createQueryBuilder(Users, 'u')
+    const b = await t.em
+      .createQueryBuilder(Users, 'u')
       .select([coalesce(platform, 'u.display_name', 'u.username').as('name')])
       .where({ id: withoutName.id })
       .execute('get', false);
@@ -326,19 +355,27 @@ describe('sql-functions (sqlite)', () => {
   it('SQLF-020: coalesceParam(ref, value) writes COALESCE(col, ?) with the fallback bound, not another column', async () => {
     const { user } = createUser(testDb);
     const platform = t.em.getPlatform();
-    await t.em.createQueryBuilder(Users, 'u')
+    await t.em
+      .createQueryBuilder(Users, 'u')
       .update({ display_name: coalesceParam(platform, 'display_name', 'Fallback Name') })
       .where({ id: user.id })
       .execute('run');
     t.clear();
-    expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(user.id) as { display_name: string }).display_name).toBe('Fallback Name');
+    expect(
+      (testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(user.id) as { display_name: string })
+        .display_name,
+    ).toBe('Fallback Name');
 
-    await t.em.createQueryBuilder(Users, 'u')
+    await t.em
+      .createQueryBuilder(Users, 'u')
       .update({ display_name: coalesceParam(platform, 'display_name', 'Never Used') })
       .where({ id: user.id })
       .execute('run');
     t.clear();
-    expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(user.id) as { display_name: string }).display_name).toBe('Fallback Name');
+    expect(
+      (testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(user.id) as { display_name: string })
+        .display_name,
+    ).toBe('Fallback Name');
   });
 
   // Plan 3h Task 5 (doc-sync, DS23/DS24) — `coalesceOverride`, the
@@ -351,24 +388,32 @@ describe('sql-functions (sqlite)', () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('Old Name', user.id);
     const platform = t.em.getPlatform();
-    await t.em.createQueryBuilder(Users, 'u')
+    await t.em
+      .createQueryBuilder(Users, 'u')
       .update({ display_name: coalesceOverride(platform, 'New Name', 'display_name') })
       .where({ id: user.id })
       .execute('run');
     t.clear();
-    expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(user.id) as { display_name: string }).display_name).toBe('New Name');
+    expect(
+      (testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(user.id) as { display_name: string })
+        .display_name,
+    ).toBe('New Name');
   });
 
   it('SQLF-091: coalesceOverride(null, ref) leaves the existing column untouched — a null new value never clobbers what is stored', async () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('Keep Me', user.id);
     const platform = t.em.getPlatform();
-    await t.em.createQueryBuilder(Users, 'u')
+    await t.em
+      .createQueryBuilder(Users, 'u')
       .update({ display_name: coalesceOverride(platform, null, 'display_name') })
       .where({ id: user.id })
       .execute('run');
     t.clear();
-    expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(user.id) as { display_name: string }).display_name).toBe('Keep Me');
+    expect(
+      (testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(user.id) as { display_name: string })
+        .display_name,
+    ).toBe('Keep Me');
   });
 
   it('SQLF-092: an unknown platform fails closed for coalesceOverride', () => {
@@ -383,31 +428,55 @@ describe('sql-functions (sqlite)', () => {
   // repository writes, in ONE UPDATE that also overwrites the key column —
   // proving the WHEN reads the stored URL, not the one being written.
   describe('coalesceOverrideWhileSame (IM4 self-signed switch)', () => {
-    async function save(userId: number, url: string, value: number | null): Promise<{ immich_url: string; immich_allow_insecure_tls: number }> {
+    async function save(
+      userId: number,
+      url: string,
+      value: number | null,
+    ): Promise<{ immich_url: string; immich_allow_insecure_tls: number }> {
       const platform = t.em.getPlatform();
-      await t.em.createQueryBuilder(Users, 'u')
+      await t.em
+        .createQueryBuilder(Users, 'u')
         .update({
           immich_url: url,
-          immich_allow_insecure_tls: coalesceOverrideWhileSame(platform, value, 'immich_allow_insecure_tls', 'immich_url', url),
+          immich_allow_insecure_tls: coalesceOverrideWhileSame(
+            platform,
+            value,
+            'immich_allow_insecure_tls',
+            'immich_url',
+            url,
+          ),
         })
         .where({ id: userId })
         .execute('run');
       t.clear();
-      return testDb.prepare('SELECT immich_url, immich_allow_insecure_tls FROM users WHERE id = ?').get(userId) as { immich_url: string; immich_allow_insecure_tls: number };
+      return testDb.prepare('SELECT immich_url, immich_allow_insecure_tls FROM users WHERE id = ?').get(userId) as {
+        immich_url: string;
+        immich_allow_insecure_tls: number;
+      };
     }
 
     it('SQLF-093: a null value keeps the stored column while the key column still holds the value being written', async () => {
       const { user } = createUser(testDb);
-      testDb.prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = 1 WHERE id = ?').run('https://nas.local', user.id);
-      expect(await save(user.id, 'https://nas.local', null)).toEqual({ immich_url: 'https://nas.local', immich_allow_insecure_tls: 1 });
+      testDb
+        .prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = 1 WHERE id = ?')
+        .run('https://nas.local', user.id);
+      expect(await save(user.id, 'https://nas.local', null)).toEqual({
+        immich_url: 'https://nas.local',
+        immich_allow_insecure_tls: 1,
+      });
       // Symmetric: a stored 0 is kept too, not merely "anything truthy survives".
       testDb.prepare('UPDATE users SET immich_allow_insecure_tls = 0 WHERE id = ?').run(user.id);
-      expect(await save(user.id, 'https://nas.local', null)).toEqual({ immich_url: 'https://nas.local', immich_allow_insecure_tls: 0 });
+      expect(await save(user.id, 'https://nas.local', null)).toEqual({
+        immich_url: 'https://nas.local',
+        immich_allow_insecure_tls: 0,
+      });
     });
 
     it('SQLF-094: a non-null value overwrites the stored column in both directions, same key or not', async () => {
       const { user } = createUser(testDb);
-      testDb.prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = 1 WHERE id = ?').run('https://nas.local', user.id);
+      testDb
+        .prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = 1 WHERE id = ?')
+        .run('https://nas.local', user.id);
       expect((await save(user.id, 'https://nas.local', 0)).immich_allow_insecure_tls).toBe(0);
       expect((await save(user.id, 'https://nas.local', 1)).immich_allow_insecure_tls).toBe(1);
       expect((await save(user.id, 'https://other.example.com', 1)).immich_allow_insecure_tls).toBe(1);
@@ -416,11 +485,19 @@ describe('sql-functions (sqlite)', () => {
 
     it('SQLF-095: a null value falls back to 0, not to the stored column, once the key column changes — including from NULL (a first connection)', async () => {
       const { user } = createUser(testDb);
-      testDb.prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = 1 WHERE id = ?').run('https://nas.local', user.id);
-      expect(await save(user.id, 'https://photos.example.com', null)).toEqual({ immich_url: 'https://photos.example.com', immich_allow_insecure_tls: 0 });
+      testDb
+        .prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = 1 WHERE id = ?')
+        .run('https://nas.local', user.id);
+      expect(await save(user.id, 'https://photos.example.com', null)).toEqual({
+        immich_url: 'https://photos.example.com',
+        immich_allow_insecure_tls: 0,
+      });
       // `IS` (not `=`) so a stored NULL url compares as "different", never as unknown.
       testDb.prepare('UPDATE users SET immich_url = NULL, immich_allow_insecure_tls = 1 WHERE id = ?').run(user.id);
-      expect(await save(user.id, 'https://nas.local', null)).toEqual({ immich_url: 'https://nas.local', immich_allow_insecure_tls: 0 });
+      expect(await save(user.id, 'https://nas.local', null)).toEqual({
+        immich_url: 'https://nas.local',
+        immich_allow_insecure_tls: 0,
+      });
     });
 
     it('SQLF-096: matches the legacy CASE text row-for-row across every (stored url, new url, value) combination', async () => {
@@ -432,10 +509,16 @@ describe('sql-functions (sqlite)', () => {
         for (const storedFlag of [0, 1]) {
           for (const newUrl of ['https://nas.local', 'https://photos.example.com']) {
             for (const value of [null, 0, 1]) {
-              testDb.prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = ? WHERE id = ?').run(storedUrl, storedFlag, user.id);
+              testDb
+                .prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = ? WHERE id = ?')
+                .run(storedUrl, storedFlag, user.id);
               legacy.run(newUrl, newUrl, value, value, user.id);
-              const expected = testDb.prepare('SELECT immich_url, immich_allow_insecure_tls FROM users WHERE id = ?').get(user.id);
-              testDb.prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = ? WHERE id = ?').run(storedUrl, storedFlag, user.id);
+              const expected = testDb
+                .prepare('SELECT immich_url, immich_allow_insecure_tls FROM users WHERE id = ?')
+                .get(user.id);
+              testDb
+                .prepare('UPDATE users SET immich_url = ?, immich_allow_insecure_tls = ? WHERE id = ?')
+                .run(storedUrl, storedFlag, user.id);
               expect(await save(user.id, newUrl, value)).toEqual(expected);
             }
           }
@@ -446,7 +529,9 @@ describe('sql-functions (sqlite)', () => {
     it('SQLF-097: an unknown platform fails closed for coalesceOverrideWhileSame', () => {
       class FakePlatform extends Platform {}
       const foreign = new FakePlatform();
-      expect(() => coalesceOverrideWhileSame(foreign, null, 'u.a', 'u.b', 'x')).toThrow(/no implementation for platform FakePlatform/);
+      expect(() => coalesceOverrideWhileSame(foreign, null, 'u.a', 'u.b', 'x')).toThrow(
+        /no implementation for platform FakePlatform/,
+      );
     });
   });
 
@@ -486,14 +571,21 @@ describe('sql-functions (sqlite)', () => {
     testDb.prepare("UPDATE users SET created_at = '2026-06-15 00:00:00' WHERE id = ?").run(b.id);
     const platform = t.em.getPlatform();
 
-    const row = await t.em.createQueryBuilder(Users, 'u')
-      .select([countAll(platform, 'total'), minOf(platform, 'u.created_at', 'oldest'), maxOf(platform, 'u.created_at', 'newest')])
+    const row = await t.em
+      .createQueryBuilder(Users, 'u')
+      .select([
+        countAll(platform, 'total'),
+        minOf(platform, 'u.created_at', 'oldest'),
+        maxOf(platform, 'u.created_at', 'newest'),
+      ])
       .where({ id: { $in: [a.id, b.id] } })
       .execute('get', false);
     expect(row).toEqual({ total: 2, oldest: '2026-01-01 00:00:00', newest: '2026-06-15 00:00:00' });
 
     const expected = testDb
-      .prepare('SELECT COUNT(*) as total, MIN(created_at) as oldest, MAX(created_at) as newest FROM users WHERE id IN (?, ?)')
+      .prepare(
+        'SELECT COUNT(*) as total, MIN(created_at) as oldest, MAX(created_at) as newest FROM users WHERE id IN (?, ?)',
+      )
       .get(a.id, b.id);
     expect(row).toEqual(expected);
   });
@@ -515,14 +607,16 @@ describe('sql-functions (sqlite)', () => {
     createUser(testDb, { role: 'user' });
     const platform = t.em.getPlatform();
 
-    const rows = await t.em.createQueryBuilder(Users, 'u')
+    const rows = await t.em
+      .createQueryBuilder(Users, 'u')
       .select(['u.role', countAll(platform, 'count')])
       .groupBy('u.role')
       .execute('all', false);
 
     const expected = testDb.prepare('SELECT role, COUNT(*) as count FROM users GROUP BY role').all();
-    expect([...(rows as { role: string; count: number }[])].sort((a, b) => a.role.localeCompare(b.role)))
-      .toEqual([...(expected as { role: string; count: number }[])].sort((a, b) => a.role.localeCompare(b.role)));
+    expect([...(rows as { role: string; count: number }[])].sort((a, b) => a.role.localeCompare(b.role))).toEqual(
+      [...(expected as { role: string; count: number }[])].sort((a, b) => a.role.localeCompare(b.role)),
+    );
   });
 
   it('SQLF-025: countAll/minOf/maxOf reject an alias that is not a plain identifier', () => {
@@ -546,13 +640,16 @@ describe('sql-functions (sqlite)', () => {
   it('SQLF-027: lowerTrim renders LOWER(TRIM(<col>)) as one fragment, matching a hand-written statement', async () => {
     const { user } = createUser(testDb, { username: '  Padded Name  ' });
     const platform = t.em.getPlatform();
-    const row = await t.em.createQueryBuilder(Users, 'u')
+    const row = await t.em
+      .createQueryBuilder(Users, 'u')
       .select([lowerTrim(platform, 'u.username').as('n')])
       .where({ id: user.id })
       .execute('get', false);
     expect((row as { n: string }).n).toBe('padded name');
 
-    const expected = testDb.prepare('SELECT LOWER(TRIM(username)) as n FROM users WHERE id = ?').get(user.id) as { n: string };
+    const expected = testDb.prepare('SELECT LOWER(TRIM(username)) as n FROM users WHERE id = ?').get(user.id) as {
+      n: string;
+    };
     expect((row as { n: string }).n).toBe(expected.n);
   });
 
@@ -577,17 +674,21 @@ describe('sql-functions (sqlite)', () => {
 
   // Plan 3c Task 6 — `TripMembersRepository.listWithUserAndInviter`'s `role`
   // column (TM2): `CASE WHEN u.id = ? THEN 'owner' ELSE 'member' END`.
-  it("SQLF-030: caseWhenEquals renders CASE WHEN <col> = ? THEN ? ELSE ? END, matching a hand-written statement", async () => {
+  it('SQLF-030: caseWhenEquals renders CASE WHEN <col> = ? THEN ? ELSE ? END, matching a hand-written statement', async () => {
     const { user: a } = createUser(testDb);
     const { user: b } = createUser(testDb);
     const platform = t.em.getPlatform();
 
-    const rows = await t.em.createQueryBuilder(Users, 'u')
+    const rows = await t.em
+      .createQueryBuilder(Users, 'u')
       .select(['u.id', caseWhenEquals(platform, 'u.id', a.id, 'owner', 'member').as('role')])
       .where({ id: { $in: [a.id, b.id] } })
       .orderBy({ id: 'asc' })
       .execute('all', false);
-    expect(rows).toEqual([{ id: a.id, role: 'owner' }, { id: b.id, role: 'member' }]);
+    expect(rows).toEqual([
+      { id: a.id, role: 'owner' },
+      { id: b.id, role: 'member' },
+    ]);
 
     const expected = testDb
       .prepare('SELECT id, CASE WHEN id = ? THEN ? ELSE ? END as role FROM users WHERE id IN (?, ?) ORDER BY id ASC')
@@ -598,7 +699,9 @@ describe('sql-functions (sqlite)', () => {
   it('SQLF-031: an unknown platform fails closed for caseWhenEquals', () => {
     class FakePlatform extends Platform {}
     const foreign = new FakePlatform();
-    expect(() => caseWhenEquals(foreign, 'u.id', 1, 'owner', 'member')).toThrow(/no implementation for platform FakePlatform/);
+    expect(() => caseWhenEquals(foreign, 'u.id', 1, 'owner', 'member')).toThrow(
+      /no implementation for platform FakePlatform/,
+    );
   });
 
   // Task 1 fix review M1 (`PlaceShadowPicksRepository.countBySource`, PS5):
@@ -615,13 +718,16 @@ describe('sql-functions (sqlite)', () => {
     createUser(testDb, { role: 'user' });
     const platform = t.em.getPlatform();
 
-    const rows = await t.em.createQueryBuilder(Users, 'u')
+    const rows = await t.em
+      .createQueryBuilder(Users, 'u')
       .select(['u.role', countAll(platform, 'count')])
       .groupBy('u.role')
       .orderBy({ [countAllRef(platform)]: 'desc' })
       .execute('all', false);
 
-    const expected = testDb.prepare('SELECT role, COUNT(*) as count FROM users GROUP BY role ORDER BY COUNT(*) DESC').all();
+    const expected = testDb
+      .prepare('SELECT role, COUNT(*) as count FROM users GROUP BY role ORDER BY COUNT(*) DESC')
+      .all();
     expect(rows).toEqual(expected);
   });
 
@@ -652,14 +758,17 @@ describe('sql-functions (sqlite)', () => {
       const { user } = createUser(testDb);
       testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run(value, user.id);
 
-      const row = await t.em.createQueryBuilder(Users, 'u')
+      const row = await t.em
+        .createQueryBuilder(Users, 'u')
         .select([startsWithIsoDate(platform, 'u.display_name').as('matched')])
         .where({ id: user.id })
         .execute('get', false);
       expect(Boolean((row as { matched: number | null }).matched)).toBe(expected);
 
       const raw = testDb
-        .prepare(`SELECT (display_name GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*') as matched FROM users WHERE id = ?`)
+        .prepare(
+          `SELECT (display_name GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*') as matched FROM users WHERE id = ?`,
+        )
         .get(user.id) as { matched: number | null };
       expect(Boolean(raw.matched)).toBe(expected);
     }
@@ -668,7 +777,9 @@ describe('sql-functions (sqlite)', () => {
   it('SQLF-035: an unknown platform fails closed for startsWithIsoDate', () => {
     class FakePlatform extends Platform {}
     const foreign = new FakePlatform();
-    expect(() => startsWithIsoDate(foreign, 'u.reservation_time')).toThrow(/no implementation for platform FakePlatform/);
+    expect(() => startsWithIsoDate(foreign, 'u.reservation_time')).toThrow(
+      /no implementation for platform FakePlatform/,
+    );
   });
 
   it('SQLF-036: substring(ref, start) — the two-arg form — reads from a 1-based position to the end, matching substr(col, N)', async () => {
@@ -676,13 +787,16 @@ describe('sql-functions (sqlite)', () => {
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('2026-09-21T13:05:09Z', user.id);
     const platform = t.em.getPlatform();
 
-    const row = await t.em.createQueryBuilder(Users, 'u')
+    const row = await t.em
+      .createQueryBuilder(Users, 'u')
       .select([substring(platform, 'u.display_name', 12).as('n')])
       .where({ id: user.id })
       .execute('get', false);
     expect((row as { n: string }).n).toBe('13:05:09Z');
 
-    const expected = testDb.prepare('SELECT substr(display_name, 12) as n FROM users WHERE id = ?').get(user.id) as { n: string };
+    const expected = testDb.prepare('SELECT substr(display_name, 12) as n FROM users WHERE id = ?').get(user.id) as {
+      n: string;
+    };
     expect((row as { n: string }).n).toBe(expected.n);
   });
 
@@ -691,13 +805,16 @@ describe('sql-functions (sqlite)', () => {
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('2026-09-21T13:05:09Z', user.id);
     const platform = t.em.getPlatform();
 
-    const row = await t.em.createQueryBuilder(Users, 'u')
+    const row = await t.em
+      .createQueryBuilder(Users, 'u')
       .select([substring(platform, 'u.display_name', 1, 10).as('n')])
       .where({ id: user.id })
       .execute('get', false);
     expect((row as { n: string }).n).toBe('2026-09-21');
 
-    const expected = testDb.prepare('SELECT substr(display_name, 1, 10) as n FROM users WHERE id = ?').get(user.id) as { n: string };
+    const expected = testDb.prepare('SELECT substr(display_name, 1, 10) as n FROM users WHERE id = ?').get(user.id) as {
+      n: string;
+    };
     expect((row as { n: string }).n).toBe(expected.n);
   });
 
@@ -715,18 +832,21 @@ describe('sql-functions (sqlite)', () => {
     expect(() => substring(foreign, 'u.x', 1)).toThrow(/no implementation for platform FakePlatform/);
   });
 
-  it('SQLF-040: concat renders <col> || <bound-literal> || <col>, matching the legacy d.date || \'T\' || a.check_in shape', async () => {
+  it("SQLF-040: concat renders <col> || <bound-literal> || <col>, matching the legacy d.date || 'T' || a.check_in shape", async () => {
     const { user } = createUser(testDb, { username: 'concat-me' });
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('13:05', user.id);
     const platform = t.em.getPlatform();
 
-    const row = await t.em.createQueryBuilder(Users, 'u')
+    const row = await t.em
+      .createQueryBuilder(Users, 'u')
       .select([concat(platform, { column: 'u.username' }, { value: 'T' }, { column: 'u.display_name' }).as('n')])
       .where({ id: user.id })
       .execute('get', false);
     expect((row as { n: string }).n).toBe('concat-meT13:05');
 
-    const expected = testDb.prepare("SELECT username || ? || display_name as n FROM users WHERE id = ?").get('T', user.id) as { n: string };
+    const expected = testDb
+      .prepare('SELECT username || ? || display_name as n FROM users WHERE id = ?')
+      .get('T', user.id) as { n: string };
     expect((row as { n: string }).n).toBe(expected.n);
   });
 
@@ -739,7 +859,9 @@ describe('sql-functions (sqlite)', () => {
   it('SQLF-042: an unknown platform fails closed for concat', () => {
     class FakePlatform extends Platform {}
     const foreign = new FakePlatform();
-    expect(() => concat(foreign, { column: 'u.a' }, { value: 'x' })).toThrow(/no implementation for platform FakePlatform/);
+    expect(() => concat(foreign, { column: 'u.a' }, { value: 'x' })).toThrow(
+      /no implementation for platform FakePlatform/,
+    );
   });
 
   // §18.1: reservations.accommodation_id is TEXT holding integer ids with no
@@ -755,7 +877,8 @@ describe('sql-functions (sqlite)', () => {
     const { user: other } = createUser(testDb);
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('15', other.id);
 
-    const rows = await t.em.createQueryBuilder(Users, 'u')
+    const rows = await t.em
+      .createQueryBuilder(Users, 'u')
       .select('u.id')
       .where({ id: { $in: [exact.id, dotZero.id, other.id] }, [castInteger(platform, 'u.display_name')]: 14 })
       .orderBy({ id: 'asc' })
@@ -777,9 +900,13 @@ describe('sql-functions (sqlite)', () => {
     const { user: mismatched } = createUser(testDb);
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run(String(exact.id), mismatched.id);
 
-    const rows = await t.em.createQueryBuilder(Users, 'u')
+    const rows = await t.em
+      .createQueryBuilder(Users, 'u')
       .select('u.id')
-      .where({ id: { $in: [exact.id, dotZero.id, mismatched.id] }, [castInteger(platform, 'u.display_name')]: columnRef(platform, 'u.id') })
+      .where({
+        id: { $in: [exact.id, dotZero.id, mismatched.id] },
+        [castInteger(platform, 'u.display_name')]: columnRef(platform, 'u.id'),
+      })
       .orderBy({ id: 'asc' })
       .execute('all', false);
     expect((rows as { id: number }[]).map((r) => r.id)).toEqual([exact.id, dotZero.id]);
@@ -806,7 +933,8 @@ describe('sql-functions (sqlite)', () => {
     testDb.prepare("UPDATE users SET created_at = '2026-06-20 00:00:00' WHERE id = ?").run(c.id);
     const target = '2026-06-18';
 
-    const rows = await t.em.createQueryBuilder(Users, 'u')
+    const rows = await t.em
+      .createQueryBuilder(Users, 'u')
       .select('u.id')
       .where({ id: { $in: [a.id, b.id, c.id] } })
       .orderBy({ [dayDistance(platform, 'u.created_at', target)]: 'asc' })
@@ -855,7 +983,8 @@ describe('sql-functions (sqlite)', () => {
       const { user } = createUser(testDb);
       testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run(value, user.id);
 
-      const row = await t.em.getKysely<UsersKyselyDB>()
+      const row = await t.em
+        .getKysely<UsersKyselyDB>()
         .selectFrom('users')
         .select((eb) => [startsWithIsoDateKysely(platform, eb, 'display_name').as('matched')])
         .where('id', '=', user.id)
@@ -863,7 +992,9 @@ describe('sql-functions (sqlite)', () => {
       expect(Boolean(row.matched)).toBe(expected);
 
       const raw = testDb
-        .prepare(`SELECT (display_name GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*') as matched FROM users WHERE id = ?`)
+        .prepare(
+          `SELECT (display_name GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*') as matched FROM users WHERE id = ?`,
+        )
         .get(user.id) as { matched: number | null };
       expect(Boolean(raw.matched)).toBe(expected);
     }
@@ -873,7 +1004,9 @@ describe('sql-functions (sqlite)', () => {
     class FakePlatform extends Platform {}
     const foreign = new FakePlatform();
     const eb = expressionBuilder<UsersKyselyDB, 'users'>();
-    expect(() => startsWithIsoDateKysely(foreign, eb, 'username')).toThrow(/no implementation for platform FakePlatform/);
+    expect(() => startsWithIsoDateKysely(foreign, eb, 'username')).toThrow(
+      /no implementation for platform FakePlatform/,
+    );
   });
 
   it('SQLF-051: substringKysely(ref, start) — the two-arg form — matches substr(col, N)', async () => {
@@ -881,14 +1014,17 @@ describe('sql-functions (sqlite)', () => {
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('2026-09-21T13:05:09Z', user.id);
     const platform = t.em.getPlatform();
 
-    const row = await t.em.getKysely<UsersKyselyDB>()
+    const row = await t.em
+      .getKysely<UsersKyselyDB>()
       .selectFrom('users')
       .select((eb) => [substringKysely(platform, eb, 'display_name', 12).as('n')])
       .where('id', '=', user.id)
       .executeTakeFirstOrThrow();
     expect(row.n).toBe('13:05:09Z');
 
-    const expected = testDb.prepare('SELECT substr(display_name, 12) as n FROM users WHERE id = ?').get(user.id) as { n: string };
+    const expected = testDb.prepare('SELECT substr(display_name, 12) as n FROM users WHERE id = ?').get(user.id) as {
+      n: string;
+    };
     expect(row.n).toBe(expected.n);
   });
 
@@ -897,14 +1033,17 @@ describe('sql-functions (sqlite)', () => {
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('2026-09-21T13:05:09Z', user.id);
     const platform = t.em.getPlatform();
 
-    const row = await t.em.getKysely<UsersKyselyDB>()
+    const row = await t.em
+      .getKysely<UsersKyselyDB>()
       .selectFrom('users')
       .select((eb) => [substringKysely(platform, eb, 'display_name', 1, 10).as('n')])
       .where('id', '=', user.id)
       .executeTakeFirstOrThrow();
     expect(row.n).toBe('2026-09-21');
 
-    const expected = testDb.prepare('SELECT substr(display_name, 1, 10) as n FROM users WHERE id = ?').get(user.id) as { n: string };
+    const expected = testDb.prepare('SELECT substr(display_name, 1, 10) as n FROM users WHERE id = ?').get(user.id) as {
+      n: string;
+    };
     expect(row.n).toBe(expected.n);
   });
 
@@ -922,17 +1061,24 @@ describe('sql-functions (sqlite)', () => {
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('2026-09-21T13:05', user.id);
     const platform = t.em.getPlatform();
 
-    const row = await t.em.getKysely<UsersKyselyDB>()
+    const row = await t.em
+      .getKysely<UsersKyselyDB>()
       .selectFrom('users')
       .select((eb) => [
-        concatKysely(platform, eb, { column: 'username' }, { value: '@' }, { expression: substringKysely(platform, eb, 'display_name', 12) }).as('n'),
+        concatKysely(
+          platform,
+          eb,
+          { column: 'username' },
+          { value: '@' },
+          { expression: substringKysely(platform, eb, 'display_name', 12) },
+        ).as('n'),
       ])
       .where('id', '=', user.id)
       .executeTakeFirstOrThrow();
     expect(row.n).toBe('concat-me@13:05');
 
     const expected = testDb
-      .prepare("SELECT username || ? || substr(display_name, 12) as n FROM users WHERE id = ?")
+      .prepare('SELECT username || ? || substr(display_name, 12) as n FROM users WHERE id = ?')
       .get('@', user.id) as { n: string };
     expect(row.n).toBe(expected.n);
   });
@@ -948,7 +1094,9 @@ describe('sql-functions (sqlite)', () => {
     class FakePlatform extends Platform {}
     const foreign = new FakePlatform();
     const eb = expressionBuilder<UsersKyselyDB, 'users'>();
-    expect(() => concatKysely(foreign, eb, { column: 'username' }, { value: 'x' })).toThrow(/no implementation for platform FakePlatform/);
+    expect(() => concatKysely(foreign, eb, { column: 'username' }, { value: 'x' })).toThrow(
+      /no implementation for platform FakePlatform/,
+    );
     expect(() => substringKysely(foreign, eb, 'username', 1)).toThrow(/no implementation for platform FakePlatform/);
   });
 
@@ -961,7 +1109,8 @@ describe('sql-functions (sqlite)', () => {
     const { user: other } = createUser(testDb);
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('15', other.id);
 
-    const rows = await t.em.getKysely<UsersKyselyDB>()
+    const rows = await t.em
+      .getKysely<UsersKyselyDB>()
       .selectFrom('users')
       .select('id')
       .where('id', 'in', [exact.id, dotZero.id, other.id])
@@ -983,16 +1132,24 @@ describe('sql-functions (sqlite)', () => {
     expect(() => castIntegerKysely(foreign, eb, 'display_name')).toThrow(/no implementation for platform FakePlatform/);
   });
 
-  it('SQLF-059: DY23\'s exact shape compiles to the expected SQL text (compiled {sql, parameters} capture)', () => {
+  it("SQLF-059: DY23's exact shape compiles to the expected SQL text (compiled {sql, parameters} capture)", () => {
     const platform = t.em.getPlatform();
-    const compiled = t.em.getKysely<UsersKyselyDB>()
+    const compiled = t.em
+      .getKysely<UsersKyselyDB>()
       .updateTable('users')
       .set((eb) => ({
         username: eb
           .case()
           .when('username', 'is', null)
           .then(eb.val('2026-09-21'))
-          .else(concatKysely(platform, eb, { value: '2026-09-21' }, { expression: substringKysely(platform, eb, 'created_at', 11) }))
+          .else(
+            concatKysely(
+              platform,
+              eb,
+              { value: '2026-09-21' },
+              { expression: substringKysely(platform, eb, 'created_at', 11) },
+            ),
+          )
           .end(),
       }))
       .where('id', '=', 1)
@@ -1016,9 +1173,9 @@ describe('sql-functions (sqlite)', () => {
     const typed = await t.em.find(Users, { [collateNoCase(platform, 'username')]: 'mixedcase' });
     expect(typed.map((r) => r.id)).toEqual([mixed.id]);
 
-    const legacy = testDb
-      .prepare('SELECT id FROM users WHERE username = ? COLLATE NOCASE')
-      .all('mixedcase') as { id: number }[];
+    const legacy = testDb.prepare('SELECT id FROM users WHERE username = ? COLLATE NOCASE').all('mixedcase') as {
+      id: number;
+    }[];
     expect(typed.map((r) => r.id)).toEqual(legacy.map((r) => r.id));
 
     const none = await t.em.find(Users, { [collateNoCase(platform, 'username')]: 'nobody-has-this-name' });
@@ -1044,9 +1201,13 @@ describe('sql-functions (sqlite)', () => {
     // recognises the Unicode case mapping), which is exactly why they agree
     // rather than diverge — this is genuinely the "no divergence found"
     // branch R9 anticipates, not a skipped check.
-    const asciiCollate = testDb.prepare('SELECT (? = ? COLLATE NOCASE) as m').get('ASCII@x.com', 'ascii@x.com') as { m: number };
+    const asciiCollate = testDb.prepare('SELECT (? = ? COLLATE NOCASE) as m').get('ASCII@x.com', 'ascii@x.com') as {
+      m: number;
+    };
     expect(asciiCollate.m).toBe(1);
-    const nonAsciiCollate = testDb.prepare('SELECT (? = ? COLLATE NOCASE) as m').get('JOSÉ@x.com', 'josé@x.com') as { m: number };
+    const nonAsciiCollate = testDb.prepare('SELECT (? = ? COLLATE NOCASE) as m').get('JOSÉ@x.com', 'josé@x.com') as {
+      m: number;
+    };
     expect(nonAsciiCollate.m).toBe(0);
   });
 
@@ -1085,7 +1246,9 @@ describe('sql-functions (sqlite)', () => {
     const { user } = createUser(testDb, { username: '  JOSÉ  ' });
     const platform = t.em.getPlatform();
 
-    const exact = await t.em.findOne(Users, { [lowerTrim(platform, 'username')]: lowerTrimParam(platform, '  josÉ  ') });
+    const exact = await t.em.findOne(Users, {
+      [lowerTrim(platform, 'username')]: lowerTrimParam(platform, '  josÉ  '),
+    });
     expect(exact?.id).toBe(user.id);
 
     // A JS-lowered+trimmed value-side bind (mixing engines, program rule 18)
@@ -1116,7 +1279,8 @@ describe('sql-functions (sqlite)', () => {
     const platform = t.em.getPlatform();
     const createdAt = 1_700_000_000_000; // fixed epoch-millis value — the exact shape gp.created_at stores
 
-    const compiled = t.em.getKysely<UsersKyselyDB>()
+    const compiled = t.em
+      .getKysely<UsersKyselyDB>()
       .selectFrom('users')
       .select((eb) => [unixEpochToIsoKysely(platform, eb, eb.val(createdAt)).as('iso')])
       .compile();
@@ -1135,7 +1299,9 @@ describe('sql-functions (sqlite)', () => {
     class FakePlatform extends Platform {}
     const foreign = new FakePlatform();
     const eb = expressionBuilder<UsersKyselyDB, 'users'>();
-    expect(() => unixEpochToIsoKysely(foreign, eb, 'created_at')).toThrow(/no implementation for platform FakePlatform/);
+    expect(() => unixEpochToIsoKysely(foreign, eb, 'created_at')).toThrow(
+      /no implementation for platform FakePlatform/,
+    );
   });
 
   // Plan 3h Task 0 — no consumer yet: Task 3 (DSY2), Task 4 (RU4), Task 5
@@ -1206,7 +1372,8 @@ describe('sql-functions (sqlite)', () => {
     createUser(testDb); // one row so the anchor SELECT FROM users has something to select
     const platform = t.em.getPlatform();
 
-    const compiled = t.em.getKysely<UsersKyselyDB>()
+    const compiled = t.em
+      .getKysely<UsersKyselyDB>()
       .selectFrom('users')
       .select((eb) => [nowPlusSecondsKysely(platform, eb, 45).as('d')])
       .compile();
@@ -1255,7 +1422,11 @@ describe('sql-functions (sqlite)', () => {
       const platform = t.em.getPlatform();
       testDb.prepare('DELETE FROM found_again_probe WHERE id = 1').run();
       testDb.prepare('INSERT INTO found_again_probe (id, state, file_id) VALUES (1, ?, ?)').run(state, fileId);
-      testDb.prepare(`UPDATE found_again_probe SET state = ${foundAgainState(platform, 'state', 'file_id').sql} WHERE id = 1`).run();
+      testDb
+        .prepare(
+          `UPDATE found_again_probe SET state = ${foundAgainState(platform, 'state', 'file_id').sql} WHERE id = 1`,
+        )
+        .run();
       return (testDb.prepare('SELECT state FROM found_again_probe WHERE id = 1').get() as { state: string }).state;
     }
 
@@ -1284,7 +1455,7 @@ describe('sql-functions (sqlite)', () => {
   // `last_seen_at = CURRENT_TIMESTAMP` inside the partial-index `ON
   // CONFLICT ... DO UPDATE`.
   describe('currentTimestampKysely', () => {
-    it('SQLF-087: compiles to the bare CURRENT_TIMESTAMP keyword with no parameters, matching currentTimestamp\'s own raw text and a real row\'s clock value', async () => {
+    it("SQLF-087: compiles to the bare CURRENT_TIMESTAMP keyword with no parameters, matching currentTimestamp's own raw text and a real row's clock value", async () => {
       const platform = t.em.getPlatform();
       const compiled = t.em
         .getKysely<UsersKyselyDB>()
@@ -1297,7 +1468,9 @@ describe('sql-functions (sqlite)', () => {
       createUser(testDb);
       const got = testDb.prepare(compiled.sql).get(...compiled.parameters) as { d: string };
       const raw = testDb.prepare(`SELECT ${currentTimestamp(platform).sql} as d`).get() as { d: string };
-      expect(Math.abs(new Date(`${got.d.replace(' ', 'T')}Z`).getTime() - new Date(`${raw.d.replace(' ', 'T')}Z`).getTime())).toBeLessThan(10_000);
+      expect(
+        Math.abs(new Date(`${got.d.replace(' ', 'T')}Z`).getTime() - new Date(`${raw.d.replace(' ', 'T')}Z`).getTime()),
+      ).toBeLessThan(10_000);
     });
 
     it('SQLF-088: current_timestamp() called as a function is rejected by SQLite — proving the bare-keyword shape is load-bearing, not a style choice', () => {
@@ -1359,7 +1532,10 @@ function galleryChronologicalOrderExpr(
   // property of the QUERY, never of the `DB` interface itself, so a
   // correlated-subquery helper with a fixed alias contract is typed this
   // way rather than generic over an arbitrary caller `DB`/`TB`.
-  eb: ExpressionBuilder<GalleryOrderTestDB & { gp: GalleryOrderTestDB['journey_photos']; tp: GalleryOrderTestDB['trek_photos'] }, 'gp' | 'tp'>,
+  eb: ExpressionBuilder<
+    GalleryOrderTestDB & { gp: GalleryOrderTestDB['journey_photos']; tp: GalleryOrderTestDB['trek_photos'] },
+    'gp' | 'tp'
+  >,
 ) {
   return eb.fn.coalesce(
     eb.fn<string | null>('nullif', [eb.ref('tp.taken_at'), eb.val('')]),
@@ -1374,7 +1550,12 @@ function galleryChronologicalOrderExpr(
               eb2,
               { column: 'je.entry_date' },
               { value: 'T' },
-              { expression: eb2.fn.coalesce(eb2.fn<string | null>('nullif', [eb2.ref('je.entry_time'), eb2.val('')]), eb2.val('00:00')) },
+              {
+                expression: eb2.fn.coalesce(
+                  eb2.fn<string | null>('nullif', [eb2.ref('je.entry_time'), eb2.val('')]),
+                  eb2.val('00:00'),
+                ),
+              },
             ),
           )
           .as('min_dt'),
@@ -1395,7 +1576,8 @@ describe('GALLERY_CHRONOLOGICAL_ORDER Kysely rebuild (Plan 3g Task 0, R1 worked 
     // entry_time left NULL — the entry-linked tier's own COALESCE(NULIF(entry_time,''),'00:00') fallback
 
     const trekPhoto = (takenAt: string | null) => {
-      const r = testDb.prepare('INSERT INTO trek_photos (provider, asset_id, owner_id, taken_at) VALUES (?, ?, ?, ?)')
+      const r = testDb
+        .prepare('INSERT INTO trek_photos (provider, asset_id, owner_id, taken_at) VALUES (?, ?, ?, ?)')
         .run('immich', `asset-${Math.random()}`, user.id, takenAt);
       return r.lastInsertRowid as number;
     };
@@ -1444,7 +1626,8 @@ describe('GALLERY_CHRONOLOGICAL_ORDER Kysely rebuild (Plan 3g Task 0, R1 worked 
       .execute();
 
     const legacy = testDb
-      .prepare(`
+      .prepare(
+        `
         SELECT gp.id
         FROM journey_photos gp JOIN trek_photos tp ON tp.id = gp.photo_id
         WHERE gp.journey_id = ?
@@ -1458,7 +1641,8 @@ describe('GALLERY_CHRONOLOGICAL_ORDER Kysely rebuild (Plan 3g Task 0, R1 worked 
                  ) ASC,
                  gp.sort_order ASC,
                  gp.id ASC
-      `)
+      `,
+      )
       .all(journey.id) as { id: number }[];
 
     expect(rows.map((r) => r.id)).toEqual(legacy.map((r) => r.id));

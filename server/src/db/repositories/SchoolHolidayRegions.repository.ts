@@ -124,7 +124,10 @@ export class SchoolHolidayRegionsRepository extends TrekRepository<SchoolHoliday
    */
   async updateWithRevision(id: number, expectedRevision: number, name: string): Promise<number> {
     const platform = this.getEntityManager().getPlatform();
-    return this.nativeUpdate({ id, revision: expectedRevision }, { name, revision: columnIncrementedBy(platform, 'revision', 1) });
+    return this.nativeUpdate(
+      { id, revision: expectedRevision },
+      { name, revision: columnIncrementedBy(platform, 'revision', 1) },
+    );
   }
 
   /**

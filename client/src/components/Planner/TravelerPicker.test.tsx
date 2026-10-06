@@ -1,9 +1,9 @@
 // FE-COMP-TRAVELERS-001 to FE-COMP-TRAVELERS-020
-import { render, screen, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import type { ReservationTraveler } from '@trek/shared';
+import { fireEvent, render, screen, within } from '../../../tests/helpers/render';
 import type { TripMember } from '../Budget/BudgetPanelMemberChips';
-import { TravelerPicker, TravelerAvatarRow, TravelerFilterAvatars } from './TravelerPicker';
+import { TravelerAvatarRow, TravelerFilterAvatars, TravelerPicker } from './TravelerPicker';
 
 const tripMembers: TripMember[] = [
   { id: 1, username: 'alice', avatar_url: null },
@@ -114,7 +114,7 @@ describe('TravelerPicker', () => {
   });
 
   it('FE-COMP-TRAVELERS-018: the closed field shows the chosen people as avatars and names, four avatars at most', () => {
-    const many: TripMember[] = [1, 2, 3, 4, 5].map(id => ({ id, username: `user${id}`, avatar_url: null }));
+    const many: TripMember[] = [1, 2, 3, 4, 5].map((id) => ({ id, username: `user${id}`, avatar_url: null }));
     render(<TravelerPicker tripMembers={many} selectedIds={new Set([1, 2, 3, 4, 5])} onToggle={vi.fn()} />);
     const field = screen.getByRole('button');
     expect(field).toHaveTextContent('user1, user2, user3, user4, user5');
@@ -139,7 +139,7 @@ describe('TravelerPicker', () => {
       <div>
         <TravelerPicker tripMembers={tripMembers} selectedIds={new Set()} onToggle={vi.fn()} />
         <p>elsewhere</p>
-      </div>,
+      </div>
     );
     await openPicker(user);
     fireEvent.pointerDown(screen.getByText('elsewhere'));
@@ -180,8 +180,7 @@ describe('TravelerAvatarRow', () => {
 
 describe('TravelerFilterAvatars', () => {
   // The avatars carry no visible label, so they are addressed by their title attribute.
-  const avatarFor = (username: string) =>
-    document.querySelector(`button[title="${username}"]`) as HTMLButtonElement;
+  const avatarFor = (username: string) => document.querySelector(`button[title="${username}"]`) as HTMLButtonElement;
 
   it('FE-COMP-TRAVELERS-014: one avatar button per member, titled with the username', () => {
     render(<TravelerFilterAvatars members={tripMembers} active={new Set()} onToggle={vi.fn()} label="Travelers" />);

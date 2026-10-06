@@ -1,8 +1,8 @@
 // FE-ADMHOOK-001 to FE-ADMHOOK-053
 import { http, HttpResponse } from 'msw';
 import React from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildAdmin, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
 import { act, renderHook, waitFor } from '../../../tests/helpers/render';
@@ -64,7 +64,7 @@ describe('useAdmin', () => {
   it('FE-ADMHOOK-001: loads users, stats and invites on mount', async () => {
     const { result } = await mountAdmin();
 
-    expect(result.current.users.map(u => u.username)).toEqual(['admin', 'alice']);
+    expect(result.current.users.map((u) => u.username)).toEqual(['admin', 'alice']);
     expect(result.current.stats).toMatchObject({ totalUsers: 2, totalTrips: 5, totalPlaces: 42, totalFiles: 8 });
     expect(result.current.invites).toEqual([]);
     expect(result.current.activeTab).toBe('users');
@@ -194,7 +194,11 @@ describe('useAdmin', () => {
         HttpResponse.json({ chat: false, notes: true, polls: false, whatsnext: true })
       ),
       http.get('/api/auth/app-settings', () =>
-        HttpResponse.json({ smtp_host: 'mail.test', webauthn_rp_id: 'trek.test', webauthn_origins: 'https://trek.test' })
+        HttpResponse.json({
+          smtp_host: 'mail.test',
+          webauthn_rp_id: 'trek.test',
+          webauthn_origins: 'https://trek.test',
+        })
       )
     );
 
@@ -239,9 +243,7 @@ describe('useAdmin', () => {
   });
 
   it('FE-ADMHOOK-013: handleToggleAuthSetting rolls back and toasts on failure', async () => {
-    server.use(
-      http.put('/api/auth/app-settings', () => HttpResponse.json({ error: 'locked' }, { status: 400 }))
-    );
+    server.use(http.put('/api/auth/app-settings', () => HttpResponse.json({ error: 'locked' }, { status: 400 })));
     const { result } = await mountAdmin();
 
     await act(async () => {
@@ -273,7 +275,7 @@ describe('useAdmin', () => {
     });
 
     expect(result.current.requireMfa).toBe(false);
-    expect(toastCalls.some(c => c.type === 'error')).toBe(true);
+    expect(toastCalls.some((c) => c.type === 'error')).toBe(true);
   });
 
   it('FE-ADMHOOK-050: handleTogglePlacesGoogleOnly flips the switch and PUTs it', async () => {
@@ -340,7 +342,7 @@ describe('useAdmin', () => {
       await result.current.handleSaveWebauthn();
     });
 
-    expect(toastCalls.some(c => c.type === 'error')).toBe(true);
+    expect(toastCalls.some((c) => c.type === 'error')).toBe(true);
     expect(result.current.savingWebauthn).toBe(false);
   });
 
@@ -382,7 +384,11 @@ describe('useAdmin', () => {
     server.use(
       http.get('/api/auth/me/settings', () =>
         HttpResponse.json({
-          settings: { maps_api_key: null, unsplash_api_key: 'unsplash-k', env_keys: { maps_api_key: 'PLACES_API_KEY' } },
+          settings: {
+            maps_api_key: null,
+            unsplash_api_key: 'unsplash-k',
+            env_keys: { maps_api_key: 'PLACES_API_KEY' },
+          },
         })
       )
     );
@@ -430,7 +436,7 @@ describe('useAdmin', () => {
       await result.current.handleSaveApiKeys();
     });
 
-    expect(toastCalls.some(c => c.type === 'error')).toBe(true);
+    expect(toastCalls.some((c) => c.type === 'error')).toBe(true);
     expect(result.current.savingKeys).toBe(false);
   });
 
@@ -510,7 +516,7 @@ describe('useAdmin', () => {
       await result.current.handleCreateUser();
     });
 
-    expect(toastCalls.some(c => c.type === 'error')).toBe(true);
+    expect(toastCalls.some((c) => c.type === 'error')).toBe(true);
     expect(result.current.users).toHaveLength(2);
   });
 
@@ -606,7 +612,12 @@ describe('useAdmin', () => {
   it('FE-ADMHOOK-032: handleDeleteInvite removes it from the list', async () => {
     server.use(
       http.get('/api/admin/invites', () =>
-        HttpResponse.json({ invites: [{ id: 5, token: 'a' }, { id: 6, token: 'b' }] })
+        HttpResponse.json({
+          invites: [
+            { id: 5, token: 'a' },
+            { id: 6, token: 'b' },
+          ],
+        })
       )
     );
     const { result } = await mountAdmin();
@@ -615,7 +626,7 @@ describe('useAdmin', () => {
       await result.current.handleDeleteInvite(5);
     });
 
-    expect(result.current.invites.map(i => i.id)).toEqual([6]);
+    expect(result.current.invites.map((i) => i.id)).toEqual([6]);
     expect(toastCalls).toContainEqual({ type: 'success', message: 'Invite link deleted' });
   });
 
@@ -642,7 +653,9 @@ describe('useAdmin', () => {
     act(() => result.current.copyInviteLink('tok-9'));
 
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/register?invite=tok-9`);
-    await waitFor(() => expect(toastCalls).toContainEqual({ type: 'success', message: 'Invite link copied to clipboard' }));
+    await waitFor(() =>
+      expect(toastCalls).toContainEqual({ type: 'success', message: 'Invite link copied to clipboard' })
+    );
   });
 
   it('FE-ADMHOOK-035: handleEditUser seeds the edit form from the user', async () => {
@@ -718,7 +731,7 @@ describe('useAdmin', () => {
 
     expect(called).toBe(false);
     expect(result.current.editingUser).not.toBeNull();
-    expect(toastCalls.some(c => c.type === 'error')).toBe(true);
+    expect(toastCalls.some((c) => c.type === 'error')).toBe(true);
   });
 
   it('FE-ADMHOOK-038: handleSaveUser forwards a long enough password', async () => {
@@ -796,7 +809,7 @@ describe('useAdmin', () => {
     });
 
     expect(deletedId).toBe('2');
-    expect(result.current.users.map(u => u.username)).toEqual(['admin']);
+    expect(result.current.users.map((u) => u.username)).toEqual(['admin']);
     expect(toastCalls).toContainEqual({ type: 'success', message: 'User deleted' });
   });
 
@@ -810,7 +823,7 @@ describe('useAdmin', () => {
     });
 
     expect(confirmSpy).not.toHaveBeenCalled();
-    expect(result.current.users.map(u => u.username)).toEqual(['admin']);
+    expect(result.current.users.map((u) => u.username)).toEqual(['admin']);
   });
 
   it('FE-ADMHOOK-043: a failing delete surfaces the server error', async () => {

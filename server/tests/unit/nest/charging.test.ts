@@ -1,22 +1,64 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { chargingLookupSchema } from '@trek/shared';
-import { ChargingService, empty } from '../../../src/nest/roadtrip/charging.service';
-import { ChargingLookupController, ChargingLookupDto } from '../../../src/nest/roadtrip/charging-lookup.controller';
-import { ChargingMcp } from '../../../src/nest/roadtrip/charging.mcp';
 import { getEntry, type ClassRef } from '../../../src/nest-mcp/metadata';
-import { matchChargingLocation, normalizeCharging, type ChargingLocation, type ChargingSource, type ChargingTariff } from '../../../src/nest/roadtrip/charging.helpers';
+import { ChargingLookupController, ChargingLookupDto } from '../../../src/nest/roadtrip/charging-lookup.controller';
+import {
+  matchChargingLocation,
+  normalizeCharging,
+  type ChargingLocation,
+  type ChargingSource,
+  type ChargingTariff,
+} from '../../../src/nest/roadtrip/charging.helpers';
+import { ChargingMcp } from '../../../src/nest/roadtrip/charging.mcp';
+import { ChargingService, empty } from '../../../src/nest/roadtrip/charging.service';
+import { chargingLookupSchema } from '@trek/shared';
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const now = Date.parse('2026-09-12T12:00:00Z');
-const source: ChargingSource = { uid: 'test', name: 'Test operator', public_url: 'https://example.com', attribution_license: 'CC-0', attribution_contributor: null, realtime_data_updated_at: new Date(now).toISOString(), realtime_status: 'ACTIVE' };
-const station: ChargingLocation = { id: '1', source: 'test', name: 'Test charging', operator: { name: 'Test' }, address: 'Main street', city: 'City', last_updated: new Date(now).toISOString(), coordinates: { latitude: 48, longitude: 11 }, charging_pool: [{ evses: [
-  { uid: '1', evse_id: 'DE*TEST*1', status: 'AVAILABLE', last_updated: new Date(now - 86400000).toISOString(), connectors: [{ tariff_ids: ['original'] }] },
-  { uid: '2', status: 'CHARGING', last_updated: new Date(now).toISOString(), connectors: [] },
-  { uid: '3', status: 'STATIC', last_updated: new Date(now).toISOString(), connectors: [] },
-] }] };
-const tariff: ChargingTariff = { id: '2', original_id: 'original', source: 'test', currency: 'EUR', last_updated: new Date(now).toISOString(), elements: [
-  { price_components: [{ type: 'ENERGY', price: 0.5, taxes: [{ percentage: 19 }] }] },
-  { restrictions: { min_duration: 1800 }, price_components: [{ type: 'TIME', price: 12, taxes: [] }] },
-] };
+const source: ChargingSource = {
+  uid: 'test',
+  name: 'Test operator',
+  public_url: 'https://example.com',
+  attribution_license: 'CC-0',
+  attribution_contributor: null,
+  realtime_data_updated_at: new Date(now).toISOString(),
+  realtime_status: 'ACTIVE',
+};
+const station: ChargingLocation = {
+  id: '1',
+  source: 'test',
+  name: 'Test charging',
+  operator: { name: 'Test' },
+  address: 'Main street',
+  city: 'City',
+  last_updated: new Date(now).toISOString(),
+  coordinates: { latitude: 48, longitude: 11 },
+  charging_pool: [
+    {
+      evses: [
+        {
+          uid: '1',
+          evse_id: 'DE*TEST*1',
+          status: 'AVAILABLE',
+          last_updated: new Date(now - 86400000).toISOString(),
+          connectors: [{ tariff_ids: ['original'] }],
+        },
+        { uid: '2', status: 'CHARGING', last_updated: new Date(now).toISOString(), connectors: [] },
+        { uid: '3', status: 'STATIC', last_updated: new Date(now).toISOString(), connectors: [] },
+      ],
+    },
+  ],
+};
+const tariff: ChargingTariff = {
+  id: '2',
+  original_id: 'original',
+  source: 'test',
+  currency: 'EUR',
+  last_updated: new Date(now).toISOString(),
+  elements: [
+    { price_components: [{ type: 'ENERGY', price: 0.5, taxes: [{ percentage: 19 }] }] },
+    { restrictions: { min_duration: 1800 }, price_components: [{ type: 'TIME', price: 12, taxes: [] }] },
+  ],
+};
 
 afterEach(() => vi.unstubAllGlobals());
 describe('Open charging data', () => {
@@ -38,11 +80,16 @@ describe('Open charging data', () => {
   });
   it('rejects distant or ambiguous stations instead of attaching another operator’s data', () => {
     expect(matchChargingLocation([station], 0, 0, 'Test')).toBeNull();
-    expect(matchChargingLocation([station, { ...station, id: 'other', operator: { name: 'Other' } }], 48, 11, 'Charging')).toBe('ambiguous');
+    expect(
+      matchChargingLocation([station, { ...station, id: 'other', operator: { name: 'Other' } }], 48, 11, 'Charging'),
+    ).toBe('ambiguous');
     expect(matchChargingLocation([station], 48, 11, 'Test')).toEqual(station);
   });
   it('checks trip/place scope and ignores non-charging places', async () => {
-    const findChargingProbe = vi.fn().mockResolvedValueOnce(undefined).mockResolvedValueOnce({ name: 'Hotel', lat: 48, lng: 11, stop_type: 'hotel' });
+    const findChargingProbe = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({ name: 'Hotel', lat: 48, lng: 11, stop_type: 'hotel' });
     const service = new ChargingService({ findChargingProbe } as never);
     await expect(service.read(1, 2)).rejects.toThrow();
     expect((await service.read(1, 2)).status).toBe('unknown');
@@ -55,7 +102,9 @@ describe('Open charging data', () => {
       return new Response('', { status: 503 });
     });
     vi.stubGlobal('fetch', fetcher);
-    const service = new ChargingService({ findChargingProbe: async () => ({ name: 'Test', lat: 48, lng: 11, stop_type: 'charging' }) } as never);
+    const service = new ChargingService({
+      findChargingProbe: async () => ({ name: 'Test', lat: 48, lng: 11, stop_type: 'charging' }),
+    } as never);
     const [first, second] = await Promise.all([service.read(1, 2), service.read(1, 2)]);
     expect(first).toEqual(second);
     expect(first.status).toBe('ok');
@@ -82,19 +131,26 @@ describe('Open charging data before the stop exists', () => {
    * Only `Date.now` is pinned, never the timers: the outbound requests carry an
    * `AbortSignal.timeout` that has to keep running.
    */
-  beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(now); });
-  afterEach(() => { vi.restoreAllMocks(); });
-
-  const answers = (tariffs: unknown) => vi.fn(async (url: string) => {
-    if (url.includes('/sources')) return new Response(JSON.stringify({ items: [source] }));
-    if (url.includes('/locations')) return new Response(JSON.stringify({ items: [station], total_count: 1 }));
-    return new Response(JSON.stringify(tariffs));
+  beforeEach(() => {
+    vi.spyOn(Date, 'now').mockReturnValue(now);
   });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const answers = (tariffs: unknown) =>
+    vi.fn(async (url: string) => {
+      if (url.includes('/sources')) return new Response(JSON.stringify({ items: [source] }));
+      if (url.includes('/locations')) return new Response(JSON.stringify({ items: [station], total_count: 1 }));
+      return new Response(JSON.stringify(tariffs));
+    });
 
   it('answers for a coordinate and lets the saved stop reuse that answer', async () => {
     const fetcher = answers({ items: [tariff], total_count: 1 });
     vi.stubGlobal('fetch', fetcher);
-    const service = new ChargingService({ findChargingProbe: async () => ({ name: 'Test', lat: 48, lng: 11, stop_type: 'charging' }) } as never);
+    const service = new ChargingService({
+      findChargingProbe: async () => ({ name: 'Test', lat: 48, lng: 11, stop_type: 'charging' }),
+    } as never);
 
     const ahead = await service.lookup(48, 11, 'Test');
     expect(ahead.status).toBe('ok');
@@ -110,18 +166,37 @@ describe('Open charging data before the stop exists', () => {
   it('never reports a station it could not identify as free', async () => {
     // Two operators within the radius is the dense case a station found along a route
     // routinely is. Returning the nearest one would attach another operator's prices.
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
-      if (url.includes('/sources')) return new Response(JSON.stringify({ items: [source] }));
-      return new Response(JSON.stringify({ items: [station, { ...station, id: 'other', operator: { name: 'Other' } }], total_count: 2 }));
-    }));
-    const info = await new ChargingService({ findChargingProbe: async () => undefined } as never).lookup(48, 11, 'Charging');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url.includes('/sources')) return new Response(JSON.stringify({ items: [source] }));
+        return new Response(
+          JSON.stringify({
+            items: [station, { ...station, id: 'other', operator: { name: 'Other' } }],
+            total_count: 2,
+          }),
+        );
+      }),
+    );
+    const info = await new ChargingService({ findChargingProbe: async () => undefined } as never).lookup(
+      48,
+      11,
+      'Charging',
+    );
     expect(info.status).toBe('ambiguous');
     expect(info.available).toBeNull();
   });
 
   it('turns an unreachable source into an empty answer, not a failed request', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 503 })));
-    const info = await new ChargingService({ findChargingProbe: async () => undefined } as never).lookup(48, 11, 'Test');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('', { status: 503 })),
+    );
+    const info = await new ChargingService({ findChargingProbe: async () => undefined } as never).lookup(
+      48,
+      11,
+      'Test',
+    );
     expect(info).toEqual({ ...empty('unavailable'), checkedAt: info.checkedAt });
   });
 
@@ -146,15 +221,24 @@ describe('Open charging data before the stop exists', () => {
     await tool.lookup({ tripId: 3, ...input }, { userId: 5 } as never);
     await new ChargingLookupController(charging as never).lookup(input as unknown as ChargingLookupDto);
 
-    expect(charging.lookup.mock.calls).toEqual([[48.1, 11.5, 'Ladepark Nord'], [48.1, 11.5, 'Ladepark Nord']]);
+    expect(charging.lookup.mock.calls).toEqual([
+      [48.1, 11.5, 'Ladepark Nord'],
+      [48.1, 11.5, 'Ladepark Nord'],
+    ]);
     // Both surfaces validate through the shared contract rather than a restatement of
     // it, so a bound or a length limit cannot be tightened on one side only.
-    for (const bad of [{ ...input, lat: 91 }, { ...input, lng: -181 }, { ...input, name: 'x'.repeat(201) }]) {
+    for (const bad of [
+      { ...input, lat: 91 },
+      { ...input, lng: -181 },
+      { ...input, name: 'x'.repeat(201) },
+    ]) {
       expect(ChargingLookupDto.schema.safeParse(bad).success).toBe(false);
       expect(chargingLookupSchema.safeParse(bad).success).toBe(false);
     }
     expect(ChargingLookupDto.schema.safeParse(input).success).toBe(true);
-    const declared = getEntry(ChargingMcp as unknown as ClassRef, 'lookup')?.options as { inputSchema: Record<string, unknown> };
+    const declared = getEntry(ChargingMcp as unknown as ClassRef, 'lookup')?.options as {
+      inputSchema: Record<string, unknown>;
+    };
     expect(Object.keys(declared.inputSchema).sort()).toEqual(['lat', 'lng', 'name', 'tripId']);
     for (const [field, type] of Object.entries(chargingLookupSchema.shape)) {
       expect(declared.inputSchema[field]).toBe(type);

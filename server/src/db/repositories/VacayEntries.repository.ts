@@ -3,7 +3,15 @@ import type { VacayEntries } from '../entities/VacayEntries.entity';
 import { TrekRepository } from './_shared/trek-repository';
 
 interface VacayEntriesKyselyDB {
-  vacay_entries: { id: number; plan_id: number; user_id: number; date: string; note: string | null; fraction: number; kind: string };
+  vacay_entries: {
+    id: number;
+    plan_id: number;
+    user_id: number;
+    date: string;
+    note: string | null;
+    fraction: number;
+    kind: string;
+  };
 }
 
 /** VC111's joined grid projection (`getEntries`) — the full entry row plus the author's username and color. */
@@ -40,7 +48,14 @@ export class VacayEntriesRepository extends TrekRepository<VacayEntries> {
   async sumFraction(userId: number, planId: number, start: string, end: string): Promise<number> {
     const row = await this.kysely<VacayEntriesKyselyDB>()
       .selectFrom('vacay_entries')
-      .select((eb) => eb.fn.coalesce(eb.fn.sum<number>(eb.case().when('kind', '=', 'comp').then(0).else(eb.ref('fraction')).end()), eb.val(0)).as('used'))
+      .select((eb) =>
+        eb.fn
+          .coalesce(
+            eb.fn.sum<number>(eb.case().when('kind', '=', 'comp').then(0).else(eb.ref('fraction')).end()),
+            eb.val(0),
+          )
+          .as('used'),
+      )
       .where('user_id', '=', userId)
       .where('plan_id', '=', planId)
       .where('date', '>=', start)
@@ -97,7 +112,10 @@ export class VacayEntriesRepository extends TrekRepository<VacayEntries> {
     // (user, plan, date) index order instead, so the per-row collision check
     // above skips different rows than legacy did on consecutive days inserted
     // out of id order.
-    const rows = await this.find({ plan: planId, user: userId, date: { $gte: start, $lte: end } }, { fields: ['id', 'date'], orderBy: { id: 'asc' } });
+    const rows = await this.find(
+      { plan: planId, user: userId, date: { $gte: start, $lte: end } },
+      { fields: ['id', 'date'], orderBy: { id: 'asc' } },
+    );
     for (const row of rows) {
       const shiftedDate = shiftIsoDate(row.date, offset);
       const collision = await this.findOne({ plan: planId, user: userId, date: shiftedDate }, { fields: ['id'] });
@@ -157,16 +175,32 @@ export class VacayEntriesRepository extends TrekRepository<VacayEntries> {
    */
   async listForRangeWithPerson(planId: number, start: string, end: string): Promise<VacayEntryWithPersonRow[]> {
     interface EntriesWithPersonKyselyDB {
-      vacay_entries: { id: number; plan_id: number; user_id: number; date: string; note: string | null; fraction: number; kind: string };
+      vacay_entries: {
+        id: number;
+        plan_id: number;
+        user_id: number;
+        date: string;
+        note: string | null;
+        fraction: number;
+        kind: string;
+      };
       users: { id: number; username: string };
       vacay_user_colors: { id: number; user_id: number; plan_id: number; color: string | null };
     }
     return this.kysely<EntriesWithPersonKyselyDB>()
       .selectFrom('vacay_entries as e')
       .innerJoin('users as u', 'u.id', 'e.user_id')
-      .leftJoin('vacay_user_colors as c', (join) => join.onRef('c.user_id', '=', 'e.user_id').onRef('c.plan_id', '=', 'e.plan_id'))
+      .leftJoin('vacay_user_colors as c', (join) =>
+        join.onRef('c.user_id', '=', 'e.user_id').onRef('c.plan_id', '=', 'e.plan_id'),
+      )
       .select((eb) => [
-        'e.id', 'e.plan_id', 'e.user_id', 'e.date', 'e.note', 'e.fraction', 'e.kind',
+        'e.id',
+        'e.plan_id',
+        'e.user_id',
+        'e.date',
+        'e.note',
+        'e.fraction',
+        'e.kind',
         'u.username as person_name',
         eb.fn.coalesce('c.color', eb.val('#6366f1')).as('person_color'),
       ])
@@ -177,7 +211,12 @@ export class VacayEntriesRepository extends TrekRepository<VacayEntries> {
   }
 
   /** VC92 (`getSharedCalendars`) — `SELECT date, fraction, kind FROM vacay_entries WHERE plan_id = ? AND user_id = ? AND date >= ? AND date < ? ORDER BY date`, over the OWNER's plan and the VIEWER's leave-year window. */
-  async listForOwnerRange(planId: number, userId: number, start: string, end: string): Promise<{ date: string; fraction: number; kind: string | null }[]> {
+  async listForOwnerRange(
+    planId: number,
+    userId: number,
+    start: string,
+    end: string,
+  ): Promise<{ date: string; fraction: number; kind: string | null }[]> {
     const rows = await this.find(
       { plan: planId, user: userId, date: { $gte: start, $lt: end } },
       { fields: ['date', 'fraction', 'kind'], orderBy: { date: 'asc' } },
@@ -191,7 +230,11 @@ export class VacayEntriesRepository extends TrekRepository<VacayEntries> {
    * Named `findByUserDatePlan`, not `find` — `EntityRepository#find` already
    * exists with an incompatible signature.
    */
-  async findByUserDatePlan(userId: number, date: string, planId: number): Promise<{ id: number; fraction: number; kind: string | null } | null> {
+  async findByUserDatePlan(
+    userId: number,
+    date: string,
+    planId: number,
+  ): Promise<{ id: number; fraction: number; kind: string | null } | null> {
     const row = await this.findOne({ user: userId, date, plan: planId }, { fields: ['id', 'fraction', 'kind'] });
     return row ? { id: row.id, fraction: row.fraction, kind: row.kind ?? null } : null;
   }
@@ -207,7 +250,14 @@ export class VacayEntriesRepository extends TrekRepository<VacayEntries> {
   }
 
   /** VC117 — `INSERT INTO vacay_entries (plan_id, user_id, date, note, fraction, kind) VALUES (?, ?, ?, ?, ?, ?)` (`toggleEntry`'s new entry — `note` is always `''` from this path). */
-  async insertEntry(planId: number, userId: number, date: string, note: string, fraction: number, kind: string): Promise<void> {
+  async insertEntry(
+    planId: number,
+    userId: number,
+    date: string,
+    note: string,
+    fraction: number,
+    kind: string,
+  ): Promise<void> {
     await this.insert({ plan: planId, user: userId, date, note, fraction, kind });
   }
 }

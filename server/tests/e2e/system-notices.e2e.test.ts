@@ -16,12 +16,18 @@
  * class this file would otherwise have to fully re-implement to keep testing
  * through HTTP.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { SystemNoticesModule } from '../../src/nest/system-notices/system-notices.module';
+import { SystemNoticesService } from '../../src/nest/system-notices/system-notices.service';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -35,15 +41,13 @@ const { db } = vi.hoisted(() => {
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
-import { SystemNoticesModule } from '../../src/nest/system-notices/system-notices.module';
-import { SystemNoticesService } from '../../src/nest/system-notices/system-notices.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
-
 const notice = {
-  id: 'welcome', display: 'modal', severity: 'info',
-  titleKey: 'notice.welcome.title', bodyKey: 'notice.welcome.body', dismissible: true,
+  id: 'welcome',
+  display: 'modal',
+  severity: 'info',
+  titleKey: 'notice.welcome.title',
+  bodyKey: 'notice.welcome.body',
+  dismissible: true,
 };
 
 describe('System-notices e2e (real auth guard + temp SQLite)', () => {
@@ -60,7 +64,9 @@ describe('System-notices e2e (real auth guard + temp SQLite)', () => {
     // own MikroOrmModule.forFeature (Plan 3f Task 6) — no case here reaches a
     // real repository (SystemNoticesService is overridden below), so the
     // minimal `users`-only schema above is enough.
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), SystemNoticesModule] })
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), SystemNoticesModule],
+    })
       .overrideProvider(SystemNoticesService)
       .useValue({ getActiveFor, dismiss })
       .compile();
@@ -95,9 +101,12 @@ describe('System-notices e2e (real auth guard + temp SQLite)', () => {
     expect(getActiveFor).toHaveBeenCalledWith(1, new Set(), undefined);
   });
 
-  it('passes ?supports=/?ui= through as the controller\'s own parsed arguments', async () => {
+  it("passes ?supports=/?ui= through as the controller's own parsed arguments", async () => {
     getActiveFor.mockResolvedValueOnce([]);
-    await request(server).get('/api/system-notices/active').query({ supports: 'release,banner', ui: '4.3.0' }).set('Cookie', sessionCookie(1));
+    await request(server)
+      .get('/api/system-notices/active')
+      .query({ supports: 'release,banner', ui: '4.3.0' })
+      .set('Cookie', sessionCookie(1));
     expect(getActiveFor).toHaveBeenLastCalledWith(1, new Set(['release', 'banner']), '4.3.0');
   });
 

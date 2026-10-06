@@ -1,5 +1,5 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { startGeoCacheCleanup, stopGeoCacheCleanup } from './nominatim.client';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 
 /**
  * Owns the geo cache's cleanup timer, and nothing else.

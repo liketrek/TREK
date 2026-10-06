@@ -1,8 +1,8 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { CollectionMembersRepository } from '../repositories/CollectionMembers.repository';
 import { DbTimestampType } from '../types';
 import { Collections } from './Collections.entity';
 import { Users } from './Users.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class CollectionMembers {
   [EntityRepositoryType]?: CollectionMembersRepository;

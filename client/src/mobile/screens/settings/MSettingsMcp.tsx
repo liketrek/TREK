@@ -1,62 +1,80 @@
-import { useEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, ChevronRight, Copy, KeyRound, Plus, RefreshCw, Terminal, Trash2 } from 'lucide-react'
-import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
-import { authApi, oauthApi } from '../../../api/client'
-import { PRESET_SCOPES_DEFAULT, PRESET_SCOPES_READONLY } from '../../../api/oauthScopes'
-import MScopeGroupPicker from './MScopeGroupPicker'
-import MSheet from '../../components/MSheet'
-import MToggle from '../../components/MToggle'
-import MChip from '../../components/MChip'
-import { MSetCard, MSetEyebrow, MSetInput, MSetTextarea, MSetButton, MSetHint, MSetRow } from './MSettingsUi'
-import MConfirmSheet from './MConfirmSheet'
-import MSegmented from '../../components/MSegmented'
-import { getApiErrorMessage } from '../../../utils/apiError'
+import { Check, ChevronDown, ChevronRight, Copy, KeyRound, Plus, RefreshCw, Terminal, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { authApi, oauthApi } from '../../../api/client';
+import { PRESET_SCOPES_DEFAULT, PRESET_SCOPES_READONLY } from '../../../api/oauthScopes';
+import { useToast } from '../../../components/shared/Toast';
+import { useTranslation } from '../../../i18n';
+import { getApiErrorMessage } from '../../../utils/apiError';
+import MChip from '../../components/MChip';
+import MSegmented from '../../components/MSegmented';
+import MSheet from '../../components/MSheet';
+import MToggle from '../../components/MToggle';
+import MConfirmSheet from './MConfirmSheet';
+import MScopeGroupPicker from './MScopeGroupPicker';
+import { MSetButton, MSetCard, MSetEyebrow, MSetHint, MSetInput, MSetRow, MSetTextarea } from './MSettingsUi';
 
 interface OAuthPreset {
-  id: string
-  label: string
-  name: string
-  uris: string
-  scopes: string[]
+  id: string;
+  label: string;
+  name: string;
+  uris: string;
+  scopes: string[];
 }
 
 const OAUTH_PRESETS: OAuthPreset[] = [
-  { id: 'claude-web', label: 'Claude.ai', name: 'Claude.ai', uris: 'https://claude.ai/api/mcp/auth_callback', scopes: PRESET_SCOPES_DEFAULT },
-  { id: 'claude-desktop', label: 'Claude Desktop', name: 'Claude Desktop', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
+  {
+    id: 'claude-web',
+    label: 'Claude.ai',
+    name: 'Claude.ai',
+    uris: 'https://claude.ai/api/mcp/auth_callback',
+    scopes: PRESET_SCOPES_DEFAULT,
+  },
+  {
+    id: 'claude-desktop',
+    label: 'Claude Desktop',
+    name: 'Claude Desktop',
+    uris: 'http://localhost',
+    scopes: PRESET_SCOPES_DEFAULT,
+  },
   { id: 'cursor', label: 'Cursor', name: 'Cursor', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
-  { id: 'vscode', label: 'VS Code', name: 'VS Code / Copilot', uris: 'http://localhost', scopes: PRESET_SCOPES_READONLY },
+  {
+    id: 'vscode',
+    label: 'VS Code',
+    name: 'VS Code / Copilot',
+    uris: 'http://localhost',
+    scopes: PRESET_SCOPES_READONLY,
+  },
   { id: 'windsurf', label: 'Windsurf', name: 'Windsurf', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
   { id: 'zed', label: 'Zed', name: 'Zed', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
-]
+];
 
 interface OAuthClient {
-  id: string
-  name: string
-  client_id: string
-  redirect_uris: string[]
-  allowed_scopes: string[]
-  allows_client_credentials: boolean
-  created_at: string
-  client_secret?: string // only present on create
+  id: string;
+  name: string;
+  client_id: string;
+  redirect_uris: string[];
+  allowed_scopes: string[];
+  allows_client_credentials: boolean;
+  created_at: string;
+  client_secret?: string; // only present on create
 }
 
 interface OAuthSession {
-  id: number
-  client_id: string
-  client_name: string
-  scopes: string[]
-  access_token_expires_at: string
-  refresh_token_expires_at: string
-  created_at: string
+  id: number;
+  client_id: string;
+  client_name: string;
+  scopes: string[];
+  access_token_expires_at: string;
+  refresh_token_expires_at: string;
+  created_at: string;
 }
 
 interface McpToken {
-  id: number
-  name: string
-  token_prefix: string
-  created_at: string
-  last_used_at: string | null
+  id: number;
+  name: string;
+  token_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
 }
 
 function CopyButton({ text, copied, onCopy }: { text: string; copied: boolean; onCopy: (text: string) => void }) {
@@ -69,7 +87,7 @@ function CopyButton({ text, copied, onCopy }: { text: string; copied: boolean; o
     >
       {copied ? <Check size={14} className="text-[color:var(--m-st-confirmed)]" /> : <Copy size={14} />}
     </button>
-  )
+  );
 }
 
 function CodeBlock({ children }: { children: string }) {
@@ -77,7 +95,7 @@ function CodeBlock({ children }: { children: string }) {
     <pre className="overflow-x-auto rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3 font-mono text-[0.625rem] leading-relaxed text-m-ink">
       {children}
     </pre>
-  )
+  );
 }
 
 /**
@@ -86,56 +104,66 @@ function CodeBlock({ children }: { children: string }) {
  * tokens, with the desktop modals as floating sheets.
  */
 export default function MSettingsMcp() {
-  const { t, locale } = useTranslation()
-  const toast = useToast()
+  const { t, locale } = useTranslation();
+  const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState<'oauth' | 'apitokens'>('oauth')
-  const [configOpenOAuth, setConfigOpenOAuth] = useState(false)
-  const [configOpenToken, setConfigOpenToken] = useState(false)
-  const [copiedKey, setCopiedKey] = useState<string | null>(null)
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [activeTab, setActiveTab] = useState<'oauth' | 'apitokens'>('oauth');
+  const [configOpenOAuth, setConfigOpenOAuth] = useState(false);
+  const [configOpenToken, setConfigOpenToken] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // OAuth clients
-  const [clients, setClients] = useState<OAuthClient[]>([])
-  const [sessions, setSessions] = useState<OAuthSession[]>([])
-  const [createOpen, setCreateOpen] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newUris, setNewUris] = useState('')
-  const [newScopes, setNewScopes] = useState<string[]>([])
-  const [isMachine, setIsMachine] = useState(false)
-  const [creating, setCreating] = useState(false)
-  const [createdClient, setCreatedClient] = useState<OAuthClient | null>(null)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [revokeId, setRevokeId] = useState<number | null>(null)
-  const [rotateId, setRotateId] = useState<string | null>(null)
-  const [rotatedSecret, setRotatedSecret] = useState<string | null>(null)
-  const [rotating, setRotating] = useState(false)
-  const [scopesExpanded, setScopesExpanded] = useState<Record<string, boolean>>({})
+  const [clients, setClients] = useState<OAuthClient[]>([]);
+  const [sessions, setSessions] = useState<OAuthSession[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newUris, setNewUris] = useState('');
+  const [newScopes, setNewScopes] = useState<string[]>([]);
+  const [isMachine, setIsMachine] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createdClient, setCreatedClient] = useState<OAuthClient | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [revokeId, setRevokeId] = useState<number | null>(null);
+  const [rotateId, setRotateId] = useState<string | null>(null);
+  const [rotatedSecret, setRotatedSecret] = useState<string | null>(null);
+  const [rotating, setRotating] = useState(false);
+  const [scopesExpanded, setScopesExpanded] = useState<Record<string, boolean>>({});
 
   // API tokens (deprecated)
-  const [tokens, setTokens] = useState<McpToken[]>([])
-  const [tokenModalOpen, setTokenModalOpen] = useState(false)
-  const [tokenNewName, setTokenNewName] = useState('')
-  const [createdToken, setCreatedToken] = useState<string | null>(null)
-  const [tokenCreating, setTokenCreating] = useState(false)
-  const [tokenDeleteId, setTokenDeleteId] = useState<number | null>(null)
+  const [tokens, setTokens] = useState<McpToken[]>([]);
+  const [tokenModalOpen, setTokenModalOpen] = useState(false);
+  const [tokenNewName, setTokenNewName] = useState('');
+  const [createdToken, setCreatedToken] = useState<string | null>(null);
+  const [tokenCreating, setTokenCreating] = useState(false);
+  const [tokenDeleteId, setTokenDeleteId] = useState<number | null>(null);
 
   useEffect(() => {
     return () => {
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-    }
-  }, [])
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   // Re-read after create/rotate so the rows show what the server actually stored.
-  const reloadClients = () => oauthApi.clients.list().then((d) => setClients(d.clients || [])).catch(() => {})
+  const reloadClients = () =>
+    oauthApi.clients
+      .list()
+      .then((d) => setClients(d.clients || []))
+      .catch(() => {});
 
   useEffect(() => {
-    authApi.mcpTokens.list().then((d) => setTokens(d.tokens || [])).catch(() => {})
-    reloadClients()
-    oauthApi.sessions.list().then((d) => setSessions(d.sessions || [])).catch(() => {})
-  }, [])
+    authApi.mcpTokens
+      .list()
+      .then((d) => setTokens(d.tokens || []))
+      .catch(() => {});
+    reloadClients();
+    oauthApi.sessions
+      .list()
+      .then((d) => setSessions(d.sessions || []))
+      .catch(() => {});
+  }, []);
 
-  const mcpEndpoint = `${window.location.origin}/mcp`
+  const mcpEndpoint = `${window.location.origin}/mcp`;
   const jsonConfigOAuth = `{
   "mcpServers": {
     "trek": {
@@ -148,7 +176,7 @@ export default function MSettingsMcp() {
       ]
     }
   }
-}`
+}`;
   const jsonConfigToken = `{
   "mcpServers": {
     "trek": {
@@ -161,108 +189,119 @@ export default function MSettingsMcp() {
       ]
     }
   }
-}`
+}`;
 
   const handleCopy = (text: string, key: string) => {
     void navigator.clipboard.writeText(text).then(() => {
-      setCopiedKey(key)
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-      copyTimerRef.current = setTimeout(() => setCopiedKey(null), 2000)
-    })
-  }
+      setCopiedKey(key);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopiedKey(null), 2000);
+    });
+  };
 
   const createClient = async () => {
-    if (!newName.trim()) return
-    if (!isMachine && !newUris.trim()) return
-    setCreating(true)
+    if (!newName.trim()) return;
+    if (!isMachine && !newUris.trim()) return;
+    setCreating(true);
     try {
-      const uris = isMachine ? [] : newUris.split('\n').map((u) => u.trim()).filter(Boolean)
+      const uris = isMachine
+        ? []
+        : newUris
+            .split('\n')
+            .map((u) => u.trim())
+            .filter(Boolean);
       const d = await oauthApi.clients.create({
         name: newName.trim(),
         redirect_uris: uris,
         allowed_scopes: newScopes,
         ...(isMachine ? { allows_client_credentials: true } : {}),
-      })
-      setCreatedClient(d.client)
-      await reloadClients()
-      setNewName('')
-      setNewUris('')
-      setNewScopes([])
-      setIsMachine(false)
+      });
+      setCreatedClient(d.client);
+      await reloadClients();
+      setNewName('');
+      setNewUris('');
+      setNewScopes([]);
+      setIsMachine(false);
     } catch (err) {
       // The server names the rule that refused the client (a scope, the
       // ten-client cap, a redirect URI it will not take); swallowing it left
       // "Failed to register OAuth client" and nothing to act on.
-      toast.error(getApiErrorMessage(err, t('settings.oauth.toast.createError')))
+      toast.error(getApiErrorMessage(err, t('settings.oauth.toast.createError')));
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
-  }
+  };
 
   const deleteClient = async (id: string) => {
     try {
-      await oauthApi.clients.delete(id)
-      setClients((prev) => prev.filter((c) => c.id !== id))
-      setDeleteId(null)
-      toast.success(t('settings.oauth.toast.deleted'))
+      await oauthApi.clients.delete(id);
+      setClients((prev) => prev.filter((c) => c.id !== id));
+      setDeleteId(null);
+      toast.success(t('settings.oauth.toast.deleted'));
     } catch {
-      toast.error(t('settings.oauth.toast.deleteError'))
+      toast.error(t('settings.oauth.toast.deleteError'));
     }
-  }
+  };
 
   const rotateSecret = async (id: string) => {
-    setRotating(true)
+    setRotating(true);
     try {
-      const d = await oauthApi.clients.rotate(id)
-      setRotatedSecret(d.client_secret)
-      setRotateId(null)
-      await reloadClients()
+      const d = await oauthApi.clients.rotate(id);
+      setRotatedSecret(d.client_secret);
+      setRotateId(null);
+      await reloadClients();
     } catch {
-      toast.error(t('settings.oauth.toast.rotateError'))
+      toast.error(t('settings.oauth.toast.rotateError'));
     } finally {
-      setRotating(false)
+      setRotating(false);
     }
-  }
+  };
 
   const revokeSession = async (id: number) => {
     try {
-      await oauthApi.sessions.revoke(id)
-      setSessions((prev) => prev.filter((s) => s.id !== id))
-      setRevokeId(null)
-      toast.success(t('settings.oauth.toast.revoked'))
+      await oauthApi.sessions.revoke(id);
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+      setRevokeId(null);
+      toast.success(t('settings.oauth.toast.revoked'));
     } catch {
-      toast.error(t('settings.oauth.toast.revokeError'))
+      toast.error(t('settings.oauth.toast.revokeError'));
     }
-  }
+  };
 
   const createToken = async () => {
-    if (!tokenNewName.trim()) return
-    setTokenCreating(true)
+    if (!tokenNewName.trim()) return;
+    setTokenCreating(true);
     try {
-      const d = await authApi.mcpTokens.create(tokenNewName.trim())
-      setCreatedToken(d.token.raw_token)
-      setTokenNewName('')
+      const d = await authApi.mcpTokens.create(tokenNewName.trim());
+      setCreatedToken(d.token.raw_token);
+      setTokenNewName('');
       setTokens((prev) => [
-        { id: d.token.id, name: d.token.name, token_prefix: d.token.token_prefix, created_at: d.token.created_at, last_used_at: null },
+        {
+          id: d.token.id,
+          name: d.token.name,
+          token_prefix: d.token.token_prefix,
+          created_at: d.token.created_at,
+          last_used_at: null,
+        },
         ...prev,
-      ])
+      ]);
     } catch {
-      toast.error(t('settings.mcp.toast.createError'))
+      toast.error(t('settings.mcp.toast.createError'));
     } finally {
-      setTokenCreating(false)
+      setTokenCreating(false);
     }
-  }
+  };
 
   const deleteToken = async (id: number) => {
     try {
-      await authApi.mcpTokens.delete(id)
-      setTokens((prev) => prev.filter((tk) => tk.id !== id))
-      setTokenDeleteId(null)
-      toast.success(t('settings.mcp.toast.deleted'))
+      await authApi.mcpTokens.delete(id);
+      setTokens((prev) => prev.filter((tk) => tk.id !== id));
+      setTokenDeleteId(null);
+      toast.success(t('settings.mcp.toast.deleted'));
     } catch {
-      toast.error(t('settings.mcp.toast.deleteError'))
+      toast.error(t('settings.mcp.toast.deleteError'));
     }
-  }
+  };
 
   const configToggle = (open: boolean, setOpen: (v: boolean) => void, json: string, copyKey: string, hint: string) => (
     <div className="overflow-hidden rounded-xl border border-[color:var(--m-rowbr)]">
@@ -272,13 +311,21 @@ export default function MSettingsMcp() {
         className="flex w-full items-center justify-between bg-[color:var(--m-sheet)] px-3 py-[10px] text-[0.78125rem] font-bold text-m-ink"
       >
         {t('settings.mcp.clientConfig')}
-        {open ? <ChevronDown size={14} className="text-m-faint" /> : <ChevronRight size={14} className="text-m-faint" />}
+        {open ? (
+          <ChevronDown size={14} className="text-m-faint" />
+        ) : (
+          <ChevronRight size={14} className="text-m-faint" />
+        )}
       </button>
       {open && (
         <div className="border-t border-[color:var(--m-rowbr)] p-3">
           <div className="mb-[6px] flex justify-end">
             <MSetButton variant="ghost" onClick={() => handleCopy(json, copyKey)}>
-              {copiedKey === copyKey ? <Check size={12} className="text-[color:var(--m-st-confirmed)]" /> : <Copy size={12} />}
+              {copiedKey === copyKey ? (
+                <Check size={12} className="text-[color:var(--m-st-confirmed)]" />
+              ) : (
+                <Copy size={12} />
+              )}
               {copiedKey === copyKey ? t('settings.mcp.copied') : t('settings.mcp.copy')}
             </MSetButton>
           </div>
@@ -287,7 +334,7 @@ export default function MSettingsMcp() {
         </div>
       )}
     </div>
-  )
+  );
 
   return (
     <MSetCard title={t('settings.mcp.title')} icon={Terminal} className="mt-3">
@@ -296,7 +343,11 @@ export default function MSettingsMcp() {
         <code className="min-w-0 flex-1 truncate rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[11px] font-mono text-[0.75rem] text-m-ink">
           {mcpEndpoint}
         </code>
-        <CopyButton text={mcpEndpoint} copied={copiedKey === 'endpoint'} onCopy={(txt) => handleCopy(txt, 'endpoint')} />
+        <CopyButton
+          text={mcpEndpoint}
+          copied={copiedKey === 'endpoint'}
+          onCopy={(txt) => handleCopy(txt, 'endpoint')}
+        />
       </div>
 
       <MSegmented<'oauth' | 'apitokens'>
@@ -311,19 +362,25 @@ export default function MSettingsMcp() {
 
       {activeTab === 'oauth' && (
         <div className="mt-3 flex flex-col gap-3">
-          {configToggle(configOpenOAuth, setConfigOpenOAuth, jsonConfigOAuth, 'json-oauth', t('settings.mcp.clientConfigHintOAuth'))}
+          {configToggle(
+            configOpenOAuth,
+            setConfigOpenOAuth,
+            jsonConfigOAuth,
+            'json-oauth',
+            t('settings.mcp.clientConfigHintOAuth')
+          )}
 
           <div>
             <MSetHint className="mb-2 mt-0">{t('settings.oauth.clientsHint')}</MSetHint>
             <div className="mb-2 flex justify-end">
               <MSetButton
                 onClick={() => {
-                  setCreateOpen(true)
-                  setCreatedClient(null)
-                  setNewName('')
-                  setNewUris('')
-                  setNewScopes([])
-                  setIsMachine(false)
+                  setCreateOpen(true);
+                  setCreatedClient(null);
+                  setNewName('');
+                  setNewUris('');
+                  setNewScopes([]);
+                  setIsMachine(false);
                 }}
               >
                 <Plus size={13} /> {t('settings.oauth.createClient')}
@@ -337,19 +394,34 @@ export default function MSettingsMcp() {
             ) : (
               <div className="flex flex-col gap-2">
                 {clients.map((client) => (
-                  <div key={client.id} className="rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3">
+                  <div
+                    key={client.id}
+                    className="rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3"
+                  >
                     <div className="flex items-center gap-2">
                       <KeyRound size={14} className="flex-none text-m-muted" />
-                      <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-bold text-m-ink">{client.name}</span>
+                      <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-bold text-m-ink">
+                        {client.name}
+                      </span>
                       {client.allows_client_credentials && (
                         <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[1px] font-geist text-[0.5625rem] font-bold text-m-muted">
                           {t('settings.oauth.badge.machine')}
                         </span>
                       )}
-                      <button type="button" onClick={() => setRotateId(client.id)} aria-label={t('settings.oauth.rotateSecret')} className="rounded p-[6px] text-m-muted">
+                      <button
+                        type="button"
+                        onClick={() => setRotateId(client.id)}
+                        aria-label={t('settings.oauth.rotateSecret')}
+                        className="rounded p-[6px] text-m-muted"
+                      >
                         <RefreshCw size={14} />
                       </button>
-                      <button type="button" onClick={() => setDeleteId(client.id)} aria-label={t('settings.oauth.deleteClient')} className="rounded p-[6px] text-[color:var(--m-st-danger)]">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteId(client.id)}
+                        aria-label={t('settings.oauth.deleteClient')}
+                        className="rounded p-[6px] text-[color:var(--m-st-danger)]"
+                      >
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -360,11 +432,16 @@ export default function MSettingsMcp() {
                       {t('settings.mcp.tokenCreatedAt')} {new Date(client.created_at).toLocaleDateString(locale)}
                     </p>
                     <div className="mt-[6px] flex flex-wrap gap-1">
-                      {(scopesExpanded[client.id] ? client.allowed_scopes : client.allowed_scopes.slice(0, 5)).map((s) => (
-                        <span key={s} className="rounded bg-[color:var(--m-ic)] px-[5px] py-[2px] font-geist text-[0.5625rem] text-m-muted">
-                          {s}
-                        </span>
-                      ))}
+                      {(scopesExpanded[client.id] ? client.allowed_scopes : client.allowed_scopes.slice(0, 5)).map(
+                        (s) => (
+                          <span
+                            key={s}
+                            className="rounded bg-[color:var(--m-ic)] px-[5px] py-[2px] font-geist text-[0.5625rem] text-m-muted"
+                          >
+                            {s}
+                          </span>
+                        )
+                      )}
                       {client.allowed_scopes.length > 5 && (
                         <button
                           type="button"
@@ -386,14 +463,18 @@ export default function MSettingsMcp() {
               <MSetEyebrow className="mb-[5px]">{t('settings.oauth.activeSessions')}</MSetEyebrow>
               <div className="flex flex-col gap-2">
                 {sessions.map((session) => (
-                  <div key={session.id} className="flex items-center gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3">
+                  <div
+                    key={session.id}
+                    className="flex items-center gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3"
+                  >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[0.8125rem] font-bold text-m-ink">{session.client_name}</p>
                       <p className="mt-[2px] font-geist text-[0.625rem] text-m-faint">
                         {t('settings.oauth.sessionScopes')}: {session.scopes.join(', ')}
                       </p>
                       <p className="font-geist text-[0.625rem] text-m-faint">
-                        {t('settings.oauth.sessionExpires')} {new Date(session.access_token_expires_at).toLocaleDateString(locale)}
+                        {t('settings.oauth.sessionExpires')}{' '}
+                        {new Date(session.access_token_expires_at).toLocaleDateString(locale)}
                       </p>
                     </div>
                     <MSetButton variant="danger" onClick={() => setRevokeId(session.id)}>
@@ -413,15 +494,21 @@ export default function MSettingsMcp() {
             {t('settings.mcp.apiTokensDeprecated')}
           </p>
 
-          {configToggle(configOpenToken, setConfigOpenToken, jsonConfigToken, 'json-token', t('settings.mcp.clientConfigHint'))}
+          {configToggle(
+            configOpenToken,
+            setConfigOpenToken,
+            jsonConfigToken,
+            'json-token',
+            t('settings.mcp.clientConfigHint')
+          )}
 
           <div className="flex justify-end">
             <MSetButton
               variant="ghost"
               onClick={() => {
-                setTokenModalOpen(true)
-                setCreatedToken(null)
-                setTokenNewName('')
+                setTokenModalOpen(true);
+                setCreatedToken(null);
+                setTokenNewName('');
               }}
             >
               <Plus size={13} /> {t('settings.mcp.createToken')}
@@ -433,7 +520,10 @@ export default function MSettingsMcp() {
           ) : (
             <div className="flex flex-col gap-2">
               {tokens.map((token) => (
-                <div key={token.id} className="flex items-center gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3">
+                <div
+                  key={token.id}
+                  className="flex items-center gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3"
+                >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[0.8125rem] font-bold text-m-ink">{token.name}</p>
                     <p className="mt-[2px] font-mono text-[0.625rem] text-m-faint">
@@ -448,7 +538,12 @@ export default function MSettingsMcp() {
                       )}
                     </p>
                   </div>
-                  <button type="button" onClick={() => setTokenDeleteId(token.id)} aria-label={t('settings.mcp.deleteTokenTitle')} className="rounded p-[6px] text-[color:var(--m-st-danger)]">
+                  <button
+                    type="button"
+                    onClick={() => setTokenDeleteId(token.id)}
+                    aria-label={t('settings.mcp.deleteTokenTitle')}
+                    className="rounded p-[6px] text-[color:var(--m-st-danger)]"
+                  >
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -462,7 +557,7 @@ export default function MSettingsMcp() {
       <MSheet
         open={createOpen}
         onClose={() => {
-          if (!createdClient) setCreateOpen(false)
+          if (!createdClient) setCreateOpen(false);
         }}
         variant="card"
         material="opaque"
@@ -479,9 +574,9 @@ export default function MSettingsMcp() {
                   <MChip
                     key={preset.id}
                     onClick={() => {
-                      setNewName(preset.name)
-                      setNewUris(preset.uris)
-                      setNewScopes(preset.scopes)
+                      setNewName(preset.name);
+                      setNewUris(preset.uris);
+                      setNewScopes(preset.scopes);
                     }}
                   >
                     {preset.label}
@@ -490,12 +585,22 @@ export default function MSettingsMcp() {
               </div>
 
               <MSetEyebrow className="mb-[5px] mt-3">{t('settings.oauth.modal.clientName')}</MSetEyebrow>
-              <MSetInput value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('settings.oauth.modal.clientNamePlaceholder')} />
+              <MSetInput
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder={t('settings.oauth.modal.clientNamePlaceholder')}
+              />
 
               <MSetRow
                 label={t('settings.oauth.modal.machineClient')}
                 sub={t('settings.oauth.modal.machineClientHint')}
-                trailing={<MToggle checked={isMachine} onChange={setIsMachine} ariaLabel={t('settings.oauth.modal.machineClient')} />}
+                trailing={
+                  <MToggle
+                    checked={isMachine}
+                    onChange={setIsMachine}
+                    ariaLabel={t('settings.oauth.modal.machineClient')}
+                  />
+                }
               />
 
               {!isMachine && (
@@ -519,7 +624,10 @@ export default function MSettingsMcp() {
                 <MSetButton variant="ghost" onClick={() => setCreateOpen(false)}>
                   {t('common.cancel')}
                 </MSetButton>
-                <MSetButton onClick={createClient} disabled={!newName.trim() || (!isMachine && !newUris.trim()) || creating}>
+                <MSetButton
+                  onClick={createClient}
+                  disabled={!newName.trim() || (!isMachine && !newUris.trim()) || creating}
+                >
                   {creating ? t('settings.oauth.modal.creating') : t('settings.oauth.modal.create')}
                 </MSetButton>
               </div>
@@ -536,14 +644,22 @@ export default function MSettingsMcp() {
                 <code className="min-w-0 flex-1 break-all rounded-xl bg-[color:var(--m-ic)] p-2 font-mono text-[0.6875rem] text-m-ink">
                   {createdClient.client_id}
                 </code>
-                <CopyButton text={createdClient.client_id} copied={copiedKey === 'new-client-id'} onCopy={(txt) => handleCopy(txt, 'new-client-id')} />
+                <CopyButton
+                  text={createdClient.client_id}
+                  copied={copiedKey === 'new-client-id'}
+                  onCopy={(txt) => handleCopy(txt, 'new-client-id')}
+                />
               </div>
               <MSetEyebrow className="mb-1 mt-3">{t('settings.oauth.clientSecret')}</MSetEyebrow>
               <div className="flex items-center gap-2">
                 <code className="min-w-0 flex-1 break-all rounded-xl bg-[color:var(--m-ic)] p-2 font-mono text-[0.6875rem] text-m-ink">
                   {createdClient.client_secret}
                 </code>
-                <CopyButton text={createdClient.client_secret || ''} copied={copiedKey === 'new-client-secret'} onCopy={(txt) => handleCopy(txt, 'new-client-secret')} />
+                <CopyButton
+                  text={createdClient.client_secret || ''}
+                  copied={copiedKey === 'new-client-secret'}
+                  onCopy={(txt) => handleCopy(txt, 'new-client-secret')}
+                />
               </div>
 
               {createdClient.allows_client_credentials && (
@@ -555,8 +671,8 @@ export default function MSettingsMcp() {
               <div className="mt-4 flex justify-end">
                 <MSetButton
                   onClick={() => {
-                    setCreateOpen(false)
-                    setCreatedClient(null)
+                    setCreateOpen(false);
+                    setCreatedClient(null);
                   }}
                 >
                   {t('settings.mcp.modal.done')}
@@ -571,7 +687,7 @@ export default function MSettingsMcp() {
       <MSheet
         open={tokenModalOpen}
         onClose={() => {
-          if (!createdToken) setTokenModalOpen(false)
+          if (!createdToken) setTokenModalOpen(false);
         }}
         variant="card"
         material="opaque"
@@ -608,13 +724,17 @@ export default function MSettingsMcp() {
                 <code className="min-w-0 flex-1 break-all rounded-xl bg-[color:var(--m-ic)] p-2 font-mono text-[0.6875rem] text-m-ink">
                   {createdToken}
                 </code>
-                <CopyButton text={createdToken} copied={copiedKey === 'new-token'} onCopy={(txt) => handleCopy(txt, 'new-token')} />
+                <CopyButton
+                  text={createdToken}
+                  copied={copiedKey === 'new-token'}
+                  onCopy={(txt) => handleCopy(txt, 'new-token')}
+                />
               </div>
               <div className="mt-4 flex justify-end">
                 <MSetButton
                   onClick={() => {
-                    setTokenModalOpen(false)
-                    setCreatedToken(null)
+                    setTokenModalOpen(false);
+                    setCreatedToken(null);
                   }}
                 >
                   {t('settings.mcp.modal.done')}
@@ -626,7 +746,13 @@ export default function MSettingsMcp() {
       </MSheet>
 
       {/* Rotated secret display */}
-      <MSheet open={rotatedSecret !== null} onClose={() => setRotatedSecret(null)} variant="card" material="opaque" ariaLabel={t('settings.oauth.rotateSecretDoneTitle')}>
+      <MSheet
+        open={rotatedSecret !== null}
+        onClose={() => setRotatedSecret(null)}
+        variant="card"
+        material="opaque"
+        ariaLabel={t('settings.oauth.rotateSecretDoneTitle')}
+      >
         <div className="p-[18px]">
           <div className="text-[0.9375rem] font-extrabold text-m-ink">{t('settings.oauth.rotateSecretDoneTitle')}</div>
           <p className="mt-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3 font-geist text-[0.625rem] leading-relaxed text-[color:var(--m-st-pending)]">
@@ -637,7 +763,11 @@ export default function MSettingsMcp() {
             <code className="min-w-0 flex-1 break-all rounded-xl bg-[color:var(--m-ic)] p-2 font-mono text-[0.6875rem] text-m-ink">
               {rotatedSecret}
             </code>
-            <CopyButton text={rotatedSecret || ''} copied={copiedKey === 'rotated-secret'} onCopy={(txt) => handleCopy(txt, 'rotated-secret')} />
+            <CopyButton
+              text={rotatedSecret || ''}
+              copied={copiedKey === 'rotated-secret'}
+              onCopy={(txt) => handleCopy(txt, 'rotated-secret')}
+            />
           </div>
           <div className="mt-4 flex justify-end">
             <MSetButton onClick={() => setRotatedSecret(null)}>{t('settings.mcp.modal.done')}</MSetButton>
@@ -689,5 +819,5 @@ export default function MSettingsMcp() {
         onConfirm={() => tokenDeleteId !== null && deleteToken(tokenDeleteId)}
       />
     </MSetCard>
-  )
+  );
 }

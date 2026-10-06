@@ -1,9 +1,9 @@
-import type { RoadtripVia } from '@trek/shared';
-import type { AnchoredVia } from '@trek/shared/roadtrip';
-import type { RoadtripVias } from '../entities/RoadtripVias.entity';
 import { columnRef, maxOf } from '../dialect/sql-functions';
+import type { RoadtripVias } from '../entities/RoadtripVias.entity';
 import { toRow, type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
+import type { RoadtripVia } from '@trek/shared';
+import type { AnchoredVia } from '@trek/shared/roadtrip';
 
 const _roadtripViaRowKeys: AssertRowKeys<RoadtripVia, RoadtripVias> = true;
 
@@ -31,7 +31,10 @@ export interface RoadtripViaLegRow {
 export class RoadtripViasRepository extends TrekRepository<RoadtripVias> {
   /** RT2/AC16/AS23 — `SELECT id, day_id, after_order_index, sequence, lat, lng, created_at FROM roadtrip_vias WHERE day_id = ? ORDER BY after_order_index, sequence, id`. */
   async listForDay(day_id: number): Promise<RoadtripVia[]> {
-    const vias = await this.find({ day: day_id }, { orderBy: { after_order_index: 'asc', sequence: 'asc', id: 'asc' } });
+    const vias = await this.find(
+      { day: day_id },
+      { orderBy: { after_order_index: 'asc', sequence: 'asc', id: 'asc' } },
+    );
     return vias.map((v) => toRow(v) as RoadtripVia);
   }
 
@@ -53,7 +56,15 @@ export class RoadtripViasRepository extends TrekRepository<RoadtripVias> {
     const platform = this.getEntityManager().getPlatform();
     return await this.qb('v')
       .join('v.day', 'd')
-      .select(['v.id', columnRef(platform, 'v.day_id'), 'v.after_order_index', 'v.sequence', 'v.lat', 'v.lng', 'v.created_at'])
+      .select([
+        'v.id',
+        columnRef(platform, 'v.day_id'),
+        'v.after_order_index',
+        'v.sequence',
+        'v.lat',
+        'v.lng',
+        'v.created_at',
+      ])
       .where({ 'd.trip': trip_id })
       .orderBy({ 'd.id': 'asc', 'v.after_order_index': 'asc', 'v.sequence': 'asc', 'v.id': 'asc' })
       .execute<RoadtripVia[]>('all', false);
@@ -78,7 +89,13 @@ export class RoadtripViasRepository extends TrekRepository<RoadtripVias> {
   }
 
   /** RT5/RT11/TP43 — `INSERT INTO roadtrip_vias (day_id, after_order_index, sequence, lat, lng) VALUES (?×5)`, returning the new id. */
-  async insertVia(input: { day_id: number; after_order_index: number; sequence: number; lat: number; lng: number }): Promise<number> {
+  async insertVia(input: {
+    day_id: number;
+    after_order_index: number;
+    sequence: number;
+    lat: number;
+    lng: number;
+  }): Promise<number> {
     return await this.insert({
       day: input.day_id,
       after_order_index: input.after_order_index,

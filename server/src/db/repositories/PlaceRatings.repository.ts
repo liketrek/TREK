@@ -106,6 +106,9 @@ export class PlaceRatingsRepository extends TrekRepository<PlaceRatings> {
    * unique {@link upsertRating} documents.
    */
   async insertIgnore(place_id: number, user_id: number, rating: number): Promise<void> {
-    await this.upsert({ place: place_id, user: user_id, rating }, { onConflictFields: ['place', 'user'], onConflictAction: 'ignore' });
+    await this.upsert(
+      { place: place_id, user: user_id, rating },
+      { onConflictFields: ['place', 'user'], onConflictAction: 'ignore' },
+    );
   }
 }

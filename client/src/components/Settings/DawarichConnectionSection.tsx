@@ -1,13 +1,21 @@
-import React from 'react'
-import { Loader2, Save, Plug, RefreshCw, Unplug } from 'lucide-react'
-import { useTranslation } from '../../i18n'
-import { useDawarichConnection } from '../../hooks/useDawarichConnection'
-import DawarichIcon from '../shared/DawarichIcon'
-import Section from './Section'
-import ToggleSwitch from './ToggleSwitch'
-import { SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill } from './settingsKit'
-import { EditorField, GRID_2, INPUT } from '../shared/dialogParts'
-import { fs } from '../shared/DialogShell'
+import { Loader2, Plug, RefreshCw, Save, Unplug } from 'lucide-react';
+import React from 'react';
+import { useDawarichConnection } from '../../hooks/useDawarichConnection';
+import { useTranslation } from '../../i18n';
+import DawarichIcon from '../shared/DawarichIcon';
+import { EditorField, GRID_2, INPUT } from '../shared/dialogParts';
+import { fs } from '../shared/DialogShell';
+import Section from './Section';
+import {
+  SETTINGS_BUTTON,
+  SETTINGS_BUTTON_DANGER,
+  SETTINGS_BUTTON_PRIMARY,
+  SettingRow,
+  SettingRows,
+  SettingsHint,
+  StatusPill,
+} from './settingsKit';
+import ToggleSwitch from './ToggleSwitch';
 
 /**
  * Settings → Integrations → Dawarich.
@@ -23,15 +31,18 @@ import { fs } from '../shared/DialogShell'
  * no reason is the version of this card that generates support questions.
  */
 export default function DawarichConnectionSection(): React.ReactElement {
-  const { t, locale } = useTranslation()
-  const S = useDawarichConnection()
+  const { t, locale } = useTranslation();
+  const S = useDawarichConnection();
 
   return (
     <Section
       title={t('dawarich.title')}
       icon={DawarichIcon}
       badge={
-        <StatusPill tone={S.connected ? 'success' : 'neutral'} icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>
+        <StatusPill
+          tone={S.connected ? 'success' : 'neutral'}
+          icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}
+        >
           {S.connected ? t('dawarich.connected') : t('dawarich.notConnected')}
         </StatusPill>
       }
@@ -44,7 +55,7 @@ export default function DawarichConnectionSection(): React.ReactElement {
             id="dawarich-url"
             type="url"
             value={S.url}
-            onChange={e => S.setUrl(e.target.value)}
+            onChange={(e) => S.setUrl(e.target.value)}
             placeholder="https://dawarich.example.com"
             className={INPUT}
           />
@@ -55,7 +66,7 @@ export default function DawarichConnectionSection(): React.ReactElement {
             id="dawarich-key"
             type="password"
             value={S.apiKey}
-            onChange={e => S.setApiKey(e.target.value)}
+            onChange={(e) => S.setApiKey(e.target.value)}
             autoComplete="off"
             placeholder={S.connected && !S.apiKey ? '••••••••' : t('dawarich.apiKeyPlaceholder')}
             className={INPUT}
@@ -72,7 +83,13 @@ export default function DawarichConnectionSection(): React.ReactElement {
         <SettingRow
           label={t('dawarich.allowInsecureTls')}
           hint={t('dawarich.allowInsecureTlsHint')}
-          control={<ToggleSwitch on={S.allowInsecureTls} onToggle={S.toggleInsecureTls} label={t('dawarich.allowInsecureTls')} />}
+          control={
+            <ToggleSwitch
+              on={S.allowInsecureTls}
+              onToggle={S.toggleInsecureTls}
+              label={t('dawarich.allowInsecureTls')}
+            />
+          }
         />
       </SettingRows>
 
@@ -92,19 +109,16 @@ export default function DawarichConnectionSection(): React.ReactElement {
           disabled={S.testing || S.loading || !S.url.trim()}
           className={SETTINGS_BUTTON}
         >
-          {S.testing
-            ? <Loader2 size={14} strokeWidth={2.2} className="animate-spin" />
-            : <Plug size={14} strokeWidth={2.2} />}
+          {S.testing ? (
+            <Loader2 size={14} strokeWidth={2.2} className="animate-spin" />
+          ) : (
+            <Plug size={14} strokeWidth={2.2} />
+          )}
           {t('dawarich.test.button')}
         </button>
 
         {S.connected && (
-          <button
-            type="button"
-            onClick={S.syncNow}
-            disabled={S.syncing}
-            className={SETTINGS_BUTTON}
-          >
+          <button type="button" onClick={S.syncNow} disabled={S.syncing} className={SETTINGS_BUTTON}>
             <RefreshCw size={14} strokeWidth={2.2} className={S.syncing ? 'animate-spin' : ''} />
             {t('dawarich.syncNow')}
           </button>
@@ -125,7 +139,7 @@ export default function DawarichConnectionSection(): React.ReactElement {
 
       <DawarichConnectionStatus state={S} locale={locale} />
     </Section>
-  )
+  );
 }
 
 /**
@@ -140,22 +154,25 @@ function DawarichConnectionStatus({
   state,
   locale,
 }: {
-  state: ReturnType<typeof useDawarichConnection>
-  locale: string
+  state: ReturnType<typeof useDawarichConnection>;
+  locale: string;
 }): React.ReactElement | null {
-  const { t } = useTranslation()
-  if (!state.connected && !state.probeMessage) return null
+  const { t } = useTranslation();
+  if (!state.connected && !state.probeMessage) return null;
 
-  const missing: string[] = []
+  const missing: string[] = [];
   if (state.capabilities) {
-    if (!state.capabilities.visits) missing.push(t('dawarich.capability.visits'))
-    if (!state.capabilities.tracks && !state.capabilities.points) missing.push(t('dawarich.capability.track'))
-    if (!state.capabilities.locations) missing.push(t('dawarich.capability.locations'))
-    if (!state.capabilities.visitedCities) missing.push(t('dawarich.capability.visitedCities'))
+    if (!state.capabilities.visits) missing.push(t('dawarich.capability.visits'));
+    if (!state.capabilities.tracks && !state.capabilities.points) missing.push(t('dawarich.capability.track'));
+    if (!state.capabilities.locations) missing.push(t('dawarich.capability.locations'));
+    if (!state.capabilities.visitedCities) missing.push(t('dawarich.capability.visitedCities'));
   }
 
   return (
-    <div className="flex flex-col gap-1 rounded-[12px] border border-edge-faint bg-surface-card px-3.5 py-3" style={fs(12, 'body')}>
+    <div
+      className="flex flex-col gap-1 rounded-[12px] border border-edge-faint bg-surface-card px-3.5 py-3"
+      style={fs(12, 'body')}
+    >
       {state.probeMessage && <p className="m-0 font-medium text-content">{state.probeMessage}</p>}
 
       {state.connected && (
@@ -167,9 +184,7 @@ function DawarichConnectionStatus({
         </p>
       )}
 
-      {state.lastSyncError && (
-        <p className="m-0 text-danger">{state.lastSyncError}</p>
-      )}
+      {state.lastSyncError && <p className="m-0 text-danger">{state.lastSyncError}</p>}
 
       {state.capabilities?.serverVersion && (
         <p className="m-0 font-geist tabular-nums text-content-muted">
@@ -178,10 +193,8 @@ function DawarichConnectionStatus({
       )}
 
       {missing.length > 0 && (
-        <p className="m-0 text-content-muted">
-          {t('dawarich.capability.missing', { features: missing.join(', ') })}
-        </p>
+        <p className="m-0 text-content-muted">{t('dawarich.capability.missing', { features: missing.join(', ') })}</p>
       )}
     </div>
-  )
+  );
 }

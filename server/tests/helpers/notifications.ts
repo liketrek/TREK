@@ -1,19 +1,26 @@
-import type Database from 'better-sqlite3';
-import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
 import { NotificationPreferencesService } from '../../src/nest/notifications/notification-preferences.service';
 import { NotificationsService } from '../../src/nest/notifications/notifications.service';
-import { NtfyService } from '../../src/nest/notifications/transports/ntfy.service';
-import { WebhookService } from '../../src/nest/notifications/transports/webhook.service';
-import { WebPushService } from '../../src/nest/notifications/transports/web-push.service';
 import { PushSubscriptionsService } from '../../src/nest/notifications/push/push-subscriptions.service';
 import { VapidKeysService } from '../../src/nest/notifications/push/vapid-keys.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestSettingsRepo, createTestUsersRepo, sharedTestOrm } from './test-uow';
+import { NtfyService } from '../../src/nest/notifications/transports/ntfy.service';
+import { WebPushService } from '../../src/nest/notifications/transports/web-push.service';
+import { WebhookService } from '../../src/nest/notifications/transports/webhook.service';
+import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 import {
   createTestNotificationsRepo,
   createTestNotificationChannelPreferencesRepo,
   createTestPushSubscriptionsRepo,
 } from './notifications-repos';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestSettingsRepo,
+  createTestUsersRepo,
+  sharedTestOrm,
+} from './test-uow';
+
+import type Database from 'better-sqlite3';
 
 /**
  * A NotificationsService wired the way Nest wires it.
@@ -40,7 +47,10 @@ import {
  * `AppSettingsRepository`, all resolved through the same memoised
  * `test-uow.ts` factories bound to the same handle.
  */
-export async function makeNotificationsService(db: Database.Database, realtime = new RealtimeService()): Promise<NotificationsService> {
+export async function makeNotificationsService(
+  db: Database.Database,
+  realtime = new RealtimeService(),
+): Promise<NotificationsService> {
   const usersRepo = await createTestUsersRepo(db);
   const settingsRepo = await createTestSettingsRepo(db);
   const appSettings = await createTestAppSettingsRepo(db);
@@ -77,12 +87,19 @@ export async function makeWebPushService(db: Database.Database): Promise<WebPush
 }
 
 /** The preferences half on its own, over the same connection. */
-export async function makeNotificationPreferencesService(db: Database.Database): Promise<NotificationPreferencesService> {
+export async function makeNotificationPreferencesService(
+  db: Database.Database,
+): Promise<NotificationPreferencesService> {
   const usersRepo = await createTestUsersRepo(db);
   const settingsRepo = await createTestSettingsRepo(db);
   const appSettings = await createTestAppSettingsRepo(db);
   const channelPrefsRepo = await createTestNotificationChannelPreferencesRepo(db);
-  return new NotificationPreferencesService(new MailerService(usersRepo, settingsRepo, appSettings), await createTestUnitOfWork(db), appSettings, channelPrefsRepo);
+  return new NotificationPreferencesService(
+    new MailerService(usersRepo, settingsRepo, appSettings),
+    await createTestUnitOfWork(db),
+    appSettings,
+    channelPrefsRepo,
+  );
 }
 
 /**

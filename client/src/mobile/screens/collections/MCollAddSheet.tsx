@@ -1,33 +1,34 @@
-import { useEffect, useState } from 'react'
-import { Check, Loader2, MapPin, Search, X } from 'lucide-react'
-import type { CollectionStatus } from '@trek/shared'
-import type { Category, TranslationFn } from '../../../types'
-import { mapsApi } from '../../../api/client'
-import { collectionsApi } from '../../../api/collections'
-import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
-import { getApiErrorMessage } from '../../../utils/apiError'
-import { STATUS_ORDER } from '../../../pages/collections/collectionsModel'
-import MSheet from '../../components/MSheet'
-import MCollCategoryPicker from './MCollCategoryPicker'
-import { STATUS_SPEC } from './collectionsMobileModel'
-import { CancelPill, Eyebrow, INPUT_CLS, PrimaryPill, SheetFooter, SheetHeader, TEXTAREA_CLS } from './MCollSheetKit'
-import { usePlaceLanguage } from '../../../hooks/usePlaceLanguage'
+import type { CollectionStatus } from '@trek/shared';
+import { Check, Loader2, MapPin, Search, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { mapsApi } from '../../../api/client';
+import { collectionsApi } from '../../../api/collections';
+import { useToast } from '../../../components/shared/Toast';
+import { usePlaceLanguage } from '../../../hooks/usePlaceLanguage';
+import { useTranslation } from '../../../i18n';
+import { STATUS_ORDER } from '../../../pages/collections/collectionsModel';
+import type { Category, TranslationFn } from '../../../types';
+import { getApiErrorMessage } from '../../../utils/apiError';
+import MSheet from '../../components/MSheet';
+import { STATUS_SPEC } from './collectionsMobileModel';
+import MCollCategoryPicker from './MCollCategoryPicker';
+import { CancelPill, Eyebrow, INPUT_CLS, PrimaryPill, SheetFooter, SheetHeader, TEXTAREA_CLS } from './MCollSheetKit';
 
-type MapsPlace = Record<string, unknown>
-const str = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined)
-const num = (v: unknown): number | undefined => (typeof v === 'number' ? v : typeof v === 'string' && v !== '' ? Number(v) : undefined)
+type MapsPlace = Record<string, unknown>;
+const str = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined);
+const num = (v: unknown): number | undefined =>
+  typeof v === 'number' ? v : typeof v === 'string' && v !== '' ? Number(v) : undefined;
 
 interface MCollAddSheetProps {
-  open: boolean
-  collectionId: number | null
-  collectionName: string
+  open: boolean;
+  collectionId: number | null;
+  collectionName: string;
   /** Pickable target lists — used when opened without a fixed collectionId. */
-  lists: { id: number; name: string; color?: string | null }[]
-  categories: Category[]
-  onClose: () => void
-  onAdded: () => void
-  t: TranslationFn
+  lists: { id: number; name: string; color?: string | null }[];
+  categories: Category[];
+  onClose: () => void;
+  onAdded: () => void;
+  t: TranslationFn;
 }
 
 /**
@@ -35,63 +36,84 @@ interface MCollAddSheetProps {
  * status / description before saving into the active list (duplicates are
  * reported by the server and surfaced as a toast).
  */
-export default function MCollAddSheet({ open, collectionId, collectionName, lists, categories, onClose, onAdded, t }: MCollAddSheetProps) {
-  const { language } = useTranslation()
-  const placeLang = usePlaceLanguage()
-  const toast = useToast()
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<MapsPlace[]>([])
-  const [searching, setSearching] = useState(false)
-  const [picked, setPicked] = useState<MapsPlace | null>(null)
-  const [name, setName] = useState('')
-  const [address, setAddress] = useState('')
-  const [categoryId, setCategoryId] = useState<number | null>(null)
-  const [status, setStatus] = useState<CollectionStatus>('idea')
-  const [description, setDescription] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [targetId, setTargetId] = useState<number | null>(collectionId)
+export default function MCollAddSheet({
+  open,
+  collectionId,
+  collectionName,
+  lists,
+  categories,
+  onClose,
+  onAdded,
+  t,
+}: MCollAddSheetProps) {
+  const { language } = useTranslation();
+  const placeLang = usePlaceLanguage();
+  const toast = useToast();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<MapsPlace[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [picked, setPicked] = useState<MapsPlace | null>(null);
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [status, setStatus] = useState<CollectionStatus>('idea');
+  const [description, setDescription] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [targetId, setTargetId] = useState<number | null>(collectionId);
 
   useEffect(() => {
-    if (open) return
-    setQuery(''); setResults([]); setPicked(null); setName(''); setAddress(''); setCategoryId(null); setStatus('idea'); setDescription('')
-    setTargetId(null)
-  }, [open])
+    if (open) return;
+    setQuery('');
+    setResults([]);
+    setPicked(null);
+    setName('');
+    setAddress('');
+    setCategoryId(null);
+    setStatus('idea');
+    setDescription('');
+    setTargetId(null);
+  }, [open]);
 
   // Opened from a specific list → target is fixed; from "All Saved" (no active
   // list) → default to the sole list if there is one, else pick it in-sheet.
   // The lists may still be loading when the sheet opens, so the default is
   // applied again once they arrive — without overruling a pick already made.
   useEffect(() => {
-    if (!open) return
-    if (collectionId != null) { setTargetId(collectionId); return }
-    setTargetId(prev => (prev != null && lists.some(l => l.id === prev) ? prev : (lists.length === 1 ? lists[0].id : null)))
-  }, [open, collectionId, lists])
+    if (!open) return;
+    if (collectionId != null) {
+      setTargetId(collectionId);
+      return;
+    }
+    setTargetId((prev) =>
+      prev != null && lists.some((l) => l.id === prev) ? prev : lists.length === 1 ? lists[0].id : null
+    );
+  }, [open, collectionId, lists]);
 
   const search = async () => {
-    if (!query.trim() || searching) return
-    setSearching(true)
+    if (!query.trim() || searching) return;
+    setSearching(true);
     try {
-      const res = await mapsApi.search(query, placeLang)
-      setResults((res.places as MapsPlace[]) || [])
+      const res = await mapsApi.search(query, placeLang);
+      setResults((res.places as MapsPlace[]) || []);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
+      toast.error(getApiErrorMessage(err, t('places.mapsSearchError')));
     } finally {
-      setSearching(false)
+      setSearching(false);
     }
-  }
+  };
 
   const pick = (r: MapsPlace) => {
-    setPicked(r)
-    setName(str(r.name) ?? '')
-    setAddress(str(r.address) ?? '')
-    setResults([])
-    setQuery(str(r.name) ?? query)
-  }
+    setPicked(r);
+    setName(str(r.name) ?? '');
+    setAddress(str(r.address) ?? '');
+    setResults([]);
+    setQuery(str(r.name) ?? query);
+  };
 
   const save = async () => {
-    const cleanName = name.trim()
-    if (!cleanName || targetId == null || saving) return
-    setSaving(true)
+    const cleanName = name.trim();
+    if (!cleanName || targetId == null || saving) return;
+    setSaving(true);
     try {
       const res = await collectionsApi.savePlace({
         collection_id: targetId,
@@ -108,19 +130,21 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
         description: description.trim() || null,
         status,
         force: true,
-      })
-      if (res.duplicate) toast.info(t('collections.duplicateWarning'))
+      });
+      if (res.duplicate) toast.info(t('collections.duplicateWarning'));
       else {
-        toast.success(t('collections.addedToList', { name: lists.find(l => l.id === targetId)?.name ?? collectionName }))
-        onAdded()
+        toast.success(
+          t('collections.addedToList', { name: lists.find((l) => l.id === targetId)?.name ?? collectionName })
+        );
+        onAdded();
       }
-      onClose()
+      onClose();
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   return (
     <MSheet open={open} onClose={onClose} material="opaque" ariaLabel={t('collections.addPlace')}>
@@ -134,8 +158,8 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
               <p className="font-geist text-[0.6875rem] text-m-muted">{t('collections.noListsYet')}</p>
             ) : (
               <div className="flex flex-wrap gap-[6px]">
-                {lists.map(l => {
-                  const on = targetId === l.id
+                {lists.map((l) => {
+                  const on = targetId === l.id;
                   return (
                     <button
                       key={l.id}
@@ -143,13 +167,18 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
                       onClick={() => setTargetId(l.id)}
                       aria-pressed={on}
                       className={`flex items-center gap-[6px] rounded-full px-3 py-2 text-[0.71875rem] font-bold ${
-                        on ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
+                        on
+                          ? 'bg-m-act text-m-actfg'
+                          : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
                       }`}
                     >
-                      <span className="h-[8px] w-[8px] flex-none rounded-full" style={{ background: l.color || '#6366F1' }} />
+                      <span
+                        className="h-[8px] w-[8px] flex-none rounded-full"
+                        style={{ background: l.color || '#6366F1' }}
+                      />
                       {l.name}
                     </button>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -160,8 +189,13 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
           <Search size={15} strokeWidth={2.2} className="flex-none text-m-muted" />
           <input
             value={query}
-            onChange={e => setQuery(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void search() } }}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void search();
+              }
+            }}
             placeholder={t('collections.addPlaceSearch')}
             className="min-w-0 flex-1 bg-transparent py-2 font-[inherit] text-[0.8125rem] text-m-ink outline-none placeholder:text-m-faint"
           />
@@ -179,18 +213,30 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
           <div className="mt-[6px] max-h-[210px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-m-sheetop shadow-[0_20px_44px_-18px_rgba(0,0,0,.45)]">
             <div className="flex items-center justify-between px-[13px] pt-2">
               <Eyebrow>{t('common.search').toUpperCase()}</Eyebrow>
-              <button type="button" onClick={() => setResults([])} aria-label={t('common.close')} className="text-m-faint">
+              <button
+                type="button"
+                onClick={() => setResults([])}
+                aria-label={t('common.close')}
+                className="text-m-faint"
+              >
                 <X size={13} strokeWidth={2.2} />
               </button>
             </div>
             {results.map((r, i) => (
-              <button key={i} type="button" onClick={() => pick(r)} className="flex w-full items-center gap-[10px] px-[13px] py-[10px] text-left">
+              <button
+                key={i}
+                type="button"
+                onClick={() => pick(r)}
+                className="flex w-full items-center gap-[10px] px-[13px] py-[10px] text-left"
+              >
                 <span className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-lg bg-[color:var(--m-ic)] text-m-faint">
                   <MapPin size={14} strokeWidth={2.2} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[0.8125rem] font-semibold text-m-ink">{str(r.name)}</span>
-                  {str(r.address) && <span className="block truncate font-geist text-[0.625rem] text-m-muted">{str(r.address)}</span>}
+                  {str(r.address) && (
+                    <span className="block truncate font-geist text-[0.625rem] text-m-muted">{str(r.address)}</span>
+                  )}
                 </span>
               </button>
             ))}
@@ -198,22 +244,32 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
         )}
 
         <Eyebrow className="mb-[6px] mt-4">{t('common.name').toUpperCase()}</Eyebrow>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder={t('common.name')} className={INPUT_CLS} />
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={t('common.name')}
+          className={INPUT_CLS}
+        />
 
         {/* Address (#1870): a picked hit fills it, but it stays editable so a
             hand-typed place can carry one too (the desktop dialog always could). */}
         <Eyebrow className="mb-[6px] mt-[14px]">{t('places.formAddress').toUpperCase()}</Eyebrow>
-        <input value={address} onChange={e => setAddress(e.target.value)} placeholder={t('places.formAddressPlaceholder')} className={INPUT_CLS} />
+        <input
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder={t('places.formAddressPlaceholder')}
+          className={INPUT_CLS}
+        />
 
         <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.category').toUpperCase()}</Eyebrow>
         <MCollCategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} t={t} />
 
         <Eyebrow className="mb-[6px] mt-[14px]">{t('mobileCollections.status').toUpperCase()}</Eyebrow>
         <div className="flex gap-[6px]">
-          {STATUS_ORDER.map(s => {
-            const meta = STATUS_SPEC[s]
-            const Icon = meta.icon
-            const on = status === s
+          {STATUS_ORDER.map((s) => {
+            const meta = STATUS_SPEC[s];
+            const Icon = meta.icon;
+            const on = status === s;
             return (
               <button
                 key={s}
@@ -221,25 +277,36 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
                 onClick={() => setStatus(s)}
                 aria-pressed={on}
                 className={`flex flex-1 items-center justify-center gap-[5px] rounded-full py-2 text-[0.71875rem] font-bold ${
-                  on ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
+                  on
+                    ? 'bg-m-act text-m-actfg'
+                    : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
                 }`}
               >
                 <Icon size={13} strokeWidth={2.2} style={on ? undefined : { color: meta.color }} />
                 <span className="truncate">{t(meta.labelKey)}</span>
               </button>
-            )
+            );
           })}
         </div>
 
         <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.description').toUpperCase()}</Eyebrow>
-        <textarea rows={2} value={description} onChange={e => setDescription(e.target.value)} placeholder={t('collections.descriptionPlaceholder')} className={TEXTAREA_CLS} />
+        <textarea
+          rows={2}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder={t('collections.descriptionPlaceholder')}
+          className={TEXTAREA_CLS}
+        />
       </div>
       <SheetFooter>
-        <CancelPill className="ml-auto" onClick={onClose}>{t('common.cancel')}</CancelPill>
+        <CancelPill className="ml-auto" onClick={onClose}>
+          {t('common.cancel')}
+        </CancelPill>
         <PrimaryPill onClick={save} disabled={saving || !name.trim() || targetId == null}>
-          {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} strokeWidth={2.4} />} {t('common.add')}
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} strokeWidth={2.4} />}{' '}
+          {t('common.add')}
         </PrimaryPill>
       </SheetFooter>
     </MSheet>
-  )
+  );
 }

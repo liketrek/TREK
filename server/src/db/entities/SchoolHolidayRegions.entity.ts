@@ -1,7 +1,7 @@
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { SchoolHolidayRegionsRepository } from '../repositories/SchoolHolidayRegions.repository';
 import { SchoolHolidayCountries } from './SchoolHolidayCountries.entity';
 import { SchoolHolidayPeriods } from './SchoolHolidayPeriods.entity';
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class SchoolHolidayRegions {
   [EntityRepositoryType]?: SchoolHolidayRegionsRepository;

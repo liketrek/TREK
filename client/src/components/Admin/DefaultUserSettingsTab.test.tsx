@@ -1,10 +1,10 @@
 // FE-ADMIN-DUS-001 to FE-ADMIN-DUS-028
-import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildAdmin } from '../../../tests/helpers/factories';
+import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
 import { ToastContainer } from '../shared/Toast';
 import DefaultUserSettingsTab from './DefaultUserSettingsTab';
@@ -27,20 +27,25 @@ function stubDefaults(initial: Record<string, unknown> = {}) {
   server.use(
     http.get('/api/admin/default-user-settings', () => HttpResponse.json(state)),
     http.put('/api/admin/default-user-settings', async ({ request }) => {
-      const body = await request.json() as Record<string, unknown>;
+      const body = (await request.json()) as Record<string, unknown>;
       puts.push(body);
       for (const [key, value] of Object.entries(body)) {
         if (value === null) delete state[key];
         else state[key] = value;
       }
       return HttpResponse.json({ ...state });
-    }),
+    })
   );
   return { puts, state };
 }
 
 function withToast() {
-  return render(<><ToastContainer /><DefaultUserSettingsTab /></>);
+  return render(
+    <>
+      <ToastContainer />
+      <DefaultUserSettingsTab />
+    </>
+  );
 }
 
 /** The selected option is the pressed button of its segmented group. */
@@ -53,13 +58,13 @@ function isActive(button: HTMLElement): boolean {
  * element the wrapping label becomes its accessible name, so it is queried positionally.
  */
 function resetLink(label: string): HTMLElement {
-  const el = screen.getAllByText(label).find(node => node.tagName === 'LABEL');
+  const el = screen.getAllByText(label).find((node) => node.tagName === 'LABEL');
   if (!el) throw new Error(`no label found for ${label}`);
   return within(el).getByRole('button');
 }
 
 function hasResetLink(label: string): boolean {
-  const el = screen.getAllByText(label).find(node => node.tagName === 'LABEL');
+  const el = screen.getAllByText(label).find((node) => node.tagName === 'LABEL');
   return !!el && within(el).queryByRole('button') !== null;
 }
 
@@ -97,7 +102,14 @@ describe('DefaultUserSettingsTab', () => {
     for (const name of ['Light', 'Dark', 'Auto', '°C Celsius', 'km Metric', '24h (14:30)', 'On', 'Off']) {
       expect(isActive(screen.getByRole('button', { name }))).toBe(false);
     }
-    for (const label of ['Color Mode', 'Temperature Unit', 'Distance Unit', 'Time Format', 'Display currency', 'Map Template']) {
+    for (const label of [
+      'Color Mode',
+      'Temperature Unit',
+      'Distance Unit',
+      'Time Format',
+      'Display currency',
+      'Map Template',
+    ]) {
       expect(hasResetLink(label)).toBe(false);
     }
     expect(screen.getByTestId('map-preview')).toBeInTheDocument();
@@ -153,11 +165,9 @@ describe('DefaultUserSettingsTab', () => {
     await waitFor(() => expect(resetLink('Distance Unit')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: '12h (2:30 PM)' }));
 
-    await waitFor(() => expect(puts).toEqual([
-      { temperature_unit: 'fahrenheit' },
-      { distance_unit: 'imperial' },
-      { time_format: '12h' },
-    ]));
+    await waitFor(() =>
+      expect(puts).toEqual([{ temperature_unit: 'fahrenheit' }, { distance_unit: 'imperial' }, { time_format: '12h' }])
+    );
   });
 
   it('FE-ADMIN-DUS-007: a set default gets a reset link that clears it server-side', async () => {
@@ -200,10 +210,7 @@ describe('DefaultUserSettingsTab', () => {
     await waitFor(() => expect(isActive(screen.getByRole('button', { name: 'On' }))).toBe(true));
     await user.click(screen.getByRole('button', { name: 'Off' }));
 
-    await waitFor(() => expect(puts).toEqual([
-      { blur_booking_codes: true },
-      { blur_booking_codes: false },
-    ]));
+    await waitFor(() => expect(puts).toEqual([{ blur_booking_codes: true }, { blur_booking_codes: false }]));
   });
 
   it('FE-ADMIN-DUS-010: the tile preset dropdown fills the URL field and hands it to the preview', async () => {
@@ -399,7 +406,7 @@ describe('DefaultUserSettingsTab', () => {
     const user = userEvent.setup();
     server.use(
       http.get('/api/admin/default-user-settings', () => HttpResponse.json({})),
-      http.put('/api/admin/default-user-settings', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+      http.put('/api/admin/default-user-settings', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
     );
     withToast();
     await screen.findByText('Default User Settings');
@@ -414,7 +421,7 @@ describe('DefaultUserSettingsTab', () => {
     const user = userEvent.setup();
     server.use(
       http.get('/api/admin/default-user-settings', () => HttpResponse.json({ time_format: '12h' })),
-      http.put('/api/admin/default-user-settings', () => HttpResponse.json({ error: 'nope' }, { status: 503 })),
+      http.put('/api/admin/default-user-settings', () => HttpResponse.json({ error: 'nope' }, { status: 503 }))
     );
     withToast();
     await screen.findByText('Default User Settings');

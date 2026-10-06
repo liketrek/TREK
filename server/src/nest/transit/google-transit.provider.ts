@@ -1,13 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { readEnv } from '../../app-config';
-import { toApiLang } from '../maps/maps.helpers';
-import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { Users } from '../../db/entities/Users.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { GoogleQuotaService } from '../google-quota/google-quota.service';
+import { toApiLang } from '../maps/maps.helpers';
+import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
 import { readTransitProvider } from './transit-provider';
 import {
   decodePolyline,
@@ -19,6 +17,8 @@ import {
   type TransitLegStop,
   type TransitPlace,
 } from './transit.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Google as the transit backend (#1699), for the regions Transitous has no GTFS
@@ -194,8 +194,14 @@ function shiftIso(iso: string, seconds: number): string {
   return new Date(new Date(iso).getTime() + seconds * 1000).toISOString();
 }
 
-interface GoogleLatLng { latitude?: number; longitude?: number }
-interface GoogleStop { name?: string; location?: { latLng?: GoogleLatLng } }
+interface GoogleLatLng {
+  latitude?: number;
+  longitude?: number;
+}
+interface GoogleStop {
+  name?: string;
+  location?: { latLng?: GoogleLatLng };
+}
 interface GoogleStep {
   travelMode?: string;
   staticDuration?: string;
@@ -262,7 +268,13 @@ export class GoogleTransitProvider {
     return !!(await this.resolveKey(userId)).key;
   }
 
-  private async call(endpoint: string, label: string, apiKey: string, body: unknown, fieldMask: string): Promise<unknown> {
+  private async call(
+    endpoint: string,
+    label: string,
+    apiKey: string,
+    body: unknown,
+    fieldMask: string,
+  ): Promise<unknown> {
     console.debug(`[Google API] ${label} → ${endpoint}`);
     await this.googleQuota.record();
     const res = await fetch(endpoint, {
@@ -295,7 +307,12 @@ export class GoogleTransitProvider {
   }
 
   /** Station/place search for the from/to pickers. `near` biases results. */
-  async geocode(text: string, language: string | undefined, near: string | undefined, userId: number): Promise<{ results: TransitPlace[] }> {
+  async geocode(
+    text: string,
+    language: string | undefined,
+    near: string | undefined,
+    userId: number,
+  ): Promise<{ results: TransitPlace[] }> {
     const { key: apiKey, source } = await this.resolveKey(userId);
     if (!apiKey) {
       const err = new Error('Transit provider error (no Google API key configured)') as Error & { status: number };
@@ -319,9 +336,22 @@ export class GoogleTransitProvider {
       body.locationBias = { circle: { center: { latitude, longitude }, radius: 50000 } };
     }
 
-    let data: { places?: Array<{ displayName?: { text?: string }; formattedAddress?: string; location?: GoogleLatLng; types?: string[] }> };
+    let data: {
+      places?: Array<{
+        displayName?: { text?: string };
+        formattedAddress?: string;
+        location?: GoogleLatLng;
+        types?: string[];
+      }>;
+    };
     try {
-      data = (await this.call(PLACES_SEARCH_ENDPOINT, 'transitGeocode', apiKey, body, STATION_FIELD_MASK)) as typeof data;
+      data = (await this.call(
+        PLACES_SEARCH_ENDPOINT,
+        'transitGeocode',
+        apiKey,
+        body,
+        STATION_FIELD_MASK,
+      )) as typeof data;
     } catch (err) {
       console.error(`[Transit] google geocode failed userId=${userId} keySource=${source}`);
       throw err;
@@ -334,7 +364,9 @@ export class GoogleTransitProvider {
       if (typeof lat !== 'number' || typeof lng !== 'number' || !name) return [];
       // MOTIS answers STOP for a station and PLACE for anything else; the picker
       // renders the two differently, so map Google's type list onto the same pair.
-      const isStop = (place.types || []).some((t) => t.includes('station') || t.includes('transit') || t.includes('stop'));
+      const isStop = (place.types || []).some(
+        (t) => t.includes('station') || t.includes('transit') || t.includes('stop'),
+      );
       return [{ name, lat, lng, type: isStop ? 'STOP' : 'PLACE', area: place.formattedAddress || null }];
     });
 

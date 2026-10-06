@@ -1,5 +1,5 @@
-import { OauthConsents } from '../entities/OauthConsents.entity';
 import { currentTimestamp } from '../dialect/sql-functions';
+import { OauthConsents } from '../entities/OauthConsents.entity';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -52,10 +52,7 @@ export class OauthConsentsRepository extends TrekRepository<OauthConsents> {
    * method (same rule `upsertGrant` below follows for `#upsert`).
    */
   async findScopes(clientId: string, userId: number): Promise<{ scopes: string } | null> {
-    const row = await this.findOne(
-      { client: clientId, user: userId },
-      { fields: ['scopes'] },
-    );
+    const row = await this.findOne({ client: clientId, user: userId }, { fields: ['scopes'] });
     return row ? { scopes: row.scopes } : null;
   }
 

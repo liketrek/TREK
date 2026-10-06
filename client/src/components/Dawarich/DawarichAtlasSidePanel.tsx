@@ -1,13 +1,13 @@
-import React, { useState } from 'react'
-import { Globe2, Star } from 'lucide-react'
-import { useTranslation } from '../../i18n'
-import { useAddonStore } from '../../store/addonStore'
-import { Tooltip } from '../shared/Tooltip'
-import { useGlassGlare } from '../Atlas/useGlassGlare'
-import DawarichIcon from '../shared/DawarichIcon'
-import DawarichAtlasDialog from './DawarichAtlasDialog'
+import { Globe2, Star } from 'lucide-react';
+import React, { useState } from 'react';
+import { useTranslation } from '../../i18n';
+import { useAddonStore } from '../../store/addonStore';
+import { useGlassGlare } from '../Atlas/useGlassGlare';
+import DawarichIcon from '../shared/DawarichIcon';
+import { Tooltip } from '../shared/Tooltip';
+import DawarichAtlasDialog from './DawarichAtlasDialog';
 
-type Question = 'wishes' | 'countries'
+type Question = 'wishes' | 'countries';
 
 /**
  * Dawarich's own panel on the Atlas, beside the stats.
@@ -33,25 +33,29 @@ export default function DawarichAtlasSidePanel({
   onChanged,
 }: {
   /** The glass the Atlas panels are made of, handed down so the two cannot drift. */
-  style: React.CSSProperties
-  dark: boolean
+  style: React.CSSProperties;
+  dark: boolean;
   /** Called after something was written, so the Atlas can re-read itself. */
-  onChanged?: () => void
+  onChanged?: () => void;
 }): React.ReactElement | null {
-  const { t } = useTranslation()
-  const addonEnabled = useAddonStore(state => state.isEnabled)
-  const [asked, setAsked] = useState<Question | null>(null)
-  const glare = useGlassGlare(dark)
+  const { t } = useTranslation();
+  const addonEnabled = useAddonStore((state) => state.isEnabled);
+  const [asked, setAsked] = useState<Question | null>(null);
+  const glare = useGlassGlare(dark);
 
-  if (!addonEnabled('dawarich')) return null
+  if (!addonEnabled('dawarich')) return null;
 
   // theme-lint-disable — the panel floats on a blurred map: a solid surface
   // token would punch an opaque hole in the glass, so the tiles are a tint of
   // the same light the panel is made of.
-  const tile = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)'
-  const tileHover = dark ? 'rgba(255,255,255,0.13)' : 'rgba(0,0,0,0.09)'
+  const tile = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)';
+  const tileHover = dark ? 'rgba(255,255,255,0.13)' : 'rgba(0,0,0,0.09)';
 
-  const question = (id: Question, Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>, label: string) => (
+  const question = (
+    id: Question,
+    Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>,
+    label: string
+  ) => (
     <button
       type="button"
       onClick={() => setAsked(id)}
@@ -67,18 +71,22 @@ export default function DawarichAtlasSidePanel({
         padding: '10px 12px',
         transition: 'background 0.15s ease, color 0.15s ease',
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = tileHover }}
-      onMouseLeave={e => { e.currentTarget.style.background = tile }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = tileHover;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = tile;
+      }}
     >
       <Icon size={17} strokeWidth={2} />
       <span
-        className="font-bold uppercase tracking-wide whitespace-nowrap"
+        className="whitespace-nowrap font-bold uppercase tracking-wide"
         style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))' }}
       >
         {label}
       </span>
     </button>
-  )
+  );
 
   return (
     <>
@@ -86,16 +94,26 @@ export default function DawarichAtlasSidePanel({
         ref={glare.panelRef}
         onMouseMove={glare.onMouseMove}
         onMouseLeave={glare.onMouseLeave}
-        className="relative hidden md:flex flex-col justify-center gap-3 overflow-hidden px-5 py-4"
+        className="relative hidden flex-col justify-center gap-3 overflow-hidden px-5 py-4 md:flex"
         style={style}
       >
         {/* Liquid glass glare, and the border glow that follows the cursor —
             the same two layers the Atlas panel carries. */}
-        <div ref={glare.glareRef} className="absolute inset-0 pointer-events-none" style={{ opacity: 0, transition: 'opacity 0.3s ease', borderRadius: 20 }} />
-        <div ref={glare.borderGlareRef} className="absolute inset-0 pointer-events-none" style={{
-          opacity: 0, transition: 'opacity 0.3s ease', borderRadius: 20,
-          border: dark ? '1.5px solid rgba(255,255,255,0.5)' : '2px solid rgba(0,0,0,0.15)',
-        }} />
+        <div
+          ref={glare.glareRef}
+          className="pointer-events-none absolute inset-0"
+          style={{ opacity: 0, transition: 'opacity 0.3s ease', borderRadius: 20 }}
+        />
+        <div
+          ref={glare.borderGlareRef}
+          className="pointer-events-none absolute inset-0"
+          style={{
+            opacity: 0,
+            transition: 'opacity 0.3s ease',
+            borderRadius: 20,
+            border: dark ? '1.5px solid rgba(255,255,255,0.5)' : '2px solid rgba(0,0,0,0.15)',
+          }}
+        />
         {/* The long explanation moved into the tooltip: on a panel this size it
             was three lines of grey that said what the two tiles already say. */}
         <Tooltip label={t('dawarich.atlas.trigger')} placement="top">
@@ -121,13 +139,8 @@ export default function DawarichAtlasSidePanel({
       {/* Mounted on open so every visit starts from a clean question rather than
           from a scan somebody ran an hour ago. */}
       {asked !== null && (
-        <DawarichAtlasDialog
-          isOpen
-          initialTab={asked}
-          onClose={() => setAsked(null)}
-          onChanged={onChanged}
-        />
+        <DawarichAtlasDialog isOpen initialTab={asked} onClose={() => setAsked(null)} onChanged={onChanged} />
       )}
     </>
-  )
+  );
 }

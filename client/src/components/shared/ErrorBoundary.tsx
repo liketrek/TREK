@@ -1,7 +1,7 @@
-import React from 'react'
-import { AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react'
-import { useTranslation } from '../../i18n'
-import { isChunkLoadError, reloadOnceForChunk, reloadOntoCurrentBuild } from '../../utils/chunkReload'
+import { AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
+import React from 'react';
+import { useTranslation } from '../../i18n';
+import { isChunkLoadError, reloadOnceForChunk, reloadOntoCurrentBuild } from '../../utils/chunkReload';
 
 /**
  * The app had none of these, so a single throw during render unmounted the whole
@@ -17,81 +17,81 @@ import { isChunkLoadError, reloadOnceForChunk, reloadOntoCurrentBuild } from '..
  * contextType wouldn't have worked anyway.
  */
 
-type Level = 'root' | 'route' | 'panel'
+type Level = 'root' | 'route' | 'panel';
 
 interface FallbackState {
-  error: unknown
-  reset: () => void
-  isChunkError: boolean
+  error: unknown;
+  reset: () => void;
+  isChunkError: boolean;
 }
 
 export interface ErrorBoundaryProps {
-  children: React.ReactNode
+  children: React.ReactNode;
   /** Stable name in the console line, e.g. 'route', 'plugin-frame', 'planner-tabs'. */
-  boundaryId: string
-  level?: Level
+  boundaryId: string;
+  level?: Level;
   /** Mobile uses its own tokens; they only resolve inside MobileShell's .m-root. */
-  variant?: 'desktop' | 'mobile'
+  variant?: 'desktop' | 'mobile';
   /** Shown instead of the generic wording — a plugin name, a panel title. */
-  label?: string
-  fallback?: React.ReactNode | ((state: FallbackState) => React.ReactNode)
+  label?: string;
+  fallback?: React.ReactNode | ((state: FallbackState) => React.ReactNode);
   /** Any change here clears the error, e.g. [tripId] or [activeTab]. */
-  resetKeys?: readonly unknown[]
-  onReset?: () => void
-  onError?: (error: unknown, info: React.ErrorInfo) => void
+  resetKeys?: readonly unknown[];
+  onReset?: () => void;
+  onError?: (error: unknown, info: React.ErrorInfo) => void;
 }
 
 interface ErrorBoundaryState {
-  error: unknown
-  hasError: boolean
+  error: unknown;
+  hasError: boolean;
 }
 
 function keysChanged(a: readonly unknown[] = [], b: readonly unknown[] = []): boolean {
-  return a.length !== b.length || a.some((v, i) => !Object.is(v, b[i]))
+  return a.length !== b.length || a.some((v, i) => !Object.is(v, b[i]));
 }
 
 export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { error: null, hasError: false }
+  state: ErrorBoundaryState = { error: null, hasError: false };
 
   static getDerivedStateFromError(error: unknown): ErrorBoundaryState {
-    return { error, hasError: true }
+    return { error, hasError: true };
   }
 
   componentDidCatch(error: unknown, info: React.ErrorInfo) {
-    console.error(`[ErrorBoundary:${this.props.boundaryId}]`, error, info.componentStack)
-    this.props.onError?.(error, info)
+    console.error(`[ErrorBoundary:${this.props.boundaryId}]`, error, info.componentStack);
+    this.props.onError?.(error, info);
 
     // A chunk that 404s can't be retried — React.lazy keeps the rejected promise,
     // so every later render throws the same thing. One reload picks up the new
     // index; after that the fallback stays put rather than looping.
-    if (isChunkLoadError(error)) reloadOnceForChunk()
+    if (isChunkLoadError(error)) reloadOnceForChunk();
   }
 
   componentDidUpdate(prev: ErrorBoundaryProps) {
     if (this.state.hasError && keysChanged(prev.resetKeys, this.props.resetKeys)) {
-      this.reset()
+      this.reset();
     }
   }
 
   reset = () => {
-    this.props.onReset?.()
-    this.setState({ error: null, hasError: false })
-  }
+    this.props.onReset?.();
+    this.setState({ error: null, hasError: false });
+  };
 
   render() {
-    if (!this.state.hasError) return this.props.children
+    if (!this.state.hasError) return this.props.children;
 
-    const { fallback, level = 'panel', variant = 'desktop', label } = this.props
+    const { fallback, level = 'panel', variant = 'desktop', label } = this.props;
     const state: FallbackState = {
       error: this.state.error,
       reset: this.reset,
       isChunkError: isChunkLoadError(this.state.error),
-    }
+    };
 
-    if (typeof fallback === 'function') return fallback(state)
-    if (fallback !== undefined) return fallback
+    if (typeof fallback === 'function') return fallback(state);
+    if (fallback !== undefined) return fallback;
 
-    return <ErrorFallback {...state} level={level} variant={variant} label={label} />
+    return <ErrorFallback {...state} level={level} variant={variant} label={label} />;
   }
 }
 
@@ -101,14 +101,14 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
  * already failed to load (#2524), so that case goes through the chunk recovery.
  */
 function reloadPage(isChunkError: boolean) {
-  if (isChunkError) reloadOntoCurrentBuild()
-  else window.location.reload()
+  if (isChunkError) reloadOntoCurrentBuild();
+  else window.location.reload();
 }
 
 interface FallbackProps extends FallbackState {
-  level: Level
-  variant: 'desktop' | 'mobile'
-  label?: string
+  level: Level;
+  variant: 'desktop' | 'mobile';
+  label?: string;
 }
 
 /**
@@ -117,20 +117,24 @@ interface FallbackProps extends FallbackState {
  * look up in the first place.
  */
 export function ErrorFallback({ error, reset, isChunkError, level, variant, label }: FallbackProps) {
-  const { t } = useTranslation()
-  const isPanel = level === 'panel'
-  const mobile = variant === 'mobile'
+  const { t } = useTranslation();
+  const isPanel = level === 'panel';
+  const mobile = variant === 'mobile';
 
   const title = isChunkError
     ? t('common.errorUpdateTitle')
     : label
       ? t('common.errorPluginTitle')
-      : isPanel ? t('common.errorPanelTitle') : t('common.errorTitle')
+      : isPanel
+        ? t('common.errorPanelTitle')
+        : t('common.errorTitle');
   const body = isChunkError
     ? t('common.errorUpdateBody')
-    : isPanel ? t('common.errorPanelBody') : t('common.errorBody')
+    : isPanel
+      ? t('common.errorPanelBody')
+      : t('common.errorBody');
 
-  const message = error instanceof Error ? error.message : null
+  const message = error instanceof Error ? error.message : null;
 
   return (
     <div
@@ -183,7 +187,7 @@ export function ErrorFallback({ error, reset, isChunkError, level, variant, labe
         )}
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -192,7 +196,7 @@ export function ErrorFallback({ error, reset, isChunkError, level, variant, labe
  * whose `t` echoes the key, and the user would read "common.errorTitle".
  */
 export function RootErrorFallback({ error, isChunkError }: FallbackState) {
-  const message = error instanceof Error ? error.message : null
+  const message = error instanceof Error ? error.message : null;
   return (
     <div
       role="alert"
@@ -218,5 +222,5 @@ export function RootErrorFallback({ error, isChunkError }: FallbackState) {
         Reload page
       </button>
     </div>
-  )
+  );
 }

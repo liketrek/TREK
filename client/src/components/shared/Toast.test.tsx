@@ -1,5 +1,4 @@
-import { render, screen, act } from '../../../tests/helpers/render';
-import userEvent from '@testing-library/user-event';
+import { act, render, screen } from '../../../tests/helpers/render';
 import { ToastContainer } from './Toast';
 
 describe('ToastContainer', () => {

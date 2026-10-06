@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
-import ErrorBoundary, { RootErrorFallback } from './ErrorBoundary';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
 import * as chunkReload from '../../utils/chunkReload';
+import ErrorBoundary, { RootErrorFallback } from './ErrorBoundary';
 
 // Only the Reload button's way out is replaced; the boundary's own automatic reload
 // (reloadOnceForChunk) keeps running the real code.
@@ -32,7 +32,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary boundaryId="test">
         <p>all good</p>
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     expect(screen.getByText('all good')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).toBeNull();
@@ -42,7 +42,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary boundaryId="test">
         <Boom />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     expect(screen.getByRole('alert')).toBeInTheDocument();
     // The message is surfaced on purpose — self-hosted users file their own issues.
@@ -53,20 +53,16 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary boundaryId="planner-tabs">
         <Boom />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
-    expect(consoleError).toHaveBeenCalledWith(
-      '[ErrorBoundary:planner-tabs]',
-      expect.any(Error),
-      expect.anything(),
-    );
+    expect(consoleError).toHaveBeenCalledWith('[ErrorBoundary:planner-tabs]', expect.any(Error), expect.anything());
   });
 
   it('FE-COMP-ERRBOUND-004: a custom node fallback replaces the default panel', () => {
     render(
       <ErrorBoundary boundaryId="test" fallback={<p>quiet fallback</p>}>
         <Boom />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     expect(screen.getByText('quiet fallback')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).toBeNull();
@@ -76,7 +72,7 @@ describe('ErrorBoundary', () => {
     const { container } = render(
       <ErrorBoundary boundaryId="widget:test" fallback={null}>
         <Boom />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -85,10 +81,14 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary
         boundaryId="test"
-        fallback={s => <p>{s.error instanceof Error ? s.error.message : 'none'} / {String(s.isChunkError)}</p>}
+        fallback={(s) => (
+          <p>
+            {s.error instanceof Error ? s.error.message : 'none'} / {String(s.isChunkError)}
+          </p>
+        )}
       >
         <Boom message="detail" />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     expect(screen.getByText('detail / false')).toBeInTheDocument();
   });
@@ -144,7 +144,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary boundaryId="route" level="route">
         <Boom message={CHUNK_MESSAGE} />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     // React.lazy caches the rejection, so a retry button would be a button that
     // does nothing — only a reload can pick up the new index.
@@ -164,7 +164,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary boundaryId="a">
         <Boom message={CHUNK_MESSAGE} />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     expect(reload).toHaveBeenCalledTimes(1);
 
@@ -172,7 +172,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary boundaryId="b">
         <Boom message={CHUNK_MESSAGE} />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     expect(reload).toHaveBeenCalledTimes(1);
   });
@@ -181,7 +181,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary boundaryId="plugin-frame" label="Koffi & Friends">
         <Boom />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     expect(screen.getByText('Koffi & Friends')).toBeInTheDocument();
     expect(screen.getByText('This plugin could not be shown')).toBeInTheDocument();
@@ -191,7 +191,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary boundaryId="panel" level="panel">
         <Boom />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     expect(screen.getByText('This section could not be shown')).toBeInTheDocument();
     expect(screen.getByText('The rest of the page still works.')).toBeInTheDocument();
@@ -201,7 +201,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary boundaryId="route" level="route" variant="mobile">
         <Boom />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     // --m-* only resolves inside MobileShell's .m-root; the desktop classes would
     // render an invisible card there.
@@ -246,7 +246,7 @@ describe('Reload button', () => {
     render(
       <ErrorBoundary boundaryId="route" level="route">
         <Boom message={CHUNK_MESSAGE} />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
     fireEvent.click(screen.getByText('Reload page'));
     expect(chunkReload.reloadOntoCurrentBuild).toHaveBeenCalledTimes(1);

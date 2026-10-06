@@ -1,20 +1,26 @@
-import React from 'react'
-import { Shuffle, X, AlertTriangle, Info, Loader2 } from 'lucide-react'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { Tooltip } from '../shared/Tooltip'
-import { useSettingsStore } from '../../store/settingsStore'
-import { formatDistance } from '../../utils/units'
-import type { LegAlternatives } from './useRouteAlternatives'
-import { alternativesBusy, alternativesPhase, alternativeSubline, otherEngineNote, type AlternativeOverlay } from './alternativeOverlays'
+import { AlertTriangle, Info, Loader2, Shuffle, X } from 'lucide-react';
+import React from 'react';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { useSettingsStore } from '../../store/settingsStore';
+import { formatDistance } from '../../utils/units';
+import { Tooltip } from '../shared/Tooltip';
+import {
+  alternativesBusy,
+  alternativesPhase,
+  alternativeSubline,
+  otherEngineNote,
+  type AlternativeOverlay,
+} from './alternativeOverlays';
+import type { LegAlternatives } from './useRouteAlternatives';
 
 interface RoadtripAlternativesBarProps {
-  open: LegAlternatives | null
+  open: LegAlternatives | null;
   /** The very rows the map draws, so the two can never disagree about which is fastest. */
-  overlays: AlternativeOverlay[]
-  onChoose: (index: number) => void
-  onClose: () => void
+  overlays: AlternativeOverlay[];
+  onChoose: (index: number) => void;
+  onClose: () => void;
   /** Reports which option the pointer is on, so the map can light that road up. */
-  onHighlight?: (index: number | null) => void
+  onHighlight?: (index: number | null) => void;
 }
 
 /**
@@ -29,19 +35,23 @@ interface RoadtripAlternativesBarProps {
  * being true the moment the road currently driven was put at the top.
  */
 export default function RoadtripAlternativesBar({
-  open, overlays, onChoose, onClose, onHighlight,
+  open,
+  overlays,
+  onChoose,
+  onClose,
+  onHighlight,
 }: RoadtripAlternativesBarProps): React.ReactElement | null {
-  const { t } = useTranslation()
-  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
-  if (!open) return null
-  const phase = alternativesPhase(open, overlays)
+  const { t } = useTranslation();
+  const distanceUnit = useSettingsStore((s) => s.settings.distance_unit);
+  if (!open) return null;
+  const phase = alternativesPhase(open, overlays);
   // While a choice is checked against the router and written, the list stands still: a
   // second click would race the first, and its answer could land on the leg after it.
-  const busy = alternativesBusy(open)
+  const busy = alternativesBusy(open);
   // What the check is doing, and why the last one saved nothing. A toast says the latter
   // too, but it is announced to nobody and gone in seconds, while this line sits beside
   // the chips it is about.
-  const status = busy ? t('roadtrip.alt.checking') : (open.notice ?? '')
+  const status = busy ? t('roadtrip.alt.checking') : (open.notice ?? '');
 
   return (
     <div className="pointer-events-auto flex max-w-[min(92vw,640px)] flex-col gap-2 rounded-2xl border border-edge-faint bg-surface-elevated px-3 py-2.5 shadow-modal backdrop-blur">
@@ -72,8 +82,8 @@ export default function RoadtripAlternativesBar({
         <p className="text-caption text-content-muted">{t('roadtrip.alt.onlyOne')}</p>
       ) : (
         <div className="flex flex-wrap gap-1.5" aria-busy={busy}>
-          {overlays.map(alt => {
-            const note = otherEngineNote(alt)
+          {overlays.map((alt) => {
+            const note = otherEngineNote(alt);
             return (
               <button
                 key={alt.index}
@@ -82,7 +92,9 @@ export default function RoadtripAlternativesBar({
                 // keyboard that chose it would land on the page with the check still running.
                 aria-disabled={busy}
                 aria-busy={open.proving === alt.index}
-                onClick={() => { if (!busy) onChoose(alt.index) }}
+                onClick={() => {
+                  if (!busy) onChoose(alt.index);
+                }}
                 onMouseEnter={() => onHighlight?.(alt.index)}
                 onMouseLeave={() => onHighlight?.(null)}
                 onFocus={() => onHighlight?.(alt.index)}
@@ -105,7 +117,7 @@ export default function RoadtripAlternativesBar({
                     {formatDistance(alt.distance / 1000, distanceUnit)}
                   </span>
                   <span className="text-caption tabular-nums text-content-muted">
-                    {alternativeSubline(alt, time => t('roadtrip.alt.slower', { time }))}
+                    {alternativeSubline(alt, (time) => t('roadtrip.alt.slower', { time }))}
                   </span>
                 </span>
                 {/* Only where the drive time on the map came from the other engine. The
@@ -120,12 +132,14 @@ export default function RoadtripAlternativesBar({
                   </Tooltip>
                 ) : null}
               </button>
-            )
+            );
           })}
         </div>
       )}
       {/* Kept in the tree while empty, so a screen reader is listening before it speaks. */}
-      <p role="status" className={status ? 'text-caption text-content-muted' : 'sr-only'}>{status}</p>
+      <p role="status" className={status ? 'text-caption text-content-muted' : 'sr-only'}>
+        {status}
+      </p>
     </div>
-  )
+  );
 }

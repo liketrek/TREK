@@ -4,13 +4,14 @@
  * (VC75 `getAvailableUsers`, VC129/130) had no repository-level
  * `toEqual(<legacy raw>)` parity test.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
 import { VacayPlanMembers } from '../../../../src/db/entities/VacayPlanMembers.entity';
 import type { VacayPlanMembersRepository } from '../../../../src/db/repositories/VacayPlanMembers.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -20,15 +21,25 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(VacayPlanMembers);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function insertPlan(ownerId: number): number {
   return Number(testDb.prepare('INSERT INTO vacay_plans (owner_id) VALUES (?)').run(ownerId).lastInsertRowid);
 }
 
 function insertMember(planId: number, userId: number, status: string): number {
-  return Number(testDb.prepare('INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, ?)').run(planId, userId, status).lastInsertRowid);
+  return Number(
+    testDb
+      .prepare('INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, ?)')
+      .run(planId, userId, status).lastInsertRowid,
+  );
 }
 
 describe('VacayPlanMembersRepository.listAvailableForFusion (VC75, getAvailableUsers — the fusion-candidate picker)', () => {
@@ -48,13 +59,17 @@ describe('VacayPlanMembersRepository.listAvailableForFusion (VC75, getAvailableU
     const { user: guest } = createUser(testDb, { username: 'guestuser' });
     testDb.prepare('UPDATE users SET is_guest = 1 WHERE id = ?').run(guest.id);
 
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT u.id, u.username, u.email FROM users u
       WHERE u.id != ? AND COALESCE(u.is_guest, 0) = 0
         AND u.id NOT IN (SELECT user_id FROM vacay_plan_members WHERE plan_id = ?)
         AND u.id NOT IN (SELECT user_id FROM vacay_plan_members WHERE status = 'accepted')
         AND u.id NOT IN (SELECT owner_id FROM vacay_plans WHERE id IN (SELECT plan_id FROM vacay_plan_members WHERE status = 'accepted'))
-      ORDER BY u.username`).all(me.id, planId);
+      ORDER BY u.username`,
+      )
+      .all(me.id, planId);
 
     const typed = await repo.listAvailableForFusion(me.id, planId);
     expect(typed).toEqual(legacy);
@@ -67,7 +82,7 @@ describe('VacayPlanMembersRepository.listAvailableForFusion (VC75, getAvailableU
   });
 });
 
-describe('VacayPlanMembersRepository.listPendingForPlan / listPendingForUser (VC129/130, getPlanData\'s share picker)', () => {
+describe("VacayPlanMembersRepository.listPendingForPlan / listPendingForUser (VC129/130, getPlanData's share picker)", () => {
   it('VACAYMEMREPO-002: listPendingForPlan matches the legacy JOIN — outgoing invites the plan owner sent', async () => {
     const { user: owner } = createUser(testDb);
     const planId = insertPlan(owner.id);
@@ -76,29 +91,39 @@ describe('VacayPlanMembersRepository.listPendingForPlan / listPendingForUser (VC
     const { user: accepted } = createUser(testDb, { username: 'accepted' });
     insertMember(planId, accepted.id, 'accepted');
 
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT m.id, m.user_id, u.username, u.email, m.created_at
       FROM vacay_plan_members m JOIN users u ON m.user_id = u.id
-      WHERE m.plan_id = ? AND m.status = 'pending'`).all(planId);
+      WHERE m.plan_id = ? AND m.status = 'pending'`,
+      )
+      .all(planId);
 
     const typed = await repo.listPendingForPlan(planId);
     expect(typed).toEqual(legacy);
     expect(typed.map((r) => r.user_id)).toEqual([invitee.id]);
   });
 
-  it('VACAYMEMREPO-003: listPendingForUser matches the legacy JOIN — the OWNER\'s username/email, not the invited member\'s', async () => {
+  it("VACAYMEMREPO-003: listPendingForUser matches the legacy JOIN — the OWNER's username/email, not the invited member's", async () => {
     const { user: owner } = createUser(testDb, { username: 'planowner' });
     const planId = insertPlan(owner.id);
     const { user: invitee } = createUser(testDb, { username: 'invitee' });
     insertMember(planId, invitee.id, 'pending');
 
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT m.id, m.plan_id, u.username, u.email, m.created_at
       FROM vacay_plan_members m JOIN vacay_plans p ON m.plan_id = p.id JOIN users u ON p.owner_id = u.id
-      WHERE m.user_id = ? AND m.status = 'pending'`).all(invitee.id);
+      WHERE m.user_id = ? AND m.status = 'pending'`,
+      )
+      .all(invitee.id);
 
     const typed = await repo.listPendingForUser(invitee.id);
     expect(typed).toEqual(legacy);
-    expect(typed).toEqual([{ id: typed[0].id, plan_id: planId, username: 'planowner', email: owner.email, created_at: typed[0].created_at }]);
+    expect(typed).toEqual([
+      { id: typed[0].id, plan_id: planId, username: 'planowner', email: owner.email, created_at: typed[0].created_at },
+    ]);
   });
 });

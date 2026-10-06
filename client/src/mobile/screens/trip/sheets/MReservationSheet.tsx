@@ -1,30 +1,30 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, FileText, Hotel, Link2, ParkingSquare, Ticket, Users, Utensils } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import { useAddonStore } from '../../../../store/addonStore'
-import { useTranslation } from '../../../../i18n'
-import { resolveDayId } from '../../../../utils/formatters'
-import { parseReservationMetadata } from '../../../../utils/flightLegs'
-import { typeToCostCategory } from '@trek/shared'
-import CustomSelect from '../../../../components/shared/CustomSelect'
-import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
-import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
-import { BookingCodeInput } from '../../../../components/shared/BookingCode'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
-import MBookingFilesCosts from './MBookingFilesCosts'
-import { uploadBookingFiles } from './uploadBookingFiles'
-import { buildAssignmentOptions } from '../../../../components/Planner/assignmentOptions'
-import GuestBadge from '../../../../components/shared/GuestBadge'
-import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants'
-import { useTripStore } from '../../../../store/tripStore'
-import type { TripMember } from '../../../../types'
-import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
-import type { TripPlanner } from '../MTripShell'
-import { stayPlaces } from '../../../../utils/stayPlaces'
+import { typeToCostCategory } from '@trek/shared';
+import { Check, FileText, Hotel, Link2, ParkingSquare, Ticket, Users, Utensils } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants';
+import { buildAssignmentOptions } from '../../../../components/Planner/assignmentOptions';
+import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types';
+import { BookingCodeInput } from '../../../../components/shared/BookingCode';
+import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker';
+import CustomSelect from '../../../../components/shared/CustomSelect';
+import CustomTimePicker from '../../../../components/shared/CustomTimePicker';
+import GuestBadge from '../../../../components/shared/GuestBadge';
+import { useTranslation } from '../../../../i18n';
+import { useAddonStore } from '../../../../store/addonStore';
+import { useTripStore } from '../../../../store/tripStore';
+import type { TripMember } from '../../../../types';
+import { parseReservationMetadata } from '../../../../utils/flightLegs';
+import { resolveDayId } from '../../../../utils/formatters';
+import { stayPlaces } from '../../../../utils/stayPlaces';
+import MSheet from '../../../components/MSheet';
+import type { TripPlanner } from '../MTripShell';
+import MBookingFilesCosts from './MBookingFilesCosts';
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome';
+import { uploadBookingFiles } from './uploadBookingFiles';
 
 export interface MReservationSheetProps {
-  planner: TripPlanner
-  onOpenExpense: (req: BookingExpenseRequest) => void
+  planner: TripPlanner;
+  onOpenExpense: (req: BookingExpenseRequest) => void;
 }
 
 const TYPE_OPTIONS = [
@@ -34,19 +34,32 @@ const TYPE_OPTIONS = [
   { value: 'tour', labelKey: 'reservations.type.tour', Icon: Users },
   { value: 'parking', labelKey: 'reservations.type.parking', Icon: ParkingSquare },
   { value: 'other', labelKey: 'reservations.type.other', Icon: FileText },
-]
+];
 
 // Traveler picker row — same surface as the cost-split rows (bg on --m-ic).
-const TRAVELER_ROW_CLS = 'flex w-full items-center gap-[9px] rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px] text-left'
+const TRAVELER_ROW_CLS =
+  'flex w-full items-center gap-[9px] rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[9px] text-left';
 
 const EMPTY = {
-  title: '', type: 'other', status: 'pending',
-  reservation_time: '', reservation_end_time: '', end_date: '', location: '', confirmation_number: '',
-  notes: '', url: '', place_id: '' as string | number, accommodation_id: '' as string | number,
-  meta_check_in_time: '', meta_check_out_time: '',
-  hotel_place_id: '' as string | number, hotel_start_day: '' as string | number, hotel_end_day: '' as string | number,
+  title: '',
+  type: 'other',
+  status: 'pending',
+  reservation_time: '',
+  reservation_end_time: '',
+  end_date: '',
+  location: '',
+  confirmation_number: '',
+  notes: '',
+  url: '',
+  place_id: '' as string | number,
+  accommodation_id: '' as string | number,
+  meta_check_in_time: '',
+  meta_check_out_time: '',
+  hotel_place_id: '' as string | number,
+  hotel_start_day: '' as string | number,
+  hotel_end_day: '' as string | number,
   hotel_address: '',
-}
+};
 
 /**
  * Add/edit booking sheet — the mobile counterpart of the desktop ReservationModal,
@@ -57,201 +70,286 @@ const EMPTY = {
  */
 export default function MReservationSheet({ planner, onOpenExpense }: MReservationSheetProps) {
   const {
-    t, toast, tripId, days, places, tripAccommodations, tripMembers, selectedDayId,
-    showReservationModal, setShowReservationModal,
-    editingReservation, setEditingReservation, reservationPrefill,
-    bookingForAssignmentId, setBookingForAssignmentId,
+    t,
+    toast,
+    tripId,
+    days,
+    places,
+    tripAccommodations,
+    tripMembers,
+    selectedDayId,
+    showReservationModal,
+    setShowReservationModal,
+    editingReservation,
+    setEditingReservation,
+    reservationPrefill,
+    bookingForAssignmentId,
+    setBookingForAssignmentId,
     assignments,
-    importReviewActive, advanceImportReview,
-    handleSaveReservation, canUploadFiles,
-  } = planner
-  const { locale } = useTranslation()
-  const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
+    importReviewActive,
+    advanceImportReview,
+    handleSaveReservation,
+    canUploadFiles,
+  } = planner;
+  const { locale } = useTranslation();
+  const setReservationTravelers = useTripStore((s) => s.setReservationTravelers);
 
-  const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
+  const isBudgetEnabled = useAddonStore((s) => s.isEnabled('budget'));
 
-  const [form, setForm] = useState(EMPTY)
-  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [form, setForm] = useState(EMPTY);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const assignmentOptions = useMemo(
     () => buildAssignmentOptions(days, assignments, t, locale),
-    [days, assignments, t, locale],
-  )
+    [days, assignments, t, locale]
+  );
 
   // Travelers assigned to this booking (#1517) — seeded from the editing
   // reservation on open, persisted separately after the save resolves.
-  const [travelerIds, setTravelerIds] = useState<Set<number>>(new Set())
-  const [isSaving, setIsSaving] = useState(false)
+  const [travelerIds, setTravelerIds] = useState<Set<number>>(new Set());
+  const [isSaving, setIsSaving] = useState(false);
   // Ref (not state) so handleSubmit reads the intent set by the same click.
-  const expenseIntentRef = useRef(false)
+  const expenseIntentRef = useRef(false);
   // Open-time snapshot so the sheet content survives the exit animation.
-  const [snap, setSnap] = useState<{ res: typeof editingReservation; assignmentId: number | null }>(
-    { res: null, assignmentId: null },
-  )
+  const [snap, setSnap] = useState<{ res: typeof editingReservation; assignmentId: number | null }>({
+    res: null,
+    assignmentId: null,
+  });
   // The stop this booking hangs on. Seeded from the booking being edited, not
   // only from the create-for-a-stop flag, because saving used to write the flag
   // straight back and an edit therefore erased the link (#2216).
-  const [assignmentId, setAssignmentId] = useState<number | ''>('')
+  const [assignmentId, setAssignmentId] = useState<number | ''>('');
 
   useEffect(() => {
-    if (!showReservationModal) return
-    setSnap({ res: editingReservation, assignmentId: bookingForAssignmentId ?? null })
-    setAssignmentId(bookingForAssignmentId ?? editingReservation?.assignment_id ?? '')
-    expenseIntentRef.current = false
-    setPendingFiles([])
-    setTravelerIds(new Set((editingReservation?.travelers || []).map(tv => tv.user_id)))
+    if (!showReservationModal) return;
+    setSnap({ res: editingReservation, assignmentId: bookingForAssignmentId ?? null });
+    setAssignmentId(bookingForAssignmentId ?? editingReservation?.assignment_id ?? '');
+    expenseIntentRef.current = false;
+    setPendingFiles([]);
+    setTravelerIds(new Set((editingReservation?.travelers || []).map((tv) => tv.user_id)));
 
-    const res = editingReservation
+    const res = editingReservation;
     if (res) {
-      const meta = parseReservationMetadata(res)
-      const rawEnd = res.reservation_end_time || ''
-      let endDate = '', endTime = rawEnd
-      if (rawEnd.includes('T')) { endDate = rawEnd.split('T')[0]; endTime = rawEnd.split('T')[1]?.slice(0, 5) || '' }
-      else if (/^\d{4}-\d{2}-\d{2}$/.test(rawEnd)) { endDate = rawEnd; endTime = '' }
-      const acc = tripAccommodations.find(a => a.id == res.accommodation_id)
+      const meta = parseReservationMetadata(res);
+      const rawEnd = res.reservation_end_time || '';
+      let endDate = '',
+        endTime = rawEnd;
+      if (rawEnd.includes('T')) {
+        endDate = rawEnd.split('T')[0];
+        endTime = rawEnd.split('T')[1]?.slice(0, 5) || '';
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(rawEnd)) {
+        endDate = rawEnd;
+        endTime = '';
+      }
+      const acc = tripAccommodations.find((a) => a.id == res.accommodation_id);
       setForm({
         ...EMPTY,
-        title: res.title || '', type: res.type || 'other', status: res.status || 'pending',
+        title: res.title || '',
+        type: res.type || 'other',
+        status: res.status || 'pending',
         reservation_time: res.reservation_time ? res.reservation_time.slice(0, 16) : '',
-        reservation_end_time: endTime, end_date: endDate,
-        location: res.location || '', confirmation_number: res.confirmation_number || '',
-        notes: res.notes || '', url: res.url || '',
-        place_id: res.place_id || '', accommodation_id: res.accommodation_id || '',
-        meta_check_in_time: meta.check_in_time || '', meta_check_out_time: meta.check_out_time || '',
-        hotel_place_id: acc?.place_id || '', hotel_start_day: acc?.start_day_id || '', hotel_end_day: acc?.end_day_id || '',
-        hotel_address: places.find(p => p.id == acc?.place_id)?.address || res.location || '',
-      })
+        reservation_end_time: endTime,
+        end_date: endDate,
+        location: res.location || '',
+        confirmation_number: res.confirmation_number || '',
+        notes: res.notes || '',
+        url: res.url || '',
+        place_id: res.place_id || '',
+        accommodation_id: res.accommodation_id || '',
+        meta_check_in_time: meta.check_in_time || '',
+        meta_check_out_time: meta.check_out_time || '',
+        hotel_place_id: acc?.place_id || '',
+        hotel_start_day: acc?.start_day_id || '',
+        hotel_end_day: acc?.end_day_id || '',
+        hotel_address: places.find((p) => p.id == acc?.place_id)?.address || res.location || '',
+      });
     } else if (reservationPrefill) {
-      const pf = reservationPrefill
-      const meta = (pf.metadata && typeof pf.metadata === 'object' ? pf.metadata : {}) as Record<string, string>
-      const rawEnd = typeof pf.reservation_end_time === 'string' ? pf.reservation_end_time : ''
-      let endDate = '', endTime = rawEnd
-      if (rawEnd.includes('T')) { endDate = rawEnd.split('T')[0]; endTime = rawEnd.split('T')[1]?.slice(0, 5) || '' }
-      else if (/^\d{4}-\d{2}-\d{2}$/.test(rawEnd)) { endDate = rawEnd; endTime = '' }
+      const pf = reservationPrefill;
+      const meta = (pf.metadata && typeof pf.metadata === 'object' ? pf.metadata : {}) as Record<string, string>;
+      const rawEnd = typeof pf.reservation_end_time === 'string' ? pf.reservation_end_time : '';
+      let endDate = '',
+        endTime = rawEnd;
+      if (rawEnd.includes('T')) {
+        endDate = rawEnd.split('T')[0];
+        endTime = rawEnd.split('T')[1]?.slice(0, 5) || '';
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(rawEnd)) {
+        endDate = rawEnd;
+        endTime = '';
+      }
       setForm({
         ...EMPTY,
-        title: pf.title || '', type: pf.type || 'other', status: pf.status || 'pending',
+        title: pf.title || '',
+        type: pf.type || 'other',
+        status: pf.status || 'pending',
         reservation_time: typeof pf.reservation_time === 'string' ? pf.reservation_time.slice(0, 16) : '',
-        reservation_end_time: endTime, end_date: endDate,
-        location: pf.location || '', confirmation_number: pf.confirmation_number || '',
-        notes: pf.notes || '', url: (pf as { url?: string }).url || '',
-        meta_check_in_time: meta.check_in_time || '', meta_check_out_time: meta.check_out_time || '',
+        reservation_end_time: endTime,
+        end_date: endDate,
+        location: pf.location || '',
+        confirmation_number: pf.confirmation_number || '',
+        notes: pf.notes || '',
+        url: (pf as { url?: string }).url || '',
+        meta_check_in_time: meta.check_in_time || '',
+        meta_check_out_time: meta.check_out_time || '',
         hotel_start_day: resolveDayId(days, pf._accommodation?.check_in),
         hotel_end_day: resolveDayId(days, pf._accommodation?.check_out),
         hotel_address: pf._venue?.address || '',
-      })
-      setPendingFiles(pf._sourceFiles ?? [])
+      });
+      setPendingFiles(pf._sourceFiles ?? []);
     } else {
       // Opened from a day's toolbar: start on that day rather than on a blank
       // date the user has to look up again (#1998). A hotel spans to the next
       // day, which is what checking in on this day actually means.
-      const ctxDay = planner.reservationModalDayId != null
-        ? days.find(d => d.id === planner.reservationModalDayId)
-        : undefined
-      const ctxDate = ctxDay?.date ? ctxDay.date.slice(0, 10) : ''
-      const nextDay = ctxDay ? days[days.indexOf(ctxDay) + 1] : undefined
-      setForm(ctxDate
-        ? {
-            ...EMPTY,
-            reservation_time: ctxDate,
-            hotel_start_day: ctxDay!.id,
-            hotel_end_day: nextDay?.id ?? ctxDay!.id,
-          }
-        : EMPTY)
+      const ctxDay =
+        planner.reservationModalDayId != null ? days.find((d) => d.id === planner.reservationModalDayId) : undefined;
+      const ctxDate = ctxDay?.date ? ctxDay.date.slice(0, 10) : '';
+      const nextDay = ctxDay ? days[days.indexOf(ctxDay) + 1] : undefined;
+      setForm(
+        ctxDate
+          ? {
+              ...EMPTY,
+              reservation_time: ctxDate,
+              hotel_start_day: ctxDay!.id,
+              hotel_end_day: nextDay?.id ?? ctxDay!.id,
+            }
+          : EMPTY
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showReservationModal])
+  }, [showReservationModal]);
 
-  const res = snap.res
-  const isHotel = form.type === 'hotel'
-  const set = (field: keyof typeof EMPTY, value: string | number) => setForm(prev => ({ ...prev, [field]: value }))
+  const res = snap.res;
+  const isHotel = form.type === 'hotel';
+  const set = (field: keyof typeof EMPTY, value: string | number) => setForm((prev) => ({ ...prev, [field]: value }));
 
-  const toggleTraveler = (id: number) => setTravelerIds(prev => {
-    const next = new Set(prev)
-    if (next.has(id)) next.delete(id); else next.add(id)
-    return next
-  })
+  const toggleTraveler = (id: number) =>
+    setTravelerIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const TravelerAvatar = ({ m, idx, dim }: { m: TripMember; idx: number; dim: boolean }) =>
-    m.avatar_url
-      ? <img src={m.avatar_url} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, opacity: dim ? 0.45 : 1 }} />
-      : (
-        <span
-          style={{
-            width: 22, height: 22, borderRadius: '50%', background: SPLIT_COLORS[idx % SPLIT_COLORS.length].gradient,
-            color: '#fff', display: 'grid', placeItems: 'center', fontSize: 8.8, fontWeight: 700, flexShrink: 0, opacity: dim ? 0.45 : 1,
-          }}
-        >
-          {(m.username || '?').charAt(0).toUpperCase()}
-        </span>
-      )
+    m.avatar_url ? (
+      <img
+        src={m.avatar_url}
+        alt=""
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: '50%',
+          objectFit: 'cover',
+          flexShrink: 0,
+          opacity: dim ? 0.45 : 1,
+        }}
+      />
+    ) : (
+      <span
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: '50%',
+          background: SPLIT_COLORS[idx % SPLIT_COLORS.length].gradient,
+          color: '#fff',
+          display: 'grid',
+          placeItems: 'center',
+          fontSize: 8.8,
+          fontWeight: 700,
+          flexShrink: 0,
+          opacity: dim ? 0.45 : 1,
+        }}
+      >
+        {(m.username || '?').charAt(0).toUpperCase()}
+      </span>
+    );
 
   const isEndBeforeStart = (() => {
-    if (isHotel || !form.end_date || !form.reservation_time) return false
-    const sDate = form.reservation_time.split('T')[0]
-    const sTime = form.reservation_time.split('T')[1] || ''
-    const eTime = form.reservation_end_time || ''
+    if (isHotel || !form.end_date || !form.reservation_time) return false;
+    const sDate = form.reservation_time.split('T')[0];
+    const sTime = form.reservation_time.split('T')[1] || '';
+    const eTime = form.reservation_end_time || '';
     // Without a time on either side the booking is all-day, so an end on the
     // start day is fine — only compare the dates there.
-    if (!sTime || !eTime) return form.end_date < sDate
-    return `${form.end_date}T${eTime}` <= `${sDate}T${sTime}`
-  })()
+    if (!sTime || !eTime) return form.end_date < sDate;
+    return `${form.end_date}T${eTime}` <= `${sDate}T${sTime}`;
+  })();
 
-  const startDate = (form.reservation_time || '').split('T')[0] || ''
-  const startTime = (form.reservation_time || '').split('T')[1] || ''
+  const startDate = (form.reservation_time || '').split('T')[0] || '';
+  const startTime = (form.reservation_time || '').split('T')[1] || '';
 
   const fmtDate = (d?: string | null) =>
-    d ? new Date(`${d.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : undefined
+    d
+      ? new Date(`${d.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, {
+          day: 'numeric',
+          month: 'short',
+          timeZone: 'UTC',
+        })
+      : undefined;
 
-  const placeOptions = [{ value: '', label: '—' }, ...places.map(p => ({ value: p.id, label: p.name }))]
-  const hotelPlaceOptions = [{ value: '', label: '—' }, ...stayPlaces(places, form.hotel_place_id).map(p => ({ value: p.id, label: p.name }))]
-  const dayOptions = days.map(d => ({
+  const placeOptions = [{ value: '', label: '—' }, ...places.map((p) => ({ value: p.id, label: p.name }))];
+  const hotelPlaceOptions = [
+    { value: '', label: '—' },
+    ...stayPlaces(places, form.hotel_place_id).map((p) => ({ value: p.id, label: p.name })),
+  ];
+  const dayOptions = days.map((d) => ({
     value: d.id,
     label: d.title || t('dayplan.dayN', { n: d.day_number }),
     badge: fmtDate(d.date),
-  }))
+  }));
 
   // Restrict non-hotel booking dates to the trip's span (#1662); hotels already
   // constrain to trip days via their day dropdowns.
-  const tripDates = days.map(d => d.date).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-  const tripMinDate = tripDates[0]
-  const tripMaxDate = tripDates[tripDates.length - 1]
+  const tripDates = days
+    .map((d) => d.date)
+    .filter((d): d is string => !!d)
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const tripMinDate = tripDates[0];
+  const tripMaxDate = tripDates[tripDates.length - 1];
 
   const handleClose = () => {
-    if (importReviewActive) { advanceImportReview(); return }
-    planner.setReservationModalDayId(null)
-    setShowReservationModal(false)
-    setEditingReservation(null)
-    setBookingForAssignmentId(null)
-  }
+    if (importReviewActive) {
+      advanceImportReview();
+      return;
+    }
+    planner.setReservationModalDayId(null);
+    setShowReservationModal(false);
+    setEditingReservation(null);
+    setBookingForAssignmentId(null);
+  };
 
   const handleSubmit = async () => {
     // Only the costs button reaches this without the footer's date check.
-    if (isEndBeforeStart) { toast.error(t('reservations.validation.endBeforeStart')); return }
-    const withExpense = expenseIntentRef.current
-    expenseIntentRef.current = false
-    setIsSaving(true)
+    if (isEndBeforeStart) {
+      toast.error(t('reservations.validation.endBeforeStart'));
+      return;
+    }
+    const withExpense = expenseIntentRef.current;
+    expenseIntentRef.current = false;
+    setIsSaving(true);
     try {
-      const metadata: Record<string, string> = {}
+      const metadata: Record<string, string> = {};
       if (isHotel) {
-        if (form.meta_check_in_time) metadata.check_in_time = form.meta_check_in_time
-        if (form.meta_check_out_time) metadata.check_out_time = form.meta_check_out_time
+        if (form.meta_check_in_time) metadata.check_in_time = form.meta_check_in_time;
+        if (form.meta_check_out_time) metadata.check_out_time = form.meta_check_out_time;
       }
-      let combinedEndTime: string = form.reservation_end_time
+      let combinedEndTime: string = form.reservation_end_time;
       if (form.end_date) {
-        combinedEndTime = form.reservation_end_time ? `${form.end_date}T${form.reservation_end_time}` : form.end_date
+        combinedEndTime = form.reservation_end_time ? `${form.end_date}T${form.reservation_end_time}` : form.end_date;
       } else if (form.reservation_end_time && form.reservation_time) {
-        combinedEndTime = `${startDate}T${form.reservation_end_time}`
+        combinedEndTime = `${startDate}T${form.reservation_end_time}`;
       }
       const saveData: Record<string, unknown> & { title: string } = {
-        title: form.title, type: form.type, status: form.status,
-        reservation_time: isHotel ? null : (form.reservation_time || null),
-        reservation_end_time: isHotel ? null : (combinedEndTime || null),
+        title: form.title,
+        type: form.type,
+        status: form.status,
+        reservation_time: isHotel ? null : form.reservation_time || null,
+        reservation_end_time: isHotel ? null : combinedEndTime || null,
         location: isHotel ? form.hotel_address : form.location,
         confirmation_number: form.confirmation_number,
-        notes: form.notes, url: form.url,
-        assignment_id: (isHotel && !form.accommodation_id) ? null : (assignmentId || null),
-        accommodation_id: isHotel ? (form.accommodation_id || null) : null,
-        place_id: isHotel ? null : (form.place_id || null),
+        notes: form.notes,
+        url: form.url,
+        assignment_id: isHotel && !form.accommodation_id ? null : assignmentId || null,
+        accommodation_id: isHotel ? form.accommodation_id || null : null,
+        place_id: isHotel ? null : form.place_id || null,
         // An empty object, not null: null clears the column outright, and that
         // took the mirrored booking price with it on every edit of a type that
         // fills no metadata of its own — restaurant, event, tour, parking, other,
@@ -263,41 +361,45 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         // sheet never edits endpoints (#2216).
         ...(snap.res?.id ? {} : { endpoints: [] }),
         needs_review: false,
-      }
+      };
       if (isHotel && (form.hotel_start_day || form.hotel_end_day)) {
         saveData.create_accommodation = {
           place_id: form.hotel_place_id || null,
-          venue: (!form.hotel_place_id && (form.hotel_address || form.title))
-            ? { name: form.title, address: form.hotel_address || null } : null,
+          venue:
+            !form.hotel_place_id && (form.hotel_address || form.title)
+              ? { name: form.title, address: form.hotel_address || null }
+              : null,
           address: form.hotel_address || null,
           start_day_id: form.hotel_start_day || form.hotel_end_day,
           end_day_id: form.hotel_end_day || form.hotel_start_day,
           check_in: form.meta_check_in_time || null,
           check_out: form.meta_check_out_time || null,
           confirmation: form.confirmation_number || null,
-        }
+        };
       }
-      const saved = await handleSaveReservation(saveData as never)
+      const saved = await handleSaveReservation(saveData as never);
       // Persist the traveler assignment once we have the reservation id (from the
       // save result on create, or the edited reservation) — only when it changed.
-      const savedId = saved?.id ?? res?.id
+      const savedId = saved?.id ?? res?.id;
       if (savedId) {
-        const original = (res?.travelers || []).map(tv => tv.user_id)
-        const next = [...travelerIds]
-        const changed = original.length !== next.length || next.some(id => !original.includes(id))
-        if (changed) await setReservationTravelers(tripId, savedId, next)
+        const original = (res?.travelers || []).map((tv) => tv.user_id);
+        const next = [...travelerIds];
+        const changed = original.length !== next.length || next.some((id) => !original.includes(id));
+        if (changed) await setReservationTravelers(tripId, savedId, next);
       }
-      await uploadBookingFiles(planner, saved?.id, pendingFiles, form.title)
+      await uploadBookingFiles(planner, saved?.id, pendingFiles, form.title);
       if (withExpense && saved?.id) {
-        onOpenExpense({ prefill: { reservationId: saved.id, name: form.title, category: typeToCostCategory(form.type) } })
+        onOpenExpense({
+          prefill: { reservationId: saved.id, name: form.title, category: typeToCostCategory(form.type) },
+        });
       }
-      if (importReviewActive && saved) advanceImportReview()
+      if (importReviewActive && saved) advanceImportReview();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'));
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   return (
     <MSheet
@@ -340,7 +442,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         <input
           type="text"
           value={form.title}
-          onChange={e => set('title', e.target.value)}
+          onChange={(e) => set('title', e.target.value)}
           placeholder={t('reservations.titlePlaceholder')}
           className={FIELD_CLS}
         />
@@ -352,7 +454,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.date')}</Eyebrow>
                 <CustomDatePicker
                   value={startDate}
-                  onChange={d => set('reservation_time', d ? (startTime ? `${d}T${startTime}` : d) : '')}
+                  onChange={(d) => set('reservation_time', d ? (startTime ? `${d}T${startTime}` : d) : '')}
                   min={tripMinDate}
                   max={tripMaxDate}
                 />
@@ -361,9 +463,9 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.startTime')}</Eyebrow>
                 <CustomTimePicker
                   value={startTime}
-                  onChange={tm => {
-                    const d = startDate || days.find(dy => dy.id === selectedDayId)?.date || ''
-                    set('reservation_time', tm ? `${d}T${tm}` : d)
+                  onChange={(tm) => {
+                    const d = startDate || days.find((dy) => dy.id === selectedDayId)?.date || '';
+                    set('reservation_time', tm ? `${d}T${tm}` : d);
                   }}
                 />
               </div>
@@ -371,11 +473,16 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
             <div className="mt-2 flex gap-2">
               <div className="min-w-0 flex-[1.2]">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.endDate')}</Eyebrow>
-                <CustomDatePicker value={form.end_date} onChange={d => set('end_date', d || '')} min={tripMinDate} max={tripMaxDate} />
+                <CustomDatePicker
+                  value={form.end_date}
+                  onChange={(d) => set('end_date', d || '')}
+                  min={tripMinDate}
+                  max={tripMaxDate}
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.endTime')}</Eyebrow>
-                <CustomTimePicker value={form.reservation_end_time} onChange={v => set('reservation_end_time', v)} />
+                <CustomTimePicker value={form.reservation_end_time} onChange={(v) => set('reservation_end_time', v)} />
               </div>
             </div>
             {isEndBeforeStart && (
@@ -388,16 +495,16 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
             <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.meta.linkPlace')}</Eyebrow>
             <CustomSelect
               value={form.place_id}
-              onChange={value => {
-                const p = places.find(pl => pl.id === value)
-                setForm(prev => {
-                  const next = { ...prev, place_id: value }
+              onChange={(value) => {
+                const p = places.find((pl) => pl.id === value);
+                setForm((prev) => {
+                  const next = { ...prev, place_id: value };
                   if (value && p) {
-                    if (!prev.title) next.title = p.name
-                    if (!prev.location && p.address) next.location = p.address
+                    if (!prev.title) next.title = p.name;
+                    if (!prev.location && p.address) next.location = p.address;
                   }
-                  return next
-                })
+                  return next;
+                });
               }}
               options={placeOptions}
               placeholder={t('reservations.meta.pickPlace')}
@@ -410,7 +517,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
             <input
               type="text"
               value={form.location}
-              onChange={e => set('location', e.target.value)}
+              onChange={(e) => set('location', e.target.value)}
               placeholder={t('reservations.locationPlaceholder')}
               className={FIELD_CLS}
             />
@@ -422,16 +529,16 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
             <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.meta.hotelPlace')}</Eyebrow>
             <CustomSelect
               value={form.hotel_place_id}
-              onChange={value => {
-                const p = places.find(pl => pl.id === value)
-                setForm(prev => {
-                  const next = { ...prev, hotel_place_id: value }
+              onChange={(value) => {
+                const p = places.find((pl) => pl.id === value);
+                setForm((prev) => {
+                  const next = { ...prev, hotel_place_id: value };
                   if (value && p) {
-                    if (!prev.title) next.title = p.name
-                    next.hotel_address = p.address || prev.hotel_address
+                    if (!prev.title) next.title = p.name;
+                    next.hotel_address = p.address || prev.hotel_address;
                   }
-                  return next
-                })
+                  return next;
+                });
               }}
               options={hotelPlaceOptions}
               placeholder={t('reservations.meta.pickHotel')}
@@ -444,12 +551,16 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.fromDay')}</Eyebrow>
                 <CustomSelect
                   value={form.hotel_start_day}
-                  onChange={value => setForm(prev => ({
-                    ...prev,
-                    hotel_start_day: value,
-                    hotel_end_day: days.findIndex(d => d.id === value) > days.findIndex(d => d.id === prev.hotel_end_day)
-                      ? value : prev.hotel_end_day,
-                  }))}
+                  onChange={(value) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      hotel_start_day: value,
+                      hotel_end_day:
+                        days.findIndex((d) => d.id === value) > days.findIndex((d) => d.id === prev.hotel_end_day)
+                          ? value
+                          : prev.hotel_end_day,
+                    }))
+                  }
                   options={dayOptions}
                   placeholder={t('reservations.meta.selectDay')}
                   size="sm"
@@ -459,12 +570,16 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.toDay')}</Eyebrow>
                 <CustomSelect
                   value={form.hotel_end_day}
-                  onChange={value => setForm(prev => ({
-                    ...prev,
-                    hotel_start_day: days.findIndex(d => d.id === value) < days.findIndex(d => d.id === prev.hotel_start_day)
-                      ? value : prev.hotel_start_day,
-                    hotel_end_day: value,
-                  }))}
+                  onChange={(value) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      hotel_start_day:
+                        days.findIndex((d) => d.id === value) < days.findIndex((d) => d.id === prev.hotel_start_day)
+                          ? value
+                          : prev.hotel_start_day,
+                      hotel_end_day: value,
+                    }))
+                  }
                   options={dayOptions}
                   placeholder={t('reservations.meta.selectDay')}
                   size="sm"
@@ -475,11 +590,19 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
             <div className="mt-2 flex gap-2">
               <div className="min-w-0 flex-1">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.checkIn')}</Eyebrow>
-                <CustomTimePicker value={form.meta_check_in_time} onChange={v => set('meta_check_in_time', v)} placeholder="15:00" />
+                <CustomTimePicker
+                  value={form.meta_check_in_time}
+                  onChange={(v) => set('meta_check_in_time', v)}
+                  placeholder="15:00"
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.checkOut')}</Eyebrow>
-                <CustomTimePicker value={form.meta_check_out_time} onChange={v => set('meta_check_out_time', v)} placeholder="11:00" />
+                <CustomTimePicker
+                  value={form.meta_check_out_time}
+                  onChange={(v) => set('meta_check_out_time', v)}
+                  placeholder="11:00"
+                />
               </div>
             </div>
 
@@ -487,7 +610,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
             <input
               type="text"
               value={form.hotel_address}
-              onChange={e => set('hotel_address', e.target.value)}
+              onChange={(e) => set('hotel_address', e.target.value)}
               placeholder={t('reservations.locationPlaceholder')}
               className={FIELD_CLS}
             />
@@ -500,7 +623,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
             <Eyebrow className="mb-[5px] uppercase">{t('reservations.confirmationCode')}</Eyebrow>
             <BookingCodeInput
               value={form.confirmation_number}
-              onChange={e => set('confirmation_number', e.target.value)}
+              onChange={(e) => set('confirmation_number', e.target.value)}
               placeholder={t('reservations.confirmationPlaceholder')}
               className={FIELD_CLS}
             />
@@ -508,7 +631,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
           <div className="min-w-0 flex-1">
             <Eyebrow className="mb-[5px] uppercase">{t('reservations.status')}</Eyebrow>
             <div className="flex rounded-full bg-[color:var(--m-ic)] p-[3px]">
-              {(['pending', 'confirmed'] as const).map(s => (
+              {(['pending', 'confirmed'] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
@@ -531,7 +654,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
           <input
             type="url"
             value={form.url}
-            onChange={e => set('url', e.target.value)}
+            onChange={(e) => set('url', e.target.value)}
             placeholder={t('reservations.urlPlaceholder')}
             className={`${FIELD_CLS} pl-[34px]`}
           />
@@ -541,7 +664,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.notes')}</Eyebrow>
         <textarea
           value={form.notes}
-          onChange={e => set('notes', e.target.value)}
+          onChange={(e) => set('notes', e.target.value)}
           rows={2}
           placeholder={t('reservations.notesPlaceholder')}
           className={FIELD_AREA_CLS}
@@ -554,7 +677,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         ) : (
           <div className="flex flex-col gap-[6px]">
             {tripMembers.map((m, idx) => {
-              const on = travelerIds.has(m.id)
+              const on = travelerIds.has(m.id);
               return (
                 <button
                   key={m.id}
@@ -567,7 +690,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
                   {m.is_guest && <GuestBadge size="xs" />}
                   {on && <Check size={15} strokeWidth={2.4} className="flex-none text-m-act" />}
                 </button>
-              )
+              );
             })}
           </div>
         )}
@@ -578,12 +701,13 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
             <Eyebrow className="mb-[6px] mt-3 uppercase">{t('reservations.linkAssignment')}</Eyebrow>
             <CustomSelect
               value={assignmentId}
-              onChange={value => {
-                setAssignmentId(value === '' ? '' : Number(value))
-                const opt = assignmentOptions.find(o => o.value === value)
+              onChange={(value) => {
+                setAssignmentId(value === '' ? '' : Number(value));
+                const opt = assignmentOptions.find((o) => o.value === value);
                 // Same courtesy as the desktop dialog: an undated booking takes
                 // the day of the stop it was just linked to.
-                if (opt?.dayDate) setForm(prev => (prev.reservation_time ? prev : { ...prev, reservation_time: opt.dayDate! }))
+                if (opt?.dayDate)
+                  setForm((prev) => (prev.reservation_time ? prev : { ...prev, reservation_time: opt.dayDate! }));
               }}
               placeholder={t('reservations.pickAssignment')}
               options={[{ value: '', label: t('reservations.noAssignment') }, ...assignmentOptions]}
@@ -602,8 +726,11 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
           canUploadFiles={canUploadFiles}
           showCosts={isBudgetEnabled}
           createDisabled={!form.title.trim() || isSaving}
-          onCreate={() => { expenseIntentRef.current = true; void handleSubmit() }}
-          onEdit={item => onOpenExpense({ editItem: item })}
+          onCreate={() => {
+            expenseIntentRef.current = true;
+            void handleSubmit();
+          }}
+          onEdit={(item) => onOpenExpense({ editItem: item })}
         />
       </div>
 
@@ -615,5 +742,5 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         submitDisabled={!form.title.trim() || isSaving || isEndBeforeStart}
       />
     </MSheet>
-  )
+  );
 }

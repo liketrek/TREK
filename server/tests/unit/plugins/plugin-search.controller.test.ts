@@ -1,11 +1,11 @@
+import { PluginSearchController } from '../../../src/nest/plugins/contributions/plugin-search.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+import { pluginSearchHitSchema, pluginSuggestResultSchema } from '@trek/shared';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { pluginsEnabled } = vi.hoisted(() => ({ pluginsEnabled: vi.fn(() => true) }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
-
-import { pluginSearchHitSchema, pluginSuggestResultSchema } from '@trek/shared';
-import { PluginSearchController } from '../../../src/nest/plugins/contributions/plugin-search.controller';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -23,7 +23,9 @@ function controller(over: Partial<PluginHooks> = {}) {
 }
 
 describe('PluginSearchController', () => {
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+  });
 
   it('returns [] when the runtime is disabled (no plugin calls)', async () => {
     pluginsEnabled.mockReturnValue(false);
@@ -87,13 +89,20 @@ describe('PluginSearchController', () => {
       ) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
-    expect(places.map(p => p.name)).toEqual(['A1', 'B1', 'A2', 'A3']);
+    expect(places.map((p) => p.name)).toEqual(['A1', 'B1', 'A2', 'A3']);
   });
 
   it('normalizes a hit into the shape the core search returns, and namespaces the id', async () => {
     const { c } = controller({
       searchPlaces: vi.fn(async () => [
-        hit({ address: 'Via Roma 1', rating: 4.5, website: 'https://ok.example', phone: '+39 02', category: 'restaurant', description: 'Good' }),
+        hit({
+          address: 'Via Roma 1',
+          rating: 4.5,
+          website: 'https://ok.example',
+          phone: '+39 02',
+          category: 'restaurant',
+          description: 'Good',
+        }),
       ]) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
@@ -115,7 +124,9 @@ describe('PluginSearchController', () => {
 
   it('falls back to the coordinate when a hit carries no id of its own', async () => {
     const { c } = controller({
-      searchPlaces: vi.fn(async () => [{ name: 'Nameless index', lat: 45.4, lng: 9.2 }]) as unknown as PluginHooks['searchPlaces'],
+      searchPlaces: vi.fn(async () => [
+        { name: 'Nameless index', lat: 45.4, lng: 9.2 },
+      ]) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
     expect(places[0].osm_id).toBe('plugin:p1:45.4,9.2');
@@ -133,7 +144,7 @@ describe('PluginSearchController', () => {
       ]) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
-    expect(places.map(p => p.name)).toEqual(['Keeper']);
+    expect(places.map((p) => p.name)).toEqual(['Keeper']);
   });
 
   it('strips a javascript: website, clamps the rating and caps every string', async () => {
@@ -164,7 +175,7 @@ describe('PluginSearchController', () => {
       ]) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
-    expect(places.map(p => p.rating)).toEqual([null, null, null, 4.3]);
+    expect(places.map((p) => p.rating)).toEqual([null, null, null, 4.3]);
   });
 
   // #2483: a plugin index is one more source of websites typed without a scheme.
@@ -177,7 +188,11 @@ describe('PluginSearchController', () => {
       ]) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
-    expect(places.map((p) => p.website)).toEqual(['https://www.ristorante.example/menu', 'https://ristorante.example', null]);
+    expect(places.map((p) => p.website)).toEqual([
+      'https://www.ristorante.example/menu',
+      'https://ristorante.example',
+      null,
+    ]);
   });
 
   // A plugin on the same network may answer with an intranet address. The old
@@ -185,7 +200,9 @@ describe('PluginSearchController', () => {
   it('PLUGIN-SEARCH-2483-02: an http(s) website keeps its host whatever it looks like', async () => {
     const urls = ['http://localhost:8080/poi/1', 'http://intranet/poi/2', 'https://[2001:db8::1]/poi/3'];
     const { c } = controller({
-      searchPlaces: vi.fn(async () => urls.map((website, i) => hit({ id: `h${i}`, website }))) as unknown as PluginHooks['searchPlaces'],
+      searchPlaces: vi.fn(async () =>
+        urls.map((website, i) => hit({ id: `h${i}`, website })),
+      ) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('poi', undefined, undefined, undefined, undefined, req(5));
     expect(places.map((p) => p.website)).toEqual(urls);
@@ -206,7 +223,14 @@ describe('PluginSearchController', () => {
     // is what fails when one of them moves without the other.
     const { c } = controller({
       searchPlaces: vi.fn(async () => [
-        hit({ address: 'Via Roma 1', rating: 4.5, website: 'ok.example', phone: '+39 02', category: 'restaurant', description: 'Good' }),
+        hit({
+          address: 'Via Roma 1',
+          rating: 4.5,
+          website: 'ok.example',
+          phone: '+39 02',
+          category: 'restaurant',
+          description: 'Good',
+        }),
         hit({ id: 'bare', name: 'Bare' }),
       ]) as unknown as PluginHooks['searchPlaces'],
     });
@@ -216,7 +240,9 @@ describe('PluginSearchController', () => {
 });
 
 describe('PluginSearchController.suggest (#2221)', () => {
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+  });
 
   it('asks only the providers that implement suggest, never their search', async () => {
     const { c, hooks } = controller();
@@ -256,7 +282,7 @@ describe('PluginSearchController.suggest (#2221)', () => {
       ) as unknown as PluginHooks['suggestPlaces'],
     });
     const result = await c.suggest('ichiran', undefined, undefined, undefined, req(5));
-    expect(result.places.map(p => p.name)).toEqual(['A0', 'B0', 'A1']);
+    expect(result.places.map((p) => p.name)).toEqual(['A0', 'B0', 'A1']);
     expect(pluginSuggestResultSchema.safeParse(result).success).toBe(true);
   });
 

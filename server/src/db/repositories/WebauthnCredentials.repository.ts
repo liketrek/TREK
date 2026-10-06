@@ -1,6 +1,6 @@
+import { currentTimestamp } from '../dialect/sql-functions';
 import type { WebauthnCredentials } from '../entities/WebauthnCredentials.entity';
 import { toRow, type AssertRowKeys } from './_shared/rows';
-import { currentTimestamp } from '../dialect/sql-functions';
 import { TrekRepository } from './_shared/trek-repository';
 
 /**
@@ -58,7 +58,14 @@ export interface PasskeyPanelRow {
 
 const PANEL_FIELDS = ['id', 'name', 'device_type', 'backed_up', 'created_at', 'last_used_at'] as const;
 
-function toPanelRow(row: { id: number; name?: string | null; device_type?: string | null; backed_up: number; created_at?: string | null; last_used_at?: string | null }): PasskeyPanelRow {
+function toPanelRow(row: {
+  id: number;
+  name?: string | null;
+  device_type?: string | null;
+  backed_up: number;
+  created_at?: string | null;
+  last_used_at?: string | null;
+}): PasskeyPanelRow {
   return {
     id: row.id,
     name: row.name ?? null,

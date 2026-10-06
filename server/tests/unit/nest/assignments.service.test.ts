@@ -9,12 +9,54 @@
  * bridge-delegation case died with assignments.bridge). Uses a real in-memory SQLite DB so SQL
  * logic is exercised faithfully.
  */
+import { db as testDb } from '../../../src/db/database';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { type TripAccess } from '../../../src/db/repositories/Trips.repository';
+import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import {
+  createUser,
+  createTrip,
+  addTripMember,
+  createDay,
+  createPlace,
+  createDayAssignment,
+  createTag,
+} from '../../helpers/factories';
+import {
+  createTestJourneysRepo,
+  createTestJourneyContributorsRepo,
+  createTestJourneyTripsRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyPhotosRepo,
+  createTestJourneyEntryPhotosRepo,
+} from '../../helpers/journey-repos';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestTagsRepo,
+  createTestPlaceRatingsRepo,
+  createTestAssignmentParticipantsRepo,
+  createTestDayAssignmentsRepo,
+  createTestDaysRepo,
+  createTestPlacesRepo,
+  createTestTripMembersRepo,
+  createTestRoadtripViasRepo,
+  sharedTestOrm,
+  createTestTripsRepo,
+} from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -23,17 +65,20 @@ vi.mock('../../../src/db/database', async () => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: unknown, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id, t.user_id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: unknown, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
-    return mock;
+  return mock;
 });
-
 
 vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-secret',
@@ -41,28 +86,6 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember, createDay, createPlace, createDayAssignment, createTag } from '../../helpers/factories';
-import { type TripAccess } from '../../../src/db/repositories/Trips.repository';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import {
-  createTestUnitOfWork, createTestAppSettingsRepo, createTestTagsRepo, createTestPlaceRatingsRepo,
-  createTestAssignmentParticipantsRepo, createTestDayAssignmentsRepo, createTestDaysRepo, createTestPlacesRepo,
-  createTestTripMembersRepo, createTestRoadtripViasRepo, sharedTestOrm, createTestTripsRepo,
-} from '../../helpers/test-uow';
-import {
-  createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
 
 let svc: AssignmentsService;
 beforeAll(async () => {
@@ -73,15 +96,30 @@ beforeAll(async () => {
     await createTestTripsRepo(testDb),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     realtime,
-    new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
+    new QueryHelpersService(
+      await createTestTagsRepo(testDb),
+      await createTestPlaceRatingsRepo(testDb),
+      await createTestAssignmentParticipantsRepo(testDb),
+    ),
     // Real collaborator rather than a stub: reconcile() runs after every mutation
     // and needs the same connection to see the rows these cases write.
     new JourneyDomainService(
-      realtime, new TrekPhotoRegistrationService((await sharedTestOrm(testDb)).repo(TrekPhotos), (await sharedTestOrm(testDb)).repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)), await createTestUnitOfWork(testDb),
-      await createTestJourneysRepo(testDb), await createTestJourneyContributorsRepo(testDb),
-      await createTestJourneyTripsRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestTripsRepo(testDb),
+      realtime,
+      new TrekPhotoRegistrationService(
+        (await sharedTestOrm(testDb)).repo(TrekPhotos),
+        (await sharedTestOrm(testDb)).repo(TripPhotos),
+        await createTestJourneyPhotosRepo(testDb),
+      ),
+      await createTestUnitOfWork(testDb),
+      await createTestJourneysRepo(testDb),
+      await createTestJourneyContributorsRepo(testDb),
+      await createTestJourneyTripsRepo(testDb),
+      await createTestJourneyEntriesRepo(testDb),
+      await createTestTripsRepo(testDb),
       // Plan 3g Task 2 constructor-ripple: JourneyPhotosRepository/JourneyEntryPhotosRepository/PlacesRepository.
-      await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
+      await createTestJourneyPhotosRepo(testDb),
+      await createTestJourneyEntryPhotosRepo(testDb),
+      await createTestPlacesRepo(testDb),
     ),
     await createTestUnitOfWork(testDb),
     await createTestDayAssignmentsRepo(testDb),
@@ -264,7 +302,9 @@ describe('createAssignment', () => {
     });
     // The same compact tag projection as listDayAssignments — id/name/color/
     // created_at only, no user_id — so both read paths share one wire shape.
-    expect((await a!).place.tags).toEqual([{ id: tag.id, name: 'museum', color: '#10b981', created_at: (tag as { created_at?: string }).created_at }]);
+    expect((await a!).place.tags).toEqual([
+      { id: tag.id, name: 'museum', color: '#10b981', created_at: (tag as { created_at?: string }).created_at },
+    ]);
     void trip;
   });
 });
@@ -282,9 +322,11 @@ describe('listDayAssignments', () => {
     await svc.setParticipants(a1.id, [user.id], trip.id);
 
     const list = await svc.listDayAssignments(day.id);
-    expect(list.map(a => a.id)).toEqual([a2.id, a1.id]);
+    expect(list.map((a) => a.id)).toEqual([a2.id, a1.id]);
     // Compact tag projection (id/name/color/created_at only — no user_id key).
-    expect(list[1].place.tags).toEqual([{ id: tag.id, name: 'art', color: '#10b981', created_at: (tag as { created_at?: string }).created_at }]);
+    expect(list[1].place.tags).toEqual([
+      { id: tag.id, name: 'art', color: '#10b981', created_at: (tag as { created_at?: string }).created_at },
+    ]);
     expect(list[1].participants).toEqual([{ user_id: user.id, username: user.username, avatar: null }]);
     expect(list[0].participants).toEqual([]);
     expect(list[0].place.tags).toEqual([]);
@@ -315,7 +357,9 @@ describe('deleteAssignment / reorderAssignments', () => {
 
     await svc.reorderAssignments(day.id, [a2.id, a1.id, foreign.id]);
 
-    const order = (id: number) => (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number }).order_index;
+    const order = (id: number) =>
+      (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number })
+        .order_index;
     expect(order(a2.id)).toBe(0);
     expect(order(a1.id)).toBe(1);
     // The day-scoped WHERE leaves another day's assignment untouched.
@@ -432,9 +476,9 @@ describe('getParticipants / setParticipants', () => {
     addTripMember(testDb, trip.id, member.id);
     const a = createDayAssignment(testDb, day.id, place.id);
 
-    const rows = await svc.setParticipants(a.id, [user.id, stranger.id, member.id], trip.id) as { user_id: number }[];
+    const rows = (await svc.setParticipants(a.id, [user.id, stranger.id, member.id], trip.id)) as { user_id: number }[];
 
-    expect(rows.map(r => r.user_id).sort()).toEqual([user.id, member.id].sort());
+    expect(rows.map((r) => r.user_id).sort()).toEqual([user.id, member.id].sort());
     expect(JSON.stringify(rows)).not.toContain(stranger.username);
   });
 });
@@ -442,10 +486,16 @@ describe('getParticipants / setParticipants', () => {
 // ── updateTime / setLegTransportMode ──────────────────────────────────────────
 
 describe('updateTime', () => {
-  const order = (id: number) => (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number }).order_index;
+  const order = (id: number) =>
+    (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number })
+      .order_index;
   /** The day the way every reader lists it: by order_index, then insertion. */
   const dayOrder = (dayId: number) =>
-    (testDb.prepare('SELECT id FROM day_assignments WHERE day_id = ? ORDER BY order_index, created_at, id').all(dayId) as { id: number }[]).map(r => r.id);
+    (
+      testDb
+        .prepare('SELECT id FROM day_assignments WHERE day_id = ? ORDER BY order_index, created_at, id')
+        .all(dayId) as { id: number }[]
+    ).map((r) => r.id);
 
   /**
    * A day of stops at the given order_index keys, each with its own start (null for
@@ -462,13 +512,18 @@ describe('updateTime', () => {
   }
 
   function addVia(dayId: number, afterOrderIndex: number, sequence = 0): number {
-    return Number(testDb.prepare(
-      'INSERT INTO roadtrip_vias (day_id, after_order_index, sequence, lat, lng) VALUES (?, ?, ?, 48.1, 11.5)'
-    ).run(dayId, afterOrderIndex, sequence).lastInsertRowid);
+    return Number(
+      testDb
+        .prepare(
+          'INSERT INTO roadtrip_vias (day_id, after_order_index, sequence, lat, lng) VALUES (?, ?, ?, 48.1, 11.5)',
+        )
+        .run(dayId, afterOrderIndex, sequence).lastInsertRowid,
+    );
   }
   const viaAnchors = (dayId: number) =>
-    testDb.prepare('SELECT id, after_order_index, sequence FROM roadtrip_vias WHERE day_id = ? ORDER BY id').all(dayId) as
-      { id: number; after_order_index: number; sequence: number }[];
+    testDb
+      .prepare('SELECT id, after_order_index, sequence FROM roadtrip_vias WHERE day_id = ? ORDER BY id')
+      .all(dayId) as { id: number; after_order_index: number; sequence: number }[];
 
   it('ASG-SVC-021: persists both times and re-selects the nested shape', async () => {
     const { day, place } = fixture();
@@ -480,17 +535,29 @@ describe('updateTime', () => {
   it('ASG-SVC-022: a start sorts the timed stops and leaves every untimed stop behind the one it followed', async () => {
     // The tester's day: two stops without a time, then a start on the last one. It
     // used to jump to the top, because every untimed stop was appended after it.
-    const untimedHead = dayOf([[null, 0], [null, 1], [null, 2]]);
+    const untimedHead = dayOf([
+      [null, 0],
+      [null, 1],
+      [null, 2],
+    ]);
     await svc.updateTime(untimedHead.ids[2], '14:00', null);
     expect(dayOrder(untimedHead.day.id)).toEqual(untimedHead.ids);
 
-    const between = dayOf([['09:00', 0], [null, 1], [null, 2]]);
+    const between = dayOf([
+      ['09:00', 0],
+      [null, 1],
+      [null, 2],
+    ]);
     await svc.updateTime(between.ids[2], '14:00', null);
     expect(dayOrder(between.day.id)).toEqual(between.ids);
 
     // Timed stops still keep time order among themselves. A has nothing timed in
     // front of it and stays first.
-    const [a, b, c] = dayOf([[null, 0], ['15:00', 1], [null, 2]]).ids;
+    const [a, b, c] = dayOf([
+      [null, 0],
+      ['15:00', 1],
+      [null, 2],
+    ]).ids;
     await svc.updateTime(c, '10:00', null);
     expect([order(a), order(c), order(b)]).toEqual([0, 1, 2]);
   });
@@ -503,10 +570,14 @@ describe('updateTime', () => {
     const hotel = createPlace(testDb, trip.id, { name: 'Billstedt' });
     const afternoon = createDayAssignment(testDb, day.id, place.id, { order_index: 0 });
     const night = createDayAssignment(testDb, day.id, hotel.id, { order_index: 1 });
-    const stay = testDb.prepare(
-      "INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in) VALUES (?, ?, ?, ?, '11:00')"
-    ).run(trip.id, hotel.id, day.id, day.id);
-    testDb.prepare('UPDATE day_assignments SET accommodation_id = ? WHERE id = ?').run(Number(stay.lastInsertRowid), night.id);
+    const stay = testDb
+      .prepare(
+        "INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in) VALUES (?, ?, ?, ?, '11:00')",
+      )
+      .run(trip.id, hotel.id, day.id, day.id);
+    testDb
+      .prepare('UPDATE day_assignments SET accommodation_id = ? WHERE id = ?')
+      .run(Number(stay.lastInsertRowid), night.id);
 
     await svc.updateTime(afternoon.id, '16:00', null);
 
@@ -514,7 +585,14 @@ describe('updateTime', () => {
   });
 
   it('ASG-SVC-023: clearing with null persists but skips the auto-sort (falsy gate)', async () => {
-    const { day, ids: [a, b, c] } = dayOf([['09:00', 0], [null, 1], ['12:00', 2]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = dayOf([
+      ['09:00', 0],
+      [null, 1],
+      ['12:00', 2],
+    ]);
     await svc.updateTime(b, '06:00', null); // sorts b first
     expect(dayOrder(day.id)).toEqual([b, a, c]);
     // Dragged back out of time order on purpose: a sort now would put b first again,
@@ -527,7 +605,14 @@ describe('updateTime', () => {
   });
 
   it('ASG-SVC-027: an empty-string time clears the override like null (and skips the auto-sort)', async () => {
-    const { day, ids: [a, b, c] } = dayOf([['09:00', 0], [null, 1], ['12:00', 2]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = dayOf([
+      ['09:00', 0],
+      [null, 1],
+      ['12:00', 2],
+    ]);
     await svc.updateTime(b, '06:00', '07:00'); // sorts b first
     expect(dayOrder(day.id)).toEqual([b, a, c]);
     await svc.reorderAssignments(day.id, [a, b, c]);
@@ -535,7 +620,9 @@ describe('updateTime', () => {
     const { assignment } = await svc.updateTime(c, '', '');
     expect((await assignment!).assignment_time).toBeNull();
     expect((await assignment!).assignment_end_time).toBeNull();
-    expect(testDb.prepare('SELECT assignment_time FROM day_assignments WHERE id = ?').get(c)).toEqual({ assignment_time: null });
+    expect(testDb.prepare('SELECT assignment_time FROM day_assignments WHERE id = ?').get(c)).toEqual({
+      assignment_time: null,
+    });
     expect(dayOrder(day.id)).toEqual([a, b, c]);
   });
 
@@ -552,7 +639,14 @@ describe('updateTime', () => {
   it('ASG-SVC-033: writes nothing but the time when the day is already in order', async () => {
     // Keys with gaps, as a deleted stop leaves them. A day the start leaves in order
     // keeps them: nothing about it changed.
-    const { day, ids: [a, b, c] } = dayOf([['09:00', 0], [null, 5], [null, 9]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = dayOf([
+      ['09:00', 0],
+      [null, 5],
+      [null, 9],
+    ]);
     const via = addVia(day.id, 0);
     const changes = () => (testDb.prepare('SELECT total_changes() AS n').get() as { n: number }).n;
     const before = changes();
@@ -570,7 +664,14 @@ describe('updateTime', () => {
     // A gap, as a deleted stop leaves it. Kept, the writer would read 0, 4, 7 back and
     // everyone else would apply 0, 1, 2, and a note at 3 would sit behind a different
     // stop for each of them.
-    const { day, ids: [a, b, c] } = dayOf([[null, 0], ['15:00', 4], [null, 7]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = dayOf([
+      [null, 0],
+      ['15:00', 4],
+      [null, 7],
+    ]);
     const changes = () => (testDb.prepare('SELECT total_changes() AS n').get() as { n: number }).n;
     const before = changes();
 
@@ -584,7 +685,14 @@ describe('updateTime', () => {
 
   it('ASG-SVC-035: numbers a day with colliding keys from 0 again, since a shared key cannot hold an order', async () => {
     // A move drops a stop in at order_index 0 next to the one already there.
-    const { day, ids: [a, b, c] } = dayOf([[null, 0], ['15:00', 0], [null, 0]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = dayOf([
+      [null, 0],
+      ['15:00', 0],
+      [null, 0],
+    ]);
 
     await svc.updateTime(c, '10:00', null);
 
@@ -594,7 +702,17 @@ describe('updateTime', () => {
 
   it('ASG-SVC-036: keeps each drawn road behind the stop it was drawn after, counting located stops only', async () => {
     // X has no coordinates, so the router never sees it and the vias do not count it.
-    const { trip, day, ids: [a, x, b, c, d] } = dayOf([[null, 0], [null, 1], ['15:00', 2], [null, 3], [null, 4]]);
+    const {
+      trip,
+      day,
+      ids: [a, x, b, c, d],
+    } = dayOf([
+      [null, 0],
+      [null, 1],
+      ['15:00', 2],
+      [null, 3],
+      [null, 4],
+    ]);
     const unmapped = createPlace(testDb, trip.id, { name: 'Somewhere unmapped' });
     testDb.prepare('UPDATE places SET lat = NULL, lng = NULL WHERE id = ?').run(unmapped.id);
     testDb.prepare('UPDATE day_assignments SET place_id = ? WHERE id = ?').run(unmapped.id, x);
@@ -616,11 +734,22 @@ describe('updateTime', () => {
     ]);
     expect(update.reordered).toEqual({ dayId: day.id, orderedIds: [a, x, d, b, c] });
     expect(update.vias?.dayId).toBe(day.id);
-    expect(update.vias?.vias.map(v => [v.id, v.after_order_index])).toEqual([[afterA, 0], [afterB, 2], [afterBToo, 2]]);
+    expect(update.vias?.vias.map((v) => [v.id, v.after_order_index])).toEqual([
+      [afterA, 0],
+      [afterB, 2],
+      [afterBToo, 2],
+    ]);
   });
 
   it('ASG-SVC-037: reports no vias when the reorder leaves every one on its stop', async () => {
-    const { day, ids: [a, b, c] } = dayOf([[null, 0], ['15:00', 1], [null, 2]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = dayOf([
+      [null, 0],
+      ['15:00', 1],
+      [null, 2],
+    ]);
     const via = addVia(day.id, 0);
 
     const update = await svc.updateTime(c, '10:00', null);
@@ -632,7 +761,15 @@ describe('updateTime', () => {
 
   it('ASG-SVC-038: leaves every via alone when the sort moves only stops without coordinates', async () => {
     // X has no coordinates. It goes between A and B, and the located stops stay A, B.
-    const { trip, day, ids: [a, b, x] } = dayOf([['09:00', 0], ['12:00', 1], [null, 2]]);
+    const {
+      trip,
+      day,
+      ids: [a, b, x],
+    } = dayOf([
+      ['09:00', 0],
+      ['12:00', 1],
+      [null, 2],
+    ]);
     const unmapped = createPlace(testDb, trip.id, { name: 'Somewhere unmapped' });
     testDb.prepare('UPDATE places SET lat = NULL, lng = NULL WHERE id = ?').run(unmapped.id);
     testDb.prepare('UPDATE day_assignments SET place_id = ? WHERE id = ?').run(unmapped.id, x);
@@ -653,7 +790,15 @@ describe('updateTime', () => {
   });
 
   it('ASG-SVC-039: keeps the via behind the last stop when that stop is still last', async () => {
-    const { day, ids: [a, b, c, d] } = dayOf([[null, 0], ['15:00', 1], [null, 2], ['18:00', 3]]);
+    const {
+      day,
+      ids: [a, b, c, d],
+    } = dayOf([
+      [null, 0],
+      ['15:00', 1],
+      [null, 2],
+      ['18:00', 3],
+    ]);
     const afterB = addVia(day.id, 1);
     const intoTomorrow = addVia(day.id, 3);
 
@@ -665,7 +810,10 @@ describe('updateTime', () => {
       { id: afterB, after_order_index: 2, sequence: 0 },
       { id: intoTomorrow, after_order_index: 3, sequence: 0 },
     ]);
-    expect(update.vias?.vias.map(v => [v.id, v.after_order_index])).toEqual([[afterB, 2], [intoTomorrow, 3]]);
+    expect(update.vias?.vias.map((v) => [v.id, v.after_order_index])).toEqual([
+      [afterB, 2],
+      [intoTomorrow, 3],
+    ]);
   });
 
   it('ASG-SVC-047: a sort that moves the last stop up the day takes the drive behind it along, never leaving it on no stop', async () => {
@@ -673,7 +821,14 @@ describe('updateTime', () => {
     // there only while that stop is last. Once another stop is, it goes: it lies on the
     // road to tomorrow, and read as the leg its stop leaves by now it would bend the
     // drive from C to A through a point on that road.
-    const { day, ids: [a, b, c] } = dayOf([['09:00', 0], ['12:00', 1], ['18:00', 2]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = dayOf([
+      ['09:00', 0],
+      ['12:00', 1],
+      ['18:00', 2],
+    ]);
     const afterA = addVia(day.id, 0);
     const intoTomorrow = addVia(day.id, 2);
 
@@ -681,13 +836,20 @@ describe('updateTime', () => {
 
     expect(dayOrder(day.id)).toEqual([c, a, b]);
     expect(viaAnchors(day.id)).toEqual([{ id: afterA, after_order_index: 1, sequence: 0 }]);
-    expect(viaAnchors(day.id).map(via => via.id)).not.toContain(intoTomorrow);
+    expect(viaAnchors(day.id).map((via) => via.id)).not.toContain(intoTomorrow);
     expect(update.vias?.dayId).toBe(day.id);
   });
 
   it('ASG-SVC-040: an End saved with the start as it stood leaves a day dragged out of time order alone', async () => {
     // B belongs first by time, and the traveller put it second on purpose.
-    const { day, ids: [a, b, c] } = dayOf([['14:00', 0], ['10:00', 1], ['16:00', 2]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = dayOf([
+      ['14:00', 0],
+      ['10:00', 1],
+      ['16:00', 2],
+    ]);
     testDb.prepare("UPDATE day_assignments SET assignment_end_time = '11:00' WHERE id = ?").run(b);
     const afterA = addVia(day.id, 0);
 
@@ -710,7 +872,14 @@ describe('updateTime', () => {
 
   it('ASG-SVC-041: a visit given the start its place already had does not sort either', async () => {
     // The place form fills Start from the place when the visit has none of its own.
-    const { trip, day, ids: [a, b] } = dayOf([['14:00', 0], [null, 1]]);
+    const {
+      trip,
+      day,
+      ids: [a, b],
+    } = dayOf([
+      ['14:00', 0],
+      [null, 1],
+    ]);
     const timedPlace = createPlace(testDb, trip.id, { name: 'Opens at ten' });
     testDb.prepare("UPDATE places SET place_time = '10:00' WHERE id = ?").run(timedPlace.id);
     testDb.prepare('UPDATE day_assignments SET place_id = ? WHERE id = ?').run(timedPlace.id, b);
@@ -728,7 +897,9 @@ describe('updateNotes (#2163)', () => {
     const a = createDayAssignment(testDb, day.id, place.id);
     const updated = await svc.updateNotes(a.id, 'Book the 10:00 timed entry');
     expect(updated).toMatchObject({ id: a.id, notes: 'Book the 10:00 timed entry' });
-    expect(testDb.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(a.id)).toEqual({ notes: 'Book the 10:00 timed entry' });
+    expect(testDb.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(a.id)).toEqual({
+      notes: 'Book the 10:00 timed entry',
+    });
   });
 
   it('ASG-SVC-031: empty string and null both clear the column (same normalisation as createAssignment)', async () => {
@@ -749,7 +920,10 @@ describe('updateNotes (#2163)', () => {
     expect(updated).toMatchObject({ assignment_time: '09:00', assignment_end_time: '10:00' });
     // 3, not 0: a start on a day already in order no longer renumbers it, so the key
     // this note edit must not touch is still the one the stop was created with.
-    expect((testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(a.id) as { order_index: number }).order_index).toBe(3);
+    expect(
+      (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(a.id) as { order_index: number })
+        .order_index,
+    ).toBe(3);
   });
 });
 

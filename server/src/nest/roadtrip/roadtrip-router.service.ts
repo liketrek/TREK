@@ -1,12 +1,12 @@
-import { readCappedJson, discardBody } from '../../utils/cappedFetch';
-import { safeFetchAdminConfigured } from '../../utils/ssrfGuard';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { Plugins } from '../../db/entities/Plugins.entity';
 import type { PluginsRepository } from '../../db/repositories/Plugins.repository';
+import { readCappedJson, discardBody } from '../../utils/cappedFetch';
+import { safeFetchAdminConfigured } from '../../utils/ssrfGuard';
 import { normalize, declaredProfiles } from '../plugins/contributions/plugin-route-normalize';
 import { pluginsEnabled } from '../plugins/kill-switch';
 import { PluginHooks } from '../plugins/plugin-hooks.service';
 import { SettingsService } from '../settings/settings.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import {
   formatDurationShort,

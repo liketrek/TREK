@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
+import { PluginSettingsFields } from '../../db/entities/PluginSettingsFields.entity';
+import { PluginUserConfig } from '../../db/entities/PluginUserConfig.entity';
+import type { PluginSettingsFieldsRepository } from '../../db/repositories/PluginSettingsFields.repository';
+import type { PluginUserConfigRepository } from '../../db/repositories/PluginUserConfig.repository';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { safeParseConfig } from './plugin-config-parse';
 import { isFilled, settingDefaults } from './settings-defaults';
-import { PluginSettingsFields } from '../../db/entities/PluginSettingsFields.entity';
-import type { PluginSettingsFieldsRepository } from '../../db/repositories/PluginSettingsFields.repository';
-import { PluginUserConfig } from '../../db/entities/PluginUserConfig.entity';
-import type { PluginUserConfigRepository } from '../../db/repositories/PluginUserConfig.repository';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * A plugin's per-user settings, decrypted host-side.

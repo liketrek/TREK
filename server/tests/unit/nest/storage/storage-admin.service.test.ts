@@ -1,30 +1,33 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
-
-vi.mock('../../../../src/db/database', async () => {
-
-  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
-  const db = createSnapshotTestDb();
-    return { db, closeDb: () => {}, reinitialize: () => {} };
-});
-
-vi.mock('../../../../src/config', () => ({ ENCRYPTION_KEY: 'storage-admin-test-key' }));
-
 import { db as testDb } from '../../../../src/db/database';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { Logger } from '@nestjs/common';
-import { MASKED_SETTING_VALUE, type StorageConfig } from '@trek/shared';
 import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 import { encrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto';
 import { StorageAdminService } from '../../../../src/nest/storage/storage-admin.service';
 import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
 import { StorageJobsService } from '../../../../src/nest/storage/storage-jobs.service';
+import {
+  StorageRegistryService,
+  BACKENDS_KEY,
+  CATEGORIES_KEY,
+} from '../../../../src/nest/storage/storage-registry.service';
 import { StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
-import { StorageRegistryService, BACKENDS_KEY, CATEGORIES_KEY } from '../../../../src/nest/storage/storage-registry.service';
 import { StorageService } from '../../../../src/nest/storage/storage.service';
 import { StorageConflictError } from '../../../../src/nest/storage/storage.types';
 import { createTestUnitOfWork, createTestAppSettingsRepo, sharedTestOrm } from '../../../helpers/test-uow';
+import { Logger } from '@nestjs/common';
+import { MASKED_SETTING_VALUE, type StorageConfig } from '@trek/shared';
+
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+
+vi.mock('../../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
+  const db = createSnapshotTestDb();
+  return { db, closeDb: () => {}, reinitialize: () => {} };
+});
+
+vi.mock('../../../../src/config', () => ({ ENCRYPTION_KEY: 'storage-admin-test-key' }));
 
 const tmpDirs: string[] = [];
 function makeTmpDir(): string {
@@ -76,10 +79,7 @@ async function makeService(opts: { uploadsRoot?: string } = {}) {
 /** The settings-owned document the service persists (uploads override + extras). */
 function configWith(uploadsRoot: string, extra: Partial<StorageConfig> = {}): StorageConfig {
   return {
-    backends: [
-      { name: 'uploads-local', type: 'local', options: { root: uploadsRoot } },
-      ...(extra.backends ?? []),
-    ],
+    backends: [{ name: 'uploads-local', type: 'local', options: { root: uploadsRoot } }, ...(extra.backends ?? [])],
     categories: extra.categories ?? {},
   };
 }
@@ -90,7 +90,7 @@ function configWith(uploadsRoot: string, extra: Partial<StorageConfig> = {}): St
  * time so a second call in the same test picks up the bump from the first.
  */
 async function put(service: StorageAdminService, config: StorageConfig): Promise<void> {
-  await service.applyConfig({ ...config, version: (await (await service.state())).version });
+  await service.applyConfig({ ...config, version: (await await service.state()).version });
 }
 
 beforeEach(() => {
@@ -104,7 +104,7 @@ afterEach(() => {
 describe('StorageAdminService.state', () => {
   it('STORADM-001 renders the effective world: sources, categories-per-backend, flags', async () => {
     const { service, uploadsRoot } = await makeService();
-    const state = (await service.state());
+    const state = await service.state();
     const uploads = state.backends.find((b) => b.name === 'uploads-local')!;
     expect(uploads).toMatchObject({ type: 'local', source: 'settings', options: { root: uploadsRoot } });
     expect(uploads.categories).toContain('files');
@@ -117,10 +117,13 @@ describe('StorageAdminService.state', () => {
 
   it('STORADM-002 masks exactly the secret fields (accessKeyId stays visible)', async () => {
     const { service, uploadsRoot } = await makeService();
-    await put(service, configWith(uploadsRoot, {
-      backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
-      categories: { backups: 'off-box' },
-    }));
+    await put(
+      service,
+      configWith(uploadsRoot, {
+        backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
+        categories: { backups: 'off-box' },
+      }),
+    );
     const offBox = (await service.state()).backends.find((b) => b.name === 'off-box')!;
     expect(offBox.options.secretAccessKey).toBe(MASKED_SETTING_VALUE);
     expect(offBox.options.accessKeyId).toBe('ak');
@@ -159,20 +162,26 @@ describe('StorageAdminService.applyConfig', () => {
   it('STORADM-010 happy path: persists both rows, reloads, new config is live', async () => {
     const { service, registry, uploadsRoot } = await makeService();
     const nasRoot = makeTmpDir();
-    await put(service, configWith(uploadsRoot, {
-      backends: [{ name: 'nas-backups', type: 'local', options: { root: nasRoot } }],
-      categories: { backups: 'nas-backups' },
-    }));
+    await put(
+      service,
+      configWith(uploadsRoot, {
+        backends: [{ name: 'nas-backups', type: 'local', options: { root: nasRoot } }],
+        categories: { backups: 'nas-backups' },
+      }),
+    );
     expect(registry.resolve('backups').backendName).toBe('nas-backups'); // reload() ran
     expect(JSON.parse(readRow(CATEGORIES_KEY)!)).toEqual({ backups: 'nas-backups' });
   });
 
   it('STORADM-011 encrypts plaintext secrets at rest', async () => {
     const { service, uploadsRoot } = await makeService();
-    await put(service, configWith(uploadsRoot, {
-      backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
-      categories: { backups: 'off-box' },
-    }));
+    await put(
+      service,
+      configWith(uploadsRoot, {
+        backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
+        categories: { backups: 'off-box' },
+      }),
+    );
     const stored = JSON.parse(readRow(BACKENDS_KEY)!) as Array<{ name: string; options: Record<string, unknown> }>;
     const secret = String(stored.find((b) => b.name === 'off-box')!.options.secretAccessKey);
     expect(secret.startsWith('enc:v1:')).toBe(true);
@@ -180,17 +189,23 @@ describe('StorageAdminService.applyConfig', () => {
 
   it('STORADM-012 mask echo preserves the stored ciphertext byte-for-byte', async () => {
     const { service, uploadsRoot } = await makeService();
-    await put(service, configWith(uploadsRoot, {
-      backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
-      categories: { backups: 'off-box' },
-    }));
+    await put(
+      service,
+      configWith(uploadsRoot, {
+        backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
+        categories: { backups: 'off-box' },
+      }),
+    );
     const before = JSON.parse(readRow(BACKENDS_KEY)!) as Array<{ name: string; options: Record<string, unknown> }>;
     const cipherBefore = before.find((b) => b.name === 'off-box')!.options.secretAccessKey;
 
-    await put(service, configWith(uploadsRoot, {
-      backends: [{ name: 'off-box', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: MASKED_SETTING_VALUE } }],
-      categories: { backups: 'off-box' },
-    }));
+    await put(
+      service,
+      configWith(uploadsRoot, {
+        backends: [{ name: 'off-box', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: MASKED_SETTING_VALUE } }],
+        categories: { backups: 'off-box' },
+      }),
+    );
     const after = JSON.parse(readRow(BACKENDS_KEY)!) as Array<{ name: string; options: Record<string, unknown> }>;
     expect(after.find((b) => b.name === 'off-box')!.options.secretAccessKey).toBe(cipherBefore);
   });
@@ -199,10 +214,15 @@ describe('StorageAdminService.applyConfig', () => {
     const { service, uploadsRoot } = await makeService();
     const before = readRow(BACKENDS_KEY);
     await expect(
-      put(service, configWith(uploadsRoot, {
-        backends: [{ name: 'brand-new', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: MASKED_SETTING_VALUE } }],
-        categories: {},
-      })),
+      put(
+        service,
+        configWith(uploadsRoot, {
+          backends: [
+            { name: 'brand-new', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: MASKED_SETTING_VALUE } },
+          ],
+          categories: {},
+        }),
+      ),
     ).rejects.toThrow("re-enter the secret 'secretAccessKey' for 'brand-new'");
     expect(readRow(BACKENDS_KEY)).toBe(before);
   });
@@ -210,10 +230,13 @@ describe('StorageAdminService.applyConfig', () => {
   it('STORADM-014 a plaintext secret saves without an explicit ENCRYPTION_KEY and is still encrypted at rest', async () => {
     // No key-presence gate: the implicit key covers encryption when ENCRYPTION_KEY is unset.
     const { service, uploadsRoot } = await makeService();
-    await put(service, configWith(uploadsRoot, {
-      backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
-      categories: {},
-    }));
+    await put(
+      service,
+      configWith(uploadsRoot, {
+        backends: [{ name: 'off-box', type: 's3', options: S3_OPTIONS }],
+        categories: {},
+      }),
+    );
     const stored = JSON.parse(readRow(BACKENDS_KEY)!) as Array<{ name: string; options: Record<string, string> }>;
     const offBox = stored.find((b) => b.name === 'off-box')!;
     expect(offBox.options.secretAccessKey.startsWith('enc:v1:')).toBe(true);
@@ -222,19 +245,22 @@ describe('StorageAdminService.applyConfig', () => {
   it('STORADM-015 an encrypted (mask-echoed or enc:v1:) secret resaves fine', async () => {
     // Resaving stored ciphertext must not lock admins out.
     const { service, uploadsRoot } = await makeService();
-    await put(service, configWith(uploadsRoot, {
-      backends: [{ name: 'off-box', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: encrypt_api_key('sk') } }],
-      categories: { backups: 'off-box' },
-    }));
+    await put(
+      service,
+      configWith(uploadsRoot, {
+        backends: [{ name: 'off-box', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: encrypt_api_key('sk') } }],
+        categories: { backups: 'off-box' },
+      }),
+    );
     expect(readRow(BACKENDS_KEY)).toBeDefined();
   });
 
   it('STORADM-016 preview() refusals surface verbatim and persist nothing', async () => {
     const { service, uploadsRoot, registry } = await makeService();
     const before = readRow(CATEGORIES_KEY);
-    await expect(
-      put(service, configWith(uploadsRoot, { categories: { backups: 'nope' } })),
-    ).rejects.toThrow("category 'backups' maps to unknown backend 'nope'");
+    await expect(put(service, configWith(uploadsRoot, { categories: { backups: 'nope' } }))).rejects.toThrow(
+      "category 'backups' maps to unknown backend 'nope'",
+    );
     expect(readRow(CATEGORIES_KEY)).toBe(before);
     expect(registry.resolve('backups').backendName).toBe('backups-local'); // live state untouched
   });
@@ -243,11 +269,16 @@ describe('StorageAdminService.applyConfig', () => {
     const { service, uploadsRoot } = await makeService();
     const before = readRow(BACKENDS_KEY);
     await expect(
-      put(service, configWith(uploadsRoot, {
-        backends: [{ name: 'off-box', type: 's3', options: { ...S3_OPTIONS, accessKeyId: MASKED_SETTING_VALUE } }],
-        categories: {},
-      })),
-    ).rejects.toThrow("backend 'off-box' field 'accessKeyId' is the mask sentinel — a mask can never become a stored value");
+      put(
+        service,
+        configWith(uploadsRoot, {
+          backends: [{ name: 'off-box', type: 's3', options: { ...S3_OPTIONS, accessKeyId: MASKED_SETTING_VALUE } }],
+          categories: {},
+        }),
+      ),
+    ).rejects.toThrow(
+      "backend 'off-box' field 'accessKeyId' is the mask sentinel — a mask can never become a stored value",
+    );
     expect(readRow(BACKENDS_KEY)).toBe(before);
   });
 
@@ -317,10 +348,13 @@ describe('StorageAdminService.applyConfig', () => {
     const { service, registry, uploadsRoot } = await makeService();
     const destRoot = makeTmpDir();
     // The admin loads the form: draft carries version 0, categories.files → uploads-local.
-    await put(service, configWith(uploadsRoot, {
-      backends: [{ name: 'dest', type: 'local', options: { root: destRoot } }],
-      categories: {},
-    })); // version is now 1; 'files' still defaults to uploads-local
+    await put(
+      service,
+      configWith(uploadsRoot, {
+        backends: [{ name: 'dest', type: 'local', options: { root: destRoot } }],
+        categories: {},
+      }),
+    ); // version is now 1; 'files' still defaults to uploads-local
     const staleDraft = configWith(uploadsRoot, {
       backends: [{ name: 'dest', type: 'local', options: { root: destRoot } }],
       categories: {}, // the admin's draft never touched 'files'
@@ -382,13 +416,16 @@ describe('StorageAdminService.testBackend', () => {
     // init() fresh at probe time and hits the same EEXIST there instead.
     const badRoot = path.join(makeTmpDir(), 'a-file');
     const { service, uploadsRoot } = await makeService();
-    await put(service, configWith(uploadsRoot, {
-      backends: [
-        { name: 'good-local', type: 'local', options: { root: goodRoot } },
-        { name: 'bad-local', type: 'local', options: { root: badRoot } },
-      ],
-      categories: {},
-    }));
+    await put(
+      service,
+      configWith(uploadsRoot, {
+        backends: [
+          { name: 'good-local', type: 'local', options: { root: goodRoot } },
+          { name: 'bad-local', type: 'local', options: { root: badRoot } },
+        ],
+        categories: {},
+      }),
+    );
     fs.rmSync(badRoot, { recursive: true, force: true });
     fs.writeFileSync(badRoot, 'not a dir');
     const result = await service.testBackend({
@@ -413,10 +450,13 @@ describe('StorageAdminService.testBackend', () => {
   it('STORADM-024 unmasks a stored backend by name before probing (mask echo works on /test)', async () => {
     const { service, uploadsRoot } = await makeService();
     const root = makeTmpDir();
-    await put(service, configWith(uploadsRoot, {
-      backends: [{ name: 'nas', type: 'local', options: { root } }],
-      categories: {},
-    }));
+    await put(
+      service,
+      configWith(uploadsRoot, {
+        backends: [{ name: 'nas', type: 'local', options: { root } }],
+        categories: {},
+      }),
+    );
     // local has no secrets — the unmask contract is pinned via an s3 mask with no counterpart:
     await expect(
       service.testBackend({
@@ -439,17 +479,20 @@ describe('StorageAdminService.testBackend', () => {
   it('STORADM-025 a mirror with a stored s3 replica decrypts the enc:v1: secret for the probe', async () => {
     const goodRoot = makeTmpDir();
     const { service, uploadsRoot } = await makeService();
-    await put(service, configWith(uploadsRoot, {
-      backends: [
-        { name: 'good-local', type: 'local', options: { root: goodRoot } },
-        {
-          name: 'off-box',
-          type: 's3',
-          options: { ...S3_OPTIONS, endpoint: 'http://127.0.0.1:1', retries: 0, timeoutMs: 200 },
-        },
-      ],
-      categories: {},
-    }));
+    await put(
+      service,
+      configWith(uploadsRoot, {
+        backends: [
+          { name: 'good-local', type: 'local', options: { root: goodRoot } },
+          {
+            name: 'off-box',
+            type: 's3',
+            options: { ...S3_OPTIONS, endpoint: 'http://127.0.0.1:1', retries: 0, timeoutMs: 200 },
+          },
+        ],
+        categories: {},
+      }),
+    );
     // applyConfig encrypted the secret at rest — the snapshot the mirror
     // expansion reads holds ciphertext, so this probe exercises the full
     // snapshot → decryptBackendSecrets → ephemeral S3Driver chain.

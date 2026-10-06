@@ -1,5 +1,5 @@
-import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 import { PluginEntityMetadataRepository } from '../repositories/PluginEntityMetadata.repository';
+import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 
 export class PluginEntityMetadata {
   [EntityRepositoryType]?: PluginEntityMetadataRepository;

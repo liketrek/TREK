@@ -1,26 +1,63 @@
 // FE-PLANNER-COSTSEC-001 to FE-PLANNER-COSTSEC-022
-import { render, screen, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildBudgetItem, buildTrip } from '../../../tests/helpers/factories';
-import { useTripStore } from '../../store/tripStore';
+import { server } from '../../../tests/helpers/msw/server';
+import { render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useTripStore } from '../../store/tripStore';
+import type { BudgetItem } from '../../types';
 import { formatMoney } from '../../utils/formatters';
 import { BookingCostsSection } from './BookingCostsSection';
-import type { BudgetItem } from '../../types';
 
 // getByText collapses the no-break space Intl puts between amount and symbol,
 // so the expected amount is collapsed the same way.
 const money = (amount: number, currency: string) => formatMoney(amount, currency, 'en').replace(/\s/g, ' ');
 
-const flight = buildBudgetItem({ id: 11, trip_id: 1, name: 'Flight LH 400', total_price: 420, currency: 'EUR', category: 'flights', reservation_id: 9 });
-const upgrade = buildBudgetItem({ id: 12, trip_id: 1, name: 'Seat upgrade', total_price: 80, currency: 'USD', category: 'fees', reservation_id: 9 });
+const flight = buildBudgetItem({
+  id: 11,
+  trip_id: 1,
+  name: 'Flight LH 400',
+  total_price: 420,
+  currency: 'EUR',
+  category: 'flights',
+  reservation_id: 9,
+});
+const upgrade = buildBudgetItem({
+  id: 12,
+  trip_id: 1,
+  name: 'Seat upgrade',
+  total_price: 80,
+  currency: 'USD',
+  category: 'fees',
+  reservation_id: 9,
+});
 const elsewhere = buildBudgetItem({ id: 13, trip_id: 1, name: 'Train ride', total_price: 30, reservation_id: 10 });
-const museum = buildBudgetItem({ id: 14, trip_id: 1, name: 'Museum pass', total_price: 25, category: 'activities', place_id: 4 });
-const souvenirs = buildBudgetItem({ id: 15, trip_id: 1, name: 'Souvenirs', total_price: 18, currency: 'EUR', category: 'shopping' });
-const snacks = buildBudgetItem({ id: 16, trip_id: 1, name: 'Snacks', total_price: 7, currency: 'EUR', category: 'food' });
+const museum = buildBudgetItem({
+  id: 14,
+  trip_id: 1,
+  name: 'Museum pass',
+  total_price: 25,
+  category: 'activities',
+  place_id: 4,
+});
+const souvenirs = buildBudgetItem({
+  id: 15,
+  trip_id: 1,
+  name: 'Souvenirs',
+  total_price: 18,
+  currency: 'EUR',
+  category: 'shopping',
+});
+const snacks = buildBudgetItem({
+  id: 16,
+  trip_id: 1,
+  name: 'Snacks',
+  total_price: 7,
+  currency: 'EUR',
+  category: 'food',
+});
 
 function renderSection(props: Partial<React.ComponentProps<typeof BookingCostsSection>> = {}) {
   const handlers = { onCreate: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn() };
@@ -41,17 +78,20 @@ function captureUpdates() {
     http.put('/api/trips/1/budget/:itemId', async ({ params, request }) => {
       const body = (await request.json()) as Record<string, unknown>;
       bodies.push({ id: Number(params.itemId), body });
-      const current = useTripStore.getState().budgetItems.find(i => i.id === Number(params.itemId));
+      const current = useTripStore.getState().budgetItems.find((i) => i.id === Number(params.itemId));
       return HttpResponse.json({ item: { ...current, ...body } });
     }),
-    http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [] })),
+    http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [] }))
   );
   return bodies;
 }
 
 beforeEach(() => {
   resetAllStores();
-  seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR' }), budgetItems: [flight, upgrade, elsewhere, museum, souvenirs, snacks] });
+  seedStore(useTripStore, {
+    trip: buildTrip({ id: 1, currency: 'EUR' }),
+    budgetItems: [flight, upgrade, elsewhere, museum, souvenirs, snacks],
+  });
 });
 
 describe('BookingCostsSection', () => {
@@ -69,7 +109,9 @@ describe('BookingCostsSection', () => {
 
   it('FE-PLANNER-COSTSEC-002: before the first save there is nothing to link to, so the select is missing', () => {
     const { onCreate } = renderSection({ reservationId: null });
-    expect(screen.queryByRole('button', { name: /Link existing expense|No unlinked expenses/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Link existing expense|No unlinked expenses/ })
+    ).not.toBeInTheDocument();
     // Only the create button is left in the row.
     const create = screen.getByRole('button', { name: /Create expense/ });
     expect(create.parentElement!.style.gridTemplateColumns).toBe('1fr');
@@ -80,7 +122,9 @@ describe('BookingCostsSection', () => {
 
   it('FE-PLANNER-COSTSEC-003: once the record exists the create button shares its row with the select', () => {
     renderSection();
-    expect(screen.getByRole('button', { name: /Create expense/ }).parentElement!.style.gridTemplateColumns).toBe('1fr 1fr');
+    expect(screen.getByRole('button', { name: /Create expense/ }).parentElement!.style.gridTemplateColumns).toBe(
+      '1fr 1fr'
+    );
   });
 
   it('FE-PLANNER-COSTSEC-004: the select offers only expenses without any link, with their amount', async () => {
@@ -141,7 +185,7 @@ describe('BookingCostsSection', () => {
     expect(screen.getByRole('button', { name: /Create expense/ })).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-COSTSEC-009: edit hands the row\'s expense to onEdit', async () => {
+  it("FE-PLANNER-COSTSEC-009: edit hands the row's expense to onEdit", async () => {
     const user = userEvent.setup();
     const { onEdit } = renderSection();
     const row = rowOf('Seat upgrade');
@@ -149,7 +193,7 @@ describe('BookingCostsSection', () => {
     expect(onEdit).toHaveBeenCalledWith(upgrade);
   });
 
-  it('FE-PLANNER-COSTSEC-010: delete hands the row\'s expense to onRemove', async () => {
+  it("FE-PLANNER-COSTSEC-010: delete hands the row's expense to onRemove", async () => {
     const user = userEvent.setup();
     const { onRemove } = renderSection();
     const row = rowOf('Flight LH 400');
@@ -213,7 +257,13 @@ describe('BookingCostsSection', () => {
     seedStore(useTripStore, { budgetItems: [], trip: buildTrip({ id: 1, currency: 'JPY' }) });
     seedStore(useSettingsStore, { settings: { default_currency: 'gbp' } });
     const { unmount } = render(
-      <BookingCostsSection reservationId={null} pendingExpense={{ total_price: 12, category: 'food' }} onCreate={vi.fn()} onEdit={vi.fn()} onRemove={vi.fn()} />,
+      <BookingCostsSection
+        reservationId={null}
+        pendingExpense={{ total_price: 12, category: 'food' }}
+        onCreate={vi.fn()}
+        onEdit={vi.fn()}
+        onRemove={vi.fn()}
+      />
     );
     expect(screen.getByText(money(12, 'JPY'))).toBeInTheDocument();
     expect(screen.queryByText(money(12, 'GBP'))).not.toBeInTheDocument();
@@ -221,7 +271,13 @@ describe('BookingCostsSection', () => {
 
     seedStore(useSettingsStore, { settings: { default_currency: '' } });
     render(
-      <BookingCostsSection reservationId={null} pendingExpense={{ total_price: 12, category: 'food' }} onCreate={vi.fn()} onEdit={vi.fn()} onRemove={vi.fn()} />,
+      <BookingCostsSection
+        reservationId={null}
+        pendingExpense={{ total_price: 12, category: 'food' }}
+        onCreate={vi.fn()}
+        onEdit={vi.fn()}
+        onRemove={vi.fn()}
+      />
     );
     expect(screen.getByText(money(12, 'JPY'))).toBeInTheDocument();
   });
@@ -242,8 +298,23 @@ describe('BookingCostsSection', () => {
 
   it('FE-PLANNER-COSTSEC-019: linked and offered expenses without a currency read in the trip currency (#2525)', async () => {
     const user = userEvent.setup();
-    const deposit = buildBudgetItem({ id: 17, trip_id: 1, name: 'Hotel deposit', total_price: 120, currency: null, category: 'accommodation', reservation_id: 9 });
-    const tram = buildBudgetItem({ id: 18, trip_id: 1, name: 'Tram pass', total_price: 9, currency: null, category: 'transport' });
+    const deposit = buildBudgetItem({
+      id: 17,
+      trip_id: 1,
+      name: 'Hotel deposit',
+      total_price: 120,
+      currency: null,
+      category: 'accommodation',
+      reservation_id: 9,
+    });
+    const tram = buildBudgetItem({
+      id: 18,
+      trip_id: 1,
+      name: 'Tram pass',
+      total_price: 9,
+      currency: null,
+      category: 'transport',
+    });
     seedStore(useTripStore, { budgetItems: [deposit, tram] });
     seedStore(useSettingsStore, { settings: { default_currency: 'USD' } });
     renderSection();

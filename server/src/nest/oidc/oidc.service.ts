@@ -1,26 +1,27 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import crypto from 'crypto';
-import type { webcrypto } from 'crypto';
-import jwt from 'jsonwebtoken';
-import { v4 as uuidv4 } from 'uuid';
-import bcrypt from 'bcryptjs';
-import type { Request, Response } from 'express';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { readEnv, getAppUrl } from '../../app-config';
 import { JWT_SECRET, SESSION_DURATION_SECONDS, SESSION_DURATION_REMEMBER_SECONDS } from '../../config';
-import { User } from '../../types';
-import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import { setAuthCookie, RememberOption } from '../common/cookie';
-import { AuthService } from '../auth/auth.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import { safeFetchAdminConfigured } from '../../utils/ssrfGuard';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository, UserRow } from '../../db/repositories/Users.repository';
-import { InviteTokens } from '../../db/entities/InviteTokens.entity';
-import type { InviteTokensRepository, InviteTokenRow } from '../../db/repositories/InviteTokens.repository';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { InviteTokens } from '../../db/entities/InviteTokens.entity';
+import { Users } from '../../db/entities/Users.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { InviteTokensRepository, InviteTokenRow } from '../../db/repositories/InviteTokens.repository';
+import type { UsersRepository, UserRow } from '../../db/repositories/Users.repository';
+import { User } from '../../types';
+import { safeFetchAdminConfigured } from '../../utils/ssrfGuard';
+import { AuthService } from '../auth/auth.service';
+import { setAuthCookie, RememberOption } from '../common/cookie';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { UnitOfWork } from '../database/unit-of-work';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
+
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import type { webcrypto } from 'crypto';
+import type { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -90,11 +91,11 @@ export interface OidcRoleChange {
 /** 1 minute — the auth-code lifetime AND the controller's binding-cookie maxAge. */
 export const OIDC_AUTH_CODE_TTL_MS = 60000;
 const AUTH_CODE_TTL = OIDC_AUTH_CODE_TTL_MS;
-const AUTH_CODE_CLEANUP = 30000;      // 30 seconds
+const AUTH_CODE_CLEANUP = 30000; // 30 seconds
 /** 5 minutes — the server-side pending-state TTL AND the controller's state-cookie maxAge. */
 export const OIDC_STATE_TTL_MS = 5 * 60 * 1000;
 const STATE_TTL = OIDC_STATE_TTL_MS;
-const STATE_CLEANUP = 60 * 1000;      // 1 minute
+const STATE_CLEANUP = 60 * 1000; // 1 minute
 const DISCOVERY_TTL = 60 * 60 * 1000; // 1 hour
 
 const FETCH_TIMEOUT_MS = 10_000;
@@ -129,14 +130,18 @@ function bindingMatches(expectedHash: string, presented: string): boolean {
   return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
 }
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v);
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
 
 function isDiscoveryDoc(v: unknown): v is OidcDiscoveryDoc {
   if (!isRecord(v)) return false;
-  if (typeof v.authorization_endpoint !== 'string' || typeof v.token_endpoint !== 'string' || typeof v.userinfo_endpoint !== 'string') return false;
+  if (
+    typeof v.authorization_endpoint !== 'string' ||
+    typeof v.token_endpoint !== 'string' ||
+    typeof v.userinfo_endpoint !== 'string'
+  )
+    return false;
   if (v.issuer !== undefined && typeof v.issuer !== 'string') return false;
   if (v.jwks_uri !== undefined && typeof v.jwks_uri !== 'string') return false;
   return true;
@@ -224,7 +229,10 @@ export class OidcService implements OnModuleDestroy {
   // State management – pending OIDC states
   // -------------------------------------------------------------------------
 
-  private readonly pendingStates = new Map<string, { createdAt: number; redirectUri: string; inviteToken?: string; codeVerifier: string; remember?: boolean }>();
+  private readonly pendingStates = new Map<
+    string,
+    { createdAt: number; redirectUri: string; inviteToken?: string; codeVerifier: string; remember?: boolean }
+  >();
 
   // -------------------------------------------------------------------------
   // Auth code management – short-lived codes exchanged for JWT
@@ -234,7 +242,10 @@ export class OidcService implements OnModuleDestroy {
   // the callback holds, in a cookie. The code itself travels in a URL — through
   // history, referrers and any log in between — so on its own it is not a
   // credential, and /exchange must not accept it as one.
-  private readonly authCodes = new Map<string, { token: string; created: number; remember?: boolean; bindingHash: string }>();
+  private readonly authCodes = new Map<
+    string,
+    { token: string; created: number; remember?: boolean; bindingHash: string }
+  >();
 
   // Discovery document cache (1 h TTL), keyed by discovery URL so two
   // configured issuers no longer thrash a single slot.
@@ -276,11 +287,17 @@ export class OidcService implements OnModuleDestroy {
     clearInterval(this.codeSweeper);
   }
 
-  async oidcLoginEnabled(): Promise<boolean> { return (await this.auth.resolveAuthToggles()).oidc_login; }
+  async oidcLoginEnabled(): Promise<boolean> {
+    return (await this.auth.resolveAuthToggles()).oidc_login;
+  }
 
-  getAppUrl() { return getAppUrl(); }
+  getAppUrl() {
+    return getAppUrl();
+  }
 
-  setAuthCookie(res: Response, token: string, req: Request, remember?: RememberOption) { setAuthCookie(res, token, req, remember); }
+  setAuthCookie(res: Response, token: string, req: Request, remember?: RememberOption) {
+    setAuthCookie(res, token, req, remember);
+  }
 
   // Creates the login state and a matching PKCE pair. The verifier stays server
   // side (in pendingStates); the S256 challenge goes to the provider so PKCE-
@@ -374,7 +391,7 @@ export class OidcService implements OnModuleDestroy {
       if (discoveryUrl) {
         console.warn(
           `[OIDC] Discovery doc issuer "${doc.issuer}" differs from configured OIDC_ISSUER "${issuer}". ` +
-          `Using discovery doc issuer for id_token verification (custom OIDC_DISCOVERY_URL is set).`,
+            `Using discovery doc issuer for id_token verification (custom OIDC_DISCOVERY_URL is set).`,
         );
       } else {
         throw new Error(`OIDC discovery issuer mismatch: expected "${issuer}", got "${doc.issuer}"`);
@@ -411,9 +428,7 @@ export class OidcService implements OnModuleDestroy {
   resolveOidcRoleDetailed(userInfo: OidcUserInfo, isFirstUser: boolean): OidcRoleResolution {
     const claimKey = readEnv().oidc.adminClaim;
     const claimMissing =
-      !isFirstUser &&
-      !!readEnv().oidc.adminValue &&
-      !Object.prototype.hasOwnProperty.call(userInfo, claimKey);
+      !isFirstUser && !!readEnv().oidc.adminValue && !Object.prototype.hasOwnProperty.call(userInfo, claimKey);
     return {
       role: this.resolveOidcRole(userInfo, isFirstUser),
       claimMissing,
@@ -443,20 +458,21 @@ export class OidcService implements OnModuleDestroy {
     if (user?.role === 'admin') {
       console.warn(
         `[OIDC] User ${user.id} (${user.username}) is stored as an admin and the configured OIDC_ADMIN_CLAIM ` +
-        `"${resolution.claimKey}" was not in their userinfo response, so the admin role is kept. Providers that omit a ` +
-        `claim instead of sending it empty (Okta filtered groups, Entra ID) cannot take admin away this way — remove it ` +
-        `in TREK's admin panel. ${received} ${scopeHint}`,
+          `"${resolution.claimKey}" was not in their userinfo response, so the admin role is kept. Providers that omit a ` +
+          `claim instead of sending it empty (Okta filtered groups, Entra ID) cannot take admin away this way — remove it ` +
+          `in TREK's admin panel. ${received} ${scopeHint}`,
       );
       return;
     }
     if (this.warnedMissingAdminClaims.has(resolution.claimKey)) return;
     this.warnedMissingAdminClaims.add(resolution.claimKey);
-    const consequence = user === null
-      ? 'during registration, so the new account keeps its default role'
-      : `for user ${user.id}, so their stored role is left unchanged`;
+    const consequence =
+      user === null
+        ? 'during registration, so the new account keeps its default role'
+        : `for user ${user.id}, so their stored role is left unchanged`;
     console.warn(
       `[OIDC] The configured OIDC_ADMIN_CLAIM "${resolution.claimKey}" was not in the userinfo response ${consequence}. ` +
-      `${received} ${scopeHint}`,
+        `${received} ${scopeHint}`,
     );
   }
 
@@ -479,11 +495,10 @@ export class OidcService implements OnModuleDestroy {
     // persistent cookie maxAge picked by the cookie service off the same flag,
     // and the claim lets sliding renewal preserve those semantics.
     const expiresIn = remember === true ? SESSION_DURATION_REMEMBER_SECONDS : SESSION_DURATION_SECONDS;
-    return jwt.sign(
-      { id: user.id, pv, ...(typeof remember === 'boolean' ? { remember } : {}) },
-      JWT_SECRET,
-      { expiresIn, algorithm: 'HS256' },
-    );
+    return jwt.sign({ id: user.id, pv, ...(typeof remember === 'boolean' ? { remember } : {}) }, JWT_SECRET, {
+      expiresIn,
+      algorithm: 'HS256',
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -508,12 +523,16 @@ export class OidcService implements OnModuleDestroy {
     if (codeVerifier) body.set('code_verifier', codeVerifier);
     // maxRedirects 0: following one would hand client_secret to a second host,
     // and the platform default of 'follow' does exactly that today.
-    const tokenRes = await safeFetchAdminConfigured(doc.token_endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    }, 0);
+    const tokenRes = await safeFetchAdminConfigured(
+      doc.token_endpoint,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      },
+      0,
+    );
     assertResponseSize(tokenRes);
     // Error responses are still parsed on purpose — callers branch on _ok/_status.
     const parsed: unknown = await tokenRes.json();
@@ -577,8 +596,11 @@ export class OidcService implements OnModuleDestroy {
     if (parts.length !== 3) return { ok: false, error: 'malformed_token' };
 
     let header: { kid?: string; alg?: string };
-    try { header = JSON.parse(base64UrlDecode(parts[0]!).toString('utf8')); }
-    catch { return { ok: false, error: 'bad_header' }; }
+    try {
+      header = JSON.parse(base64UrlDecode(parts[0]!).toString('utf8'));
+    } catch {
+      return { ok: false, error: 'bad_header' };
+    }
 
     const alg = header.alg;
     if (!alg || !/^(RS256|RS384|RS512|ES256|ES384|ES512|PS256|PS384|PS512)$/.test(alg)) {
@@ -586,16 +608,17 @@ export class OidcService implements OnModuleDestroy {
     }
 
     let keys: Array<Record<string, unknown>>;
-    try { keys = await this.fetchJwks(doc.jwks_uri); }
-    catch { return { ok: false, error: 'jwks_fetch_failed' }; }
+    try {
+      keys = await this.fetchJwks(doc.jwks_uri);
+    } catch {
+      return { ok: false, error: 'jwks_fetch_failed' };
+    }
 
     // When the token carries a `kid`, refuse to fall back to any other
     // key in the JWKS — a mismatch means the token was signed with a key
     // the provider no longer publishes, and we should reject rather than
     // mask the failure by trying another key.
-    const jwk = header.kid
-      ? keys.find((k) => k['kid'] === header.kid)
-      : keys[0];
+    const jwk = header.kid ? keys.find((k) => k['kid'] === header.kid) : keys[0];
     if (!jwk) return { ok: false, error: 'no_matching_key' };
 
     let publicKey;
@@ -697,18 +720,22 @@ export class OidcService implements OnModuleDestroy {
         const resolution = this.resolveOidcRoleDetailed(userInfo, false);
         const newRole = resolution.role;
         if (resolution.claimMissing) {
-          this.warnMissingAdminClaim(resolution, { id: user.id, username: user.username, role: user.role === 'admin' ? 'admin' : 'user' });
+          this.warnMissingAdminClaim(resolution, {
+            id: user.id,
+            username: user.username,
+            role: user.role === 'admin' ? 'admin' : 'user',
+          });
         } else if (user.role !== newRole) {
           // Never let the claim-based downgrade strip the last admin. The bootstrap
           // admin (first SSO user) usually doesn't carry the admin claim, so a forced
           // re-login — e.g. after a JWT-secret rotation — would otherwise demote it and
           // lock an OIDC-only instance out for good. #1274
           const demotingLastAdmin =
-            user.role === 'admin' &&
-            newRole !== 'admin' &&
-            (await this.usersRepo.countAdmins()) <= 1;
+            user.role === 'admin' && newRole !== 'admin' && (await this.usersRepo.countAdmins()) <= 1;
           if (demotingLastAdmin) {
-            console.warn(`[OIDC] Kept admin role for user ${user.id}: their OIDC claims map to '${newRole}', but they are the only admin — demoting would lock the instance out.`);
+            console.warn(
+              `[OIDC] Kept admin role for user ${user.id}: their OIDC claims map to '${newRole}', but they are the only admin — demoting would lock the instance out.`,
+            );
           } else {
             await this.usersRepo.setRole(user.id, newRole);
             roleChange = { from: user.role === 'admin' ? 'admin' : 'user', to: newRole, claim: resolution.claimKey };
@@ -793,7 +820,11 @@ export class OidcService implements OnModuleDestroy {
         // Trip-bound invite (#1402): auto-add the new SSO user to the trip inside the
         // same atomic step as the invite consume. Idempotent + owner-safe.
         if (validInvite?.trip_id) {
-          await this.membership.joinTripAsMember(Number(validInvite.trip_id), Number(created.id), validInvite.created_by ?? null);
+          await this.membership.joinTripAsMember(
+            Number(validInvite.trip_id),
+            Number(created.id),
+            validInvite.created_by ?? null,
+          );
         }
         return created.id;
       });
@@ -809,7 +840,9 @@ export class OidcService implements OnModuleDestroy {
       return { user: toClientUser(created), created: true };
     } catch (err) {
       if (err === inviteRaceError) {
-        console.warn(`[OIDC] Invite token ${inviteToken?.slice(0, 8)}... exhausted — concurrent callback won the last slot`);
+        console.warn(
+          `[OIDC] Invite token ${inviteToken?.slice(0, 8)}... exhausted — concurrent callback won the last slot`,
+        );
         return { error: 'registration_disabled' };
       }
       throw err;
@@ -864,7 +897,8 @@ export class OidcService implements OnModuleDestroy {
     await this.uow.transactional(async () => {
       await set('oidc_issuer', data.issuer ?? '');
       await set('oidc_client_id', data.client_id ?? '');
-      if (data.client_secret !== undefined) await set('oidc_client_secret', maybe_encrypt_api_key(data.client_secret) ?? '');
+      if (data.client_secret !== undefined)
+        await set('oidc_client_secret', maybe_encrypt_api_key(data.client_secret) ?? '');
       await set('oidc_display_name', data.display_name ?? '');
       await set('oidc_discovery_url', data.discovery_url ?? '');
     });

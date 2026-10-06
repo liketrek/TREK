@@ -1,9 +1,9 @@
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { TripAlbumLinksRepository } from '../repositories/TripAlbumLinks.repository';
 import { DbTimestampType } from '../types';
 import { TripPhotos } from './TripPhotos.entity';
 import { Trips } from './Trips.entity';
 import { Users } from './Users.entity';
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class TripAlbumLinks {
   [EntityRepositoryType]?: TripAlbumLinksRepository;

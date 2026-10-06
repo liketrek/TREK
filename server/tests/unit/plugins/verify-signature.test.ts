@@ -3,9 +3,10 @@
  * minisign shapes TREK accepts: bare raw key+sig, minisign legacy ('Ed', signs
  * the file), and minisign prehashed ('ED', signs BLAKE2b-512 of the file).
  */
-import { describe, it, expect } from 'vitest';
-import crypto from 'node:crypto';
 import { verifyAuthorSignature, SignatureError } from '../../../src/nest/plugins/install/verify-signature';
+
+import crypto from 'node:crypto';
+import { describe, it, expect } from 'vitest';
 
 // A raw Ed25519 keypair, exported as the 32-byte raw public key + a signer.
 function makeKeypair() {

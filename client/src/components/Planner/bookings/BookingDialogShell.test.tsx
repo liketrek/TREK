@@ -1,10 +1,10 @@
 // FE-PLANNER-BOOKINGSHELL-001 to FE-PLANNER-BOOKINGSHELL-016
-import type { FormEvent, ReactNode } from 'react';
-import { render, screen, fireEvent } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import type { FormEvent, ReactNode } from 'react';
+import { fireEvent, render, screen } from '../../../../tests/helpers/render';
 import { resetBodyScrollLock } from '../../../utils/bodyScrollLock';
-import { BookingDialogHeader, StatusPill } from './BookingDialogShell';
 import { DialogShell, type DialogShellProps } from '../../shared/DialogShell';
+import { BookingDialogHeader, StatusPill } from './BookingDialogShell';
 
 const onClose = vi.fn();
 
@@ -13,7 +13,9 @@ function Shell(props: Partial<DialogShellProps>) {
     <DialogShell
       onClose={onClose}
       labelledBy="shell-title"
-      header={<BookingDialogHeader tone="pending" type="flight" labelId="shell-title" onClose={onClose} title="LH 123" />}
+      header={
+        <BookingDialogHeader tone="pending" type="flight" labelId="shell-title" onClose={onClose} title="LH 123" />
+      }
       {...props}
     >
       {props.children ?? <p>inner content</p>}
@@ -66,7 +68,16 @@ describe('BookingDialogShell', () => {
   });
 
   it('FE-PLANNER-BOOKINGSHELL-005: an Escape a field inside already handled does not close', () => {
-    render(<Shell><input aria-label="Field" onKeyDown={e => { if (e.key === 'Escape') e.preventDefault(); }} /></Shell>);
+    render(
+      <Shell>
+        <input
+          aria-label="Field"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') e.preventDefault();
+          }}
+        />
+      </Shell>
+    );
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Field' }), { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
   });
@@ -121,7 +132,11 @@ describe('BookingDialogShell', () => {
     const opener = screen.getByRole('button', { name: 'Opener' });
     opener.focus();
 
-    rerender(<Page open><input aria-label="Title" autoFocus /></Page>);
+    rerender(
+      <Page open>
+        <input aria-label="Title" autoFocus />
+      </Page>
+    );
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveFocus();
 
     rerender(<Page open={false} />);
@@ -137,7 +152,11 @@ describe('BookingDialogShell', () => {
 
   it('FE-PLANNER-BOOKINGSHELL-014: with onSubmit the body is a form', () => {
     const onSubmit = vi.fn((e: FormEvent) => e.preventDefault());
-    render(<Shell onSubmit={onSubmit}><button type="submit">Send</button></Shell>);
+    render(
+      <Shell onSubmit={onSubmit}>
+        <button type="submit">Send</button>
+      </Shell>
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
     expect(onSubmit).toHaveBeenCalledOnce();
   });
@@ -145,9 +164,28 @@ describe('BookingDialogShell', () => {
 
 describe('BookingDialogHeader', () => {
   it('FE-PLANNER-BOOKINGSHELL-015: a sub ends in an ellipsis unless it is allowed to wrap', () => {
-    const { rerender } = render(<BookingDialogHeader tone="transit" type="transit" labelId="h" onClose={onClose} title="Public transit" sub="A long hint" />);
+    const { rerender } = render(
+      <BookingDialogHeader
+        tone="transit"
+        type="transit"
+        labelId="h"
+        onClose={onClose}
+        title="Public transit"
+        sub="A long hint"
+      />
+    );
     expect(screen.getByText('A long hint')).toHaveClass('truncate');
-    rerender(<BookingDialogHeader tone="transit" type="transit" labelId="h" onClose={onClose} title="Public transit" sub="A long hint" subWraps />);
+    rerender(
+      <BookingDialogHeader
+        tone="transit"
+        type="transit"
+        labelId="h"
+        onClose={onClose}
+        title="Public transit"
+        sub="A long hint"
+        subWraps
+      />
+    );
     expect(screen.getByText('A long hint')).not.toHaveClass('truncate');
     expect(screen.getByText('A long hint')).toHaveClass('break-words');
   });
@@ -157,10 +195,14 @@ describe('BookingDialogHeader', () => {
     const onToggle = vi.fn();
     render(
       <BookingDialogHeader
-        tone="pending" type="flight" labelId="h" onClose={onClose} eyebrow="Add transport"
+        tone="pending"
+        type="flight"
+        labelId="h"
+        onClose={onClose}
+        eyebrow="Add transport"
         titleInput={{ value: '', onChange: onTitle, label: 'Title', placeholder: 'e.g. LH 123' }}
         pills={<StatusPill status="pending" onToggle={onToggle} />}
-      />,
+      />
     );
     expect(screen.getByRole('heading', { name: 'Add transport' })).toHaveAttribute('id', 'h');
     fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'LH 9' } });

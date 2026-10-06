@@ -107,7 +107,17 @@ export class AuditLogRepository extends TrekRepository<AuditLog> {
     return await this.kysely<AuditLogKyselyDB>()
       .selectFrom('audit_log as a')
       .leftJoin('users as u', 'u.id', 'a.user_id')
-      .select(['a.id', 'a.created_at', 'a.user_id', 'u.username', 'u.email as user_email', 'a.action', 'a.resource', 'a.details', 'a.ip'])
+      .select([
+        'a.id',
+        'a.created_at',
+        'a.user_id',
+        'u.username',
+        'u.email as user_email',
+        'a.action',
+        'a.resource',
+        'a.details',
+        'a.ip',
+      ])
       .orderBy('a.id', 'desc')
       .limit(limit)
       .offset(offset)

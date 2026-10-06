@@ -1,20 +1,23 @@
-import type { CSSProperties } from 'react'
 import type {
-  BookBadgeElement, BookCountriesElement, BookElement, BookListElement, BookMapElement,
-  BookMetric, BookStatsElement, BookUnits,
-} from '@trek/shared'
-import {
-  Camera, CalendarDays, Footprints, Globe, MapPin, Navigation, Route,
-  type LucideIcon,
-} from 'lucide-react'
-import { fontStack } from './bookFonts'
-import { brightness } from './folioColour'
-import { COUNTRY_SHAPES, countryParts, countryWorldPath, projectMercator, unprojectMercator } from './countryShapes'
-import { projectOntoTiles, tileView, usableStaticUrl } from './mapTiles'
-import { useCartoApiKey } from '../../hooks/useTileUrl'
-import { FLAG_H, FLAG_W, flagBands, flagDisc, flagSpec } from './flags'
-import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
-import { useTranslation } from '../../i18n'
+  BookBadgeElement,
+  BookCountriesElement,
+  BookElement,
+  BookListElement,
+  BookMapElement,
+  BookMetric,
+  BookStatsElement,
+  BookUnits,
+} from '@trek/shared';
+import { CalendarDays, Camera, Footprints, Globe, MapPin, Navigation, Route, type LucideIcon } from 'lucide-react';
+import type { CSSProperties } from 'react';
+import { useCartoApiKey } from '../../hooks/useTileUrl';
+import { useTranslation } from '../../i18n';
+import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants';
+import { fontStack } from './bookFonts';
+import { COUNTRY_SHAPES, countryParts, countryWorldPath, projectMercator, unprojectMercator } from './countryShapes';
+import { FLAG_H, FLAG_W, flagBands, flagDisc, flagSpec } from './flags';
+import { brightness } from './folioColour';
+import { projectOntoTiles, tileView, usableStaticUrl } from './mapTiles';
 
 /**
  * The elements drawn from the journey itself: a route map, the figures, the
@@ -47,8 +50,7 @@ import { useTranslation } from '../../i18n'
  */
 
 /** The elements this file draws. */
-type TravelElement =
-  | BookMapElement | BookStatsElement | BookCountriesElement | BookBadgeElement | BookListElement
+type TravelElement = BookMapElement | BookStatsElement | BookCountriesElement | BookBadgeElement | BookListElement;
 
 /**
  * Type sizes are a fraction of the frame, not a fixed number of points.
@@ -67,13 +69,13 @@ type TravelElement =
  * what a line of text has to fit into; width only ever limits it.
  */
 function typeSize(el: TravelElement, base: number): number {
-  return Math.max(1.2, el.frame.h * base * el.textScale)
+  return Math.max(1.2, el.frame.h * base * el.textScale);
 }
 
 /** Two decimals of a millimetre, matching what the document stores. */
-const round2 = (n: number) => Math.round(n * 100) / 100
+const round2 = (n: number) => Math.round(n * 100) / 100;
 /** Tile geometry, kept finer than the rest: see the note where it is used. */
-const round3 = (n: number) => Math.round(n * 1000) / 1000
+const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
 /**
  * How far each tile is drawn past its own square, in millimetres.
@@ -97,26 +99,30 @@ const round3 = (n: number) => Math.round(n * 1000) / 1000
  * covers the case of a tile drawn very small. The element clips, so the
  * overhang at the last row and column never shows.
  */
-const tileOverlapMm = (size: number) => Math.max(0.8, size * 0.04)
+const tileOverlapMm = (size: number) => Math.max(0.8, size * 0.04);
 
 /** #rrggbb plus an alpha. */
 function rgba(hex: string, alpha: number): string {
-  const n = Number.parseInt(hex.slice(1), 16)
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
+  const n = Number.parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
-export function TravelElementView({ el, frameStyle, big = false }: {
-  el: BookElement
-  frameStyle: CSSProperties
+export function TravelElementView({
+  el,
+  frameStyle,
+  big = false,
+}: {
+  el: BookElement;
+  frameStyle: CSSProperties;
   /** Drawn at a size worth fetching real imagery for, rather than as a thumbnail. */
-  big?: boolean
+  big?: boolean;
 }) {
-  if (el.kind === 'map') return <MapView el={el} frameStyle={frameStyle} big={big} />
-  if (el.kind === 'stats') return <StatsView el={el} frameStyle={frameStyle} />
-  if (el.kind === 'countries') return <CountriesView el={el} frameStyle={frameStyle} />
-  if (el.kind === 'badge') return <BadgeView el={el} frameStyle={frameStyle} />
-  if (el.kind === 'list') return <ListView el={el} frameStyle={frameStyle} />
-  return null
+  if (el.kind === 'map') return <MapView el={el} frameStyle={frameStyle} big={big} />;
+  if (el.kind === 'stats') return <StatsView el={el} frameStyle={frameStyle} />;
+  if (el.kind === 'countries') return <CountriesView el={el} frameStyle={frameStyle} />;
+  if (el.kind === 'badge') return <BadgeView el={el} frameStyle={frameStyle} />;
+  if (el.kind === 'list') return <ListView el={el} frameStyle={frameStyle} />;
+  return null;
 }
 
 /* ── Map ──────────────────────────────────────────────────────────────── */
@@ -139,15 +145,15 @@ export function TravelElementView({ el, frameStyle, big = false }: {
  * `textScale` moves their size. Hard-coded 700s meant the only way to lighten a
  * stats block was to not use one.
  */
-const heavy = (el: { weight: number }) => el.weight
-const light = (el: { weight: number }) => Math.max(400, el.weight - 100)
+const heavy = (el: { weight: number }) => el.weight;
+const light = (el: { weight: number }) => Math.max(400, el.weight - 100);
 
 const MAP_PALETTES = {
   minimal: { land: '#e9e5dc', border: '#d6d0c4', onDark: false },
   outline: { land: 'transparent', border: '#b9b3a6', onDark: false },
   dark: { land: '#2b3038', border: '#4a515c', onDark: true },
   paper: { land: '#efe8d8', border: '#cbbb96', onDark: false },
-}
+};
 
 /**
  * What the route is drawn in.
@@ -157,11 +163,11 @@ const MAP_PALETTES = {
  * is still theirs: only the default is overridden, and only where it would be
  * invisible.
  */
-const DEFAULT_ACCENT = '#111111' // theme-lint-disable — the contract's default, matched here
+const DEFAULT_ACCENT = '#111111'; // theme-lint-disable — the contract's default, matched here
 
 /** Ink for a mark that picks its own, and its opposite. */
-const BADGE_DARK_INK = '#1c1b19' // theme-lint-disable — ink on a printed page, not a UI token
-const BADGE_LIGHT_INK = '#ffffff' // theme-lint-disable — paper white on a filled chip
+const BADGE_DARK_INK = '#1c1b19'; // theme-lint-disable — ink on a printed page, not a UI token
+const BADGE_LIGHT_INK = '#ffffff'; // theme-lint-disable — paper white on a filled chip
 
 /**
  * What colour a mark's words are.
@@ -176,14 +182,14 @@ const BADGE_LIGHT_INK = '#ffffff' // theme-lint-disable — paper white on a fil
  * point of the flag: automatic is a good default and a bad cage.
  */
 function badgeInk(el: BookBadgeElement): string {
-  if (!el.autoColor) return el.color
-  if (el.style === 'chip') return brightness(el.accent) > 0.55 ? BADGE_DARK_INK : BADGE_LIGHT_INK
-  if (el.variant === 'day' || el.variant === 'date') return el.accent
-  return el.color
+  if (!el.autoColor) return el.color;
+  if (el.style === 'chip') return brightness(el.accent) > 0.55 ? BADGE_DARK_INK : BADGE_LIGHT_INK;
+  if (el.variant === 'day' || el.variant === 'date') return el.accent;
+  return el.color;
 }
 function routeInk(accent: string, onDark: boolean): string {
-  if (!onDark) return accent
-  return accent.toLowerCase() === DEFAULT_ACCENT ? '#f2efe9' : accent // theme-lint-disable — paper on a dark map
+  if (!onDark) return accent;
+  return accent.toLowerCase() === DEFAULT_ACCENT ? '#f2efe9' : accent; // theme-lint-disable — paper on a dark map
 }
 
 /**
@@ -195,20 +201,24 @@ function routeInk(accent: string, onDark: boolean): string {
  * than a fixed number of millimetres, which keeps the margin looking the same
  * whether the map is 40mm across or 300.
  */
-function MapView({ el, frameStyle, big = false }: {
-  el: BookMapElement
-  frameStyle: CSSProperties
+function MapView({
+  el,
+  frameStyle,
+  big = false,
+}: {
+  el: BookMapElement;
+  frameStyle: CSSProperties;
   /** False in a thumbnail, where a page of imagery would be a page of waste. */
-  big?: boolean
+  big?: boolean;
 }) {
-  const cartoKey = useCartoApiKey()
-  const palette = MAP_PALETTES[el.style]
+  const cartoKey = useCartoApiKey();
+  const palette = MAP_PALETTES[el.style];
   // Per element: two cut maps on one spread sharing a stencil would both be cut
   // to whichever of them rendered last.
-  const clipId = `st-clip-${el.id}`
-  const ink = routeInk(el.accent, palette.onDark)
+  const clipId = `st-clip-${el.id}`;
+  const ink = routeInk(el.accent, palette.onDark);
   /** Whether the ground under the line is a photograph rather than paper. */
-  const imagery = el.source === 'tiles' || el.source === 'static'
+  const imagery = el.source === 'tiles' || el.source === 'static';
   /*
    * Country outlines are the vector map's *subject*; over real imagery they are
    * a second coastline drawn on top of the one in the picture. So they are only
@@ -222,12 +232,13 @@ function MapView({ el, frameStyle, big = false }: {
    * exactly the case where there IS imagery — so the geometry is loaded
    * whenever either job wants it, and drawn only for the first.
    */
-  const wantsStencil = el.clip === 'country'
-  const shapes = (el.showLand && !imagery) || wantsStencil
-    ? el.countries.map(c => COUNTRY_SHAPES[c.toUpperCase()]).filter(Boolean)
-    : []
-  const drawLand = el.showLand && !imagery
-  const points = el.points.map(p => ({ ...p, ...projectMercator(p.lng, p.lat) }))
+  const wantsStencil = el.clip === 'country';
+  const shapes =
+    (el.showLand && !imagery) || wantsStencil
+      ? el.countries.map((c) => COUNTRY_SHAPES[c.toUpperCase()]).filter(Boolean)
+      : [];
+  const drawLand = el.showLand && !imagery;
+  const points = el.points.map((p) => ({ ...p, ...projectMercator(p.lng, p.lat) }));
   /*
    * The travelled way, projected the same as everything else.
    *
@@ -243,15 +254,15 @@ function MapView({ el, frameStyle, big = false }: {
    * a missing line: reading `.map` off undefined here takes the whole spread
    * down with it, in a renderer that also has to run for print.
    */
-  const path = el.path ?? []
+  const path = el.path ?? [];
   /*
    * The roads, one per leg, `null` where a leg has none. Read the same
    * defensive way `path` is: an element built by hand and cast rather than
    * parsed genuinely has the field missing, and `.length` on undefined takes
    * the whole spread down in a renderer that also has to run for print.
    */
-  const roads = el.roads ?? []
-  const trail = path.map(seg => seg.map(([lat, lng]) => projectMercator(lng, lat)))
+  const roads = el.roads ?? [];
+  const trail = path.map((seg) => seg.map(([lat, lng]) => projectMercator(lng, lat)));
 
   /*
    * ── What the view is fitted to ────────────────────────────────────────
@@ -265,21 +276,28 @@ function MapView({ el, frameStyle, big = false }: {
    * `fitToCountries` asks for the other behaviour deliberately, for the page
    * every travel book has: the country entire, with the route inside it.
    */
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   /*
    * Cutting to the coastline only means anything if the coastline is in view,
    * so `clip` implies the country fit however the element was configured.
    */
-  const cutToLand = el.clip === 'country' && shapes.length > 0
-  const fitToLand = el.fitToCountries || cutToLand || (points.length === 0 && trail.length === 0)
+  const cutToLand = el.clip === 'country' && shapes.length > 0;
+  const fitToLand = el.fitToCountries || cutToLand || (points.length === 0 && trail.length === 0);
   for (const p of points) {
-    minX = Math.min(minX, p.x); minY = Math.min(minY, p.y)
-    maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y)
+    minX = Math.min(minX, p.x);
+    minY = Math.min(minY, p.y);
+    maxX = Math.max(maxX, p.x);
+    maxY = Math.max(maxY, p.y);
   }
   for (const seg of trail) {
     for (const p of seg) {
-      minX = Math.min(minX, p.x); minY = Math.min(minY, p.y)
-      maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y)
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
     }
   }
   /*
@@ -288,11 +306,13 @@ function MapView({ el, frameStyle, big = false }: {
    * part of it would be outside the frame.
    */
   for (const road of roads) {
-    if (!road) continue
+    if (!road) continue;
     for (const [lat, lng] of road) {
-      const q = projectMercator(lng, lat)
-      minX = Math.min(minX, q.x); minY = Math.min(minY, q.y)
-      maxX = Math.max(maxX, q.x); maxY = Math.max(maxY, q.y)
+      const q = projectMercator(lng, lat);
+      minX = Math.min(minX, q.x);
+      minY = Math.min(minY, q.y);
+      maxX = Math.max(maxX, q.x);
+      maxY = Math.max(maxY, q.y);
     }
   }
 
@@ -320,17 +340,21 @@ function MapView({ el, frameStyle, big = false }: {
    * a coastline does.
    */
   if (fitToLand) {
-    const routed = Number.isFinite(minX)
-    const margin = Math.max(maxX - minX, maxY - minY, 2)
-    const nearX0 = minX - margin, nearY0 = minY - margin
-    const nearX1 = maxX + margin, nearY1 = maxY + margin
+    const routed = Number.isFinite(minX);
+    const margin = Math.max(maxX - minX, maxY - minY, 2);
+    const nearX0 = minX - margin,
+      nearY0 = minY - margin;
+    const nearX1 = maxX + margin,
+      nearY1 = maxY + margin;
     for (const s of shapes) {
       const near = routed
-        ? countryParts(s).filter(p => p[0] <= nearX1 && p[2] >= nearX0 && p[1] <= nearY1 && p[3] >= nearY0)
-        : []
+        ? countryParts(s).filter((p) => p[0] <= nearX1 && p[2] >= nearX0 && p[1] <= nearY1 && p[3] >= nearY0)
+        : [];
       for (const b of near.length > 0 ? near : [s.b]) {
-        minX = Math.min(minX, b[0]); minY = Math.min(minY, b[1])
-        maxX = Math.max(maxX, b[2]); maxY = Math.max(maxY, b[3])
+        minX = Math.min(minX, b[0]);
+        minY = Math.min(minY, b[1]);
+        maxX = Math.max(maxX, b[2]);
+        maxY = Math.max(maxY, b[3]);
       }
     }
   }
@@ -356,21 +380,18 @@ function MapView({ el, frameStyle, big = false }: {
    * the element: per leg, a chain crossing the equator would flip sides halfway
    * along and read as random rather than as drawn.
    */
-  const bowed = el.routeArc === 'bow' && trail.length === 0 && points.length > 1
+  const bowed = el.routeArc === 'bow' && trail.length === 0 && points.length > 1;
 
   /** Kilometres between two coordinates, for the ramp. */
   const km = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
-    const r = (d: number) => (d * Math.PI) / 180
-    const dLat = r(b.lat - a.lat)
-    const dLng = r(b.lng - a.lng)
-    const h = Math.sin(dLat / 2) ** 2
-      + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2
-    return 12742 * Math.asin(Math.min(1, Math.sqrt(h)))
-  }
+    const r = (d: number) => (d * Math.PI) / 180;
+    const dLat = r(b.lat - a.lat);
+    const dLng = r(b.lng - a.lng);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 12742 * Math.asin(Math.min(1, Math.sqrt(h)));
+  };
 
-  const meanLat = el.points.length
-    ? el.points.reduce((sum, p) => sum + p.lat, 0) / el.points.length
-    : 0
+  const meanLat = el.points.length ? el.points.reduce((sum, p) => sum + p.lat, 0) / el.points.length : 0;
 
   /**
    * How far each leg bows, as a share of its own chord, and which way.
@@ -381,33 +402,33 @@ function MapView({ el, frameStyle, big = false }: {
    */
   const bows: { k: number; nx: number; ny: number }[] = bowed
     ? el.points.slice(0, -1).map((a, i) => {
-      const b = el.points[i + 1]
-      const pa = projectMercator(a.lng, a.lat)
-      const pb = projectMercator(b.lng, b.lat)
-      const dx = pb.x - pa.x
-      const dy = pb.y - pa.y
-      const d = Math.hypot(dx, dy)
-      if (d < 1e-6) return { k: 0, nx: 0, ny: 0 }
+        const b = el.points[i + 1];
+        const pa = projectMercator(a.lng, a.lat);
+        const pb = projectMercator(b.lng, b.lat);
+        const dx = pb.x - pa.x;
+        const dy = pb.y - pa.y;
+        const d = Math.hypot(dx, dy);
+        if (d < 1e-6) return { k: 0, nx: 0, ny: 0 };
 
-      const u = Math.min(1, Math.max(0, Math.log(km(a, b) / 150) / Math.log(10)))
-      const ramp = u * u * (3 - 2 * u)
-      // How much of the leg runs east-west, which is where a bow is truthful.
-      const eastWest = 0.35 + 0.65 * Math.abs(dx / d)
+        const u = Math.min(1, Math.max(0, Math.log(km(a, b) / 150) / Math.log(10)));
+        const ramp = u * u * (3 - 2 * u);
+        // How much of the leg runs east-west, which is where a bow is truthful.
+        const eastWest = 0.35 + 0.65 * Math.abs(dx / d);
 
-      // The normal, turned to point away from the equator side the route is on.
-      let nx = -dy / d
-      let ny = dx / d
-      const poleward = meanLat >= 0 ? -1 : 1
-      if (Math.abs(ny) < 1e-9) {
-        // A due north-south leg has no poleward side; break the tie east.
-        nx = Math.abs(nx)
-      } else if (Math.sign(ny) !== poleward) {
-        nx = -nx
-        ny = -ny
-      }
-      return { k: 0.07 * ramp * eastWest, nx, ny }
-    })
-    : []
+        // The normal, turned to point away from the equator side the route is on.
+        let nx = -dy / d;
+        let ny = dx / d;
+        const poleward = meanLat >= 0 ? -1 : 1;
+        if (Math.abs(ny) < 1e-9) {
+          // A due north-south leg has no poleward side; break the tie east.
+          nx = Math.abs(nx);
+        } else if (Math.sign(ny) !== poleward) {
+          nx = -nx;
+          ny = -ny;
+        }
+        return { k: 0.07 * ramp * eastWest, nx, ny };
+      })
+    : [];
 
   /*
    * The apexes join the extent before it is fitted. Without this the tile
@@ -415,18 +436,25 @@ function MapView({ el, frameStyle, big = false }: {
    * leg is clipped by the very frame it was fitted to.
    */
   bows.forEach((bow, i) => {
-    if (!bow.k) return
-    const a = points[i]
-    const b = points[i + 1]
-    const d = Math.hypot(b.x - a.x, b.y - a.y)
-    const ax = (a.x + b.x) / 2 + bow.k * d * bow.nx
-    const ay = (a.y + b.y) / 2 + bow.k * d * bow.ny
-    minX = Math.min(minX, ax); maxX = Math.max(maxX, ax)
-    minY = Math.min(minY, ay); maxY = Math.max(maxY, ay)
-  })
+    if (!bow.k) return;
+    const a = points[i];
+    const b = points[i + 1];
+    const d = Math.hypot(b.x - a.x, b.y - a.y);
+    const ax = (a.x + b.x) / 2 + bow.k * d * bow.nx;
+    const ay = (a.y + b.y) / 2 + bow.k * d * bow.ny;
+    minX = Math.min(minX, ax);
+    maxX = Math.max(maxX, ax);
+    minY = Math.min(minY, ay);
+    maxY = Math.max(maxY, ay);
+  });
 
-  const empty = !Number.isFinite(minX)
-  if (empty) { minX = -1; minY = -1; maxX = 1; maxY = 1 }
+  const empty = !Number.isFinite(minX);
+  if (empty) {
+    minX = -1;
+    minY = -1;
+    maxX = 1;
+    maxY = 1;
+  }
   /*
    * One stop is a place, not an extent.
    *
@@ -435,12 +463,20 @@ function MapView({ el, frameStyle, big = false }: {
    * roughly a large city and its surroundings: near enough to see where it is,
    * close enough that the pin means something.
    */
-  const SINGLE = 0.01
-  if (maxX - minX < SINGLE) { const c = (minX + maxX) / 2; minX = c - SINGLE / 2; maxX = c + SINGLE / 2 }
-  if (maxY - minY < SINGLE) { const c = (minY + maxY) / 2; minY = c - SINGLE / 2; maxY = c + SINGLE / 2 }
+  const SINGLE = 0.01;
+  if (maxX - minX < SINGLE) {
+    const c = (minX + maxX) / 2;
+    minX = c - SINGLE / 2;
+    maxX = c + SINGLE / 2;
+  }
+  if (maxY - minY < SINGLE) {
+    const c = (minY + maxY) / 2;
+    minY = c - SINGLE / 2;
+    maxY = c + SINGLE / 2;
+  }
 
-  const W = el.frame.w
-  const H = el.frame.h
+  const W = el.frame.w;
+  const H = el.frame.h;
   /*
    * Room around the route, as a share of the route rather than of the frame.
    *
@@ -451,13 +487,15 @@ function MapView({ el, frameStyle, big = false }: {
    */
   // Same defence as `path`: undefined would make this NaN, and a NaN here
   // propagates into every coordinate on the map rather than failing loudly.
-  const grow = Math.max(0, el.fitPadding ?? 0.18)
-  const spanX = (maxX - minX) * (1 + grow)
-  const spanY = (maxY - minY) * (1 + grow)
-  const cx = (minX + maxX) / 2
-  const cy = (minY + maxY) / 2
-  minX = cx - spanX / 2; maxX = cx + spanX / 2
-  minY = cy - spanY / 2; maxY = cy + spanY / 2
+  const grow = Math.max(0, el.fitPadding ?? 0.18);
+  const spanX = (maxX - minX) * (1 + grow);
+  const spanY = (maxY - minY) * (1 + grow);
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  minX = cx - spanX / 2;
+  maxX = cx + spanX / 2;
+  minY = cy - spanY / 2;
+  maxY = cy + spanY / 2;
 
   /*
    * ── The window takes the frame's proportions ─────────────────────────
@@ -476,34 +514,34 @@ function MapView({ el, frameStyle, big = false }: {
    * every edge — it just shows a little more ground on the short side, which is
    * what the extra room was always going to be filled with.
    */
-  const aspect = W / H
-  const haveW = maxX - minX
-  const haveH = maxY - minY
+  const aspect = W / H;
+  const haveW = maxX - minX;
+  const haveH = maxY - minY;
   if (haveW / haveH < aspect) {
-    const want = haveH * aspect
-    minX = cx - want / 2
-    maxX = cx + want / 2
+    const want = haveH * aspect;
+    minX = cx - want / 2;
+    maxX = cx + want / 2;
   } else {
-    const want = haveW / aspect
-    minY = cy - want / 2
-    maxY = cy + want / 2
+    const want = haveW / aspect;
+    minY = cy - want / 2;
+    maxY = cy + want / 2;
   }
 
-  const scale = Math.min(W / (maxX - minX), H / (maxY - minY))
-  const offX = (W - (maxX - minX) * scale) / 2 - minX * scale
-  const offY = (H - (maxY - minY) * scale) / 2 - minY * scale
-  const at = (x: number, y: number) => ({ x: x * scale + offX, y: y * scale + offY })
+  const scale = Math.min(W / (maxX - minX), H / (maxY - minY));
+  const offX = (W - (maxX - minX) * scale) / 2 - minX * scale;
+  const offY = (H - (maxY - minY) * scale) / 2 - minY * scale;
+  const at = (x: number, y: number) => ({ x: x * scale + offX, y: y * scale + offY });
 
-  const stroke = Math.max(0.12, Math.min(W, H) * 0.006)
+  const stroke = Math.max(0.12, Math.min(W, H) * 0.006);
   /*
    * Finer than the first version, which drew a 5mm dot and a 2mm line on a
    * 150mm page: at that weight the route stops being a line on a map and
    * becomes a diagram of one. A printed map's marks are small — the reader is
    * six inches from the page, not across a room from a screen.
    */
-  const routeWidth = Math.max(0.3, Math.min(W, H) * 0.0075)
-  const pin = Math.max(0.35, Math.min(W, H) * 0.0085)
-  const label = typeSize(el, 0.035)
+  const routeWidth = Math.max(0.3, Math.min(W, H) * 0.0075);
+  const pin = Math.max(0.35, Math.min(W, H) * 0.0085);
+  const label = typeSize(el, 0.035);
 
   /*
    * ── The drawn treatment ───────────────────────────────────────────────
@@ -518,28 +556,28 @@ function MapView({ el, frameStyle, big = false }: {
    * The line lands at about a third of a marker's radius, which is the ratio
    * the printed reference holds at every size.
    */
-  const S = Math.min(W, H)
-  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
-  const drawn = el.routeStyle === 'drawn'
-  const coreW = clamp(S * 0.0055, 0.32, 1.3)
-  const casingW = coreW * 1.9
-  const beadR = clamp(coreW * 3.1, 1.7, 4.8)
-  const beadRing = beadR * 0.2
-  const dotR = coreW * 1.5
+  const S = Math.min(W, H);
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  const drawn = el.routeStyle === 'drawn';
+  const coreW = clamp(S * 0.0055, 0.32, 1.3);
+  const casingW = coreW * 1.9;
+  const beadR = clamp(coreW * 3.1, 1.7, 4.8);
+  const beadRing = beadR * 0.2;
+  const dotR = coreW * 1.5;
   /*
    * A numbered stop is bigger than a dot and smaller than a photograph: it has
    * to hold two digits legibly at page size without competing with the pictures
    * beside it.
    */
-  const numR = clamp(coreW * 2.2, 1.3, 3.4)
+  const numR = clamp(coreW * 2.2, 1.3, 3.4);
   /*
    * The digit reads against the marker's own fill rather than against the page,
    * so it inverts with it: dark on a light line, light on a dark one. Measured
    * the same way the marks decide their ink.
    */
-  const numInk = brightness(el.accent) > 0.55 ? '#1c1b19' : '#ffffff' // theme-lint-disable — print ink
-  const dashOn = coreW * 2.4
-  const dashOff = coreW * 1.8
+  const numInk = brightness(el.accent) > 0.55 ? '#1c1b19' : '#ffffff'; // theme-lint-disable — print ink
+  const dashOn = coreW * 2.4;
+  const dashOff = coreW * 1.8;
 
   /*
    * ── Why the colours key on the ground rather than on the accent ───────
@@ -550,7 +588,7 @@ function MapView({ el, frameStyle, big = false }: {
    * Keying it on what is underneath means any accent the user picks stays
    * legible, instead of the panel having to warn them off half the palette.
    */
-  const lightGround = imagery || palette.onDark
+  const lightGround = imagery || palette.onDark;
   /*
    * The line is the element's accent, full stop — which is why a map placed
    * over imagery is given a white accent rather than being special-cased here.
@@ -563,9 +601,9 @@ function MapView({ el, frameStyle, big = false }: {
    * is what keeps one route legible across near-black sea and bright desert in
    * the same picture, whatever colour the line itself is.
    */
-  const coreInk = el.accent
-  const casingInk = lightGround ? '#000000' : '#ffffff' // theme-lint-disable — a halo, not app chrome
-  const casingAlpha = lightGround ? 0.3 : 0.55
+  const coreInk = el.accent;
+  const casingInk = lightGround ? '#000000' : '#ffffff'; // theme-lint-disable — a halo, not app chrome
+  const casingAlpha = lightGround ? 0.3 : 0.55;
 
   /*
    * Real imagery, when the element was placed with a source that has some.
@@ -580,21 +618,30 @@ function MapView({ el, frameStyle, big = false }: {
    * runs off the edge of its own map.
    */
   const tileExtent = [
-    ...el.points.map(p => ({ lat: p.lat, lng: p.lng })),
-    ...path.flatMap(seg => seg.map(([lat, lng]) => ({ lat, lng }))),
-  ]
+    ...el.points.map((p) => ({ lat: p.lat, lng: p.lng })),
+    ...path.flatMap((seg) => seg.map(([lat, lng]) => ({ lat, lng }))),
+  ];
   // The window the fit above arrived at, back in coordinates, so the tiles
   // cover exactly what the vector map covers.
-  const topLeft = unprojectMercator(minX, minY)
-  const bottomRight = unprojectMercator(maxX, maxY)
-  const tiled = el.source === 'tiles'
-    ? tileView(tileExtent, { w: W, h: H }, el.tileUrl, el.zoom, {
-      minLng: topLeft.lng,
-      maxLat: topLeft.lat,
-      maxLng: bottomRight.lng,
-      minLat: bottomRight.lat,
-    }, big ? 'print' : 'preview', cartoKey)
-    : null
+  const topLeft = unprojectMercator(minX, minY);
+  const bottomRight = unprojectMercator(maxX, maxY);
+  const tiled =
+    el.source === 'tiles'
+      ? tileView(
+          tileExtent,
+          { w: W, h: H },
+          el.tileUrl,
+          el.zoom,
+          {
+            minLng: topLeft.lng,
+            maxLat: topLeft.lat,
+            maxLng: bottomRight.lng,
+            minLat: bottomRight.lat,
+          },
+          big ? 'print' : 'preview',
+          cartoKey
+        )
+      : null;
 
   /*
    * The route, in whichever projection is drawing.
@@ -604,9 +651,7 @@ function MapView({ el, frameStyle, big = false }: {
    * zoom level. Using the wrong one puts the line next to the road rather than
    * on it, which is the sort of error that only shows up once it is printed.
    */
-  const route = tiled
-    ? el.points.map(p => projectOntoTiles(tiled, p.lng, p.lat))
-    : points.map(p => at(p.x, p.y))
+  const route = tiled ? el.points.map((p) => projectOntoTiles(tiled, p.lng, p.lat)) : points.map((p) => at(p.x, p.y));
 
   /*
    * The drawn line, which is the travelled way when there is one.
@@ -617,8 +662,8 @@ function MapView({ el, frameStyle, big = false }: {
    * something that did not happen.
    */
   const trailOnScreen = tiled
-    ? path.map(seg => seg.map(([lat, lng]) => projectOntoTiles(tiled, lng, lat)))
-    : trail.map(seg => seg.map(p => at(p.x, p.y)))
+    ? path.map((seg) => seg.map(([lat, lng]) => projectOntoTiles(tiled, lng, lat)))
+    : trail.map((seg) => seg.map((p) => at(p.x, p.y)));
   /*
    * ── What the plain line is made of ────────────────────────────────────
    *
@@ -629,31 +674,31 @@ function MapView({ el, frameStyle, big = false }: {
    * when it only covers part of a trip.
    */
   const roadOnScreen = (leg: number) => {
-    const road = roads[leg]
-    if (!road || road.length < 2) return null
+    const road = roads[leg];
+    if (!road || road.length < 2) return null;
     return road.map(([lat, lng]) => {
-      const q = projectMercator(lng, lat)
-      return tiled ? projectOntoTiles(tiled, lng, lat) : at(q.x, q.y)
-    })
-  }
+      const q = projectMercator(lng, lat);
+      return tiled ? projectOntoTiles(tiled, lng, lat) : at(q.x, q.y);
+    });
+  };
 
-  const chain: { x: number; y: number }[][] = []
+  const chain: { x: number; y: number }[][] = [];
   if (route.length > 1) {
-    let run: { x: number; y: number }[] = [route[0]]
+    let run: { x: number; y: number }[] = [route[0]];
     for (let i = 0; i < route.length - 1; i++) {
-      const road = roadOnScreen(i)
+      const road = roadOnScreen(i);
       if (road) {
-        if (run.length > 1) chain.push(run)
-        chain.push(road)
-        run = [route[i + 1]]
+        if (run.length > 1) chain.push(run);
+        chain.push(road);
+        run = [route[i + 1]];
       } else {
-        run.push(route[i + 1])
+        run.push(route[i + 1]);
       }
     }
-    if (run.length > 1) chain.push(run)
+    if (run.length > 1) chain.push(run);
   }
 
-  const lines = trailOnScreen.length ? trailOnScreen : chain
+  const lines = trailOnScreen.length ? trailOnScreen : chain;
 
   /*
    * ── The drawn line, as path strings ───────────────────────────────────
@@ -668,78 +713,78 @@ function MapView({ el, frameStyle, big = false }: {
    * journey; this is the fact about the page, and it stops a 40mm inset from
    * showing a hairline wobble that reads as a wobble rather than as a curve.
    */
-  const strands: { d: string; dash?: string }[] = []
+  const strands: { d: string; dash?: string }[] = [];
   if (drawn) {
     if (trailOnScreen.length) {
       for (const seg of trailOnScreen) {
-        if (seg.length < 2) continue
-        strands.push({ d: `M${seg.map(pt => `${round2(pt.x)} ${round2(pt.y)}`).join(' L')}` })
+        if (seg.length < 2) continue;
+        strands.push({ d: `M${seg.map((pt) => `${round2(pt.x)} ${round2(pt.y)}`).join(' L')}` });
       }
     } else if (route.length > 1) {
       // Straight legs join into one strand; each bowed leg is its own, so it
       // can be dashed without dashing its neighbours.
-      let run: string[] = []
+      let run: string[] = [];
       const flush = () => {
-        if (run.length > 1) strands.push({ d: `M${run.join(' L')}` })
-        run = []
-      }
+        if (run.length > 1) strands.push({ d: `M${run.join(' L')}` });
+        run = [];
+      };
       for (let i = 0; i < route.length - 1; i++) {
-        const a = route[i]
-        const b = route[i + 1]
+        const a = route[i];
+        const b = route[i + 1];
 
         /*
          * A leg somebody asked the roads for is drawn as the road, solid and
          * unbowed: it is the way that was actually taken, so neither the curve
          * nor the dash — both of which mean "inferred" — belongs on it.
          */
-        const road = roads[i]
+        const road = roads[i];
         if (road && road.length > 1) {
-          flush()
+          flush();
           const onScreen = road.map(([lat, lng]) => {
-            const q = projectMercator(lng, lat)
-            return tiled ? projectOntoTiles(tiled, lng, lat) : at(q.x, q.y)
-          })
-          strands.push({ d: `M${onScreen.map(pt => `${round2(pt.x)} ${round2(pt.y)}`).join(' L')}` })
-          continue
+            const q = projectMercator(lng, lat);
+            return tiled ? projectOntoTiles(tiled, lng, lat) : at(q.x, q.y);
+          });
+          strands.push({ d: `M${onScreen.map((pt) => `${round2(pt.x)} ${round2(pt.y)}`).join(' L')}` });
+          continue;
         }
 
-        const bow = bows[i]
-        const dmm = Math.hypot(b.x - a.x, b.y - a.y)
-        let sag = bow ? bow.k * dmm : 0
+        const bow = bows[i];
+        const dmm = Math.hypot(b.x - a.x, b.y - a.y);
+        let sag = bow ? bow.k * dmm : 0;
         if (sag > 0) {
           // Below about a stroke width the curve is not read as one.
-          const v = Math.min(1, Math.max(0, (sag - coreW * 0.6) / coreW))
-          sag *= v * v * (3 - 2 * v)
+          const v = Math.min(1, Math.max(0, (sag - coreW * 0.6) / coreW));
+          sag *= v * v * (3 - 2 * v);
         }
         if (!sag) {
-          if (!run.length) run.push(`${round2(a.x)} ${round2(a.y)}`)
-          run.push(`${round2(b.x)} ${round2(b.y)}`)
-          continue
+          if (!run.length) run.push(`${round2(a.x)} ${round2(a.y)}`);
+          run.push(`${round2(b.x)} ${round2(b.y)}`);
+          continue;
         }
-        flush()
+        flush();
         /*
          * A quadratic reaches only half way to its control point at the middle,
          * which is why the apex is doubled here — the same arithmetic the shape
          * paths already rely on.
          */
-        const cxp = (a.x + b.x) / 2 + 2 * sag * bow.nx
-        const cyp = (a.y + b.y) / 2 + 2 * sag * bow.ny
-        const d = `M${round2(a.x)} ${round2(a.y)} Q${round2(cxp)} ${round2(cyp)} ${round2(b.x)} ${round2(b.y)}`
+        const cxp = (a.x + b.x) / 2 + 2 * sag * bow.nx;
+        const cyp = (a.y + b.y) / 2 + 2 * sag * bow.ny;
+        const d = `M${round2(a.x)} ${round2(a.y)} Q${round2(cxp)} ${round2(cyp)} ${round2(b.x)} ${round2(b.y)}`;
         if (el.routeDash === 'arcs') {
           /*
            * Phase-fitted, so every leg ends on a whole dash at its marker
            * rather than on a stub. Butt caps: a round cap swells each dash by a
            * full stroke width and closes the gaps it was drawn for.
            */
-          const arcLen = dmm * (1 + (8 / 3) * (sag / dmm) ** 2)
-          const n = Math.max(1, Math.round(arcLen / (dashOn + dashOff)))
-          const fit = arcLen / (n * (dashOn + dashOff))
-          strands.push({ d, dash: `${round2(dashOn * fit)} ${round2(dashOff * fit)}` })
+          const arcLen = dmm * (1 + (8 / 3) * (sag / dmm) ** 2);
+          const n = Math.max(1, Math.round(arcLen / (dashOn + dashOff)));
+          const fit = arcLen / (n * (dashOn + dashOff));
+          strands.push({ d, dash: `${round2(dashOn * fit)} ${round2(dashOff * fit)}` });
         } else {
-          strands.push({ d })
+          strands.push({ d });
         }
       }
-      flush()
+      flush();
     }
   }
 
@@ -755,29 +800,29 @@ function MapView({ el, frameStyle, big = false }: {
    * The two ends always keep their picture when they have one: they are where
    * a reader looks first.
    */
-  const beads: { i: number; x: number; y: number; photo: number | null }[] = []
-  let numbered = false
+  const beads: { i: number; x: number; y: number; photo: number | null }[] = [];
+  let numbered = false;
   if (drawn) {
     // Too small to carry photographs at all: a bead wider than a twelfth of the
     // frame is a picture with a map around it.
-    const roomForPhotos = el.pinStyle === 'photo' && big && beadR * 2 <= S * 0.16
+    const roomForPhotos = el.pinStyle === 'photo' && big && beadR * 2 <= S * 0.16;
     /*
      * Numbers stand in for the photographs that are not there, so they belong
      * to the photo treatment alone. A map asked for dots gets dots, and a
      * thumbnail gets dots too: two digits at 130px is a smudge.
      */
-    numbered = el.pinStyle === 'photo' && big && numR * 2 <= S * 0.12
-    let last: { x: number; y: number } | null = null
+    numbered = el.pinStyle === 'photo' && big && numR * 2 <= S * 0.12;
+    let last: { x: number; y: number } | null = null;
     route.forEach((pt, i) => {
-      const photoId = (el.points[i] as { photoId?: number | null } | undefined)?.photoId ?? null
-      const isEnd = i === 0 || i === route.length - 1
-      const room = !last || Math.hypot(pt.x - last.x, pt.y - last.y) >= beadR * 1.15
-      const bead = roomForPhotos && photoId != null && (isEnd || room)
-      if (bead) last = { x: pt.x, y: pt.y }
-      beads.push({ i, x: pt.x, y: pt.y, photo: bead ? photoId : null })
-    })
+      const photoId = (el.points[i] as { photoId?: number | null } | undefined)?.photoId ?? null;
+      const isEnd = i === 0 || i === route.length - 1;
+      const room = !last || Math.hypot(pt.x - last.x, pt.y - last.y) >= beadR * 1.15;
+      const bead = roomForPhotos && photoId != null && (isEnd || room);
+      if (bead) last = { x: pt.x, y: pt.y };
+      beads.push({ i, x: pt.x, y: pt.y, photo: bead ? photoId : null });
+    });
   }
-  const anyBead = beads.some(b => b.photo != null)
+  const anyBead = beads.some((b) => b.photo != null);
 
   return (
     <div style={{ ...frameStyle, overflow: 'hidden' }}>
@@ -790,22 +835,24 @@ function MapView({ el, frameStyle, big = false }: {
         purpose — see `tileOverlapMm`, which is what keeps the seams closed at
         every zoom the canvas offers.
       */}
-      {tiled && !cutToLand && tiled.tiles.map(t => (
-        <img
-          key={`${t.z}-${t.x}-${t.y}`}
-          src={t.url}
-          alt=""
-          draggable={false}
-          style={{
-            position: 'absolute',
-            left: `${round3(tiled.originX + t.x * tiled.size)}mm`,
-            top: `${round3(tiled.originY + t.y * tiled.size)}mm`,
-            width: `${round3(tiled.size + tileOverlapMm(tiled.size))}mm`,
-            height: `${round3(tiled.size + tileOverlapMm(tiled.size))}mm`,
-            display: 'block',
-          }}
-        />
-      ))}
+      {tiled &&
+        !cutToLand &&
+        tiled.tiles.map((t) => (
+          <img
+            key={`${t.z}-${t.x}-${t.y}`}
+            src={t.url}
+            alt=""
+            draggable={false}
+            style={{
+              position: 'absolute',
+              left: `${round3(tiled.originX + t.x * tiled.size)}mm`,
+              top: `${round3(tiled.originY + t.y * tiled.size)}mm`,
+              width: `${round3(tiled.size + tileOverlapMm(tiled.size))}mm`,
+              height: `${round3(tiled.size + tileOverlapMm(tiled.size))}mm`,
+              display: 'block',
+            }}
+          />
+        ))}
 
       {/*
         Or one picture, for the styles that only exist as a rendered map. The
@@ -869,11 +916,13 @@ function MapView({ el, frameStyle, big = false }: {
         */}
         {anyBead && (
           <defs>
-            {beads.filter(m => m.photo != null).map(m => (
-              <clipPath key={m.i} id={`st-bead-${el.id}-${m.i}`} clipPathUnits="userSpaceOnUse">
-                <circle cx={m.x} cy={m.y} r={beadR} />
-              </clipPath>
-            ))}
+            {beads
+              .filter((m) => m.photo != null)
+              .map((m) => (
+                <clipPath key={m.i} id={`st-bead-${el.id}-${m.i}`} clipPathUnits="userSpaceOnUse">
+                  <circle cx={m.x} cy={m.y} r={beadR} />
+                </clipPath>
+              ))}
           </defs>
         )}
 
@@ -897,7 +946,7 @@ function MapView({ el, frameStyle, big = false }: {
         */}
         {cutToLand && tiled && (
           <g clipPath={`url(#${clipId})`}>
-            {tiled.tiles.map(t => (
+            {tiled.tiles.map((t) => (
               <image
                 key={`${t.z}-${t.x}-${t.y}`}
                 href={t.url}
@@ -912,39 +961,52 @@ function MapView({ el, frameStyle, big = false }: {
         )}
         {cutToLand && el.source === 'static' && el.tileUrl && (
           <g clipPath={`url(#${clipId})`}>
-            <image href={usableStaticUrl(el.tileUrl)} x={0} y={0} width={W} height={H} preserveAspectRatio="xMidYMid slice" />
+            <image
+              href={usableStaticUrl(el.tileUrl)}
+              x={0}
+              y={0}
+              width={W}
+              height={H}
+              preserveAspectRatio="xMidYMid slice"
+            />
           </g>
         )}
 
-        {(drawLand || cutToLand) && shapes.map((s, i) => (
-          <path
-            key={i}
-            d={countryWorldPath(s)}
-            // The path is in projected world units, so the transform does the
-            // fitting and the stroke is divided back out — the border stays the
-            // width it was asked for instead of scaling with the map.
-            transform={`translate(${offX} ${offY}) scale(${scale})`}
-            // On a cut map the picture is the fill, and this path is only the
-            // edge around it — filling it as well would paint the land flat
-            // over the very imagery it was cut to show.
-            fill={cutToLand ? 'none' : palette.land}
-            stroke={palette.border}
-            strokeWidth={stroke / scale}
-            strokeLinejoin="round"
-          />
-        ))}
+        {(drawLand || cutToLand) &&
+          shapes.map((s, i) => (
+            <path
+              key={i}
+              d={countryWorldPath(s)}
+              // The path is in projected world units, so the transform does the
+              // fitting and the stroke is divided back out — the border stays the
+              // width it was asked for instead of scaling with the map.
+              transform={`translate(${offX} ${offY}) scale(${scale})`}
+              // On a cut map the picture is the fill, and this path is only the
+              // edge around it — filling it as well would paint the land flat
+              // over the very imagery it was cut to show.
+              fill={cutToLand ? 'none' : palette.land}
+              stroke={palette.border}
+              strokeWidth={stroke / scale}
+              strokeLinejoin="round"
+            />
+          ))}
 
-        {el.showRoute && !drawn && lines.map((seg, i) => seg.length > 1 && (
-          <polyline
-            key={i}
-            points={seg.map(p => `${round2(p.x)},${round2(p.y)}`).join(' ')}
-            fill="none"
-            stroke={ink}
-            strokeWidth={routeWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        ))}
+        {el.showRoute &&
+          !drawn &&
+          lines.map(
+            (seg, i) =>
+              seg.length > 1 && (
+                <polyline
+                  key={i}
+                  points={seg.map((p) => `${round2(p.x)},${round2(p.y)}`).join(' ')}
+                  fill="none"
+                  stroke={ink}
+                  strokeWidth={routeWidth}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )
+          )}
 
         {/*
           The drawn line: two strokes, casing first.
@@ -988,19 +1050,21 @@ function MapView({ el, frameStyle, big = false }: {
           </>
         )}
 
-        {el.showPins && !drawn && route.map((p, i) => (
-          <circle
-            key={i}
-            cx={p.x}
-            cy={p.y}
-            r={i === 0 || i === route.length - 1 ? pin * 1.35 : pin}
-            // The intermediate stops are hollow, so a run of them reads as a
-            // dotted line rather than as a caterpillar.
-            fill={i === 0 || i === route.length - 1 ? ink : (palette.onDark ? '#2b3038' : '#ffffff')}
-            stroke={ink}
-            strokeWidth={routeWidth * 0.6}
-          />
-        ))}
+        {el.showPins &&
+          !drawn &&
+          route.map((p, i) => (
+            <circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r={i === 0 || i === route.length - 1 ? pin * 1.35 : pin}
+              // The intermediate stops are hollow, so a run of them reads as a
+              // dotted line rather than as a caterpillar.
+              fill={i === 0 || i === route.length - 1 ? ink : palette.onDark ? '#2b3038' : '#ffffff'}
+              stroke={ink}
+              strokeWidth={routeWidth * 0.6}
+            />
+          ))}
 
         {/*
           The drawn markers: a small round photograph where there is one, a dot
@@ -1012,39 +1076,41 @@ function MapView({ el, frameStyle, big = false }: {
           is also what a photograph that fails to load degrades to, so the paper
           shows a deliberate marker rather than a hole.
         */}
-        {el.showPins && drawn && beads.map(m => (
-          m.photo != null ? (
-            <g key={m.i}>
-              {/* The shadow, as two translucent discs rather than a filter. */}
-              <circle cx={m.x} cy={m.y + coreW * 0.3} r={beadR + coreW * 0.55} fill="#000000" fillOpacity={0.1} />
-              <circle cx={m.x} cy={m.y + coreW * 0.15} r={beadR + coreW * 0.25} fill="#000000" fillOpacity={0.16} />
-              <circle cx={m.x} cy={m.y} r={beadR} fill="#ffffff" />
-              {/*
+        {el.showPins &&
+          drawn &&
+          beads.map((m) =>
+            m.photo != null ? (
+              <g key={m.i}>
+                {/* The shadow, as two translucent discs rather than a filter. */}
+                <circle cx={m.x} cy={m.y + coreW * 0.3} r={beadR + coreW * 0.55} fill="#000000" fillOpacity={0.1} />
+                <circle cx={m.x} cy={m.y + coreW * 0.15} r={beadR + coreW * 0.25} fill="#000000" fillOpacity={0.16} />
+                <circle cx={m.x} cy={m.y} r={beadR} fill="#ffffff" />
+                {/*
                 Always the thumbnail, never photoSrc(id, big): `big` is true in
                 print, and a full-size original to fill a seven-millimetre
                 circle is several megabytes per stop for detail no press can
                 resolve.
               */}
-              <image
-                href={`/api/photos/${m.photo}/thumbnail`}
-                x={round2(m.x - beadR)}
-                y={round2(m.y - beadR)}
-                width={round2(beadR * 2)}
-                height={round2(beadR * 2)}
-                preserveAspectRatio="xMidYMid slice"
-                clipPath={`url(#st-bead-${el.id}-${m.i})`}
-              />
-              <circle
-                cx={m.x}
-                cy={m.y}
-                r={beadR - beadRing / 2}
-                fill="none"
-                stroke="#ffffff"
-                strokeWidth={beadRing}
-              />
-            </g>
-          ) : numbered ? (
-            /*
+                <image
+                  href={`/api/photos/${m.photo}/thumbnail`}
+                  x={round2(m.x - beadR)}
+                  y={round2(m.y - beadR)}
+                  width={round2(beadR * 2)}
+                  height={round2(beadR * 2)}
+                  preserveAspectRatio="xMidYMid slice"
+                  clipPath={`url(#st-bead-${el.id}-${m.i})`}
+                />
+                <circle
+                  cx={m.x}
+                  cy={m.y}
+                  r={beadR - beadRing / 2}
+                  fill="none"
+                  stroke="#ffffff"
+                  strokeWidth={beadRing}
+                />
+              </g>
+            ) : numbered ? (
+              /*
               A stop with no photograph of its own, numbered.
 
               The alternative was to hand it a picture from somewhere else in
@@ -1055,68 +1121,69 @@ function MapView({ el, frameStyle, big = false }: {
               this is the fourth stop — and reads as deliberate rather than as
               something missing.
             */
-            <g key={m.i}>
-              <circle cx={m.x} cy={m.y + coreW * 0.2} r={numR + coreW * 0.35} fill="#000000" fillOpacity={0.14} />
+              <g key={m.i}>
+                <circle cx={m.x} cy={m.y + coreW * 0.2} r={numR + coreW * 0.35} fill="#000000" fillOpacity={0.14} />
+                <circle
+                  cx={m.x}
+                  cy={m.y}
+                  r={numR}
+                  fill={coreInk}
+                  stroke={casingInk}
+                  strokeOpacity={casingAlpha}
+                  strokeWidth={coreW * 0.5}
+                />
+                <text
+                  x={m.x}
+                  y={m.y + numR * 0.36}
+                  textAnchor="middle"
+                  fill={numInk}
+                  style={{
+                    fontFamily: fontStack(el.font),
+                    fontSize: `${round2(numR * 1.15)}px`,
+                    fontWeight: 700,
+                    letterSpacing: '-0.02em',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {m.i + 1}
+                </text>
+              </g>
+            ) : (
               <circle
+                key={m.i}
                 cx={m.x}
                 cy={m.y}
-                r={numR}
+                r={dotR}
                 fill={coreInk}
                 stroke={casingInk}
                 strokeOpacity={casingAlpha}
-                strokeWidth={coreW * 0.5}
+                strokeWidth={dotR * 0.22}
               />
+            )
+          )}
+
+        {el.showLabels &&
+          points.map((p, i) => {
+            if (!p.label) return null;
+            const at2 = route[i];
+            return (
               <text
-                x={m.x}
-                y={m.y + numR * 0.36}
+                key={i}
+                x={at2.x}
+                y={at2.y - pin * 2.4}
                 textAnchor="middle"
-                fill={numInk}
+                fill={el.color}
                 style={{
                   fontFamily: fontStack(el.font),
-                  fontSize: `${round2(numR * 1.15)}px`,
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                  fontVariantNumeric: 'tabular-nums',
+                  fontSize: label,
+                  fontWeight: light(el),
+                  letterSpacing: label * 0.06,
                 }}
               >
-                {m.i + 1}
+                {p.label}
               </text>
-            </g>
-          ) : (
-            <circle
-              key={m.i}
-              cx={m.x}
-              cy={m.y}
-              r={dotR}
-              fill={coreInk}
-              stroke={casingInk}
-              strokeOpacity={casingAlpha}
-              strokeWidth={dotR * 0.22}
-            />
-          )
-        ))}
-
-        {el.showLabels && points.map((p, i) => {
-          if (!p.label) return null
-          const at2 = route[i]
-          return (
-            <text
-              key={i}
-              x={at2.x}
-              y={at2.y - pin * 2.4}
-              textAnchor="middle"
-              fill={el.color}
-              style={{
-                fontFamily: fontStack(el.font),
-                fontSize: label,
-                fontWeight: light(el),
-                letterSpacing: label * 0.06,
-              }}
-            >
-              {p.label}
-            </text>
-          )
-        })}
+            );
+          })}
       </svg>
 
       {/*
@@ -1131,7 +1198,7 @@ function MapView({ el, frameStyle, big = false }: {
         is where a book has always credited its sources.
       */}
     </div>
-  )
+  );
 }
 
 /* ── Stats ────────────────────────────────────────────────────────────── */
@@ -1157,26 +1224,25 @@ const METRIC_ICONS: Record<BookMetric, LucideIcon> = {
   countries: Globe,
   places: MapPin,
   furthest: Navigation,
-}
+};
 
 function metricValue(
   metric: BookMetric,
   values: Record<string, number>,
   units: BookUnits,
-  locale: string,
+  locale: string
 ): { value: string; unit: string } {
-  const raw = values[metric] ?? 0
-  const n = (v: number, digits = 0) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(v)
+  const raw = values[metric] ?? 0;
+  const n = (v: number, digits = 0) => new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(v);
 
   if (metric === 'distance' || metric === 'furthest') {
     // Stored in metres and converted here, so switching units never rounds a
     // second time on top of a rounded number.
-    const km = raw / 1000
-    const shown = units === 'imperial' ? km * 0.621371 : km
-    return { value: n(shown, shown < 100 ? 1 : 0), unit: units === 'imperial' ? 'mi' : 'km' }
+    const km = raw / 1000;
+    const shown = units === 'imperial' ? km * 0.621371 : km;
+    return { value: n(shown, shown < 100 ? 1 : 0), unit: units === 'imperial' ? 'mi' : 'km' };
   }
-  return { value: n(raw), unit: '' }
+  return { value: n(raw), unit: '' };
 }
 
 /**
@@ -1188,8 +1254,8 @@ function metricValue(
  * not the other way round.
  */
 function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSProperties }) {
-  const { t, locale } = useTranslation()
-  const items = el.metrics
+  const { t, locale } = useTranslation();
+  const items = el.metrics;
 
   /*
    * How the figures divide up.
@@ -1199,13 +1265,19 @@ function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSPr
    * or three columns left three figures as a row of two and a lonely third,
    * which is the arrangement you would never choose by hand.
    */
-  const cols = el.layout === 'column' ? 1
-    : el.layout === 'row' ? items.length
-    : items.length <= 3 ? items.length
-      : items.length === 4 ? 2
-        : items.length <= 6 ? 3
-          : 4
-  const rows = Math.ceil(items.length / Math.max(1, cols))
+  const cols =
+    el.layout === 'column'
+      ? 1
+      : el.layout === 'row'
+        ? items.length
+        : items.length <= 3
+          ? items.length
+          : items.length === 4
+            ? 2
+            : items.length <= 6
+              ? 3
+              : 4;
+  const rows = Math.ceil(items.length / Math.max(1, cols));
 
   /*
    * Everything is sized from the **cell**, not from the element.
@@ -1216,11 +1288,11 @@ function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSPr
    * strip rather than from the room each one actually had — six figures and two
    * figures came out identical, and both came out small.
    */
-  const cell = Math.min(el.frame.w / Math.max(1, cols), el.frame.h / Math.max(1, rows))
-  const figure = Math.max(2, cell * 0.34 * el.textScale)
-  const caption = Math.max(1.2, cell * 0.088 * el.textScale)
-  const icon = Math.max(1.5, cell * 0.17)
-  const gap = cell * 0.13
+  const cell = Math.min(el.frame.w / Math.max(1, cols), el.frame.h / Math.max(1, rows));
+  const figure = Math.max(2, cell * 0.34 * el.textScale);
+  const caption = Math.max(1.2, cell * 0.088 * el.textScale);
+  const icon = Math.max(1.5, cell * 0.17);
+  const gap = cell * 0.13;
 
   return (
     <div
@@ -1245,9 +1317,9 @@ function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSPr
         color: el.color,
       }}
     >
-      {items.map(metric => {
-        const { value, unit } = metricValue(metric, el.values, el.units, locale)
-        const label = t(`journey.studio.metric.${metric}`)
+      {items.map((metric) => {
+        const { value, unit } = metricValue(metric, el.values, el.units, locale);
+        const label = t(`journey.studio.metric.${metric}`);
         return (
           <div
             key={metric}
@@ -1260,22 +1332,23 @@ function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSPr
               maxWidth: '100%',
             }}
           >
-            {el.showIcons && (() => {
-              const Icon = METRIC_ICONS[metric]
-              return (
-                <Icon
-                  color={rgba(el.color, 0.38)}
-                  strokeWidth={1.6}
-                  style={{
-                    // Millimetres, overriding the pixel size lucide writes.
-                    width: `${round2(icon)}mm`,
-                    height: `${round2(icon)}mm`,
-                    display: 'block',
-                    marginBottom: `${round2(gap * 0.34)}mm`,
-                  }}
-                />
-              )
-            })()}
+            {el.showIcons &&
+              (() => {
+                const Icon = METRIC_ICONS[metric];
+                return (
+                  <Icon
+                    color={rgba(el.color, 0.38)}
+                    strokeWidth={1.6}
+                    style={{
+                      // Millimetres, overriding the pixel size lucide writes.
+                      width: `${round2(icon)}mm`,
+                      height: `${round2(icon)}mm`,
+                      display: 'block',
+                      marginBottom: `${round2(gap * 0.34)}mm`,
+                    }}
+                  />
+                );
+              })()}
             <span
               style={{
                 fontSize: `${round2(figure)}mm`,
@@ -1293,7 +1366,9 @@ function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSPr
                   the quantity, and pushing it into the label made the label the
                   place you had to look to know what you were reading. */}
               {unit && (
-                <span style={{ fontSize: '0.44em', fontWeight: light(el), letterSpacing: '0.02em', marginLeft: '0.14em' }}>
+                <span
+                  style={{ fontSize: '0.44em', fontWeight: light(el), letterSpacing: '0.02em', marginLeft: '0.14em' }}
+                >
                   {unit}
                 </span>
               )}
@@ -1313,10 +1388,10 @@ function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSPr
               {label}
             </span>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 /* ── Countries ────────────────────────────────────────────────────────── */
@@ -1333,15 +1408,15 @@ function StatsView({ el, frameStyle }: { el: BookStatsElement; frameStyle: CSSPr
  * stop being legible at all; behind it, each name carries its own territory.
  */
 function CountriesView({ el, frameStyle }: { el: BookCountriesElement; frameStyle: CSSProperties }) {
-  const codes = el.codes
-  const cols = el.layout === 'grid' ? Math.min(3, Math.max(1, Math.round(Math.sqrt(codes.length)))) : 1
-  const rows = Math.ceil(codes.length / cols)
-  const cell = el.frame.h / Math.max(1, rows)
+  const codes = el.codes;
+  const cols = el.layout === 'grid' ? Math.min(3, Math.max(1, Math.round(Math.sqrt(codes.length)))) : 1;
+  const rows = Math.ceil(codes.length / cols);
+  const cell = el.frame.h / Math.max(1, rows);
   // Set from the row, capped by the width so a long name in a narrow element
   // still fits: a country list is a stack of lines, and what a line has to fit
   // into is its own row rather than the height of the whole stack.
-  const name = Math.max(1.2, Math.min(cell * 0.44, el.frame.w * 0.16) * el.textScale)
-  const justify = el.align === 'left' ? 'flex-start' : el.align === 'right' ? 'flex-end' : 'center'
+  const name = Math.max(1.2, Math.min(cell * 0.44, el.frame.w * 0.16) * el.textScale);
+  const justify = el.align === 'left' ? 'flex-start' : el.align === 'right' ? 'flex-end' : 'center';
 
   return (
     <div
@@ -1355,12 +1430,12 @@ function CountriesView({ el, frameStyle }: { el: BookCountriesElement; frameStyl
       }}
     >
       {codes.map((code, i) => {
-        const shape = COUNTRY_SHAPES[code.toUpperCase()]
-        const label = el.names[i] || code.toUpperCase()
+        const shape = COUNTRY_SHAPES[code.toUpperCase()];
+        const label = el.names[i] || code.toUpperCase();
         // The outline is drawn as tall as the row allows and centred behind the
         // words, keeping its own proportions.
-        const boxH = cell * 0.86
-        const boxW = shape ? (boxH * shape.w) / shape.h : boxH
+        const boxH = cell * 0.86;
+        const boxW = shape ? (boxH * shape.w) / shape.h : boxH;
         return (
           <div
             key={`${code}-${i}`}
@@ -1407,10 +1482,10 @@ function CountriesView({ el, frameStyle }: { el: BookCountriesElement; frameStyl
               {el.showName && label}
             </span>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 /**
@@ -1427,12 +1502,12 @@ function CountriesView({ el, frameStyle }: { el: BookCountriesElement; frameStyl
  * silhouette, which is correct for all 198 of them.
  */
 function FlagMark({ code, size }: { code: string; size: number }) {
-  const spec = flagSpec(code)
-  const height = size
-  const width = (height * FLAG_W) / FLAG_H
+  const spec = flagSpec(code);
+  const height = size;
+  const width = (height * FLAG_W) / FLAG_H;
 
   if (spec) {
-    const disc = flagDisc(spec)
+    const disc = flagDisc(spec);
     return (
       <svg
         width={`${round2(width)}mm`}
@@ -1448,10 +1523,10 @@ function FlagMark({ code, size }: { code: string; size: number }) {
         {/* A hairline keeps a white-edged flag off a white page. */}
         <rect x="0" y="0" width={FLAG_W} height={FLAG_H} fill="none" stroke="rgba(0,0,0,.18)" strokeWidth="0.5" />
       </svg>
-    )
+    );
   }
 
-  const shape = COUNTRY_SHAPES[code.toUpperCase()]
+  const shape = COUNTRY_SHAPES[code.toUpperCase()];
   if (!shape) {
     // Neither a construction nor an outline: the code, set as a mark rather
     // than as two stray capitals.
@@ -1467,7 +1542,7 @@ function FlagMark({ code, size }: { code: string; size: number }) {
       >
         {code.toUpperCase()}
       </span>
-    )
+    );
   }
   return (
     <svg
@@ -1479,7 +1554,7 @@ function FlagMark({ code, size }: { code: string; size: number }) {
     >
       <path d={shape.d} fill="currentColor" />
     </svg>
-  )
+  );
 }
 
 /* ── Badges ───────────────────────────────────────────────────────────── */
@@ -1502,13 +1577,13 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
    * is bigger now, and the padding below is measured from the frame rather than
    * from the type, so a chip hugs its words instead of floating in a capsule.
    */
-  const big = typeSize(el, el.variant === 'date' ? 0.52 : 0.42)
-  const small = typeSize(el, 0.2)
-  const shape = el.code ? COUNTRY_SHAPES[el.code.toUpperCase()] : null
-  const stacked = el.style === 'stacked' || el.variant === 'date'
+  const big = typeSize(el, el.variant === 'date' ? 0.52 : 0.42);
+  const small = typeSize(el, 0.2);
+  const shape = el.code ? COUNTRY_SHAPES[el.code.toUpperCase()] : null;
+  const stacked = el.style === 'stacked' || el.variant === 'date';
 
-  const chip = el.style === 'chip'
-  const outline = el.style === 'outline'
+  const chip = el.style === 'chip';
+  const outline = el.style === 'outline';
 
   /*
    * What the mark shows, and what colour its picture is.
@@ -1518,9 +1593,9 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
    * defaults until the book has been saved and read back. An absent flag has to
    * mean what it meant before the flag existed.
    */
-  const showIcon = el.showIcon !== false
-  const showLabel = el.showLabel !== false
-  const iconTint = (automatic: string) => (el.autoIconColor === false ? el.iconColor : automatic)
+  const showIcon = el.showIcon !== false;
+  const showLabel = el.showLabel !== false;
+  const iconTint = (automatic: string) => (el.autoIconColor === false ? el.iconColor : automatic);
   /*
    * A mark with no words is a pictogram, and a pictogram should fill its box.
    * Beside a label the icon is a share of the height; on its own it takes four
@@ -1528,7 +1603,7 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
    * the words left and a narrow one stays inside its own edges rather than
    * bleeding over them.
    */
-  const iconScale = showLabel ? 0.46 : Math.min(el.frame.w, el.frame.h) / el.frame.h * 0.8
+  const iconScale = showLabel ? 0.46 : (Math.min(el.frame.w, el.frame.h) / el.frame.h) * 0.8;
 
   return (
     <div
@@ -1547,9 +1622,7 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         boxSizing: 'border-box',
         // A share of the frame, and vertical as well as horizontal: an outline
         // that touched its own words read as a box drawn round them by accident.
-        padding: chip || outline
-          ? `${round2(el.frame.h * 0.16)}mm ${round2(el.frame.h * 0.34)}mm`
-          : undefined,
+        padding: chip || outline ? `${round2(el.frame.h * 0.16)}mm ${round2(el.frame.h * 0.34)}mm` : undefined,
         overflow: 'hidden',
       }}
     >
@@ -1563,44 +1636,50 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         rather than re-listed, so a mood added to TREK appears here without
         anyone remembering to add it twice.
       */}
-      {(el.variant === 'mood' || el.variant === 'weather') && el.code && showIcon && (() => {
-        // Kept apart rather than narrowed out of one union: only a mood has a
-        // colour of its own, and `'text' in config` types it as unknown.
-        const mood = el.variant === 'mood' ? MOOD_CONFIG[el.code] : null
-        const config = mood ?? WEATHER_CONFIG[el.code]
-        if (!config) return null
-        const Icon = config.icon
-        const size = el.frame.h * iconScale
-        /*
-         * Automatic is the journal's own palette for a mood and the element's
-         * accent for the weather. Note the colour has to be passed rather than
-         * inherited: lucide writes it onto the SVG's stroke, so `currentColor`
-         * from the wrapper never reaches it — which is why the Colour swatch
-         * appeared to do nothing to a mood icon.
-         */
-        const tint = iconTint(mood ? mood.text : el.accent)
-        return (
-          <Icon
-            color={tint}
-            strokeWidth={1.7}
-            style={{ width: `${round2(size)}mm`, height: `${round2(size)}mm`, display: 'block', flex: '0 0 auto' }}
-          />
-        )
-      })()}
+      {(el.variant === 'mood' || el.variant === 'weather') &&
+        el.code &&
+        showIcon &&
+        (() => {
+          // Kept apart rather than narrowed out of one union: only a mood has a
+          // colour of its own, and `'text' in config` types it as unknown.
+          const mood = el.variant === 'mood' ? MOOD_CONFIG[el.code] : null;
+          const config = mood ?? WEATHER_CONFIG[el.code];
+          if (!config) return null;
+          const Icon = config.icon;
+          const size = el.frame.h * iconScale;
+          /*
+           * Automatic is the journal's own palette for a mood and the element's
+           * accent for the weather. Note the colour has to be passed rather than
+           * inherited: lucide writes it onto the SVG's stroke, so `currentColor`
+           * from the wrapper never reaches it — which is why the Colour swatch
+           * appeared to do nothing to a mood icon.
+           */
+          const tint = iconTint(mood ? mood.text : el.accent);
+          return (
+            <Icon
+              color={tint}
+              strokeWidth={1.7}
+              style={{ width: `${round2(size)}mm`, height: `${round2(size)}mm`, display: 'block', flex: '0 0 auto' }}
+            />
+          );
+        })()}
 
-      {el.variant === 'country' && shape && showIcon && (() => {
-        const h = el.frame.h * (showLabel ? 0.72 : iconScale)
-        return (
-          <svg
-            width={`${round2((h * shape.w) / shape.h)}mm`}
-            height={`${round2(h)}mm`}
-            viewBox={`0 0 ${shape.w} ${shape.h}`}
-            style={{ display: 'block', flex: '0 0 auto' }}
-          >
-            <path d={shape.d} fill={iconTint(el.accent)} />
-          </svg>
-        )
-      })()}
+      {el.variant === 'country' &&
+        shape &&
+        showIcon &&
+        (() => {
+          const h = el.frame.h * (showLabel ? 0.72 : iconScale);
+          return (
+            <svg
+              width={`${round2((h * shape.w) / shape.h)}mm`}
+              height={`${round2(h)}mm`}
+              viewBox={`0 0 ${shape.w} ${shape.h}`}
+              style={{ display: 'block', flex: '0 0 auto' }}
+            >
+              <path d={shape.d} fill={iconTint(el.accent)} />
+            </svg>
+          );
+        })()}
 
       {el.text && showLabel && (
         <span
@@ -1634,7 +1713,7 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
         </span>
       )}
     </div>
-  )
+  );
 }
 
 /* ── List ─────────────────────────────────────────────────────────────── */
@@ -1650,14 +1729,14 @@ function BadgeView({ el, frameStyle }: { el: BookBadgeElement; frameStyle: CSSPr
  * hundred years.
  */
 function ListView({ el, frameStyle }: { el: BookListElement; frameStyle: CSSProperties }) {
-  const columns = el.layout === 'columns'
-  const pros = el.items.filter(i => i.tone === 'pro')
-  const cons = el.items.filter(i => i.tone === 'con')
-  const plain = el.items.filter(i => i.tone === 'plain')
+  const columns = el.layout === 'columns';
+  const pros = el.items.filter((i) => i.tone === 'pro');
+  const cons = el.items.filter((i) => i.tone === 'con');
+  const plain = el.items.filter((i) => i.tone === 'plain');
 
   // Sized off the tallest column, so two columns of different lengths still set
   // their lines at one size rather than at two.
-  const rows = columns ? Math.max(pros.length, cons.length, 1) : Math.max(el.items.length, 1)
+  const rows = columns ? Math.max(pros.length, cons.length, 1) : Math.max(el.items.length, 1);
 
   /*
    * The line height that makes the block fill the frame.
@@ -1671,10 +1750,10 @@ function ListView({ el, frameStyle }: { el: BookListElement; frameStyle: CSSProp
    * The cap that remains is an absolute one: past about 6mm a two-word entry
    * stops being a list and starts being a headline.
    */
-  const wanted = el.frame.h / (0.86 + 1.7 * rows)
-  const line = Math.max(1.6, Math.min(wanted, 6) * el.textScale)
-  const gap = line * 0.62
-  const heading = line * 0.78
+  const wanted = el.frame.h / (0.86 + 1.7 * rows);
+  const line = Math.max(1.6, Math.min(wanted, 6) * el.textScale);
+  const gap = line * 0.62;
+  const heading = line * 0.78;
 
   const column = (items: typeof el.items, label: string, tone: 'pro' | 'con') => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: `${round2(gap * 0.55)}mm`, minWidth: 0, flex: 1 }}>
@@ -1714,7 +1793,7 @@ function ListView({ el, frameStyle }: { el: BookListElement; frameStyle: CSSProp
         </div>
       ))}
     </div>
-  )
+  );
 
   return (
     <div
@@ -1741,5 +1820,5 @@ function ListView({ el, frameStyle }: { el: BookListElement; frameStyle: CSSProp
         column([...pros, ...cons, ...plain], '', 'pro')
       )}
     </div>
-  )
+  );
 }

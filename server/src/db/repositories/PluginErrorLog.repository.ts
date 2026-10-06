@@ -36,7 +36,12 @@ export class PluginErrorLogRepository extends TrekRepository<PluginErrorLog> {
       .where(
         'id',
         'not in',
-        db.selectFrom('plugin_error_log').select('id').where('plugin_id', '=', pluginId).orderBy('id', 'desc').limit(retention),
+        db
+          .selectFrom('plugin_error_log')
+          .select('id')
+          .where('plugin_id', '=', pluginId)
+          .orderBy('id', 'desc')
+          .limit(retention),
       )
       .execute();
   }

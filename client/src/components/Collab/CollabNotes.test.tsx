@@ -10,16 +10,16 @@ vi.mock('../../api/websocket', () => ({
   removeListener: vi.fn(),
 }));
 
-import { render, screen, waitFor, act, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
+import { act, fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { addListener } from '../../api/websocket';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip } from '../../../tests/helpers/factories';
 import CollabNotes from './CollabNotes';
-import { addListener } from '../../api/websocket';
 
 const currentUser = buildUser({ id: 1, username: 'testuser' });
 
@@ -30,11 +30,7 @@ const defaultProps = {
 
 beforeEach(() => {
   resetAllStores();
-  server.use(
-    http.get('/api/trips/1/collab/notes', () =>
-      HttpResponse.json({ notes: [] })
-    ),
-  );
+  server.use(http.get('/api/trips/1/collab/notes', () => HttpResponse.json({ notes: [] })));
   seedStore(useAuthStore, { user: currentUser, isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
 });
@@ -60,12 +56,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: currentUser.id, author_username: 'testuser',
-            author_avatar: null, title: 'Packing Tips', content: 'Bring sunscreen',
-            category: null, color: '#3b82f6', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: currentUser.id,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Packing Tips',
+              content: 'Bring sunscreen',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -86,12 +92,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser',
-            author_avatar: null, title: 'My Checklist', content: 'Items',
-            category: 'Travel', color: '#ef4444', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'My Checklist',
+              content: 'Items',
+              category: 'Travel',
+              color: '#ef4444',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -104,8 +120,34 @@ describe('CollabNotes', () => {
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
           notes: [
-            { id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'Note A', content: '', category: null, color: '#3b82f6', files: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z' },
-            { id: 2, trip_id: 1, user_id: 2, author_username: 'alice', author_avatar: null, title: 'Note B', content: '', category: null, color: '#ef4444', files: [], created_at: '2025-06-01T10:01:00.000Z', updated_at: '2025-06-01T10:01:00.000Z' },
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Note A',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+            {
+              id: 2,
+              trip_id: 1,
+              user_id: 2,
+              author_username: 'alice',
+              author_avatar: null,
+              title: 'Note B',
+              content: '',
+              category: null,
+              color: '#ef4444',
+              files: [],
+              created_at: '2025-06-01T10:01:00.000Z',
+              updated_at: '2025-06-01T10:01:00.000Z',
+            },
           ],
         })
       )
@@ -131,7 +173,20 @@ describe('CollabNotes', () => {
       http.post('/api/trips/1/collab/notes', async () => {
         postCalled = true;
         return HttpResponse.json({
-          note: { id: 99, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'New Note', content: '', category: null, color: '#3b82f6', files: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          note: {
+            id: 99,
+            trip_id: 1,
+            user_id: 1,
+            author_username: 'testuser',
+            author_avatar: null,
+            title: 'New Note',
+            content: '',
+            category: null,
+            color: '#3b82f6',
+            files: [],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
         });
       })
     );
@@ -150,7 +205,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{ id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'Details', content: 'Bring passport', category: null, color: '#3b82f6', files: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z' }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Details',
+              content: 'Bring passport',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -163,7 +233,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{ id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'Hotel Info', content: '', category: 'Accommodation', color: '#8b5cf6', files: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z' }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Hotel Info',
+              content: '',
+              category: 'Accommodation',
+              color: '#8b5cf6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -184,16 +269,25 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 42, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Remove Me', content: '', category: null, color: '#3b82f6', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 42,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Remove Me',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
-      http.delete('/api/trips/1/collab/notes/42', () =>
-        HttpResponse.json({ success: true })
-      ),
+      http.delete('/api/trips/1/collab/notes/42', () => HttpResponse.json({ success: true }))
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Remove Me');
@@ -211,11 +305,23 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Pinned Note', content: '', category: null, color: '#3b82f6', pinned: true, files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Pinned Note',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              pinned: true,
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -231,11 +337,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Editable Note', content: 'Original', category: null, color: '#3b82f6', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Editable Note',
+              content: 'Original',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -251,8 +368,34 @@ describe('CollabNotes', () => {
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
           notes: [
-            { id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'Hotels Note', content: '', category: 'Hotels', color: '#3b82f6', files: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z' },
-            { id: 2, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'Food Note', content: '', category: 'Food', color: '#ef4444', files: [], created_at: '2025-06-01T10:01:00.000Z', updated_at: '2025-06-01T10:01:00.000Z' },
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Hotels Note',
+              content: '',
+              category: 'Hotels',
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+            {
+              id: 2,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Food Note',
+              content: '',
+              category: 'Food',
+              color: '#ef4444',
+              files: [],
+              created_at: '2025-06-01T10:01:00.000Z',
+              updated_at: '2025-06-01T10:01:00.000Z',
+            },
           ],
         })
       )
@@ -280,9 +423,19 @@ describe('CollabNotes', () => {
         tripId: 1,
         type: 'collab:note:created',
         note: {
-          id: 50, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-          title: 'Live Note', content: '', category: null, color: '#3b82f6', pinned: false, files: [],
-          created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+          id: 50,
+          trip_id: 1,
+          user_id: 1,
+          author_username: 'testuser',
+          author_avatar: null,
+          title: 'Live Note',
+          content: '',
+          category: null,
+          color: '#3b82f6',
+          pinned: false,
+          files: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         },
       });
     });
@@ -294,11 +447,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 7, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'WS Delete', content: '', category: null, color: '#3b82f6', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 7,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'WS Delete',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -318,11 +482,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 3, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'My Note', content: 'Some content', category: null, color: '#3b82f6', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 3,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'My Note',
+              content: 'Some content',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -339,19 +514,43 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 3, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Old Title', content: '', category: null, color: '#3b82f6', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 3,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Old Title',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
       http.put('/api/trips/1/collab/notes/3', async () => {
         putCalled = true;
         return HttpResponse.json({
-          note: { id: 3, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'New Title', content: '', category: null, color: '#3b82f6', files: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: new Date().toISOString() },
+          note: {
+            id: 3,
+            trip_id: 1,
+            user_id: 1,
+            author_username: 'testuser',
+            author_avatar: null,
+            title: 'New Title',
+            content: '',
+            category: null,
+            color: '#3b82f6',
+            files: [],
+            created_at: '2025-06-01T10:00:00.000Z',
+            updated_at: new Date().toISOString(),
+          },
         });
-      }),
+      })
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Old Title');
@@ -367,11 +566,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Markdown Note', content: '**Bold text**', category: null, color: '#3b82f6', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Markdown Note',
+              content: '**Bold text**',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -440,11 +650,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 5, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Old Title WS', content: '', category: null, color: '#3b82f6', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 5,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Old Title WS',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -458,9 +679,18 @@ describe('CollabNotes', () => {
         tripId: 1,
         type: 'collab:note:updated',
         note: {
-          id: 5, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-          title: 'Updated WS Title', content: '', category: null, color: '#3b82f6', files: [],
-          created_at: '2025-06-01T10:00:00.000Z', updated_at: new Date().toISOString(),
+          id: 5,
+          trip_id: 1,
+          user_id: 1,
+          author_username: 'testuser',
+          author_avatar: null,
+          title: 'Updated WS Title',
+          content: '',
+          category: null,
+          color: '#3b82f6',
+          files: [],
+          created_at: '2025-06-01T10:00:00.000Z',
+          updated_at: new Date().toISOString(),
         },
       });
     });
@@ -473,11 +703,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Expandable Note', content: 'Full content here', category: null, color: '#3b82f6', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Expandable Note',
+              content: 'Full content here',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -497,11 +738,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'View Modal Note', content: 'Content to view', category: null, color: '#3b82f6', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'View Modal Note',
+              content: 'Content to view',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -530,8 +782,34 @@ describe('CollabNotes', () => {
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
           notes: [
-            { id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'Alpha Note', content: '', category: 'Alpha', color: '#3b82f6', files: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z' },
-            { id: 2, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'Beta Note', content: '', category: 'Beta', color: '#ef4444', files: [], created_at: '2025-06-01T10:01:00.000Z', updated_at: '2025-06-01T10:01:00.000Z' },
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Alpha Note',
+              content: '',
+              category: 'Alpha',
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+            {
+              id: 2,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Beta Note',
+              content: '',
+              category: 'Beta',
+              color: '#ef4444',
+              files: [],
+              created_at: '2025-06-01T10:01:00.000Z',
+              updated_at: '2025-06-01T10:01:00.000Z',
+            },
           ],
         })
       )
@@ -553,11 +831,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Cat Note', content: '', category: 'Food', color: '#ef4444', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Cat Note',
+              content: '',
+              category: 'Food',
+              color: '#ef4444',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -576,11 +865,22 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Existing Note', content: '', category: 'Hotels', color: '#3b82f6', files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Existing Note',
+              content: '',
+              category: 'Hotels',
+              color: '#3b82f6',
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -599,19 +899,45 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 10, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Pin Me', content: '', category: null, color: '#3b82f6', pinned: false, files: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 10,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Pin Me',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              pinned: false,
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
       http.put('/api/trips/1/collab/notes/10', async () => {
         patchCalled = true;
         return HttpResponse.json({
-          note: { id: 10, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'Pin Me', content: '', category: null, color: '#3b82f6', pinned: true, files: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: new Date().toISOString() },
+          note: {
+            id: 10,
+            trip_id: 1,
+            user_id: 1,
+            author_username: 'testuser',
+            author_avatar: null,
+            title: 'Pin Me',
+            content: '',
+            category: null,
+            color: '#3b82f6',
+            pinned: true,
+            files: [],
+            created_at: '2025-06-01T10:00:00.000Z',
+            updated_at: new Date().toISOString(),
+          },
         });
-      }),
+      })
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Pin Me');
@@ -623,15 +949,31 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'PDF Note', content: '', category: null, color: '#3b82f6', files: [],
-            attachments: [{
-              id: 1, filename: 'doc.pdf', original_name: 'document.pdf',
-              mime_type: 'application/pdf', url: '/api/trips/1/files/1/download',
-            }],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'PDF Note',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [
+                {
+                  id: 1,
+                  filename: 'doc.pdf',
+                  original_name: 'document.pdf',
+                  mime_type: 'application/pdf',
+                  url: '/api/trips/1/files/1/download',
+                },
+              ],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -646,18 +988,34 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'PDF Note Portal', content: '', category: null, color: '#3b82f6', files: [],
-            attachments: [{
-              id: 1, filename: 'doc.pdf', original_name: 'document.pdf',
-              mime_type: 'application/pdf', url: '/api/trips/1/files/1/download',
-            }],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'PDF Note Portal',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [
+                {
+                  id: 1,
+                  filename: 'doc.pdf',
+                  original_name: 'document.pdf',
+                  mime_type: 'application/pdf',
+                  url: '/api/trips/1/files/1/download',
+                },
+              ],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
-      http.post('/api/auth/resource-token', () => HttpResponse.json({ token: 'test-token' })),
+      http.post('/api/auth/resource-token', () => HttpResponse.json({ token: 'test-token' }))
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('PDF Note Portal');
@@ -671,17 +1029,27 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Website Note', content: '', category: null, color: '#3b82f6',
-            website: 'https://example.com', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Website Note',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              website: 'https://example.com',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
-      http.get('/api/trips/1/collab/link-preview', () =>
-        HttpResponse.json({ title: 'Example Domain', image: null })
-      ),
+      http.get('/api/trips/1/collab/link-preview', () => HttpResponse.json({ title: 'Example Domain', image: null }))
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Website Note');
@@ -695,24 +1063,54 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Cat Save Note', content: '', category: 'Travel', color: '#ef4444', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Cat Save Note',
+              content: '',
+              category: 'Travel',
+              color: '#ef4444',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
       http.put('/api/trips/1/collab/notes/1', async () => {
         putCalled = true;
-        return HttpResponse.json({ note: { id: 1, trip_id: 1, title: 'Cat Save Note', content: '', category: 'Travel', color: '#6366f1', user_id: 1, author_username: 'testuser', author_avatar: null, files: [], attachments: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: new Date().toISOString() } });
-      }),
+        return HttpResponse.json({
+          note: {
+            id: 1,
+            trip_id: 1,
+            title: 'Cat Save Note',
+            content: '',
+            category: 'Travel',
+            color: '#6366f1',
+            user_id: 1,
+            author_username: 'testuser',
+            author_avatar: null,
+            files: [],
+            attachments: [],
+            created_at: '2025-06-01T10:00:00.000Z',
+            updated_at: new Date().toISOString(),
+          },
+        });
+      })
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Cat Save Note');
     await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
     await screen.findByText('Manage Categories', { selector: 'h2' });
     // Change color: click first color swatch for "Travel" category
-    const colorSwatches = screen.getAllByRole('button').filter(b => b.style.background && b.style.background.startsWith('#'));
+    const colorSwatches = screen
+      .getAllByRole('button')
+      .filter((b) => b.style.background && b.style.background.startsWith('#'));
     if (colorSwatches.length > 0) {
       await user.click(colorSwatches[0]);
     }
@@ -727,9 +1125,24 @@ describe('CollabNotes', () => {
     let postBody: Record<string, unknown> = {};
     server.use(
       http.post('/api/trips/1/collab/notes', async ({ request }) => {
-        postBody = await request.json() as Record<string, unknown>;
+        postBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({
-          note: { id: 99, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'URL Note', content: '', category: null, color: '#3b82f6', website: 'https://trek.app', files: [], attachments: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          note: {
+            id: 99,
+            trip_id: 1,
+            user_id: 1,
+            author_username: 'testuser',
+            author_avatar: null,
+            title: 'URL Note',
+            content: '',
+            category: null,
+            color: '#3b82f6',
+            website: 'https://trek.app',
+            files: [],
+            attachments: [],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
         });
       })
     );
@@ -749,16 +1162,44 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Color Note', content: '', category: 'Food', color: '#ef4444', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Color Note',
+              content: '',
+              category: 'Food',
+              color: '#ef4444',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
       http.put('/api/trips/1/collab/notes/1', async () =>
-        HttpResponse.json({ note: { id: 1, trip_id: 1, title: 'Color Note', content: '', category: 'Food', color: '#6366f1', user_id: 1, author_username: 'testuser', author_avatar: null, files: [], attachments: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: new Date().toISOString() } })
-      ),
+        HttpResponse.json({
+          note: {
+            id: 1,
+            trip_id: 1,
+            title: 'Color Note',
+            content: '',
+            category: 'Food',
+            color: '#6366f1',
+            user_id: 1,
+            author_username: 'testuser',
+            author_avatar: null,
+            files: [],
+            attachments: [],
+            created_at: '2025-06-01T10:00:00.000Z',
+            updated_at: new Date().toISOString(),
+          },
+        })
+      )
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Color Note');
@@ -775,18 +1216,34 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Image Note', content: '', category: null, color: '#3b82f6', files: [],
-            attachments: [{
-              id: 2, filename: 'photo.jpg', original_name: 'photo.jpg',
-              mime_type: 'image/jpeg', url: '/api/trips/1/files/2/download',
-            }],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Image Note',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [
+                {
+                  id: 2,
+                  filename: 'photo.jpg',
+                  original_name: 'photo.jpg',
+                  mime_type: 'image/jpeg',
+                  url: '/api/trips/1/files/2/download',
+                },
+              ],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
-      http.post('/api/auth/resource-token', () => HttpResponse.json({ token: 'test-token' })),
+      http.post('/api/auth/resource-token', () => HttpResponse.json({ token: 'test-token' }))
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Image Note');
@@ -799,26 +1256,45 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Image Portal Note', content: '', category: null, color: '#3b82f6', files: [],
-            attachments: [{
-              id: 3, filename: 'photo.jpg', original_name: 'scenery.jpg',
-              mime_type: 'image/jpeg', url: '/api/trips/1/files/3/download',
-            }],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Image Portal Note',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [
+                {
+                  id: 3,
+                  filename: 'photo.jpg',
+                  original_name: 'scenery.jpg',
+                  mime_type: 'image/jpeg',
+                  url: '/api/trips/1/files/3/download',
+                },
+              ],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
-      http.post('/api/auth/resource-token', () => HttpResponse.json({ token: 'test-token' })),
+      http.post('/api/auth/resource-token', () => HttpResponse.json({ token: 'test-token' }))
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Image Portal Note');
     // Wait for AuthedImg to load (it calls getAuthUrl async)
-    await waitFor(() => {
-      const imgs = document.querySelectorAll('img[alt="photo.jpg"]');
-      return imgs.length > 0;
-    }, { timeout: 3000 }).catch(() => {
+    await waitFor(
+      () => {
+        const imgs = document.querySelectorAll('img[alt="photo.jpg"]');
+        return imgs.length > 0;
+      },
+      { timeout: 3000 }
+    ).catch(() => {
       // AuthedImg may not render if token not fetched — still ok
     });
     // The Files section label is visible
@@ -830,11 +1306,23 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Rename Cat Note', content: '', category: 'Transport', color: '#10b981', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Rename Cat Note',
+              content: '',
+              category: 'Transport',
+              color: '#10b981',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -864,11 +1352,23 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Remove Cat Note', content: '', category: 'Removable', color: '#8b5cf6', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Remove Cat Note',
+              content: '',
+              category: 'Removable',
+              color: '#8b5cf6',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -892,11 +1392,23 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Full Content Note', content: '# Header\n\nSome **bold** text', category: 'Trip', color: '#3b82f6', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Full Content Note',
+              content: '# Header\n\nSome **bold** text',
+              category: 'Trip',
+              color: '#3b82f6',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -917,11 +1429,23 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Tagged Note', content: 'Some content here', category: 'Food', color: '#ef4444', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Tagged Note',
+              content: 'Some content here',
+              category: 'Food',
+              color: '#ef4444',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -940,16 +1464,44 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Rename Flow Note', content: '', category: 'OldCat', color: '#10b981', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Rename Flow Note',
+              content: '',
+              category: 'OldCat',
+              color: '#10b981',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
       http.put('/api/trips/1/collab/notes/1', async () =>
-        HttpResponse.json({ note: { id: 1, trip_id: 1, title: 'Rename Flow Note', content: '', category: 'NewCat', color: '#10b981', user_id: 1, author_username: 'testuser', author_avatar: null, files: [], attachments: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: new Date().toISOString() } })
-      ),
+        HttpResponse.json({
+          note: {
+            id: 1,
+            trip_id: 1,
+            title: 'Rename Flow Note',
+            content: '',
+            category: 'NewCat',
+            color: '#10b981',
+            user_id: 1,
+            author_username: 'testuser',
+            author_avatar: null,
+            files: [],
+            attachments: [],
+            created_at: '2025-06-01T10:00:00.000Z',
+            updated_at: new Date().toISOString(),
+          },
+        })
+      )
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Rename Flow Note');
@@ -979,15 +1531,34 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Close Portal Note', content: '', category: null, color: '#3b82f6', files: [],
-            attachments: [{ id: 5, filename: 'file.pdf', original_name: 'closeable.pdf', mime_type: 'application/pdf', url: '/api/trips/1/files/5/download' }],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Close Portal Note',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [
+                {
+                  id: 5,
+                  filename: 'file.pdf',
+                  original_name: 'closeable.pdf',
+                  mime_type: 'application/pdf',
+                  url: '/api/trips/1/files/5/download',
+                },
+              ],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
-      http.post('/api/auth/resource-token', () => HttpResponse.json({ token: 'close-token' })),
+      http.post('/api/auth/resource-token', () => HttpResponse.json({ token: 'close-token' }))
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('PDF');
@@ -995,7 +1566,7 @@ describe('CollabNotes', () => {
     // FilePreviewPortal is open — closeable.pdf filename shown in header
     await screen.findByText('closeable.pdf');
     // Find and click the X close button in the portal header
-    const closeButtons = [...document.querySelectorAll('button')].filter(b => b.querySelector('svg.lucide-x'));
+    const closeButtons = [...document.querySelectorAll('button')].filter((b) => b.querySelector('svg.lucide-x'));
     // The last X button should be the portal close button
     const portalCloseBtn = closeButtons[closeButtons.length - 1] as HTMLElement;
     await user.click(portalCloseBtn);
@@ -1009,12 +1580,31 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 4, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Attachment Note', content: '', category: null, color: '#3b82f6', files: [],
-            attachments: [{ id: 10, filename: 'doc.pdf', original_name: 'removable.pdf', mime_type: 'application/pdf', url: '/api/trips/1/files/10/download' }],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 4,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Attachment Note',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [
+                {
+                  id: 10,
+                  filename: 'doc.pdf',
+                  original_name: 'removable.pdf',
+                  mime_type: 'application/pdf',
+                  url: '/api/trips/1/files/10/download',
+                },
+              ],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
       http.delete('/api/trips/1/collab/notes/4/files/10', () => {
@@ -1022,8 +1612,24 @@ describe('CollabNotes', () => {
         return HttpResponse.json({ success: true });
       }),
       http.put('/api/trips/1/collab/notes/4', async () =>
-        HttpResponse.json({ note: { id: 4, trip_id: 1, title: 'Attachment Note', content: '', category: null, color: '#3b82f6', user_id: 1, author_username: 'testuser', author_avatar: null, files: [], attachments: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: new Date().toISOString() } })
-      ),
+        HttpResponse.json({
+          note: {
+            id: 4,
+            trip_id: 1,
+            title: 'Attachment Note',
+            content: '',
+            category: null,
+            color: '#3b82f6',
+            user_id: 1,
+            author_username: 'testuser',
+            author_avatar: null,
+            files: [],
+            attachments: [],
+            created_at: '2025-06-01T10:00:00.000Z',
+            updated_at: new Date().toISOString(),
+          },
+        })
+      )
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Attachment Note');
@@ -1033,7 +1639,7 @@ describe('CollabNotes', () => {
     // removable.pdf appears in the existing attachments list in the modal
     await screen.findByText('removable.pdf');
     // Find X button next to the file name
-    const xButtons = [...document.querySelectorAll('button')].filter(b => b.querySelector('svg.lucide-x'));
+    const xButtons = [...document.querySelectorAll('button')].filter((b) => b.querySelector('svg.lucide-x'));
     // In the modal, there's the header X (close modal) + file X buttons
     // File X buttons appear after the header X
     if (xButtons.length > 1) {
@@ -1047,22 +1653,37 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'OG Image Note', content: '', category: null, color: '#3b82f6',
-            website: 'https://trek-app.example.com', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'OG Image Note',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              website: 'https://trek-app.example.com',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
       http.get('/api/trips/1/collab/link-preview', () =>
         HttpResponse.json({ title: 'Trek App', image: 'https://trek-app.example.com/og.jpg' })
-      ),
+      )
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('OG Image Note');
     // The title row links the site by its host
-    expect(screen.getByRole('link', { name: /trek-app\.example\.com/ })).toHaveAttribute('href', 'https://trek-app.example.com');
+    expect(screen.getByRole('link', { name: /trek-app\.example\.com/ })).toHaveAttribute(
+      'href',
+      'https://trek-app.example.com'
+    );
   });
 
   it('FE-COMP-NOTES-051: view modal with PDF attachment renders attachment section code', async () => {
@@ -1070,12 +1691,31 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Attached View Note', content: 'Has attachments', category: null, color: '#3b82f6', files: [],
-            attachments: [{ id: 20, filename: 'report.pdf', original_name: 'report.pdf', mime_type: 'application/pdf', url: '/api/trips/1/files/20/download' }],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Attached View Note',
+              content: 'Has attachments',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [
+                {
+                  id: 20,
+                  filename: 'report.pdf',
+                  original_name: 'report.pdf',
+                  mime_type: 'application/pdf',
+                  url: '/api/trips/1/files/20/download',
+                },
+              ],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -1095,15 +1735,34 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Image View Note', content: 'See attachments', category: null, color: '#3b82f6', files: [],
-            attachments: [{ id: 21, filename: 'photo.jpg', original_name: 'photo.jpg', mime_type: 'image/jpeg', url: '/api/trips/1/files/21/download' }],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Image View Note',
+              content: 'See attachments',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [
+                {
+                  id: 21,
+                  filename: 'photo.jpg',
+                  original_name: 'photo.jpg',
+                  mime_type: 'image/jpeg',
+                  url: '/api/trips/1/files/21/download',
+                },
+              ],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       ),
-      http.post('/api/auth/resource-token', () => HttpResponse.json({ token: 'view-token' })),
+      http.post('/api/auth/resource-token', () => HttpResponse.json({ token: 'view-token' }))
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Image View Note');
@@ -1119,11 +1778,23 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Transition Note', content: 'Click edit from view', category: null, color: '#3b82f6', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Transition Note',
+              content: 'Click edit from view',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -1142,11 +1813,23 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Hoverable Note', content: '', category: null, color: '#3b82f6', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Hoverable Note',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -1164,12 +1847,23 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser',
-            author_avatar: '/uploads/avatars/avatar1.jpg',
-            title: 'Avatar Note', content: '', category: null, color: '#3b82f6', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: '/uploads/avatars/avatar1.jpg',
+              title: 'Avatar Note',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -1185,11 +1879,23 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
-            title: 'Escape Cat Note', content: '', category: 'EscapeMe', color: '#6366f1', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Escape Cat Note',
+              content: '',
+              category: 'EscapeMe',
+              color: '#6366f1',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -1215,14 +1921,25 @@ describe('CollabNotes', () => {
     server.use(
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
-          notes: [{
-            id: 1, trip_id: 1, user_id: 1,
-            // NoteCard uses note.author || note.user || { username: note.username, ... }
-            author: { username: 'alice', avatar: null },
-            author_username: 'alice', author_avatar: null,
-            title: 'Alice Note', content: '', category: null, color: '#3b82f6', files: [], attachments: [],
-            created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z',
-          }],
+          notes: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              // NoteCard uses note.author || note.user || { username: note.username, ... }
+              author: { username: 'alice', avatar: null },
+              author_username: 'alice',
+              author_avatar: null,
+              title: 'Alice Note',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              files: [],
+              attachments: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+          ],
         })
       )
     );
@@ -1238,8 +1955,36 @@ describe('CollabNotes', () => {
       http.get('/api/trips/1/collab/notes', () =>
         HttpResponse.json({
           notes: [
-            { id: 1, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'Unpinned', content: '', category: null, color: '#3b82f6', pinned: false, files: [], created_at: '2025-06-01T10:00:00.000Z', updated_at: '2025-06-01T10:00:00.000Z' },
-            { id: 2, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null, title: 'Pinned', content: '', category: null, color: '#3b82f6', pinned: true, files: [], created_at: '2025-06-01T09:00:00.000Z', updated_at: '2025-06-01T09:00:00.000Z' },
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Unpinned',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              pinned: false,
+              files: [],
+              created_at: '2025-06-01T10:00:00.000Z',
+              updated_at: '2025-06-01T10:00:00.000Z',
+            },
+            {
+              id: 2,
+              trip_id: 1,
+              user_id: 1,
+              author_username: 'testuser',
+              author_avatar: null,
+              title: 'Pinned',
+              content: '',
+              category: null,
+              color: '#3b82f6',
+              pinned: true,
+              files: [],
+              created_at: '2025-06-01T09:00:00.000Z',
+              updated_at: '2025-06-01T09:00:00.000Z',
+            },
           ],
         })
       )
@@ -1288,7 +2033,7 @@ function serveNotesSequence(payloads: unknown[]) {
       const payload = payloads[Math.min(call, payloads.length - 1)];
       call += 1;
       return HttpResponse.json(payload);
-    }),
+    })
   );
 }
 
@@ -1328,7 +2073,9 @@ describe('CollabNotes details', () => {
     addToast = vi.fn<AddToast>(() => 0);
     window.__addToast = addToast;
     filesChanged = 0;
-    onFilesChanged = () => { filesChanged += 1; };
+    onFilesChanged = () => {
+      filesChanged += 1;
+    };
     window.addEventListener('collab-files-changed', onFilesChanged);
   });
 
@@ -1371,9 +2118,7 @@ describe('CollabNotes details', () => {
   });
 
   it('FE-W5CNT-006: a failing load falls back to the empty state', async () => {
-    server.use(
-      http.get('/api/trips/1/collab/notes', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.get('/api/trips/1/collab/notes', () => new HttpResponse(null, { status: 500 })));
     render(<CollabNotes {...defaultProps} />);
     expect(await screen.findByText('No notes yet')).toBeInTheDocument();
   });
@@ -1408,18 +2153,20 @@ describe('CollabNotes details', () => {
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Doomed');
     const handler = wsHandler();
-    await act(async () => { handler({ tripId: 1, type: 'collab:note:deleted' }); });
+    await act(async () => {
+      handler({ tripId: 1, type: 'collab:note:deleted' });
+    });
     expect(screen.getByText('Doomed')).toBeInTheDocument();
-    await act(async () => { handler({ tripId: 1, type: 'collab:note:deleted', id: 9 }); });
+    await act(async () => {
+      handler({ tripId: 1, type: 'collab:note:deleted', id: 9 });
+    });
     await waitFor(() => expect(screen.queryByText('Doomed')).not.toBeInTheDocument());
   });
 
   it('FE-W5CNT-010: an unwrapped create response is prepended to the list', async () => {
     const user = userEvent.setup();
     server.use(
-      http.post('/api/trips/1/collab/notes', () =>
-        HttpResponse.json(buildNote({ id: 20, title: 'Fresh note' })),
-      ),
+      http.post('/api/trips/1/collab/notes', () => HttpResponse.json(buildNote({ id: 20, title: 'Fresh note' })))
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('No notes yet');
@@ -1443,9 +2190,7 @@ describe('CollabNotes details', () => {
 
   it('FE-W5CNT-012: a failing create reports an error and keeps the modal open', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/trips/1/collab/notes', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.post('/api/trips/1/collab/notes', () => new HttpResponse(null, { status: 500 })));
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('No notes yet');
     await user.click(screen.getByText('New Note'));
@@ -1458,18 +2203,15 @@ describe('CollabNotes details', () => {
   it('FE-W5CNT-013: a pasted attachment is uploaded and the list is reloaded afterwards', async () => {
     const user = userEvent.setup();
     let uploaded = 0;
-    serveNotesSequence([
-      { notes: [] },
-      { notes: [buildNote({ id: 30, title: 'With file' })] },
-    ]);
+    serveNotesSequence([{ notes: [] }, { notes: [buildNote({ id: 30, title: 'With file' })] }]);
     server.use(
       http.post('/api/trips/1/collab/notes', () =>
-        HttpResponse.json({ note: buildNote({ id: 30, title: 'With file' }) }),
+        HttpResponse.json({ note: buildNote({ id: 30, title: 'With file' }) })
       ),
       http.post('/api/trips/1/collab/notes/30/files', () => {
         uploaded += 1;
         return HttpResponse.json({ file: { id: 1 } });
-      }),
+      })
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('No notes yet');
@@ -1487,9 +2229,9 @@ describe('CollabNotes details', () => {
     serveNotesSequence([{ notes: [] }, [buildNote({ id: 31, title: 'Never shown' })]]);
     server.use(
       http.post('/api/trips/1/collab/notes', () =>
-        HttpResponse.json({ note: buildNote({ id: 31, title: 'Upload fails' }) }),
+        HttpResponse.json({ note: buildNote({ id: 31, title: 'Upload fails' }) })
       ),
-      http.post('/api/trips/1/collab/notes/31/files', () => new HttpResponse(null, { status: 500 })),
+      http.post('/api/trips/1/collab/notes/31/files', () => new HttpResponse(null, { status: 500 }))
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('No notes yet');
@@ -1509,8 +2251,8 @@ describe('CollabNotes details', () => {
     });
     server.use(
       http.put('/api/trips/1/collab/notes/1', () =>
-        HttpResponse.json(buildNote({ id: 1, title: 'Pinned now', pinned: true })),
-      ),
+        HttpResponse.json(buildNote({ id: 1, title: 'Pinned now', pinned: true }))
+      )
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Pin me');
@@ -1534,9 +2276,7 @@ describe('CollabNotes details', () => {
   it('FE-W5CNT-017: a failing edit reports an error and keeps the edit modal open', async () => {
     const user = userEvent.setup();
     serveNotes({ notes: [buildNote({ id: 3, title: 'Edit me' })] });
-    server.use(
-      http.put('/api/trips/1/collab/notes/3', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.put('/api/trips/1/collab/notes/3', () => new HttpResponse(null, { status: 500 })));
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Edit me');
     await noteAction(user, 'Edit');
@@ -1555,7 +2295,7 @@ describe('CollabNotes details', () => {
       http.put('/api/trips/1/collab/notes/1', async ({ request }) => {
         bodies.push((await request.json()) as Record<string, unknown>);
         return HttpResponse.json({ note: buildNote({ id: 1, title: 'Sushi', category: 'Food', color: '#10b981' }) });
-      }),
+      })
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Sushi');
@@ -1574,13 +2314,11 @@ describe('CollabNotes details', () => {
       { notes: [buildNote({ id: 3, title: 'Edited', attachments: [] })] },
     ]);
     server.use(
-      http.put('/api/trips/1/collab/notes/3', () =>
-        HttpResponse.json({ note: buildNote({ id: 3, title: 'Edited' }) }),
-      ),
+      http.put('/api/trips/1/collab/notes/3', () => HttpResponse.json({ note: buildNote({ id: 3, title: 'Edited' }) })),
       http.post('/api/trips/1/collab/notes/3/files', () => {
         uploaded += 1;
         return HttpResponse.json({ file: { id: 2 } });
-      }),
+      })
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Edit me');
@@ -1601,9 +2339,9 @@ describe('CollabNotes details', () => {
     ]);
     server.use(
       http.put('/api/trips/1/collab/notes/3', () =>
-        HttpResponse.json({ note: buildNote({ id: 3, title: 'Edit me' }) }),
+        HttpResponse.json({ note: buildNote({ id: 3, title: 'Edit me' }) })
       ),
-      http.post('/api/trips/1/collab/notes/3/files', () => new HttpResponse(null, { status: 500 })),
+      http.post('/api/trips/1/collab/notes/3/files', () => new HttpResponse(null, { status: 500 }))
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Edit me');
@@ -1618,15 +2356,23 @@ describe('CollabNotes details', () => {
   it('FE-W5CNT-021: a failing attachment removal reports an error', async () => {
     const user = userEvent.setup();
     serveNotes({
-      notes: [buildNote({
-        id: 3,
-        title: 'Has file',
-        attachments: [{ id: 9, filename: 's.pdf', original_name: 'plan.pdf', mime_type: 'application/pdf', url: '/uploads/plan.pdf' }],
-      })],
+      notes: [
+        buildNote({
+          id: 3,
+          title: 'Has file',
+          attachments: [
+            {
+              id: 9,
+              filename: 's.pdf',
+              original_name: 'plan.pdf',
+              mime_type: 'application/pdf',
+              url: '/uploads/plan.pdf',
+            },
+          ],
+        }),
+      ],
     });
-    server.use(
-      http.delete('/api/trips/1/collab/notes/3/files/9', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.delete('/api/trips/1/collab/notes/3/files/9', () => new HttpResponse(null, { status: 500 })));
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Has file');
     await noteAction(user, 'Edit');
@@ -1649,9 +2395,9 @@ describe('CollabNotes details', () => {
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Pinned one');
     const titles = Array.from(document.querySelectorAll('span'))
-      .filter(el => el.childElementCount === 0)
-      .map(el => el.textContent)
-      .filter(text => known.includes(text ?? ''));
+      .filter((el) => el.childElementCount === 0)
+      .map((el) => el.textContent)
+      .filter((text) => known.includes(text ?? ''));
     expect(titles).toEqual(['Pinned one', 'Created only', 'No timestamps', 'Also undated']);
   });
 
@@ -1665,7 +2411,7 @@ describe('CollabNotes details', () => {
     });
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Plain note');
-    const pill = screen.getAllByRole('button').find(b => b.textContent === 'Food')!;
+    const pill = screen.getAllByRole('button').find((b) => b.textContent === 'Food')!;
     await user.click(pill);
     await waitFor(() => expect(screen.queryByText('Plain note')).not.toBeInTheDocument());
     await user.click(pill);
@@ -1688,7 +2434,9 @@ describe('CollabNotes details', () => {
 
   it('FE-W5CNT-025: the expanded note closes on a backdrop click and offers edit and close', async () => {
     const user = userEvent.setup();
-    serveNotes({ notes: [buildNote({ id: 5, title: 'Long note', content: 'Full body', category: 'Food', color: '#ef4444' })] });
+    serveNotes({
+      notes: [buildNote({ id: 5, title: 'Long note', content: 'Full body', category: 'Food', color: '#ef4444' })],
+    });
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Long note');
     await noteAction(user, 'Expand');
@@ -1706,16 +2454,24 @@ describe('CollabNotes details', () => {
   it('FE-W5CNT-026: attachments in the expanded note open the preview and react to hover', async () => {
     const user = userEvent.setup();
     serveNotes({
-      notes: [buildNote({
-        id: 6,
-        title: 'Trip docs',
-        content: 'See attachments',
-        attachments: [
-          { id: 1, filename: 'a.png', original_name: 'map.png', mime_type: 'image/png', url: '/uploads/map.png' },
-          { id: 2, filename: 'b.zip', original_name: 'itinerary.zip', mime_type: 'application/zip', url: '/uploads/itinerary.zip' },
-          { id: 3, filename: 'c', url: '/uploads/c' },
-        ],
-      })],
+      notes: [
+        buildNote({
+          id: 6,
+          title: 'Trip docs',
+          content: 'See attachments',
+          attachments: [
+            { id: 1, filename: 'a.png', original_name: 'map.png', mime_type: 'image/png', url: '/uploads/map.png' },
+            {
+              id: 2,
+              filename: 'b.zip',
+              original_name: 'itinerary.zip',
+              mime_type: 'application/zip',
+              url: '/uploads/itinerary.zip',
+            },
+            { id: 3, filename: 'c', url: '/uploads/c' },
+          ],
+        }),
+      ],
     });
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Trip docs');
@@ -1748,8 +2504,8 @@ describe('CollabNotes details', () => {
     serveNotes({ notes: [buildNote({ id: 20, title: 'Fresh note' })] });
     server.use(
       http.post('/api/trips/1/collab/notes', () =>
-        HttpResponse.json({ note: buildNote({ id: 20, title: 'Fresh note' }) }),
-      ),
+        HttpResponse.json({ note: buildNote({ id: 20, title: 'Fresh note' }) })
+      )
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Fresh note');
@@ -1765,8 +2521,8 @@ describe('CollabNotes details', () => {
     serveNotes({ notes: [buildNote({ id: 20, title: 'Older note' })] });
     server.use(
       http.post('/api/trips/1/collab/notes', () =>
-        HttpResponse.json({ note: buildNote({ id: 21, title: 'Newer note' }) }),
-      ),
+        HttpResponse.json({ note: buildNote({ id: 21, title: 'Newer note' }) })
+      )
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Older note');
@@ -1792,8 +2548,18 @@ describe('CollabNotes details', () => {
     const user = userEvent.setup();
     const puts: string[] = [];
     serveNotesSequence([
-      { notes: [buildNote({ id: 1, title: 'First note', category: 'OldCat' }), buildNote({ id: 2, title: 'Second note', category: 'OldCat' })] },
-      { notes: [buildNote({ id: 1, title: 'First note', category: 'OldCat' }), buildNote({ id: 2, title: 'Second note', category: 'NewCat' })] },
+      {
+        notes: [
+          buildNote({ id: 1, title: 'First note', category: 'OldCat' }),
+          buildNote({ id: 2, title: 'Second note', category: 'OldCat' }),
+        ],
+      },
+      {
+        notes: [
+          buildNote({ id: 1, title: 'First note', category: 'OldCat' }),
+          buildNote({ id: 2, title: 'Second note', category: 'NewCat' }),
+        ],
+      },
     ]);
     server.use(
       http.put('/api/trips/1/collab/notes/1', () => {
@@ -1803,7 +2569,7 @@ describe('CollabNotes details', () => {
       http.put('/api/trips/1/collab/notes/2', () => {
         puts.push('2');
         return HttpResponse.json({ note: buildNote({ id: 2, title: 'Second note', category: 'NewCat' }) });
-      }),
+      })
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('First note');
@@ -1832,9 +2598,7 @@ describe('CollabNotes details', () => {
   it('FE-W5CNT-029: a failing delete reports an error and keeps the note in the list', async () => {
     const user = userEvent.setup();
     serveNotes({ notes: [buildNote({ id: 30, title: 'Stubborn note' })] });
-    server.use(
-      http.delete('/api/trips/1/collab/notes/30', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.delete('/api/trips/1/collab/notes/30', () => new HttpResponse(null, { status: 500 })));
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Stubborn note');
 
@@ -1854,9 +2618,7 @@ describe('CollabNotes details', () => {
         buildNote({ id: 2, title: 'Second note', category: 'OldCat' }),
       ],
     });
-    server.use(
-      http.put('/api/trips/1/collab/notes/:id', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.put('/api/trips/1/collab/notes/:id', () => new HttpResponse(null, { status: 500 })));
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('First note');
     await user.click(screen.getByRole('button', { name: 'Manage Categories' }));
@@ -1892,7 +2654,9 @@ describe('CollabNotes details', () => {
 
   it('FE-W5CNT-034: a footnote reference lands on the footnote instead of a new tab', async () => {
     const user = userEvent.setup();
-    serveNotes({ notes: [buildNote({ id: 8, title: 'Booking', content: 'Hotel gebucht[^1]\n\n[^1]: Bestaetigung ABC123' })] });
+    serveNotes({
+      notes: [buildNote({ id: 8, title: 'Booking', content: 'Hotel gebucht[^1]\n\n[^1]: Bestaetigung ABC123' })],
+    });
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Booking');
     await noteAction(user, 'Expand');

@@ -1,3 +1,18 @@
+// ---------------------------------------------------------------------------
+// Imports (after mocks)
+// ---------------------------------------------------------------------------
+import { db as testDb } from '../../../src/db/database';
+import { UserProfileService } from '../../../src/nest/auth/user-profile.service';
+import { SEARCH_TEXT_FIELD_MASK } from '../../../src/nest/maps/maps.helpers';
+import { createUser, createAdmin } from '../../helpers/factories';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestUnitOfWork, createTestAppSettingsRepo, createTestUsersRepo } from '../../helpers/test-uow';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
 /**
  * user-profile.service.test.ts
  *
@@ -12,13 +27,11 @@
 // ---------------------------------------------------------------------------
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => undefined, isOwner: () => false };
-    return mock;
+  return mock;
 });
-
 
 vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: vi.fn((v) => v),
@@ -26,21 +39,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   mask_stored_api_key: vi.fn((v: string | null | undefined) => (v ? '••••••••' : null)),
   encrypt_api_key: vi.fn((v) => v),
 }));
-
-// ---------------------------------------------------------------------------
-// Imports (after mocks)
-// ---------------------------------------------------------------------------
-
-import { db as testDb } from '../../../src/db/database';
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin } from '../../helpers/factories';
-import fs from 'node:fs';
-import path from 'node:path';
-import { UserProfileService } from '../../../src/nest/auth/user-profile.service';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestUsersRepo } from '../../helpers/test-uow';
-import { SEARCH_TEXT_FIELD_MASK } from '../../../src/nest/maps/maps.helpers';
 
 const avatarsFx = makeStorageFixture('avatars/');
 let profile: UserProfileService;
@@ -164,7 +162,10 @@ describe('getSettings', () => {
     process.env.PLACES_API_KEY = 'google-from-env';
     try {
       const { user } = createAdmin(testDb);
-      await profile.updateApiKeys(user.id, { maps_api_key: 'stored-but-overridden', unsplash_api_key: 'stored-unsplash' });
+      await profile.updateApiKeys(user.id, {
+        maps_api_key: 'stored-but-overridden',
+        unsplash_api_key: 'stored-unsplash',
+      });
       const settings = (await profile.getSettings(user.id)).settings;
       // Neither the stored value nobody searches with nor the operator's own.
       expect(settings?.maps_api_key).toBeNull();
@@ -251,9 +252,7 @@ describe('validateKeys', () => {
     const { user } = createAdmin(testDb);
     testDb.prepare('UPDATE users SET maps_api_key = ? WHERE id = ?').run('test-key', user.id);
 
-    const fetchSpy = vi
-      .spyOn(global, 'fetch')
-      .mockRejectedValueOnce(new Error('Network failure'));
+    const fetchSpy = vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network failure'));
 
     const result = await profile.validateKeys(user.id);
     expect(result.maps).toBe(false);
@@ -413,7 +412,10 @@ const instanceRow = (key: string) =>
 describe('instance-wide API keys', () => {
   it('AUTH-DB-102: an admin save lands in app_settings AND in their own column', async () => {
     const { user } = createAdmin(testDb);
-    await profile.updateApiKeys(user.id, { maps_api_key: 'instance-google-key', unsplash_api_key: 'instance-unsplash-key' });
+    await profile.updateApiKeys(user.id, {
+      maps_api_key: 'instance-google-key',
+      unsplash_api_key: 'instance-unsplash-key',
+    });
     expect(instanceRow('maps_api_key')).toBe('instance-google-key');
     expect(instanceRow('unsplash_api_key')).toBe('instance-unsplash-key');
     // The column stays in step so clearing the field clears both.
@@ -473,7 +475,9 @@ describe('changedKeys', () => {
     const { user } = createAdmin(testDb);
     await profile.updateApiKeys(user.id, { maps_api_key: 'k1', openweather_api_key: 'w1' });
     // unsplash was never sent, so it can never be reported.
-    expect((await profile.updateApiKeys(user.id, { openweather_api_key: 'w2' })).changedKeys).toEqual(['openweather_api_key']);
+    expect((await profile.updateApiKeys(user.id, { openweather_api_key: 'w2' })).changedKeys).toEqual([
+      'openweather_api_key',
+    ]);
     expect((await profile.updateApiKeys(user.id, { maps_api_key: '' })).changedKeys).toEqual(['maps_api_key']);
   });
 
@@ -485,7 +489,9 @@ describe('changedKeys', () => {
     expect((await profile.updateApiKeys(user.id, { maps_api_key: '  unchanged-key  ' })).changedKeys).toEqual([]);
     // A member is measured against their own column, not the instance value.
     const { user: member } = createUser(testDb);
-    expect((await profile.updateApiKeys(member.id, { maps_api_key: 'unchanged-key' })).changedKeys).toEqual(['maps_api_key']);
+    expect((await profile.updateApiKeys(member.id, { maps_api_key: 'unchanged-key' })).changedKeys).toEqual([
+      'maps_api_key',
+    ]);
   });
 
   it('AUTH-DB-110: a managed install reports no change for the names it refuses to write', async () => {

@@ -8,16 +8,17 @@
  * asks for its chunks, and those requests used to be answered with index.html and a
  * 200, which a precache then kept as the chunk. They must be a plain 404.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { applyPlatformStatic, PUBLIC_DIR } from '../../src/nest/platform/platform.routes';
+import { SpaFallbackFilter } from '../../src/nest/platform/spa-fallback.filter';
+import { Module, type INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+
+import type { Server } from 'http';
 import fs from 'node:fs';
 import path from 'node:path';
 import request from 'supertest';
-import type { Server } from 'http';
-import { Module, type INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { SpaFallbackFilter } from '../../src/nest/platform/spa-fallback.filter';
-import { applyPlatformStatic, PUBLIC_DIR } from '../../src/nest/platform/platform.routes';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 @Module({})
 class NoRoutesModule {}

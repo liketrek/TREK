@@ -4,12 +4,26 @@
  * DB-backed half is MemoriesAccessService.
  * Covers mapDbError, getAlbumIdFromLink, pipeAsset error paths.
  */
+import { db as testDb } from '../../../src/db/database';
+import { JourneyContributors } from '../../../src/db/entities/JourneyContributors.entity';
+import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
+import { Journeys } from '../../../src/db/entities/Journeys.entity';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripAlbumLinks } from '../../../src/db/entities/TripAlbumLinks.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import { mapDbError, pipeAsset, type ServiceResult } from '../../../src/nest/memories/memories.helpers';
+import { SsrfBlockedError } from '../../../src/utils/ssrfGuard';
+import { createUser, createTrip } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import { sharedTestOrm } from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ─────────────────────────────────────────────────────────────────
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -18,17 +32,20 @@ vi.mock('../../../src/db/database', async () => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
-    return mock;
+  return mock;
 });
-
 
 vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-secret',
@@ -42,7 +59,10 @@ const { mockSafeFetch } = vi.hoisted(() => ({
 
 vi.mock('../../../src/utils/ssrfGuard', () => {
   class SsrfBlockedError extends Error {
-    constructor(msg: string) { super(msg); this.name = 'SsrfBlockedError'; }
+    constructor(msg: string) {
+      super(msg);
+      this.name = 'SsrfBlockedError';
+    }
   }
   return {
     safeFetch: mockSafeFetch,
@@ -50,20 +70,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => {
     checkSsrf: vi.fn(async () => ({ allowed: true, resolvedIp: '1.2.3.4' })),
   };
 });
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { mapDbError, pipeAsset, type ServiceResult } from '../../../src/nest/memories/memories.helpers';
-import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripAlbumLinks } from '../../../src/db/entities/TripAlbumLinks.entity';
-import { Journeys } from '../../../src/db/entities/Journeys.entity';
-import { JourneyContributors } from '../../../src/db/entities/JourneyContributors.entity';
-import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
-import { sharedTestOrm } from '../../helpers/test-uow';
 
 // Plan 3c Task 0b / Plan 3e Task 6 / Plan 3g Task 4: `access` used to be
 // constructed at module load, before any `beforeAll` could resolve a real
@@ -76,8 +82,8 @@ import { sharedTestOrm } from '../../helpers/test-uow';
 let access: MemoriesAccessService;
 // A typed forwarder, not a `.bind` alias: a bound alias is typed `any`, which
 // hides a missing `await` from tsc and from all three lint rules.
-const getAlbumIdFromLink = (...a: Parameters<MemoriesAccessService['getAlbumIdFromLink']>) => access.getAlbumIdFromLink(...a);
-import { SsrfBlockedError } from '../../../src/utils/ssrfGuard';
+const getAlbumIdFromLink = (...a: Parameters<MemoriesAccessService['getAlbumIdFromLink']>) =>
+  access.getAlbumIdFromLink(...a);
 
 beforeAll(async () => {
   const t = await sharedTestOrm(testDb);
@@ -85,7 +91,15 @@ beforeAll(async () => {
   // fully repository-backed, so the `DatabaseService.prototype.canAccessTrip`
   // spy this block used to route to the real predicate is dead; removed
   // with it.
-  access = new MemoriesAccessService(t.repo(TripPhotos), t.repo(TrekPhotos), t.repo(TripAlbumLinks), t.repo(Trips), t.repo(Journeys), t.repo(JourneyContributors), t.repo(JourneyPhotos));
+  access = new MemoriesAccessService(
+    t.repo(TripPhotos),
+    t.repo(TrekPhotos),
+    t.repo(TripAlbumLinks),
+    t.repo(Trips),
+    t.repo(Journeys),
+    t.repo(JourneyContributors),
+    t.repo(JourneyPhotos),
+  );
 });
 
 beforeEach(() => {
@@ -164,9 +178,9 @@ describe('getAlbumIdFromLink', () => {
     const trip = createTrip(testDb, user.id);
 
     // Insert with auto-increment id (INTEGER PRIMARY KEY)
-    const ins = testDb.prepare(
-      'INSERT INTO trip_album_links (trip_id, user_id, provider, album_id, album_name) VALUES (?, ?, ?, ?, ?)'
-    ).run(trip.id, user.id, 'immich', 'album-123', 'My Album');
+    const ins = testDb
+      .prepare('INSERT INTO trip_album_links (trip_id, user_id, provider, album_id, album_name) VALUES (?, ?, ?, ?, ?)')
+      .run(trip.id, user.id, 'immich', 'album-123', 'My Album');
     const linkId = ins.lastInsertRowid;
 
     const result = await getAlbumIdFromLink(String(trip.id), String(linkId), user.id);
@@ -276,11 +290,9 @@ describe('pipeAsset fetch options (#1611)', () => {
 
     await pipeAsset('https://example.com/asset', res, undefined, undefined, undefined, { rejectUnauthorized: false });
 
-    expect(mockSafeFetch).toHaveBeenCalledWith(
-      'https://example.com/asset',
-      expect.anything(),
-      { rejectUnauthorized: false },
-    );
+    expect(mockSafeFetch).toHaveBeenCalledWith('https://example.com/asset', expect.anything(), {
+      rejectUnauthorized: false,
+    });
   });
 
   it('MEM-HELPERS-022: omitting fetchOptions leaves safeFetch options undefined', async () => {
@@ -321,18 +333,23 @@ describe('pipeAsset fetch options (#1611)', () => {
 
 /** A trek_photos row plus the trip_photos link that shares it. */
 function shareInTrip(tripId: number, ownerId: number, assetId: string, provider = 'immich', shared = 1): number {
-  const photoId = Number(testDb.prepare(
-    'INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)'
-  ).run(provider, assetId, ownerId).lastInsertRowid);
-  testDb.prepare('INSERT INTO trip_photos (trip_id, photo_id, user_id, shared) VALUES (?, ?, ?, ?)')
+  const photoId = Number(
+    testDb
+      .prepare('INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)')
+      .run(provider, assetId, ownerId).lastInsertRowid,
+  );
+  testDb
+    .prepare('INSERT INTO trip_photos (trip_id, photo_id, user_id, shared) VALUES (?, ?, ?, ?)')
     .run(tripId, photoId, ownerId, shared);
   return photoId;
 }
 
 function makeJourney(userId: number): number {
-  return Number(testDb.prepare(
-    "INSERT INTO journeys (user_id, title, status, created_at, updated_at) VALUES (?, 'J', 'draft', 0, 0)"
-  ).run(userId).lastInsertRowid);
+  return Number(
+    testDb
+      .prepare("INSERT INTO journeys (user_id, title, status, created_at, updated_at) VALUES (?, 'J', 'draft', 0, 0)")
+      .run(userId).lastInsertRowid,
+  );
 }
 
 describe('canAccessUserPhoto', () => {
@@ -357,7 +374,9 @@ describe('canAccessUserPhoto', () => {
     testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(trip.id, member.id);
     shareInTrip(trip.id, owner.id, 'asset-private', 'immich', 0);
 
-    expect(await access.canAccessUserPhoto(member.id, owner.id, String(trip.id), 'asset-private', 'immich')).toBe(false);
+    expect(await access.canAccessUserPhoto(member.id, owner.id, String(trip.id), 'asset-private', 'immich')).toBe(
+      false,
+    );
   });
 
   it('MEM-ACCESS-004: a stranger is refused even for a shared asset', async () => {
@@ -366,7 +385,9 @@ describe('canAccessUserPhoto', () => {
     const trip = createTrip(testDb, owner.id);
     shareInTrip(trip.id, owner.id, 'asset-shared');
 
-    expect(await access.canAccessUserPhoto(stranger.id, owner.id, String(trip.id), 'asset-shared', 'immich')).toBe(false);
+    expect(await access.canAccessUserPhoto(stranger.id, owner.id, String(trip.id), 'asset-shared', 'immich')).toBe(
+      false,
+    );
   });
 
   it('MEM-ACCESS-005: the provider is part of the match — same asset id, other provider, no access', async () => {
@@ -376,18 +397,26 @@ describe('canAccessUserPhoto', () => {
     testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(trip.id, member.id);
     shareInTrip(trip.id, owner.id, 'same-id', 'immich');
 
-    expect(await access.canAccessUserPhoto(member.id, owner.id, String(trip.id), 'same-id', 'synologyphotos')).toBe(false);
+    expect(await access.canAccessUserPhoto(member.id, owner.id, String(trip.id), 'same-id', 'synologyphotos')).toBe(
+      false,
+    );
   });
 
   it('MEM-ACCESS-006: tripId "0" routes through journeys — a contributor passes', async () => {
     const { user: owner } = createUser(testDb);
     const { user: contributor } = createUser(testDb, { username: 'contrib' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset', ?)"
-    ).run(owner.id).lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
-    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)").run(journeyId, contributor.id);
+    const photoId = Number(
+      testDb
+        .prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset', ?)")
+        .run(owner.id).lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
+    testDb
+      .prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)")
+      .run(journeyId, contributor.id);
 
     expect(await access.canAccessUserPhoto(contributor.id, owner.id, '0', 'j-asset', 'immich')).toBe(true);
   });
@@ -396,10 +425,14 @@ describe('canAccessUserPhoto', () => {
     const { user: journeyOwner } = createUser(testDb, { username: 'journey-owner' });
     const { user: uploader } = createUser(testDb, { username: 'uploader-6b' });
     const journeyId = makeJourney(journeyOwner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset-owner', ?)"
-    ).run(uploader.id).lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
+    const photoId = Number(
+      testDb
+        .prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset-owner', ?)")
+        .run(uploader.id).lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
 
     // requestingUserId (journeyOwner) !== ownerUserId (uploader) — MA1's read is
     // scoped to tkp.owner_id=uploader, so the trivial owner shortcut at the top
@@ -411,11 +444,17 @@ describe('canAccessUserPhoto', () => {
     const { user: owner } = createUser(testDb);
     const { user: viewer } = createUser(testDb, { username: 'viewer-6c' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset-viewer', ?)"
-    ).run(owner.id).lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
-    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'viewer', 0)").run(journeyId, viewer.id);
+    const photoId = Number(
+      testDb
+        .prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset-viewer', ?)")
+        .run(owner.id).lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
+    testDb
+      .prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'viewer', 0)")
+      .run(journeyId, viewer.id);
 
     expect(await access.canAccessUserPhoto(viewer.id, owner.id, '0', 'j-asset-viewer', 'immich')).toBe(true);
   });
@@ -434,10 +473,14 @@ describe('canAccessUserPhoto', () => {
     const { user: realUploader } = createUser(testDb, { username: 'real-uploader-m5b' });
     const { user: otherOwner } = createUser(testDb, { username: 'other-owner-m5b' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'm5b-shared-asset', ?)"
-    ).run(realUploader.id).lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
+    const photoId = Number(
+      testDb
+        .prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'm5b-shared-asset', ?)")
+        .run(realUploader.id).lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
 
     // requestingUserId (owner) !== ownerUserId (otherOwner), so the trivial
     // shortcut does not fire; MA1 must refuse because otherOwner never
@@ -449,10 +492,14 @@ describe('canAccessUserPhoto', () => {
     const { user: owner } = createUser(testDb);
     const { user: stranger } = createUser(testDb, { username: 'stranger' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset-2', ?)"
-    ).run(owner.id).lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
+    const photoId = Number(
+      testDb
+        .prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-asset-2', ?)")
+        .run(owner.id).lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
 
     expect(await access.canAccessUserPhoto(stranger.id, owner.id, '0', 'j-asset-2', 'immich')).toBe(false);
   });
@@ -471,9 +518,10 @@ describe('canAccessTrekPhoto', () => {
 
   it('MEM-ACCESS-011: the owner passes', async () => {
     const { user } = createUser(testDb);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'own', ?)"
-    ).run(user.id).lastInsertRowid);
+    const photoId = Number(
+      testDb.prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'own', ?)").run(user.id)
+        .lastInsertRowid,
+    );
 
     expect(await access.canAccessTrekPhoto(user.id, photoId)).toBe(true);
   });
@@ -503,25 +551,37 @@ describe('canAccessTrekPhoto', () => {
     const { user: owner } = createUser(testDb);
     const { user: contributor } = createUser(testDb, { username: 'contrib' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-trek', ?)"
-    ).run(owner.id).lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
-    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)").run(journeyId, contributor.id);
+    const photoId = Number(
+      testDb
+        .prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-trek', ?)")
+        .run(owner.id).lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
+    testDb
+      .prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)")
+      .run(journeyId, contributor.id);
 
     expect(await access.canAccessTrekPhoto(contributor.id, photoId)).toBe(true);
   });
 
-  it('MEM-ACCESS-014b: a VIEWER-role journey contributor also passes MA6\'s unified check (any role, not just editor)', async () => {
+  it("MEM-ACCESS-014b: a VIEWER-role journey contributor also passes MA6's unified check (any role, not just editor)", async () => {
     const { user: owner } = createUser(testDb);
     const { user: viewer } = createUser(testDb, { username: 'viewer-14b' });
     const { user: stranger } = createUser(testDb, { username: 'stranger-14b' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-trek-viewer', ?)"
-    ).run(owner.id).lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
-    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'viewer', 0)").run(journeyId, viewer.id);
+    const photoId = Number(
+      testDb
+        .prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'j-trek-viewer', ?)")
+        .run(owner.id).lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
+    testDb
+      .prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'viewer', 0)")
+      .run(journeyId, viewer.id);
 
     expect(await access.canAccessTrekPhoto(viewer.id, photoId)).toBe(true);
     expect(await access.canAccessTrekPhoto(stranger.id, photoId)).toBe(false);
@@ -531,10 +591,13 @@ describe('canAccessTrekPhoto', () => {
     const { user: owner } = createUser(testDb);
     const { user: outsider } = createUser(testDb, { username: 'outsider' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, file_path) VALUES ('local', 'journey/x.jpg')"
-    ).run().lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
+    const photoId = Number(
+      testDb.prepare("INSERT INTO trek_photos (provider, file_path) VALUES ('local', 'journey/x.jpg')").run()
+        .lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
 
     expect(await access.canAccessTrekPhoto(owner.id, photoId)).toBe(true);
     expect(await access.canAccessTrekPhoto(outsider.id, photoId)).toBe(false);
@@ -542,9 +605,10 @@ describe('canAccessTrekPhoto', () => {
 
   it('MEM-ACCESS-016: an ownerless local upload in no journey is reachable by nobody', async () => {
     const { user } = createUser(testDb);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, file_path) VALUES ('local', 'orphan.jpg')"
-    ).run().lastInsertRowid);
+    const photoId = Number(
+      testDb.prepare("INSERT INTO trek_photos (provider, file_path) VALUES ('local', 'orphan.jpg')").run()
+        .lastInsertRowid,
+    );
 
     expect(await access.canAccessTrekPhoto(user.id, photoId)).toBe(false);
   });
@@ -562,7 +626,9 @@ describe('canAccessTrekPhoto', () => {
 
 /** The MA5 statement, run raw for comparison — never converted, kept only as the oracle. */
 function legacyMA5(photoId: number, userId: number): boolean {
-  return !!testDb.prepare(`
+  return !!testDb
+    .prepare(
+      `
     SELECT 1 FROM trip_photos tp WHERE tp.photo_id = ? AND tp.shared = 1
       AND EXISTS (
         SELECT 1 FROM trip_members tm WHERE tm.trip_id = tp.trip_id AND tm.user_id = ?
@@ -570,7 +636,9 @@ function legacyMA5(photoId: number, userId: number): boolean {
         SELECT 1 FROM trips t WHERE t.id = tp.trip_id AND t.user_id = ?
       )
     LIMIT 1
-  `).get(photoId, userId, userId);
+  `,
+    )
+    .get(photoId, userId, userId);
 }
 
 describe('canAccessTrekPhoto — MA5 parity (TripsRepository.findAccessible rewrite vs. the legacy EXISTS/UNION ALL text)', () => {
@@ -648,11 +716,17 @@ describe('canAccessUserPhoto/canAccessTrekPhoto — MA1/MA2/MA6 mutation-proof c
     const { user: owner } = createUser(testDb);
     const { user: editor } = createUser(testDb, { username: 'ma2-editor' });
     const journeyId = makeJourney(owner.id);
-    const photoId = Number(testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'ma2-editor-asset', ?)"
-    ).run(owner.id).lastInsertRowid);
-    testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)').run(journeyId, photoId);
-    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)").run(journeyId, editor.id);
+    const photoId = Number(
+      testDb
+        .prepare("INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES ('immich', 'ma2-editor-asset', ?)")
+        .run(owner.id).lastInsertRowid,
+    );
+    testDb
+      .prepare('INSERT INTO journey_photos (journey_id, photo_id, created_at) VALUES (?, ?, 0)')
+      .run(journeyId, photoId);
+    testDb
+      .prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)")
+      .run(journeyId, editor.id);
 
     expect(await access.canAccessUserPhoto(editor.id, owner.id, '0', 'ma2-editor-asset', 'immich')).toBe(true);
     expect(await access.canAccessTrekPhoto(editor.id, photoId)).toBe(true);
@@ -668,9 +742,11 @@ describe('getAlbumLinkForSync (MA8)', () => {
   it('MEMACCESS-MA8-001: returns the album id and decrypted passphrase when the link exists', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const ins = testDb.prepare(
-      'INSERT INTO trip_album_links (trip_id, user_id, provider, album_id, album_name, passphrase) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(trip.id, user.id, 'immich', 'album-sync-1', 'Sync Album', null);
+    const ins = testDb
+      .prepare(
+        'INSERT INTO trip_album_links (trip_id, user_id, provider, album_id, album_name, passphrase) VALUES (?, ?, ?, ?, ?, ?)',
+      )
+      .run(trip.id, user.id, 'immich', 'album-sync-1', 'Sync Album', null);
 
     const result = await access.getAlbumLinkForSync(String(trip.id), String(ins.lastInsertRowid), user.id);
     expect(result.success).toBe(true);
@@ -682,9 +758,9 @@ describe('getAlbumLinkForSync (MA8)', () => {
     const { user: other } = createUser(testDb, { username: 'other-link-user' });
     const trip = createTrip(testDb, owner.id);
     testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(trip.id, other.id);
-    const ins = testDb.prepare(
-      'INSERT INTO trip_album_links (trip_id, user_id, provider, album_id, album_name) VALUES (?, ?, ?, ?, ?)'
-    ).run(trip.id, owner.id, 'immich', 'album-scoped', 'Scoped');
+    const ins = testDb
+      .prepare('INSERT INTO trip_album_links (trip_id, user_id, provider, album_id, album_name) VALUES (?, ?, ?, ?, ?)')
+      .run(trip.id, owner.id, 'immich', 'album-scoped', 'Scoped');
 
     const result = await access.getAlbumLinkForSync(String(trip.id), String(ins.lastInsertRowid), other.id);
     expect(result.success).toBe(false);
@@ -703,13 +779,15 @@ describe('updateSyncTimeForAlbumLink (MA9)', () => {
   it('MEMACCESS-MA9-001: stamps last_synced_at on the given link', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const ins = testDb.prepare(
-      'INSERT INTO trip_album_links (trip_id, user_id, provider, album_id, album_name) VALUES (?, ?, ?, ?, ?)'
-    ).run(trip.id, user.id, 'immich', 'album-touch', 'Touch');
+    const ins = testDb
+      .prepare('INSERT INTO trip_album_links (trip_id, user_id, provider, album_id, album_name) VALUES (?, ?, ?, ?, ?)')
+      .run(trip.id, user.id, 'immich', 'album-touch', 'Touch');
 
     await access.updateSyncTimeForAlbumLink(String(ins.lastInsertRowid));
 
-    const row = testDb.prepare('SELECT last_synced_at FROM trip_album_links WHERE id = ?').get(ins.lastInsertRowid) as { last_synced_at: string | null };
+    const row = testDb.prepare('SELECT last_synced_at FROM trip_album_links WHERE id = ?').get(ins.lastInsertRowid) as {
+      last_synced_at: string | null;
+    };
     expect(row.last_synced_at).not.toBeNull();
   });
 

@@ -1,3 +1,27 @@
+import type { User } from '../../types';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { logInfo } from '../audit/audit-log.logger';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CalendarService } from '../calendar/calendar.service';
+import { contentDisposition } from '../common/content-disposition';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { StorageService } from '../storage/storage.service';
+import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
+import { UnsplashService } from '../unsplash/unsplash.service';
+import {
+  TripCreateDto,
+  TripUpdateDto,
+  TripCopyDto,
+  TripAddMemberDto,
+  TripTransferOwnershipDto,
+  TripCreateGuestDto,
+  TripRenameGuestDto,
+} from './trips.dto';
+import { TripsService } from './trips.service';
+import { NotFoundError, ValidationError } from './trips.service';
 import {
   Body,
   Controller,
@@ -17,26 +41,11 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
-import { contentDisposition } from '../common/content-disposition';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { MAX_TRIP_DAYS, type ActiveTripResponse, type TripSearchResponse } from '@trek/shared';
+
 import type { Request, Response } from 'express';
 import type { Options } from 'multer';
 import path from 'path';
-import { MAX_TRIP_DAYS, type ActiveTripResponse, type TripSearchResponse } from '@trek/shared';
-import { StorageService } from '../storage/storage.service';
-import type { User } from '../../types';
-import { TripsService } from './trips.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { getClientIp } from '../audit/client-ip';
-import { logInfo } from '../audit/audit-log.logger';
-import { AuditService } from '../audit/audit.service';
-import { NotFoundError, ValidationError } from './trips.service';
-import { TripCreateDto, TripUpdateDto, TripCopyDto, TripAddMemberDto, TripTransferOwnershipDto, TripCreateGuestDto, TripRenameGuestDto } from './trips.dto';
-import { UnsplashService } from '../unsplash/unsplash.service';
-import { CalendarService } from '../calendar/calendar.service';
-import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
 
 export const MAX_COVER_SIZE = 20 * 1024 * 1024;
 // Still needed by the Unsplash cover download (a raw-fs writer until the
@@ -51,7 +60,11 @@ export const TRIP_COVER_FILE_FILTER: Options['fileFilter'] = (_req, file, cb) =>
 };
 
 const toDateStr = (d: Date) => d.toISOString().slice(0, 10);
-const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+const addDays = (d: Date, n: number) => {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+};
 
 /**
  * /api/trips — the trip aggregate root.
@@ -67,7 +80,15 @@ const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.get
 export class TripsController {
   // calendar last: the hand-wired construction sites in the tests stay positional,
   // so a new dependency does not touch the ones that never reach the ICS route.
-  constructor(private readonly trips: TripsService, private readonly audit: AuditService, private readonly env: RuntimeEnvService, private readonly unsplash: UnsplashService, private readonly calendar: CalendarService, private readonly readModel: TripReadModelService, private readonly storage: StorageService) {}
+  constructor(
+    private readonly trips: TripsService,
+    private readonly audit: AuditService,
+    private readonly env: RuntimeEnvService,
+    private readonly unsplash: UnsplashService,
+    private readonly calendar: CalendarService,
+    private readonly readModel: TripReadModelService,
+    private readonly storage: StorageService,
+  ) {}
 
   @Get()
   async list(@CurrentUser() user: User, @Query('archived') archived?: string) {
@@ -124,8 +145,21 @@ export class TripsController {
     }
     const parsedDayCount = day_count ? Math.min(Math.max(Number(day_count) || 7, 1), MAX_TRIP_DAYS) : undefined;
     try {
-      const { trip, tripId, reminderDays } = await this.trips.create(user.id, { title, description, start_date, end_date, currency, reminder_days, day_count: parsedDayCount });
-      await this.audit.writeAudit({ userId: user.id, action: 'trip.create', ip: getClientIp(req), details: { tripId, title, reminder_days: reminderDays === 0 ? 'none' : `${reminderDays} days` } });
+      const { trip, tripId, reminderDays } = await this.trips.create(user.id, {
+        title,
+        description,
+        start_date,
+        end_date,
+        currency,
+        reminder_days,
+        day_count: parsedDayCount,
+      });
+      await this.audit.writeAudit({
+        userId: user.id,
+        action: 'trip.create',
+        ip: getClientIp(req),
+        details: { tripId, title, reminder_days: reminderDays === 0 ? 'none' : `${reminderDays} days` },
+      });
       if (reminderDays > 0) logInfo(`${user.email} set ${reminderDays}-day reminder for trip "${title}"`);
       return { trip };
     } catch (e: unknown) {
@@ -144,21 +178,36 @@ export class TripsController {
   }
 
   @Put(':id')
-  async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripUpdateDto, @Req() req: Request, @Headers('x-socket-id') socketId?: string) {
+  async update(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: TripUpdateDto,
+    @Req() req: Request,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     const access = await this.trips.canAccessTrip(id, user.id);
     if (!access) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
     const ownerId = access.user_id;
     const isMember = ownerId !== user.id;
-    if (body.is_archived !== undefined && !(await this.trips.can('trip_archive', user.role, ownerId, user.id, isMember))) {
+    if (
+      body.is_archived !== undefined &&
+      !(await this.trips.can('trip_archive', user.role, ownerId, user.id, isMember))
+    ) {
       throw new HttpException({ error: 'No permission to archive/unarchive this trip' }, 403);
     }
-    if (body.cover_image !== undefined && !(await this.trips.can('trip_cover_upload', user.role, ownerId, user.id, isMember))) {
+    if (
+      body.cover_image !== undefined &&
+      !(await this.trips.can('trip_cover_upload', user.role, ownerId, user.id, isMember))
+    ) {
       throw new HttpException({ error: 'No permission to change cover image' }, 403);
     }
     const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'day_count'];
-    if (editFields.some((f) => body[f] !== undefined) && !(await this.trips.can('trip_edit', user.role, ownerId, user.id, isMember))) {
+    if (
+      editFields.some((f) => body[f] !== undefined) &&
+      !(await this.trips.can('trip_edit', user.role, ownerId, user.id, isMember))
+    ) {
       throw new HttpException({ error: 'No permission to edit this trip' }, 403);
     }
     // A chosen Unsplash cover arrives as an images.unsplash.com hot-link; download
@@ -172,20 +221,33 @@ export class TripsController {
         throw new HttpException({ error: 'Could not save the selected cover image' }, 502);
       }
     }
-    const oldCover = body.cover_image !== undefined
-      ? ((await this.trips.getRaw(id)) as { cover_image: string | null } | undefined)?.cover_image
-      : undefined;
+    const oldCover =
+      body.cover_image !== undefined
+        ? ((await this.trips.getRaw(id)) as { cover_image: string | null } | undefined)?.cover_image
+        : undefined;
     try {
       const result = await this.trips.update(id, user.id, body, user.role);
       if (body.cover_image !== undefined && body.cover_image !== oldCover) {
         await this.trips.deleteOldCover(oldCover);
       }
       if (Object.keys(result.changes).length > 0) {
-        await this.audit.writeAudit({ userId: user.id, action: 'trip.update', ip: getClientIp(req), details: { tripId: Number(id), trip: result.newTitle, ...(result.ownerEmail ? { owner: result.ownerEmail } : {}), ...result.changes } });
-        if (result.isAdminEdit && result.ownerEmail) logInfo(`Admin ${user.email} edited trip "${result.newTitle}" owned by ${result.ownerEmail}`);
+        await this.audit.writeAudit({
+          userId: user.id,
+          action: 'trip.update',
+          ip: getClientIp(req),
+          details: {
+            tripId: Number(id),
+            trip: result.newTitle,
+            ...(result.ownerEmail ? { owner: result.ownerEmail } : {}),
+            ...result.changes,
+          },
+        });
+        if (result.isAdminEdit && result.ownerEmail)
+          logInfo(`Admin ${user.email} edited trip "${result.newTitle}" owned by ${result.ownerEmail}`);
       }
       if (result.newReminder !== result.oldReminder) {
-        if (result.newReminder > 0) logInfo(`${user.email} set ${result.newReminder}-day reminder for trip "${result.newTitle}"`);
+        if (result.newReminder > 0)
+          logInfo(`${user.email} set ${result.newReminder}-day reminder for trip "${result.newTitle}"`);
         else logInfo(`${user.email} removed reminder for trip "${result.newTitle}"`);
       }
       this.trips.broadcast(id, 'trip:updated', { trip: result.updatedTrip }, socketId);
@@ -199,7 +261,11 @@ export class TripsController {
 
   @Post(':id/cover')
   @UseInterceptors(FileInterceptor('cover'))
-  async cover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined) {
+  async cover(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
     if (isDemoWriteBlocked(this.env, user.email)) {
       throw new HttpException(DEMO_WRITE_ERROR, 403);
     }
@@ -238,7 +304,12 @@ export class TripsController {
     const { title } = body;
     try {
       const newTripId = await this.trips.copy(id, user.id, title);
-      await this.audit.writeAudit({ userId: user.id, action: 'trip.copy', ip: getClientIp(req), details: { sourceTripId: Number(id), newTripId, title } });
+      await this.audit.writeAudit({
+        userId: user.id,
+        action: 'trip.copy',
+        ip: getClientIp(req),
+        details: { sourceTripId: Number(id), newTripId, title },
+      });
       return { trip: await this.trips.getCopiedTrip(newTripId, user.id) };
     } catch {
       throw new HttpException({ error: 'Failed to copy trip' }, 500);
@@ -246,7 +317,12 @@ export class TripsController {
   }
 
   @Delete(':id')
-  async remove(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request, @Headers('x-socket-id') socketId?: string) {
+  async remove(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     const owner = await this.trips.getOwner(id);
     if (!owner) {
       throw new HttpException({ error: 'Trip not found' }, 404);
@@ -262,8 +338,14 @@ export class TripsController {
       throw new HttpException({ error: 'No permission to delete this trip' }, 403);
     }
     const info = await this.trips.remove(id, user.id, user.role);
-    await this.audit.writeAudit({ userId: user.id, action: 'trip.delete', ip: getClientIp(req), details: { tripId: info.tripId, trip: info.title, ...(info.ownerEmail ? { owner: info.ownerEmail } : {}) } });
-    if (info.isAdminDelete && info.ownerEmail) logInfo(`Admin ${user.email} deleted trip "${info.title}" owned by ${info.ownerEmail}`);
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'trip.delete',
+      ip: getClientIp(req),
+      details: { tripId: info.tripId, trip: info.title, ...(info.ownerEmail ? { owner: info.ownerEmail } : {}) },
+    });
+    if (info.isAdminDelete && info.ownerEmail)
+      logInfo(`Admin ${user.email} deleted trip "${info.title}" owned by ${info.ownerEmail}`);
     this.trips.broadcast(String(info.tripId), 'trip:deleted', { id: info.tripId }, socketId);
     return { success: true };
   }

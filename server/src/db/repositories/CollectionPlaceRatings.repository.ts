@@ -63,7 +63,9 @@ export class CollectionPlaceRatingsRepository extends TrekRepository<CollectionP
    * mirror column silently dropped" trap (3d/3e ledgers).
    */
   async listForPlace(collectionPlaceId: number): Promise<{ user_id: number; rating: number }[]> {
-    return await this.kysely<{ collection_place_ratings: { collection_place_id: number; user_id: number; rating: number } }>()
+    return await this.kysely<{
+      collection_place_ratings: { collection_place_id: number; user_id: number; rating: number };
+    }>()
       .selectFrom('collection_place_ratings')
       .select(['user_id', 'rating'])
       .where('collection_place_id', '=', collectionPlaceId)

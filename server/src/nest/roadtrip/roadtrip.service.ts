@@ -1,17 +1,17 @@
-import { HttpException, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { RoadtripDayTrack, RoadtripVia, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import { toRowId } from '../common/row-id';
 import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository } from '../../db/repositories/Days.repository';
 import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository } from '../../db/repositories/Places.repository';
-import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
-import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
 import { RoadtripDayTracks } from '../../db/entities/RoadtripDayTracks.entity';
+import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import type { DaysRepository } from '../../db/repositories/Days.repository';
+import type { PlacesRepository } from '../../db/repositories/Places.repository';
 import type { RoadtripDayTracksRepository } from '../../db/repositories/RoadtripDayTracks.repository';
+import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
+import { toRowId } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
+import { RealtimeService } from '../realtime/realtime.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { HttpException, Injectable } from '@nestjs/common';
+import type { RoadtripDayTrack, RoadtripVia, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 
 /**
  * Via points: the places a day's drive is made to pass through without stopping.
@@ -49,7 +49,12 @@ export class RoadtripService {
    * identity anybody reads, the client holds them per day, and a drag is a burst of writes
    * whose only interesting state is the one that lands last.
    */
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -104,7 +109,10 @@ export class RoadtripService {
     return await this.viasRepo.listForTrip(tripIdNum);
   }
 
-  async create(dayId: string | number, input: { after_order_index: number; lat: number; lng: number; sequence?: number }): Promise<RoadtripVia> {
+  async create(
+    dayId: string | number,
+    input: { after_order_index: number; lat: number; lng: number; sequence?: number },
+  ): Promise<RoadtripVia> {
     const dayIdNum = this.requireDayId(dayId);
     // Appended after whatever already follows that stop, unless the caller says where.
     // RT4 (`nextSequence`) then RT5 (`insertVia`), un-transacted (R7 — pin, don't fix):
@@ -159,7 +167,13 @@ export class RoadtripService {
         if (seq === undefined) {
           seq = await this.viasRepo.nextSequence(dayIdNum, via.after_order_index);
         }
-        await this.viasRepo.insertVia({ day_id: dayIdNum, after_order_index: via.after_order_index, sequence: seq, lat: via.lat, lng: via.lng });
+        await this.viasRepo.insertVia({
+          day_id: dayIdNum,
+          after_order_index: via.after_order_index,
+          sequence: seq,
+          lat: via.lat,
+          lng: via.lng,
+        });
         nextSeq.set(via.after_order_index, seq + 1);
       }
       return await this.viasRepo.listForDay(dayIdNum);

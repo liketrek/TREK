@@ -1,6 +1,6 @@
-import { PluginDataDb } from './plugin-data.service';
-import { DailyBudget, DEFAULT_DAILY_BUDGET } from './daily-budget';
 import type { PluginCapabilityAuditRepository } from '../../../db/repositories/PluginCapabilityAudit.repository';
+import { DailyBudget, DEFAULT_DAILY_BUDGET } from './daily-budget';
+import { PluginDataDb } from './plugin-data.service';
 
 /**
  * Process-wide plugin host state, deliberately module-level (NOT a Nest
@@ -64,7 +64,8 @@ async function seedBudget(id: string, audit: PluginCapabilityAuditRepository): P
   const now = Date.now();
   const since = new Date(now).toISOString().slice(0, 10) + 'T00:00:00';
   const rows = await audit.budgetSeed(id, since);
-  let ai = 0, notify = 0;
+  let ai = 0,
+    notify = 0;
   for (const r of rows) {
     if (r.method === 'notify.send') notify += r.n;
     else ai += r.n; // ai.complete + ai.extract
@@ -86,6 +87,9 @@ export async function budgetFor(id: string, audit: PluginCapabilityAuditReposito
 }
 
 /** Today's broker usage for one plugin (admin view). Seeds the counter if unseen. */
-export async function pluginBudgetUsage(id: string, audit: PluginCapabilityAuditRepository): Promise<ReturnType<DailyBudget['used']>> {
+export async function pluginBudgetUsage(
+  id: string,
+  audit: PluginCapabilityAuditRepository,
+): Promise<ReturnType<DailyBudget['used']>> {
   return (await budgetFor(id, audit)).used(Date.now());
 }

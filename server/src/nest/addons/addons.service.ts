@@ -1,21 +1,24 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { ADDON_IDS } from '../../addons';
-import { getPhotoProviderConfig } from '../memories/memories.helpers';
-import { readTransitProvider, writeTransitProvider } from '../transit/transit-provider';
-import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
 import { readEnv } from '../../app-config';
-import type { TransitProvider } from '@trek/shared';
 import { Addons } from '../../db/entities/Addons.entity';
-import type { AddonsRepository } from '../../db/repositories/Addons.repository';
-import { PhotoProviders } from '../../db/entities/PhotoProviders.entity';
-import type { PhotoProvidersRepository, PhotoProviderRow } from '../../db/repositories/PhotoProviders.repository';
-import { PhotoProviderFields } from '../../db/entities/PhotoProviderFields.entity';
-import type { PhotoProviderFieldsRepository, PhotoProviderFieldRow } from '../../db/repositories/PhotoProviderFields.repository';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { PhotoProviderFields } from '../../db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../db/entities/PhotoProviders.entity';
 import { Users } from '../../db/entities/Users.entity';
+import type { AddonsRepository } from '../../db/repositories/Addons.repository';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type {
+  PhotoProviderFieldsRepository,
+  PhotoProviderFieldRow,
+} from '../../db/repositories/PhotoProviderFields.repository';
+import type { PhotoProvidersRepository, PhotoProviderRow } from '../../db/repositories/PhotoProviders.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { getPhotoProviderConfig } from '../memories/memories.helpers';
+import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
+import { readTransitProvider, writeTransitProvider } from '../transit/transit-provider';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { TransitProvider } from '@trek/shared';
 
 /**
  * Thin wrapper around the enabled-addons + photo-provider read that the legacy
@@ -95,7 +98,13 @@ export class AddonsService {
    * transaction of its own (Task 0 concern #5), so the loop below is still 0
    * to 5 independent, individually-committed upserts.
    */
-  async updateCollabFeatures(features: { chat?: boolean; notes?: boolean; links?: boolean; polls?: boolean; whatsnext?: boolean }) {
+  async updateCollabFeatures(features: {
+    chat?: boolean;
+    notes?: boolean;
+    links?: boolean;
+    polls?: boolean;
+    whatsnext?: boolean;
+  }) {
     const mapping: Record<string, string> = {
       chat: 'collab_chat_enabled',
       notes: 'collab_notes_enabled',
@@ -186,12 +195,24 @@ export class AddonsService {
     return { enabled: !!enabled };
   }
 
-  async getPlacesPhotos() { return this.readFlag('places_photos_enabled'); }
-  async updatePlacesPhotos(enabled: boolean) { return this.writeFlag('places_photos_enabled', enabled); }
-  async getPlacesAutocomplete() { return this.readFlag('places_autocomplete_enabled'); }
-  async updatePlacesAutocomplete(enabled: boolean) { return this.writeFlag('places_autocomplete_enabled', enabled); }
-  async getPlacesDetails() { return this.readFlag('places_details_enabled'); }
-  async updatePlacesDetails(enabled: boolean) { return this.writeFlag('places_details_enabled', enabled); }
+  async getPlacesPhotos() {
+    return this.readFlag('places_photos_enabled');
+  }
+  async updatePlacesPhotos(enabled: boolean) {
+    return this.writeFlag('places_photos_enabled', enabled);
+  }
+  async getPlacesAutocomplete() {
+    return this.readFlag('places_autocomplete_enabled');
+  }
+  async updatePlacesAutocomplete(enabled: boolean) {
+    return this.writeFlag('places_autocomplete_enabled', enabled);
+  }
+  async getPlacesDetails() {
+    return this.readFlag('places_details_enabled');
+  }
+  async updatePlacesDetails(enabled: boolean) {
+    return this.writeFlag('places_details_enabled', enabled);
+  }
 
   /**
    * The shadow log, fail-CLOSED like the three above but for the opposite
@@ -200,8 +221,12 @@ export class AddonsService {
    * so there is nothing to backfill and an absent row correctly means off.
    * PlaceShadowService.enabled() reads the same key the same way.
    */
-  async getPlaceShadow() { return this.readFlag('place_shadow_enabled'); }
-  async updatePlaceShadow(enabled: boolean) { return this.writeFlag('place_shadow_enabled', enabled); }
+  async getPlaceShadow() {
+    return this.readFlag('place_shadow_enabled');
+  }
+  async updatePlaceShadow(enabled: boolean) {
+    return this.writeFlag('place_shadow_enabled', enabled);
+  }
 
   /**
    * Search and suggestions from Google alone, skipping the index and
@@ -209,8 +234,12 @@ export class AddonsService {
    * this before it existed, so an absent row correctly means off. MapsService
    * reads the same key the same way, and only once Google holds the key slot.
    */
-  async getPlacesGoogleOnly() { return this.readFlag('places_google_only'); }
-  async updatePlacesGoogleOnly(enabled: boolean) { return this.writeFlag('places_google_only', enabled); }
+  async getPlacesGoogleOnly() {
+    return this.readFlag('places_google_only');
+  }
+  async updatePlacesGoogleOnly(enabled: boolean) {
+    return this.writeFlag('places_google_only', enabled);
+  }
 
   /**
    * Enrichment reads fail-OPEN, unlike the three switches above.
@@ -230,7 +259,9 @@ export class AddonsService {
     return { enabled: value !== 'false' };
   }
 
-  async updatePlacesEnrich(enabled: boolean) { return this.writeFlag('places_enrich_enabled', enabled); }
+  async updatePlacesEnrich(enabled: boolean) {
+    return this.writeFlag('places_enrich_enabled', enabled);
+  }
 
   // ── Transit backend (#1699) ────────────────────────────────────────────────
   // Not a flag: two named backends, so it stores the name rather than a
@@ -255,14 +286,21 @@ export class AddonsService {
    * — the #1939 shape, one layer up.
    */
   private async googleKeySource(userId: number): Promise<ApiKeySource | null> {
-    return (await resolveApiKey(this.appSettings, this.users, 'maps_api_key', userId, readEnv().maps.placesApiKey)).source;
+    return (await resolveApiKey(this.appSettings, this.users, 'maps_api_key', userId, readEnv().maps.placesApiKey))
+      .source;
   }
 
   async getTransitProvider(userId = 0) {
-    return { provider: await readTransitProvider(this.appSettings), googleKeySource: await this.googleKeySource(userId) };
+    return {
+      provider: await readTransitProvider(this.appSettings),
+      googleKeySource: await this.googleKeySource(userId),
+    };
   }
 
   async updateTransitProvider(provider: TransitProvider, userId = 0) {
-    return { provider: await writeTransitProvider(this.appSettings, provider), googleKeySource: await this.googleKeySource(userId) };
+    return {
+      provider: await writeTransitProvider(this.appSettings, provider),
+      googleKeySource: await this.googleKeySource(userId),
+    };
   }
 }

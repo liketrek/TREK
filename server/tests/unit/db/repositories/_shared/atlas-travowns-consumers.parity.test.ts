@@ -12,13 +12,14 @@
  * SQL text (kept fixed here, independent of the repository under test, per
  * `reservation-visibility.test.ts`'s own oracle reasoning).
  */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../../helpers/db-mock';
-import { resetTestDb } from '../../../../helpers/test-db';
-import { createReservation, createTrip, createUser, addTripMember } from '../../../../helpers/factories';
-import { createTestReservationEndpointsRepo } from '../../../../helpers/test-uow';
 import type { ReservationEndpointsRepository } from '../../../../../src/db/repositories/ReservationEndpoints.repository';
+import { createSnapshotTestDb } from '../../../../helpers/db-mock';
+import { createReservation, createTrip, createUser, addTripMember } from '../../../../helpers/factories';
+import { resetTestDb } from '../../../../helpers/test-db';
+import { createTestReservationEndpointsRepo } from '../../../../helpers/test-uow';
 import { todayUtc } from '@trek/shared';
+
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const TRAVELER_OWNS = `
     (NOT EXISTS (SELECT 1 FROM reservation_travelers rt WHERE rt.reservation_id = r.id)
@@ -73,7 +74,10 @@ const sortRows = (rows: unknown[]) => [...rows].sort((a, b) => (a as { id: numbe
 beforeAll(async () => {
   resetTestDb(db);
   repo = await createTestReservationEndpointsRepo(db);
-  const A = createUser(db).user.id, B = createUser(db).user.id, C = createUser(db).user.id, D = createUser(db).user.id;
+  const A = createUser(db).user.id,
+    B = createUser(db).user.id,
+    C = createUser(db).user.id,
+    D = createUser(db).user.id;
   users.push(A, B, C, D);
   const past = createTrip(db, A, { start_date: '2020-01-01', end_date: '2020-01-05' }).id;
   const future = createTrip(db, A, { start_date: '2099-01-01', end_date: '2099-01-02' }).id;
@@ -141,7 +145,11 @@ describe('TRAVELER_OWNS consumers: repository vs legacy raw SQL, full rows', () 
     const ids = (u: number) =>
       JSON.stringify(
         [
-          ...new Set((db.prepare(AT6(trips.length)).all(...trips, u) as { reservation_id: number }[]).map((r) => r.reservation_id)),
+          ...new Set(
+            (db.prepare(AT6(trips.length)).all(...trips, u) as { reservation_id: number }[]).map(
+              (r) => r.reservation_id,
+            ),
+          ),
         ].sort(),
       );
     const a = ids(A).length;

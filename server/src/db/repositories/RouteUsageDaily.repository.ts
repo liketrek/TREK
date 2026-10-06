@@ -1,5 +1,5 @@
-import type { RouteUsageDaily } from '../entities/RouteUsageDaily.entity';
 import { nowDateOffset } from '../dialect/sql-functions';
+import type { RouteUsageDaily } from '../entities/RouteUsageDaily.entity';
 import { TrekRepository } from './_shared/trek-repository';
 
 /**

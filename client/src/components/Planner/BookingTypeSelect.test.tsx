@@ -1,7 +1,7 @@
 // FE-PLANNER-TYPESELECT-001 to FE-PLANNER-TYPESELECT-003
-import { render, screen } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { Hotel, Ticket, Utensils } from 'lucide-react';
+import { render, screen } from '../../../tests/helpers/render';
 import { BookingTypeSelect, type BookingTypeOption } from './BookingTypeSelect';
 
 const OPTIONS: readonly BookingTypeOption[] = [

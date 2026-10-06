@@ -1,4 +1,3 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { FileLinksRepository } from '../repositories/FileLinks.repository';
 import { DbTimestampType } from '../types';
 import { BudgetItems } from './BudgetItems.entity';
@@ -6,6 +5,7 @@ import { DayAssignments } from './DayAssignments.entity';
 import { Places } from './Places.entity';
 import { Reservations } from './Reservations.entity';
 import { TripFiles } from './TripFiles.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class FileLinks {
   [EntityRepositoryType]?: FileLinksRepository;

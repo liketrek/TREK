@@ -1,7 +1,7 @@
 // FE-COMP-STATUSBADGE-001 to FE-COMP-STATUSBADGE-013
-import { render, screen } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import type { CollectionStatus } from '@trek/shared';
+import { render, screen } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { useTranslation } from '../../i18n/TranslationContext';
 import StatusBadge from './StatusBadge';
@@ -94,10 +94,7 @@ describe('StatusBadge', () => {
   it('FE-COMP-STATUSBADGE-010: interactive badge advertises the cycle hint in its title', () => {
     render(<Badge status="idea" onChange={vi.fn()} />);
     // English: 'collections.status.cycleHint' = 'tap to change'
-    expect(screen.getByRole('button', { name: 'Idea' })).toHaveAttribute(
-      'title',
-      'Idea — tap to change',
-    );
+    expect(screen.getByRole('button', { name: 'Idea' })).toHaveAttribute('title', 'Idea — tap to change');
   });
 
   // ── Read-only (onChange omitted) ─────────────────────────────────────────────

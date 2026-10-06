@@ -1,11 +1,12 @@
-import { describe, it, expect, vi } from 'vitest';
-import { FeaturesController } from '../../../src/nest/health/features.controller';
-import { HealthModule } from '../../../src/nest/health/health.module';
+import { ADDON_IDS } from '../../../src/addons';
+import { BookingImportModule } from '../../../src/nest/booking-import/booking-import.module';
 import { KitineraryExtractorModule } from '../../../src/nest/booking-import/kitinerary-extractor.module';
 import { KitineraryExtractorService } from '../../../src/nest/booking-import/kitinerary-extractor.service';
-import { BookingImportModule } from '../../../src/nest/booking-import/booking-import.module';
+import { FeaturesController } from '../../../src/nest/health/features.controller';
+import { HealthModule } from '../../../src/nest/health/health.module';
 import { expectRegisteredController, expectRegisteredProvider } from '../../helpers/module-providers';
-import { ADDON_IDS } from '../../../src/addons';
+
+import { describe, it, expect, vi } from 'vitest';
 
 type Extractor = Pick<KitineraryExtractorService, 'isAvailable'>;
 type Addons = { isAddonEnabled: (id: string) => boolean };
@@ -76,8 +77,12 @@ describe('FeaturesController (GET /api/health/features)', () => {
     const res = {
       headers: {} as Record<string, string>,
       body: undefined as unknown,
-      setHeader: vi.fn(function (this: { headers: Record<string, string> }, k: string, v: string) { this.headers[k] = v; }),
-      json: vi.fn(function (this: { body: unknown }, b: unknown) { this.body = b; }),
+      setHeader: vi.fn(function (this: { headers: Record<string, string> }, k: string, v: string) {
+        this.headers[k] = v;
+      }),
+      json: vi.fn(function (this: { body: unknown }, b: unknown) {
+        this.body = b;
+      }),
     };
     controller.health(res as never);
     expect(res.headers['Cache-Control']).toBe('no-store, must-revalidate');

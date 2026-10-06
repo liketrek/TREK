@@ -136,6 +136,7 @@ const storage: TranslationStrings = {
   'storage.migrate.cancel': 'Anuluj przenoszenie',
   'storage.migrate.promptCancel': 'Anuluj',
   'storage.migrate.queued': 'W kolejce: {categories}',
-  'storage.migrate.queueDropped': 'Nie udało się rozpocząć kolejnego przenoszenia — pozostała kolejka została wyczyszczona: {categories}',
+  'storage.migrate.queueDropped':
+    'Nie udało się rozpocząć kolejnego przenoszenia — pozostała kolejka została wyczyszczona: {categories}',
 };
 export default storage;

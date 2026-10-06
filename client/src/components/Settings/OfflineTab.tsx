@@ -10,47 +10,84 @@
  * All of the logic lives in `useOfflineSettings`, shared with the phone twin
  * `MSettingsOffline`; this file is the desktop markup over it.
  */
-import React, { useState } from 'react'
-import { RefreshCw, Trash2, Database, CloudOff, Download, Check, GitMerge, Map as MapIcon, AlertTriangle } from 'lucide-react'
-import Section from './Section'
-import ToggleSwitch from './ToggleSwitch'
-import { SettingRow, SettingRows, SettingsHint, StatusPill, SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER } from './settingsKit'
-import { useOfflineSettings, offlineNoticeKey, isOfflineNoticeWarning } from './useOfflineSettings'
-import { useTranslation } from '../../i18n'
-import CustomSelect from '../shared/CustomSelect'
-import ConfirmDialog from '../shared/ConfirmDialog'
-import { fs } from '../shared/DialogShell'
-import type { ConflictStrategy } from '../../sync/offlinePrefs'
-import type { QueuedMutation } from '../../db/offlineDb'
+import {
+  AlertTriangle,
+  Check,
+  CloudOff,
+  Database,
+  Download,
+  GitMerge,
+  Map as MapIcon,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
+import React, { useState } from 'react';
+import type { QueuedMutation } from '../../db/offlineDb';
+import { useTranslation } from '../../i18n';
+import type { ConflictStrategy } from '../../sync/offlinePrefs';
+import ConfirmDialog from '../shared/ConfirmDialog';
+import CustomSelect from '../shared/CustomSelect';
+import { fs } from '../shared/DialogShell';
+import Section from './Section';
+import ToggleSwitch from './ToggleSwitch';
+import {
+  SettingRow,
+  SettingRows,
+  SETTINGS_BUTTON,
+  SETTINGS_BUTTON_DANGER,
+  SettingsHint,
+  StatusPill,
+} from './settingsKit';
+import { isOfflineNoticeWarning, offlineNoticeKey, useOfflineSettings } from './useOfflineSettings';
 
-const EYEBROW = 'm-0 mb-2 font-geist font-bold uppercase tracking-[.08em] text-content-faint'
+const EYEBROW = 'm-0 mb-2 font-geist font-bold uppercase tracking-[.08em] text-content-faint';
 
 function conflictName(m: QueuedMutation): string {
-  const body = (m.body ?? {}) as { name?: unknown }
-  const server = (m.conflictServer ?? {}) as { name?: unknown }
-  return (typeof body.name === 'string' && body.name)
-    || (typeof server.name === 'string' && server.name)
-    || `#${m.entityId ?? ''}`
+  const body = (m.body ?? {}) as { name?: unknown };
+  const server = (m.conflictServer ?? {}) as { name?: unknown };
+  return (
+    (typeof body.name === 'string' && body.name) ||
+    (typeof server.name === 'string' && server.name) ||
+    `#${m.entityId ?? ''}`
+  );
 }
 
 export default function OfflineTab(): React.ReactElement {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const {
-    offline, forced,
-    rows, allTrips, pendingCount, failedCount, conflicts,
-    syncing, clearing, loading, preparing, progress, notice, prefs, canClear,
-    runPrepare, handleToggleForce, handleResync, handleClear,
-    handleToggleTiles, tripStorageState, handleToggleTrip, resolveConflict,
+    offline,
+    forced,
+    rows,
+    allTrips,
+    pendingCount,
+    failedCount,
+    conflicts,
+    syncing,
+    clearing,
+    loading,
+    preparing,
+    progress,
+    notice,
+    prefs,
+    canClear,
+    runPrepare,
+    handleToggleForce,
+    handleResync,
+    handleClear,
+    handleToggleTiles,
+    tripStorageState,
+    handleToggleTrip,
+    resolveConflict,
     handleConflictStrategy,
-  } = useOfflineSettings()
-  const [confirmClear, setConfirmClear] = useState(false)
+  } = useOfflineSettings();
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const formatDate = (d: string | null | undefined) =>
-    d ? new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+    d ? new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
   const progressLabel = progress
     ? `${t(`settings.offline.prepare.phase.${progress.phase === 'done' ? 'trips' : progress.phase}`)} · ${progress.current}/${progress.total}`
-    : ''
+    : '';
 
   return (
     <div>
@@ -72,18 +109,18 @@ export default function OfflineTab(): React.ReactElement {
           <SettingRow label={t('settings.offline.prepare.title')} hint={t('settings.offline.prepare.hint')} stacked>
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button"
+                <button
+                  type="button"
                   onClick={runPrepare}
                   disabled={preparing || offline}
                   className={SETTINGS_BUTTON}
                   style={fs(13, 'body')}
                 >
-                  {preparing
-                    ? <RefreshCw size={14} className="animate-spin" />
-                    : <Download size={14} />}
+                  {preparing ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
                   {preparing ? t('settings.offline.prepare.running') : t('settings.offline.prepare.button')}
                 </button>
-                <button type="button"
+                <button
+                  type="button"
                   onClick={handleResync}
                   disabled={syncing || offline}
                   className={SETTINGS_BUTTON}
@@ -98,11 +135,14 @@ export default function OfflineTab(): React.ReactElement {
                   <div className="h-1.5 overflow-hidden rounded-full bg-surface-tertiary">
                     <div
                       className="h-full rounded-full bg-accent transition-[width] duration-200"
-                      style={{ width: `${progress.total ? Math.round((progress.current / progress.total) * 100) : 100}%` }}
+                      style={{
+                        width: `${progress.total ? Math.round((progress.current / progress.total) * 100) : 100}%`,
+                      }}
                     />
                   </div>
                   <div className="mt-1.5 font-geist tabular-nums text-content-muted" style={fs(11)}>
-                    {progressLabel}{progress.label ? ` · ${progress.label}` : ''}
+                    {progressLabel}
+                    {progress.label ? ` · ${progress.label}` : ''}
                   </div>
                 </div>
               )}
@@ -111,7 +151,11 @@ export default function OfflineTab(): React.ReactElement {
                   className={`flex items-center gap-1.5 ${isOfflineNoticeWarning(notice) ? 'text-warning' : 'text-success'}`}
                   style={fs(12, 'body')}
                 >
-                  {isOfflineNoticeWarning(notice) ? <AlertTriangle size={14} className="flex-none" /> : <Check size={14} className="flex-none" />}
+                  {isOfflineNoticeWarning(notice) ? (
+                    <AlertTriangle size={14} className="flex-none" />
+                  ) : (
+                    <Check size={14} className="flex-none" />
+                  )}
                   {t(offlineNoticeKey(notice), notice.kind === 'stored' ? { count: notice.trips } : undefined)}
                 </div>
               )}
@@ -129,16 +173,26 @@ export default function OfflineTab(): React.ReactElement {
         >
           <SettingsHint>{t('settings.offline.conflicts.hint')}</SettingsHint>
           <SettingRows>
-            {conflicts.map(c => (
+            {conflicts.map((c) => (
               <div key={c.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3.5 py-3">
                 <span className="min-w-0 flex-1 basis-48 truncate font-medium text-content" style={fs(13, 'body')}>
                   {t('settings.offline.conflicts.item', { name: conflictName(c) })}
                 </span>
                 <div className="flex flex-none gap-2">
-                  <button type="button" onClick={() => resolveConflict(c.id, true)} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+                  <button
+                    type="button"
+                    onClick={() => resolveConflict(c.id, true)}
+                    className={SETTINGS_BUTTON}
+                    style={fs(12.5, 'body')}
+                  >
                     {t('settings.offline.conflicts.keepMine')}
                   </button>
-                  <button type="button" onClick={() => resolveConflict(c.id, false)} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+                  <button
+                    type="button"
+                    onClick={() => resolveConflict(c.id, false)}
+                    className={SETTINGS_BUTTON}
+                    style={fs(12.5, 'body')}
+                  >
                     {t('settings.offline.conflicts.keepServer')}
                   </button>
                 </div>
@@ -153,7 +207,7 @@ export default function OfflineTab(): React.ReactElement {
                 <CustomSelect
                   id="offline-conflict-strategy"
                   value={prefs.conflictStrategy}
-                  onChange={v => handleConflictStrategy(v as ConflictStrategy)}
+                  onChange={(v) => handleConflictStrategy(v as ConflictStrategy)}
                   options={[
                     { value: 'ask', label: t('settings.offline.conflicts.strategy.ask') },
                     { value: 'mine', label: t('settings.offline.conflicts.strategy.mine') },
@@ -174,15 +228,23 @@ export default function OfflineTab(): React.ReactElement {
           <SettingRow
             label={t('settings.offline.storage.tiles')}
             hint={t('settings.offline.storage.tilesHint')}
-            control={<ToggleSwitch on={prefs.cacheTiles} onToggle={handleToggleTiles} label={t('settings.offline.storage.tiles')} />}
+            control={
+              <ToggleSwitch
+                on={prefs.cacheTiles}
+                onToggle={handleToggleTiles}
+                label={t('settings.offline.storage.tiles')}
+              />
+            }
           />
         </SettingRows>
         {allTrips.length > 0 && (
           <div>
-            <p className={EYEBROW} style={fs(10)}>{t('settings.offline.storage.tripsTitle')}</p>
+            <p className={EYEBROW} style={fs(10)}>
+              {t('settings.offline.storage.tripsTitle')}
+            </p>
             <SettingRows>
               {allTrips.map((trip) => {
-                const { on, dateEligible } = tripStorageState(trip)
+                const { on, dateEligible } = tripStorageState(trip);
                 return (
                   <div key={trip.id} className="flex items-center justify-between gap-4 px-3.5 py-3">
                     <div className="min-w-0">
@@ -196,7 +258,7 @@ export default function OfflineTab(): React.ReactElement {
                     </div>
                     <ToggleSwitch on={on} onToggle={() => handleToggleTrip(trip)} label={trip.title} />
                   </div>
-                )
+                );
               })}
             </SettingRows>
           </div>
@@ -208,7 +270,8 @@ export default function OfflineTab(): React.ReactElement {
         title={t('settings.offline.cache.title')}
         icon={Database}
         action={
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setConfirmClear(true)}
             disabled={clearing || !canClear}
             className={SETTINGS_BUTTON_DANGER}
@@ -222,7 +285,9 @@ export default function OfflineTab(): React.ReactElement {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label={t('settings.offline.stats.trips')} value={rows.length} />
           <Stat label={t('settings.offline.stats.pending')} value={pendingCount} />
-          {conflicts.length > 0 && <Stat label={t('settings.offline.stats.conflicts')} value={conflicts.length} danger />}
+          {conflicts.length > 0 && (
+            <Stat label={t('settings.offline.stats.conflicts')} value={conflicts.length} danger />
+          )}
           {failedCount > 0 && <Stat label={t('settings.offline.stats.failed')} value={failedCount} danger />}
         </div>
 
@@ -245,7 +310,10 @@ export default function OfflineTab(): React.ReactElement {
                   </span>
                   <span className="truncate font-geist tabular-nums text-content-faint" style={fs(11.5)}>
                     {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
-                    {' · '}{placeCount}{' · '}{fileCount}
+                    {' · '}
+                    {placeCount}
+                    {' · '}
+                    {fileCount}
                   </span>
                 </div>
                 <span className="flex-none font-geist tabular-nums text-content-muted" style={fs(11.5)}>
@@ -262,22 +330,31 @@ export default function OfflineTab(): React.ReactElement {
       <ConfirmDialog
         isOpen={confirmClear}
         onClose={() => setConfirmClear(false)}
-        onConfirm={() => { void handleClear() }}
+        onConfirm={() => {
+          void handleClear();
+        }}
         title={t('settings.offline.clear')}
         message={t('settings.offline.clearConfirm')}
         confirmLabel={t('settings.offline.clear')}
         danger
       />
     </div>
-  )
+  );
 }
 
 /** One counter tile: the number big, what it counts under it. */
 function Stat({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
   return (
     <div className="min-w-0 rounded-[12px] border border-edge-faint bg-surface-card px-3.5 py-3">
-      <div className={`font-geist font-bold tabular-nums ${danger ? 'text-danger' : 'text-content'}`} style={fs(20, 'subtitle')}>{value}</div>
-      <div className="truncate text-content-faint" style={fs(11.5)}>{label}</div>
+      <div
+        className={`font-geist font-bold tabular-nums ${danger ? 'text-danger' : 'text-content'}`}
+        style={fs(20, 'subtitle')}
+      >
+        {value}
+      </div>
+      <div className="truncate text-content-faint" style={fs(11.5)}>
+        {label}
+      </div>
     </div>
-  )
+  );
 }

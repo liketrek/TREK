@@ -2,9 +2,13 @@
  * Unit tests for the search_places_via_plugins MCP tool (src/nest/plugins/
  * contributions/plugin-search.mcp.ts), the MCP counterpart of GET /api/plugin-search.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+import { createUser } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
 
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { broadcastMock, pluginsEnabled } = vi.hoisted(() => ({
   broadcastMock: vi.fn(),
@@ -24,11 +28,6 @@ vi.mock('../../../src/config', () => ({
 // The admin kill switch reads live env; drive it from the test instead of the process.
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { createUser } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-
 const providersOfMock = vi.spyOn(PluginHooks.prototype, 'providersOf');
 const searchPlacesMock = vi.spyOn(PluginHooks.prototype, 'searchPlaces');
 
@@ -46,7 +45,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false, scopes: null });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 interface PlacesPayload {
@@ -136,7 +139,7 @@ describe('Tool: search_places_via_plugins', () => {
 
     await withHarness(user.id, async (h) => {
       const payload = parseToolResult(await call(h, { query: 'hotel' })) as PlacesPayload;
-      expect(payload.places.map(p => p.pluginId)).toEqual(['guide']);
+      expect(payload.places.map((p) => p.pluginId)).toEqual(['guide']);
     });
   });
 });

@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, act } from '../../../tests/helpers/render';
-import { getCached, isLoading, fetchPhoto, onThumbReady } from '../../services/photoService';
+import { act, fireEvent, render, screen } from '../../../tests/helpers/render';
+import { fetchPhoto, getCached, isLoading, onThumbReady } from '../../services/photoService';
 
 // Mock photoService — all functions are no-ops / return null
 vi.mock('../../services/photoService', () => ({
@@ -145,9 +145,7 @@ describe('PlaceAvatar', () => {
   it('FE-COMP-AVATAR-012: sets photoSrc from cached thumbnail when cache hit', () => {
     vi.mocked(getCached).mockReturnValue({ thumbDataUrl: 'data:image/jpeg;base64,abc', photoUrl: null } as any);
 
-    const { container } = render(
-      <PlaceAvatar place={{ ...basePlaceNoImage, google_place_id: 'gid123' }} />
-    );
+    const { container } = render(<PlaceAvatar place={{ ...basePlaceNoImage, google_place_id: 'gid123' }} />);
 
     const img = container.querySelector('img') as HTMLImageElement;
     expect(img).toBeTruthy();

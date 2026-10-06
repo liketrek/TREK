@@ -8,10 +8,39 @@
  * what changed is that they now run against three decorated classes and a real
  * in-memory core DB, and that the host is built by the production factory.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+import { db as mockDb } from '../../../src/db/database';
+import type { DayAccommodationsRepository } from '../../../src/db/repositories/DayAccommodations.repository';
+import type { DaysRepository } from '../../../src/db/repositories/Days.repository';
+import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
+import type { PluginCapabilityAuditRepository } from '../../../src/db/repositories/PluginCapabilityAudit.repository';
+import type { PluginEntityMetadataRepository } from '../../../src/db/repositories/PluginEntityMetadata.repository';
+import type { PluginScheduledTasksRepository } from '../../../src/db/repositories/PluginScheduledTasks.repository';
+import type { ReservationsRepository } from '../../../src/db/repositories/Reservations.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { UnreadableLlmResponse } from '../../../src/nest/llm-parse/clients/openai-compatible.client';
+import type { LlmConfigResolver } from '../../../src/nest/llm-parse/llm-config.resolver';
+import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { verifyChain } from '../../../src/nest/plugins/host/plugin-audit';
+import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
+import { getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/plugin-host-state';
+import { PluginRpcHostFactory, type PluginCallRouter } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
+import { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
+import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
+import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
+import { HostSurfaceRpc } from '../../../src/nest/plugins/host/rpc/host-surface.rpc';
+import { MetaRpc } from '../../../src/nest/plugins/host/rpc/meta.rpc';
+import type { PluginOAuthService } from '../../../src/nest/plugins/oauth/plugin-oauth.service';
+import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import type { RpcError, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 const { broadcast, broadcastToUser } = vi.hoisted(() => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 // A real in-memory core db, so the metadata SQL and the entity->trip resolution run
@@ -52,35 +81,9 @@ const notifySend = vi.fn(async () => undefined);
 const { llmExtract } = vi.hoisted(() => ({
   llmExtract: vi.fn(async (input: { text?: string }) => [{ text: `answer:${input.text ?? ''}` }]),
 }));
-vi.mock('../../../src/nest/llm-parse/llm-client.factory', () => ({ createLlmClient: vi.fn(() => ({ extract: llmExtract })) }));
-import { PluginRpcHostFactory, type PluginCallRouter } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
-import { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
-import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
-import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
-import { MetaRpc } from '../../../src/nest/plugins/host/rpc/meta.rpc';
-import { HostSurfaceRpc } from '../../../src/nest/plugins/host/rpc/host-surface.rpc';
-import { UnreadableLlmResponse } from '../../../src/nest/llm-parse/clients/openai-compatible.client';
-import { getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/plugin-host-state';
-import { verifyChain } from '../../../src/nest/plugins/host/plugin-audit';
-import { db as mockDb } from '../../../src/db/database';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
-import type { LlmConfigResolver } from '../../../src/nest/llm-parse/llm-config.resolver';
-import type { PluginOAuthService } from '../../../src/nest/plugins/oauth/plugin-oauth.service';
-import type { RpcError, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
-import type { PluginCapabilityAuditRepository } from '../../../src/db/repositories/PluginCapabilityAudit.repository';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
-import type { DaysRepository } from '../../../src/db/repositories/Days.repository';
-import type { ReservationsRepository } from '../../../src/db/repositories/Reservations.repository';
-import type { DayAccommodationsRepository } from '../../../src/db/repositories/DayAccommodations.repository';
-import type { PluginEntityMetadataRepository } from '../../../src/db/repositories/PluginEntityMetadata.repository';
-import type { PluginScheduledTasksRepository } from '../../../src/db/repositories/PluginScheduledTasks.repository';
+vi.mock('../../../src/nest/llm-parse/llm-client.factory', () => ({
+  createLlmClient: vi.fn(() => ({ extract: llmExtract })),
+}));
 
 // Typed from the real method rather than from the always-true body below, so a case that
 // swaps in an implementation reading the action key (HOSTRPC-015) still type-checks.
@@ -90,7 +93,9 @@ const addons = { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService
 const notifications = { send: notifySend } as unknown as NotificationsService;
 // user 7 has no provider configured; everyone else resolves to a stub config.
 const llmConfig = {
-  resolve: vi.fn((uid: number) => (uid === 7 ? null : { provider: 'openai', model: 'gpt-x', baseUrl: undefined, apiKey: 'sekret' })),
+  resolve: vi.fn((uid: number) =>
+    uid === 7 ? null : { provider: 'openai', model: 'gpt-x', baseUrl: undefined, apiKey: 'sekret' },
+  ),
 } as unknown as LlmConfigResolver;
 const oauth = {
   async getAccessToken(_pid: string, uid: number) {
@@ -127,10 +132,30 @@ const pluginAuditRepo = {
       .get(pluginId) as { hash: string } | undefined;
     return row?.hash ?? null;
   },
-  async insertRow(entry: { plugin_id: string; acting_user_id: number | null; method: string; resource: string | null; code: string; ts: string; prev_hash: string | null; hash: string }) {
+  async insertRow(entry: {
+    plugin_id: string;
+    acting_user_id: number | null;
+    method: string;
+    resource: string | null;
+    code: string;
+    ts: string;
+    prev_hash: string | null;
+    hash: string;
+  }) {
     (mockDb as unknown as { prepare(s: string): { run(...a: unknown[]): unknown } })
-      .prepare('INSERT INTO plugin_capability_audit (plugin_id, acting_user_id, method, resource, code, ts, prev_hash, hash) VALUES (?,?,?,?,?,?,?,?)')
-      .run(entry.plugin_id, entry.acting_user_id, entry.method, entry.resource, entry.code, entry.ts, entry.prev_hash, entry.hash);
+      .prepare(
+        'INSERT INTO plugin_capability_audit (plugin_id, acting_user_id, method, resource, code, ts, prev_hash, hash) VALUES (?,?,?,?,?,?,?,?)',
+      )
+      .run(
+        entry.plugin_id,
+        entry.acting_user_id,
+        entry.method,
+        entry.resource,
+        entry.code,
+        entry.ts,
+        entry.prev_hash,
+        entry.hash,
+      );
   },
   async pruneKeepingNewest() {
     // Not exercised in this suite (PRUNE_EVERY = 500 appends/plugin) — a no-op stub.
@@ -148,7 +173,11 @@ const pluginAuditRepo = {
  * directly, so this HAS to be the real table.
  */
 type RawDb = {
-  prepare(sql: string): { get(...a: unknown[]): unknown; all(...a: unknown[]): unknown[]; run(...a: unknown[]): { changes: number } };
+  prepare(sql: string): {
+    get(...a: unknown[]): unknown;
+    all(...a: unknown[]): unknown[];
+    run(...a: unknown[]): { changes: number };
+  };
 };
 const raw = mockDb as unknown as RawDb;
 
@@ -191,13 +220,16 @@ const daysRepo = {
 
 const reservationsRepo = {
   async findTripId(id: number) {
-    return (raw.prepare('SELECT trip_id FROM reservations WHERE id = ?').get(id) as { trip_id: number } | undefined)?.trip_id;
+    return (raw.prepare('SELECT trip_id FROM reservations WHERE id = ?').get(id) as { trip_id: number } | undefined)
+      ?.trip_id;
   },
 } as unknown as ReservationsRepository;
 
 const dayAccommodationsRepo = {
   async getTripId(id: number) {
-    return (raw.prepare('SELECT trip_id FROM day_accommodations WHERE id = ?').get(id) as { trip_id: number } | undefined)?.trip_id;
+    return (
+      raw.prepare('SELECT trip_id FROM day_accommodations WHERE id = ?').get(id) as { trip_id: number } | undefined
+    )?.trip_id;
   },
 } as unknown as DayAccommodationsRepository;
 
@@ -227,18 +259,31 @@ const metaRepo = {
   },
   async listForEntity(pluginId: string, entityType: string, entityId: number) {
     return raw
-      .prepare('SELECT key, value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? ORDER BY key')
+      .prepare(
+        'SELECT key, value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? ORDER BY key',
+      )
       .all(pluginId, entityType, entityId) as Array<{ key: string; value: string }>;
   },
   async deleteValue(pluginId: string, entityType: string, entityId: number, key: string) {
-    return raw.prepare('DELETE FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? AND key=?').run(pluginId, entityType, entityId, key).changes > 0;
+    return (
+      raw
+        .prepare('DELETE FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? AND key=?')
+        .run(pluginId, entityType, entityId, key).changes > 0
+    );
   },
   // Plan 3j Task 7 fix (must-land 2) — `meta.rpc.ts#set` now calls this ONE method
   // instead of `findValue`+`countForEntity`+`upsertValue` separately. One synchronous
   // better-sqlite3 statement (no `await` gap between the cap check and the write),
   // the same atomicity property the real `PluginEntityMetadataRepository
   // .upsertValueCapped` gets from `getEntityManager().transactional`.
-  async upsertValueCapped(pluginId: string, entityType: string, entityId: number, key: string, value: string, maxKeys: number) {
+  async upsertValueCapped(
+    pluginId: string,
+    entityType: string,
+    entityId: number,
+    key: string,
+    value: string,
+    maxKeys: number,
+  ) {
     const result = raw
       .prepare(
         `INSERT INTO plugin_entity_metadata (plugin_id, entity_type, entity_id, key, value, updated_at)
@@ -248,7 +293,21 @@ const metaRepo = {
              ON CONFLICT(plugin_id, entity_type, entity_id, key)
              DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
       )
-      .run(pluginId, entityType, entityId, key, value, pluginId, entityType, entityId, key, pluginId, entityType, entityId, maxKeys);
+      .run(
+        pluginId,
+        entityType,
+        entityId,
+        key,
+        value,
+        pluginId,
+        entityType,
+        entityId,
+        key,
+        pluginId,
+        entityType,
+        entityId,
+        maxKeys,
+      );
     return result.changes > 0;
   },
 } as unknown as PluginEntityMetadataRepository;
@@ -258,9 +317,17 @@ const scheduledTasksRepo = {
     return !!raw.prepare('SELECT id FROM plugin_scheduled_tasks WHERE plugin_id = ? AND name = ?').get(pluginId, name);
   },
   async countForPlugin(pluginId: string) {
-    return (raw.prepare('SELECT COUNT(*) AS c FROM plugin_scheduled_tasks WHERE plugin_id = ?').get(pluginId) as { c: number }).c;
+    return (
+      raw.prepare('SELECT COUNT(*) AS c FROM plugin_scheduled_tasks WHERE plugin_id = ?').get(pluginId) as { c: number }
+    ).c;
   },
-  async upsertTask(input: { plugin_id: string; name: string; due_at: number; payload: string; every_ms: number | null }) {
+  async upsertTask(input: {
+    plugin_id: string;
+    name: string;
+    due_at: number;
+    payload: string;
+    every_ms: number | null;
+  }) {
     raw
       .prepare(
         `INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at, payload, every_ms) VALUES (?, ?, ?, ?, ?)
@@ -269,13 +336,18 @@ const scheduledTasksRepo = {
       .run(input.plugin_id, input.name, input.due_at, input.payload, input.every_ms);
   },
   async deleteByPluginAndName(pluginId: string, name: string) {
-    return raw.prepare('DELETE FROM plugin_scheduled_tasks WHERE plugin_id = ? AND name = ?').run(pluginId, name).changes > 0;
+    return (
+      raw.prepare('DELETE FROM plugin_scheduled_tasks WHERE plugin_id = ? AND name = ?').run(pluginId, name).changes > 0
+    );
   },
   // Plan 3j Task 7 fix (must-land 3) — `host-surface.rpc.ts#schedulerSet` now calls
   // this ONE method instead of `existsForPluginAndName`+`countForPlugin`+`upsertTask`
   // separately. Same one-statement atomicity shape as `metaRepo.upsertValueCapped`
   // above, mirroring the real `PluginScheduledTasksRepository.upsertTaskCapped`.
-  async upsertTaskCapped(input: { plugin_id: string; name: string; due_at: number; payload: string; every_ms: number | null }, maxTasks: number) {
+  async upsertTaskCapped(
+    input: { plugin_id: string; name: string; due_at: number; payload: string; every_ms: number | null },
+    maxTasks: number,
+  ) {
     const result = raw
       .prepare(
         `INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at, payload, every_ms)
@@ -284,7 +356,17 @@ const scheduledTasksRepo = {
                 OR (SELECT COUNT(*) FROM plugin_scheduled_tasks WHERE plugin_id=?) < ?
              ON CONFLICT (plugin_id, name) DO UPDATE SET due_at = excluded.due_at, payload = excluded.payload, every_ms = excluded.every_ms`,
       )
-      .run(input.plugin_id, input.name, input.due_at, input.payload, input.every_ms, input.plugin_id, input.name, input.plugin_id, maxTasks);
+      .run(
+        input.plugin_id,
+        input.name,
+        input.due_at,
+        input.payload,
+        input.every_ms,
+        input.plugin_id,
+        input.name,
+        input.plugin_id,
+        maxTasks,
+      );
     return result.changes > 0;
   },
 } as unknown as PluginScheduledTasksRepository;
@@ -305,8 +387,7 @@ const usersRepo = {
   async findPublicIdentity(id: number) {
     return (
       (raw.prepare('SELECT id, username, display_name, avatar FROM users WHERE id = ?').get(id) as
-        | { id: number; username: string; display_name: string | null; avatar: string | null }
-        | undefined) ?? null
+        { id: number; username: string; display_name: string | null; avatar: string | null } | undefined) ?? null
     );
   },
 } as unknown as UsersRepository;
@@ -317,7 +398,17 @@ const guards = new PluginGuards(tripsRepo, permissions, addons, usersRepo);
 const registry = createTestPluginRegistry([
   new DbRpc(userSettings),
   new MetaRpc(guards, metaRepo, tripsRepo, placesRepo, daysRepo, reservationsRepo, dayAccommodationsRepo),
-  new HostSurfaceRpc(new RealtimeService(), notifications, llmConfig, oauth, guards, pluginAuditRepo, usersRepo, tripsRepo, scheduledTasksRepo),
+  new HostSurfaceRpc(
+    new RealtimeService(),
+    notifications,
+    llmConfig,
+    oauth,
+    guards,
+    pluginAuditRepo,
+    usersRepo,
+    tripsRepo,
+    scheduledTasksRepo,
+  ),
 ]);
 const factory = new PluginRpcHostFactory(pluginAuditRepo, registry as unknown as PluginRpcRegistryService);
 const stubRouter: PluginCallRouter = { callPlugin: async () => undefined, emitPluginEvent: async () => {} };
@@ -358,7 +449,7 @@ afterAll(() => {
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
-describe('DbRpc — the plugin\'s own sqlite', () => {
+describe("DbRpc — the plugin's own sqlite", () => {
   it('HOSTRPC-001 caches one data db per plugin id', () => {
     expect(getPluginDataDb('wired')).toBe(getPluginDataDb('wired'));
   });
@@ -392,7 +483,7 @@ describe('DbRpc — the plugin\'s own sqlite', () => {
     }
   });
 
-  it('HOSTRPC-005 two plugins never see each other\'s tables', async () => {
+  it("HOSTRPC-005 two plugins never see each other's tables", async () => {
     // The regression this guards: DbRpc is a SINGLETON that serves every plugin, so a
     // handle captured in a field or a closure would hand plugin B the rows of whichever
     // plugin happened to construct it first.
@@ -433,7 +524,7 @@ describe('DbRpc — the plugin\'s own sqlite', () => {
 describe('DbRpc — the unconditional three', () => {
   afterAll(() => closePluginDataDb('open3'));
 
-  it('HOSTRPC-008 plugins.call and events.emit route through the host\'s own router', async () => {
+  it("HOSTRPC-008 plugins.call and events.emit route through the host's own router", async () => {
     const calls: unknown[] = [];
     const emits: unknown[] = [];
     const router: PluginCallRouter = {
@@ -456,7 +547,7 @@ describe('DbRpc — the unconditional three', () => {
     expect(emits).toEqual([{ sourceId: 'open3', event: 'ping', payload: { a: 1 } }]);
   });
 
-  it('HOSTRPC-009 settings.get returns the acting user\'s decrypted value; userless yields undefined', async () => {
+  it("HOSTRPC-009 settings.get returns the acting user's decrypted value; userless yields undefined", async () => {
     const host = makeHost('open3');
     expect((await call(host, 'settings.get', { key: 'apiKey' }, 5)).result).toEqual({ value: 'k-5' });
     expect((await call(host, 'settings.get', { key: 'apiKey' }, undefined)).result).toEqual({ value: undefined });
@@ -478,14 +569,25 @@ describe('MetaRpc — namespaced entity metadata', () => {
 
   it('HOSTRPC-011 round-trips and enforces the key/value/access limits', async () => {
     const host = makeHost('meta', 'db:meta');
-    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'k', value: { a: 1 } })).ok).toBe(true);
+    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'k', value: { a: 1 } })).ok).toBe(
+      true,
+    );
     expect((await call(host, 'meta.get', { entityType: 'trip', entityId: 1, key: 'k' })).result).toEqual({ a: 1 });
     expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'k', value: 2 })).ok).toBe(true); // upsert
     expect((await call(host, 'meta.list', { entityType: 'place', entityId: 7 })).ok).toBe(true); // place -> trip 1
-    expect((await call(host, 'meta.delete', { entityType: 'trip', entityId: 1, key: 'k' })).result).toEqual({ deleted: true });
-    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'x'.repeat(300), value: 1 })).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'big', value: 'y'.repeat(70000) })).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 2, key: 'k', value: 1 })).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(host, 'meta.delete', { entityType: 'trip', entityId: 1, key: 'k' })).result).toEqual({
+      deleted: true,
+    });
+    expect(
+      (await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'x'.repeat(300), value: 1 })).error?.code,
+    ).toBe('BAD_PARAMS');
+    expect(
+      (await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'big', value: 'y'.repeat(70000) })).error
+        ?.code,
+    ).toBe('BAD_PARAMS');
+    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 2, key: 'k', value: 1 })).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
   });
 
   it('HOSTRPC-012 an unreadable value comes back as null rather than throwing', async () => {
@@ -495,7 +597,10 @@ describe('MetaRpc — namespaced entity metadata', () => {
       .prepare("UPDATE plugin_entity_metadata SET value='{not json' WHERE plugin_id='meta' AND key='corrupt'")
       .run();
     expect((await call(host, 'meta.get', { entityType: 'trip', entityId: 1, key: 'corrupt' })).result).toBeNull();
-    const listed = (await call(host, 'meta.list', { entityType: 'trip', entityId: 1 })).result as Record<string, unknown>;
+    const listed = (await call(host, 'meta.list', { entityType: 'trip', entityId: 1 })).result as Record<
+      string,
+      unknown
+    >;
     expect(listed.corrupt).toBeNull();
     await call(host, 'meta.delete', { entityType: 'trip', entityId: 1, key: 'corrupt' });
   });
@@ -511,7 +616,9 @@ describe('MetaRpc — namespaced entity metadata', () => {
   it('HOSTRPC-013 a key that was never set reads as null, and deleting it reports false', async () => {
     const host = makeHost('meta', 'db:meta');
     expect((await call(host, 'meta.get', { entityType: 'trip', entityId: 1, key: 'ghost' })).result).toBeNull();
-    expect((await call(host, 'meta.delete', { entityType: 'trip', entityId: 1, key: 'ghost' })).result).toEqual({ deleted: false });
+    expect((await call(host, 'meta.delete', { entityType: 'trip', entityId: 1, key: 'ghost' })).result).toEqual({
+      deleted: false,
+    });
   });
 
   it('HOSTRPC-014 the per-entity key quota is enforced on new keys only', async () => {
@@ -523,7 +630,9 @@ describe('MetaRpc — namespaced entity metadata', () => {
     expect(overflow.error?.code).toBe('BAD_PARAMS');
     expect(overflow.error?.message).toMatch(/too many metadata keys/);
     // An existing key still updates — the quota counts keys, not writes.
-    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'k0', value: 'again' })).ok).toBe(true);
+    expect((await call(host, 'meta.set', { entityType: 'trip', entityId: 1, key: 'k0', value: 'again' })).ok).toBe(
+      true,
+    );
     closePluginDataDb('metaquota');
   });
 
@@ -534,7 +643,13 @@ describe('MetaRpc — namespaced entity metadata', () => {
       seen.push(action);
       return Promise.resolve(true);
     });
-    for (const [entityType, entityId] of [['trip', 1], ['place', 7], ['day', 3], ['reservation', 40], ['accommodation', 11]] as const) {
+    for (const [entityType, entityId] of [
+      ['trip', 1],
+      ['place', 7],
+      ['day', 3],
+      ['reservation', 40],
+      ['accommodation', 11],
+    ] as const) {
       expect((await call(host, 'meta.set', { entityType, entityId, key: 'k', value: 1 })).ok).toBe(true);
     }
     // Accommodations deliberately ride on day_edit, like the accommodation write path.
@@ -549,13 +664,19 @@ describe('MetaRpc — namespaced entity metadata', () => {
 
   it('HOSTRPC-016 an unknown entityType is BAD_PARAMS and a userless context is refused', async () => {
     const host = makeHost('meta', 'db:meta');
-    expect((await call(host, 'meta.set', { entityType: 'user', entityId: 1, key: 'k', value: 1 })).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'meta.get', { entityType: 'trip', entityId: 1, key: 'k' }, undefined)).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(host, 'meta.set', { entityType: 'user', entityId: 1, key: 'k', value: 1 })).error?.code).toBe(
+      'BAD_PARAMS',
+    );
+    expect((await call(host, 'meta.get', { entityType: 'trip', entityId: 1, key: 'k' }, undefined)).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
     // An entity id that resolves to nothing is refused rather than reported as empty.
-    expect((await call(host, 'meta.get', { entityType: 'reservation', entityId: 999, key: 'k' })).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(host, 'meta.get', { entityType: 'reservation', entityId: 999, key: 'k' })).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
   });
 
-  it('HOSTRPC-017 one plugin never reads another\'s keys on the same entity', async () => {
+  it("HOSTRPC-017 one plugin never reads another's keys on the same entity", async () => {
     const a = makeHost('meta-a', 'db:meta');
     const b = makeHost('meta-b', 'db:meta');
     await call(a, 'meta.set', { entityType: 'trip', entityId: 1, key: 'shared', value: 'a-value' });
@@ -568,7 +689,9 @@ describe('MetaRpc — namespaced entity metadata', () => {
   it('HOSTRPC-018 without db:meta not one of the four is reachable', async () => {
     const host = makeHost('meta', 'db:read:trips');
     for (const method of ['meta.get', 'meta.set', 'meta.list', 'meta.delete']) {
-      expect((await call(host, method, { entityType: 'trip', entityId: 1, key: 'k' })).error?.code).toBe('PERMISSION_DENIED');
+      expect((await call(host, method, { entityType: 'trip', entityId: 1, key: 'k' })).error?.code).toBe(
+        'PERMISSION_DENIED',
+      );
     }
   });
 });
@@ -607,10 +730,25 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     expect(results.every((r) => r.ok)).toBe(true);
     const rows = (
       mockDb as unknown as {
-        prepare(s: string): { all(...a: unknown[]): Array<{ plugin_id: string; acting_user_id: number | null; method: string; resource: string | null; code: string; ts: string; prev_hash: string | null; hash: string }> };
+        prepare(s: string): {
+          all(
+            ...a: unknown[]
+          ): Array<{
+            plugin_id: string;
+            acting_user_id: number | null;
+            method: string;
+            resource: string | null;
+            code: string;
+            ts: string;
+            prev_hash: string | null;
+            hash: string;
+          }>;
+        };
       }
     )
-      .prepare("SELECT plugin_id, acting_user_id, method, resource, code, ts, prev_hash, hash FROM plugin_capability_audit WHERE plugin_id = 'auditburst' ORDER BY id ASC")
+      .prepare(
+        "SELECT plugin_id, acting_user_id, method, resource, code, ts, prev_hash, hash FROM plugin_capability_audit WHERE plugin_id = 'auditburst' ORDER BY id ASC",
+      )
       .all();
     expect(rows).toHaveLength(N);
     expect(verifyChain(rows)).toBe(true);
@@ -627,8 +765,12 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     await call(host, 'ws.broadcastToTrip', { tripId: 1, event: 'ping', data: 'primitive' }, 5);
     expect(broadcast).toHaveBeenLastCalledWith(1, 'plugin:surface:ping', { value: 'primitive' });
     broadcast.mockClear();
-    expect((await call(host, 'ws.broadcastToTrip', { tripId: 2, event: 'x', data: {} }, 5)).error?.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(host, 'ws.broadcastToTrip', { tripId: 1, event: 'x', data: {} }, undefined)).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(host, 'ws.broadcastToTrip', { tripId: 2, event: 'x', data: {} }, 5)).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
+    expect((await call(host, 'ws.broadcastToTrip', { tripId: 1, event: 'x', data: {} }, undefined)).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
     expect(broadcast).not.toHaveBeenCalled();
   });
 
@@ -636,43 +778,87 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     const host = makeHost('surface', 'ws:broadcast:user');
     expect((await call(host, 'ws.broadcastToUser', { userId: 5, event: 'hi', data: { x: 2 } }, 5)).ok).toBe(true);
     expect(broadcastToUser).toHaveBeenCalledWith(5, { type: 'plugin:surface', event: 'hi', x: 2 });
-    expect((await call(host, 'ws.broadcastToUser', { userId: 6, event: 'hi', data: {} }, 5)).error?.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(host, 'ws.broadcastToUser', { userId: 5, event: 'hi', data: {} }, undefined)).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect((await call(host, 'ws.broadcastToUser', { userId: 6, event: 'hi', data: {} }, 5)).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
+    expect((await call(host, 'ws.broadcastToUser', { userId: 5, event: 'hi', data: {} }, undefined)).error?.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
   });
 
   it('HOSTRPC-022 notify.send forces the recipient and carries the plugin_notification event', async () => {
     const host = makeHost('surface', 'notify:send');
-    expect((await call(host, 'notify.send', { input: { title: 'Delay', body: 'AB123 late', scope: 'user', targetId: 5, link: '/trips/1' } }, 5)).ok).toBe(true);
-    expect(notifySend).toHaveBeenCalledWith(expect.objectContaining({
-      event: 'plugin_notification',
-      actorId: null,
-      scope: 'user',
-      targetId: 5,
-      params: expect.objectContaining({ title: 'Delay', body: 'AB123 late', link: '/trips/1' }),
-    }));
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'trip', targetId: 1 } }, 5)).ok).toBe(true);
+    expect(
+      (
+        await call(
+          host,
+          'notify.send',
+          { input: { title: 'Delay', body: 'AB123 late', scope: 'user', targetId: 5, link: '/trips/1' } },
+          5,
+        )
+      ).ok,
+    ).toBe(true);
+    expect(notifySend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'plugin_notification',
+        actorId: null,
+        scope: 'user',
+        targetId: 5,
+        params: expect.objectContaining({ title: 'Delay', body: 'AB123 late', link: '/trips/1' }),
+      }),
+    );
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'trip', targetId: 1 } }, 5)).ok,
+    ).toBe(true);
     // Another user, a trip the acting user isn't in, and the admin scope are all refused.
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 9 } }, 5)).error?.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'trip', targetId: 2 } }, 5)).error?.code).toBe('RESOURCE_FORBIDDEN');
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'admin', targetId: 0 } }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 5 } }, undefined)).error?.code).toBe('RESOURCE_FORBIDDEN');
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 9 } }, 5)).error
+        ?.code,
+    ).toBe('RESOURCE_FORBIDDEN');
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'trip', targetId: 2 } }, 5)).error
+        ?.code,
+    ).toBe('RESOURCE_FORBIDDEN');
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'admin', targetId: 0 } }, 5)).error
+        ?.code,
+    ).toBe('BAD_PARAMS');
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 5 } }, undefined))
+        .error?.code,
+    ).toBe('RESOURCE_FORBIDDEN');
   });
 
   it('HOSTRPC-023 notify.send rejects an off-site link and an empty or emoji-only title', async () => {
     const host = makeHost('surface', 'notify:send');
     const base = { body: 'b', scope: 'user', targetId: 5 };
     for (const link of ['//evil.com', 'https://evil.com/x', '/\\evil.com', 'javascript:alert(1)']) {
-      expect((await call(host, 'notify.send', { input: { ...base, title: 't', link } }, 5)).error?.code).toBe('BAD_PARAMS');
+      expect((await call(host, 'notify.send', { input: { ...base, title: 't', link } }, 5)).error?.code).toBe(
+        'BAD_PARAMS',
+      );
     }
     expect((await call(host, 'notify.send', { input: { ...base, title: '' } }, 5)).error?.code).toBe('BAD_PARAMS');
     // stripEmoji collapses an all-emoji title to '', so it lands on the same refusal.
     expect((await call(host, 'notify.send', { input: { ...base, title: '🎉🎉' } }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'notify.send', { input: { ...base, title: 'x'.repeat(201) } }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 'y'.repeat(1001), scope: 'user', targetId: 5 } }, 5)).error?.code).toBe('BAD_PARAMS');
+    expect((await call(host, 'notify.send', { input: { ...base, title: 'x'.repeat(201) } }, 5)).error?.code).toBe(
+      'BAD_PARAMS',
+    );
+    expect(
+      (
+        await call(
+          host,
+          'notify.send',
+          { input: { title: 't', body: 'y'.repeat(1001), scope: 'user', targetId: 5 } },
+          5,
+        )
+      ).error?.code,
+    ).toBe('BAD_PARAMS');
     // A non-string title or body lands on the same refusal as an empty one, rather
     // than reaching stripEmoji and throwing there.
     expect((await call(host, 'notify.send', { input: { ...base, title: 42 } }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'notify.send', { input: { title: 't', body: 42, scope: 'user', targetId: 5 } }, 5)).error?.code).toBe('BAD_PARAMS');
+    expect(
+      (await call(host, 'notify.send', { input: { title: 't', body: 42, scope: 'user', targetId: 5 } }, 5)).error?.code,
+    ).toBe('BAD_PARAMS');
     expect(notifySend).not.toHaveBeenCalled();
   });
 
@@ -686,9 +872,13 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     expect((await call(host, 'ai.complete', { prompt: 'hi' }, 7)).error?.code).toBe('BAD_PARAMS');
     expect((await call(host, 'ai.complete', { prompt: '' }, 5)).error?.code).toBe('BAD_PARAMS');
     expect((await call(host, 'ai.complete', { prompt: 'x'.repeat(20001) }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'ai.extract', { text: 'x', jsonSchema: 'not-an-object' }, 5)).error?.code).toBe('BAD_PARAMS');
+    expect((await call(host, 'ai.extract', { text: 'x', jsonSchema: 'not-an-object' }, 5)).error?.code).toBe(
+      'BAD_PARAMS',
+    );
     expect((await call(host, 'ai.extract', { text: '', jsonSchema: {} }, 5)).error?.code).toBe('BAD_PARAMS');
-    expect((await call(host, 'ai.extract', { text: 'x'.repeat(20001), jsonSchema: {} }, 5)).error?.code).toBe('BAD_PARAMS');
+    expect((await call(host, 'ai.extract', { text: 'x'.repeat(20001), jsonSchema: {} }, 5)).error?.code).toBe(
+      'BAD_PARAMS',
+    );
     expect((await call(host, 'ai.complete', { prompt: 'hi' }, undefined)).error?.code).toBe('RESOURCE_FORBIDDEN');
     // A non-string prompt/text is the same refusal as an empty one, not a crash.
     expect((await call(host, 'ai.complete', { prompt: 42 }, 5)).error?.code).toBe('BAD_PARAMS');
@@ -697,21 +887,29 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     expect((await call(host, 'ai.extract', { text: 'x', jsonSchema: null }, 5)).error?.code).toBe('BAD_PARAMS');
   });
 
-  it('HOSTRPC-025 the plugin\'s system prompt and extraction hint are passed through, with a default', async () => {
+  it("HOSTRPC-025 the plugin's system prompt and extraction hint are passed through, with a default", async () => {
     const host = makeHost('surface', 'ai:invoke');
     await call(host, 'ai.complete', { prompt: 'p', system: 'be terse' }, 5);
     expect(llmExtract).toHaveBeenLastCalledWith(expect.objectContaining({ prompt: 'be terse', text: 'p' }));
     await call(host, 'ai.complete', { prompt: 'p' }, 5);
-    expect(llmExtract).toHaveBeenLastCalledWith(expect.objectContaining({ prompt: expect.stringContaining('helpful assistant') }));
+    expect(llmExtract).toHaveBeenLastCalledWith(
+      expect.objectContaining({ prompt: expect.stringContaining('helpful assistant') }),
+    );
     await call(host, 'ai.extract', { text: 't', jsonSchema: { type: 'object' }, prompt: '' }, 5);
-    expect(llmExtract).toHaveBeenLastCalledWith(expect.objectContaining({ prompt: expect.stringContaining('Extract structured data') }));
+    expect(llmExtract).toHaveBeenLastCalledWith(
+      expect.objectContaining({ prompt: expect.stringContaining('Extract structured data') }),
+    );
   });
 
   it('HOSTRPC-026 a model that answers with no text yields an empty string, not undefined', async () => {
     llmExtract.mockResolvedValueOnce([{ text: 42 } as never]);
-    expect((await call(makeHost('surface', 'ai:invoke'), 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({ text: '' });
+    expect((await call(makeHost('surface', 'ai:invoke'), 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({
+      text: '',
+    });
     llmExtract.mockResolvedValueOnce([]);
-    expect((await call(makeHost('surface', 'ai:invoke'), 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({ text: '' });
+    expect((await call(makeHost('surface', 'ai:invoke'), 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({
+      text: '',
+    });
   });
 
   /*
@@ -723,11 +921,15 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
    */
   it('HOSTRPC-026a an unreadable answer stays empty here, a failed request does not (#2375)', async () => {
     const host = makeHost('surface', 'ai:invoke');
-    llmExtract.mockRejectedValueOnce(new UnreadableLlmResponse('the model did not answer with JSON: Sure, happy to help.'));
+    llmExtract.mockRejectedValueOnce(
+      new UnreadableLlmResponse('the model did not answer with JSON: Sure, happy to help.'),
+    );
     expect((await call(host, 'ai.complete', { prompt: 'p' }, 5)).result).toEqual({ text: '' });
 
     llmExtract.mockRejectedValueOnce(new UnreadableLlmResponse('the model returned an empty response'));
-    expect((await call(host, 'ai.extract', { text: 't', jsonSchema: { type: 'object' } }, 5)).result).toEqual({ results: [] });
+    expect((await call(host, 'ai.extract', { text: 't', jsonSchema: { type: 'object' } }, 5)).result).toEqual({
+      results: [],
+    });
 
     llmExtract.mockRejectedValueOnce(new Error('LLM request failed (503): upstream is down'));
     const failed = await call(host, 'ai.complete', { prompt: 'p' }, 5);
@@ -735,7 +937,7 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     expect(failed.error?.message).toMatch(/503/);
   });
 
-  it('HOSTRPC-027 oauth.getToken returns only the acting user\'s access token', async () => {
+  it("HOSTRPC-027 oauth.getToken returns only the acting user's access token", async () => {
     const host = makeHost('surface', 'oauth:client');
     expect((await call(host, 'oauth.getToken', {}, 5)).result).toEqual({ accessToken: 'tok-5' });
     expect((await call(host, 'oauth.getToken', {}, 7)).result).toEqual({ accessToken: null }); // not connected
@@ -752,7 +954,9 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
         .get().n;
     const due = Date.now() + 120_000;
     // Userless is fine — a scheduled task is like a job.
-    expect((await call(host, 'scheduler.set', { name: 'poll', dueAt: due, payload: { a: 1 } }, undefined)).ok).toBe(true);
+    expect((await call(host, 'scheduler.set', { name: 'poll', dueAt: due, payload: { a: 1 } }, undefined)).ok).toBe(
+      true,
+    );
     expect(count()).toBe(1);
     expect((await call(host, 'scheduler.set', { name: 'poll', dueAt: due + 1000 }, undefined)).ok).toBe(true);
     expect(count()).toBe(1); // upsert by (plugin, name)
@@ -764,7 +968,8 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
   it('HOSTRPC-029 the scheduler caps bound name, horizon, interval and payload', async () => {
     const host = makeHost('wsched2', 'jobs:run');
     const due = Date.now() + 120_000;
-    const bad = async (params: Record<string, unknown>) => (await call(host, 'scheduler.set', params, undefined)).error?.code;
+    const bad = async (params: Record<string, unknown>) =>
+      (await call(host, 'scheduler.set', params, undefined)).error?.code;
     expect(await bad({ name: '', dueAt: due })).toBe('BAD_PARAMS');
     expect(await bad({ name: 'x'.repeat(129), dueAt: due })).toBe('BAD_PARAMS');
     expect(await bad({ name: 'far', dueAt: Date.now() + 400 * 24 * 60 * 60 * 1000 })).toBe('BAD_PARAMS');
@@ -792,16 +997,22 @@ describe('HostSurfaceRpc — users, broadcasts, notify, ai, oauth, scheduler', (
     expect((await call(host, 'scheduler.set', { name: 't0', dueAt: due + 5 }, undefined)).ok).toBe(true);
   });
 
-  it('HOSTRPC-031 the daily notify + AI budgets are enforced, seeded from today\'s audit rows', async () => {
+  it("HOSTRPC-031 the daily notify + AI budgets are enforced, seeded from today's audit rows", async () => {
     // Seed the audit with a plugin that has already spent its whole day (default caps
     // are 100 notify / 200 ai) so the budget is exhausted on first use.
     const today = `${new Date().toISOString().slice(0, 10)}T08:00:00.000Z`;
-    const insert = (mockDb as unknown as { prepare(s: string): { run(...a: unknown[]): unknown } })
-      .prepare("INSERT INTO plugin_capability_audit (plugin_id, method, code, ts) VALUES (?, ?, 'ok', ?)");
+    const insert = (mockDb as unknown as { prepare(s: string): { run(...a: unknown[]): unknown } }).prepare(
+      "INSERT INTO plugin_capability_audit (plugin_id, method, code, ts) VALUES (?, ?, 'ok', ?)",
+    );
     for (let i = 0; i < 100; i++) insert.run('wbudget', 'notify.send', today);
     for (let i = 0; i < 200; i++) insert.run('wbudget', 'ai.complete', today);
     const host = makeHost('wbudget', 'notify:send', 'ai:invoke');
-    const notified = await call(host, 'notify.send', { input: { title: 't', body: 'b', scope: 'user', targetId: 5 } }, 5);
+    const notified = await call(
+      host,
+      'notify.send',
+      { input: { title: 't', body: 'b', scope: 'user', targetId: 5 } },
+      5,
+    );
     expect(notified.error?.code).toBe('BAD_PARAMS');
     expect(notified.error?.message).toMatch(/budget/i);
     expect(notifySend).not.toHaveBeenCalled();

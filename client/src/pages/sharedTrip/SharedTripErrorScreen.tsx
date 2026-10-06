@@ -1,11 +1,11 @@
-import { CloudOff, Loader2, RotateCcw } from 'lucide-react'
-import { useTranslation } from '../../i18n'
-import type { SharedTripLoadError } from './sharedTripModel'
+import { CloudOff, Loader2, RotateCcw } from 'lucide-react';
+import { useTranslation } from '../../i18n';
+import type { SharedTripLoadError } from './sharedTripModel';
 
 interface SharedTripErrorScreenProps {
-  reason: SharedTripLoadError
-  retrying: boolean
-  onRetry: () => void
+  reason: SharedTripLoadError;
+  retrying: boolean;
+  onRetry: () => void;
 }
 
 /**
@@ -15,8 +15,8 @@ interface SharedTripErrorScreenProps {
  * request (#2505).
  */
 export function SharedTripErrorScreen({ reason, retrying, onRetry }: SharedTripErrorScreenProps) {
-  const { t } = useTranslation()
-  const expired = reason === 'expired'
+  const { t } = useTranslation();
+  const expired = reason === 'expired';
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-secondary">
@@ -28,7 +28,9 @@ export function SharedTripErrorScreen({ reason, retrying, onRetry }: SharedTripE
         ) : (
           <CloudOff size={44} strokeWidth={1.75} className="mb-4 text-content-muted" aria-hidden />
         )}
-        <h1 className="text-balance text-subtitle font-bold text-content">{t(expired ? 'shared.expired' : 'shared.loadFailed')}</h1>
+        <h1 className="text-balance text-subtitle font-bold text-content">
+          {t(expired ? 'shared.expired' : 'shared.loadFailed')}
+        </h1>
         <p className="mt-2 text-balance text-body text-content-muted">
           {t(expired ? 'shared.expiredHint' : 'shared.loadFailedHint')}
         </p>
@@ -50,5 +52,5 @@ export function SharedTripErrorScreen({ reason, retrying, onRetry }: SharedTripE
         )}
       </div>
     </div>
-  )
+  );
 }

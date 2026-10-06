@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createPlace, createTag, createTrip, createUser } from '../../../helpers/factories';
 import { Tags } from '../../../../src/db/entities/Tags.entity';
 import type { TagsRepository } from '../../../../src/db/repositories/Tags.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createPlace, createTag, createTrip, createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -18,8 +19,14 @@ beforeAll(async () => {
   tags = t.repo(Tags);
   uow = new UnitOfWork(t.em);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function rawTag(id: number): unknown {
   return testDb.prepare('SELECT * FROM tags WHERE id = ?').get(id);
@@ -53,7 +60,7 @@ describe('TagsRepository', () => {
       expect((await tags.listByUser(user.id)).map((r) => r.name)).toEqual(['Apple', 'Mango', 'Zebra']);
     });
 
-    it('TAGREPO-003: owner visibility — excludes another user\'s tags entirely (tags has no globally-shared row, unlike categories)', async () => {
+    it("TAGREPO-003: owner visibility — excludes another user's tags entirely (tags has no globally-shared row, unlike categories)", async () => {
       const { user: a } = createUser(testDb);
       const { user: b } = createUser(testDb);
       createTag(testDb, a.id, { name: 'MineA' });
@@ -136,8 +143,9 @@ describe('TagsRepository', () => {
     it('TAGREPO-011b: throws when the read-back after insert finds no row (coverage: the guard branch)', async () => {
       const { user } = createUser(testDb);
       const spy = vi.spyOn(tags, 'findOne').mockResolvedValueOnce(null);
-      await expect(tags.createTag({ user_id: user.id, name: 'Ghost', color: '#000000' }))
-        .rejects.toThrow('createTag: read-back after insert found no row');
+      await expect(tags.createTag({ user_id: user.id, name: 'Ghost', color: '#000000' })).rejects.toThrow(
+        'createTag: read-back after insert found no row',
+      );
       spy.mockRestore();
     });
   });
@@ -281,7 +289,14 @@ describe('TagsRepository', () => {
 
       const rows = await tags.listForPlaces([place.id]);
       expect(rows).toEqual([
-        { id: tag.id, user_id: user.id, name: 'Beach', color: '#ff0000', created_at: (rawTag(tag.id) as { created_at: string }).created_at, place_id: place.id },
+        {
+          id: tag.id,
+          user_id: user.id,
+          name: 'Beach',
+          color: '#ff0000',
+          created_at: (rawTag(tag.id) as { created_at: string }).created_at,
+          place_id: place.id,
+        },
       ]);
     });
 
@@ -293,7 +308,15 @@ describe('TagsRepository', () => {
       attach(tag.id, place.id);
 
       const rows = await tags.listForPlaces([place.id], { compact: true });
-      expect(rows).toEqual([{ id: tag.id, name: 'Compact', color: '#00ff00', created_at: (rawTag(tag.id) as { created_at: string }).created_at, place_id: place.id }]);
+      expect(rows).toEqual([
+        {
+          id: tag.id,
+          name: 'Compact',
+          color: '#00ff00',
+          created_at: (rawTag(tag.id) as { created_at: string }).created_at,
+          place_id: place.id,
+        },
+      ]);
       expect(rows[0]).not.toHaveProperty('user_id');
     });
 
@@ -352,7 +375,10 @@ describe('TagsRepository.findByIds (PL2)', () => {
     const tagB = createTag(testDb, ownerB.id, { name: 'B' });
     const rows = await tags.findByIds([tagA.id, tagB.id, 999999]);
     expect(rows.map((r) => ({ id: r.id, user_id: r.user_id })).sort((a, b) => a.id - b.id)).toEqual(
-      [{ id: tagA.id, user_id: ownerA.id }, { id: tagB.id, user_id: ownerB.id }].sort((a, b) => a.id - b.id),
+      [
+        { id: tagA.id, user_id: ownerA.id },
+        { id: tagB.id, user_id: ownerB.id },
+      ].sort((a, b) => a.id - b.id),
     );
     expect(await tags.findByIds([])).toEqual([]);
   });
@@ -368,7 +394,9 @@ describe('TagsRepository.insertIgnore / deleteForPlace (PL5/PL12/PL13 — place_
     await tags.insertIgnore(place.id, [tagA.id, tagB.id]);
     // Re-run with an overlapping id — the pre-existing pair must not error or duplicate.
     await tags.insertIgnore(place.id, [tagA.id]);
-    const rows = testDb.prepare('SELECT tag_id FROM place_tags WHERE place_id = ? ORDER BY tag_id').all(place.id) as { tag_id: number }[];
+    const rows = testDb.prepare('SELECT tag_id FROM place_tags WHERE place_id = ? ORDER BY tag_id').all(place.id) as {
+      tag_id: number;
+    }[];
     expect(rows.map((r) => r.tag_id).sort((a, b) => a - b)).toEqual([tagA.id, tagB.id].sort((a, b) => a - b));
   });
 
@@ -381,7 +409,7 @@ describe('TagsRepository.insertIgnore / deleteForPlace (PL5/PL12/PL13 — place_
     expect(rows).toEqual([]);
   });
 
-  it('PLACETAGSREPO-003: deleteForPlace removes every row for that place, leaving other places\' tags alone', async () => {
+  it("PLACETAGSREPO-003: deleteForPlace removes every row for that place, leaving other places' tags alone", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id);
@@ -413,7 +441,9 @@ describe('TagsRepository.insertIgnore / deleteForPlace (PL5/PL12/PL13 — place_
           throw new Error('force rollback');
         });
       });
-    } catch (e) { caught = e; }
+    } catch (e) {
+      caught = e;
+    }
     expect((caught as Error).message).toBe('force rollback');
 
     expect(testDb.prepare('SELECT * FROM place_tags WHERE place_id = ?').all(place.id)).toEqual([]);
@@ -434,7 +464,9 @@ describe('TagsRepository.insertIgnore / deleteForPlace (PL5/PL12/PL13 — place_
           throw new Error('force rollback');
         });
       });
-    } catch (e) { caught = e; }
+    } catch (e) {
+      caught = e;
+    }
     expect((caught as Error).message).toBe('force rollback');
 
     expect(testDb.prepare('SELECT * FROM place_tags WHERE place_id = ?').all(place.id)).toHaveLength(1);
@@ -488,7 +520,9 @@ describe('TagsRepository.listPlaceTagsForTrip (TP46)', () => {
           throw new Error('force rollback');
         });
       });
-    } catch (e) { caught = e; }
+    } catch (e) {
+      caught = e;
+    }
     expect((caught as Error).message).toBe('force rollback');
 
     expect(await tags.listPlaceTagsForTrip(trip.id)).toEqual([]);

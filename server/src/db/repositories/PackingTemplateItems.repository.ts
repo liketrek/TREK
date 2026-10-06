@@ -31,7 +31,14 @@ interface PackingTemplateItemsKyselyDB {
 
 /** The insert-only shape for `insertTemplateItem` (PK57/PK86) — `id` is autoincrement and omitted. */
 interface PackingTemplateItemsInsertKyselyDB {
-  packing_template_items: { category_id: number | string; name: string; sort_order: number; weight_grams?: number | null; quantity?: number; bag_name?: string | null };
+  packing_template_items: {
+    category_id: number | string;
+    name: string;
+    sort_order: number;
+    weight_grams?: number | null;
+    quantity?: number;
+    bag_name?: string | null;
+  };
 }
 
 /** `packing_template_items` — the leaf tier of the packing template tree. Kysely throughout: `category_id` is `persist(false)`. */
@@ -112,13 +119,21 @@ export class PackingTemplateItemsRepository extends TrekRepository<PackingTempla
 
   /** PK85 (`createTemplateItem`) — `SELECT MAX(sort_order) as max FROM packing_template_items WHERE category_id = ?`. */
   async maxSortOrder(category_id: number | string): Promise<number | null> {
-    const row = await this.db().selectFrom('packing_template_items').select((eb) => eb.fn.max('sort_order').as('max')).where('category_id', '=', category_id as number).executeTakeFirst();
+    const row = await this.db()
+      .selectFrom('packing_template_items')
+      .select((eb) => eb.fn.max('sort_order').as('max'))
+      .where('category_id', '=', category_id as number)
+      .executeTakeFirst();
     return row?.max ?? null;
   }
 
   /** PK87/PK89 — `SELECT * FROM packing_template_items WHERE id = ?`, same text at two call sites (`createTemplateItem`'s re-select, `updateTemplateItem`'s re-select). */
   async findById(id: number | string): Promise<PackingTemplateItemRow | undefined> {
-    return await this.db().selectFrom('packing_template_items').selectAll().where('id', '=', id as number).executeTakeFirst();
+    return await this.db()
+      .selectFrom('packing_template_items')
+      .selectAll()
+      .where('id', '=', id as number)
+      .executeTakeFirst();
   }
 
   /**
@@ -139,7 +154,11 @@ export class PackingTemplateItemsRepository extends TrekRepository<PackingTempla
 
   /** PK88 (`updateTemplateItem`) — `UPDATE packing_template_items SET name = ? WHERE id = ?`. */
   async updateName(id: number | string, name: string): Promise<void> {
-    await this.db().updateTable('packing_template_items').set({ name }).where('id', '=', id as number).execute();
+    await this.db()
+      .updateTable('packing_template_items')
+      .set({ name })
+      .where('id', '=', id as number)
+      .execute();
   }
 
   /** PK90 (`deleteTemplateItem`) — `DELETE FROM packing_template_items WHERE id = ?`. */

@@ -1,6 +1,6 @@
-import { SetMetadata } from '@nestjs/common';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { byCodeUnit } from './compare';
+import { SetMetadata } from '@nestjs/common';
 
 /** Metadata key `@ManagedForbidden()` writes. */
 export const MANAGED_FORBIDDEN = 'trek:managed-forbidden';

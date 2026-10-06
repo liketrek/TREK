@@ -1,15 +1,15 @@
 // FE-COMP-OFFLINETAB-001 to FE-COMP-OFFLINETAB-028
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { act, render, screen, waitFor, within } from '../../../tests/helpers/render';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
+import { act, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import type { QueuedMutation, SyncMeta } from '../../db/offlineDb';
 import { useAuthStore } from '../../store/authStore';
 import { _resetNetworkMode } from '../../sync/networkMode';
 import { _resetOfflinePrefs, getOfflinePrefs } from '../../sync/offlinePrefs';
-import type { QueuedMutation, SyncMeta } from '../../db/offlineDb';
 import type { PrepareProgress } from '../../sync/tripSyncManager';
 import type { Trip } from '../../types';
 import OfflineTab from './OfflineTab';
@@ -28,7 +28,12 @@ const h = vi.hoisted(() => {
     where: () => ({ equals: (id: number) => ({ count: () => fn(id) }) }),
   });
   return {
-    syncMetaToArray, tripsGet, tripsToArray, tripsCount, placeCount, fileCount,
+    syncMetaToArray,
+    tripsGet,
+    tripsToArray,
+    tripsCount,
+    placeCount,
+    fileCount,
     fakeDb: {
       syncMeta: { toArray: syncMetaToArray },
       trips: { get: tripsGet, toArray: tripsToArray, count: tripsCount },
@@ -104,11 +109,11 @@ const conflict = (over: Partial<QueuedMutation> = {}): QueuedMutation => ({
 
 /** Seed the Dexie cache with the given (trip, meta) pairs. */
 function cache(rows: { trip: Trip; meta?: Partial<SyncMeta>; places?: number; files?: number }[]): void {
-  h.syncMetaToArray.mockResolvedValue(rows.map(r => meta(r.trip.id, r.meta)));
+  h.syncMetaToArray.mockResolvedValue(rows.map((r) => meta(r.trip.id, r.meta)));
   h.tripsCount.mockResolvedValue(rows.length);
-  h.tripsGet.mockImplementation(async (id: number) => rows.find(r => r.trip.id === id)?.trip);
-  h.placeCount.mockImplementation(async (id: number) => rows.find(r => r.trip.id === id)?.places ?? 0);
-  h.fileCount.mockImplementation(async (id: number) => rows.find(r => r.trip.id === id)?.files ?? 0);
+  h.tripsGet.mockImplementation(async (id: number) => rows.find((r) => r.trip.id === id)?.trip);
+  h.placeCount.mockImplementation(async (id: number) => rows.find((r) => r.trip.id === id)?.places ?? 0);
+  h.fileCount.mockImplementation(async (id: number) => rows.find((r) => r.trip.id === id)?.files ?? 0);
 }
 
 function setOnLine(value: boolean): void {
@@ -185,7 +190,9 @@ describe('OfflineTab', () => {
 
     const cacheCard = card('Offline cache');
     await waitFor(() => expect(within(cacheCard).getByText('Paris')).toBeInTheDocument());
-    const titles = within(cacheCard).getAllByText(/^(Paris|Tokyo)$/).map(el => el.textContent);
+    const titles = within(cacheCard)
+      .getAllByText(/^(Paris|Tokyo)$/)
+      .map((el) => el.textContent);
     expect(titles).toEqual(['Paris', 'Tokyo']);
     expect(within(cacheCard).getByText(/Jun 1, 2025 – Jun 5, 2025/)).toHaveTextContent('7');
     expect(within(cacheCard).getByText(/Sep 1, 2025 – Sep 15, 2025/)).toHaveTextContent('3');
@@ -287,7 +294,9 @@ describe('OfflineTab', () => {
     let release!: () => void;
     h.prepareForOffline.mockImplementation(async (cb: (p: PrepareProgress) => void) => {
       cb({ phase: 'files', current: 1, total: 4, label: 'Paris' });
-      await new Promise<void>(resolve => { release = resolve; });
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
       cb({ phase: 'done', current: 4, total: 4 });
       return { status: 'done', trips: 4 };
     });
@@ -299,7 +308,9 @@ describe('OfflineTab', () => {
     expect(await screen.findByText('Documents · 1/4 · Paris')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Downloading…' })).toBeDisabled();
 
-    await act(async () => { release(); });
+    await act(async () => {
+      release();
+    });
     expect(await screen.findByText('Stored 4 trip(s) on this device')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download for offline use' })).toBeEnabled();
   });
@@ -309,7 +320,9 @@ describe('OfflineTab', () => {
     let release!: () => void;
     h.prepareForOffline.mockImplementation(async (cb: (p: PrepareProgress) => void) => {
       cb({ phase: 'tiles', current: 0, total: 0 });
-      await new Promise<void>(resolve => { release = resolve; });
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
       return { status: 'done', trips: 1 };
     });
     render(<OfflineTab />);
@@ -320,7 +333,9 @@ describe('OfflineTab', () => {
     const label = await screen.findByText('Map tiles · 0/0');
     const bar = label.previousElementSibling?.firstElementChild as HTMLElement;
     expect(bar).toHaveStyle({ width: '100%' });
-    await act(async () => { release(); });
+    await act(async () => {
+      release();
+    });
   });
 
   it('FE-COMP-OFFLINETAB-013: a half-finished trips phase renders a proportional bar', async () => {
@@ -328,7 +343,9 @@ describe('OfflineTab', () => {
     let release!: () => void;
     h.prepareForOffline.mockImplementation(async (cb: (p: PrepareProgress) => void) => {
       cb({ phase: 'trips', current: 1, total: 4 });
-      await new Promise<void>(resolve => { release = resolve; });
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
       return { status: 'done', trips: 4 };
     });
     render(<OfflineTab />);
@@ -339,7 +356,9 @@ describe('OfflineTab', () => {
     const label = await screen.findByText('Trip data · 1/4');
     const bar = label.previousElementSibling?.firstElementChild as HTMLElement;
     expect(bar).toHaveStyle({ width: '25%' });
-    await act(async () => { release(); });
+    await act(async () => {
+      release();
+    });
   });
 
   it('FE-COMP-OFFLINETAB-014: forcing offline downloads first, then engages and locks the actions', async () => {
@@ -388,14 +407,21 @@ describe('OfflineTab', () => {
   it('FE-COMP-OFFLINETAB-017: Re-sync shows the syncing label while it runs', async () => {
     const user = userEvent.setup();
     let release!: () => void;
-    h.syncAll.mockImplementation(() => new Promise(resolve => { release = () => resolve({ status: 'done', trips: 1 }); }));
+    h.syncAll.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ status: 'done', trips: 1 });
+        })
+    );
     render(<OfflineTab />);
 
     await screen.findByText('No trips cached yet. Connect to the internet to sync.');
     await user.click(screen.getByRole('button', { name: 'Re-sync now' }));
 
     expect(await screen.findByRole('button', { name: 'Syncing…' })).toBeDisabled();
-    await act(async () => { release(); });
+    await act(async () => {
+      release();
+    });
     expect(await screen.findByRole('button', { name: 'Re-sync now' })).toBeEnabled();
   });
 
@@ -469,7 +495,9 @@ describe('OfflineTab', () => {
     await screen.findByText('No trips cached yet. Connect to the internet to sync.');
     await user.click(screen.getByRole('button', { name: 'Download for offline use' }));
 
-    expect(await screen.findByText('The download could not finish. Check your connection and try again.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('The download could not finish. Check your connection and try again.')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download for offline use' })).toBeEnabled();
   });
 
@@ -497,8 +525,9 @@ describe('OfflineTab', () => {
 
     await screen.findByRole('button', { name: 'Paris' });
     // Dexie rows are sorted by start date too.
-    const labels = screen.getAllByRole('button')
-      .map(el => el.getAttribute('aria-label'))
+    const labels = screen
+      .getAllByRole('button')
+      .map((el) => el.getAttribute('aria-label'))
       .filter((l): l is string => l !== null);
     expect(labels).toEqual(['Force offline mode', 'Store map tiles offline', 'Paris', 'Tokyo']);
   });
@@ -520,10 +549,14 @@ describe('OfflineTab', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Clear cache' })).toBeEnabled());
     await user.click(screen.getByRole('button', { name: 'Clear cache' }));
 
-    expect(await screen.findByText('Clear all offline trip data? You can re-sync anytime while online.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Clear all offline trip data? You can re-sync anytime while online.')
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(screen.queryByText('Clear all offline trip data? You can re-sync anytime while online.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Clear all offline trip data? You can re-sync anytime while online.')
+    ).not.toBeInTheDocument();
     expect(h.clearAll).not.toHaveBeenCalled();
     expect(within(card('Offline cache')).getByText('Paris')).toBeInTheDocument();
   });

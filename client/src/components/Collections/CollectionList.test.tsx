@@ -1,11 +1,11 @@
 // FE-COMP-COLLIST-001 to FE-COMP-COLLIST-011
-import { render, screen } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import type { CollectionPlace } from '@trek/shared';
-import { useAuthStore } from '../../store/authStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
+import { render, screen } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useTranslation } from '../../i18n/TranslationContext';
+import { useAuthStore } from '../../store/authStore';
 import CollectionList from './CollectionList';
 
 // A saved-place row calls PlaceAvatar, which reads placesPhotosEnabled from the
@@ -42,7 +42,13 @@ function TFnProbe({ onReady }: { onReady: (t: ReturnType<typeof useTranslation>[
 }
 
 let t: ReturnType<typeof useTranslation>['t'];
-render(<TFnProbe onReady={fn => { t = fn; }} />);
+render(
+  <TFnProbe
+    onReady={(fn) => {
+      t = fn;
+    }}
+  />
+);
 
 interface Handlers {
   onOpenPlace: ReturnType<typeof vi.fn>;
@@ -50,12 +56,15 @@ interface Handlers {
   onToggleSelect: ReturnType<typeof vi.fn>;
 }
 
-function renderList(over: Partial<{
-  selectMode: boolean;
-  selectedIds: number[];
-  selectedPlaceId: number | null;
-  onStatusChange: ((placeId: number, status: string) => void) | undefined;
-}> = {}, handlers?: Handlers) {
+function renderList(
+  over: Partial<{
+    selectMode: boolean;
+    selectedIds: number[];
+    selectedPlaceId: number | null;
+    onStatusChange: ((placeId: number, status: string) => void) | undefined;
+  }> = {},
+  handlers?: Handlers
+) {
   const h = handlers ?? {
     onOpenPlace: vi.fn(),
     onStatusChange: vi.fn(),
@@ -73,7 +82,7 @@ function renderList(over: Partial<{
       onStatusChange={onStatusChange as never}
       onToggleSelect={h.onToggleSelect as (id: number) => void}
       t={t}
-    />,
+    />
   );
   return h;
 }

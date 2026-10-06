@@ -182,7 +182,11 @@ export class NotificationsRepository extends TrekRepository<Notifications> {
 
   /** NT7/NT9/NT19 — `SELECT * FROM notifications WHERE id = ?`, full row incl. the persist(false) mirrors. */
   async findById(id: number): Promise<NotificationRow | undefined> {
-    return await this.kysely<NotificationsKyselyDB>().selectFrom('notifications').selectAll().where('id', '=', id).executeTakeFirst();
+    return await this.kysely<NotificationsKyselyDB>()
+      .selectFrom('notifications')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
   }
 
   /** NT19 — `respond`'s recipient-scoped initial read: `SELECT * FROM notifications WHERE id = ? AND recipient_id = ?`. */
@@ -196,7 +200,12 @@ export class NotificationsRepository extends TrekRepository<Notifications> {
   }
 
   /** NT10 — `listInApp`'s joined page read, `unreadOnly` toggling the extra `is_read = 0` predicate (the legacy statement's two dynamic-WHERE variants). */
-  async listForRecipient(recipientId: number, limit: number, offset: number, unreadOnly: boolean): Promise<NotificationJoinRow[]> {
+  async listForRecipient(
+    recipientId: number,
+    limit: number,
+    offset: number,
+    unreadOnly: boolean,
+  ): Promise<NotificationJoinRow[]> {
     let q = this.joinedQuery().where('n.recipient_id', '=', recipientId);
     if (unreadOnly) q = q.where('n.is_read', '=', 0);
     return await q.orderBy('n.created_at', 'desc').limit(limit).offset(offset).execute();

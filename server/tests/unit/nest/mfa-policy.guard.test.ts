@@ -14,17 +14,18 @@
  * `hasAny`) rather than hand-rolling a `DatabaseService.get` stub that
  * branched on SQL text substrings.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { MfaExempt, MFA_EXEMPT, MfaPolicyGuard } from '../../../src/nest/auth/mfa-policy.guard';
-import { Public, IS_PUBLIC } from '../../../src/nest/auth/public.decorator';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import type { WebauthnCredentialsRepository } from '../../../src/db/repositories/WebauthnCredentials.repository';
 import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { MfaExempt, MFA_EXEMPT, MfaPolicyGuard } from '../../../src/nest/auth/mfa-policy.guard';
+import { Public, IS_PUBLIC } from '../../../src/nest/auth/public.decorator';
 import { DEMO_EMAIL_PRIMARY } from '../../../src/nest/common/demo';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 7, email: 'u@example.test', role: 'user' } as User;
 

@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { Check, ChevronRight, Globe2, KeyRound, Library, ShieldOff, WifiOff, X } from 'lucide-react'
-import TrekMark from '../../../components/shared/TrekMark'
-import { useTranslation } from '../../../i18n'
+import { Check, ChevronRight, Globe2, KeyRound, Library, ShieldOff, WifiOff, X } from 'lucide-react';
+import { useState } from 'react';
+import TrekMark from '../../../components/shared/TrekMark';
+import { useTranslation } from '../../../i18n';
 
 /**
  * The API-keys card's two building blocks, in the phone's own material.
@@ -24,9 +24,9 @@ import { useTranslation } from '../../../i18n'
  * obligation rather than decoration: ODbL and CC BY-SA both require attribution
  * wherever their content is shown.
  */
-const SOURCES = ['Overture Maps Foundation', 'OpenStreetMap', 'Wikivoyage', 'Wikimedia']
+const SOURCES = ['Overture Maps Foundation', 'OpenStreetMap', 'Wikivoyage', 'Wikimedia'];
 
-const chip = 'rounded-full border border-[color:var(--m-rowbr)] px-2 py-[2px] font-geist text-[0.625rem]'
+const chip = 'rounded-full border border-[color:var(--m-rowbr)] px-2 py-[2px] font-geist text-[0.625rem]';
 
 /** One group of chips inside the disclosure: what you get, what you do not, where it comes from. */
 function ChipGroup({
@@ -36,11 +36,11 @@ function ChipGroup({
   note,
   dashed = false,
 }: {
-  icon: React.ReactNode
-  label: string
-  items: string[]
-  note: string
-  dashed?: boolean
+  icon: React.ReactNode;
+  label: string;
+  items: string[];
+  note: string;
+  dashed?: boolean;
 }) {
   return (
     <div className="rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[11px]">
@@ -49,7 +49,7 @@ function ChipGroup({
         {label}
       </p>
       <ul className="mt-2 flex flex-wrap gap-[5px]">
-        {items.map(item => (
+        {items.map((item) => (
           <li key={item} className={`${chip} ${dashed ? 'border-dashed text-m-faint' : 'text-m-muted'}`}>
             {item}
           </li>
@@ -57,20 +57,20 @@ function ChipGroup({
       </ul>
       <p className="mt-2 font-geist text-[0.625rem] leading-relaxed text-m-faint">{note}</p>
     </div>
-  )
+  );
 }
 
 /** The TREK Places API, above the paid keys because it is the alternative to them. */
 export function MTrekApiBlock() {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
 
   const facts = [
     { Icon: Globe2, text: t('admin.trekApi.factPlaces') },
     { Icon: KeyRound, text: t('admin.trekApi.factNoKey') },
     { Icon: WifiOff, text: t('admin.trekApi.factOffline') },
     { Icon: ShieldOff, text: t('admin.trekApi.factPrivacy') },
-  ]
+  ];
 
   // The same fields the desktop card lists, reusing words TREK already has.
   const fields = [
@@ -84,18 +84,18 @@ export function MTrekApiBlock() {
     t('places.formDescription'),
     t('inspector.openingHours'),
     t('admin.trekApi.fieldStableId'),
-  ]
+  ];
 
   return (
     <div className="relative mt-[18px]">
       {/* The recommendation sits on the border, as on the desktop card, and small:
           a wide coloured banner would shout over the settings beside it. */}
-      <span className="pointer-events-none absolute -top-2 left-3 z-10 rounded-md bg-m-act px-2 py-[1px] font-geist text-[0.5625rem] font-bold tracking-[.12em] text-m-actfg uppercase">
+      <span className="pointer-events-none absolute -top-2 left-3 z-10 rounded-md bg-m-act px-2 py-[1px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.12em] text-m-actfg">
         {t('admin.trekApi.badgeDefault')}
       </span>
 
       <div className="overflow-hidden rounded-[16px] border border-[color:var(--m-act)] bg-[color:var(--m-ic)]">
-        <div className="px-[14px] pt-[18px] pb-[13px]">
+        <div className="px-[14px] pb-[13px] pt-[18px]">
           <TrekMark className="h-6 w-auto text-m-ink" aria-label="TREK Places API" />
           <p className="mt-[9px] text-[0.8125rem] leading-relaxed text-m-muted">{t('admin.trekApi.tagline')}</p>
           <ul className="mt-3 grid grid-cols-1 gap-[7px]">
@@ -113,7 +113,7 @@ export function MTrekApiBlock() {
             reaches reliably. */}
         <button
           type="button"
-          onClick={() => setOpen(v => !v)}
+          onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           className="flex w-full items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[14px] py-[10px] text-left"
         >
@@ -127,7 +127,7 @@ export function MTrekApiBlock() {
         </button>
 
         {open && (
-          <div className="space-y-[9px] px-[14px] pt-1 pb-[14px]">
+          <div className="space-y-[9px] px-[14px] pb-[14px] pt-1">
             <ChipGroup
               icon={<Check size={13} strokeWidth={2.4} className="text-[color:var(--m-st-confirmed)]" aria-hidden />}
               label={t('admin.trekApi.included')}
@@ -151,7 +151,7 @@ export function MTrekApiBlock() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -162,12 +162,12 @@ export function MTrekApiBlock() {
  * everything else on the card put together.
  */
 export function MBlockDisclosure({ label, children }: { label: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
   return (
     <div className="-mx-[14px] -mb-[13px] mt-1 border-t border-[color:var(--m-rowbr)]">
       <button
         type="button"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         className="flex w-full items-center gap-2 px-[14px] py-[10px] text-left"
       >
@@ -181,7 +181,7 @@ export function MBlockDisclosure({ label, children }: { label: string; children:
       </button>
       {open && <div className="px-[14px] pb-[10px]">{children}</div>}
     </div>
-  )
+  );
 }
 
 /**
@@ -195,11 +195,11 @@ export function MProviderBlock({
   tone = 'muted',
   children,
 }: {
-  title: string
-  badge?: string
+  title: string;
+  badge?: string;
   /** `caution` marks a provider that costs something other than money. Never `danger`: using a key is a legitimate choice. */
-  tone?: 'muted' | 'caution'
-  children: React.ReactNode
+  tone?: 'muted' | 'caution';
+  children: React.ReactNode;
 }) {
   return (
     // The ribbon rides on the top border, so the block needs room above it or the
@@ -207,7 +207,7 @@ export function MProviderBlock({
     <div className={`relative ${badge ? 'mt-[18px]' : 'mt-3'}`}>
       {badge && (
         <span
-          className={`pointer-events-none absolute -top-2 left-3 z-10 rounded-md border px-2 py-[1px] font-geist text-[0.5625rem] font-bold tracking-[.12em] uppercase ${
+          className={`pointer-events-none absolute -top-2 left-3 z-10 rounded-md border px-2 py-[1px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.12em] ${
             tone === 'caution'
               ? 'border-[color:var(--m-st-pending)] bg-[color:color-mix(in_srgb,var(--m-st-pending)_16%,var(--m-sheetop))] text-[color:var(--m-st-pending)]'
               : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] text-m-faint'
@@ -217,11 +217,11 @@ export function MProviderBlock({
         </span>
       )}
       <div className="overflow-hidden rounded-[16px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]">
-        <div className="px-[14px] pt-[18px] pb-[13px]">
+        <div className="px-[14px] pb-[13px] pt-[18px]">
           <p className="text-[0.8125rem] font-semibold text-m-ink">{title}</p>
           <div className="mt-[10px] space-y-3">{children}</div>
         </div>
       </div>
     </div>
-  )
+  );
 }

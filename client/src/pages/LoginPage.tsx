@@ -14,11 +14,11 @@ import {
 } from 'lucide-react';
 import React from 'react';
 import ToggleSwitch from '../components/Settings/ToggleSwitch';
-import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
-import { IDP_LOGIN_URL, useLogin } from './login/useLogin';
-import LoginWorld from './login/LoginWorld';
-import { clearSignedOut } from '../utils/signedOut'
 import PasswordChecklist from '../components/shared/PasswordChecklist';
+import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
+import { clearSignedOut } from '../utils/signedOut';
+import LoginWorld from './login/LoginWorld';
+import { IDP_LOGIN_URL, useLogin } from './login/useLogin';
 
 /** Fixed so the sky does not reshuffle on every render. */
 const STARFIELD = [
@@ -230,7 +230,8 @@ export default function LoginPage(): React.ReactElement {
     <div style={{ minHeight: '100vh', display: 'flex', fontFamily: 'var(--font-system)', position: 'relative' }}>
       {/* Language dropdown */}
       <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
-        <button type="button"
+        <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             setLangDropdownOpen((o) => !o);
@@ -293,7 +294,8 @@ export default function LoginPage(): React.ReactElement {
             }}
           >
             {SUPPORTED_LANGUAGES.map(({ value, label }) => (
-              <button type="button"
+              <button
+                type="button"
                 key={value}
                 role="option"
                 aria-selected={value === language}
@@ -479,10 +481,24 @@ export default function LoginPage(): React.ReactElement {
               <div
                 role="status"
                 aria-live="polite"
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '16px 0', textAlign: 'center' }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '16px 0',
+                  textAlign: 'center',
+                }}
               >
                 <Loader2 size={24} className="animate-spin" style={{ color: '#6b7280' }} aria-hidden="true" />
-                <p style={{ margin: 0, fontSize: 'calc(15px * var(--fs-scale-body, 1))', fontWeight: 600, color: '#111827' }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 'calc(15px * var(--fs-scale-body, 1))',
+                    fontWeight: 600,
+                    color: '#111827',
+                  }}
+                >
                   {t('login.oidcRedirecting', { name: idpName })}
                 </p>
                 {idpSlow && (
@@ -498,7 +514,11 @@ export default function LoginPage(): React.ReactElement {
             ) : configWait ? (
               // Which sign-in this instance offers is not known yet: no form it
               // might not accept, only that something is on its way.
-              <div role="status" aria-label={t('common.loading')} style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+              <div
+                role="status"
+                aria-label={t('common.loading')}
+                style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}
+              >
                 <Loader2 size={24} className="animate-spin" style={{ color: '#9ca3af' }} aria-hidden="true" />
               </div>
             ) : oidcOnly ? (
@@ -963,7 +983,9 @@ export default function LoginPage(): React.ReactElement {
                           />
                         </button>
                       </div>
-                      {mode === 'register' && !passwordChangeStep && <PasswordChecklist password={password} className="mt-2" tone="light" />}
+                      {mode === 'register' && !passwordChangeStep && (
+                        <PasswordChecklist password={password} className="mt-2" tone="light" />
+                      )}
                       {mode === 'login' && (
                         <div
                           style={{
@@ -1101,7 +1123,8 @@ export default function LoginPage(): React.ReactElement {
                     }}
                   >
                     {mode === 'login' ? t('login.noAccount') + ' ' : t('login.hasAccount') + ' '}
-                    <button type="button"
+                    <button
+                      type="button"
                       onClick={() => {
                         setMode((m) => (m === 'login' ? 'register' : 'login'));
                         setError('');
@@ -1139,9 +1162,7 @@ export default function LoginPage(): React.ReactElement {
               </div>
               <a
                 onClick={clearSignedOut}
-                href={`/api/auth/oidc/login${
-                  inviteToken ? '?invite=' + encodeURIComponent(inviteToken) : ''
-                }${
+                href={`/api/auth/oidc/login${inviteToken ? '?invite=' + encodeURIComponent(inviteToken) : ''}${
                   // The remember-me toggle only renders in login mode; in
                   // register mode omit the param so the server default applies.
                   mode === 'login' ? (inviteToken ? '&' : '?') + 'remember=' + (rememberMe ? '1' : '0') : ''
@@ -1238,7 +1259,8 @@ export default function LoginPage(): React.ReactElement {
 
           {/* Demo login button */}
           {appConfig?.demo_mode && (
-            <button type="button"
+            <button
+              type="button"
               onClick={handleDemoLogin}
               disabled={isLoading}
               style={{

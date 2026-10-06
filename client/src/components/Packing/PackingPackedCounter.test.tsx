@@ -1,6 +1,6 @@
 // FE-COMP-PACKEDCOUNTER-001 to FE-COMP-PACKEDCOUNTER-003 (#2296)
 import { vi } from 'vitest';
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
 import { PackedCounter } from './PackingPackedCounter';
 import { packedOf } from './packingListPanel.helpers';
 

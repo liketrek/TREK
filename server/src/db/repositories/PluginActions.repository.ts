@@ -1,6 +1,6 @@
 import type { PluginActions } from '../entities/PluginActions.entity';
-import type { PluginActionScope } from '@trek/shared';
 import { TrekRepository } from './_shared/trek-repository';
+import type { PluginActionScope } from '@trek/shared';
 
 /** `actionsOf`'s own projection — mapped to `PluginActionDescriptor` in the service. */
 export interface PluginActionRow {
@@ -23,7 +23,13 @@ export class PluginActionsRepository extends TrekRepository<PluginActions> {
       { plugin_id: pluginId, scope },
       { fields: ['action_key', 'label', 'hint', 'danger', 'scope'], orderBy: { sort_order: 'asc' } },
     );
-    return rows.map((r) => ({ action_key: r.action_key, label: r.label, hint: r.hint ?? null, danger: r.danger, scope: r.scope as PluginActionScope }));
+    return rows.map((r) => ({
+      action_key: r.action_key,
+      label: r.label,
+      hint: r.hint ?? null,
+      danger: r.danger,
+      scope: r.scope as PluginActionScope,
+    }));
   }
 
   /** PR35 (uninstall cascade) — `DELETE FROM plugin_actions WHERE plugin_id = ?`. The caller wraps this in its own try/catch (table absent on a slimmed test schema is tolerated here). */
@@ -42,7 +48,15 @@ export class PluginActionsRepository extends TrekRepository<PluginActions> {
   async insertActions(pluginId: string, actions: NewPluginActionRow[]): Promise<void> {
     if (!actions.length) return;
     await this.insertMany(
-      actions.map((a) => ({ plugin_id: pluginId, action_key: a.action_key, label: a.label, hint: a.hint, danger: a.danger, scope: a.scope, sort_order: a.sort_order })),
+      actions.map((a) => ({
+        plugin_id: pluginId,
+        action_key: a.action_key,
+        label: a.label,
+        hint: a.hint,
+        danger: a.danger,
+        scope: a.scope,
+        sort_order: a.sort_order,
+      })),
     );
   }
 }

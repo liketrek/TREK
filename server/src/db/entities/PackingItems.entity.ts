@@ -1,10 +1,10 @@
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { PackingItemsRepository } from '../repositories/PackingItems.repository';
 import { DbTimestampType } from '../types';
 import { PackingBags } from './PackingBags.entity';
 import { PackingItemContributors } from './PackingItemContributors.entity';
 import { Trips } from './Trips.entity';
 import { Users } from './Users.entity';
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class PackingItems {
   [EntityRepositoryType]?: PackingItemsRepository;
@@ -51,8 +51,21 @@ export const PackingItemsSchema = defineEntity({
     owner: () => p.manyToOne(Users).ref().nullable().hidden(),
     owner_id: p.integer().nullable().persist(false),
     packed_quantity: p.integer().nullable(),
-    packing_item_contributors: () => p.manyToMany(Users).pivotTable('packing_item_contributors').pivotEntity(() => PackingItemContributors).joinColumn('item_id').inverseJoinColumn('user_id').hidden(),
-    packing_item_recipients: () => p.manyToMany(Users).pivotTable('packing_item_recipients').joinColumn('item_id').inverseJoinColumn('user_id').hidden(),
+    packing_item_contributors: () =>
+      p
+        .manyToMany(Users)
+        .pivotTable('packing_item_contributors')
+        .pivotEntity(() => PackingItemContributors)
+        .joinColumn('item_id')
+        .inverseJoinColumn('user_id')
+        .hidden(),
+    packing_item_recipients: () =>
+      p
+        .manyToMany(Users)
+        .pivotTable('packing_item_recipients')
+        .joinColumn('item_id')
+        .inverseJoinColumn('user_id')
+        .hidden(),
     packing_item_contributors_collection: () => p.oneToMany(PackingItemContributors).mappedBy('item').hidden(),
   },
 });

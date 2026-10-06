@@ -1,10 +1,10 @@
 // FE-COMP-LLM-001 to FE-COMP-LLM-016
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildAdmin, buildSettings, buildUser } from '../../../tests/helpers/factories';
-import { useSettingsStore } from '../../store/settingsStore';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import type { Settings } from '../../types';
 import { ToastContainer } from '../shared/Toast';
 import LlmConnectionSection from './LlmConnectionSection';
@@ -35,7 +35,7 @@ function renderSection() {
     <>
       <ToastContainer />
       <LlmConnectionSection />
-    </>,
+    </>
   );
 }
 
@@ -66,7 +66,9 @@ describe('LlmConnectionSection', () => {
     // The endpoint is instance configuration since #1772, so it has no field here.
     expect(screen.queryByPlaceholderText('http://localhost:11434')).not.toBeInTheDocument();
     expect(
-      screen.getByText('A local (Ollama) endpoint is set up once for the whole instance in the admin settings. You can still use your own OpenAI or Anthropic key here.'),
+      screen.getByText(
+        'A local (Ollama) endpoint is set up once for the whole instance in the admin settings. You can still use your own OpenAI or Anthropic key here.'
+      )
     ).toBeInTheDocument();
   });
 
@@ -155,7 +157,11 @@ describe('LlmConnectionSection', () => {
   });
 
   it('FE-COMP-LLM-010: a stored local provider falls back to OpenAI without saving anything', () => {
-    const updateSettings = seedLlm({ llm_provider: 'local', llm_model: 'nuextract', llm_base_url: 'http://192.168.1.5:11434' });
+    const updateSettings = seedLlm({
+      llm_provider: 'local',
+      llm_model: 'nuextract',
+      llm_base_url: 'http://192.168.1.5:11434',
+    });
     renderSection();
 
     expect(screen.getByRole('button', { name: /OpenAI/ })).toBeInTheDocument();
@@ -190,9 +196,14 @@ describe('LlmConnectionSection', () => {
   it('FE-COMP-LLM-013: Save is locked while the request is in flight', async () => {
     const user = userEvent.setup();
     let release!: () => void;
-    seedLlm({}, vi.fn().mockReturnValue(new Promise<void>(resolve => {
-      release = resolve;
-    })));
+    seedLlm(
+      {},
+      vi.fn().mockReturnValue(
+        new Promise<void>((resolve) => {
+          release = resolve;
+        })
+      )
+    );
     renderSection();
 
     const saveBtn = screen.getByRole('button', { name: /^Save$/ });
@@ -205,7 +216,11 @@ describe('LlmConnectionSection', () => {
 
   it('FE-COMP-LLM-014: saving clears a leftover base URL instead of resending it', async () => {
     const user = userEvent.setup();
-    const updateSettings = seedLlm({ llm_provider: 'local', llm_model: 'nuextract', llm_base_url: 'http://192.168.1.5:11434' });
+    const updateSettings = seedLlm({
+      llm_provider: 'local',
+      llm_model: 'nuextract',
+      llm_base_url: 'http://192.168.1.5:11434',
+    });
     renderSection();
 
     await user.click(screen.getByRole('button', { name: /^Save$/ }));

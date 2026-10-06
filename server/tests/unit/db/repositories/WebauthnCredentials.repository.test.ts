@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
 import { WebauthnCredentials } from '../../../../src/db/entities/WebauthnCredentials.entity';
 import type { WebauthnCredentialsRepository } from '../../../../src/db/repositories/WebauthnCredentials.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -16,11 +17,20 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   creds = t.repo(WebauthnCredentials);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 let _credSeq = 0;
-function insertCredential(userId: number, overrides: Record<string, unknown> = {}): { id: number } & Record<string, unknown> {
+function insertCredential(
+  userId: number,
+  overrides: Record<string, unknown> = {},
+): { id: number } & Record<string, unknown> {
   _credSeq++;
   const row = {
     credential_id: `cred-${_credSeq}`,
@@ -33,20 +43,34 @@ function insertCredential(userId: number, overrides: Record<string, unknown> = {
     aaguid: null,
     ...overrides,
   };
-  const result = testDb.prepare(
-    `INSERT INTO webauthn_credentials
+  const result = testDb
+    .prepare(
+      `INSERT INTO webauthn_credentials
        (user_id, credential_id, public_key, counter, transports, device_type, backed_up, name, aaguid)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(userId, row.credential_id, row.public_key, row.counter, row.transports, row.device_type, row.backed_up, row.name, row.aaguid);
+    )
+    .run(
+      userId,
+      row.credential_id,
+      row.public_key,
+      row.counter,
+      row.transports,
+      row.device_type,
+      row.backed_up,
+      row.name,
+      row.aaguid,
+    );
   return { id: Number(result.lastInsertRowid), ...row };
 }
 
 function rawCredential(id: number): Record<string, unknown> | undefined {
-  return testDb.prepare('SELECT * FROM webauthn_credentials WHERE id = ?').get(id) as Record<string, unknown> | undefined;
+  return testDb.prepare('SELECT * FROM webauthn_credentials WHERE id = ?').get(id) as
+    Record<string, unknown> | undefined;
 }
 
 function rawCredentialByCredentialId(credentialId: string): Record<string, unknown> | undefined {
-  return testDb.prepare('SELECT * FROM webauthn_credentials WHERE credential_id = ?').get(credentialId) as Record<string, unknown> | undefined;
+  return testDb.prepare('SELECT * FROM webauthn_credentials WHERE credential_id = ?').get(credentialId) as
+    Record<string, unknown> | undefined;
 }
 
 describe('WebauthnCredentialsRepository', () => {
@@ -200,18 +224,27 @@ describe('WebauthnCredentialsRepository', () => {
   });
 
   describe('listForPanel', () => {
-    it('WEBAUTHN-CRED-REPO-011: newest-first, scoped to one user, matches PK8\'s column set', async () => {
+    it("WEBAUTHN-CRED-REPO-011: newest-first, scoped to one user, matches PK8's column set", async () => {
       const { user } = createUser(testDb);
       const { user: other } = createUser(testDb);
-      testDb.prepare(
-        `INSERT INTO webauthn_credentials (user_id, credential_id, public_key, counter, backed_up, name, created_at)
+      testDb
+        .prepare(
+          `INSERT INTO webauthn_credentials (user_id, credential_id, public_key, counter, backed_up, name, created_at)
          VALUES (?, 'old', x'01', 0, 0, 'Old', '2026-01-01 00:00:00'), (?, 'new', x'02', 0, 1, 'New', '2026-02-01 00:00:00')`,
-      ).run(user.id, user.id);
+        )
+        .run(user.id, user.id);
       insertCredential(other.id);
 
       const rows = await creds.listForPanel(user.id);
       expect(rows.map((r) => r.name)).toEqual(['New', 'Old']);
-      expect(rows[0]).toEqual({ id: expect.any(Number), name: 'New', device_type: null, backed_up: 1, created_at: '2026-02-01 00:00:00', last_used_at: null });
+      expect(rows[0]).toEqual({
+        id: expect.any(Number),
+        name: 'New',
+        device_type: null,
+        backed_up: 1,
+        created_at: '2026-02-01 00:00:00',
+        last_used_at: null,
+      });
     });
   });
 
@@ -308,7 +341,9 @@ describe('WebauthnCredentialsRepository', () => {
 
       expect(await creds.deleteAllForUser(user.id)).toBe(2);
       expect(await creds.deleteAllForUser(user.id)).toBe(0); // already empty
-      expect((testDb.prepare('SELECT id FROM webauthn_credentials').all() as Array<{ id: number }>)).toEqual([{ id: kept.id }]);
+      expect(testDb.prepare('SELECT id FROM webauthn_credentials').all() as Array<{ id: number }>).toEqual([
+        { id: kept.id },
+      ]);
     });
   });
 });

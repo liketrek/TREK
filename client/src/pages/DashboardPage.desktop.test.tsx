@@ -1,14 +1,13 @@
-import React from 'react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { render, screen, fireEvent, waitFor, within } from '../../tests/helpers/render';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildSettings, buildTrip, buildUser } from '../../tests/helpers/factories';
 import { server } from '../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor, within } from '../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { buildUser, buildTrip, buildSettings } from '../../tests/helpers/factories';
-import { useAuthStore } from '../store/authStore';
-import { useSettingsStore } from '../store/settingsStore';
 import { useAddonStore } from '../store/addonStore';
+import { useAuthStore } from '../store/authStore';
 import { usePluginStore } from '../store/pluginStore';
+import { useSettingsStore } from '../store/settingsStore';
 import DashboardPage from './DashboardPage';
 
 // FE-PAGE-DESKDASH-001 onwards
@@ -25,7 +24,9 @@ function installMatchMedia(): void {
     writable: true,
     configurable: true,
     value: (query: string) => ({
-      get matches() { return phone; },
+      get matches() {
+        return phone;
+      },
       media: query,
       onchange: null,
       addListener: () => {},
@@ -49,7 +50,7 @@ function onlyTrips(trips: unknown[]) {
     http.get('/api/trips', ({ request }) => {
       const url = new URL(request.url);
       return HttpResponse.json({ trips: url.searchParams.get('archived') ? [] : trips });
-    }),
+    })
   );
 }
 
@@ -72,12 +73,12 @@ beforeEach(() => {
   onlyTrips([TRIP]);
   stats({ totalTrips: 3, totalDays: 21, totalPlaces: 9, totalDistanceKm: 0, countries: [] });
   server.use(
-    http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([
-      { date: '2026-07-01', base: 'EUR', quote: 'USD', rate: 1.1 },
-    ])),
+    http.get('https://api.frankfurter.dev/v2/rates', () =>
+      HttpResponse.json([{ date: '2026-07-01', base: 'EUR', quote: 'USD', rate: 1.1 }])
+    ),
     http.get('/api/reservations/upcoming', () => HttpResponse.json({ reservations: [] })),
     http.get('/api/addons/collections', () => HttpResponse.json({ collections: [] })),
-    http.get('/api/trips/:id/bundle', () => HttpResponse.json({ members: [], places: [] })),
+    http.get('/api/trips/:id/bundle', () => HttpResponse.json({ members: [], places: [] }))
   );
 });
 
@@ -116,7 +117,13 @@ describe('DashboardPage (desktop)', () => {
   });
 
   it('FE-PAGE-DESKDASH-004: more than five countries collapse into an overflow flag', async () => {
-    stats({ totalTrips: 1, totalDays: 1, totalPlaces: 1, totalDistanceKm: 0, countries: ['fr', 'de', 'it', 'es', 'pt', 'nl', 'be'] });
+    stats({
+      totalTrips: 1,
+      totalDays: 1,
+      totalPlaces: 1,
+      totalDistanceKm: 0,
+      countries: ['fr', 'de', 'it', 'es', 'pt', 'nl', 'be'],
+    });
     render(<DashboardPage />);
 
     await waitFor(() => expect(screen.getByText('+2')).toBeInTheDocument());
@@ -125,7 +132,17 @@ describe('DashboardPage (desktop)', () => {
 
   it('FE-PAGE-DESKDASH-005: the whole atlas row disappears when every tile is off', async () => {
     appearance({
-      desktop: { sidebar: true, currency: true, collections: false, timezones: true, upcomingReservations: true, atlas: false, tripsTotal: false, daysTraveled: false, distanceFlown: false },
+      desktop: {
+        sidebar: true,
+        currency: true,
+        collections: false,
+        timezones: true,
+        upcomingReservations: true,
+        atlas: false,
+        tripsTotal: false,
+        daysTraveled: false,
+        distanceFlown: false,
+      },
     });
     const { container } = render(<DashboardPage />);
 
@@ -135,7 +152,17 @@ describe('DashboardPage (desktop)', () => {
 
   it('FE-PAGE-DESKDASH-006: the sidebar disappears when none of its widgets are on', async () => {
     appearance({
-      desktop: { sidebar: true, currency: false, collections: false, timezones: false, upcomingReservations: false, atlas: true, tripsTotal: true, daysTraveled: true, distanceFlown: true },
+      desktop: {
+        sidebar: true,
+        currency: false,
+        collections: false,
+        timezones: false,
+        upcomingReservations: false,
+        atlas: true,
+        tripsTotal: true,
+        daysTraveled: true,
+        distanceFlown: true,
+      },
     });
     const { container } = render(<DashboardPage />);
 
@@ -146,16 +173,25 @@ describe('DashboardPage (desktop)', () => {
 
   it('FE-PAGE-DESKDASH-007: the collections widget needs the addon and the flag', async () => {
     // The store reloads its addons on mount, so the gate has to come from the API too.
-    server.use(http.get('/api/addons', () => HttpResponse.json({
-      bagTracking: false,
-      addons: [{ id: 'collections', name: 'Collections', type: 'feature', icon: 'bookmark', enabled: true }],
-    })));
+    server.use(
+      http.get('/api/addons', () =>
+        HttpResponse.json({
+          bagTracking: false,
+          addons: [{ id: 'collections', name: 'Collections', type: 'feature', icon: 'bookmark', enabled: true }],
+        })
+      )
+    );
     useAddonStore.setState({
       addons: [{ id: 'collections', name: 'Collections', type: 'feature', icon: 'bookmark', enabled: true }],
       loaded: true,
     } as never);
-    server.use(http.get('/api/addons/collections', () =>
-      HttpResponse.json({ collections: [{ id: 1, name: 'Tokyo eats', color: '#f00', cover_image: null, place_count: 4 }] })));
+    server.use(
+      http.get('/api/addons/collections', () =>
+        HttpResponse.json({
+          collections: [{ id: 1, name: 'Tokyo eats', color: '#f00', cover_image: null, place_count: 4 }],
+        })
+      )
+    );
     render(<DashboardPage />);
 
     expect(await screen.findByText('Tokyo eats')).toBeInTheDocument();
@@ -163,12 +199,31 @@ describe('DashboardPage (desktop)', () => {
 
   it('FE-PAGE-DESKDASH-008: the upcoming tool lists reservations and opens their trip', async () => {
     seedStore(useSettingsStore, { settings: buildSettings({ time_format: '24h' }) });
-    server.use(http.get('/api/reservations/upcoming', () => HttpResponse.json({
-      reservations: [
-        { id: 1, trip_id: 101, title: 'Louvre', type: 'flight', reservation_time: '2026-09-03T19:30:00', location: 'Paris' },
-        { id: 2, trip_id: 101, title: 'Hotel Ibis', type: 'hotel', reservation_time: null, day_date: null, trip_title: 'Paris Adventure' },
-      ],
-    })));
+    server.use(
+      http.get('/api/reservations/upcoming', () =>
+        HttpResponse.json({
+          reservations: [
+            {
+              id: 1,
+              trip_id: 101,
+              title: 'Louvre',
+              type: 'flight',
+              reservation_time: '2026-09-03T19:30:00',
+              location: 'Paris',
+            },
+            {
+              id: 2,
+              trip_id: 101,
+              title: 'Hotel Ibis',
+              type: 'hotel',
+              reservation_time: null,
+              day_date: null,
+              trip_title: 'Paris Adventure',
+            },
+          ],
+        })
+      )
+    );
     const { container } = render(<DashboardPage />);
 
     expect(await screen.findByText('Louvre')).toBeInTheDocument();
@@ -184,13 +239,41 @@ describe('DashboardPage (desktop)', () => {
   // but arriving and leaving are moments, and they carry the same id.
   it('FE-PAGE-DESKDASH-027: a stay renders as two moments and an unconfirmed booking says so', async () => {
     seedStore(useSettingsStore, { settings: buildSettings({ time_format: '24h' }) });
-    server.use(http.get('/api/reservations/upcoming', () => HttpResponse.json({
-      reservations: [
-        { id: 7, trip_id: 101, title: 'The Plaza', type: 'checkin', status: 'confirmed', reservation_time: '2026-09-18T15:00', day_date: '2026-09-18' },
-        { id: 3, trip_id: 101, title: 'Broadway Show', type: 'activity', status: 'pending', reservation_time: '2026-09-18T20:00', location: 'Richard Rodgers' },
-        { id: 7, trip_id: 101, title: 'The Plaza', type: 'checkout', status: 'confirmed', reservation_time: '2026-09-22T11:00', day_date: '2026-09-22' },
-      ],
-    })));
+    server.use(
+      http.get('/api/reservations/upcoming', () =>
+        HttpResponse.json({
+          reservations: [
+            {
+              id: 7,
+              trip_id: 101,
+              title: 'The Plaza',
+              type: 'checkin',
+              status: 'confirmed',
+              reservation_time: '2026-09-18T15:00',
+              day_date: '2026-09-18',
+            },
+            {
+              id: 3,
+              trip_id: 101,
+              title: 'Broadway Show',
+              type: 'activity',
+              status: 'pending',
+              reservation_time: '2026-09-18T20:00',
+              location: 'Richard Rodgers',
+            },
+            {
+              id: 7,
+              trip_id: 101,
+              title: 'The Plaza',
+              type: 'checkout',
+              status: 'confirmed',
+              reservation_time: '2026-09-22T11:00',
+              day_date: '2026-09-22',
+            },
+          ],
+        })
+      )
+    );
     const { container } = render(<DashboardPage />);
 
     // Both moments render despite sharing id 7 — the list key carries the type.
@@ -243,21 +326,25 @@ describe('DashboardPage (desktop)', () => {
   });
 
   it('FE-PAGE-DESKDASH-012: the boarding pass shows buddies, an overflow badge and places', async () => {
-    server.use(http.get('/api/trips/:id/bundle', () => HttpResponse.json({
-      members: [
-        { id: 1, username: 'Maurice Boe', avatar_url: '/uploads/avatars/1.jpg' },
-        { id: 2, username: 'Julien' },
-        { id: 3, username: 'Ada Lovelace' },
-        { id: 4, username: 'Bo' },
-        { id: 5, username: 'Eve' },
-      ],
-      places: [
-        { id: 1, name: 'Louvre', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
-        { id: 2, name: 'Eiffel', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
-        { id: 3, name: 'Orsay', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
-        { id: 4, name: 'Sacre', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
-      ],
-    })));
+    server.use(
+      http.get('/api/trips/:id/bundle', () =>
+        HttpResponse.json({
+          members: [
+            { id: 1, username: 'Maurice Boe', avatar_url: '/uploads/avatars/1.jpg' },
+            { id: 2, username: 'Julien' },
+            { id: 3, username: 'Ada Lovelace' },
+            { id: 4, username: 'Bo' },
+            { id: 5, username: 'Eve' },
+          ],
+          places: [
+            { id: 1, name: 'Louvre', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
+            { id: 2, name: 'Eiffel', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
+            { id: 3, name: 'Orsay', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
+            { id: 4, name: 'Sacre', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
+          ],
+        })
+      )
+    );
     const { container } = render(<DashboardPage />);
 
     await waitFor(() => expect(container.querySelector('.buddy-more')).toHaveTextContent('+1'));
@@ -353,7 +440,8 @@ describe('DashboardPage (desktop)', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }));
 
     await waitFor(() =>
-      expect(screen.queryByText(/One calendar feed for all your active trips/)).not.toBeInTheDocument());
+      expect(screen.queryByText(/One calendar feed for all your active trips/)).not.toBeInTheDocument()
+    );
   });
 
   it('FE-PAGE-DESKDASH-023: a non-array rate response leaves the converter unavailable', async () => {
@@ -382,7 +470,9 @@ describe('DashboardPage (desktop)', () => {
   it('FE-PAGE-DESKDASH-026: a browser without Intl.supportedValuesOf falls back to a fixed zone list', async () => {
     const intl = Intl as unknown as { supportedValuesOf?: (k: string) => string[] };
     const original = intl.supportedValuesOf;
-    intl.supportedValuesOf = () => { throw new Error('unsupported'); };
+    intl.supportedValuesOf = () => {
+      throw new Error('unsupported');
+    };
     seedStore(useSettingsStore, { settings: buildSettings({ dashboard_timezones: ['Asia/Tokyo'] }) });
     try {
       render(<DashboardPage />);
@@ -400,11 +490,21 @@ describe('DashboardPage (desktop)', () => {
   // are gone" rather than "not loaded yet".
   it('FE-PAGE-DESKDASH-028: the stats tiles show placeholders instead of zeros before the numbers arrive', async () => {
     let release: (() => void) | null = null;
-    const held = new Promise<void>((resolve) => { release = resolve; });
-    server.use(http.get('/api/auth/travel-stats', async () => {
-      await held;
-      return HttpResponse.json({ totalTrips: 12, totalPlaces: 40, totalDays: 30, totalDistanceKm: 5000, countries: ['FR'] });
-    }));
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      http.get('/api/auth/travel-stats', async () => {
+        await held;
+        return HttpResponse.json({
+          totalTrips: 12,
+          totalPlaces: 40,
+          totalDays: 30,
+          totalDistanceKm: 5000,
+          countries: ['FR'],
+        });
+      })
+    );
 
     const { container } = render(<DashboardPage />);
 
@@ -426,12 +526,18 @@ describe('DashboardPage (desktop)', () => {
 
   it('FE-PAGE-DESKDASH-029: the trip grid stands in for itself while the trips load', async () => {
     let release: (() => void) | null = null;
-    const held = new Promise<void>((resolve) => { release = resolve; });
-    server.use(http.get('/api/trips', async ({ request }) => {
-      await held;
-      const url = new URL(request.url);
-      return HttpResponse.json({ trips: url.searchParams.get('archived') ? [] : [buildTrip({ id: 101, title: 'Kyoto' })] });
-    }));
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      http.get('/api/trips', async ({ request }) => {
+        await held;
+        const url = new URL(request.url);
+        return HttpResponse.json({
+          trips: url.searchParams.get('archived') ? [] : [buildTrip({ id: 101, title: 'Kyoto' })],
+        });
+      })
+    );
 
     const { container } = render(<DashboardPage />);
 
@@ -443,5 +549,4 @@ describe('DashboardPage (desktop)', () => {
     expect(await screen.findByText('Kyoto')).toBeInTheDocument();
     expect(container.querySelectorAll('.trips .trek-skeleton').length).toBe(0);
   });
-
 });

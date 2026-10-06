@@ -1,5 +1,5 @@
-import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 import { PluginSettingsFieldsRepository } from '../repositories/PluginSettingsFields.repository';
+import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 
 export class PluginSettingsFields {
   [EntityRepositoryType]?: PluginSettingsFieldsRepository;

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { PAGE_MAX_MM, PAGE_MIN_MM } from './pagePresets'
+import { useState } from 'react';
+import { PAGE_MAX_MM, PAGE_MIN_MM } from './pagePresets';
 
 /**
  * One side of the trim size.
@@ -18,11 +18,16 @@ import { PAGE_MAX_MM, PAGE_MIN_MM } from './pagePresets'
  * book, not the one they had.
  */
 export function TrimField({
-  label, value, onCommit, min = PAGE_MIN_MM, max = PAGE_MAX_MM, step = 1,
+  label,
+  value,
+  onCommit,
+  min = PAGE_MIN_MM,
+  max = PAGE_MAX_MM,
+  step = 1,
 }: {
-  label: string
-  value: number
-  onCommit: (mm: number) => void
+  label: string;
+  value: number;
+  onCommit: (mm: number) => void;
   /**
    * The range this particular measurement lives in.
    *
@@ -32,19 +37,19 @@ export function TrimField({
    * arrows useless — the range is a property of the measurement, not of the
    * control.
    */
-  min?: number
-  max?: number
-  step?: number
+  min?: number;
+  max?: number;
+  step?: number;
 }) {
-  const [draft, setDraft] = useState<string | null>(null)
-  const shown = draft ?? String(Math.round(value * 10) / 10)
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? String(Math.round(value * 10) / 10);
 
   const settle = () => {
-    if (draft === null) return
-    const n = Number(draft)
-    if (draft.trim() !== '' && Number.isFinite(n)) onCommit(n)
-    setDraft(null)
-  }
+    if (draft === null) return;
+    const n = Number(draft);
+    if (draft.trim() !== '' && Number.isFinite(n)) onCommit(n);
+    setDraft(null);
+  };
 
   return (
     <label>
@@ -56,23 +61,23 @@ export function TrimField({
         min={min}
         max={max}
         step={step}
-        onChange={e => {
-          const raw = e.target.value
-          setDraft(raw)
+        onChange={(e) => {
+          const raw = e.target.value;
+          setDraft(raw);
           // Anything already usable goes straight through, so the arrows and a
           // fully typed number both take effect without waiting for a blur.
-          const n = Number(raw)
+          const n = Number(raw);
           if (raw !== '' && Number.isFinite(n) && n >= min && n <= max) {
-            setDraft(null)
-            onCommit(n)
+            setDraft(null);
+            onCommit(n);
           }
         }}
         onBlur={settle}
-        onKeyDown={e => {
-          if (e.key === 'Enter') e.currentTarget.blur()
-          if (e.key === 'Escape') setDraft(null)
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Escape') setDraft(null);
         }}
       />
     </label>
-  )
+  );
 }

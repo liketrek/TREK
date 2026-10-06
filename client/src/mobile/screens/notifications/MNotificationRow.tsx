@@ -1,22 +1,22 @@
-import { useState, type HTMLAttributes } from 'react'
-import { useNavigate } from 'react-router'
-import { ArrowRight, Bell, Check, Trash2, X } from 'lucide-react'
-import { useTranslation } from '../../../i18n'
-import { useInAppNotificationStore, InAppNotification } from '../../../store/inAppNotificationStore'
-import MChip from '../../components/MChip'
+import { ArrowRight, Bell, Check, Trash2, X } from 'lucide-react';
+import { useState, type HTMLAttributes } from 'react';
+import { useNavigate } from 'react-router';
+import { useTranslation } from '../../../i18n';
+import { InAppNotification, useInAppNotificationStore } from '../../../store/inAppNotificationStore';
+import MChip from '../../components/MChip';
 
 /** Compact relative timestamp ("5m" / "3h" / "2d"), locale-neutral like the desktop item. */
 function compactTime(dateStr: string, justNow: string): string {
-  const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
-  if (minutes < 1) return justNow
-  if (minutes < 60) return `${minutes}m`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h`
-  return `${Math.floor(hours / 24)}d`
+  const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+  if (minutes < 1) return justNow;
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
 }
 
 interface MNotificationRowProps {
-  notification: InAppNotification
+  notification: InAppNotification;
 }
 
 /**
@@ -25,25 +25,25 @@ interface MNotificationRowProps {
  * render as chips below the text, per-row delete sits in the trailing column.
  */
 export default function MNotificationRow({ notification }: MNotificationRowProps) {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  const [responding, setResponding] = useState(false)
-  const { markRead, deleteNotification, respondToBoolean } = useInAppNotificationStore()
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [responding, setResponding] = useState(false);
+  const { markRead, deleteNotification, respondToBoolean } = useInAppNotificationStore();
 
-  const title = t(notification.title_key, notification.title_params)
-  const body = t(notification.text_key, notification.text_params)
+  const title = t(notification.title_key, notification.title_params);
+  const body = t(notification.text_key, notification.text_params);
 
   const handleRespond = async (response: 'positive' | 'negative') => {
-    if (responding || notification.response !== null) return
-    setResponding(true)
-    await respondToBoolean(notification.id, response)
-    setResponding(false)
-  }
+    if (responding || notification.response !== null) return;
+    setResponding(true);
+    await respondToBoolean(notification.id, response);
+    setResponding(false);
+  };
 
   const handleNavigate = async () => {
-    if (!notification.is_read) await markRead(notification.id)
-    if (notification.navigate_target) navigate(notification.navigate_target)
-  }
+    if (!notification.is_read) await markRead(notification.id);
+    if (notification.navigate_target) navigate(notification.navigate_target);
+  };
 
   // Tapping an unread row marks it read; a row that is already read carries no
   // action, so it neither takes focus nor claims a role. It stays a div because
@@ -54,8 +54,13 @@ export default function MNotificationRow({ notification }: MNotificationRowProps
         role: 'button',
         tabIndex: 0,
         onClick: () => markRead(notification.id),
-        onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); markRead(notification.id) } },
-      }
+        onKeyDown: (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            markRead(notification.id);
+          }
+        },
+      };
 
   return (
     <div
@@ -66,9 +71,11 @@ export default function MNotificationRow({ notification }: MNotificationRowProps
         <img src={notification.sender_avatar} alt="" className="h-8 w-8 flex-none rounded-full object-cover" />
       ) : (
         <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-[0.75rem] font-bold text-m-ink">
-          {notification.sender_username
-            ? notification.sender_username.charAt(0).toUpperCase()
-            : <Bell size={14} strokeWidth={2} className="text-m-muted" />}
+          {notification.sender_username ? (
+            notification.sender_username.charAt(0).toUpperCase()
+          ) : (
+            <Bell size={14} strokeWidth={2} className="text-m-muted" />
+          )}
         </div>
       )}
 
@@ -77,7 +84,7 @@ export default function MNotificationRow({ notification }: MNotificationRowProps
         <p className="mt-[2px] font-geist text-[0.65625rem] leading-relaxed text-m-muted">{body}</p>
 
         {notification.type === 'boolean' && notification.positive_text_key && notification.negative_text_key && (
-          <div className="mt-2 flex gap-[6px]" role="presentation" onClick={e => e.stopPropagation()}>
+          <div className="mt-2 flex gap-[6px]" role="presentation" onClick={(e) => e.stopPropagation()}>
             <MChip
               active={notification.response === 'positive'}
               onClick={() => handleRespond('positive')}
@@ -98,7 +105,7 @@ export default function MNotificationRow({ notification }: MNotificationRowProps
         )}
 
         {notification.type === 'navigate' && notification.navigate_text_key && notification.navigate_target && (
-          <div className="mt-2" role="presentation" onClick={e => e.stopPropagation()}>
+          <div className="mt-2" role="presentation" onClick={(e) => e.stopPropagation()}>
             <MChip onClick={handleNavigate}>
               <ArrowRight size={12} strokeWidth={2.2} />
               {t(notification.navigate_text_key)}
@@ -109,9 +116,7 @@ export default function MNotificationRow({ notification }: MNotificationRowProps
 
       <div className="flex flex-none flex-col items-end gap-[6px]">
         <div className="flex items-center gap-[6px]">
-          {!notification.is_read && (
-            <span aria-hidden className="h-[7px] w-[7px] flex-none rounded-full bg-m-ink" />
-          )}
+          {!notification.is_read && <span aria-hidden className="h-[7px] w-[7px] flex-none rounded-full bg-m-ink" />}
           <span className="font-geist text-[0.625rem] font-semibold text-m-faint">
             {compactTime(notification.created_at, t('common.justNow'))}
           </span>
@@ -119,12 +124,15 @@ export default function MNotificationRow({ notification }: MNotificationRowProps
         <button
           type="button"
           aria-label={t('notifications.delete')}
-          onClick={e => { e.stopPropagation(); deleteNotification(notification.id) }}
+          onClick={(e) => {
+            e.stopPropagation();
+            deleteNotification(notification.id);
+          }}
           className="flex h-7 w-7 items-center justify-center rounded-full text-m-faint active:bg-[color:var(--m-ic)]"
         >
           <Trash2 size={14} strokeWidth={2} />
         </button>
       </div>
     </div>
-  )
+  );
 }

@@ -1,15 +1,19 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useLocation, useMatch } from 'react-router'
-import { useSettingsStore } from '../../store/settingsStore'
-import { useTranslation } from '../../i18n'
-import { useJourneyStore } from '../../store/journeyStore'
-import { ChevronRight, MoreHorizontal, Plus, Search, Upload } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import { normalizeAppearance } from '@trek/shared'
-import { useNavItems, splitMobileNav } from '../../components/Layout/navItems'
-import MFab from './MFab'
+import { normalizeAppearance } from '@trek/shared';
+import type { LucideIcon } from 'lucide-react';
+import { ChevronRight, MoreHorizontal, Plus, Search, Upload } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useLocation, useMatch, useNavigate } from 'react-router';
+import { splitMobileNav, useNavItems } from '../../components/Layout/navItems';
+import { useTranslation } from '../../i18n';
+import { useJourneyStore } from '../../store/journeyStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import MFab from './MFab';
 
-interface NavItem { to: string; label: string; icon: LucideIcon }
+interface NavItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+}
 
 // The centre "+" means something different per context: inside a trip it adds a
 // place, on the journey list it starts a journey (deliberate deviation from the
@@ -20,43 +24,46 @@ interface NavItem { to: string; label: string; icon: LucideIcon }
 // query params. The result is unused on /vacay: that screen draws its own centre
 // FAB, so the dock yields the slot instead (see screenFabSlot below, #1811).
 function useCreateAction(): { label: string; run: () => void; upload?: boolean } {
-  const navigate = useNavigate()
-  const { t } = useTranslation()
-  const galleryOpen = useJourneyStore(state => state.mobileGalleryOpen)
-  const inTrip = useMatch('/trips/:id')
-  const inJourney = useMatch('/journey/:id')
-  const onJourneyList = useMatch('/journey')
-  const onAtlas = useMatch('/atlas')
-  const onCollections = useMatch('/collections')
-  const inCollection = useMatch('/collections/:id')
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const galleryOpen = useJourneyStore((state) => state.mobileGalleryOpen);
+  const inTrip = useMatch('/trips/:id');
+  const inJourney = useMatch('/journey/:id');
+  const onJourneyList = useMatch('/journey');
+  const onAtlas = useMatch('/atlas');
+  const onCollections = useMatch('/collections');
+  const inCollection = useMatch('/collections/:id');
 
   if (inTrip) {
     // The "+" is context-aware per active tab: Bookings → reservation,
     // Transports → transport, Costs → expense. Tabs without a create modal
     // (lists / files / collab) fall through to adding a place. #1349
-    const id = inTrip.params.id
-    const tripTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`trip-tab-${id}`) : null
-    if (tripTab === 'finanzplan') return { label: t('costs.addExpense'), run: () => navigate(`/trips/${id}?create=expense`) }
-    if (tripTab === 'buchungen') return { label: t('reservations.addManual'), run: () => navigate(`/trips/${id}?create=reservation`) }
-    if (tripTab === 'transports') return { label: t('transport.addManual'), run: () => navigate(`/trips/${id}?create=transport`) }
-    return { label: t('places.addPlace'), run: () => navigate(`/trips/${id}?create=place`) }
+    const id = inTrip.params.id;
+    const tripTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`trip-tab-${id}`) : null;
+    if (tripTab === 'finanzplan')
+      return { label: t('costs.addExpense'), run: () => navigate(`/trips/${id}?create=expense`) };
+    if (tripTab === 'buchungen')
+      return { label: t('reservations.addManual'), run: () => navigate(`/trips/${id}?create=reservation`) };
+    if (tripTab === 'transports')
+      return { label: t('transport.addManual'), run: () => navigate(`/trips/${id}?create=transport`) };
+    return { label: t('places.addPlace'), run: () => navigate(`/trips/${id}?create=place`) };
   }
   if (inJourney) {
     // Context-aware per tab, like the trip's "+": the Gallery holds photos, so
     // there the one big action is uploading one. Read from sessionStorage
     // because the tab is the screen's own state and the dock is a sibling —
     // exactly how the trip tabs hand theirs over.
-    const journeyId = inJourney.params.id
+    const journeyId = inJourney.params.id;
     if (galleryOpen) {
-      return { label: t('common.upload'), run: () => navigate(`/journey/${journeyId}?create=photo`), upload: true }
+      return { label: t('common.upload'), run: () => navigate(`/journey/${journeyId}?create=photo`), upload: true };
     }
-    return { label: t('journey.detail.addEntry'), run: () => navigate(`/journey/${journeyId}?create=entry`) }
+    return { label: t('journey.detail.addEntry'), run: () => navigate(`/journey/${journeyId}?create=entry`) };
   }
   if (onJourneyList) {
-    return { label: t('journey.new'), run: () => navigate('/journey?create=1') }
+    return { label: t('journey.new'), run: () => navigate('/journey?create=1') };
   }
   if (onAtlas) {
-    return { label: t('atlas.searchCountry'), run: () => navigate('/atlas?search=1') }
+    return { label: t('atlas.searchCountry'), run: () => navigate('/atlas?search=1') };
   }
   if (onCollections || inCollection) {
     // Picking a list moves the route to /collections/:id, so the exact match
@@ -64,10 +71,10 @@ function useCreateAction(): { label: string; run: () => void; upload?: boolean }
     // screen is normally used in (#1930). The handoff keeps the id, otherwise
     // adding would land on "All saved" and the sheet would ask for the list the
     // user is already looking at.
-    const path = inCollection ? `/collections/${inCollection.params.id}` : '/collections'
-    return { label: t('collections.addPlace'), run: () => navigate(`${path}?create=place`) }
+    const path = inCollection ? `/collections/${inCollection.params.id}` : '/collections';
+    return { label: t('collections.addPlace'), run: () => navigate(`${path}?create=place`) };
   }
-  return { label: t('dashboard.newTrip'), run: () => navigate('/dashboard?create=1') }
+  return { label: t('dashboard.newTrip'), run: () => navigate('/dashboard?create=1') };
 }
 
 /**
@@ -78,56 +85,56 @@ function useCreateAction(): { label: string; run: () => void; upload?: boolean }
  * on the atlas, disabled logo slot on settings/admin).
  */
 export default function MBottomNav() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const create = useCreateAction()
-  const [moreOpen, setMoreOpen] = useState(false)
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const create = useCreateAction();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // Close the popover when the route changes underneath it (browser back etc.).
-  useEffect(() => setMoreOpen(false), [location.pathname])
+  useEffect(() => setMoreOpen(false), [location.pathname]);
 
   // The dock split + order is user-configurable (Settings → Appearance → Mobile);
   // an un-customised account falls back to the built-in Dashboard + vacay/atlas
   // dock with everything else under "More".
-  const navItems = useNavItems()
-  const appearance = useSettingsStore(s => s.settings.appearance)
-  const split = splitMobileNav(navItems, normalizeAppearance(appearance).mobileNav)
+  const navItems = useNavItems();
+  const appearance = useSettingsStore((s) => s.settings.appearance);
+  const split = splitMobileNav(navItems, normalizeAppearance(appearance).mobileNav);
 
-  const dockItems: NavItem[] = split.bar
-  const moreItems: NavItem[] = split.more
+  const dockItems: NavItem[] = split.bar;
+  const moreItems: NavItem[] = split.more;
 
   const isActive = (to: string) =>
-    to === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(to)
-  const moreActive = moreItems.some(item => isActive(item.to))
+    to === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(to);
+  const moreActive = moreItems.some((item) => isActive(item.to));
 
   // The FAB gives way to a decorative logo slot on screens without an add
   // action (settings/admin, demo Z. 1372/1429).
-  const logoSlot = location.pathname.startsWith('/settings') || location.pathname.startsWith('/admin')
-  const searchFab = location.pathname.startsWith('/atlas')
+  const logoSlot = location.pathname.startsWith('/settings') || location.pathname.startsWith('/admin');
+  const searchFab = location.pathname.startsWith('/atlas');
   // /vacay owns the centre slot itself: MVacay draws its year/edit toggle into
   // exactly this 56px circle. The dock keeps the geometry but stays empty there,
   // so the generic "+" can never sit underneath as a second, different action:
   // not while the lazy screen chunk loads, and not while its data loads (#1811).
-  const screenFabSlot = location.pathname.startsWith('/vacay')
+  const screenFabSlot = location.pathname.startsWith('/vacay');
 
   // Split so the raised centre slot sits dead centre; the More slot always
   // closes the right group.
-  const slotCount = dockItems.length + (moreItems.length > 0 ? 1 : 0)
-  const splitAt = Math.ceil(slotCount / 2)
-  const left = dockItems.slice(0, splitAt)
-  const right = dockItems.slice(splitAt)
+  const slotCount = dockItems.length + (moreItems.length > 0 ? 1 : 0);
+  const splitAt = Math.ceil(slotCount / 2);
+  const left = dockItems.slice(0, splitAt);
+  const right = dockItems.slice(splitAt);
 
   const circleCls = (active: boolean) =>
     `flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full ${
       active ? 'bg-m-act text-m-actfg' : 'text-m-muted'
-    }`
+    }`;
 
   const renderItem = ({ to, label, icon: Icon }: NavItem) => {
-    const active = isActive(to)
+    const active = isActive(to);
     // Fixed sizes per slot (demo): the dashboard grid is 18/2.1, every other
     // slot 21/1.9 — independent of the active state.
-    const dash = to === '/dashboard'
+    const dash = to === '/dashboard';
     return (
       <button
         key={to}
@@ -139,8 +146,8 @@ export default function MBottomNav() {
       >
         <Icon size={dash ? 18 : 21} strokeWidth={dash ? 2.1 : 1.9} />
       </button>
-    )
-  }
+    );
+  };
 
   return (
     <>
@@ -148,21 +155,26 @@ export default function MBottomNav() {
         // Invisible scrim (the popover sits on the UI without dimming it).
         <div className="fixed inset-0 z-[60]" role="presentation" onClick={() => setMoreOpen(false)}>
           <div
-            className="absolute left-4 right-4 flex flex-col gap-2 rounded-[26px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[10px] shadow-[0_-8px_40px_-14px_rgba(0,0,0,.45)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+86px)]"
+            className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+86px)] left-4 right-4 flex flex-col gap-2 rounded-[26px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[10px] shadow-[0_-8px_40px_-14px_rgba(0,0,0,.45)] backdrop-blur-[30px] backdrop-saturate-[1.8]"
             role="presentation"
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             {moreItems.map(({ to, label, icon: Icon }) => (
               <button
                 key={to}
                 type="button"
-                onClick={() => { setMoreOpen(false); navigate(to) }}
+                onClick={() => {
+                  setMoreOpen(false);
+                  navigate(to);
+                }}
                 className="flex items-center gap-[13px] rounded-[18px] bg-[color:var(--m-ic)] px-4 py-[14px] text-left"
               >
                 <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[color:var(--m-ic)] text-m-ink">
                   <Icon size={20} strokeWidth={2} />
                 </span>
-                <span className="block min-w-0 flex-1 truncate text-[0.9375rem] font-extrabold text-m-ink">{label}</span>
+                <span className="block min-w-0 flex-1 truncate text-[0.9375rem] font-extrabold text-m-ink">
+                  {label}
+                </span>
                 <ChevronRight size={17} strokeWidth={2} className="flex-none text-m-faint" />
               </button>
             ))}
@@ -170,11 +182,14 @@ export default function MBottomNav() {
         </div>
       )}
 
-      <nav className="fixed left-4 right-4 z-40 flex h-[62px] items-center rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+      <nav className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-4 right-4 z-40 flex h-[62px] items-center rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.8]">
         <div className="flex min-w-0 flex-1 items-center justify-around">{left.map(renderItem)}</div>
 
         {logoSlot ? (
-          <span aria-hidden="true" className="mx-2 flex h-14 w-14 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] opacity-70">
+          <span
+            aria-hidden="true"
+            className="mx-2 flex h-14 w-14 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] opacity-70"
+          >
             <img src="/icons/icon-dark.svg" alt="" className="block h-6 w-6 opacity-75 dark:hidden" />
             <img src="/icons/icon-white.svg" alt="" className="hidden h-6 w-6 opacity-75 dark:block" />
           </span>
@@ -184,11 +199,13 @@ export default function MBottomNav() {
           <span aria-hidden="true" className="mx-2 h-14 w-14 flex-none" />
         ) : (
           <MFab onClick={create.run} ariaLabel={create.label} className="mx-2">
-            {searchFab
-              ? <Search size={24} strokeWidth={2.4} />
-              : create.upload
-                ? <Upload size={23} strokeWidth={2.4} />
-                : <Plus size={26} strokeWidth={2.4} />}
+            {searchFab ? (
+              <Search size={24} strokeWidth={2.4} />
+            ) : create.upload ? (
+              <Upload size={23} strokeWidth={2.4} />
+            ) : (
+              <Plus size={26} strokeWidth={2.4} />
+            )}
           </MFab>
         )}
 
@@ -197,7 +214,7 @@ export default function MBottomNav() {
           {moreItems.length > 0 && (
             <button
               type="button"
-              onClick={() => setMoreOpen(v => !v)}
+              onClick={() => setMoreOpen((v) => !v)}
               aria-label={t('mobileNav.more')}
               aria-expanded={moreOpen}
               aria-current={moreActive ? 'page' : undefined}
@@ -209,5 +226,5 @@ export default function MBottomNav() {
         </div>
       </nav>
     </>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from 'react';
 
 interface MBadgeProps {
   /**
@@ -6,23 +6,23 @@ interface MBadgeProps {
    * look, for the single figure a surface is about, and never inside something tappable:
    * a filled pill in a button reads as a second control sitting in the first.
    */
-  tone?: 'neutral' | 'strong'
+  tone?: 'neutral' | 'strong';
   /** `xs` is 18px, for a second line under a title. `sm` is 22px, for a 34px pill. */
-  size?: 'xs' | 'sm'
+  size?: 'xs' | 'sm';
   /**
    * Caps with tracking by default, for words. A figure with a unit symbol passes false,
    * because m and M are different units, and so does a clock, which has no case to change.
    */
-  caps?: boolean
+  caps?: boolean;
   /**
    * Lets a long sentence break inside the pill instead of running past its container. A
    * figure keeps to one line, which is why this is off by default: the pill then stops at
    * the width it is given and grows in height with the text.
    */
-  wrap?: boolean
-  icon?: ReactNode
-  className?: string
-  children: ReactNode
+  wrap?: boolean;
+  icon?: ReactNode;
+  className?: string;
+  children: ReactNode;
 }
 
 /**
@@ -59,8 +59,12 @@ export default function MBadge({
       } ${className}`}
     >
       {/* The icon only repeats what the label says, so it stays out of the name. */}
-      {icon && <span aria-hidden="true" className="flex flex-none">{icon}</span>}
+      {icon && (
+        <span aria-hidden="true" className="flex flex-none">
+          {icon}
+        </span>
+      )}
       {children}
     </span>
-  )
+  );
 }

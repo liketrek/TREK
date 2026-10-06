@@ -1,3 +1,9 @@
+import type { User } from '../../types';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { AccommodationCreateDto, AccommodationUpdateDto } from './accommodations.dto';
+import { AccommodationsService, type MirrorSender } from './accommodations.service';
 import {
   Body,
   Controller,
@@ -11,12 +17,6 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import type { User } from '../../types';
-import { AccommodationsService, type MirrorSender } from './accommodations.service';
-import { AccommodationCreateDto, AccommodationUpdateDto } from './accommodations.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 
 type AccommodationBody = {
   place_id?: number;
@@ -89,7 +89,16 @@ export class AccommodationsController {
     if (errors.length > 0) {
       throw new HttpException({ error: errors[0].message }, 404);
     }
-    const { accommodation, mirror } = await this.accommodations.create(tripId, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as never);
+    const { accommodation, mirror } = await this.accommodations.create(tripId, {
+      place_id,
+      start_day_id,
+      end_day_id,
+      check_in,
+      check_in_end,
+      check_out,
+      confirmation,
+      notes,
+    } as never);
     this.accommodations.broadcast(tripId, 'accommodation:created', { accommodation }, socketId);
     this.accommodations.broadcast(tripId, 'reservation:created', {}, socketId);
     await this.accommodations.announceMirror(tripId, mirror, this.mirrorSender(tripId), socketId);
@@ -117,10 +126,19 @@ export class AccommodationsController {
     if (errors.length > 0) {
       throw new HttpException({ error: errors[0].message }, 404);
     }
-    const { accommodation, mirror } = await this.accommodations.update(id, existing as never, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as never);
+    const { accommodation, mirror } = await this.accommodations.update(
+      id,
+      existing as never,
+      { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as never,
+    );
     this.accommodations.broadcast(tripId, 'accommodation:updated', { accommodation }, socketId);
     await this.accommodations.announceMirror(tripId, mirror, this.mirrorSender(tripId), socketId);
-    return { accommodation, assignment: mirror.created, movedAssignment: mirror.moved, removedAssignments: mirror.removed };
+    return {
+      accommodation,
+      assignment: mirror.created,
+      movedAssignment: mirror.moved,
+      removedAssignments: mirror.removed,
+    };
   }
 
   @RequirePermission('day_edit')
@@ -138,7 +156,9 @@ export class AccommodationsController {
     // Turning a night back into a pause in road trip mode: the booking goes, the
     // stop stays and becomes the traveller's. Everywhere else a cancelled booking
     // takes the stop it brought with it.
-    const { linkedReservationIds, deletedBudgetItemIds, mirror } = await this.accommodations.remove(id, { keepStop: keepStop === 'true' });
+    const { linkedReservationIds, deletedBudgetItemIds, mirror } = await this.accommodations.remove(id, {
+      keepStop: keepStop === 'true',
+    });
     await this.accommodations.announceMirror(tripId, mirror, this.mirrorSender(tripId), socketId);
     for (const reservationId of linkedReservationIds) {
       this.accommodations.broadcast(tripId, 'reservation:deleted', { reservationId }, socketId);

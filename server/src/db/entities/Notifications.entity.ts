@@ -1,7 +1,7 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { NotificationsRepository } from '../repositories/Notifications.repository';
 import { DbTimestampType } from '../types';
 import { Users } from './Users.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class Notifications {
   [EntityRepositoryType]?: NotificationsRepository;

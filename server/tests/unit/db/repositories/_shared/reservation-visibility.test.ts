@@ -1,8 +1,3 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../../helpers/db-mock';
-import { resetTestDb } from '../../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
-import { createDayAccommodation, createPlace, createReservation, createTrip, createUser } from '../../../../helpers/factories';
 import { Reservations } from '../../../../../src/db/entities/Reservations.entity';
 import {
   publicReservationCondition,
@@ -10,6 +5,18 @@ import {
   publicStayExists,
   type ReservationVisibilityKyselyDB,
 } from '../../../../../src/db/repositories/_shared/reservation-visibility';
+import { createSnapshotTestDb } from '../../../../helpers/db-mock';
+import {
+  createDayAccommodation,
+  createPlace,
+  createReservation,
+  createTrip,
+  createUser,
+} from '../../../../helpers/factories';
+import { resetTestDb } from '../../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * The legacy string fragments this harness proves parity against
@@ -33,9 +40,17 @@ const publicStaySql = (alias = 'a'): string => `(
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
 
-beforeAll(async () => { t = await createTestOrm(testDb); });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 /**
  * R3's string-vs-predicate parity harness: seeds staged/live/mixed
@@ -57,7 +72,8 @@ describe('reservation-visibility parity (RV1: publicReservationCondition vs publ
     testDb.prepare("UPDATE reservations SET ingest_state = 'staged' WHERE id = ?").run(staged2.id);
 
     const platform = t.em.getPlatform();
-    const typed = await t.em.createQueryBuilder(Reservations, 'r')
+    const typed = await t.em
+      .createQueryBuilder(Reservations, 'r')
       .select(['r.id'])
       .where({ 'r.trip_id': trip.id, ...publicReservationCondition(platform, 'r') })
       .orderBy({ id: 'asc' })
@@ -78,7 +94,8 @@ describe('reservation-visibility parity (RV1: publicReservationCondition vs publ
     testDb.prepare("UPDATE reservations SET ingest_state = 'staged' WHERE id = ?").run(staged.id);
     const platform = t.em.getPlatform();
 
-    const typed = await t.em.createQueryBuilder(Reservations, 'r')
+    const typed = await t.em
+      .createQueryBuilder(Reservations, 'r')
       .select(['r.id'])
       .where({ 'r.trip_id': trip.id, ...publicReservationCondition(platform, 'r') })
       .execute<{ id: number }[]>('all', false);
@@ -98,7 +115,8 @@ describe('reservation-visibility parity (RV1: publicReservationCondition vs publ
     testDb.prepare("UPDATE reservations SET ingest_state = 'staged' WHERE id = ?").run(staged.id);
     const platform = t.em.getPlatform();
 
-    const typed = await t.em.createQueryBuilder(Reservations, 'vr')
+    const typed = await t.em
+      .createQueryBuilder(Reservations, 'vr')
       .select(['vr.id'])
       .where({ 'vr.trip_id': trip.id, ...publicReservationCondition(platform, 'vr') })
       .execute<{ id: number }[]>('all', false);
@@ -132,7 +150,8 @@ describe('reservation-visibility parity (RV1 Kysely form: publicReservationExpr 
     const staged = createReservation(testDb, trip.id, { title: 'Staged' });
     testDb.prepare("UPDATE reservations SET ingest_state = 'staged' WHERE id = ?").run(staged.id);
 
-    const typed = await t.em.getKysely<PublicReservationExprTestDB>()
+    const typed = await t.em
+      .getKysely<PublicReservationExprTestDB>()
       .selectFrom('reservations as r')
       .select('r.id')
       .where('r.trip_id', '=', trip.id)
@@ -164,7 +183,8 @@ describe('reservation-visibility parity (RV1 Kysely form: publicReservationExpr 
     const staged = createReservation(testDb, trip.id, { title: 'Staged' });
     testDb.prepare("UPDATE reservations SET ingest_state = 'staged' WHERE id = ?").run(staged.id);
 
-    const typed = await t.em.getKysely<PublicReservationExprTestDB>()
+    const typed = await t.em
+      .getKysely<PublicReservationExprTestDB>()
       .selectFrom('reservations as r')
       .select('r.id')
       .where('r.trip_id', '=', trip.id)
@@ -201,10 +221,13 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-05' });
     const place = createPlace(testDb, trip.id);
-    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as { id: number }[];
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as {
+      id: number;
+    }[];
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -223,12 +246,15 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-05' });
     const place = createPlace(testDb, trip.id);
-    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as { id: number }[];
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as {
+      id: number;
+    }[];
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
     const booking = createReservation(testDb, trip.id, { title: 'Hotel', type: 'hotel' });
-    testDb.prepare("UPDATE reservations SET accommodation_id = ? WHERE id = ?").run(String(stay.id), booking.id);
+    testDb.prepare('UPDATE reservations SET accommodation_id = ? WHERE id = ?').run(String(stay.id), booking.id);
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -246,12 +272,17 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-05' });
     const place = createPlace(testDb, trip.id);
-    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as { id: number }[];
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as {
+      id: number;
+    }[];
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
     const booking = createReservation(testDb, trip.id, { title: 'Hotel', type: 'hotel' });
-    testDb.prepare("UPDATE reservations SET accommodation_id = ?, ingest_state = 'staged' WHERE id = ?").run(String(stay.id), booking.id);
+    testDb
+      .prepare("UPDATE reservations SET accommodation_id = ?, ingest_state = 'staged' WHERE id = ?")
+      .run(String(stay.id), booking.id);
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -269,14 +300,19 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-05' });
     const place = createPlace(testDb, trip.id);
-    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as { id: number }[];
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as {
+      id: number;
+    }[];
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
     const stagedBooking = createReservation(testDb, trip.id, { title: 'Staged copy', type: 'hotel' });
-    testDb.prepare("UPDATE reservations SET accommodation_id = ?, ingest_state = 'staged' WHERE id = ?").run(String(stay.id), stagedBooking.id);
+    testDb
+      .prepare("UPDATE reservations SET accommodation_id = ?, ingest_state = 'staged' WHERE id = ?")
+      .run(String(stay.id), stagedBooking.id);
     const liveBooking = createReservation(testDb, trip.id, { title: 'Live copy', type: 'hotel' });
-    testDb.prepare("UPDATE reservations SET accommodation_id = ? WHERE id = ?").run(String(stay.id), liveBooking.id);
+    testDb.prepare('UPDATE reservations SET accommodation_id = ? WHERE id = ?').run(String(stay.id), liveBooking.id);
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -298,12 +334,15 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-05' });
     const place = createPlace(testDb, trip.id);
-    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as { id: number }[];
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as {
+      id: number;
+    }[];
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
     const booking = createReservation(testDb, trip.id, { title: 'Hotel', type: 'hotel' });
-    testDb.prepare("UPDATE reservations SET accommodation_id = ? WHERE id = ?").run(`${stay.id}.0`, booking.id);
+    testDb.prepare('UPDATE reservations SET accommodation_id = ? WHERE id = ?').run(`${stay.id}.0`, booking.id);
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -321,17 +360,24 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-06' });
     const place = createPlace(testDb, trip.id);
-    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as { id: number }[];
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as {
+      id: number;
+    }[];
 
     const unlinked = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
     const liveLinked = createDayAccommodation(testDb, trip.id, place.id, days[2].id, days[3].id);
     const liveBooking = createReservation(testDb, trip.id, { title: 'Live', type: 'hotel' });
-    testDb.prepare('UPDATE reservations SET accommodation_id = ? WHERE id = ?').run(String(liveLinked.id), liveBooking.id);
+    testDb
+      .prepare('UPDATE reservations SET accommodation_id = ? WHERE id = ?')
+      .run(String(liveLinked.id), liveBooking.id);
     const stagedOnly = createDayAccommodation(testDb, trip.id, place.id, days[4].id, days[5].id);
     const stagedBooking = createReservation(testDb, trip.id, { title: 'Staged', type: 'hotel' });
-    testDb.prepare("UPDATE reservations SET accommodation_id = ?, ingest_state = 'staged' WHERE id = ?").run(String(stagedOnly.id), stagedBooking.id);
+    testDb
+      .prepare("UPDATE reservations SET accommodation_id = ?, ingest_state = 'staged' WHERE id = ?")
+      .run(String(stagedOnly.id), stagedBooking.id);
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -360,12 +406,17 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-05' });
     const place = createPlace(testDb, trip.id);
-    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as { id: number }[];
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as {
+      id: number;
+    }[];
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
     const booking = createReservation(testDb, trip.id, { title: 'Staged prefix-numeric link', type: 'hotel' });
-    testDb.prepare("UPDATE reservations SET accommodation_id = ?, ingest_state = 'staged' WHERE id = ?").run(`${stay.id}abc`, booking.id);
+    testDb
+      .prepare("UPDATE reservations SET accommodation_id = ?, ingest_state = 'staged' WHERE id = ?")
+      .run(`${stay.id}abc`, booking.id);
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -389,12 +440,17 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-05' });
     const place = createPlace(testDb, trip.id);
-    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as { id: number }[];
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number ASC').all(trip.id) as {
+      id: number;
+    }[];
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
     const booking = createReservation(testDb, trip.id, { title: 'Staged padded link', type: 'hotel' });
-    testDb.prepare("UPDATE reservations SET accommodation_id = ?, ingest_state = 'staged' WHERE id = ?").run(`${stay.id} `, booking.id);
+    testDb
+      .prepare("UPDATE reservations SET accommodation_id = ?, ingest_state = 'staged' WHERE id = ?")
+      .run(`${stay.id} `, booking.id);
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)

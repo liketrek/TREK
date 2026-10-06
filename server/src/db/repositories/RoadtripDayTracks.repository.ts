@@ -1,7 +1,7 @@
-import type { RoadtripDayTrack } from '@trek/shared';
-import type { RoadtripDayTracks } from '../entities/RoadtripDayTracks.entity';
 import { columnRef } from '../dialect/sql-functions';
+import type { RoadtripDayTracks } from '../entities/RoadtripDayTracks.entity';
 import { TrekRepository } from './_shared/trek-repository';
+import type { RoadtripDayTrack } from '@trek/shared';
 
 /**
  * `roadtrip_day_tracks` — which recorded track (a `places` row with route

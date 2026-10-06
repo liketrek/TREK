@@ -1,26 +1,46 @@
 // FE-COMP-MAP-001 to FE-COMP-MAP-035
-import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import { buildSettings, buildUser } from '../../../tests/helpers/factories';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildSettings } from '../../../tests/helpers/factories';
 import { ToastContainer } from '../shared/Toast';
 import MapSettingsTab from './MapSettingsTab';
 
 // Mock MapView to avoid Leaflet DOM issues in jsdom. tileUrl is surfaced because
 // the preview has to draw the basemap being configured, key included.
 vi.mock('../Map/MapView', () => ({
-  MapView: ({ onMapClick, tileUrl }: { onMapClick?: (info: { latlng: { lat: number; lng: number } }) => void; tileUrl?: string }) => (
-    <div data-testid="map-view" data-tile-url={tileUrl} onClick={() => onMapClick?.({ latlng: { lat: 51.5, lng: -0.1 } })} />
+  MapView: ({
+    onMapClick,
+    tileUrl,
+  }: {
+    onMapClick?: (info: { latlng: { lat: number; lng: number } }) => void;
+    tileUrl?: string;
+  }) => (
+    <div
+      data-testid="map-view"
+      data-tile-url={tileUrl}
+      onClick={() => onMapClick?.({ latlng: { lat: 51.5, lng: -0.1 } })}
+    />
   ),
 }));
 
 // The GL preview boots a real mapbox/maplibre instance; the tab only cares that
 // it gets the right provider/style, so render those as data attributes.
 vi.mock('./MapboxPreview', () => ({
-  default: ({ provider, style, token, enable3d, quality }: {
-    provider?: string; style: string; token?: string; enable3d: boolean; quality?: boolean;
+  default: ({
+    provider,
+    style,
+    token,
+    enable3d,
+    quality,
+  }: {
+    provider?: string;
+    style: string;
+    token?: string;
+    enable3d: boolean;
+    quality?: boolean;
   }) => (
     <div
       data-testid="gl-preview"
@@ -91,10 +111,12 @@ describe('MapSettingsTab', () => {
     render(<MapSettingsTab />);
     await user.click(screen.getByText('Save Map'));
     expect(updateSettings).toHaveBeenCalledTimes(1);
-    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({
-      map_tile_url: expect.any(String),
-      map_provider: expect.any(String),
-    }));
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        map_tile_url: expect.any(String),
+        map_provider: expect.any(String),
+      })
+    );
   });
 
   it('FE-COMP-MAP-012: Save Map no longer writes a default centre or zoom', async () => {
@@ -133,7 +155,12 @@ describe('MapSettingsTab', () => {
       settings: buildSettings(),
       updateSettings,
     });
-    render(<><ToastContainer /><MapSettingsTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <MapSettingsTab />
+      </>
+    );
     await user.click(screen.getByText('Save Map'));
     expect(await screen.findByText('Save failed')).toBeInTheDocument();
   });
@@ -241,7 +268,9 @@ describe('MapSettingsTab – GL providers', () => {
     expect(screen.queryByText('Mapbox Access Token')).not.toBeInTheDocument();
     expect(screen.queryByText('3D Buildings & Terrain')).not.toBeInTheDocument();
     expect(screen.getByDisplayValue(OFM_LIBERTY)).toBeInTheDocument();
-    expect(screen.getByText('Preset or OpenFreeMap style URL. OpenFreeMap styles work without a token.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Preset or OpenFreeMap style URL. OpenFreeMap styles work without a token.')
+    ).toBeInTheDocument();
     expect(await screen.findByTestId('gl-preview')).toHaveAttribute('data-provider', 'maplibre-gl');
   });
 
@@ -305,10 +334,12 @@ describe('MapSettingsTab – GL providers', () => {
     await user.click(screen.getByText('Mapbox GL'));
     await user.click(screen.getByText('Save Map'));
 
-    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({
-      map_provider: 'mapbox-gl',
-      mapbox_style: MAPBOX_STANDARD,
-    }));
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        map_provider: 'mapbox-gl',
+        mapbox_style: MAPBOX_STANDARD,
+      })
+    );
     expect(updateSettings.mock.calls[0][0]).not.toHaveProperty('maplibre_style');
   });
 
@@ -321,10 +352,12 @@ describe('MapSettingsTab – GL providers', () => {
     await user.click(screen.getByText('MapLibre GL'));
     await user.click(screen.getByText('Save Map'));
 
-    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({
-      map_provider: 'maplibre-gl',
-      maplibre_style: OFM_LIBERTY,
-    }));
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        map_provider: 'maplibre-gl',
+        maplibre_style: OFM_LIBERTY,
+      })
+    );
     expect(updateSettings.mock.calls[0][0]).not.toHaveProperty('mapbox_style');
   });
 
@@ -348,7 +381,9 @@ describe('MapSettingsTab – GL providers', () => {
     await user.click(screen.getByText('Select template...'));
     await user.click(await screen.findByText('CartoDB Dark'));
 
-    expect(screen.getByDisplayValue('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png')).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png')
+    ).toBeInTheDocument();
   });
 });
 

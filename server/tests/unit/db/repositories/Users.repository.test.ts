@@ -1,10 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser, createAdmin, type TestUser } from '../../../helpers/factories';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import type { UsersRepository } from '../../../../src/db/repositories/Users.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser, createAdmin, type TestUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -14,8 +15,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   users = t.repo(Users);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 /**
  * Runs `fn` while counting queries MikroORM actually issues over the shared
@@ -54,7 +61,8 @@ describe('UsersRepository', () => {
 
   it('USERSREPO-004: getApiKeyColumn reads unsplash_api_key, not the other two columns', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare('UPDATE users SET maps_api_key = ?, unsplash_api_key = ?, amap_api_key = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET maps_api_key = ?, unsplash_api_key = ?, amap_api_key = ? WHERE id = ?')
       .run('maps-value', 'unsplash-value', 'amap-value', user.id);
     expect(await users.getApiKeyColumn(user.id, 'unsplash_api_key')).toBe('unsplash-value');
   });
@@ -116,7 +124,14 @@ describe('UsersRepository', () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET password_version = 3, mfa_enabled = 1 WHERE id = ?').run(user.id);
     const row = await users.findForWsHandshake(user.id);
-    expect(row).toEqual({ id: user.id, username: user.username, email: user.email, role: 'user', mfa_enabled: 1, password_version: 3 });
+    expect(row).toEqual({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: 'user',
+      mfa_enabled: 1,
+      password_version: 3,
+    });
     expect(await users.findForWsHandshake(999999)).toBeNull();
   });
 
@@ -144,10 +159,14 @@ describe('UsersRepository', () => {
     });
 
     it('USERSREPO-012: a NULL is_guest row cannot exist — the column is NOT NULL DEFAULT 0 (verified against the baseline + guest-members migrations), so a direct INSERT that omits the column, or an explicit NULL, both resolve to 0, never leaving a row this filter would miscount', () => {
-      testDb.prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)').run('nog', 'nog@test.example.com', 'x', 'user');
+      testDb
+        .prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)')
+        .run('nog', 'nog@test.example.com', 'x', 'user');
       const stored = testDb.prepare("SELECT is_guest FROM users WHERE username = 'nog'").get() as { is_guest: number };
       expect(stored.is_guest).toBe(0); // the DEFAULT 0, not a nullable column silently coercing
-      expect(() => testDb.prepare('UPDATE users SET is_guest = NULL WHERE username = ?').run('nog')).toThrow(/NOT NULL constraint failed/);
+      expect(() => testDb.prepare('UPDATE users SET is_guest = NULL WHERE username = ?').run('nog')).toThrow(
+        /NOT NULL constraint failed/,
+      );
     });
   });
 
@@ -264,13 +283,15 @@ describe('UsersRepository', () => {
 
     it('USERSREPO-057D: throws when the read-back after insert finds no row (coverage: the guard branch)', async () => {
       const spy = vi.spyOn(users, 'findById').mockResolvedValueOnce(null);
-      await expect(users.insertUser({
-        username: 'ghostuser',
-        email: 'ghost@example.com',
-        password_hash: 'hashed',
-        role: 'user',
-        first_seen_version: '1.2.3',
-      })).rejects.toThrow('insertUser: read-back after insert found no row');
+      await expect(
+        users.insertUser({
+          username: 'ghostuser',
+          email: 'ghost@example.com',
+          password_hash: 'hashed',
+          role: 'user',
+          first_seen_version: '1.2.3',
+        }),
+      ).rejects.toThrow('insertUser: read-back after insert found no row');
       spy.mockRestore();
     });
   });
@@ -358,7 +379,10 @@ describe('UsersRepository', () => {
       const { user } = createUser(testDb);
       testDb.prepare('UPDATE users SET login_count = 5 WHERE id = ?').run(user.id);
       await users.touchLastLogin(user.id);
-      const row = testDb.prepare('SELECT login_count, last_login FROM users WHERE id = ?').get(user.id) as { login_count: number; last_login: string };
+      const row = testDb.prepare('SELECT login_count, last_login FROM users WHERE id = ?').get(user.id) as {
+        login_count: number;
+        last_login: string;
+      };
       expect(row.login_count).toBe(6);
       expect(row.last_login).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
     });
@@ -374,16 +398,30 @@ describe('UsersRepository', () => {
 
   it('USERSREPO-022: findMeRow (AU14) reads the /api/auth/me projection', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare('UPDATE users SET avatar = ?, mfa_enabled = 1, must_change_password = 1 WHERE id = ?').run('pic.png', user.id);
+    testDb
+      .prepare('UPDATE users SET avatar = ?, mfa_enabled = 1, must_change_password = 1 WHERE id = ?')
+      .run('pic.png', user.id);
     const row = await users.findMeRow(user.id);
-    expect(row).toMatchObject({ id: user.id, username: user.username, email: user.email, role: 'user', avatar: 'pic.png', mfa_enabled: 1, must_change_password: 1 });
+    expect(row).toMatchObject({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: 'user',
+      avatar: 'pic.png',
+      mfa_enabled: 1,
+      must_change_password: 1,
+    });
     expect(row?.created_at).not.toBeNull();
     expect(await users.findMeRow(999999)).toBeNull();
   });
 
   it('USERSREPO-022b: findMeRow — every nullable column comes back null, not undefined, when NULL in the row (coverage: rule 16)', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare('UPDATE users SET avatar = NULL, oidc_issuer = NULL, created_at = NULL, mfa_enabled = NULL, must_change_password = NULL WHERE id = ?').run(user.id);
+    testDb
+      .prepare(
+        'UPDATE users SET avatar = NULL, oidc_issuer = NULL, created_at = NULL, mfa_enabled = NULL, must_change_password = NULL WHERE id = ?',
+      )
+      .run(user.id);
     const row = await users.findMeRow(user.id);
     expect(row?.avatar).toBeNull();
     expect(row?.oidc_issuer).toBeNull();
@@ -408,8 +446,13 @@ describe('UsersRepository', () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET must_change_password = 1 WHERE id = ?').run(user.id);
     await users.setPassword(user.id, 'new-hash', 5);
-    const row = testDb.prepare('SELECT password_hash, password_version, must_change_password, updated_at FROM users WHERE id = ?').get(user.id) as {
-      password_hash: string; password_version: number; must_change_password: number; updated_at: string;
+    const row = testDb
+      .prepare('SELECT password_hash, password_version, must_change_password, updated_at FROM users WHERE id = ?')
+      .get(user.id) as {
+      password_hash: string;
+      password_version: number;
+      must_change_password: number;
+      updated_at: string;
     };
     expect(row.password_hash).toBe('new-hash');
     expect(row.password_version).toBe(5);
@@ -452,8 +495,13 @@ describe('UsersRepository', () => {
   it('USERSREPO-029: enableMfa (AU28) sets mfa_enabled=1, writes the already-encrypted secret and codes, stamps updated_at', async () => {
     const { user } = createUser(testDb);
     await users.enableMfa(user.id, 'encrypted-secret', '["hash1","hash2"]');
-    const row = testDb.prepare('SELECT mfa_enabled, mfa_secret, mfa_backup_codes, updated_at FROM users WHERE id = ?').get(user.id) as {
-      mfa_enabled: number; mfa_secret: string; mfa_backup_codes: string; updated_at: string;
+    const row = testDb
+      .prepare('SELECT mfa_enabled, mfa_secret, mfa_backup_codes, updated_at FROM users WHERE id = ?')
+      .get(user.id) as {
+      mfa_enabled: number;
+      mfa_secret: string;
+      mfa_backup_codes: string;
+      updated_at: string;
     };
     expect(row.mfa_enabled).toBe(1);
     expect(row.mfa_secret).toBe('encrypted-secret');
@@ -483,10 +531,17 @@ describe('UsersRepository', () => {
 
   it('USERSREPO-032: disableMfa (AU31) clears mfa_enabled/secret/codes, stamps updated_at', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?').run('s', 'c', user.id);
+    testDb
+      .prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?')
+      .run('s', 'c', user.id);
     await users.disableMfa(user.id);
-    const row = testDb.prepare('SELECT mfa_enabled, mfa_secret, mfa_backup_codes, updated_at FROM users WHERE id = ?').get(user.id) as {
-      mfa_enabled: number; mfa_secret: string | null; mfa_backup_codes: string | null; updated_at: string;
+    const row = testDb
+      .prepare('SELECT mfa_enabled, mfa_secret, mfa_backup_codes, updated_at FROM users WHERE id = ?')
+      .get(user.id) as {
+      mfa_enabled: number;
+      mfa_secret: string | null;
+      mfa_backup_codes: string | null;
+      updated_at: string;
     };
     expect(row.mfa_enabled).toBe(0);
     expect(row.mfa_secret).toBeNull();
@@ -499,7 +554,10 @@ describe('UsersRepository', () => {
       const { user } = createUser(testDb);
       testDb.prepare("UPDATE users SET updated_at = '2020-01-01 00:00:00' WHERE id = ?").run(user.id);
       await users.setBackupCodesAndTouch(user.id, '["a"]');
-      const row = testDb.prepare('SELECT mfa_backup_codes, updated_at FROM users WHERE id = ?').get(user.id) as { mfa_backup_codes: string; updated_at: string };
+      const row = testDb.prepare('SELECT mfa_backup_codes, updated_at FROM users WHERE id = ?').get(user.id) as {
+        mfa_backup_codes: string;
+        updated_at: string;
+      };
       expect(row.mfa_backup_codes).toBe('["a"]');
       expect(row.updated_at).not.toBe('2020-01-01 00:00:00');
     });
@@ -508,7 +566,10 @@ describe('UsersRepository', () => {
       const { user } = createUser(testDb);
       testDb.prepare("UPDATE users SET updated_at = '2020-01-01 00:00:00' WHERE id = ?").run(user.id);
       await users.setBackupCodes(user.id, '["b"]');
-      const row = testDb.prepare('SELECT mfa_backup_codes, updated_at FROM users WHERE id = ?').get(user.id) as { mfa_backup_codes: string; updated_at: string };
+      const row = testDb.prepare('SELECT mfa_backup_codes, updated_at FROM users WHERE id = ?').get(user.id) as {
+        mfa_backup_codes: string;
+        updated_at: string;
+      };
       expect(row.mfa_backup_codes).toBe('["b"]');
       expect(row.updated_at).toBe('2020-01-01 00:00:00');
     });
@@ -538,14 +599,27 @@ describe('UsersRepository', () => {
 
   it('USERSREPO-037: findResetTarget (AU40) reads the reset-branch projection', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ?, password_version = 4 WHERE id = ?').run('s', 'c', user.id);
+    testDb
+      .prepare(
+        'UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ?, password_version = 4 WHERE id = ?',
+      )
+      .run('s', 'c', user.id);
     const row = await users.findResetTarget(user.id);
-    expect(row).toEqual({ id: user.id, email: user.email, mfa_enabled: 1, mfa_secret: 's', mfa_backup_codes: 'c', password_version: 4 });
+    expect(row).toEqual({
+      id: user.id,
+      email: user.email,
+      mfa_enabled: 1,
+      mfa_secret: 's',
+      mfa_backup_codes: 'c',
+      password_version: 4,
+    });
   });
 
   it('USERSREPO-037b: findResetTarget — mfa_enabled/mfa_secret/mfa_backup_codes NULL come back null, not undefined (coverage: rule 16)', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare('UPDATE users SET mfa_enabled = NULL, mfa_secret = NULL, mfa_backup_codes = NULL WHERE id = ?').run(user.id);
+    testDb
+      .prepare('UPDATE users SET mfa_enabled = NULL, mfa_secret = NULL, mfa_backup_codes = NULL WHERE id = ?')
+      .run(user.id);
     const row = await users.findResetTarget(user.id);
     expect(row?.mfa_enabled).toBeNull();
     expect(row?.mfa_secret).toBeNull();
@@ -570,7 +644,9 @@ describe('UsersRepository', () => {
   describe('findByOidcIdentity (O3)', () => {
     it('USERSREPO-040: matches on the (sub, issuer) pair', async () => {
       const { user } = createUser(testDb);
-      testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?').run('sub-1', 'https://idp.example.com', user.id);
+      testDb
+        .prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?')
+        .run('sub-1', 'https://idp.example.com', user.id);
       const row = await users.findByOidcIdentity('sub-1', 'https://idp.example.com');
       expect(row?.id).toBe(user.id);
       expect(await users.findByOidcIdentity('sub-1', 'https://other-idp.example.com')).toBeNull();
@@ -582,7 +658,9 @@ describe('UsersRepository', () => {
     testDb.prepare("UPDATE users SET updated_at = '2020-01-01 00:00:00' WHERE id = ?").run(user.id);
     await users.linkOidcIdentity(user.id, 'sub-2', 'https://idp2.example.com');
     const row = testDb.prepare('SELECT oidc_sub, oidc_issuer, updated_at FROM users WHERE id = ?').get(user.id) as {
-      oidc_sub: string; oidc_issuer: string; updated_at: string;
+      oidc_sub: string;
+      oidc_issuer: string;
+      updated_at: string;
     };
     expect(row.oidc_sub).toBe('sub-2');
     expect(row.oidc_issuer).toBe('https://idp2.example.com');
@@ -593,7 +671,10 @@ describe('UsersRepository', () => {
     const { user } = createUser(testDb);
     testDb.prepare("UPDATE users SET updated_at = '2020-01-01 00:00:00' WHERE id = ?").run(user.id);
     await users.setRole(user.id, 'admin');
-    const row = testDb.prepare('SELECT role, updated_at FROM users WHERE id = ?').get(user.id) as { role: string; updated_at: string };
+    const row = testDb.prepare('SELECT role, updated_at FROM users WHERE id = ?').get(user.id) as {
+      role: string;
+      updated_at: string;
+    };
     expect(row.role).toBe('admin');
     expect(row.updated_at).toBe('2020-01-01 00:00:00');
   });
@@ -602,7 +683,10 @@ describe('UsersRepository', () => {
     const { user } = createUser(testDb);
     testDb.prepare("UPDATE users SET updated_at = '2020-01-01 00:00:00' WHERE id = ?").run(user.id);
     await users.setAvatarRaw(user.id, 'https://idp.example.com/pic.png');
-    const row = testDb.prepare('SELECT avatar, updated_at FROM users WHERE id = ?').get(user.id) as { avatar: string; updated_at: string };
+    const row = testDb.prepare('SELECT avatar, updated_at FROM users WHERE id = ?').get(user.id) as {
+      avatar: string;
+      updated_at: string;
+    };
     expect(row.avatar).toBe('https://idp.example.com/pic.png');
     expect(row.updated_at).toBe('2020-01-01 00:00:00');
   });
@@ -642,31 +726,63 @@ describe('UsersRepository', () => {
 
   it('USERSREPO-046: getApiKeyColumns (UP1) reads role + the four key columns', async () => {
     const { user } = createAdmin(testDb);
-    testDb.prepare('UPDATE users SET maps_api_key = ?, openweather_api_key = ?, unsplash_api_key = ?, amap_api_key = ? WHERE id = ?')
+    testDb
+      .prepare(
+        'UPDATE users SET maps_api_key = ?, openweather_api_key = ?, unsplash_api_key = ?, amap_api_key = ? WHERE id = ?',
+      )
       .run('m', 'o', 'u', 'a', user.id);
-    expect(await users.getApiKeyColumns(user.id)).toEqual({ role: 'admin', maps_api_key: 'm', openweather_api_key: 'o', unsplash_api_key: 'u', amap_api_key: 'a' });
+    expect(await users.getApiKeyColumns(user.id)).toEqual({
+      role: 'admin',
+      maps_api_key: 'm',
+      openweather_api_key: 'o',
+      unsplash_api_key: 'u',
+      amap_api_key: 'a',
+    });
   });
 
   it('USERSREPO-046b: getApiKeyColumns returns null for a missing user; NULL columns come back null (coverage: rule 16)', async () => {
     expect(await users.getApiKeyColumns(999999)).toBeNull();
     const { user } = createUser(testDb);
     // maps_api_key/openweather_api_key/unsplash_api_key/amap_api_key are NULL by default on a fresh user.
-    expect(await users.getApiKeyColumns(user.id)).toEqual({ role: 'user', maps_api_key: null, openweather_api_key: null, unsplash_api_key: null, amap_api_key: null });
+    expect(await users.getApiKeyColumns(user.id)).toEqual({
+      role: 'user',
+      maps_api_key: null,
+      openweather_api_key: null,
+      unsplash_api_key: null,
+      amap_api_key: null,
+    });
   });
 
   it('USERSREPO-047: updateMapsKey (UP2) writes maps_api_key + updated_at', async () => {
     const { user } = createUser(testDb);
     await users.updateMapsKey(user.id, 'encrypted');
-    const row = testDb.prepare('SELECT maps_api_key, updated_at FROM users WHERE id = ?').get(user.id) as { maps_api_key: string; updated_at: string };
+    const row = testDb.prepare('SELECT maps_api_key, updated_at FROM users WHERE id = ?').get(user.id) as {
+      maps_api_key: string;
+      updated_at: string;
+    };
     expect(row.maps_api_key).toBe('encrypted');
     expect(row.updated_at).toMatch(/^\d{4}-\d{2}-\d{2}/);
   });
 
   it('USERSREPO-048: updateApiKeys (UP3) writes all four columns + updated_at in one statement', async () => {
     const { user } = createUser(testDb);
-    await users.updateApiKeys(user.id, { maps_api_key: 'm2', openweather_api_key: 'o2', unsplash_api_key: 'u2', amap_api_key: null });
-    const row = testDb.prepare('SELECT maps_api_key, openweather_api_key, unsplash_api_key, amap_api_key, updated_at FROM users WHERE id = ?').get(user.id) as Record<string, unknown>;
-    expect(row).toMatchObject({ maps_api_key: 'm2', openweather_api_key: 'o2', unsplash_api_key: 'u2', amap_api_key: null });
+    await users.updateApiKeys(user.id, {
+      maps_api_key: 'm2',
+      openweather_api_key: 'o2',
+      unsplash_api_key: 'u2',
+      amap_api_key: null,
+    });
+    const row = testDb
+      .prepare(
+        'SELECT maps_api_key, openweather_api_key, unsplash_api_key, amap_api_key, updated_at FROM users WHERE id = ?',
+      )
+      .get(user.id) as Record<string, unknown>;
+    expect(row).toMatchObject({
+      maps_api_key: 'm2',
+      openweather_api_key: 'o2',
+      unsplash_api_key: 'u2',
+      amap_api_key: null,
+    });
     expect(row.updated_at).toMatch(/^\d{4}-\d{2}-\d{2}/);
   });
 
@@ -674,7 +790,14 @@ describe('UsersRepository', () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET maps_api_key = ?, mfa_enabled = 1 WHERE id = ?').run('m', user.id);
     const row = await users.findProfileWithKeys(user.id);
-    expect(row).toMatchObject({ id: user.id, username: user.username, email: user.email, role: 'user', maps_api_key: 'm', mfa_enabled: 1 });
+    expect(row).toMatchObject({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: 'user',
+      maps_api_key: 'm',
+      mfa_enabled: 1,
+    });
   });
 
   it('USERSREPO-049b: findProfileWithKeys returns null for a missing user; every nullable column comes back null (coverage: rule 16)', async () => {
@@ -683,7 +806,12 @@ describe('UsersRepository', () => {
     testDb.prepare('UPDATE users SET mfa_enabled = NULL WHERE id = ?').run(user.id);
     const row = await users.findProfileWithKeys(user.id);
     expect(row).toMatchObject({
-      maps_api_key: null, openweather_api_key: null, unsplash_api_key: null, amap_api_key: null, avatar: null, mfa_enabled: null,
+      maps_api_key: null,
+      openweather_api_key: null,
+      unsplash_api_key: null,
+      amap_api_key: null,
+      avatar: null,
+      mfa_enabled: null,
     });
   });
 
@@ -707,7 +835,9 @@ describe('UsersRepository', () => {
   it('USERSREPO-051: patchProfile (UP7) writes only the given bounded columns + updated_at, in one statement', async () => {
     const { user } = createUser(testDb, { username: 'patchme', email: 'patchme@example.com' });
     await users.patchProfile(user.id, { username: 'patched', maps_api_key: 'newkey' });
-    const row = testDb.prepare('SELECT username, email, maps_api_key, updated_at FROM users WHERE id = ?').get(user.id) as Record<string, unknown>;
+    const row = testDb
+      .prepare('SELECT username, email, maps_api_key, updated_at FROM users WHERE id = ?')
+      .get(user.id) as Record<string, unknown>;
     expect(row.username).toBe('patched');
     expect(row.email).toBe('patchme@example.com'); // untouched — not in `changes`
     expect(row.maps_api_key).toBe('newkey');
@@ -725,13 +855,19 @@ describe('UsersRepository', () => {
     it('USERSREPO-053: setAvatar writes avatar + updated_at (both a filename and NULL for delete)', async () => {
       const { user } = createUser(testDb);
       await users.setAvatar(user.id, 'new.png');
-      let row = testDb.prepare('SELECT avatar, updated_at FROM users WHERE id = ?').get(user.id) as { avatar: string; updated_at: string };
+      let row = testDb.prepare('SELECT avatar, updated_at FROM users WHERE id = ?').get(user.id) as {
+        avatar: string;
+        updated_at: string;
+      };
       expect(row.avatar).toBe('new.png');
       expect(row.updated_at).toMatch(/^\d{4}-\d{2}-\d{2}/);
 
       testDb.prepare("UPDATE users SET updated_at = '2020-01-01 00:00:00' WHERE id = ?").run(user.id);
       await users.setAvatar(user.id, null);
-      row = testDb.prepare('SELECT avatar, updated_at FROM users WHERE id = ?').get(user.id) as { avatar: string | null; updated_at: string };
+      row = testDb.prepare('SELECT avatar, updated_at FROM users WHERE id = ?').get(user.id) as {
+        avatar: string | null;
+        updated_at: string;
+      };
       expect(row.avatar).toBeNull();
       expect(row.updated_at).not.toBe('2020-01-01 00:00:00');
     });
@@ -740,7 +876,13 @@ describe('UsersRepository', () => {
   it('USERSREPO-054: findProfileBasic (UP11) reads id/username/email/role/avatar', async () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET avatar = ? WHERE id = ?').run('a.png', user.id);
-    expect(await users.findProfileBasic(user.id)).toEqual({ id: user.id, username: user.username, email: user.email, role: 'user', avatar: 'a.png' });
+    expect(await users.findProfileBasic(user.id)).toEqual({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: 'user',
+      avatar: 'a.png',
+    });
   });
 
   it('USERSREPO-054b: findProfileBasic returns null for a missing user; NULL avatar comes back null (coverage: rule 16)', async () => {
@@ -792,14 +934,20 @@ describe('UsersRepository — TripMembersService (Plan 3c Task 6)', () => {
       const { user } = createUser(testDb, { username: 'raw-handle' });
       testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('Displayed Name', user.id);
       expect(await users.findOwnerSummary(user.id)).toEqual({
-        id: user.id, username: 'Displayed Name', email: user.email, avatar: null,
+        id: user.id,
+        username: 'Displayed Name',
+        email: user.email,
+        avatar: null,
       });
     });
 
     it('USERSREPO-060: falls back to username when display_name is NULL; a missing user id is null, not a throw', async () => {
       const { user } = createUser(testDb, { username: 'bare-handle' });
       expect(await users.findOwnerSummary(user.id)).toEqual({
-        id: user.id, username: 'bare-handle', email: user.email, avatar: null,
+        id: user.id,
+        username: 'bare-handle',
+        email: user.email,
+        avatar: null,
       });
       expect(await users.findOwnerSummary(999999)).toBeNull();
     });
@@ -822,7 +970,10 @@ describe('UsersRepository — TripMembersService (Plan 3c Task 6)', () => {
       await t.repo(Users).find({}, { disableIdentityMap: false }); // populate the identity map with an unrelated read
       testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('Fresh Name', user.id);
       expect(await users.findOwnerSummary(user.id)).toEqual({
-        id: user.id, username: 'Fresh Name', email: user.email, avatar: null,
+        id: user.id,
+        username: 'Fresh Name',
+        email: user.email,
+        avatar: null,
       });
     });
   });
@@ -834,18 +985,28 @@ describe('UsersRepository — TripMembersService (Plan 3c Task 6)', () => {
     // literal-object assertion below (rule 19; #1362 is security-relevant,
     // so this is one of the L7 reads the fix wave covers).
     const legacyInvitable = (identifier: string) =>
-      testDb.prepare(
-        'SELECT id, username, email, avatar FROM users WHERE (email = ? OR username = ?) AND COALESCE(is_guest, 0) = 0',
-      ).get(identifier, identifier) ?? null;
+      testDb
+        .prepare(
+          'SELECT id, username, email, avatar FROM users WHERE (email = ? OR username = ?) AND COALESCE(is_guest, 0) = 0',
+        )
+        .get(identifier, identifier) ?? null;
 
     it('USERSREPO-063: matches on email OR username, case-SENSITIVE (unlike findByEmailCI/findIdByEmailCI above)', async () => {
       const { user: byEmail } = createUser(testDb, { email: 'invitee@example.test', username: 'invitee-handle' });
       expect(await users.findInvitableByEmailOrUsername('invitee@example.test')).toEqual({
-        id: byEmail.id, username: 'invitee-handle', email: 'invitee@example.test', avatar: null,
+        id: byEmail.id,
+        username: 'invitee-handle',
+        email: 'invitee@example.test',
+        avatar: null,
       });
-      expect(await users.findInvitableByEmailOrUsername('invitee@example.test')).toEqual(legacyInvitable('invitee@example.test'));
+      expect(await users.findInvitableByEmailOrUsername('invitee@example.test')).toEqual(
+        legacyInvitable('invitee@example.test'),
+      );
       expect(await users.findInvitableByEmailOrUsername('invitee-handle')).toEqual({
-        id: byEmail.id, username: 'invitee-handle', email: 'invitee@example.test', avatar: null,
+        id: byEmail.id,
+        username: 'invitee-handle',
+        email: 'invitee@example.test',
+        avatar: null,
       });
       expect(await users.findInvitableByEmailOrUsername('invitee-handle')).toEqual(legacyInvitable('invitee-handle'));
       // Case-sensitive: an uppercased email must NOT match (program rule 18
@@ -915,19 +1076,37 @@ describe('UsersRepository — TripMembersService (Plan 3c Task 6)', () => {
 
   describe('insertGuest (TM16, security-sensitive)', () => {
     it('USERSREPO-067: writes the fixed literal columns and the given display_name; returns the generated id', async () => {
-      const id = await users.insertGuest({ username: 'guest-abc', email: 'guest-abc@guests.invalid', display_name: 'Ida' });
-      const row = testDb.prepare('SELECT username, email, password_hash, role, is_guest, display_name FROM users WHERE id = ?').get(id);
+      const id = await users.insertGuest({
+        username: 'guest-abc',
+        email: 'guest-abc@guests.invalid',
+        display_name: 'Ida',
+      });
+      const row = testDb
+        .prepare('SELECT username, email, password_hash, role, is_guest, display_name FROM users WHERE id = ?')
+        .get(id);
       expect(row).toEqual({
-        username: 'guest-abc', email: 'guest-abc@guests.invalid', password_hash: '', role: 'user', is_guest: 1, display_name: 'Ida',
+        username: 'guest-abc',
+        email: 'guest-abc@guests.invalid',
+        password_hash: '',
+        role: 'user',
+        is_guest: 1,
+        display_name: 'Ida',
       });
     });
   });
 
   describe('renameGuest / deleteGuest (TM19/TM20, security-sensitive, belt-and-braces is_guest = 1)', () => {
     it('USERSREPO-068: renameGuest updates display_name + updated_at only for an is_guest = 1 row', async () => {
-      const id = await users.insertGuest({ username: 'guest-rn', email: 'guest-rn@guests.invalid', display_name: 'Old' });
+      const id = await users.insertGuest({
+        username: 'guest-rn',
+        email: 'guest-rn@guests.invalid',
+        display_name: 'Old',
+      });
       await users.renameGuest(id, 'New Name');
-      const row = testDb.prepare('SELECT display_name, updated_at FROM users WHERE id = ?').get(id) as { display_name: string; updated_at: string | null };
+      const row = testDb.prepare('SELECT display_name, updated_at FROM users WHERE id = ?').get(id) as {
+        display_name: string;
+        updated_at: string | null;
+      };
       expect(row.display_name).toBe('New Name');
       expect(row.updated_at).not.toBeNull();
     });
@@ -936,11 +1115,18 @@ describe('UsersRepository — TripMembersService (Plan 3c Task 6)', () => {
       const { user } = createUser(testDb, { username: 'real-user' });
       testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('Untouched', user.id);
       await users.renameGuest(user.id, 'Attempted Rename');
-      expect((testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(user.id) as { display_name: string }).display_name).toBe('Untouched');
+      expect(
+        (testDb.prepare('SELECT display_name FROM users WHERE id = ?').get(user.id) as { display_name: string })
+          .display_name,
+      ).toBe('Untouched');
     });
 
     it('USERSREPO-070: deleteGuest removes only an is_guest = 1 row', async () => {
-      const id = await users.insertGuest({ username: 'guest-del', email: 'guest-del@guests.invalid', display_name: 'Gone' });
+      const id = await users.insertGuest({
+        username: 'guest-del',
+        email: 'guest-del@guests.invalid',
+        display_name: 'Gone',
+      });
       await users.deleteGuest(id);
       expect(testDb.prepare('SELECT id FROM users WHERE id = ?').get(id)).toBeUndefined();
     });
@@ -960,7 +1146,9 @@ describe('UsersRepository — feed tokens (Plan 3d Task 5, FD5-FD8/FD10)', () =>
   it('USERSREPO-072: getFeedToken reads the stored token, matching SELECT feed_token FROM users WHERE id = ?', async () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET feed_token = ? WHERE id = ?').run('tok-abc', user.id);
-    const legacy = testDb.prepare('SELECT feed_token FROM users WHERE id = ?').get(user.id) as { feed_token: string | null };
+    const legacy = testDb.prepare('SELECT feed_token FROM users WHERE id = ?').get(user.id) as {
+      feed_token: string | null;
+    };
     expect(await users.getFeedToken(user.id)).toBe(legacy.feed_token);
     expect(await users.getFeedToken(user.id)).toBe('tok-abc');
   });
@@ -974,14 +1162,19 @@ describe('UsersRepository — feed tokens (Plan 3d Task 5, FD5-FD8/FD10)', () =>
   it('USERSREPO-074: setFeedToken (FD6/FD7) writes a fresh token verbatim', async () => {
     const { user } = createUser(testDb);
     await users.setFeedToken(user.id, 'tok-fresh');
-    expect((testDb.prepare('SELECT feed_token FROM users WHERE id = ?').get(user.id) as { feed_token: string }).feed_token).toBe('tok-fresh');
+    expect(
+      (testDb.prepare('SELECT feed_token FROM users WHERE id = ?').get(user.id) as { feed_token: string }).feed_token,
+    ).toBe('tok-fresh');
   });
 
   it('USERSREPO-075: setFeedToken (FD8) clears the column to NULL when the token is null', async () => {
     const { user } = createUser(testDb);
     testDb.prepare('UPDATE users SET feed_token = ? WHERE id = ?').run('tok-old', user.id);
     await users.setFeedToken(user.id, null);
-    expect((testDb.prepare('SELECT feed_token FROM users WHERE id = ?').get(user.id) as { feed_token: string | null }).feed_token).toBeNull();
+    expect(
+      (testDb.prepare('SELECT feed_token FROM users WHERE id = ?').get(user.id) as { feed_token: string | null })
+        .feed_token,
+    ).toBeNull();
   });
 
   it('USERSREPO-076: findIdAndUsernameByFeedToken (FD10) — the anonymous credential lookup, exact projection', async () => {
@@ -1002,7 +1195,9 @@ describe('UsersRepository — feed tokens (Plan 3d Task 5, FD5-FD8/FD10)', () =>
 
   it('M1: getImmichAutoUpload / getSynologyUsername / findUsernameEmail return their column, and the missing-user branch, honestly', async () => {
     const { user } = createUser(testDb, { username: 'imm-user', email: 'imm@example.com' });
-    testDb.prepare('UPDATE users SET immich_auto_upload = 1, synology_username = ? WHERE id = ?').run('syno-login', user.id);
+    testDb
+      .prepare('UPDATE users SET immich_auto_upload = 1, synology_username = ? WHERE id = ?')
+      .run('syno-login', user.id);
 
     expect(await users.getImmichAutoUpload(user.id)).toBe(1);
     expect(await users.getImmichAutoUpload(999999)).toBeNull();
@@ -1017,7 +1212,9 @@ describe('UsersRepository — feed tokens (Plan 3d Task 5, FD5-FD8/FD10)', () =>
   it('M1b: getImmichCredentials / getImmichConnectionPrefs carry immich_allow_insecure_tls (#2475), and the missing-user branch', async () => {
     const { user } = createUser(testDb);
     testDb
-      .prepare('UPDATE users SET immich_url = ?, immich_api_key = ?, immich_auto_upload = 1, immich_allow_insecure_tls = 1 WHERE id = ?')
+      .prepare(
+        'UPDATE users SET immich_url = ?, immich_api_key = ?, immich_auto_upload = 1, immich_allow_insecure_tls = 1 WHERE id = ?',
+      )
       .run('https://immich.test', 'key-1', user.id);
 
     expect(await users.getImmichCredentials(user.id)).toEqual({
@@ -1027,7 +1224,10 @@ describe('UsersRepository — feed tokens (Plan 3d Task 5, FD5-FD8/FD10)', () =>
     });
     expect(await users.getImmichCredentials(999999)).toBeNull();
 
-    expect(await users.getImmichConnectionPrefs(user.id)).toEqual({ immich_auto_upload: 1, immich_allow_insecure_tls: 1 });
+    expect(await users.getImmichConnectionPrefs(user.id)).toEqual({
+      immich_auto_upload: 1,
+      immich_allow_insecure_tls: 1,
+    });
     expect(await users.getImmichConnectionPrefs(999999)).toBeNull();
   });
 });
@@ -1050,12 +1250,14 @@ describe('UsersRepository — admin (AD1-AD17) read methods, full-key parity', (
     plain = createUser(testDb, { username: 'ad-plain', email: 'ad-plain@example.com' }).user;
     const { user: guestRow } = createUser(testDb, { username: 'ad-guest', email: 'ad-guest@example.com' });
     testDb.prepare('UPDATE users SET is_guest = 1 WHERE id = ?').run(guestRow.id);
-    guest = { ...guestRow, } as TestUser;
+    guest = { ...guestRow } as TestUser;
   });
 
   it('USERSREPO-078 (AD1): listForAdmin matches SELECT id, username, email, role, avatar, created_at, updated_at, last_login FROM users WHERE COALESCE(is_guest, 0) = 0 ORDER BY created_at DESC, and excludes the guest row', async () => {
     const legacy = testDb
-      .prepare('SELECT id, username, email, role, avatar, created_at, updated_at, last_login FROM users WHERE COALESCE(is_guest, 0) = 0 ORDER BY created_at DESC')
+      .prepare(
+        'SELECT id, username, email, role, avatar, created_at, updated_at, last_login FROM users WHERE COALESCE(is_guest, 0) = 0 ORDER BY created_at DESC',
+      )
       .all();
     const rows = await users.listForAdmin();
     expect(rows).toEqual(legacy);
@@ -1073,7 +1275,12 @@ describe('UsersRepository — admin (AD1-AD17) read methods, full-key parity', (
   });
 
   it('USERSREPO-080 (AD4/AD5): insertAdminCreatedUser stores exactly the four named columns, every other column left to the entity default, then findAdminSummary re-selects it', async () => {
-    const id = await users.insertAdminCreatedUser({ username: 'ad-new', email: 'ad-new@example.com', password_hash: 'hash-x', role: 'user' });
+    const id = await users.insertAdminCreatedUser({
+      username: 'ad-new',
+      email: 'ad-new@example.com',
+      password_hash: 'hash-x',
+      role: 'user',
+    });
     const legacyRow = testDb.prepare('SELECT * FROM users WHERE id = ?').get(id) as Record<string, unknown>;
     expect(legacyRow.username).toBe('ad-new');
     expect(legacyRow.email).toBe('ad-new@example.com');
@@ -1086,18 +1293,22 @@ describe('UsersRepository — admin (AD1-AD17) read methods, full-key parity', (
     expect(legacyRow.login_count).toBe(0);
     expect(legacyRow.is_guest).toBe(0);
 
-    const legacySummary = testDb.prepare('SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ?').get(id);
+    const legacySummary = testDb
+      .prepare('SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ?')
+      .get(id);
     expect(await users.findAdminSummary(id)).toEqual(legacySummary);
   });
 
   it('USERSREPO-081 (AD14): findAdminSummary matches the byte-identical re-select text on an EXISTING (updated) row too', async () => {
     testDb.prepare('UPDATE users SET username = ?, role = ? WHERE id = ?').run('ad-plain-renamed', 'admin', plain.id);
-    const legacy = testDb.prepare('SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ?').get(plain.id);
+    const legacy = testDb
+      .prepare('SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ?')
+      .get(plain.id);
     expect(await users.findAdminSummary(plain.id)).toEqual(legacy);
     expect(await users.findAdminSummary(999999)).toBeNull();
   });
 
-  it('USERSREPO-082 (AD7/AD8): findIdByUsernameExactExcluding/findIdByEmailExactExcluding exclude the caller\'s own row, case-sensitive, guests excluded', async () => {
+  it("USERSREPO-082 (AD7/AD8): findIdByUsernameExactExcluding/findIdByEmailExactExcluding exclude the caller's own row, case-sensitive, guests excluded", async () => {
     // Renaming plain to admin's own username, excluding plain's own id, must
     // still find admin's row — that's the whole point of the check.
     expect(await users.findIdByUsernameExactExcluding('ad-admin', plain.id)).toBe(admin.id);
@@ -1108,12 +1319,19 @@ describe('UsersRepository — admin (AD1-AD17) read methods, full-key parity', (
   });
 
   it('USERSREPO-083 (AD11): applyAdminEdit only touches the keys supplied (coalesceParam semantics) and always stamps updated_at', async () => {
-    const before = testDb.prepare('SELECT email, updated_at FROM users WHERE id = ?').get(plain.id) as { email: string; updated_at: string };
+    const before = testDb.prepare('SELECT email, updated_at FROM users WHERE id = ?').get(plain.id) as {
+      email: string;
+      updated_at: string;
+    };
     // CURRENT_TIMESTAMP has 1-second resolution — wait past a tick so a
     // genuine "always stamped" pass is distinguishable from a no-op.
     await new Promise((r) => setTimeout(r, 1100));
     await users.applyAdminEdit(plain.id, { username: 'ad-plain-2' });
-    const after = testDb.prepare('SELECT username, email, updated_at FROM users WHERE id = ?').get(plain.id) as { username: string; email: string; updated_at: string };
+    const after = testDb.prepare('SELECT username, email, updated_at FROM users WHERE id = ?').get(plain.id) as {
+      username: string;
+      email: string;
+      updated_at: string;
+    };
     expect(after.username).toBe('ad-plain-2');
     // email was NOT in the patch, so it is unchanged — the coalesceParam
     // "new value wins when supplied, existing column wins when omitted" shape.
@@ -1138,16 +1356,24 @@ describe('UsersRepository — admin (AD1-AD17) read methods, full-key parity', (
 describe('UsersRepository — Immich settings write (IM4/IM5)', () => {
   const read = (id: number) =>
     testDb.prepare('SELECT immich_url, immich_api_key, immich_allow_insecure_tls FROM users WHERE id = ?').get(id) as {
-      immich_url: string | null; immich_api_key: string | null; immich_allow_insecure_tls: number;
+      immich_url: string | null;
+      immich_api_key: string | null;
+      immich_allow_insecure_tls: number;
     };
 
   it('USERSREPO-085 (IM4): setImmichSettings keeps the stored switch on a null value while the URL stays the same, and starts a new URL off', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare('UPDATE users SET immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = 1 WHERE id = ?').run('https://nas.local', 'enc-old', user.id);
+    testDb
+      .prepare('UPDATE users SET immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = 1 WHERE id = ?')
+      .run('https://nas.local', 'enc-old', user.id);
 
     // An older client that does not know the switch cannot clear it by saving.
     await users.setImmichSettings(user.id, 'https://nas.local', 'enc-new', null);
-    expect(read(user.id)).toEqual({ immich_url: 'https://nas.local', immich_api_key: 'enc-new', immich_allow_insecure_tls: 1 });
+    expect(read(user.id)).toEqual({
+      immich_url: 'https://nas.local',
+      immich_api_key: 'enc-new',
+      immich_allow_insecure_tls: 1,
+    });
 
     // Sent explicitly, the value wins over the stored one.
     await users.setImmichSettings(user.id, 'https://nas.local', 'enc-new', 0);
@@ -1157,20 +1383,34 @@ describe('UsersRepository — Immich settings write (IM4/IM5)', () => {
 
     // The switch trusts one server: another URL without it starts off ...
     await users.setImmichSettings(user.id, 'https://photos.example.com', 'enc-2', null);
-    expect(read(user.id)).toEqual({ immich_url: 'https://photos.example.com', immich_api_key: 'enc-2', immich_allow_insecure_tls: 0 });
+    expect(read(user.id)).toEqual({
+      immich_url: 'https://photos.example.com',
+      immich_api_key: 'enc-2',
+      immich_allow_insecure_tls: 0,
+    });
     // ... and with it, holds for that server.
     await users.setImmichSettings(user.id, 'https://other.example.com', 'enc-3', 1);
-    expect(read(user.id)).toEqual({ immich_url: 'https://other.example.com', immich_api_key: 'enc-3', immich_allow_insecure_tls: 1 });
+    expect(read(user.id)).toEqual({
+      immich_url: 'https://other.example.com',
+      immich_api_key: 'enc-3',
+      immich_allow_insecure_tls: 1,
+    });
 
     // A first connection (no stored URL) without the switch starts off too.
     testDb.prepare('UPDATE users SET immich_url = NULL, immich_allow_insecure_tls = 1 WHERE id = ?').run(user.id);
     await users.setImmichSettings(user.id, 'https://nas.local', 'enc-4', null);
-    expect(read(user.id)).toEqual({ immich_url: 'https://nas.local', immich_api_key: 'enc-4', immich_allow_insecure_tls: 0 });
+    expect(read(user.id)).toEqual({
+      immich_url: 'https://nas.local',
+      immich_api_key: 'enc-4',
+      immich_allow_insecure_tls: 0,
+    });
   });
 
   it('USERSREPO-086 (IM4): setImmichSettings matches the legacy CASE statement across every (stored url, stored switch, new url, value) combination, in ONE statement', async () => {
     const { user } = createUser(testDb);
-    const seed = testDb.prepare('UPDATE users SET immich_url = ?, immich_api_key = NULL, immich_allow_insecure_tls = ? WHERE id = ?');
+    const seed = testDb.prepare(
+      'UPDATE users SET immich_url = ?, immich_api_key = NULL, immich_allow_insecure_tls = ? WHERE id = ?',
+    );
     const legacy = testDb.prepare(
       `UPDATE users SET immich_url = ?, immich_api_key = ?,
          immich_allow_insecure_tls = CASE WHEN immich_url IS ? THEN COALESCE(?, immich_allow_insecure_tls) ELSE COALESCE(?, 0) END
@@ -1196,7 +1436,9 @@ describe('UsersRepository — Immich settings write (IM4/IM5)', () => {
 
   it('USERSREPO-087 (IM5): clearImmichSettings nulls the URL, stores the key it is handed and always turns the switch off', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare('UPDATE users SET immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = 1 WHERE id = ?').run('https://nas.local', 'enc-old', user.id);
+    testDb
+      .prepare('UPDATE users SET immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = 1 WHERE id = ?')
+      .run('https://nas.local', 'enc-old', user.id);
     await users.clearImmichSettings(user.id, null);
     expect(read(user.id)).toEqual({ immich_url: null, immich_api_key: null, immich_allow_insecure_tls: 0 });
   });

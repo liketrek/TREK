@@ -1,32 +1,32 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { manualSchoolRegionId } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
+import { SchoolHolidayRegions } from '../../db/entities/SchoolHolidayRegions.entity';
+import { VacayCompanyHolidays } from '../../db/entities/VacayCompanyHolidays.entity';
+import { VacayEntries } from '../../db/entities/VacayEntries.entity';
+import { VacayHolidayCalendars } from '../../db/entities/VacayHolidayCalendars.entity';
+import { VacayPlanMembers } from '../../db/entities/VacayPlanMembers.entity';
+import { VacayPlans } from '../../db/entities/VacayPlans.entity';
+import { VacayShares } from '../../db/entities/VacayShares.entity';
+import { VacayUserColors } from '../../db/entities/VacayUserColors.entity';
+import { VacayUserSettings as VacayUserSettingsEntity } from '../../db/entities/VacayUserSettings.entity';
+import { VacayUserYears } from '../../db/entities/VacayUserYears.entity';
+import { VacayYears } from '../../db/entities/VacayYears.entity';
+import type { SchoolHolidayRegionsRepository } from '../../db/repositories/SchoolHolidayRegions.repository';
+import type { VacayCompanyHolidaysRepository } from '../../db/repositories/VacayCompanyHolidays.repository';
+import type { VacayEntriesRepository } from '../../db/repositories/VacayEntries.repository';
+import type { VacayHolidayCalendarsRepository } from '../../db/repositories/VacayHolidayCalendars.repository';
+import type { VacayPlanMembersRepository } from '../../db/repositories/VacayPlanMembers.repository';
+import type { VacayPlansRepository } from '../../db/repositories/VacayPlans.repository';
+import type { VacaySharesRepository } from '../../db/repositories/VacayShares.repository';
+import type { VacayUserColorsRepository } from '../../db/repositories/VacayUserColors.repository';
+import type { VacayUserSettingsRepository } from '../../db/repositories/VacayUserSettings.repository';
+import type { VacayUserYearsRepository } from '../../db/repositories/VacayUserYears.repository';
+import type { VacayYearsRepository } from '../../db/repositories/VacayYears.repository';
+import { discardBody, readCappedJson } from '../../utils/cappedFetch';
 import { UnitOfWork } from '../database/unit-of-work';
 import { NotificationsService } from '../notifications/notifications.service';
-import { discardBody, readCappedJson } from '../../utils/cappedFetch';
-import { VacayPlans } from '../../db/entities/VacayPlans.entity';
-import type { VacayPlansRepository } from '../../db/repositories/VacayPlans.repository';
-import { VacayPlanMembers } from '../../db/entities/VacayPlanMembers.entity';
-import type { VacayPlanMembersRepository } from '../../db/repositories/VacayPlanMembers.repository';
-import { VacayYears } from '../../db/entities/VacayYears.entity';
-import type { VacayYearsRepository } from '../../db/repositories/VacayYears.repository';
-import { VacayUserYears } from '../../db/entities/VacayUserYears.entity';
-import type { VacayUserYearsRepository } from '../../db/repositories/VacayUserYears.repository';
-import { VacayUserColors } from '../../db/entities/VacayUserColors.entity';
-import type { VacayUserColorsRepository } from '../../db/repositories/VacayUserColors.repository';
-import { VacayEntries } from '../../db/entities/VacayEntries.entity';
-import type { VacayEntriesRepository } from '../../db/repositories/VacayEntries.repository';
-import { VacayCompanyHolidays } from '../../db/entities/VacayCompanyHolidays.entity';
-import type { VacayCompanyHolidaysRepository } from '../../db/repositories/VacayCompanyHolidays.repository';
-import { VacayHolidayCalendars } from '../../db/entities/VacayHolidayCalendars.entity';
-import type { VacayHolidayCalendarsRepository } from '../../db/repositories/VacayHolidayCalendars.repository';
-import { VacayShares } from '../../db/entities/VacayShares.entity';
-import type { VacaySharesRepository } from '../../db/repositories/VacayShares.repository';
-import { VacayUserSettings as VacayUserSettingsEntity } from '../../db/entities/VacayUserSettings.entity';
-import type { VacayUserSettingsRepository } from '../../db/repositories/VacayUserSettings.repository';
-import { SchoolHolidayRegions } from '../../db/entities/SchoolHolidayRegions.entity';
-import type { SchoolHolidayRegionsRepository } from '../../db/repositories/SchoolHolidayRegions.repository';
+import { RealtimeService } from '../realtime/realtime.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { manualSchoolRegionId } from '@trek/shared';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,9 +135,21 @@ const COUNTRY_RE = /^[A-Za-z]{2}$/;
 // ---------------------------------------------------------------------------
 
 const COLORS = [
-  '#6366f1', '#ec4899', '#14b8a6', '#8b5cf6', '#ef4444',
-  '#3b82f6', '#22c55e', '#06b6d4', '#f43f5e', '#a855f7',
-  '#10b981', '#0ea5e9', '#64748b', '#be185d', '#0d9488',
+  '#6366f1',
+  '#ec4899',
+  '#14b8a6',
+  '#8b5cf6',
+  '#ef4444',
+  '#3b82f6',
+  '#22c55e',
+  '#06b6d4',
+  '#f43f5e',
+  '#a855f7',
+  '#10b981',
+  '#0ea5e9',
+  '#64748b',
+  '#be185d',
+  '#0d9488',
 ];
 
 // ---------------------------------------------------------------------------
@@ -282,12 +294,28 @@ export class VacayService {
 
   async getUserYearSettings(userId: number): Promise<VacayUserSettings | undefined> {
     const row = await this.userSettings.findForUser(userId);
-    return row ? { user_id: row.user_id, year_type: row.year_type as VacayUserSettings['year_type'], year_start_month: row.year_start_month, year_start_day: row.year_start_day, hire_date: row.hire_date } : undefined;
+    return row
+      ? {
+          user_id: row.user_id,
+          year_type: row.year_type as VacayUserSettings['year_type'],
+          year_start_month: row.year_start_month,
+          year_start_day: row.year_start_day,
+          hire_date: row.hire_date,
+        }
+      : undefined;
   }
 
   /** A user's leave-year settings with the calendar defaults filled in (#737). */
   async getYearSettings(userId: number): Promise<VacayUserSettings> {
-    return (await this.getUserYearSettings(userId)) ?? { user_id: userId, year_type: 'calendar', year_start_month: 1, year_start_day: 1, hire_date: null };
+    return (
+      (await this.getUserYearSettings(userId)) ?? {
+        user_id: userId,
+        year_type: 'calendar',
+        year_start_month: 1,
+        year_start_day: 1,
+        hire_date: null,
+      }
+    );
   }
 
   /**
@@ -373,7 +401,8 @@ export class VacayService {
     const type = normalizeYearType(data.year_type);
     const month = Math.min(12, Math.max(1, Number.parseInt(String(data.year_start_month ?? 1), 10) || 1));
     const day = Math.min(31, Math.max(1, Number.parseInt(String(data.year_start_day ?? 1), 10) || 1));
-    const hire = typeof data.hire_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.hire_date) ? data.hire_date : null;
+    const hire =
+      typeof data.hire_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.hire_date) ? data.hire_date : null;
     await this.userSettings.upsertSettings(userId, type, month, day, hire);
     return (await this.getUserYearSettings(userId))!;
   }
@@ -413,7 +442,7 @@ export class VacayService {
     ownerId: number,
     oldStart: string,
     oldEnd: string,
-    newStart: string
+    newStart: string,
   ): Promise<void> {
     // VC4 (R9's verified restructured shape): `CAST(julianday(?) - julianday(?)
     // AS INTEGER)` on two BOUND VALUES is plain JS date-diff arithmetic —
@@ -455,8 +484,8 @@ export class VacayService {
       if (!plan) return;
       const userIds = [plan.owner_id];
       const members = await this.members.listAcceptedUserIds(planId);
-      members.forEach(m => userIds.push(m.user_id));
-      userIds.forEach(id => this.realtime.broadcastToUser(id, { type: event }, excludeSid));
+      members.forEach((m) => userIds.push(m.user_id));
+      userIds.forEach((id) => this.realtime.broadcastToUser(id, { type: event }, excludeSid));
       // Pending-invite events carry nothing a read-only viewer could see; every
       // other event may change entries, colors or company holidays. (The event
       // union proves invite/cancelled never reach this method — their senders
@@ -464,15 +493,19 @@ export class VacayService {
       if (event !== 'vacay:declined') {
         await this.notifyShareViewers(userIds, excludeSid);
       }
-    } catch { /* websocket not available */ }
+    } catch {
+      /* websocket not available */
+    }
   }
 
   async notifyShareViewers(ownerIds: number[], excludeSid?: string): Promise<void> {
     if (ownerIds.length === 0) return;
     try {
       const viewerIds = await this.shares.listDistinctViewerIdsForOwners(ownerIds);
-      viewerIds.forEach(id => this.realtime.broadcastToUser(id, { type: 'vacay:shared-update' }, excludeSid));
-    } catch { /* websocket not available */ }
+      viewerIds.forEach((id) => this.realtime.broadcastToUser(id, { type: 'vacay:shared-update' }, excludeSid));
+    } catch {
+      /* websocket not available */
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -501,11 +534,16 @@ export class VacayService {
         try {
           const cacheKey = `${year}-${country}`;
           const cached = this.holidayCache.get(cacheKey);
-          let holidays = cached && Date.now() - cached.time < CACHE_TTL ? cached.data as Holiday[] : undefined;
+          let holidays = cached && Date.now() - cached.time < CACHE_TTL ? (cached.data as Holiday[]) : undefined;
           if (!holidays) {
             if (!COUNTRY_RE.test(country)) continue;
-            const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-            if (!resp.ok) { discardBody(resp); continue; }
+            const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, {
+              signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+            });
+            if (!resp.ok) {
+              discardBody(resp);
+              continue;
+            }
             const parsed = await readCappedJson<Holiday[]>(resp, MAX_HOLIDAY_BYTES);
             if (parsed === undefined) continue;
             holidays = parsed;
@@ -519,7 +557,9 @@ export class VacayService {
               await this.companyHolidays.deleteForPlanAndDate(planId, h.date);
             }
           }
-        } catch { /* API error, skip */ }
+        } catch {
+          /* API error, skip */
+        }
       }
     }
   }
@@ -537,9 +577,27 @@ export class VacayService {
   // -------------------------------------------------------------------------
 
   async updatePlan(planId: number, body: UpdatePlanBody, socketId: string | undefined) {
-    const { block_weekends, holidays_enabled, holidays_region, school_holidays_enabled, company_holidays_enabled, carry_over_enabled, weekend_days, week_start } = body;
+    const {
+      block_weekends,
+      holidays_enabled,
+      holidays_region,
+      school_holidays_enabled,
+      company_holidays_enabled,
+      carry_over_enabled,
+      weekend_days,
+      week_start,
+    } = body;
 
-    const patch: { block_weekends?: number; holidays_enabled?: number; holidays_region?: string | null; school_holidays_enabled?: number; company_holidays_enabled?: number; carry_over_enabled?: number; weekend_days?: string; week_start?: number } = {};
+    const patch: {
+      block_weekends?: number;
+      holidays_enabled?: number;
+      holidays_region?: string | null;
+      school_holidays_enabled?: number;
+      company_holidays_enabled?: number;
+      carry_over_enabled?: number;
+      weekend_days?: string;
+      week_start?: number;
+    } = {};
     if (block_weekends !== undefined) patch.block_weekends = block_weekends ? 1 : 0;
     if (holidays_enabled !== undefined) patch.holidays_enabled = holidays_enabled ? 1 : 0;
     if (holidays_region !== undefined) patch.holidays_region = holidays_region;
@@ -583,7 +641,7 @@ export class VacayService {
             // (not `?? 30`) reproduces that exact coercion under strict
             // nullable typing; only the OUTER `config ? … : 30` (no row at
             // all) is a genuine default.
-            const total = (config ? config.vacation_days ?? 0 : 30) + (config ? config.carried_over ?? 0 : 0);
+            const total = (config ? (config.vacation_days ?? 0) : 30) + (config ? (config.carried_over ?? 0) : 0);
             const carry = Math.max(0, total - used);
             await this.userYears.upsertCarriedOver(u.id, planId, nextYr, carry);
           }
@@ -612,10 +670,23 @@ export class VacayService {
   // Holiday calendars CRUD
   // -------------------------------------------------------------------------
 
-  async addHolidayCalendar(planId: number, region: string, label: string | null, color: string | undefined, sortOrder: number | undefined, socketId: string | undefined, type: 'public_holiday' | 'school_holiday' = 'public_holiday') {
+  async addHolidayCalendar(
+    planId: number,
+    region: string,
+    label: string | null,
+    color: string | undefined,
+    sortOrder: number | undefined,
+    socketId: string | undefined,
+    type: 'public_holiday' | 'school_holiday' = 'public_holiday',
+  ) {
     await this.validateManualRegion(region, type);
     const id = await this.holidayCalendars.insertCalendar(
-      planId, type, region, label || null, color || (type === 'school_holiday' ? '#a5f3fc' : '#fecaca'), sortOrder ?? 0,
+      planId,
+      type,
+      region,
+      label || null,
+      color || (type === 'school_holiday' ? '#a5f3fc' : '#fecaca'),
+      sortOrder ?? 0,
     );
     const cal = (await this.holidayCalendars.findById(id))!;
     await this.notifyPlanUsers(planId, socketId, 'vacay:settings');
@@ -625,14 +696,26 @@ export class VacayService {
   async updateHolidayCalendar(
     calId: number,
     planId: number,
-    body: { region?: string; label?: string | null; color?: string; sort_order?: number; type?: 'public_holiday' | 'school_holiday' },
+    body: {
+      region?: string;
+      label?: string | null;
+      color?: string;
+      sort_order?: number;
+      type?: 'public_holiday' | 'school_holiday';
+    },
     socketId: string | undefined,
   ): Promise<VacayHolidayCalendar | null> {
     const cal = await this.holidayCalendars.findScopedForPlan(calId, planId);
     if (!cal) return null;
     await this.validateManualRegion(body.region ?? cal.region, body.type ?? cal.type);
     const { region, label, color, sort_order, type } = body;
-    const patch: { region?: string; type?: 'public_holiday' | 'school_holiday'; label?: string | null; color?: string; sort_order?: number } = {};
+    const patch: {
+      region?: string;
+      type?: 'public_holiday' | 'school_holiday';
+      label?: string | null;
+      color?: string;
+      sort_order?: number;
+    } = {};
     if (region !== undefined) patch.region = region;
     if (type !== undefined) patch.type = type;
     if (label !== undefined) patch.label = label;
@@ -684,7 +767,12 @@ export class VacayService {
   // User colors
   // -------------------------------------------------------------------------
 
-  async setUserColor(userId: number, planId: number, color: string | undefined, socketId: string | undefined): Promise<void> {
+  async setUserColor(
+    userId: number,
+    planId: number,
+    color: string | undefined,
+    socketId: string | undefined,
+  ): Promise<void> {
     await this.userColors.upsertColor(userId, planId, color || '#6366f1');
     await this.notifyPlanUsers(planId, socketId, 'vacay:update');
   }
@@ -693,7 +781,13 @@ export class VacayService {
   // Invitations
   // -------------------------------------------------------------------------
 
-  async sendInvite(planId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number): Promise<{ error?: string; status?: number }> {
+  async sendInvite(
+    planId: number,
+    inviterId: number,
+    inviterUsername: string,
+    inviterEmail: string,
+    targetUserId: number,
+  ): Promise<{ error?: string; status?: number }> {
     if (targetUserId === inviterId) return { error: 'Cannot invite yourself', status: 400 };
 
     // The picker no longer offers guests, but the id arrives from the client, so the
@@ -718,19 +812,33 @@ export class VacayService {
         from: { id: inviterId, username: inviterUsername },
         planId,
       });
-    } catch { /* websocket not available */ }
+    } catch {
+      /* websocket not available */
+    }
 
     // Notify invited user
     // Injected, not a lazy import of the old notifications bridge. The laziness bought
     // nothing the module graph does not already give — NotificationsModule
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
-    this.notifications.send({ event: 'vacay_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterEmail, planId: String(planId) } }).catch(() => {});
+    this.notifications
+      .send({
+        event: 'vacay_invite',
+        actorId: inviterId,
+        scope: 'user',
+        targetId: targetUserId,
+        params: { actor: inviterEmail, planId: String(planId) },
+      })
+      .catch(() => {});
 
     return {};
   }
 
-  async acceptInvite(userId: number, planId: number, socketId: string | undefined): Promise<{ error?: string; status?: number }> {
+  async acceptInvite(
+    userId: number,
+    planId: number,
+    socketId: string | undefined,
+  ): Promise<{ error?: string; status?: number }> {
     // The accept flow is a multi-statement write (status flip + entry/year/color
     // migration + seeding) — atomic, so a failure can't leave the member half-fused.
     const result = await this.uow.transactional(async (): Promise<{ error?: string; status?: number }> => {
@@ -758,11 +866,13 @@ export class VacayService {
       }
 
       // Auto-assign unique color
-      const existingColors = (await this.userColors.listOtherColors(planId, userId)).map(r => r.color).filter((c): c is string => c !== null);
+      const existingColors = (await this.userColors.listOtherColors(planId, userId))
+        .map((r) => r.color)
+        .filter((c): c is string => c !== null);
       const myColor = await this.userColors.findColor(userId, planId);
       const effectiveColor = myColor?.color || '#6366f1';
       if (existingColors.includes(effectiveColor)) {
-        const available = COLORS.find(c => !existingColors.includes(c));
+        const available = COLORS.find((c) => !existingColors.includes(c));
         if (available) {
           await this.userColors.upsertColor(userId, planId, available);
         }
@@ -794,7 +904,9 @@ export class VacayService {
 
     try {
       this.realtime.broadcastToUser(targetUserId, { type: 'vacay:cancelled' });
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -808,7 +920,7 @@ export class VacayService {
       const plan = await this.getActivePlan(userId);
       const isOwnerFlag = plan.owner_id === userId;
 
-      const userIds = (await this.getPlanUsers(plan.id)).map(u => u.id);
+      const userIds = (await this.getPlanUsers(plan.id)).map((u) => u.id);
       const companyHolidayRows = await this.companyHolidays.listForPlan(plan.id);
 
       if (isOwnerFlag) {
@@ -833,8 +945,12 @@ export class VacayService {
     });
 
     try {
-      allUserIds.filter(id => id !== userId).forEach(id => this.realtime.broadcastToUser(id, { type: 'vacay:dissolved' }));
-    } catch { /* */ }
+      allUserIds
+        .filter((id) => id !== userId)
+        .forEach((id) => this.realtime.broadcastToUser(id, { type: 'vacay:dissolved' }));
+    } catch {
+      /* */
+    }
     // Everyone's entries just moved back to their own plans — refresh read-only viewers.
     await this.notifyShareViewers(allUserIds, socketId);
   }
@@ -870,7 +986,7 @@ export class VacayService {
     const plan = await this.peekActivePlan(viewerId);
     if (!plan) return new Set(['#6366f1']);
     const rows = await this.userColors.listForPlan(plan.id);
-    const colors = rows.map(r => r.color).filter((c): c is string => c !== null);
+    const colors = rows.map((r) => r.color).filter((c): c is string => c !== null);
     return new Set(colors.length > 0 ? colors : ['#6366f1']);
   }
 
@@ -886,7 +1002,7 @@ export class VacayService {
     let color = row?.color || '#6366f1';
     if (usedColors.has(color)) {
       // Preset pool exhausted? Derive a stable per-owner hue instead of colliding.
-      color = COLORS.find(c => !usedColors.has(c)) || `hsl(${Math.round((ownerId * 137.508) % 360)} 65% 60%)`;
+      color = COLORS.find((c) => !usedColors.has(c)) || `hsl(${Math.round((ownerId * 137.508) % 360)} 65% 60%)`;
     }
     usedColors.add(color);
     return color;
@@ -895,7 +1011,7 @@ export class VacayService {
   /** Users the viewer already sees in full via their active plan (owner + members). */
   private async viewerCoMemberIds(viewerId: number): Promise<Set<number>> {
     const plan = await this.peekActivePlan(viewerId);
-    return new Set(plan ? (await this.getPlanUsers(plan.id)).map(u => u.id) : []);
+    return new Set(plan ? (await this.getPlanUsers(plan.id)).map((u) => u.id) : []);
   }
 
   async listShares(userId: number) {
@@ -910,7 +1026,7 @@ export class VacayService {
     // hands colors out, so the projection runs as an explicit loop — same rows,
     // same order, same color-allocation sequence.
     const incoming: { id: number; owner_id: number; username: string; color: string; hidden: boolean }[] = [];
-    for (const s of incomingRows.filter(s => !coMembers.has(s.owner_id))) {
+    for (const s of incomingRows.filter((s) => !coMembers.has(s.owner_id))) {
       incoming.push({
         id: s.id,
         owner_id: s.owner_id,
@@ -922,7 +1038,12 @@ export class VacayService {
     return { outgoing, incoming };
   }
 
-  async shareCalendar(ownerId: number, ownerEmail: string, targetUserId: number, socketId?: string): Promise<{ error?: string; status?: number }> {
+  async shareCalendar(
+    ownerId: number,
+    ownerEmail: string,
+    targetUserId: number,
+    socketId?: string,
+  ): Promise<{ error?: string; status?: number }> {
     if (targetUserId === ownerId) return { error: 'Cannot share with yourself', status: 400 };
 
     const targetOk = await this.shares.existsInvitableUser(targetUserId);
@@ -932,7 +1053,7 @@ export class VacayService {
     if (existing) return { error: 'Already shared', status: 400 };
 
     // Plan members already see the whole calendar — sharing with them is moot.
-    if ((await this.getPlanUsers(await this.getActivePlanId(ownerId))).find(u => u.id === targetUserId)) {
+    if ((await this.getPlanUsers(await this.getActivePlanId(ownerId))).find((u) => u.id === targetUserId)) {
       return { error: 'User is already in your calendar', status: 400 };
     }
 
@@ -942,9 +1063,19 @@ export class VacayService {
       this.realtime.broadcastToUser(targetUserId, { type: 'vacay:share', from: { id: ownerId } });
       // The owner's other devices refresh their outgoing list too.
       this.realtime.broadcastToUser(ownerId, { type: 'vacay:share', from: { id: ownerId } }, socketId);
-    } catch { /* websocket not available */ }
+    } catch {
+      /* websocket not available */
+    }
 
-    this.notifications.send({ event: 'vacay_share', actorId: ownerId, scope: 'user', targetId: targetUserId, params: { actor: ownerEmail } }).catch(() => {});
+    this.notifications
+      .send({
+        event: 'vacay_share',
+        actorId: ownerId,
+        scope: 'user',
+        targetId: targetUserId,
+        params: { actor: ownerEmail },
+      })
+      .catch(() => {});
 
     return {};
   }
@@ -962,7 +1093,9 @@ export class VacayService {
     try {
       this.realtime.broadcastToUser(share.owner_id, { type: 'vacay:share-removed' }, socketId);
       this.realtime.broadcastToUser(share.user_id, { type: 'vacay:share-removed' }, socketId);
-    } catch { /* websocket not available */ }
+    } catch {
+      /* websocket not available */
+    }
     return true;
   }
 
@@ -978,7 +1111,9 @@ export class VacayService {
     try {
       // Keep the viewer's other devices in sync; nobody else is affected.
       this.realtime.broadcastToUser(userId, { type: 'vacay:shared-update' }, socketId);
-    } catch { /* websocket not available */ }
+    } catch {
+      /* websocket not available */
+    }
     return true;
   }
 
@@ -1002,15 +1137,27 @@ export class VacayService {
     // hands colors out, so the projection runs as an explicit loop — same rows,
     // same order, same color-allocation sequence.
     const calendars: {
-      share_id: number; owner_id: number; owner_name: string; color: string; hidden: boolean;
+      share_id: number;
+      owner_id: number;
+      owner_name: string;
+      color: string;
+      hidden: boolean;
       entries: { date: string; fraction: number; kind: string | null }[];
       companyHolidays: { date: string }[];
     }[] = [];
-    for (const s of shareRows.filter(s => !coMembers.has(s.owner_id))) {
+    for (const s of shareRows.filter((s) => !coMembers.has(s.owner_id))) {
       const color = await this.shareDisplayColor(s.owner_id, usedColors);
       const plan = await this.peekActivePlan(s.owner_id);
       if (!plan) {
-        calendars.push({ share_id: s.id, owner_id: s.owner_id, owner_name: s.username, color, hidden: !!s.hidden, entries: [], companyHolidays: [] });
+        calendars.push({
+          share_id: s.id,
+          owner_id: s.owner_id,
+          owner_name: s.username,
+          color,
+          hidden: !!s.hidden,
+          entries: [],
+          companyHolidays: [],
+        });
         continue;
       }
       const entries = await this.entries.listForOwnerRange(plan.id, s.owner_id, start, end);
@@ -1020,7 +1167,15 @@ export class VacayService {
       const companyHolidayList = plan.company_holidays_enabled
         ? await this.companyHolidays.listDatesForRange(plan.id, start, end)
         : [];
-      calendars.push({ share_id: s.id, owner_id: s.owner_id, owner_name: s.username, color, hidden: !!s.hidden, entries, companyHolidays: companyHolidayList });
+      calendars.push({
+        share_id: s.id,
+        owner_id: s.owner_id,
+        owner_name: s.username,
+        color,
+        hidden: !!s.hidden,
+        entries,
+        companyHolidays: companyHolidayList,
+      });
     }
     return calendars;
   }
@@ -1087,7 +1242,7 @@ export class VacayService {
       // `map` cannot await the per-member window read, so it runs as an explicit
       // loop — same ids, same order.
       const windows: { start: string; end: string }[] = [];
-      for (const id of members.length > 0 ? members.map(m => m.id) : [owner?.owner_id ?? -1]) {
+      for (const id of members.length > 0 ? members.map((m) => m.id) : [owner?.owner_id ?? -1]) {
         windows.push(await this.resolveYearWindow(id, year));
       }
       const holidayStart = windows.reduce((a, w) => (w.start > a ? w.start : a), windows[0].start);
@@ -1143,7 +1298,14 @@ export class VacayService {
     return { entries, companyHolidays: companyHolidayList };
   }
 
-  async toggleEntry(userId: number, planId: number, date: string, fraction?: unknown, kind?: unknown, socketId?: string): Promise<{ action?: string; fraction?: number; kind?: string; error?: string }> {
+  async toggleEntry(
+    userId: number,
+    planId: number,
+    date: string,
+    fraction?: unknown,
+    kind?: unknown,
+    socketId?: string,
+  ): Promise<{ action?: string; fraction?: number; kind?: string; error?: string }> {
     const plan = await this.plans.findById(planId);
     // Half the day is the company's already (#2439): what is left is half a day.
     const company = plan?.company_holidays_enabled
@@ -1179,7 +1341,13 @@ export class VacayService {
    * it; the other size converts it in place, the way a vacation entry toggles. A
    * whole company holiday leaves no room for leave that day; a half one leaves half.
    */
-  async toggleCompanyHoliday(planId: number, date: string, note: string | undefined, socketId: string | undefined, fraction?: unknown): Promise<{ action: string; fraction?: number }> {
+  async toggleCompanyHoliday(
+    planId: number,
+    date: string,
+    note: string | undefined,
+    socketId: string | undefined,
+    fraction?: unknown,
+  ): Promise<{ action: string; fraction?: number }> {
     const frac = normalizeFraction(fraction);
     const result = await this.uow.transactional(async () => {
       const existing = await this.companyHolidays.findByPlanAndDate(planId, date); // VC118
@@ -1201,7 +1369,8 @@ export class VacayService {
 
   /** What a company holiday leaves of the day's leave: nothing for a whole one, half for a half one. */
   private async makeRoomForCompanyHoliday(planId: number, date: string, fraction: number): Promise<void> {
-    if (fraction >= 1) await this.entries.deleteForPlanAndDate(planId, date); // VC30/VC121
+    if (fraction >= 1)
+      await this.entries.deleteForPlanAndDate(planId, date); // VC30/VC121
     else await this.entries.halveForPlanAndDate(planId, date); // VC134
   }
 
@@ -1221,10 +1390,18 @@ export class VacayService {
     // loop in this file — flagged per the plan's "wrap it, flag it" default
     // rather than left silently un-transacted.
     const rows: {
-      user_id: number; person_name: string; person_color: string;
-      year: number; vacation_days: number | null; carried_over: number | null;
-      total_available: number; used: number; remaining: number; comp_used: number;
-      window_start: string; window_end: string;
+      user_id: number;
+      person_name: string;
+      person_color: string;
+      year: number;
+      vacation_days: number | null;
+      carried_over: number | null;
+      total_available: number;
+      used: number;
+      remaining: number;
+      comp_used: number;
+      window_start: string;
+      window_end: string;
     }[] = [];
     await this.uow.transactional(async () => {
       for (const u of users) {
@@ -1253,17 +1430,31 @@ export class VacayService {
         }
 
         rows.push({
-          user_id: u.id, person_name: u.username, person_color: colorRow?.color || '#6366f1',
-          year, vacation_days: vacationDays, carried_over: carriedOver,
-          total_available: total, used, remaining, comp_used: compUsed,
-          window_start: window.start, window_end: window.end,
+          user_id: u.id,
+          person_name: u.username,
+          person_color: colorRow?.color || '#6366f1',
+          year,
+          vacation_days: vacationDays,
+          carried_over: carriedOver,
+          total_available: total,
+          used,
+          remaining,
+          comp_used: compUsed,
+          window_start: window.start,
+          window_end: window.end,
         });
       }
     });
     return rows;
   }
 
-  async updateStats(userId: number, planId: number, year: number, vacationDays: number, socketId: string | undefined): Promise<void> {
+  async updateStats(
+    userId: number,
+    planId: number,
+    year: number,
+    vacationDays: number,
+    socketId: string | undefined,
+  ): Promise<void> {
     await this.userYears.upsertVacationDays(userId, planId, year, vacationDays);
     await this.notifyPlanUsers(planId, socketId);
   }
@@ -1314,8 +1505,13 @@ export class VacayService {
     const cached = this.holidayCache.get(cacheKey);
     if (cached && Date.now() - cached.time < CACHE_TTL) return { data: cached.data };
     try {
-      const resp = await fetch('https://date.nager.at/api/v3/AvailableCountries', { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-      if (!resp.ok) { discardBody(resp); return { error: 'Failed to fetch countries' }; }
+      const resp = await fetch('https://date.nager.at/api/v3/AvailableCountries', {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!resp.ok) {
+        discardBody(resp);
+        return { error: 'Failed to fetch countries' };
+      }
       const data = await readCappedJson(resp, MAX_HOLIDAY_BYTES);
       if (data === undefined) return { error: 'Failed to fetch countries' };
       this.holidayCache.set(cacheKey, { data, time: Date.now() });
@@ -1333,8 +1529,13 @@ export class VacayService {
     const cached = this.holidayCache.get(cacheKey);
     if (cached && Date.now() - cached.time < CACHE_TTL) return { data: cached.data };
     try {
-      const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-      if (!resp.ok) { discardBody(resp); return { error: 'Failed to fetch holidays' }; }
+      const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!resp.ok) {
+        discardBody(resp);
+        return { error: 'Failed to fetch holidays' };
+      }
       const data = await readCappedJson(resp, MAX_HOLIDAY_BYTES);
       if (data === undefined) return { error: 'Failed to fetch holidays' };
       this.holidayCache.set(cacheKey, { data, time: Date.now() });
@@ -1346,14 +1547,22 @@ export class VacayService {
 
   async getSchoolHolidayRegions(country: string, language = 'EN'): Promise<{ data?: unknown; error?: string }> {
     if (!COUNTRY_RE.test(country)) return { error: 'Failed to fetch school holiday regions' };
-    const normalizedLanguage = String(language || 'EN').slice(0, 2).toUpperCase();
+    const normalizedLanguage = String(language || 'EN')
+      .slice(0, 2)
+      .toUpperCase();
     const cacheKey = `school-regions-${country}-${normalizedLanguage}`;
     const cached = this.holidayCache.get(cacheKey);
     if (cached && Date.now() - cached.time < CACHE_TTL) return { data: cached.data };
     try {
       const [groupsResp, subdivisionsResp] = await Promise.all([
-        fetch(`https://openholidaysapi.org/Groups?countryIsoCode=${country}&languageIsoCode=${normalizedLanguage}`, { headers: { accept: 'text/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }),
-        fetch(`https://openholidaysapi.org/Subdivisions?countryIsoCode=${country}&languageIsoCode=${normalizedLanguage}`, { headers: { accept: 'text/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }),
+        fetch(`https://openholidaysapi.org/Groups?countryIsoCode=${country}&languageIsoCode=${normalizedLanguage}`, {
+          headers: { accept: 'text/json' },
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        }),
+        fetch(
+          `https://openholidaysapi.org/Subdivisions?countryIsoCode=${country}&languageIsoCode=${normalizedLanguage}`,
+          { headers: { accept: 'text/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
+        ),
       ]);
       if (!groupsResp.ok || !subdivisionsResp.ok) {
         discardBody(groupsResp);
@@ -1362,7 +1571,8 @@ export class VacayService {
       }
       const groups = await readCappedJson(groupsResp, MAX_HOLIDAY_BYTES);
       const subdivisions = await readCappedJson(subdivisionsResp, MAX_HOLIDAY_BYTES);
-      if (groups === undefined || subdivisions === undefined) return { error: 'Failed to fetch school holiday regions' };
+      if (groups === undefined || subdivisions === undefined)
+        return { error: 'Failed to fetch school holiday regions' };
       const data = { groups, subdivisions };
       this.holidayCache.set(cacheKey, { data, time: Date.now() });
       return { data };
@@ -1371,9 +1581,17 @@ export class VacayService {
     }
   }
 
-  async getSchoolHolidays(year: string, country: string, subdivision?: string | null, language = 'EN', group?: string | null): Promise<{ data?: unknown; error?: string }> {
+  async getSchoolHolidays(
+    year: string,
+    country: string,
+    subdivision?: string | null,
+    language = 'EN',
+    group?: string | null,
+  ): Promise<{ data?: unknown; error?: string }> {
     if (!YEAR_RE.test(year) || !COUNTRY_RE.test(country)) return { error: 'Failed to fetch school holidays' };
-    const normalizedLanguage = String(language || 'EN').slice(0, 2).toUpperCase();
+    const normalizedLanguage = String(language || 'EN')
+      .slice(0, 2)
+      .toUpperCase();
     const normalizedSubdivision = subdivision || '';
     const normalizedGroup = group || '';
     const cacheKey = `school-${year}-${country}-${normalizedSubdivision || 'all'}-${normalizedGroup || 'all'}-${normalizedLanguage}`;
@@ -1392,7 +1610,10 @@ export class VacayService {
         headers: { accept: 'text/json' },
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
-      if (!resp.ok) { discardBody(resp); return { error: 'Failed to fetch school holidays' }; }
+      if (!resp.ok) {
+        discardBody(resp);
+        return { error: 'Failed to fetch school holidays' };
+      }
       const data = await readCappedJson(resp, MAX_HOLIDAY_BYTES);
       if (data === undefined) return { error: 'Failed to fetch school holidays' };
       this.holidayCache.set(cacheKey, { data, time: Date.now() });

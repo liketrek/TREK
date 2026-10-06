@@ -1,5 +1,5 @@
-import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 import { PluginUserErasureQueueRepository } from '../repositories/PluginUserErasureQueue.repository';
+import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 
 export class PluginUserErasureQueue {
   [EntityRepositoryType]?: PluginUserErasureQueueRepository;

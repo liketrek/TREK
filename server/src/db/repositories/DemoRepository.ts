@@ -1,8 +1,8 @@
-import type { EntityManager } from '@mikro-orm/core';
-import { Users } from '../entities/Users.entity';
-import type { NewAdminUserRow } from './Users.repository';
 import { AppSettings } from '../entities/AppSettings.entity';
 import { Trips } from '../entities/Trips.entity';
+import { Users } from '../entities/Users.entity';
+import type { NewAdminUserRow } from './Users.repository';
+import type { EntityManager } from '@mikro-orm/core';
 
 /** DMR1's projection (`resetDemoUser`'s pre-close credential read). */
 export interface DemoAdminCredentialsRow {
@@ -148,11 +148,22 @@ export class DemoRepository {
    * the legacy code's own dup-text shape.
    */
   async addTripMember(tripId: number, userId: number, invitedBy: number): Promise<void> {
-    await this.run('INSERT OR IGNORE INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)', [tripId, userId, invitedBy]);
+    await this.run('INSERT OR IGNORE INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)', [
+      tripId,
+      userId,
+      invitedBy,
+    ]);
   }
 
   /** DMS7 — `INSERT INTO trips (user_id, title, description, start_date, end_date, currency) VALUES (?, ?, ?, ?, ?, ?)`. Returns the generated trip id. */
-  async insertTrip(userId: number, title: string, description: string, startDate: string, endDate: string, currency: string): Promise<number> {
+  async insertTrip(
+    userId: number,
+    title: string,
+    description: string,
+    startDate: string,
+    endDate: string,
+    currency: string,
+  ): Promise<number> {
     const { insertId } = await this.run(
       'INSERT INTO trips (user_id, title, description, start_date, end_date, currency) VALUES (?, ?, ?, ?, ?, ?)',
       [userId, title, description, startDate, endDate, currency],
@@ -162,7 +173,11 @@ export class DemoRepository {
 
   /** DMS8 — `INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, ?)`. Returns the generated day id. */
   async insertDay(tripId: number, dayNumber: number, date: string): Promise<number> {
-    const { insertId } = await this.run('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, ?)', [tripId, dayNumber, date]);
+    const { insertId } = await this.run('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, ?)', [
+      tripId,
+      dayNumber,
+      date,
+    ]);
     return insertId;
   }
 
@@ -177,17 +192,40 @@ export class DemoRepository {
 
   /** DMS10 — `INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (?, ?, ?)`. */
   async insertDayAssignment(dayId: number, placeId: number, orderIndex: number): Promise<void> {
-    await this.run('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (?, ?, ?)', [dayId, placeId, orderIndex]);
+    await this.run('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (?, ?, ?)', [
+      dayId,
+      placeId,
+      orderIndex,
+    ]);
   }
 
   /** DMS11 — `INSERT INTO packing_items (trip_id, name, checked, category, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`. */
-  async insertPackingItem(tripId: number, name: string, checked: number, category: string, sortOrder: number): Promise<void> {
-    await this.run('INSERT INTO packing_items (trip_id, name, checked, category, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)', [tripId, name, checked, category, sortOrder]);
+  async insertPackingItem(
+    tripId: number,
+    name: string,
+    checked: number,
+    category: string,
+    sortOrder: number,
+  ): Promise<void> {
+    await this.run(
+      'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
+      [tripId, name, checked, category, sortOrder],
+    );
   }
 
   /** DMS12 — `INSERT INTO budget_items (trip_id, category, name, total_price, persons, note) VALUES (?, ?, ?, ?, ?, ?)`. */
-  async insertBudgetItem(tripId: number, category: string, name: string, totalPrice: number, persons: number, note: string | null): Promise<void> {
-    await this.run('INSERT INTO budget_items (trip_id, category, name, total_price, persons, note) VALUES (?, ?, ?, ?, ?, ?)', [tripId, category, name, totalPrice, persons, note]);
+  async insertBudgetItem(
+    tripId: number,
+    category: string,
+    name: string,
+    totalPrice: number,
+    persons: number,
+    note: string | null,
+  ): Promise<void> {
+    await this.run(
+      'INSERT INTO budget_items (trip_id, category, name, total_price, persons, note) VALUES (?, ?, ?, ?, ?, ?)',
+      [tripId, category, name, totalPrice, persons, note],
+    );
   }
 
   /**
@@ -213,8 +251,22 @@ export class DemoRepository {
   }
 
   /** DMS14 — `INSERT INTO day_notes (day_id, trip_id, text, time, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?)`. */
-  async insertDayNote(dayId: number, tripId: number, text: string, time: string, icon: string, sortOrder: number): Promise<void> {
-    await this.run('INSERT INTO day_notes (day_id, trip_id, text, time, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?)', [dayId, tripId, text, time, icon, sortOrder]);
+  async insertDayNote(
+    dayId: number,
+    tripId: number,
+    text: string,
+    time: string,
+    icon: string,
+    sortOrder: number,
+  ): Promise<void> {
+    await this.run('INSERT INTO day_notes (day_id, trip_id, text, time, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?)', [
+      dayId,
+      tripId,
+      text,
+      time,
+      icon,
+      sortOrder,
+    ]);
   }
 
   // ---------------------------------------------------------------------
@@ -231,7 +283,10 @@ export class DemoRepository {
   async getAdminCredentials(email: string): Promise<DemoAdminCredentialsRow | null> {
     const row = await this.em
       .getRepository(Users)
-      .findOne({ email }, { fields: ['password_hash', 'maps_api_key', 'openweather_api_key', 'unsplash_api_key', 'avatar'] });
+      .findOne(
+        { email },
+        { fields: ['password_hash', 'maps_api_key', 'openweather_api_key', 'unsplash_api_key', 'avatar'] },
+      );
     return row
       ? {
           password_hash: row.password_hash,

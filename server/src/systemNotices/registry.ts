@@ -1,5 +1,5 @@
-import type { SystemNotice } from './types.js';
 import { registerPredicate } from './conditions.js';
+import type { SystemNotice } from './types.js';
 
 /**
  * Registered at module load, unchanged from before this plan (Plan 3f Task
@@ -184,7 +184,7 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     severity: 'warn',
     icon: 'AlertTriangle',
     titleKey: 'system_notice.v3014_whitespace_collision.title',
-    bodyKey:  'system_notice.v3014_whitespace_collision.body',
+    bodyKey: 'system_notice.v3014_whitespace_collision.body',
     dismissible: true,
     conditions: [
       { kind: 'existingUserBeforeVersion', version: '3.0.14' },

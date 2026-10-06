@@ -32,7 +32,13 @@ export class PluginScheduledTasksRepository extends TrekRepository<PluginSchedul
       { due_at: { $lte: now }, plugin_id: { $in: pluginIds } },
       { fields: ['id', 'plugin_id', 'name', 'payload', 'every_ms'], orderBy: { due_at: 'asc' }, limit },
     );
-    return rows.map((r) => ({ id: r.id, plugin_id: r.plugin_id, name: r.name, payload: r.payload, every_ms: r.every_ms ?? null }));
+    return rows.map((r) => ({
+      id: r.id,
+      plugin_id: r.plugin_id,
+      name: r.name,
+      payload: r.payload,
+      every_ms: r.every_ms ?? null,
+    }));
   }
 
   /**
@@ -103,8 +109,18 @@ export class PluginScheduledTasksRepository extends TrekRepository<PluginSchedul
    */
   async upsertTask(input: PluginScheduledTaskUpsertInput): Promise<void> {
     await this.upsert(
-      { plugin_id: input.plugin_id, name: input.name, due_at: input.due_at, payload: input.payload, every_ms: input.every_ms },
-      { onConflictFields: ['plugin_id', 'name'], onConflictAction: 'merge', onConflictMergeFields: ['due_at', 'payload', 'every_ms'] },
+      {
+        plugin_id: input.plugin_id,
+        name: input.name,
+        due_at: input.due_at,
+        payload: input.payload,
+        every_ms: input.every_ms,
+      },
+      {
+        onConflictFields: ['plugin_id', 'name'],
+        onConflictAction: 'merge',
+        onConflictMergeFields: ['due_at', 'payload', 'every_ms'],
+      },
     );
   }
 

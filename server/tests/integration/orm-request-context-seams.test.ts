@@ -29,8 +29,22 @@
  * `@nestjs/core`'s `nest-application.js`/`.d.ts` — the field is `config`, NOT
  * `applicationConfig`, despite the class's own name).
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { Users } from '../../src/db/entities/Users.entity';
+import { PlaceShadowRetentionJob } from '../../src/nest/place-shadow/place-shadow.job';
+import { PluginRuntimeService } from '../../src/nest/plugins/plugin-runtime.service';
+import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
+import { StorageService } from '../../src/nest/storage/storage.service';
+import { generateToken } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -45,21 +59,11 @@ vi.mock('../../src/config', () => ({
   SESSION_DURATION_SECONDS: 86400,
   DEFAULT_LANGUAGE: 'en',
 }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn(), getOnlineUserIds: vi.fn(() => []) }));
-
-import { db as testDb } from '../../src/db/database';
-import { MikroORM } from '@mikro-orm/core';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import request from 'supertest';
-import type { Application } from 'express';
-import { buildApp } from '../../src/bootstrap';
-import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
-import { PluginRuntimeService } from '../../src/nest/plugins/plugin-runtime.service';
-import { PlaceShadowRetentionJob } from '../../src/nest/place-shadow/place-shadow.job';
-import { StorageService } from '../../src/nest/storage/storage.service';
-import { Users } from '../../src/db/entities/Users.entity';
-import { createUser } from '../helpers/factories';
-import { generateToken } from '../helpers/auth';
+vi.mock('../../src/websocket', () => ({
+  broadcast: vi.fn(),
+  broadcastToUser: vi.fn(),
+  getOnlineUserIds: vi.fn(() => []),
+}));
 
 describe('ORM request-context seams populated in production', () => {
   let app: INestApplication;
@@ -161,10 +165,14 @@ describe('ORM request-context seams populated in production', () => {
     const isEnabledSpy = vi.spyOn(registrar, 'isEnabled').mockReturnValue(true);
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      testDb.prepare(`
+      testDb
+        .prepare(
+          `
         INSERT INTO place_shadow_picks (created_at, query, source, live_rank, live_count, picked_name, picked_lat, picked_lng)
         VALUES (datetime('now', '-999 days'), 'seam-003', 'nominatim', 1, 1, 'expired pick', 0, 0)
-      `).run();
+      `,
+        )
+        .run();
 
       // Real bug found converting `purgeExpired` to a genuinely async
       // repository call (0b security review F-B4): the `cron` package's
@@ -199,7 +207,9 @@ describe('ORM request-context seams populated in production', () => {
       // `withRequestContext` wrap in `cron-registrar.service.ts`'s `register()`
       // makes the repository call throw inside `PlaceShadowRetentionJob.tick`'s
       // own try/catch, and the row survives (verified by hand, reverted).
-      const remaining = testDb.prepare("SELECT COUNT(*) as n FROM place_shadow_picks WHERE query = 'seam-003'").get() as { n: number };
+      const remaining = testDb
+        .prepare("SELECT COUNT(*) as n FROM place_shadow_picks WHERE query = 'seam-003'")
+        .get() as { n: number };
       expect(remaining.n).toBe(0);
     } finally {
       registrar.unregister('place-shadow-retention');

@@ -1,9 +1,9 @@
-import React from 'react'
-import { Hourglass } from 'lucide-react'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { formatDurationShort } from './roadtripModel'
-import { STOP_KINDS } from './stopKinds'
-import type { RoadtripStopType } from '@trek/shared'
+import type { RoadtripStopType } from '@trek/shared';
+import { Hourglass } from 'lucide-react';
+import React from 'react';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { formatDurationShort } from './roadtripModel';
+import { STOP_KINDS } from './stopKinds';
 
 /**
  * The two questions every stop on a drive answers: what kind it is, and how long it
@@ -17,38 +17,45 @@ import type { RoadtripStopType } from '@trek/shared'
  */
 
 /** How long to stand still, offered as the few answers anyone actually gives. */
-const DWELL_CHOICES = [5, 10, 20, 30, 45, 60]
+const DWELL_CHOICES = [5, 10, 20, 30, 45, 60];
 
-const CHOSEN = 'border-transparent bg-accent font-semibold text-accent-text'
-const UNCHOSEN = 'border-edge text-content-secondary hover:border-content-faint hover:text-content'
+const CHOSEN = 'border-transparent bg-accent font-semibold text-accent-text';
+const UNCHOSEN = 'border-edge text-content-secondary hover:border-content-faint hover:text-content';
 /** Unchosen on a grey panel: a white pill on a hairline, like every other pill there. */
-const UNCHOSEN_WHITE = 'border-transparent bg-surface-card text-content-secondary shadow-sm ring-1 ring-edge-faint hover:text-content'
+const UNCHOSEN_WHITE =
+  'border-transparent bg-surface-card text-content-secondary shadow-sm ring-1 ring-edge-faint hover:text-content';
 
 /** What both rows take besides their value. */
 interface RowOptions {
-  className?: string
+  className?: string;
   /** The id of the caption over the row, which then names it as a group. */
-  labelledBy?: string
+  labelledBy?: string;
   /** Unchosen pills white, for a row that sits on a grey panel (the place form's). */
-  white?: boolean
+  white?: boolean;
 }
 
-const groupProps = (labelledBy?: string) => (labelledBy ? { role: 'group', 'aria-labelledby': labelledBy } : {})
+const groupProps = (labelledBy?: string) => (labelledBy ? { role: 'group', 'aria-labelledby': labelledBy } : {});
 
 /** The row itself. Overridable so a caller whose own label already spaces it can say so. */
-const ROW = 'mt-1.5 flex flex-wrap gap-1.5'
+const ROW = 'mt-1.5 flex flex-wrap gap-1.5';
 
-export function StopKindChips({ value, onPick, className = ROW, labelledBy, white = false }: RowOptions & {
-  value: RoadtripStopType | null
+export function StopKindChips({
+  value,
+  onPick,
+  className = ROW,
+  labelledBy,
+  white = false,
+}: RowOptions & {
+  value: RoadtripStopType | null;
   /** Called with the kind clicked, including the one already chosen. */
-  onPick: (kind: RoadtripStopType, wasChosen: boolean) => void
+  onPick: (kind: RoadtripStopType, wasChosen: boolean) => void;
 }): React.ReactElement {
-  const { t } = useTranslation()
-  const unchosen = white ? UNCHOSEN_WHITE : UNCHOSEN
+  const { t } = useTranslation();
+  const unchosen = white ? UNCHOSEN_WHITE : UNCHOSEN;
   return (
     <div className={className} {...groupProps(labelledBy)}>
       {STOP_KINDS.map(({ key, labelKey, Icon }) => {
-        const on = value === key
+        const on = value === key;
         return (
           <button
             key={key}
@@ -62,20 +69,26 @@ export function StopKindChips({ value, onPick, className = ROW, labelledBy, whit
             <Icon size={12} aria-hidden />
             {t(labelKey)}
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
-export function StopStayChips({ value, onPick, className = ROW, labelledBy, white = false }: RowOptions & {
-  value: number
-  onPick: (minutes: number) => void
+export function StopStayChips({
+  value,
+  onPick,
+  className = ROW,
+  labelledBy,
+  white = false,
+}: RowOptions & {
+  value: number;
+  onPick: (minutes: number) => void;
 }): React.ReactElement {
-  const unchosen = white ? UNCHOSEN_WHITE : UNCHOSEN
+  const unchosen = white ? UNCHOSEN_WHITE : UNCHOSEN;
   return (
     <div className={className} {...groupProps(labelledBy)}>
-      {DWELL_CHOICES.map(minutes => (
+      {DWELL_CHOICES.map((minutes) => (
         <button
           key={minutes}
           type="button"
@@ -90,5 +103,5 @@ export function StopStayChips({ value, onPick, className = ROW, labelledBy, whit
         </button>
       ))}
     </div>
-  )
+  );
 }

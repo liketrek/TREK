@@ -1,15 +1,25 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { SchoolHolidayCatalog, SchoolHolidayCountryRequest, SchoolHolidayPeriod, SchoolHolidayRegion, SchoolHolidayRegionDetail, SchoolHolidayRegionRequest } from '@trek/shared';
 import { SchoolHolidayCountries } from '../../db/entities/SchoolHolidayCountries.entity';
-import type { SchoolHolidayCountriesRepository } from '../../db/repositories/SchoolHolidayCountries.repository';
-import { SchoolHolidayRegions } from '../../db/entities/SchoolHolidayRegions.entity';
-import type { SchoolHolidayRegionsRepository, SchoolHolidayRegionRow } from '../../db/repositories/SchoolHolidayRegions.repository';
 import { SchoolHolidayPeriods } from '../../db/entities/SchoolHolidayPeriods.entity';
-import type { SchoolHolidayPeriodsRepository } from '../../db/repositories/SchoolHolidayPeriods.repository';
+import { SchoolHolidayRegions } from '../../db/entities/SchoolHolidayRegions.entity';
 import { VacayHolidayCalendars } from '../../db/entities/VacayHolidayCalendars.entity';
+import type { SchoolHolidayCountriesRepository } from '../../db/repositories/SchoolHolidayCountries.repository';
+import type { SchoolHolidayPeriodsRepository } from '../../db/repositories/SchoolHolidayPeriods.repository';
+import type {
+  SchoolHolidayRegionsRepository,
+  SchoolHolidayRegionRow,
+} from '../../db/repositories/SchoolHolidayRegions.repository';
 import type { VacayHolidayCalendarsRepository } from '../../db/repositories/VacayHolidayCalendars.repository';
 import { UnitOfWork } from '../database/unit-of-work';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import type {
+  SchoolHolidayCatalog,
+  SchoolHolidayCountryRequest,
+  SchoolHolidayPeriod,
+  SchoolHolidayRegion,
+  SchoolHolidayRegionDetail,
+  SchoolHolidayRegionRequest,
+} from '@trek/shared';
 
 /**
  * School-holidays domain service — moved off `DatabaseService`/raw SQL onto
@@ -70,7 +80,13 @@ export class SchoolHolidaysService {
 
   /** The SH2/SH7 synthesized `code` column — see `SchoolHolidayRegions.repository.ts`'s class docstring. */
   private toRegion(region: SchoolHolidayRegionRow): SchoolHolidayRegion {
-    return { id: region.id, country: region.country, name: region.name, revision: region.revision, code: `${region.country}-MANUAL-${region.id}` };
+    return {
+      id: region.id,
+      country: region.country,
+      name: region.name,
+      revision: region.revision,
+      code: `${region.country}-MANUAL-${region.id}`,
+    };
   }
 
   private async checkName(country: string, name: string, id: number) {
@@ -120,6 +136,8 @@ export class SchoolHolidaysService {
   }
 
   async holidays(id: number, year: string): Promise<SchoolHolidayPeriod[]> {
-    return (await this.region(id)).holidays.filter(holiday => holiday.startDate <= `${year}-12-31` && holiday.endDate >= `${year}-01-01`);
+    return (await this.region(id)).holidays.filter(
+      (holiday) => holiday.startDate <= `${year}-12-31` && holiday.endDate >= `${year}-01-01`,
+    );
   }
 }

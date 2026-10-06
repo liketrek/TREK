@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react'
-import { useTranslation } from '../../../i18n/TranslationContext'
-import { relativeTime } from '../../../utils/relativeTime'
-import { Tooltip } from '../../shared/Tooltip'
+import type { ReactNode } from 'react';
+import { useTranslation } from '../../../i18n/TranslationContext';
+import { relativeTime } from '../../../utils/relativeTime';
+import { Tooltip } from '../../shared/Tooltip';
 
 /**
  * The small shared pieces of the document-sync dialog.
@@ -11,7 +11,7 @@ import { Tooltip } from '../../shared/Tooltip'
  * is how one of them ends up saying something different from the other two.
  */
 
-export type Tone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger'
+export type Tone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger';
 
 const TONES: Record<Tone, string> = {
   neutral: 'bg-surface-secondary text-content-secondary',
@@ -19,7 +19,7 @@ const TONES: Record<Tone, string> = {
   success: 'bg-success-soft text-success',
   warning: 'bg-warning-soft text-warning',
   danger: 'bg-danger-soft text-danger',
-}
+};
 
 /** A count or a short label, on a tinted pill. */
 export function Badge({
@@ -28,26 +28,28 @@ export function Badge({
   children,
   title,
 }: {
-  tone?: Tone
-  icon?: ReactNode
-  children: ReactNode
-  title?: string
+  tone?: Tone;
+  icon?: ReactNode;
+  children: ReactNode;
+  title?: string;
 }) {
   const pill = (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-caption font-medium ${TONES[tone]}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-caption font-medium ${TONES[tone]}`}
+    >
       {icon}
       {children}
     </span>
-  )
-  return title ? <Tooltip label={title}>{pill}</Tooltip> : pill
+  );
+  return title ? <Tooltip label={title}>{pill}</Tooltip> : pill;
 }
 
 /** The tone each sync state carries, in one place. */
 function toneForState(state: string): Tone {
-  if (state === 'ok') return 'success'
-  if (state === 'partial') return 'warning'
-  if (state === 'never') return 'neutral'
-  return 'danger'
+  if (state === 'ok') return 'success';
+  if (state === 'partial') return 'warning';
+  if (state === 'never') return 'neutral';
+  return 'danger';
 }
 
 /**
@@ -57,37 +59,44 @@ function toneForState(state: string): Tone {
  * together survive both colour blindness and a glance.
  */
 export function StateBadge({ state, compact }: { state: string; compact?: boolean }) {
-  const { t } = useTranslation()
-  const tone = toneForState(state)
+  const { t } = useTranslation();
+  const tone = toneForState(state);
   const dot =
-    tone === 'success' ? 'bg-success'
-    : tone === 'warning' ? 'bg-warning'
-    : tone === 'danger' ? 'bg-danger'
-    : 'bg-content-faint'
+    tone === 'success'
+      ? 'bg-success'
+      : tone === 'warning'
+        ? 'bg-warning'
+        : tone === 'danger'
+          ? 'bg-danger'
+          : 'bg-content-faint';
 
   if (compact) {
-    const label = t(`docsync.linkState.${state}`)
+    const label = t(`docsync.linkState.${state}`);
     return (
       <Tooltip label={label}>
         <span role="img" aria-label={label} className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
       </Tooltip>
-    )
+    );
   }
 
   return (
     <Badge tone={tone} icon={<span className={`h-1.5 w-1.5 rounded-full ${dot}`} />}>
       {t(`docsync.linkState.${state}`)}
     </Badge>
-  )
+  );
 }
 
 /** "2h ago", or "never" when a binding has not run yet. */
 export function LastRun({ at }: { at: string | null }) {
-  const { t, language, locale } = useTranslation()
-  if (!at) return <span className="text-content-faint">{t('docsync.binding.neverRun')}</span>
-  const ms = Date.parse(at)
-  if (Number.isNaN(ms)) return null
-  return <Tooltip label={new Date(ms).toLocaleString(locale)}><span>{relativeTime(ms, language)}</span></Tooltip>
+  const { t, language, locale } = useTranslation();
+  if (!at) return <span className="text-content-faint">{t('docsync.binding.neverRun')}</span>;
+  const ms = Date.parse(at);
+  if (Number.isNaN(ms)) return null;
+  return (
+    <Tooltip label={new Date(ms).toLocaleString(locale)}>
+      <span>{relativeTime(ms, language)}</span>
+    </Tooltip>
+  );
 }
 
 /**
@@ -97,17 +106,17 @@ export function LastRun({ at }: { at: string | null }) {
  * a dropdown: two lists would drift, and a binding would then say one thing on
  * a laptop and another on a phone.
  */
-export const CONFLICT_POLICIES = ['manual', 'trek_wins', 'provider_wins'] as const
+export const CONFLICT_POLICIES = ['manual', 'trek_wins', 'provider_wins'] as const;
 
-export type ConflictPolicy = (typeof CONFLICT_POLICIES)[number]
+export type ConflictPolicy = (typeof CONFLICT_POLICIES)[number];
 
 /** The next answer in that ring, for the phone's single button. */
 export function nextConflictPolicy(current: string): ConflictPolicy {
-  const at = (CONFLICT_POLICIES as readonly string[]).indexOf(current)
-  return CONFLICT_POLICIES[(at + 1) % CONFLICT_POLICIES.length]
+  const at = (CONFLICT_POLICIES as readonly string[]).indexOf(current);
+  return CONFLICT_POLICIES[(at + 1) % CONFLICT_POLICIES.length];
 }
 
 /** The label key for one answer. */
 export function conflictPolicyKey(policy: string): string {
-  return `docsync.onConflict.${(CONFLICT_POLICIES as readonly string[]).includes(policy) ? policy : 'manual'}`
+  return `docsync.onConflict.${(CONFLICT_POLICIES as readonly string[]).includes(policy) ? policy : 'manual'}`;
 }

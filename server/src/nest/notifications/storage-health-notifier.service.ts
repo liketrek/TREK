@@ -1,9 +1,9 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { MikroORM } from '@mikro-orm/core';
 import { withRequestContext } from '../database/request-context';
 import { StorageEventsService } from '../storage/storage-events.service';
 import { NotificationsService } from './notifications.service';
 import { ReplicaFailureDebouncer } from './replica-failure-debouncer';
+import { MikroORM } from '@mikro-orm/core';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 
 const DEBOUNCE_WINDOW_MS = 60 * 60 * 1000;
 

@@ -7,6 +7,12 @@
  * causes, both pinned here — Google short-circuiting the free chain, and the
  * chain itself only ever starting from an OSM `wikipedia` tag.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
+import type { MapsService } from '../../../src/nest/maps/maps.service';
+import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Rebuilt on PlaceDetailsCacheRepository/AppSettingsRepository (Plan 3c Task
@@ -15,8 +21,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // calling two named repository methods instead.
 const { mockGetValue, mockFindEntry, mockUpsertEntry } = vi.hoisted(() => ({
   mockGetValue: vi.fn(async (_key: string): Promise<string | null> => null),
-  mockFindEntry: vi.fn(async (..._args: unknown[]): Promise<{ payload_json: string; fetched_at: number } | null> => null),
-  mockUpsertEntry: vi.fn(async (_row: { place_id: string; lang: string; expanded: number; payload_json: string; fetched_at: number }): Promise<void> => {}),
+  mockFindEntry: vi.fn(
+    async (..._args: unknown[]): Promise<{ payload_json: string; fetched_at: number } | null> => null,
+  ),
+  mockUpsertEntry: vi.fn(
+    async (_row: {
+      place_id: string;
+      lang: string;
+      expanded: number;
+      payload_json: string;
+      fetched_at: number;
+    }): Promise<void> => {},
+  ),
 }));
 
 vi.mock('../../../src/utils/ssrfGuard', () => ({
@@ -33,12 +49,6 @@ const { mockTrekPlacesById } = vi.hoisted(() => ({
 vi.mock('../../../src/nest/maps/trek-places.client', () => ({
   trekPlacesById: mockTrekPlacesById,
 }));
-
-import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
-import type { MapsService } from '../../../src/nest/maps/maps.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 
 const GOOGLE_REQ = { lat: 53.6323, lng: 10.0067, name: 'Hamburg Airport', placeId: 'ChIJham', lang: 'de' };
 const OSM_REQ = { lat: 52.525, lng: 13.3694, name: 'Berlin Hauptbahnhof', placeId: 'relation:3600565', lang: 'de' };
@@ -65,7 +75,9 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
     fetchWikiExtract: vi.fn(async () => null as typeof EXTRACT | null),
     fetchWikiExtractFor: vi.fn(async () => null as typeof EXTRACT | null),
     fetchWikidataSitelinks: vi.fn(async () => ({}) as Record<string, string>),
-    resolveOsmIdentity: vi.fn(async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null),
+    resolveOsmIdentity: vi.fn(
+      async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null,
+    ),
     details: vi.fn(async () => ({ place: null })),
     trekPlacesEnabled: vi.fn(() => true),
     ...over,
@@ -73,7 +85,10 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
 }
 
 const cacheStub = () =>
-  ({ get: vi.fn(() => null), put: vi.fn(async () => ({ photoUrl: '/x', filePath: '/x', attribution: null })) }) as unknown as PlacePhotoCacheService;
+  ({
+    get: vi.fn(() => null),
+    put: vi.fn(async () => ({ photoUrl: '/x', filePath: '/x', attribution: null })),
+  }) as unknown as PlacePhotoCacheService;
 
 function appSettingsStub(): AppSettingsRepository {
   return { getValue: mockGetValue } as unknown as AppSettingsRepository;
@@ -197,11 +212,16 @@ describe('description source order', () => {
     });
   });
 
-  it('ENRICH-120: links Google\'s summary only to a Google Maps address', async () => {
+  it("ENRICH-120: links Google's summary only to a Google Maps address", async () => {
     // The record and its link come with the request, and the answer is cached
     // for every user of the instance under the label "Google". A link that is
     // not a Google Maps address by shape is dropped; the text stays.
-    for (const bad of ['https://phish.example/maps', 'https://google.evil.example/x', 'javascript:alert(1)', 'phish.example/maps']) {
+    for (const bad of [
+      'https://phish.example/maps',
+      'https://google.evil.example/x',
+      'javascript:alert(1)',
+      'phish.example/maps',
+    ]) {
       const maps = mapsStub({
         getMapsKey: vi.fn(() => 'key'),
         fetchEditorialSummary: vi.fn(async () => 'Casual chain for wood-fired pizza.'),
@@ -210,10 +230,18 @@ describe('description source order', () => {
         ...GOOGLE_REQ,
         details: { source: 'google', google_maps_url: bad },
       });
-      expect(out.description, bad).toMatchObject({ source: 'google', text: 'Casual chain for wood-fired pizza.', sourceUrl: null });
+      expect(out.description, bad).toMatchObject({
+        source: 'google',
+        text: 'Casual chain for wood-fired pizza.',
+        sourceUrl: null,
+      });
     }
 
-    for (const ok of ['https://maps.google.com/?cid=1', 'https://www.google.de/maps/place/x', 'https://maps.app.goo.gl/abc']) {
+    for (const ok of [
+      'https://maps.google.com/?cid=1',
+      'https://www.google.de/maps/place/x',
+      'https://maps.app.goo.gl/abc',
+    ]) {
       const maps = mapsStub({
         getMapsKey: vi.fn(() => 'key'),
         fetchEditorialSummary: vi.fn(async () => 'Casual chain for wood-fired pizza.'),
@@ -231,14 +259,22 @@ describe('description source order', () => {
       getMapsKey: vi.fn(() => 'key'),
       fetchEditorialSummary: vi.fn(async () => 'Casual chain for wood-fired pizza.'),
     });
-    const bare = await make(maps).enrich(1, { ...GOOGLE_REQ, details: { source: 'google', google_maps_url: 'maps.google.com/x' } });
+    const bare = await make(maps).enrich(1, {
+      ...GOOGLE_REQ,
+      details: { source: 'google', google_maps_url: 'maps.google.com/x' },
+    });
     expect(bare.description).toMatchObject({ source: 'google', sourceUrl: 'https://maps.google.com/x' });
   });
 
   it('ENRICH-075: keeps the OpenStreetMap description ahead of everything', async () => {
     const maps = mapsStub({
       details: vi.fn(async () => ({
-        place: { source: 'openstreetmap', summary: '  Ein Bahnhof.  ', osm_url: 'https://osm.org/r/1', wikidata: 'Q1097' },
+        place: {
+          source: 'openstreetmap',
+          summary: '  Ein Bahnhof.  ',
+          osm_url: 'https://osm.org/r/1',
+          wikidata: 'Q1097',
+        },
       })),
       fetchWikiExtractFor: vi.fn(async () => EXTRACT),
     });
@@ -251,7 +287,7 @@ describe('description source order', () => {
 });
 
 describe('article language choice', () => {
-  it('ENRICH-076: asks for the reader\'s language before English', async () => {
+  it("ENRICH-076: asks for the reader's language before English", async () => {
     const maps = mapsStub({
       details: vi.fn(async () => ({ place: { source: 'openstreetmap', wikidata: 'Q1097' } })),
       fetchWikidataSitelinks: vi.fn(async () => ({ dewiki: 'Berlin Hauptbahnhof', enwiki: 'Berlin Hauptbahnhof' })),
@@ -260,7 +296,8 @@ describe('article language choice', () => {
 
     await make(maps).enrich(1, OSM_REQ);
 
-    const sites = (maps.fetchWikidataSitelinks as unknown as { mock: { calls: [string, string[]][] } }).mock.calls[0][1];
+    const sites = (maps.fetchWikidataSitelinks as unknown as { mock: { calls: [string, string[]][] } }).mock
+      .calls[0][1];
     expect(sites.slice(0, 2)).toEqual(['dewikivoyage', 'dewiki']);
     expect(sites).toContain('enwiki');
     expect(maps.fetchWikiExtractFor).toHaveBeenCalledWith('wikipedia', 'de', 'Berlin Hauptbahnhof');
@@ -293,7 +330,8 @@ describe('article language choice', () => {
 
     await make(maps).enrich(1, { ...OSM_REQ, lang: 'ko' });
 
-    const sites = (maps.fetchWikidataSitelinks as unknown as { mock: { calls: [string, string[]][] } }).mock.calls[0][1];
+    const sites = (maps.fetchWikidataSitelinks as unknown as { mock: { calls: [string, string[]][] } }).mock
+      .calls[0][1];
     expect(sites.indexOf('dewiki')).toBeLessThan(sites.indexOf('enwiki'));
   });
 
@@ -316,10 +354,7 @@ describe('article language choice', () => {
     const maps = mapsStub({
       details: vi.fn(async () => ({ place: { source: 'openstreetmap', wikidata: 'Q1097' } })),
       fetchWikidataSitelinks: vi.fn(async () => ({ dewikivoyage: 'Nowhere', dewiki: 'Berlin Hauptbahnhof' })),
-      fetchWikiExtractFor: vi
-        .fn()
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(EXTRACT),
+      fetchWikiExtractFor: vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(EXTRACT),
     });
 
     const out = await make(maps).enrich(1, OSM_REQ);
@@ -343,7 +378,7 @@ describe('filling Google gaps from the free sources', () => {
     cuisine: 'pizza;italian',
     wheelchair: 'limited',
     outdoor_seating: 'yes',
-    'opening_hours': 'Mo-Su 11:30-23:00',
+    opening_hours: 'Mo-Su 11:30-23:00',
   };
 
   const googlePlaceAlsoInOsm = (over: Partial<Record<keyof MapsService, unknown>> = {}) =>
@@ -388,8 +423,7 @@ describe('filling Google gaps from the free sources', () => {
 
     expect(out.hours?.weekdayDescriptions).toEqual(['Monday: 09:00-17:00']);
   });
-})
-
+});
 
 describe("the description on the place's own website", () => {
   // The ordinary case, and the one nothing covered before: a restaurant has no
@@ -516,7 +550,11 @@ describe("the description on the place's own website", () => {
     // The same summary from the service's own lookup is the map's, and keeps.
     const maps = mapsStub({
       details: vi.fn(async () => ({
-        place: { source: 'openstreetmap', summary: 'Größter Kreuzungsbahnhof Europas.', osm_url: 'https://www.openstreetmap.org/relation/3600565' },
+        place: {
+          source: 'openstreetmap',
+          summary: 'Größter Kreuzungsbahnhof Europas.',
+          osm_url: 'https://www.openstreetmap.org/relation/3600565',
+        },
       })),
     });
     mockUpsertEntry.mockClear();

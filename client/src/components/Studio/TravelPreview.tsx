@@ -1,6 +1,6 @@
-import type { BookElement } from '@trek/shared'
-import { useElementSize } from '../../hooks/useElementSize'
-import { ElementView } from './SpreadView'
+import type { BookElement } from '@trek/shared';
+import { useElementSize } from '../../hooks/useElementSize';
+import { ElementView } from './SpreadView';
 
 /**
  * A travel element, drawn small.
@@ -25,15 +25,19 @@ import { ElementView } from './SpreadView'
  */
 
 /** CSS defines 1in as 96px and 25.4mm, so this factor is exact. */
-const PX_PER_MM = 96 / 25.4
+const PX_PER_MM = 96 / 25.4;
 
-export function TravelPreview({ el, minHeight = 30, maxHeight = 90 }: {
-  el: BookElement
-  minHeight?: number
-  maxHeight?: number
+export function TravelPreview({
+  el,
+  minHeight = 30,
+  maxHeight = 90,
+}: {
+  el: BookElement;
+  minHeight?: number;
+  maxHeight?: number;
 }) {
-  const box = useElementSize<HTMLSpanElement>()
-  const width = box.width
+  const box = useElementSize<HTMLSpanElement>();
+  const width = box.width;
 
   /*
    * The tile takes the element's proportions rather than a fixed box.
@@ -45,10 +49,10 @@ export function TravelPreview({ el, minHeight = 30, maxHeight = 90 }: {
    * unreadable. Following the element uses the full width for everything and
    * costs only a slightly uneven grid.
    */
-  const drawnW = el.frame.w * PX_PER_MM
-  const drawnH = el.frame.h * PX_PER_MM
-  const height = Math.round(Math.min(maxHeight, Math.max(minHeight, (width * drawnH) / drawnW || minHeight)))
-  const scale = width > 0 ? Math.min(width / drawnW, height / drawnH) : 0
+  const drawnW = el.frame.w * PX_PER_MM;
+  const drawnH = el.frame.h * PX_PER_MM;
+  const height = Math.round(Math.min(maxHeight, Math.max(minHeight, (width * drawnH) / drawnW || minHeight)));
+  const scale = width > 0 ? Math.min(width / drawnW, height / drawnH) : 0;
 
   return (
     <span className="st-travel-preview" style={{ height }} ref={box.ref} aria-hidden>
@@ -70,5 +74,5 @@ export function TravelPreview({ el, minHeight = 30, maxHeight = 90 }: {
         </span>
       )}
     </span>
-  )
+  );
 }

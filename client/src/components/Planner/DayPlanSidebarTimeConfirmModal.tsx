@@ -1,21 +1,21 @@
-import ConfirmDialog from '../shared/ConfirmDialog'
+import ConfirmDialog from '../shared/ConfirmDialog';
 
 interface TimeConfirmState {
-  dayId: number
-  fromId: number
-  time: string
-  fromType?: string
-  toType?: string
-  toId?: number
-  insertAfter?: boolean
-  reorderIds?: number[]
+  dayId: number;
+  fromId: number;
+  time: string;
+  fromType?: string;
+  toType?: string;
+  toId?: number;
+  insertAfter?: boolean;
+  reorderIds?: number[];
 }
 
 interface DayPlanSidebarTimeConfirmModalProps {
-  timeConfirm: TimeConfirmState | null
-  setTimeConfirm: (v: TimeConfirmState | null) => void
-  confirmTimeRemoval: () => void
-  t: (key: string, params?: Record<string, string | number>) => string
+  timeConfirm: TimeConfirmState | null;
+  setTimeConfirm: (v: TimeConfirmState | null) => void;
+  confirmTimeRemoval: () => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 /**
@@ -23,7 +23,12 @@ interface DayPlanSidebarTimeConfirmModalProps {
  * day's time order cannot keep its time there. The shared question dialog
  * carries the look, Escape and the backdrop.
  */
-export function DayPlanSidebarTimeConfirmModal({ timeConfirm, setTimeConfirm, confirmTimeRemoval, t }: DayPlanSidebarTimeConfirmModalProps) {
+export function DayPlanSidebarTimeConfirmModal({
+  timeConfirm,
+  setTimeConfirm,
+  confirmTimeRemoval,
+  t,
+}: DayPlanSidebarTimeConfirmModalProps) {
   return (
     <ConfirmDialog
       isOpen={!!timeConfirm}
@@ -34,5 +39,5 @@ export function DayPlanSidebarTimeConfirmModal({ timeConfirm, setTimeConfirm, co
       confirmLabel={t('common.confirm')}
       cancelLabel={t('common.cancel')}
     />
-  )
+  );
 }

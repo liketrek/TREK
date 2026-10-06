@@ -1,21 +1,21 @@
-import { EntityManager } from '@mikro-orm/core';
-import { tripCreateRequestSchema, tripUpdateRequestSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import { Places } from '../../db/entities/Places.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
+import { AccommodationsService } from '../accommodations/accommodations.service';
+import { DaysService } from '../days/days.service';
 import { PluginGuards } from '../plugins/host/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, schemaMessage } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { num, schemaMessage } from '../plugins/host/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { ReservationsService } from '../reservations/reservations.service';
-import { DaysService } from '../days/days.service';
-import { AccommodationsService } from '../accommodations/accommodations.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import { Trips } from '../../db/entities/Trips.entity';
-import { Places } from '../../db/entities/Places.entity';
-import { Users } from '../../db/entities/Users.entity';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
 import { TripsService, NotFoundError, ValidationError, withoutFeedToken } from './trips.service';
+import { EntityManager } from '@mikro-orm/core';
+import { tripCreateRequestSchema, tripUpdateRequestSchema } from '@trek/shared';
 
 const TRIP_EDIT_ACTION = 'trip_edit';
 const MEMBER_MANAGE_ACTION = 'member_manage';
@@ -73,8 +73,10 @@ export class TripsRpc {
     // (day_id/order_index live on day_assignments), so order by created_at like the
     // REST list does. trips.getDays is the day-ordered itinerary.
     // RP2 — PlacesRepository.listForTripOrdered (Task 4/5's repository, Task 7's own additive method).
-    return this.guards.tripRead(params, ctx, async () =>
-      await this.em.getRepository(Places).listForTripOrdered(num(params.tripId, 'tripId')),
+    return this.guards.tripRead(
+      params,
+      ctx,
+      async () => await this.em.getRepository(Places).listForTripOrdered(num(params.tripId, 'tripId')),
     );
   }
 
@@ -96,7 +98,11 @@ export class TripsRpc {
 
   @PluginMethod('trips.getAccommodations', { permission: 'db:read:trips' })
   getAccommodations(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, async () => (await this.accommodations.list(num(params.tripId, 'tripId'))) as unknown[]);
+    return this.guards.tripRead(
+      params,
+      ctx,
+      async () => (await this.accommodations.list(num(params.tripId, 'tripId'))) as unknown[],
+    );
   }
 
   @PluginMethod('trips.listMine', { permission: 'db:read:trips' })
@@ -123,8 +129,10 @@ export class TripsRpc {
     // AND `display_name` as separate fields, deliberately NOT TM2's COALESCE
     // (inventory §18.10 — a plugin's roster shape and the REST/MCP roster
     // shape are two different wire shapes on purpose; do not harmonise).
-    return this.guards.tripRead(params, ctx, async () =>
-      await this.em.getRepository(TripMembers).listRawUsernameAndDisplayName(num(params.tripId, 'tripId')),
+    return this.guards.tripRead(
+      params,
+      ctx,
+      async () => await this.em.getRepository(TripMembers).listRawUsernameAndDisplayName(num(params.tripId, 'tripId')),
     );
   }
 
@@ -149,7 +157,12 @@ export class TripsRpc {
     try {
       // The no-rebase core, parity with the legacy host path, which never
       // re-anchored the budget currency.
-      const result = await this.trips.updateTrip(tripId, actor, input as Parameters<TripsService['updateTrip']>[2], role ?? 'user');
+      const result = await this.trips.updateTrip(
+        tripId,
+        actor,
+        input as Parameters<TripsService['updateTrip']>[2],
+        role ?? 'user',
+      );
       this.realtime.broadcast(tripId, 'trip:updated', { trip: result.updatedTrip });
       return result.updatedTrip;
     } catch (e) {

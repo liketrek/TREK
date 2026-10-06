@@ -98,17 +98,22 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Arquivos',
   'oauth.scope.group.settings': 'Configurações',
   'oauth.scope.files:read.label': 'Ver arquivos da viagem',
-  'oauth.scope.files:read.description': 'Listar os documentos de uma viagem: nomes, tamanhos, quem enviou e a que estão vinculados',
+  'oauth.scope.files:read.description':
+    'Listar os documentos de uma viagem: nomes, tamanhos, quem enviou e a que estão vinculados',
   'oauth.scope.files:write.label': 'Gerenciar arquivos da viagem',
-  'oauth.scope.files:write.description': 'Renomear e descrever arquivos, vinculá-los a reservas e lugares, favoritá-los e movê-los para a lixeira',
+  'oauth.scope.files:write.description':
+    'Renomear e descrever arquivos, vinculá-los a reservas e lugares, favoritá-los e movê-los para a lixeira',
   'oauth.scope.files:content.label': 'Ler o conteúdo dos arquivos',
-  'oauth.scope.files:content.description': 'Ler o conteúdo de um documento enviado, como um PDF de reserva ou um bilhete',
+  'oauth.scope.files:content.description':
+    'Ler o conteúdo de um documento enviado, como um PDF de reserva ou um bilhete',
   'oauth.scope.settings:read.label': 'Ver suas preferências',
   'oauth.scope.settings:read.description': 'Ler unidades, formato de hora, idioma, moeda padrão e página inicial',
   'oauth.scope.settings:write.label': 'Alterar suas preferências',
-  'oauth.scope.settings:write.description': 'Alterar unidades, formato de hora, idioma, moeda padrão e página inicial. Nunca as chaves de API salvas',
+  'oauth.scope.settings:write.description':
+    'Alterar unidades, formato de hora, idioma, moeda padrão e página inicial. Nunca as chaves de API salvas',
   'oauth.scope.group.plugins': 'Plugins',
   'oauth.scope.plugins:use.label': 'Executar ferramentas de plugins',
-  'oauth.scope.plugins:use.description': 'Permite que este cliente chame ferramentas publicadas pelos plugins que um administrador instalou e aprovou. Cada plugin age com as permissões que já recebeu, não com os escopos deste token',
+  'oauth.scope.plugins:use.description':
+    'Permite que este cliente chame ferramentas publicadas pelos plugins que um administrador instalou e aprovou. Cada plugin age com as permissões que já recebeu, não com os escopos deste token',
 };
 export default oauth;

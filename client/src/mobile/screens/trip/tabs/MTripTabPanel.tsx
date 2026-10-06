@@ -1,13 +1,13 @@
-import type { MTripTabPanelProps } from '../MTripShell'
-import { TabScroller } from './tabChrome'
-import MTransportsTab from './MTransportsTab'
-import MBookingsTab from './MBookingsTab'
-import MCostsTab from './MCostsTab'
-import MFilesTab from './MFilesTab'
-import MCollabTab from './MCollabTab'
-import MListsTab from './MListsTab'
-import MRoadtripTab from '../roadtrip/MRoadtripTab'
-import PluginFrame from '../../../../components/Plugins/PluginFrame'
+import PluginFrame from '../../../../components/Plugins/PluginFrame';
+import type { MTripTabPanelProps } from '../MTripShell';
+import MRoadtripTab from '../roadtrip/MRoadtripTab';
+import MBookingsTab from './MBookingsTab';
+import MCollabTab from './MCollabTab';
+import MCostsTab from './MCostsTab';
+import MFilesTab from './MFilesTab';
+import MListsTab from './MListsTab';
+import MTransportsTab from './MTransportsTab';
+import { TabScroller } from './tabChrome';
 
 /**
  * Routes the active non-plan trip tab to its panel. `tab` is the legacy id the
@@ -30,9 +30,7 @@ export default function MTripTabPanel({ planner, shell, tab }: MTripTabPanelProp
   // Chromium paints a white canvas behind a transparent frame otherwise.
   if (tab.startsWith('plugin:')) {
     return (
-      <div
-        className="absolute inset-0 pt-[calc(var(--m-safe-top,12px)+58px)] pb-[calc(var(--bottom-nav-h,84px)+22px)]"
-      >
+      <div className="absolute inset-0 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
         <PluginFrame
           pluginId={tab.slice('plugin:'.length)}
           tripId={planner.tripId != null ? String(planner.tripId) : null}
@@ -41,27 +39,27 @@ export default function MTripTabPanel({ planner, shell, tab }: MTripTabPanelProp
           className="h-full w-full [color-scheme:light]"
         />
       </div>
-    )
+    );
   }
   switch (tab) {
     case 'transports':
-      return <MTransportsTab planner={planner} shell={shell} />
+      return <MTransportsTab planner={planner} shell={shell} />;
     case 'buchungen':
-      return <MBookingsTab planner={planner} shell={shell} />
+      return <MBookingsTab planner={planner} shell={shell} />;
     case 'finanzplan':
-      return <MCostsTab planner={planner} shell={shell} />
+      return <MCostsTab planner={planner} shell={shell} />;
     case 'dateien':
-      return <MFilesTab planner={planner} shell={shell} />
+      return <MFilesTab planner={planner} shell={shell} />;
     case 'collab':
-      return <MCollabTab planner={planner} shell={shell} />
+      return <MCollabTab planner={planner} shell={shell} />;
     case 'listen':
-      return <MListsTab planner={planner} shell={shell} />
+      return <MListsTab planner={planner} shell={shell} />;
     // The only tab with two halves of its own: the chain, or the same map showing
     // the stage. Both are this one component, because they share a stage and the
     // switch between them must not lose it.
     case 'roadtrip':
-      return <MRoadtripTab planner={planner} shell={shell} tab={tab} />
+      return <MRoadtripTab planner={planner} shell={shell} tab={tab} />;
     default:
-      return <TabScroller>{null}</TabScroller>
+      return <TabScroller>{null}</TabScroller>;
   }
 }

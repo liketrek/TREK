@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
 import { MASKED_SETTING_VALUE, type StorageBackend } from '@trek/shared';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '../../../../tests/helpers/render';
 import BackendForm from './BackendForm';
 
@@ -10,15 +10,7 @@ type FormProps = Parameters<typeof BackendForm>[0];
 function renderForm(overrides: Partial<FormProps> = {}) {
   const onCommit = vi.fn();
   const onCancel = vi.fn();
-  render(
-    <BackendForm
-      initial={null}
-      backendNames={NAMES}
-      onCommit={onCommit}
-      onCancel={onCancel}
-      {...overrides}
-    />,
-  );
+  render(<BackendForm initial={null} backendNames={NAMES} onCommit={onCommit} onCancel={onCancel} {...overrides} />);
   return { onCommit, onCancel };
 }
 
@@ -26,8 +18,14 @@ const S3_INITIAL: StorageBackend = {
   name: 'off-box',
   type: 's3',
   options: {
-    endpoint: 'http://127.0.0.1:9000', bucket: 'trek', accessKeyId: 'ak',
-    secretAccessKey: MASKED_SETTING_VALUE, region: 'us-east-1', keyPrefix: '', retries: 1, timeoutMs: 30000,
+    endpoint: 'http://127.0.0.1:9000',
+    bucket: 'trek',
+    accessKeyId: 'ak',
+    secretAccessKey: MASKED_SETTING_VALUE,
+    region: 'us-east-1',
+    keyPrefix: '',
+    retries: 1,
+    timeoutMs: 30000,
   },
 };
 
@@ -56,7 +54,7 @@ describe('BackendForm', () => {
         name: 'off-box',
         type: 's3',
         options: expect.objectContaining({ secretAccessKey: MASKED_SETTING_VALUE, retries: 1, timeoutMs: 30000 }),
-      }),
+      })
     );
   });
 
@@ -101,7 +99,10 @@ describe('BackendForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     const committed = onCommit.mock.calls[0]![0] as StorageBackend;
     expect(committed.options).toEqual({
-      endpoint: 'http://127.0.0.1:9000', bucket: 'trek', accessKeyId: 'ak', secretAccessKey: 'sk',
+      endpoint: 'http://127.0.0.1:9000',
+      bucket: 'trek',
+      accessKeyId: 'ak',
+      secretAccessKey: 'sk',
     });
     expect(committed.options).not.toHaveProperty('region');
   });
@@ -136,10 +137,10 @@ describe('BackendForm', () => {
     expect(screen.getByRole('note').textContent).toContain('slows every upload');
     fireEvent.click(screen.getByRole('checkbox', { name: 'uploads-local' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
-    expect(onCommit).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'off-box', type: 's3' }),
-      ['backups-local', 'uploads-local'],
-    );
+    expect(onCommit).toHaveBeenCalledWith(expect.objectContaining({ name: 'off-box', type: 's3' }), [
+      'backups-local',
+      'uploads-local',
+    ]);
   });
 
   it('FE-ADMIN-STORF-012: unchecking every target commits an empty array (dissolve) and hides the latency note', () => {

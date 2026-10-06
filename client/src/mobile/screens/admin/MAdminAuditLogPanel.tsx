@@ -1,75 +1,75 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { RefreshCw, ClipboardList } from 'lucide-react'
-import { adminApi } from '../../../api/client'
-import { useTranslation } from '../../../i18n'
-import { MAdminButton } from './MAdminUi'
+import { ClipboardList, RefreshCw } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { adminApi } from '../../../api/client';
+import { useTranslation } from '../../../i18n';
+import { MAdminButton } from './MAdminUi';
 
 interface AuditEntry {
-  id: number
-  created_at: string
-  user_id: number | null
-  username: string | null
-  user_email: string | null
-  action: string
-  resource: string | null
-  details: Record<string, unknown> | null
-  ip: string | null
+  id: number;
+  created_at: string;
+  user_id: number | null;
+  username: string | null;
+  user_email: string | null;
+  action: string;
+  resource: string | null;
+  details: Record<string, unknown> | null;
+  ip: string | null;
 }
 
 interface AuditLogPanelProps {
-  serverTimezone?: string
+  serverTimezone?: string;
 }
 
 export default function MAdminAuditLogPanel({ serverTimezone }: AuditLogPanelProps): React.ReactElement {
-  const { t, locale } = useTranslation()
-  const [entries, setEntries] = useState<AuditEntry[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const { t, locale } = useTranslation();
+  const [entries, setEntries] = useState<AuditEntry[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   // Never rendered, only carried between pages — a ref keeps loadMore from
   // capturing a page number that is already spent.
-  const offsetRef = useRef(0)
-  const limit = 100
+  const offsetRef = useRef(0);
+  const limit = 100;
 
   const loadFirstPage = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const data = (await adminApi.auditLog({ limit, offset: 0 })) as {
-        entries: AuditEntry[]
-        total: number
-      }
-      setEntries(data.entries || [])
-      setTotal(data.total ?? 0)
-      offsetRef.current = 0
+        entries: AuditEntry[];
+        total: number;
+      };
+      setEntries(data.entries || []);
+      setTotal(data.total ?? 0);
+      offsetRef.current = 0;
     } catch {
-      setEntries([])
-      setTotal(0)
-      offsetRef.current = 0
+      setEntries([]);
+      setTotal(0);
+      offsetRef.current = 0;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   const loadMore = useCallback(async () => {
-    const nextOffset = offsetRef.current + limit
-    setLoading(true)
+    const nextOffset = offsetRef.current + limit;
+    setLoading(true);
     try {
       const data = (await adminApi.auditLog({ limit, offset: nextOffset })) as {
-        entries: AuditEntry[]
-        total: number
-      }
-      setEntries((prev) => [...prev, ...(data.entries || [])])
-      setTotal(data.total ?? 0)
-      offsetRef.current = nextOffset
+        entries: AuditEntry[];
+        total: number;
+      };
+      setEntries((prev) => [...prev, ...(data.entries || [])]);
+      setTotal(data.total ?? 0);
+      offsetRef.current = nextOffset;
     } catch {
       /* keep existing */
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    loadFirstPage()
-  }, [loadFirstPage])
+    loadFirstPage();
+  }, [loadFirstPage]);
 
   const fmtTime = (iso: string) => {
     try {
@@ -77,27 +77,27 @@ export default function MAdminAuditLogPanel({ serverTimezone }: AuditLogPanelPro
         dateStyle: 'short',
         timeStyle: 'medium',
         timeZone: serverTimezone || undefined,
-      })
+      });
     } catch {
-      return iso
+      return iso;
     }
-  }
+  };
 
   const fmtDetails = (d: Record<string, unknown> | null) => {
-    if (!d || Object.keys(d).length === 0) return '—'
+    if (!d || Object.keys(d).length === 0) return '—';
     try {
-      return JSON.stringify(d)
+      return JSON.stringify(d);
     } catch {
-      return '—'
+      return '—';
     }
-  }
+  };
 
   const userLabel = (e: AuditEntry) => {
-    if (e.username) return e.username
-    if (e.user_email) return e.user_email
-    if (e.user_id != null) return `#${e.user_id}`
-    return '—'
-  }
+    if (e.username) return e.username;
+    if (e.user_email) return e.user_email;
+    if (e.user_id != null) return `#${e.user_id}`;
+    return '—';
+  };
 
   return (
     <div className="space-y-3">
@@ -166,9 +166,7 @@ export default function MAdminAuditLogPanel({ serverTimezone }: AuditLogPanelPro
                 <span className="flex-none font-geist text-[0.5625rem] font-bold uppercase tracking-[0.06em] text-m-faint">
                   {t('admin.audit.col.ip')}
                 </span>
-                <span className="min-w-0 flex-1 break-all font-mono text-[0.6875rem] text-m-muted">
-                  {e.ip || '—'}
-                </span>
+                <span className="min-w-0 flex-1 break-all font-mono text-[0.6875rem] text-m-muted">{e.ip || '—'}</span>
               </div>
 
               {/* Details */}
@@ -193,5 +191,5 @@ export default function MAdminAuditLogPanel({ serverTimezone }: AuditLogPanelPro
         </div>
       )}
     </div>
-  )
+  );
 }

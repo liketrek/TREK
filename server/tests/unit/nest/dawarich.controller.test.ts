@@ -17,22 +17,23 @@
  *  - **the delegation**, `X-Socket-Id` included, whose loss would make an
  *    accept echo straight back into the tab that performed it.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { Request } from 'express';
-import type { DawarichErrorCode } from '@trek/shared';
-import { DawarichController } from '../../../src/nest/integrations/dawarich.controller';
-import { AcceptError } from '../../../src/nest/integrations/dawarich-suggestions.service';
-import { DawarichError } from '../../../src/nest/integrations/dawarich.client';
-import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { ADDON_IDS } from '../../../src/addons';
 import { AddonGuard } from '../../../src/nest/addons/addon.guard';
 import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
-import { ADDON_IDS } from '../../../src/addons';
-import type { DawarichService } from '../../../src/nest/integrations/dawarich.service';
-import type { DawarichSyncService } from '../../../src/nest/integrations/dawarich-sync.service';
+import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { AcceptError } from '../../../src/nest/integrations/dawarich-suggestions.service';
 import type { DawarichSuggestionsService } from '../../../src/nest/integrations/dawarich-suggestions.service';
+import type { DawarichSyncService } from '../../../src/nest/integrations/dawarich-sync.service';
 import type { DawarichTracksService } from '../../../src/nest/integrations/dawarich-tracks.service';
+import { DawarichError } from '../../../src/nest/integrations/dawarich.client';
+import { DawarichController } from '../../../src/nest/integrations/dawarich.controller';
+import type { DawarichService } from '../../../src/nest/integrations/dawarich.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+import type { DawarichErrorCode } from '@trek/shared';
+
+import type { Request } from 'express';
+import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 7 } as User;
 
@@ -58,7 +59,9 @@ function makeReq(headers: Record<string, string> = {}, ip = '10.1.2.3'): Request
 }
 
 /** A valid settings body — the two defaulted fields are required in the DTO's output type. */
-function settings(over: Partial<{ url: string; apiKey: string; allowInsecureTls: boolean; syncEnabled: boolean }> = {}) {
+function settings(
+  over: Partial<{ url: string; apiKey: string; allowInsecureTls: boolean; syncEnabled: boolean }> = {},
+) {
   return {
     url: 'https://dawarich.example',
     allowInsecureTls: false,
@@ -144,8 +147,10 @@ describe('DawarichController connection routes', () => {
     const forget = vi.fn();
     const c = makeController({ dawarich: { saveSettings }, tracks: { forget } });
 
-    expect(await thrown(() => c.putSettings(user, settings({ url: 'nope' }), makeReq())))
-      .toEqual({ status: 400, body: { error: 'Invalid URL' } });
+    expect(await thrown(() => c.putSettings(user, settings({ url: 'nope' }), makeReq()))).toEqual({
+      status: 400,
+      body: { error: 'Invalid URL' },
+    });
     expect(forget).not.toHaveBeenCalled();
   });
 
@@ -164,8 +169,10 @@ describe('DawarichController connection routes', () => {
       dawarich: { saveSettings: vi.fn().mockResolvedValue({ success: true, warning: 'resolves to a private IP' }) },
       tracks: { forget: vi.fn() },
     });
-    expect(await c.putSettings(user, settings({ url: 'http://192.168.0.5:3000' }), makeReq()))
-      .toEqual({ success: true, warning: 'resolves to a private IP' });
+    expect(await c.putSettings(user, settings({ url: 'http://192.168.0.5:3000' }), makeReq())).toEqual({
+      success: true,
+      warning: 'resolves to a private IP',
+    });
   });
 
   it('DAWARICH-CTRL-016: DELETE settings disconnects, forgets the track and answers 200 { success: true }', async () => {
@@ -226,20 +233,25 @@ describe('DawarichController GET /suggestions filters', () => {
     });
   });
 
-  it.each(['new', 'accepted', 'dismissed'])('DAWARICH-CTRL-024: %s is a known state and passes through', async (state) => {
-    const list = vi.fn().mockReturnValue({ suggestions: [] });
-    await makeController({ suggestions: { list } }).listSuggestions(user, undefined, state);
-    expect(list).toHaveBeenCalledWith(7, { tripId: undefined, state });
-  });
+  it.each(['new', 'accepted', 'dismissed'])(
+    'DAWARICH-CTRL-024: %s is a known state and passes through',
+    async (state) => {
+      const list = vi.fn().mockReturnValue({ suggestions: [] });
+      await makeController({ suggestions: { list } }).listSuggestions(user, undefined, state);
+      expect(list).toHaveBeenCalledWith(7, { tripId: undefined, state });
+    },
+  );
 
   it.each(['NEW', 'pending', 'all', "new' OR 1=1"])(
     'DAWARICH-CTRL-025: 400 on the unknown state %j rather than a silently unfiltered list',
     (state) => {
       const list = vi.fn();
-      return thrown(() => makeController({ suggestions: { list } }).listSuggestions(user, undefined, state)).then((r) => {
-        expect(r).toEqual({ status: 400, body: { error: 'state must be one of: new, accepted, dismissed' } });
-        expect(list).not.toHaveBeenCalled();
-      });
+      return thrown(() => makeController({ suggestions: { list } }).listSuggestions(user, undefined, state)).then(
+        (r) => {
+          expect(r).toEqual({ status: 400, body: { error: 'state must be one of: new, accepted, dismissed' } });
+          expect(list).not.toHaveBeenCalled();
+        },
+      );
     },
   );
 });
@@ -253,8 +265,9 @@ describe('DawarichController parseId', () => {
 
   it.each(bad)('DAWARICH-CTRL-030: POST accept refuses the id %j with 400 and never reaches the service', (raw) => {
     const accept = vi.fn();
-    return thrown(() => makeController({ suggestions: { accept } })
-      .acceptSuggestion(user, raw, { target: 'place' }, makeReq())).then((r) => {
+    return thrown(() =>
+      makeController({ suggestions: { accept } }).acceptSuggestion(user, raw, { target: 'place' }, makeReq()),
+    ).then((r) => {
       expect(r).toEqual({ status: 400, body: { error: 'Invalid id' } });
       expect(accept).not.toHaveBeenCalled();
     });
@@ -262,8 +275,9 @@ describe('DawarichController parseId', () => {
 
   it('DAWARICH-CTRL-031: "12abc" is never read as 12 — this is exactly what parseInt would have let through', () => {
     const setState = vi.fn();
-    return thrown(() => makeController({ suggestions: { setState } })
-      .setSuggestionState(user, '12abc', { state: 'dismissed' })).then((r) => {
+    return thrown(() =>
+      makeController({ suggestions: { setState } }).setSuggestionState(user, '12abc', { state: 'dismissed' }),
+    ).then((r) => {
       expect(r).toEqual({ status: 400, body: { error: 'Invalid id' } });
       expect(setState).not.toHaveBeenCalled();
     });
@@ -278,16 +292,20 @@ describe('DawarichController parseId', () => {
 
   it('DAWARICH-CTRL-033: DELETE bucket-list/:itemId/visit refuses a non-numeric item id with 400', () => {
     const clearBucketVisit = vi.fn();
-    return thrown(() => makeController({ suggestions: { clearBucketVisit } }).clearBucketVisit(user, '12abc')).then((r) => {
-      expect(r).toEqual({ status: 400, body: { error: 'Invalid id' } });
-      expect(clearBucketVisit).not.toHaveBeenCalled();
-    });
+    return thrown(() => makeController({ suggestions: { clearBucketVisit } }).clearBucketVisit(user, '12abc')).then(
+      (r) => {
+        expect(r).toEqual({ status: 400, body: { error: 'Invalid id' } });
+        expect(clearBucketVisit).not.toHaveBeenCalled();
+      },
+    );
   });
 
-  it('DAWARICH-CTRL-034: GET trips/:tripId/track refuses a non-numeric trip id with 400, not with the guard\'s 502', async () => {
+  it("DAWARICH-CTRL-034: GET trips/:tripId/track refuses a non-numeric trip id with 400, not with the guard's 502", async () => {
     const forTrip = vi.fn();
-    expect(await thrown(() => makeController({ tracks: { forTrip } }).tripTrack(user, '12abc')))
-      .toEqual({ status: 400, body: { error: 'Invalid id' } });
+    expect(await thrown(() => makeController({ tracks: { forTrip } }).tripTrack(user, '12abc'))).toEqual({
+      status: 400,
+      body: { error: 'Invalid id' },
+    });
     expect(forTrip).not.toHaveBeenCalled();
   });
 });
@@ -300,20 +318,28 @@ describe('DawarichController suggestion routes', () => {
   it('DAWARICH-CTRL-040: PUT state returns the updated suggestion', async () => {
     const updated = { id: 3, state: 'dismissed' };
     const setState = vi.fn().mockReturnValue(updated);
-    expect(await makeController({ suggestions: { setState } }).setSuggestionState(user, '3', { state: 'dismissed' })).toBe(updated);
+    expect(
+      await makeController({ suggestions: { setState } }).setSuggestionState(user, '3', { state: 'dismissed' }),
+    ).toBe(updated);
     expect(setState).toHaveBeenCalledWith(7, 3, 'dismissed');
   });
 
   it("DAWARICH-CTRL-041: PUT state on somebody else's suggestion is the same 404 a missing one gets — no enumeration", () => {
     const setState = vi.fn().mockReturnValue(null);
-    return thrown(() => makeController({ suggestions: { setState } }).setSuggestionState(user, '999', { state: 'new' })).then((r) =>
-      expect(r).toEqual({ status: 404, body: { error: 'Suggestion not found' } }));
+    return thrown(() =>
+      makeController({ suggestions: { setState } }).setSuggestionState(user, '999', { state: 'new' }),
+    ).then((r) => expect(r).toEqual({ status: 404, body: { error: 'Suggestion not found' } }));
   });
 
   it('DAWARICH-CTRL-042: POST accept forwards X-Socket-Id, so the broadcast does not echo into the originating tab', async () => {
     const accept = vi.fn().mockReturnValue({ createdPlaceId: 5 });
     const body = { target: 'place' as const, tripId: 2 };
-    await makeController({ suggestions: { accept } }).acceptSuggestion(user, '9', body, makeReq({ 'x-socket-id': 'sock-abc' }));
+    await makeController({ suggestions: { accept } }).acceptSuggestion(
+      user,
+      '9',
+      body,
+      makeReq({ 'x-socket-id': 'sock-abc' }),
+    );
     expect(accept).toHaveBeenCalledWith(7, 9, body, 'sock-abc');
   });
 
@@ -325,21 +351,31 @@ describe('DawarichController suggestion routes', () => {
 
   it('DAWARICH-CTRL-044: a blank X-Socket-Id counts as absent', async () => {
     const accept = vi.fn().mockReturnValue({});
-    await makeController({ suggestions: { accept } }).acceptSuggestion(user, '9', { target: 'journal' }, makeReq({ 'x-socket-id': '' }));
+    await makeController({ suggestions: { accept } }).acceptSuggestion(
+      user,
+      '9',
+      { target: 'journal' },
+      makeReq({ 'x-socket-id': '' }),
+    );
     expect(accept.mock.calls[0][3]).toBeUndefined();
   });
 
   it('DAWARICH-CTRL-045: POST bucket-list/confirm wraps the count', async () => {
     const confirmBucketVisits = vi.fn().mockReturnValue(3);
-    expect(await makeController({ suggestions: { confirmBucketVisits } })
-      .confirmBucketVisits(user, { itemIds: [1, 2, 3], visitedAt: '2026-05-01' })).toEqual({ updated: 3 });
+    expect(
+      await makeController({ suggestions: { confirmBucketVisits } }).confirmBucketVisits(user, {
+        itemIds: [1, 2, 3],
+        visitedAt: '2026-05-01',
+      }),
+    ).toEqual({ updated: 3 });
     expect(confirmBucketVisits).toHaveBeenCalledWith(7, [1, 2, 3], '2026-05-01');
   });
 
   it('DAWARICH-CTRL-046: DELETE bucket-list/:itemId/visit is a 404 when nothing was cleared', () => {
     const clearBucketVisit = vi.fn().mockReturnValue(false);
     return thrown(() => makeController({ suggestions: { clearBucketVisit } }).clearBucketVisit(user, '4')).then((r) =>
-      expect(r).toEqual({ status: 404, body: { error: 'Bucket-list entry not found' } }));
+      expect(r).toEqual({ status: 404, body: { error: 'Bucket-list entry not found' } }),
+    );
   });
 
   it('DAWARICH-CTRL-076: DELETE bucket-list/:itemId/visit answers 200 { success: true } when a tick was cleared', async () => {
@@ -355,8 +391,11 @@ describe('DawarichController suggestion routes', () => {
 
   it('DAWARICH-CTRL-047: POST atlas/accept wraps the marked count', async () => {
     const acceptAtlasCountries = vi.fn().mockReturnValue(2);
-    expect(await makeController({ suggestions: { acceptAtlasCountries } })
-      .acceptAtlasCountries(user, { countryCodes: ['DE', 'FR'] })).toEqual({ marked: 2 });
+    expect(
+      await makeController({ suggestions: { acceptAtlasCountries } }).acceptAtlasCountries(user, {
+        countryCodes: ['DE', 'FR'],
+      }),
+    ).toEqual({ marked: 2 });
     expect(acceptAtlasCountries).toHaveBeenCalledWith(7, ['DE', 'FR']);
   });
 
@@ -374,24 +413,37 @@ describe('DawarichController suggestion routes', () => {
 
 describe('DawarichController error shaping', () => {
   it('DAWARICH-CTRL-050: an AcceptError keeps the 404 the domain chose', () => {
-    const accept = vi.fn(() => { throw new AcceptError('not_found', 'Suggestion not found', 404); });
-    return thrown(() => makeController({ suggestions: { accept } })
-      .acceptSuggestion(user, '9', { target: 'place' }, makeReq())).then((r) =>
-      expect(r).toEqual({ status: 404, body: { error: 'Suggestion not found', code: 'not_found' } }));
+    const accept = vi.fn(() => {
+      throw new AcceptError('not_found', 'Suggestion not found', 404);
+    });
+    return thrown(() =>
+      makeController({ suggestions: { accept } }).acceptSuggestion(user, '9', { target: 'place' }, makeReq()),
+    ).then((r) => expect(r).toEqual({ status: 404, body: { error: 'Suggestion not found', code: 'not_found' } }));
   });
 
   it('DAWARICH-CTRL-051: an AcceptError keeps a 409 too — the status travels with the error, it is not re-derived here', () => {
-    const accept = vi.fn(() => { throw new AcceptError('already_accepted', 'Suggestion has already been accepted', 409); });
-    return thrown(() => makeController({ suggestions: { accept } })
-      .acceptSuggestion(user, '9', { target: 'place' }, makeReq())).then((r) =>
-      expect(r).toEqual({ status: 409, body: { error: 'Suggestion has already been accepted', code: 'already_accepted' } }));
+    const accept = vi.fn(() => {
+      throw new AcceptError('already_accepted', 'Suggestion has already been accepted', 409);
+    });
+    return thrown(() =>
+      makeController({ suggestions: { accept } }).acceptSuggestion(user, '9', { target: 'place' }, makeReq()),
+    ).then((r) =>
+      expect(r).toEqual({
+        status: 409,
+        body: { error: 'Suggestion has already been accepted', code: 'already_accepted' },
+      }),
+    );
   });
 
   it('DAWARICH-CTRL-052: an AcceptError keeps a 400 (a day that is not on the trip)', () => {
-    const accept = vi.fn(() => { throw new AcceptError('day_not_on_trip', 'Day does not belong to this trip', 400); });
-    return thrown(() => makeController({ suggestions: { accept } })
-      .acceptSuggestion(user, '9', { target: 'place', dayId: 4 }, makeReq())).then((r) =>
-      expect(r).toEqual({ status: 400, body: { error: 'Day does not belong to this trip', code: 'day_not_on_trip' } }));
+    const accept = vi.fn(() => {
+      throw new AcceptError('day_not_on_trip', 'Day does not belong to this trip', 400);
+    });
+    return thrown(() =>
+      makeController({ suggestions: { accept } }).acceptSuggestion(user, '9', { target: 'place', dayId: 4 }, makeReq()),
+    ).then((r) =>
+      expect(r).toEqual({ status: 400, body: { error: 'Day does not belong to this trip', code: 'day_not_on_trip' } }),
+    );
   });
 
   const upstreamCodes: DawarichErrorCode[] = [
@@ -408,8 +460,10 @@ describe('DawarichController error shaping', () => {
     'DAWARICH-CTRL-053: a DawarichError with code %s becomes a 502 — the failure is a server TREK called, not TREK itself',
     async (code) => {
       const scanBucketList = vi.fn().mockRejectedValue(new DawarichError(code, 'upstream said no'));
-      expect(await thrown(() => makeController({ suggestions: { scanBucketList } }).scanBucketList(user)))
-        .toEqual({ status: 502, body: { error: 'upstream said no', code } });
+      expect(await thrown(() => makeController({ suggestions: { scanBucketList } }).scanBucketList(user))).toEqual({
+        status: 502,
+        body: { error: 'upstream said no', code },
+      });
     },
   );
 
@@ -419,37 +473,51 @@ describe('DawarichController error shaping', () => {
     "DAWARICH-CTRL-054: a DawarichError with code %s becomes a 400 — a rejected key is the caller's to fix, not a gateway fault",
     async (code) => {
       const scanBucketList = vi.fn().mockRejectedValue(new DawarichError(code, 'key rejected', 401));
-      expect(await thrown(() => makeController({ suggestions: { scanBucketList } }).scanBucketList(user)))
-        .toEqual({ status: 400, body: { error: 'key rejected', code } });
+      expect(await thrown(() => makeController({ suggestions: { scanBucketList } }).scanBucketList(user))).toEqual({
+        status: 400,
+        body: { error: 'key rejected', code },
+      });
     },
   );
 
   it('DAWARICH-CTRL-055: the code reaches the client for i18n, and `detail` rides along only when there is one', async () => {
-    const scanBucketList = vi.fn().mockRejectedValue(
-      new DawarichError('invalid_response', 'Unexpected response', 200, '<html>login</html>'),
-    );
-    expect(await thrown(() => makeController({ suggestions: { scanBucketList } }).scanBucketList(user)))
-      .toEqual({ status: 502, body: { error: 'Unexpected response', code: 'invalid_response', detail: '<html>login</html>' } });
+    const scanBucketList = vi
+      .fn()
+      .mockRejectedValue(new DawarichError('invalid_response', 'Unexpected response', 200, '<html>login</html>'));
+    expect(await thrown(() => makeController({ suggestions: { scanBucketList } }).scanBucketList(user))).toEqual({
+      status: 502,
+      body: { error: 'Unexpected response', code: 'invalid_response', detail: '<html>login</html>' },
+    });
   });
 
   it('DAWARICH-CTRL-056: an HttpException raised inside the guarded call passes through untouched', async () => {
     const forTrip = vi.fn().mockRejectedValue(new HttpException({ error: 'Trip not found' }, 404));
-    expect(await thrown(() => makeController({ tracks: { forTrip } }).tripTrack(user, '3')))
-      .toEqual({ status: 404, body: { error: 'Trip not found' } });
+    expect(await thrown(() => makeController({ tracks: { forTrip } }).tripTrack(user, '3'))).toEqual({
+      status: 404,
+      body: { error: 'Trip not found' },
+    });
   });
 
   it('DAWARICH-CTRL-057: anything else becomes a generic 502 rather than leaking the message', async () => {
     const atlasSuggestions = vi.fn().mockRejectedValue(new Error('ECONNRESET on /api/v1/visits?api_key=secret'));
-    expect(await thrown(() => makeController({ suggestions: { atlasSuggestions } })
-      .atlasSuggestions(user, '2026-01-01T00:00:00Z', '2026-01-05T00:00:00Z')))
-      .toEqual({ status: 502, body: { error: 'Dawarich request failed', code: 'server_error' } });
+    expect(
+      await thrown(() =>
+        makeController({ suggestions: { atlasSuggestions } }).atlasSuggestions(
+          user,
+          '2026-01-01T00:00:00Z',
+          '2026-01-05T00:00:00Z',
+        ),
+      ),
+    ).toEqual({ status: 502, body: { error: 'Dawarich request failed', code: 'server_error' } });
   });
 
   it('DAWARICH-CTRL-058: the synchronous guard shapes a throw from accept exactly as the async one does', () => {
-    const accept = vi.fn(() => { throw new DawarichError('unauthorized', 'key rejected'); });
-    return thrown(() => makeController({ suggestions: { accept } })
-      .acceptSuggestion(user, '9', { target: 'place' }, makeReq())).then((r) =>
-      expect(r).toEqual({ status: 400, body: { error: 'key rejected', code: 'unauthorized' } }));
+    const accept = vi.fn(() => {
+      throw new DawarichError('unauthorized', 'key rejected');
+    });
+    return thrown(() =>
+      makeController({ suggestions: { accept } }).acceptSuggestion(user, '9', { target: 'place' }, makeReq()),
+    ).then((r) => expect(r).toEqual({ status: 400, body: { error: 'key rejected', code: 'unauthorized' } }));
   });
 });
 
@@ -472,29 +540,44 @@ describe('DawarichController parseWindow', () => {
     'DAWARICH-CTRL-060: GET atlas/suggestions refuses the window (%j, %j) with 400 — one open end is "everything since the epoch"',
     async (from, to) => {
       const atlasSuggestions = vi.fn();
-      expect(await thrown(() => makeController({ suggestions: { atlasSuggestions } }).atlasSuggestions(user, from, to)))
-        .toEqual({ status: 400, body: { error: 'from and to are required ISO timestamps' } });
+      expect(
+        await thrown(() => makeController({ suggestions: { atlasSuggestions } }).atlasSuggestions(user, from, to)),
+      ).toEqual({ status: 400, body: { error: 'from and to are required ISO timestamps' } });
       expect(atlasSuggestions).not.toHaveBeenCalled();
     },
   );
 
   it.each(halfOpen)('DAWARICH-CTRL-061: GET track refuses the window (%j, %j) with 400', async (from, to) => {
     const forWindow = vi.fn();
-    expect(await thrown(() => makeController({ tracks: { forWindow } }).windowTrack(user, from, to)))
-      .toEqual({ status: 400, body: { error: 'from and to are required ISO timestamps' } });
+    expect(await thrown(() => makeController({ tracks: { forWindow } }).windowTrack(user, from, to))).toEqual({
+      status: 400,
+      body: { error: 'from and to are required ISO timestamps' },
+    });
     expect(forWindow).not.toHaveBeenCalled();
   });
 
   it('DAWARICH-CTRL-062: an inverted window is a 400', async () => {
-    expect(await thrown(() => makeController({ suggestions: { atlasSuggestions: vi.fn() } })
-      .atlasSuggestions(user, '2026-02-01T00:00:00Z', '2026-01-01T00:00:00Z')))
-      .toEqual({ status: 400, body: { error: 'to must be after from' } });
+    expect(
+      await thrown(() =>
+        makeController({ suggestions: { atlasSuggestions: vi.fn() } }).atlasSuggestions(
+          user,
+          '2026-02-01T00:00:00Z',
+          '2026-01-01T00:00:00Z',
+        ),
+      ),
+    ).toEqual({ status: 400, body: { error: 'to must be after from' } });
   });
 
   it('DAWARICH-CTRL-063: a zero-length window is a 400 — "after from", not "at or after"', async () => {
-    expect(await thrown(() => makeController({ tracks: { forWindow: vi.fn() } })
-      .windowTrack(user, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')))
-      .toEqual({ status: 400, body: { error: 'to must be after from' } });
+    expect(
+      await thrown(() =>
+        makeController({ tracks: { forWindow: vi.fn() } }).windowTrack(
+          user,
+          '2026-01-01T00:00:00Z',
+          '2026-01-01T00:00:00Z',
+        ),
+      ),
+    ).toEqual({ status: 400, body: { error: 'to must be after from' } });
   });
 
   it('DAWARICH-CTRL-064: exactly 400 days is still allowed', async () => {
@@ -502,7 +585,11 @@ describe('DawarichController parseWindow', () => {
     const from = new Date('2026-01-01T00:00:00Z');
     const to = new Date(from.getTime() + 400 * 86_400_000);
 
-    await makeController({ suggestions: { atlasSuggestions } }).atlasSuggestions(user, from.toISOString(), to.toISOString());
+    await makeController({ suggestions: { atlasSuggestions } }).atlasSuggestions(
+      user,
+      from.toISOString(),
+      to.toISOString(),
+    );
 
     expect(atlasSuggestions).toHaveBeenCalledWith(7, from, to);
   });
@@ -512,15 +599,25 @@ describe('DawarichController parseWindow', () => {
     const from = new Date('2026-01-01T00:00:00Z');
     const to = new Date(from.getTime() + 400 * 86_400_000 + 1);
 
-    expect(await thrown(() => makeController({ suggestions: { atlasSuggestions } })
-      .atlasSuggestions(user, from.toISOString(), to.toISOString())))
-      .toEqual({ status: 400, body: { error: 'Window must be 400 days or less' } });
+    expect(
+      await thrown(() =>
+        makeController({ suggestions: { atlasSuggestions } }).atlasSuggestions(
+          user,
+          from.toISOString(),
+          to.toISOString(),
+        ),
+      ),
+    ).toEqual({ status: 400, body: { error: 'Window must be 400 days or less' } });
     expect(atlasSuggestions).not.toHaveBeenCalled();
   });
 
   it('DAWARICH-CTRL-066: GET track normalises both ends to ISO before handing them on', async () => {
     const forWindow = vi.fn().mockResolvedValue({ days: [] });
-    await makeController({ tracks: { forWindow } }).windowTrack(user, '2026-01-01T00:00:00+02:00', '2026-01-02T00:00:00+02:00');
+    await makeController({ tracks: { forWindow } }).windowTrack(
+      user,
+      '2026-01-01T00:00:00+02:00',
+      '2026-01-02T00:00:00+02:00',
+    );
 
     // The trailing 0 is the caller's UTC offset: absent means UTC, which is
     // what this endpoint grouped by before it asked.
@@ -575,16 +672,20 @@ describe('DawarichController GET /trips/:tripId/track', () => {
     'DAWARICH-CTRL-073: 400 on the non-ISO date %j',
     async (raw) => {
       const forTrip = vi.fn();
-      expect(await thrown(() => makeController({ tracks: { forTrip } }).tripTrack(user, '5', raw)))
-        .toEqual({ status: 400, body: { error: 'Dates must be ISO, YYYY-MM-DD' } });
+      expect(await thrown(() => makeController({ tracks: { forTrip } }).tripTrack(user, '5', raw))).toEqual({
+        status: 400,
+        body: { error: 'Dates must be ISO, YYYY-MM-DD' },
+      });
       expect(forTrip).not.toHaveBeenCalled();
     },
   );
 
   it('DAWARICH-CTRL-077: a trip the caller cannot read is a 404 (the service says null, the controller says not found)', async () => {
     const forTrip = vi.fn().mockResolvedValue(null);
-    expect(await thrown(() => makeController({ tracks: { forTrip } }).tripTrack(user, '5')))
-      .toEqual({ status: 404, body: { error: 'Trip not found' } });
+    expect(await thrown(() => makeController({ tracks: { forTrip } }).tripTrack(user, '5'))).toEqual({
+      status: 404,
+      body: { error: 'Trip not found' },
+    });
   });
 
   it('DAWARICH-CTRL-078: a track comes back untouched', async () => {

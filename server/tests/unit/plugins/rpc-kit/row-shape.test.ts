@@ -4,8 +4,9 @@
  * no RPC-handler test changes alongside it. See `row-shape.ts`'s own docstring for why
  * it exists unwired and what it must never be applied to.
  */
-import { describe, it, expect, expectTypeOf } from 'vitest';
 import { toCamelCase } from '../../../../src/nest/plugins/host/rpc-kit/row-shape';
+
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 describe('toCamelCase', () => {
   it('ROWSHAPE-001 a flat row with several snake_case keys gets both cases, originals unchanged', () => {

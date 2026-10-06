@@ -1,8 +1,9 @@
 /**
  * MCP env tuning knobs (#1414): MCP_SESSION_TTL + MCP_SSE_KEEPALIVE parsing.
  */
-import { describe, it, expect } from 'vitest';
 import { resolveSessionTtlMs, resolveKeepaliveMs } from '../../../src/mcp/config';
+
+import { describe, it, expect } from 'vitest';
 
 describe('resolveSessionTtlMs', () => {
   it('defaults to 1 hour when unset or invalid', () => {

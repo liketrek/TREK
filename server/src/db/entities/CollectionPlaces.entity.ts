@@ -1,4 +1,3 @@
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { CollectionPlacesRepository } from '../repositories/CollectionPlaces.repository';
 import { DbTimestampType } from '../types';
 import { Categories } from './Categories.entity';
@@ -7,6 +6,7 @@ import { CollectionPlaceRatings } from './CollectionPlaceRatings.entity';
 import { Collections } from './Collections.entity';
 import { Tags } from './Tags.entity';
 import { Users } from './Users.entity';
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class CollectionPlaces {
   [EntityRepositoryType]?: CollectionPlacesRepository;
@@ -50,7 +50,8 @@ export const CollectionPlacesSchema = defineEntity({
   repository: () => CollectionPlacesRepository,
   properties: {
     id: p.integer().primary(),
-    collection: () => p.manyToOne(Collections).ref().deleteRule('cascade').hidden().index('idx_collection_places_collection'),
+    collection: () =>
+      p.manyToOne(Collections).ref().deleteRule('cascade').hidden().index('idx_collection_places_collection'),
     collection_id: p.integer().persist(false).index('idx_collection_places_collection'),
     owner: () => p.manyToOne(Users).ref().deleteRule('cascade').hidden(),
     owner_id: p.integer().persist(false),
@@ -79,8 +80,20 @@ export const CollectionPlacesSchema = defineEntity({
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     updated_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     savedByRef: () => p.manyToOne(Users).ref().joinColumn('saved_by').nullable().hidden(),
-    collection_place_labels: () => p.manyToMany(CollectionLabels).pivotTable('collection_place_labels').joinColumn('collection_place_id').inverseJoinColumn('label_id').hidden(),
-    collection_place_tags: () => p.manyToMany(Tags).pivotTable('collection_place_tags').joinColumn('collection_place_id').inverseJoinColumn('tag_id').hidden(),
+    collection_place_labels: () =>
+      p
+        .manyToMany(CollectionLabels)
+        .pivotTable('collection_place_labels')
+        .joinColumn('collection_place_id')
+        .inverseJoinColumn('label_id')
+        .hidden(),
+    collection_place_tags: () =>
+      p
+        .manyToMany(Tags)
+        .pivotTable('collection_place_tags')
+        .joinColumn('collection_place_id')
+        .inverseJoinColumn('tag_id')
+        .hidden(),
     collection_place_ratings_collection: () => p.oneToMany(CollectionPlaceRatings).mappedBy('collectionPlace').hidden(),
   },
 });

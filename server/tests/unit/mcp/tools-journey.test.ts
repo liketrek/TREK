@@ -3,9 +3,14 @@
  * create_journey returns the full journey (entries/contributors/trips/stats/my_role),
  * and create_journey_entry returns the enriched entry (parsed tags, photos array).
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { ADDON_IDS } from '../../../src/addons';
 import { db as testDb } from '../../../src/db/database';
+import { createUser, createTrip } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { setAddonEnabled } from '../../helpers/test-db';
 
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -37,12 +42,6 @@ vi.mock('../../../src/nest/atlas/atlas-geo', async (importOriginal) => ({
   },
 }));
 
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { setAddonEnabled } from '../../helpers/test-db';
-import { ADDON_IDS } from '../../../src/addons';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-
 beforeEach(() => {
   resetTestDb(testDb);
   // The `when:` gate reads the injected AddonsService, so the toggle is the row
@@ -58,7 +57,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 describe('Tool: create_journey', () => {
@@ -85,9 +88,14 @@ describe('Tool: create_journey_entry', () => {
   it('returns the enriched entry with parsed tags and a photos array', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const journey = (parseToolResult(await h.client.callTool({
-        name: 'create_journey', arguments: { title: 'J' },
-      })) as any).journey;
+      const journey = (
+        parseToolResult(
+          await h.client.callTool({
+            name: 'create_journey',
+            arguments: { title: 'J' },
+          }),
+        ) as any
+      ).journey;
       const result = await h.client.callTool({
         name: 'create_journey_entry',
         arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'Day 1', story: 'Arrived' },
@@ -106,12 +114,22 @@ describe('Tool: update_journey_entry', () => {
   it('returns the enriched entry (parsed tags, photos array)', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const journey = (parseToolResult(await h.client.callTool({
-        name: 'create_journey', arguments: { title: 'J' },
-      })) as any).journey;
-      const entry = (parseToolResult(await h.client.callTool({
-        name: 'create_journey_entry', arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'Day 1' },
-      })) as any).entry;
+      const journey = (
+        parseToolResult(
+          await h.client.callTool({
+            name: 'create_journey',
+            arguments: { title: 'J' },
+          }),
+        ) as any
+      ).journey;
+      const entry = (
+        parseToolResult(
+          await h.client.callTool({
+            name: 'create_journey_entry',
+            arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'Day 1' },
+          }),
+        ) as any
+      ).entry;
       const result = await h.client.callTool({
         name: 'update_journey_entry',
         arguments: { entryId: entry.id, title: 'Day 1 (edited)' },
@@ -126,14 +144,26 @@ describe('Tool: update_journey_entry', () => {
   it('creates a draft and publishes it, as the REST route does (#696)', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const journey = (parseToolResult(await h.client.callTool({ name: 'create_journey', arguments: { title: 'J' } })) as any).journey;
-      const draft = (parseToolResult(await h.client.callTool({
-        name: 'create_journey_entry', arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'Rough', is_draft: true },
-      })) as any).entry;
+      const journey = (
+        parseToolResult(await h.client.callTool({ name: 'create_journey', arguments: { title: 'J' } })) as any
+      ).journey;
+      const draft = (
+        parseToolResult(
+          await h.client.callTool({
+            name: 'create_journey_entry',
+            arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'Rough', is_draft: true },
+          }),
+        ) as any
+      ).entry;
       expect(draft.is_draft).toBe(true);
-      const published = (parseToolResult(await h.client.callTool({
-        name: 'update_journey_entry', arguments: { entryId: draft.id, is_draft: false },
-      })) as any).entry;
+      const published = (
+        parseToolResult(
+          await h.client.callTool({
+            name: 'update_journey_entry',
+            arguments: { entryId: draft.id, is_draft: false },
+          }),
+        ) as any
+      ).entry;
       expect(published.is_draft).toBe(false);
     });
   });
@@ -143,9 +173,14 @@ describe('Tool: update_journey_preferences', () => {
   it('returns the updated preference, not { success }', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const journey = (parseToolResult(await h.client.callTool({
-        name: 'create_journey', arguments: { title: 'J' },
-      })) as any).journey;
+      const journey = (
+        parseToolResult(
+          await h.client.callTool({
+            name: 'create_journey',
+            arguments: { title: 'J' },
+          }),
+        ) as any
+      ).journey;
       const result = await h.client.callTool({
         name: 'update_journey_preferences',
         arguments: { journeyId: journey.id, hide_skeletons: true },
@@ -166,16 +201,21 @@ describe('Tool: update_journey_preferences', () => {
 /** A journey owned by someone else — every access check must refuse it. */
 function foreignJourney() {
   const { user: other } = createUser(testDb);
-  const j = testDb.prepare(
-    'INSERT INTO journeys (user_id, title, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
-  ).run(other.id, 'Not yours', 'draft', Date.now(), Date.now());
+  const j = testDb
+    .prepare('INSERT INTO journeys (user_id, title, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+    .run(other.id, 'Not yours', 'draft', Date.now(), Date.now());
   return { otherId: other.id, journeyId: Number(j.lastInsertRowid) };
 }
 
 async function seedJourney(h: McpHarness, title = 'J') {
-  return (parseToolResult(await h.client.callTool({
-    name: 'create_journey', arguments: { title },
-  })) as any).journey;
+  return (
+    parseToolResult(
+      await h.client.callTool({
+        name: 'create_journey',
+        arguments: { title },
+      }),
+    ) as any
+  ).journey;
 }
 
 describe('journey read tools', () => {
@@ -192,9 +232,12 @@ describe('journey read tools', () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
-      const data = parseToolResult(await h.client.callTool({
-        name: 'get_journey', arguments: { journeyId: journey.id },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'get_journey',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(data.journey.id).toBe(journey.id);
       expect(Array.isArray(data.journey.entries)).toBe(true);
     });
@@ -214,11 +257,15 @@ describe('journey read tools', () => {
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       await h.client.callTool({
-        name: 'create_journey_entry', arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'D1' },
+        name: 'create_journey_entry',
+        arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'D1' },
       });
-      const data = parseToolResult(await h.client.callTool({
-        name: 'list_journey_entries', arguments: { journeyId: journey.id },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'list_journey_entries',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(data.entries).toHaveLength(1);
     });
   });
@@ -236,9 +283,12 @@ describe('journey read tools', () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
-      const data = parseToolResult(await h.client.callTool({
-        name: 'list_journey_contributors', arguments: { journeyId: journey.id },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'list_journey_contributors',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(Array.isArray(data.contributors)).toBe(true);
     });
   });
@@ -256,7 +306,9 @@ describe('journey read tools', () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
       const s = parseToolResult(await h.client.callTool({ name: 'get_journey_suggestions', arguments: {} })) as any;
-      const t = parseToolResult(await h.client.callTool({ name: 'list_journey_available_trips', arguments: {} })) as any;
+      const t = parseToolResult(
+        await h.client.callTool({ name: 'list_journey_available_trips', arguments: {} }),
+      ) as any;
       expect(Array.isArray(s.trips)).toBe(true);
       expect(Array.isArray(t.trips)).toBe(true);
     });
@@ -269,9 +321,12 @@ describe('journey write tools', () => {
     const { journeyId } = foreignJourney();
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
-      const updated = parseToolResult(await h.client.callTool({
-        name: 'update_journey', arguments: { journeyId: journey.id, title: 'Renamed', status: 'active' },
-      })) as any;
+      const updated = parseToolResult(
+        await h.client.callTool({
+          name: 'update_journey',
+          arguments: { journeyId: journey.id, title: 'Renamed', status: 'active' },
+        }),
+      ) as any;
       expect(updated.journey.title).toBe('Renamed');
       const denied = await h.client.callTool({ name: 'update_journey', arguments: { journeyId, title: 'X' } });
       expect(denied.isError).toBe(true);
@@ -283,9 +338,12 @@ describe('journey write tools', () => {
     const { journeyId } = foreignJourney();
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
-      const gone = parseToolResult(await h.client.callTool({
-        name: 'delete_journey', arguments: { journeyId: journey.id },
-      })) as any;
+      const gone = parseToolResult(
+        await h.client.callTool({
+          name: 'delete_journey',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(gone.success).toBe(true);
       const denied = await h.client.callTool({ name: 'delete_journey', arguments: { journeyId } });
       expect(denied.isError).toBe(true);
@@ -297,13 +355,19 @@ describe('journey write tools', () => {
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
-      const added = parseToolResult(await h.client.callTool({
-        name: 'add_journey_trip', arguments: { journeyId: journey.id, tripId: trip.id },
-      })) as any;
+      const added = parseToolResult(
+        await h.client.callTool({
+          name: 'add_journey_trip',
+          arguments: { journeyId: journey.id, tripId: trip.id },
+        }),
+      ) as any;
       expect(added.success).toBe(true);
-      const removed = parseToolResult(await h.client.callTool({
-        name: 'remove_journey_trip', arguments: { journeyId: journey.id, tripId: trip.id },
-      })) as any;
+      const removed = parseToolResult(
+        await h.client.callTool({
+          name: 'remove_journey_trip',
+          arguments: { journeyId: journey.id, tripId: trip.id },
+        }),
+      ) as any;
       expect(removed.success).toBe(true);
     });
   });
@@ -314,17 +378,34 @@ describe('journey write tools', () => {
     const { journeyId } = foreignJourney();
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
-      expect((await h.client.callTool({
-        name: 'add_journey_trip', arguments: { journeyId, tripId: trip.id },
-      })).isError).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'add_journey_trip',
+            arguments: { journeyId, tripId: trip.id },
+          })
+        ).isError,
+      ).toBe(true);
       // Unlinking a trip that was never linked is a no-op, not an error — the
       // gate is journey ownership, not whether the row existed.
-      expect((parseToolResult(await h.client.callTool({
-        name: 'remove_journey_trip', arguments: { journeyId: journey.id, tripId: trip.id },
-      })) as any).success).toBe(true);
-      expect((await h.client.callTool({
-        name: 'remove_journey_trip', arguments: { journeyId, tripId: trip.id },
-      })).isError).toBe(true);
+      expect(
+        (
+          parseToolResult(
+            await h.client.callTool({
+              name: 'remove_journey_trip',
+              arguments: { journeyId: journey.id, tripId: trip.id },
+            }),
+          ) as any
+        ).success,
+      ).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'remove_journey_trip',
+            arguments: { journeyId, tripId: trip.id },
+          })
+        ).isError,
+      ).toBe(true);
     });
   });
 
@@ -333,7 +414,8 @@ describe('journey write tools', () => {
     const { journeyId } = foreignJourney();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
-        name: 'create_journey_entry', arguments: { journeyId, entry_date: '2026-07-01' },
+        name: 'create_journey_entry',
+        arguments: { journeyId, entry_date: '2026-07-01' },
       });
       expect(result.isError).toBe(true);
     });
@@ -342,12 +424,22 @@ describe('journey write tools', () => {
   it('update_journey_entry and delete_journey_entry refuse an unknown entry', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      expect((await h.client.callTool({
-        name: 'update_journey_entry', arguments: { entryId: 999999, title: 'X' },
-      })).isError).toBe(true);
-      expect((await h.client.callTool({
-        name: 'delete_journey_entry', arguments: { entryId: 999999 },
-      })).isError).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'update_journey_entry',
+            arguments: { entryId: 999999, title: 'X' },
+          })
+        ).isError,
+      ).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'delete_journey_entry',
+            arguments: { entryId: 999999 },
+          })
+        ).isError,
+      ).toBe(true);
     });
   });
 
@@ -355,12 +447,20 @@ describe('journey write tools', () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
-      const entry = (parseToolResult(await h.client.callTool({
-        name: 'create_journey_entry', arguments: { journeyId: journey.id, entry_date: '2026-07-01' },
-      })) as any).entry;
-      const data = parseToolResult(await h.client.callTool({
-        name: 'delete_journey_entry', arguments: { entryId: entry.id },
-      })) as any;
+      const entry = (
+        parseToolResult(
+          await h.client.callTool({
+            name: 'create_journey_entry',
+            arguments: { journeyId: journey.id, entry_date: '2026-07-01' },
+          }),
+        ) as any
+      ).entry;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'delete_journey_entry',
+          arguments: { entryId: entry.id },
+        }),
+      ) as any;
       expect(data.success).toBe(true);
     });
   });
@@ -369,19 +469,37 @@ describe('journey write tools', () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
-      const a = (parseToolResult(await h.client.callTool({
-        name: 'create_journey_entry', arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'A' },
-      })) as any).entry;
-      const b = (parseToolResult(await h.client.callTool({
-        name: 'create_journey_entry', arguments: { journeyId: journey.id, entry_date: '2026-07-02', title: 'B' },
-      })) as any).entry;
-      const reordered = parseToolResult(await h.client.callTool({
-        name: 'reorder_journey_entries', arguments: { journeyId: journey.id, orderedIds: [b.id, a.id] },
-      })) as any;
+      const a = (
+        parseToolResult(
+          await h.client.callTool({
+            name: 'create_journey_entry',
+            arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'A' },
+          }),
+        ) as any
+      ).entry;
+      const b = (
+        parseToolResult(
+          await h.client.callTool({
+            name: 'create_journey_entry',
+            arguments: { journeyId: journey.id, entry_date: '2026-07-02', title: 'B' },
+          }),
+        ) as any
+      ).entry;
+      const reordered = parseToolResult(
+        await h.client.callTool({
+          name: 'reorder_journey_entries',
+          arguments: { journeyId: journey.id, orderedIds: [b.id, a.id] },
+        }),
+      ) as any;
       expect(reordered.success).toBe(true);
-      expect((await h.client.callTool({
-        name: 'reorder_journey_entries', arguments: { journeyId: journey.id, orderedIds: [999999] },
-      })).isError).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'reorder_journey_entries',
+            arguments: { journeyId: journey.id, orderedIds: [999999] },
+          })
+        ).isError,
+      ).toBe(true);
     });
   });
 
@@ -389,12 +507,22 @@ describe('journey write tools', () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
-      const entry = (parseToolResult(await h.client.callTool({
-        name: 'create_journey_entry', arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'A' },
-      })) as any).entry;
-      expect((await h.client.callTool({
-        name: 'reorder_journey_entry_photos', arguments: { entryId: entry.id, orderedIds: [999999] },
-      })).isError).toBe(true);
+      const entry = (
+        parseToolResult(
+          await h.client.callTool({
+            name: 'create_journey_entry',
+            arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'A' },
+          }),
+        ) as any
+      ).entry;
+      expect(
+        (
+          await h.client.callTool({
+            name: 'reorder_journey_entry_photos',
+            arguments: { entryId: entry.id, orderedIds: [999999] },
+          })
+        ).isError,
+      ).toBe(true);
     });
   });
 
@@ -404,24 +532,55 @@ describe('journey write tools', () => {
     const { journeyId } = foreignJourney();
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
-      expect((parseToolResult(await h.client.callTool({
-        name: 'add_journey_contributor', arguments: { journeyId: journey.id, targetUserId: guest.id, role: 'editor' },
-      })) as any).success).toBe(true);
-      expect((parseToolResult(await h.client.callTool({
-        name: 'update_journey_contributor_role', arguments: { journeyId: journey.id, targetUserId: guest.id, role: 'viewer' },
-      })) as any).success).toBe(true);
-      expect((parseToolResult(await h.client.callTool({
-        name: 'remove_journey_contributor', arguments: { journeyId: journey.id, targetUserId: guest.id },
-      })) as any).success).toBe(true);
+      expect(
+        (
+          parseToolResult(
+            await h.client.callTool({
+              name: 'add_journey_contributor',
+              arguments: { journeyId: journey.id, targetUserId: guest.id, role: 'editor' },
+            }),
+          ) as any
+        ).success,
+      ).toBe(true);
+      expect(
+        (
+          parseToolResult(
+            await h.client.callTool({
+              name: 'update_journey_contributor_role',
+              arguments: { journeyId: journey.id, targetUserId: guest.id, role: 'viewer' },
+            }),
+          ) as any
+        ).success,
+      ).toBe(true);
+      expect(
+        (
+          parseToolResult(
+            await h.client.callTool({
+              name: 'remove_journey_contributor',
+              arguments: { journeyId: journey.id, targetUserId: guest.id },
+            }),
+          ) as any
+        ).success,
+      ).toBe(true);
 
       for (const name of ['add_journey_contributor', 'update_journey_contributor_role']) {
-        expect((await h.client.callTool({
-          name, arguments: { journeyId, targetUserId: guest.id, role: 'editor' },
-        })).isError).toBe(true);
+        expect(
+          (
+            await h.client.callTool({
+              name,
+              arguments: { journeyId, targetUserId: guest.id, role: 'editor' },
+            })
+          ).isError,
+        ).toBe(true);
       }
-      expect((await h.client.callTool({
-        name: 'remove_journey_contributor', arguments: { journeyId, targetUserId: guest.id },
-      })).isError).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'remove_journey_contributor',
+            arguments: { journeyId, targetUserId: guest.id },
+          })
+        ).isError,
+      ).toBe(true);
     });
   });
 
@@ -430,7 +589,8 @@ describe('journey write tools', () => {
     const { journeyId } = foreignJourney();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
-        name: 'update_journey_preferences', arguments: { journeyId, hide_skeletons: true },
+        name: 'update_journey_preferences',
+        arguments: { journeyId, hide_skeletons: true },
       });
       expect(result.isError).toBe(true);
     });
@@ -451,10 +611,14 @@ function entryRow(id: number) {
 }
 
 async function seedEntry(h: McpHarness, journeyId: number, args: Record<string, unknown> = {}) {
-  return (parseToolResult(await h.client.callTool({
-    name: 'create_journey_entry',
-    arguments: { journeyId, entry_date: '2026-07-01', ...args },
-  })) as any).entry;
+  return (
+    parseToolResult(
+      await h.client.callTool({
+        name: 'create_journey_entry',
+        arguments: { journeyId, entry_date: '2026-07-01', ...args },
+      }),
+    ) as any
+  ).entry;
 }
 
 describe('journey entry fields', () => {
@@ -510,10 +674,14 @@ describe('journey entry fields', () => {
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       for (const bad of [{ location_lat: 91 }, { location_lng: -181 }, { visibility: 'friends' }]) {
-        expect((await h.client.callTool({
-          name: 'create_journey_entry',
-          arguments: { journeyId: journey.id, entry_date: '2026-07-01', ...bad },
-        })).isError).toBe(true);
+        expect(
+          (
+            await h.client.callTool({
+              name: 'create_journey_entry',
+              arguments: { journeyId: journey.id, entry_date: '2026-07-01', ...bad },
+            })
+          ).isError,
+        ).toBe(true);
       }
     });
   });
@@ -523,7 +691,9 @@ describe('journey entry fields', () => {
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id, {
-        location_name: 'Hallgrimskirja', location_lat: 64.0, location_lng: -21.0,
+        location_name: 'Hallgrimskirja',
+        location_lat: 64.0,
+        location_lng: -21.0,
       });
 
       await h.client.callTool({
@@ -549,17 +719,19 @@ describe('journey entry fields', () => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id);
 
-      const data = parseToolResult(await h.client.callTool({
-        name: 'update_journey_entry',
-        arguments: {
-          entryId: entry.id,
-          weather: 'rain all day',
-          tags: ['museum'],
-          pros_cons: { pros: ['free on Sundays'], cons: ['packed'] },
-          visibility: 'shared',
-          sort_order: 3,
-        },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'update_journey_entry',
+          arguments: {
+            entryId: entry.id,
+            weather: 'rain all day',
+            tags: ['museum'],
+            pros_cons: { pros: ['free on Sundays'], cons: ['packed'] },
+            visibility: 'shared',
+            sort_order: 3,
+          },
+        }),
+      ) as any;
 
       const row = entryRow(entry.id);
       expect(row.weather).toBe('rain all day');
@@ -635,32 +807,48 @@ describe('journey entry fields', () => {
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const airport = await seedEntry(h, journey.id, {
-        title: 'Keflavík', entry_date: '2026-06-01', location_lat: 63.98, location_lng: -22.62,
+        title: 'Keflavík',
+        entry_date: '2026-06-01',
+        location_lat: 63.98,
+        location_lng: -22.62,
       });
       await seedEntry(h, journey.id, {
-        title: 'Vík', entry_date: '2026-06-03', location_lat: 63.42, location_lng: -19.01,
+        title: 'Vík',
+        entry_date: '2026-06-03',
+        location_lat: 63.42,
+        location_lng: -19.01,
       });
 
-      const data = parseToolResult(await h.client.callTool({
-        name: 'update_journey_entry', arguments: { entryId: airport.id, stats_excluded: true },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'update_journey_entry',
+          arguments: { entryId: airport.id, stats_excluded: true },
+        }),
+      ) as any;
       expect(entryRow(airport.id).stats_excluded).toBe(1);
       // The echo carries the boolean, as the REST answer does.
       expect(data.entry.stats_excluded).toBe(true);
 
-      const off = parseToolResult(await h.client.callTool({
-        name: 'get_journey_stats', arguments: { journeyId: journey.id, include_route: true },
-      })) as any;
+      const off = parseToolResult(
+        await h.client.callTool({
+          name: 'get_journey_stats',
+          arguments: { journeyId: journey.id, include_route: true },
+        }),
+      ) as any;
       expect(off.stats.points.map((p: any) => p.label)).toEqual(['Vík']);
       expect(off.stats.steps).toBe(1);
       expect(off.stats.excluded).toEqual([{ entryId: airport.id, label: 'Keflavík', date: '2026-06-01' }]);
 
       await h.client.callTool({
-        name: 'update_journey_entry', arguments: { entryId: airport.id, stats_excluded: false },
+        name: 'update_journey_entry',
+        arguments: { entryId: airport.id, stats_excluded: false },
       });
-      const on = parseToolResult(await h.client.callTool({
-        name: 'get_journey_stats', arguments: { journeyId: journey.id },
-      })) as any;
+      const on = parseToolResult(
+        await h.client.callTool({
+          name: 'get_journey_stats',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(entryRow(airport.id).stats_excluded).toBe(0);
       expect(on.stats.steps).toBe(2);
       expect(on.stats.excluded).toEqual([]);
@@ -672,9 +860,14 @@ describe('journey entry fields', () => {
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id);
-      expect((await h.client.callTool({
-        name: 'update_journey_entry', arguments: { entryId: entry.id, stats_excluded: 'yes' },
-      })).isError).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'update_journey_entry',
+            arguments: { entryId: entry.id, stats_excluded: 'yes' },
+          })
+        ).isError,
+      ).toBe(true);
       expect(entryRow(entry.id).stats_excluded).toBe(0);
     });
   });
@@ -685,9 +878,14 @@ describe('journey entry fields', () => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id);
       for (const bad of [{ visibility: 'friends' }, { location_lng: 181 }, { type: 'note' }]) {
-        expect((await h.client.callTool({
-          name: 'update_journey_entry', arguments: { entryId: entry.id, ...bad },
-        })).isError).toBe(true);
+        expect(
+          (
+            await h.client.callTool({
+              name: 'update_journey_entry',
+              arguments: { entryId: entry.id, ...bad },
+            })
+          ).isError,
+        ).toBe(true);
       }
       // And none of the refusals touched the row.
       const row = entryRow(entry.id);
@@ -700,8 +898,18 @@ describe('journey entry fields', () => {
 describe('Tool: get_journey_stats', () => {
   async function twoStopJourney(h: McpHarness) {
     const journey = await seedJourney(h);
-    await seedEntry(h, journey.id, { title: 'Paris', entry_date: '2026-07-01', location_lat: 48.85, location_lng: 2.35 });
-    await seedEntry(h, journey.id, { title: 'Berlin', entry_date: '2026-07-04', location_lat: 52.52, location_lng: 13.4 });
+    await seedEntry(h, journey.id, {
+      title: 'Paris',
+      entry_date: '2026-07-01',
+      location_lat: 48.85,
+      location_lng: 2.35,
+    });
+    await seedEntry(h, journey.id, {
+      title: 'Berlin',
+      entry_date: '2026-07-04',
+      location_lat: 52.52,
+      location_lng: 13.4,
+    });
     return journey;
   }
 
@@ -710,9 +918,12 @@ describe('Tool: get_journey_stats', () => {
     await withHarness(user.id, async (h) => {
       const journey = await twoStopJourney(h);
 
-      const data = parseToolResult(await h.client.callTool({
-        name: 'get_journey_stats', arguments: { journeyId: journey.id },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'get_journey_stats',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
 
       // Paris to Berlin is about 880km great-circle, and the figure is metres.
       expect(data.stats.distance).toBeGreaterThan(800_000);
@@ -724,9 +935,12 @@ describe('Tool: get_journey_stats', () => {
       expect(data.stats.end).toBe('2026-07-04');
 
       // get_journey still answers with the three counts and nothing more.
-      const full = parseToolResult(await h.client.callTool({
-        name: 'get_journey', arguments: { journeyId: journey.id },
-      })) as any;
+      const full = parseToolResult(
+        await h.client.callTool({
+          name: 'get_journey',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(Object.keys(full.journey.stats).sort()).toEqual(['entries', 'photos', 'places']);
     });
   });
@@ -736,14 +950,20 @@ describe('Tool: get_journey_stats', () => {
     await withHarness(user.id, async (h) => {
       const journey = await twoStopJourney(h);
 
-      const lean = parseToolResult(await h.client.callTool({
-        name: 'get_journey_stats', arguments: { journeyId: journey.id },
-      })) as any;
+      const lean = parseToolResult(
+        await h.client.callTool({
+          name: 'get_journey_stats',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(lean.stats.points).toBeUndefined();
 
-      const full = parseToolResult(await h.client.callTool({
-        name: 'get_journey_stats', arguments: { journeyId: journey.id, include_route: true },
-      })) as any;
+      const full = parseToolResult(
+        await h.client.callTool({
+          name: 'get_journey_stats',
+          arguments: { journeyId: journey.id, include_route: true },
+        }),
+      ) as any;
       expect(full.stats.points).toHaveLength(2);
       expect(full.stats.points.map((p: any) => p.label)).toEqual(['Paris', 'Berlin']);
       expect(full.stats.points[0].country).toBe('FR');
@@ -754,9 +974,14 @@ describe('Tool: get_journey_stats', () => {
     const { user } = createUser(testDb);
     const { journeyId } = foreignJourney();
     await withHarness(user.id, async (h) => {
-      expect((await h.client.callTool({
-        name: 'get_journey_stats', arguments: { journeyId },
-      })).isError).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'get_journey_stats',
+            arguments: { journeyId },
+          })
+        ).isError,
+      ).toBe(true);
     });
   });
 });
@@ -767,24 +992,36 @@ describe('journey share-link tools', () => {
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       // No link yet — the tool answers with a null shareLink, not an error.
-      const empty = parseToolResult(await h.client.callTool({
-        name: 'get_journey_share_link', arguments: { journeyId: journey.id },
-      })) as any;
+      const empty = parseToolResult(
+        await h.client.callTool({
+          name: 'get_journey_share_link',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(empty.shareLink ?? null).toBeNull();
 
-      const created = parseToolResult(await h.client.callTool({
-        name: 'create_journey_share_link', arguments: { journeyId: journey.id },
-      })) as any;
+      const created = parseToolResult(
+        await h.client.callTool({
+          name: 'create_journey_share_link',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(created.shareLink).toBeTruthy();
 
-      const read = parseToolResult(await h.client.callTool({
-        name: 'get_journey_share_link', arguments: { journeyId: journey.id },
-      })) as any;
+      const read = parseToolResult(
+        await h.client.callTool({
+          name: 'get_journey_share_link',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(read.shareLink).toBeTruthy();
 
-      const revoked = parseToolResult(await h.client.callTool({
-        name: 'delete_journey_share_link', arguments: { journeyId: journey.id },
-      })) as any;
+      const revoked = parseToolResult(
+        await h.client.callTool({
+          name: 'delete_journey_share_link',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(revoked.success).toBe(true);
     });
   });
@@ -799,9 +1036,12 @@ describe('journey share-link tools', () => {
       });
       // Calling it again without the flags must not re-publish the gallery.
       await h.client.callTool({ name: 'create_journey_share_link', arguments: { journeyId: journey.id } });
-      const read = parseToolResult(await h.client.callTool({
-        name: 'get_journey_share_link', arguments: { journeyId: journey.id },
-      })) as any;
+      const read = parseToolResult(
+        await h.client.callTool({
+          name: 'get_journey_share_link',
+          arguments: { journeyId: journey.id },
+        }),
+      ) as any;
       expect(read.shareLink.share_gallery).toBe(false);
       expect(read.shareLink.newest_first).toBe(true);
       expect(read.shareLink.share_timeline).toBe(true);
@@ -817,15 +1057,20 @@ describe('journey share-link tools', () => {
       journeyId = journey.id;
       await h.client.callTool({ name: 'create_journey_share_link', arguments: { journeyId } });
     });
-    testDb.prepare(
-      'INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, ?, ?)',
-    ).run(journeyId, guest.id, 'viewer', Date.now());
+    testDb
+      .prepare('INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, ?, ?)')
+      .run(journeyId, guest.id, 'viewer', Date.now());
     await withHarness(guest.id, async (h) => {
       // The token is the whole credential: a contributor must not be able to
       // read out a link that keeps working after they are removed.
-      expect((await h.client.callTool({
-        name: 'get_journey_share_link', arguments: { journeyId },
-      })).isError).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'get_journey_share_link',
+            arguments: { journeyId },
+          })
+        ).isError,
+      ).toBe(true);
     });
   });
 
@@ -887,9 +1132,14 @@ describe('demo mode', () => {
 // ---------------------------------------------------------------------------
 
 async function createJourney(h: McpHarness, title = 'Eurotrip'): Promise<any> {
-  return (parseToolResult(await h.client.callTool({
-    name: 'create_journey', arguments: { title },
-  })) as any).journey;
+  return (
+    parseToolResult(
+      await h.client.callTool({
+        name: 'create_journey',
+        arguments: { title },
+      }),
+    ) as any
+  ).journey;
 }
 
 describe('Resource: trek://journeys', () => {
@@ -940,7 +1190,9 @@ describe('Resource: trek://journeys/{journeyId}/entries', () => {
         name: 'create_journey_entry',
         arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'Day 1', story: 'Arrived' },
       });
-      const data = parseResourceResult(await h.client.readResource({ uri: `trek://journeys/${journey.id}/entries` })) as any[];
+      const data = parseResourceResult(
+        await h.client.readResource({ uri: `trek://journeys/${journey.id}/entries` }),
+      ) as any[];
       expect(data).toHaveLength(1);
       expect(data[0].title).toBe('Day 1');
       expect(Array.isArray(data[0].tags)).toBe(true);
@@ -953,7 +1205,9 @@ describe('Resource: trek://journeys/{journeyId}/contributors', () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
       const journey = await createJourney(h);
-      const data = parseResourceResult(await h.client.readResource({ uri: `trek://journeys/${journey.id}/contributors` })) as any[];
+      const data = parseResourceResult(
+        await h.client.readResource({ uri: `trek://journeys/${journey.id}/contributors` }),
+      ) as any[];
       expect(Array.isArray(data)).toBe(true);
       expect(data.map((c) => c.user_id ?? c.id)).toContain(user.id);
     });

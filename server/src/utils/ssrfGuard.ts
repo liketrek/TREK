@@ -1,7 +1,8 @@
-import dns from 'node:dns/promises';
-import { Agent, ProxyAgent, type Dispatcher } from 'undici';
 import { readEnv } from '../app-config';
 import { embeddedTransitionIpv4, expandIpv6 } from './ipv6';
+
+import dns from 'node:dns/promises';
+import { Agent, ProxyAgent, type Dispatcher } from 'undici';
 
 // Frozen at import on purpose (legacy timing; tests reload the module to change it).
 const ALLOW_INTERNAL_NETWORK = readEnv().net.allowInternalNetwork;
@@ -50,8 +51,9 @@ async function resolveAll(hostname: string): Promise<{ address: string; family: 
     throw error;
   }
   const family = (entry: { address: string; family: number }) => entry.family || (entry.address.includes(':') ? 6 : 4);
-  return [...list.filter((entry) => family(entry) === 4), ...list.filter((entry) => family(entry) !== 4)]
-    .map((entry) => ({ address: entry.address, family: family(entry) }));
+  return [...list.filter((entry) => family(entry) === 4), ...list.filter((entry) => family(entry) !== 4)].map(
+    (entry) => ({ address: entry.address, family: family(entry) }),
+  );
 }
 
 /**
@@ -98,9 +100,9 @@ function isAlwaysBlocked(ip: string): boolean {
     // reaches a local service without naming one, and it has enough spellings
     // (`::`, `::0`, `0:0:0:0:0:0:0:0`) that only the expanded hextets settle it.
     // The `0.` check above never saw any of them: they begin with a colon.
-    if (hextets.every(h => h === 0)) return true;
+    if (hextets.every((h) => h === 0)) return true;
     // Loopback in any spelling, not only the `::1` a resolver prints.
-    if (hextets.slice(0, 7).every(h => h === 0) && hextets[7] === 1) return true;
+    if (hextets.slice(0, 7).every((h) => h === 0) && hextets[7] === 1) return true;
     // fe80::/10 spans fe80: through febf:, not just the four characters 'fe80'.
     if ((hextets[0] & 0xffc0) === 0xfe80) return true;
     // A mapped or compatible address inherits the verdict of the IPv4 it carries.
@@ -381,8 +383,13 @@ export async function safeFetch(url: string, init?: RequestInit, options?: SafeF
  * a different page than the one its coordinates are parsed out of.
  */
 const CREDENTIAL_HEADERS = [
-  'authorization', 'proxy-authorization', 'cookie', 'cookie2',
-  'x-api-key', 'api-key', 'x-auth-token',
+  'authorization',
+  'proxy-authorization',
+  'cookie',
+  'cookie2',
+  'x-api-key',
+  'api-key',
+  'x-auth-token',
 ];
 
 /** Headers that describe the body, and go when the body does. */
@@ -396,7 +403,12 @@ const BODY_HEADERS = ['content-type', 'content-length', 'content-encoding', 'con
  */
 function isCrossOriginHop(from: string, to: string): boolean {
   let a: URL, b: URL;
-  try { a = new URL(from); b = new URL(to); } catch { return true; }
+  try {
+    a = new URL(from);
+    b = new URL(to);
+  } catch {
+    return true;
+  }
   if (a.origin === b.origin) return false;
   return !(a.hostname === b.hostname && a.protocol === 'http:' && b.protocol === 'https:');
 }
@@ -534,8 +546,12 @@ export async function safeFetchFollow(
  */
 export function proxyFor(rawUrl: string, proxy = PROXY): string | null {
   let url: URL;
-  try { url = new URL(rawUrl); } catch { return null; }
-  const target = url.protocol === 'https:' ? proxy.https ?? proxy.http : proxy.http;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  const target = url.protocol === 'https:' ? (proxy.https ?? proxy.http) : proxy.http;
   if (!target) return null;
   const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
   const port = url.port || (url.protocol === 'https:' ? '443' : '80');
@@ -595,9 +611,7 @@ export function createPinnedDispatcher(
     // undici caps the wait for response headers at 5 minutes by default, and
     // that cap is invisible from the call site: an AbortController set to
     // fifteen still dies at five.
-    ...(responseTimeoutMs
-      ? { headersTimeout: responseTimeoutMs, bodyTimeout: responseTimeoutMs }
-      : {}),
+    ...(responseTimeoutMs ? { headersTimeout: responseTimeoutMs, bodyTimeout: responseTimeoutMs } : {}),
     connect: {
       rejectUnauthorized,
       lookup: (_hostname: string, opts: Record<string, unknown>, callback: Function) => {

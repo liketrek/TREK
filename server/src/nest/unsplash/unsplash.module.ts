@@ -1,10 +1,10 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { UnsplashService } from './unsplash.service';
-import { AppConfigModule } from '../app-config/app-config.module';
-import { StorageModule } from '../storage/storage.module';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { Users } from '../../db/entities/Users.entity';
+import { AppConfigModule } from '../app-config/app-config.module';
+import { StorageModule } from '../storage/storage.module';
+import { UnsplashService } from './unsplash.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /** Unsplash cover search and download. No controller of its own — trips and
  *  places both reach it. Deliberately NOT @Global, matching PermissionsModule:

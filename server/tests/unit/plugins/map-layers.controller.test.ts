@@ -5,18 +5,20 @@
  * numerics, enum whitelists on the raw values, and hard per-provider budgets
  * (layers / features / vertices) with drop-not-truncate semantics for geometry.
  */
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import { MapLayersController } from '../../../src/nest/plugins/contributions/map-layers.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { canAccessTrip, pluginsEnabled } = vi.hoisted(() => ({
-  canAccessTrip: vi.fn(async (tripId: number, userId: number) => (tripId === 1 && userId === 5 ? { id: 1 } : undefined)),
+  canAccessTrip: vi.fn(async (tripId: number, userId: number) =>
+    tripId === 1 && userId === 5 ? { id: 1 } : undefined,
+  ),
   pluginsEnabled: vi.fn(() => true),
 }));
 vi.mock('../../../src/db/database', () => ({ db: { prepare: () => ({ get: () => undefined }) }, canAccessTrip }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
-
-import { MapLayersController } from '../../../src/nest/plugins/contributions/map-layers.controller';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -25,7 +27,10 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
     providersOf: vi.fn(() => providers),
     mapLayers: vi.fn(async (id: string) => invoke(id)),
   } as unknown as PluginHooks;
-  return { c: new MapLayersController(runtime, { findAccessible: canAccessTrip } as unknown as TripsRepository), runtime };
+  return {
+    c: new MapLayersController(runtime, { findAccessible: canAccessTrip } as unknown as TripsRepository),
+    runtime,
+  };
 }
 const line = (n = 3, over: Record<string, unknown> = {}) => ({
   type: 'polyline',
@@ -35,7 +40,10 @@ const line = (n = 3, over: Record<string, unknown> = {}) => ({
 const layer = (features: unknown[], over: Record<string, unknown> = {}) => ({ id: 'l1', features, ...over });
 
 describe('MapLayersController', () => {
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); canAccessTrip.mockResolvedValue({ id: 1 } as never); });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+    canAccessTrip.mockResolvedValue({ id: 1 } as never);
+  });
 
   it('gates: disabled / no user / non-member all return [] (no plugin calls on the first)', async () => {
     pluginsEnabled.mockReturnValue(false);
@@ -50,10 +58,11 @@ describe('MapLayersController', () => {
   });
 
   it('keeps a valid layer, stamps pluginId, clamps styling and caps the label', async () => {
-    const { c } = controller(() => [layer(
-      [line(3, { tone: 'success', width: 99, opacity: 7, dash: 'dash', label: 'L'.repeat(200) })],
-      { name: 'N'.repeat(200) },
-    )]);
+    const { c } = controller(() => [
+      layer([line(3, { tone: 'success', width: 99, opacity: 7, dash: 'dash', label: 'L'.repeat(200) })], {
+        name: 'N'.repeat(200),
+      }),
+    ]);
     const out = (await c.get('1', req(5))).layers;
     expect(out).toHaveLength(1);
     expect(out[0].pluginId).toBe('p1');
@@ -75,25 +84,62 @@ describe('MapLayersController', () => {
   });
 
   it('drops invalid shapes whole: bad vertex, short polygon, radius-less circle, unknown type', async () => {
-    const { c } = controller(() => [layer([
-      line(3, { points: [[48, 2], [200, 2], [48.2, 2.2]] }), // out-of-range vertex
-      { type: 'polygon', points: [[48, 2], [48.1, 2.1]] },    // polygon needs >= 3
-      { type: 'circle', center: [48, 2] },                    // no radius
-      { type: 'blob', points: [[48, 2], [48.1, 2.1]] },       // unknown type
-      null,                                                   // non-object
-      line(2, { label: 'good' }),                             // the only survivor
-    ])]);
+    const { c } = controller(() => [
+      layer([
+        line(3, {
+          points: [
+            [48, 2],
+            [200, 2],
+            [48.2, 2.2],
+          ],
+        }), // out-of-range vertex
+        {
+          type: 'polygon',
+          points: [
+            [48, 2],
+            [48.1, 2.1],
+          ],
+        }, // polygon needs >= 3
+        { type: 'circle', center: [48, 2] }, // no radius
+        {
+          type: 'blob',
+          points: [
+            [48, 2],
+            [48.1, 2.1],
+          ],
+        }, // unknown type
+        null, // non-object
+        line(2, { label: 'good' }), // the only survivor
+      ]),
+    ]);
     const out = (await c.get('1', req(5))).layers;
     expect(out[0].features).toHaveLength(1);
     expect(out[0].features[0].label).toBe('good');
   });
 
   it('renders circles with a clamped metric radius and polygon fill by default', async () => {
-    const { c } = controller(() => [layer([
-      { type: 'circle', center: [48, 2], radiusM: 99_999_999 },
-      { type: 'polygon', points: [[48, 2], [48.1, 2.1], [48, 2.2]] },
-      { type: 'polygon', points: [[48, 2], [48.1, 2.1], [48, 2.2]], fill: false },
-    ])]);
+    const { c } = controller(() => [
+      layer([
+        { type: 'circle', center: [48, 2], radiusM: 99_999_999 },
+        {
+          type: 'polygon',
+          points: [
+            [48, 2],
+            [48.1, 2.1],
+            [48, 2.2],
+          ],
+        },
+        {
+          type: 'polygon',
+          points: [
+            [48, 2],
+            [48.1, 2.1],
+            [48, 2.2],
+          ],
+          fill: false,
+        },
+      ]),
+    ]);
     const [circle, poly, noFill] = (await c.get('1', req(5))).layers[0].features;
     expect(circle).toMatchObject({ type: 'circle', radiusM: 2_000_000, fill: true });
     expect(poly.fill).toBe(true);
@@ -109,13 +155,16 @@ describe('MapLayersController', () => {
 
   it('enforces the per-provider budgets: 4 layers, 150 features, 8000 vertices', async () => {
     // 5 layers -> 4; the vertex budget kills the tail of a dense provider.
-    const dense = Array.from({ length: 5 }, (_, i) => layer(
-      Array.from({ length: 60 }, () => line(50)), { id: `l${i}` },
-    ));
+    const dense = Array.from({ length: 5 }, (_, i) =>
+      layer(
+        Array.from({ length: 60 }, () => line(50)),
+        { id: `l${i}` },
+      ),
+    );
     const { c } = controller(() => dense);
     const out = (await c.get('1', req(5))).layers;
     expect(out.length).toBeLessThanOrEqual(4);
-    const features = out.flatMap(l => l.features);
+    const features = out.flatMap((l) => l.features);
     expect(features.length).toBeLessThanOrEqual(150);
     const vertices = features.reduce((n, f) => n + (f.points?.length ?? 1), 0);
     expect(vertices).toBeLessThanOrEqual(8000);
@@ -131,12 +180,15 @@ describe('MapLayersController', () => {
 
   it('drops id-less and empty layers, keeps other providers when one fails', async () => {
     const { c } = controller(
-      (id) => (id === 'bad'
-        ? (() => { throw new Error('boom'); })()
-        : [layer([], { id: 'empty' }), layer([line()], { id: '' }), layer([line()], { id: 'ok' })]),
+      (id) =>
+        id === 'bad'
+          ? (() => {
+              throw new Error('boom');
+            })()
+          : [layer([], { id: 'empty' }), layer([line()], { id: '' }), layer([line()], { id: 'ok' })],
       ['good', 'bad'],
     );
     const out = (await c.get('1', req(5))).layers;
-    expect(out.map(l => `${l.pluginId}:${l.id}`)).toEqual(['good:ok']);
+    expect(out.map((l) => `${l.pluginId}:${l.id}`)).toEqual(['good:ok']);
   });
 });

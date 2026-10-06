@@ -6,10 +6,24 @@
  * record plus `distance_m`, nearest first), and that Google, which bills per
  * call, is asked only when the index had nothing and never twice for one spot.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import {
+  nearbyCacheKey,
+  nearbyOverpassQuery,
+  nearestFirst,
+  overpassNearbyRecords,
+} from '../../../src/nest/maps/maps-nearby.helpers';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { mockNearby } = vi.hoisted(() => ({
-  mockNearby: vi.fn(async (_lat: number, _lng: number, _opts?: { radius?: number; limit?: number }): Promise<unknown[]> => []),
+  mockNearby: vi.fn(
+    async (_lat: number, _lng: number, _opts?: { radius?: number; limit?: number }): Promise<unknown[]> => [],
+  ),
 }));
 vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../src/nest/maps/trek-places.client')>()),
@@ -17,18 +31,6 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 }));
 
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import {
-  nearbyCacheKey,
-  nearbyOverpassQuery,
-  nearestFirst,
-  overpassNearbyRecords,
-} from '../../../src/nest/maps/maps-nearby.helpers';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { noGoogleQuota } from '../../helpers/google-quota';
 
 const indexRow = (gers: string, name: string, lat: number, lng: number) => ({
   gers,
@@ -64,9 +66,18 @@ function make(opts: { index?: boolean; google?: boolean } = {}) {
   // No app_settings row and no per-user key: every setting reads as absent.
   const noAppSettings = { getValue: async () => null } as unknown as AppSettingsRepository;
   const noUsers = { getApiKeyColumn: async () => null } as unknown as UsersRepository;
-  const svc = new MapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
+  const svc = new MapsService(
+    {} as PlacePhotoCacheService,
+    noAppSettings,
+    noUsers,
+    {} as never,
+    {} as never,
+    noGoogleQuota,
+  );
   vi.spyOn(svc, 'keyedProvider').mockResolvedValue(
-    opts.google ? ({ id: 'google', key: 'test-key', source: 'user-row' } as Awaited<ReturnType<MapsService['keyedProvider']>>) : null,
+    opts.google
+      ? ({ id: 'google', key: 'test-key', source: 'user-row' } as Awaited<ReturnType<MapsService['keyedProvider']>>)
+      : null,
   );
   return svc;
 }
@@ -100,7 +111,7 @@ describe('MapsService.nearbyPlaces', () => {
 
     expect(mockNearby).toHaveBeenCalledWith(p.lat, p.lng, { radius: 800, limit: 5 });
     expect(out.source).toBe('trek-places');
-    expect(out.places.map(r => r.name)).toEqual(['Near Cafe', 'Far Cafe']);
+    expect(out.places.map((r) => r.name)).toEqual(['Near Cafe', 'Far Cafe']);
     expect(out.places[0].distance_m).toBe(56);
     expect(out.places[0].osm_id).toBe('gers:near');
     // A key is there, and still not spent.
@@ -109,13 +120,25 @@ describe('MapsService.nearbyPlaces', () => {
 
   it('MAPS-NEARBY-002: with nothing in the index, Google is asked by distance inside the circle', async () => {
     const p = nextPoint();
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
-      places: [
-        { id: 'g-far', displayName: { text: 'Far' }, location: { latitude: p.lat + 0.002, longitude: p.lng } },
-        { id: 'g-shut', displayName: { text: 'Shut' }, location: { latitude: p.lat, longitude: p.lng }, businessStatus: 'CLOSED_PERMANENTLY' },
-        { id: 'g-near', displayName: { text: 'Near' }, formattedAddress: 'Somewhere 1', location: { latitude: p.lat + 0.0001, longitude: p.lng } },
-      ],
-    }));
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        places: [
+          { id: 'g-far', displayName: { text: 'Far' }, location: { latitude: p.lat + 0.002, longitude: p.lng } },
+          {
+            id: 'g-shut',
+            displayName: { text: 'Shut' },
+            location: { latitude: p.lat, longitude: p.lng },
+            businessStatus: 'CLOSED_PERMANENTLY',
+          },
+          {
+            id: 'g-near',
+            displayName: { text: 'Near' },
+            formattedAddress: 'Somewhere 1',
+            location: { latitude: p.lat + 0.0001, longitude: p.lng },
+          },
+        ],
+      }),
+    );
     vi.stubGlobal('fetch', fetchMock);
 
     const out = await make({ google: true }).nearbyPlaces(1, p.lat, p.lng, { lang: 'de' });
@@ -129,29 +152,42 @@ describe('MapsService.nearbyPlaces', () => {
       locationRestriction: { circle: { center: { latitude: p.lat, longitude: p.lng }, radius: 500 } },
     });
     expect(out.source).toBe('google');
-    expect(out.places.map(r => r.google_place_id)).toEqual(['g-near', 'g-far']);
+    expect(out.places.map((r) => r.google_place_id)).toEqual(['g-near', 'g-far']);
     expect(out.places[0]).toMatchObject({ name: 'Near', address: 'Somewhere 1', distance_m: 11, source: 'google' });
   });
 
   it('MAPS-NEARBY-003: a Google refusal is an error with its status, not an empty list', async () => {
     const p = nextPoint();
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ error: { message: 'Quota exceeded' } }, false, 429)));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ error: { message: 'Quota exceeded' } }, false, 429)),
+    );
 
     await expect(make({ google: true }).nearbyPlaces(1, p.lat, p.lng)).rejects.toMatchObject({
       message: 'Quota exceeded',
       status: 429,
     });
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('searchNearby failed with 429 userId=1 keySource=user-row'));
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining('searchNearby failed with 429 userId=1 keySource=user-row'),
+    );
   });
 
   it('MAPS-NEARBY-004: without a key OpenStreetMap answers, in the asked language, nearest first', async () => {
     const p = nextPoint();
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
-      elements: [
-        { type: 'node', id: 2, lat: p.lat + 0.001, lon: p.lng, tags: { name: 'Museum', 'name:de': 'Das Museum', tourism: 'museum' } },
-        { type: 'way', id: 3, center: { lat: p.lat + 0.0002, lon: p.lng }, tags: { name: 'Bakery', shop: 'bakery' } },
-      ],
-    }));
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        elements: [
+          {
+            type: 'node',
+            id: 2,
+            lat: p.lat + 0.001,
+            lon: p.lng,
+            tags: { name: 'Museum', 'name:de': 'Das Museum', tourism: 'museum' },
+          },
+          { type: 'way', id: 3, center: { lat: p.lat + 0.0002, lon: p.lng }, tags: { name: 'Bakery', shop: 'bakery' } },
+        ],
+      }),
+    );
     vi.stubGlobal('fetch', fetchMock);
 
     const out = await make().nearbyPlaces(1, p.lat, p.lng, { radius: 300, lang: 'de' });
@@ -159,7 +195,7 @@ describe('MapsService.nearbyPlaces', () => {
     const body = decodeURIComponent(String((fetchMock.mock.calls[0][1] as RequestInit).body));
     expect(body).toContain(`around:300,${p.lat},${p.lng}`);
     expect(out.source).toBe('openstreetmap');
-    expect(out.places.map(r => r.name)).toEqual(['Bakery', 'Das Museum']);
+    expect(out.places.map((r) => r.name)).toEqual(['Bakery', 'Das Museum']);
     expect(out.places[0]).toMatchObject({ osm_id: 'way:3', category: 'shop_bakery', distance_m: 22 });
   });
 
@@ -206,21 +242,47 @@ describe('nearby helpers', () => {
 
   it('MAPS-NEARBY-009: unnamed, placeless and shut places are left out; the kind reads like a search category', () => {
     const origin = { lat: 0, lng: 0 };
-    const out = overpassNearbyRecords([
-      { type: 'node', id: 1, lat: 0, lon: 0, tags: { amenity: 'bench' } },
-      { type: 'node', id: 2, tags: { name: 'Nowhere', amenity: 'cafe' } },
-      { type: 'node', id: 3, lat: 0, lon: 0, tags: { name: 'Gone', amenity: 'bar', disused: 'yes' } },
-      { type: 'node', id: 4, lat: 0, lon: 0.001, tags: { int_name: 'Park', leisure: 'park', website: 'park.example', 'addr:street': 'Main', 'addr:housenumber': '5' } },
-      { type: 'node', id: 5, lat: 0, lon: 0, tags: { name: 'Shopish', shop: 'yes', tourism: 'artwork' } },
-    ], origin, 'en', 10);
-    expect(out.map(r => r.name)).toEqual(['Shopish', 'Park']);
+    const out = overpassNearbyRecords(
+      [
+        { type: 'node', id: 1, lat: 0, lon: 0, tags: { amenity: 'bench' } },
+        { type: 'node', id: 2, tags: { name: 'Nowhere', amenity: 'cafe' } },
+        { type: 'node', id: 3, lat: 0, lon: 0, tags: { name: 'Gone', amenity: 'bar', disused: 'yes' } },
+        {
+          type: 'node',
+          id: 4,
+          lat: 0,
+          lon: 0.001,
+          tags: {
+            int_name: 'Park',
+            leisure: 'park',
+            website: 'park.example',
+            'addr:street': 'Main',
+            'addr:housenumber': '5',
+          },
+        },
+        { type: 'node', id: 5, lat: 0, lon: 0, tags: { name: 'Shopish', shop: 'yes', tourism: 'artwork' } },
+      ],
+      origin,
+      'en',
+      10,
+    );
+    expect(out.map((r) => r.name)).toEqual(['Shopish', 'Park']);
     expect(out[0].category).toBe('artwork');
-    expect(out[1]).toMatchObject({ address: 'Main 5', website: 'https://park.example', category: 'park', distance_m: 111 });
+    expect(out[1]).toMatchObject({
+      address: 'Main 5',
+      website: 'https://park.example',
+      category: 'park',
+      distance_m: 111,
+    });
   });
 
   it('MAPS-NEARBY-010: records without a position are dropped and the list keeps to the limit; the cache key rounds to ten metres', () => {
     const out = nearestFirst(
-      [{ name: 'a', lat: 0, lng: 0.002 }, { name: 'b', lat: null, lng: null }, { name: 'c', lat: 0, lng: 0.001 }],
+      [
+        { name: 'a', lat: 0, lng: 0.002 },
+        { name: 'b', lat: null, lng: null },
+        { name: 'c', lat: 0, lng: 0.001 },
+      ],
       { lat: 0, lng: 0 },
       1,
     );

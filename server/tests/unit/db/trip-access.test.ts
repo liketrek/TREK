@@ -7,12 +7,13 @@
  * silently fell back to 'EUR', inflating balances on every non-EUR trip that
  * had a foreign-currency expense (#1543).
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { CAN_ACCESS_TRIP_SQL, buildDbMock, resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -22,12 +23,19 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   trips = t.repo(Trips);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function seedUser(username: string): number {
   return Number(
-    testDb.prepare("INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, 'x', 'user')")
+    testDb
+      .prepare("INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, 'x', 'user')")
       .run(username, `${username}@example.test`).lastInsertRowid,
   );
 }
@@ -36,8 +44,8 @@ describe('TripsRepository.findAccessible (formerly canAccessTrip)', () => {
   it('returns the trip currency for the owner (#1543)', async () => {
     const owner = seedUser('owner');
     const tripId = Number(
-      testDb.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'RUB')")
-        .run(owner).lastInsertRowid,
+      testDb.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'RUB')").run(owner)
+        .lastInsertRowid,
     );
 
     expect(await trips.findAccessible(tripId, owner)).toMatchObject({ id: tripId, user_id: owner, currency: 'RUB' });
@@ -47,8 +55,8 @@ describe('TripsRepository.findAccessible (formerly canAccessTrip)', () => {
     const owner = seedUser('owner2');
     const member = seedUser('member2');
     const tripId = Number(
-      testDb.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'JPY')")
-        .run(owner).lastInsertRowid,
+      testDb.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'JPY')").run(owner)
+        .lastInsertRowid,
     );
     testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(tripId, member);
 
@@ -84,12 +92,15 @@ describe('the buildDbMock stand-in for canAccessTrip', () => {
     const dbmockDb = createSnapshotTestDb();
     try {
       const owner = Number(
-        dbmockDb.prepare("INSERT INTO users (username, email, password_hash, role) VALUES ('m', 'm@example.test', 'x', 'user')")
+        dbmockDb
+          .prepare(
+            "INSERT INTO users (username, email, password_hash, role) VALUES ('m', 'm@example.test', 'x', 'user')",
+          )
           .run().lastInsertRowid,
       );
       const tripId = Number(
-        dbmockDb.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'ISK')")
-          .run(owner).lastInsertRowid,
+        dbmockDb.prepare("INSERT INTO trips (user_id, title, currency) VALUES (?, 'Trip', 'ISK')").run(owner)
+          .lastInsertRowid,
       );
 
       expect(await buildDbMock(dbmockDb).canAccessTrip(tripId, owner)).toMatchObject({ id: tripId, currency: 'ISK' });

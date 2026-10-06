@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { CalendarService } from './calendar.service';
-import { ReservationsModule } from '../reservations/reservations.module';
-import { Trips } from '../../db/entities/Trips.entity';
-import { Days } from '../../db/entities/Days.entity';
 import { DayNotes } from '../../db/entities/DayNotes.entity';
+import { Days } from '../../db/entities/Days.entity';
 import { Reservations } from '../../db/entities/Reservations.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { ReservationsModule } from '../reservations/reservations.module';
+import { CalendarService } from './calendar.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /** Calendar export. Imported by trips (the download route) and feeds (the
  *  subscribable URLs); it pulls in neither, which is what lets FeedsModule stop

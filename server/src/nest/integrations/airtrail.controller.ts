@@ -1,15 +1,16 @@
-import { Body, Controller, Get, HttpCode, HttpException, Post, Put, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
+import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
-import { ADDON_IDS } from '../../addons';
-import { AirtrailSettingsDto } from './airtrail.dto';
 import { getClientIp } from '../audit/client-ip';
-import { AirtrailService } from './airtrail.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AirtrailSyncService } from './airtrail-sync.service';
+import { AirtrailSettingsDto } from './airtrail.dto';
+import { AirtrailService } from './airtrail.service';
+import { Body, Controller, Get, HttpCode, HttpException, Post, Put, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * /api/integrations/airtrail — per-user AirTrail connection (#214).
@@ -34,11 +35,7 @@ export class AirtrailController {
   }
 
   @Put('settings')
-  async putSettings(
-    @CurrentUser() user: User,
-    @Body() body: AirtrailSettingsDto,
-    @Req() req: Request,
-  ) {
+  async putSettings(@CurrentUser() user: User, @Body() body: AirtrailSettingsDto, @Req() req: Request) {
     const result = await this.airtrail.saveSettings(
       user.id,
       body.url,
@@ -63,7 +60,10 @@ export class AirtrailController {
     try {
       return { flights: await this.airtrail.getFlightsForPicker(user.id) };
     } catch (err: any) {
-      throw new HttpException({ error: err?.message || 'Could not load AirTrail flights' }, err?.status === 400 ? 400 : 502);
+      throw new HttpException(
+        { error: err?.message || 'Could not load AirTrail flights' },
+        err?.status === 400 ? 400 : 502,
+      );
     }
   }
 
@@ -76,10 +76,7 @@ export class AirtrailController {
 
   @Post('test')
   @HttpCode(200)
-  test(
-    @CurrentUser() user: User,
-    @Body() body: AirtrailSettingsDto,
-  ) {
+  test(@CurrentUser() user: User, @Body() body: AirtrailSettingsDto) {
     return this.airtrail.testConnection(user.id, body.url, body.apiKey, !!body.allowInsecureTls);
   }
 }

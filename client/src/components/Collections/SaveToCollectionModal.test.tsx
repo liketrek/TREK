@@ -1,11 +1,10 @@
 // FE-COMP-SAVETOCOL-001 to FE-COMP-SAVETOCOL-020
-import React from 'react';
-import { afterEach, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import type { Collection, CollectionListResponse, CollectionMembership, CollectionSaveResult } from '@trek/shared';
+import { afterEach, beforeEach } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { collectionsApi } from '../../api/collections';
-import { useSaveToCollectionStore } from '../../store/saveToCollectionStore';
 import type { SaveToCollectionTarget } from '../../store/saveToCollectionStore';
+import { useSaveToCollectionStore } from '../../store/saveToCollectionStore';
 import SaveToCollectionModal from './SaveToCollectionModal';
 
 const mockNavigate = vi.fn();
@@ -97,7 +96,11 @@ describe('SaveToCollectionModal', () => {
 
   it('FE-COMP-SAVETOCOL-004: shows the spinner until the lists arrive', async () => {
     let resolve!: (v: CollectionListResponse) => void;
-    vi.spyOn(collectionsApi, 'list').mockReturnValue(new Promise(r => { resolve = r; }));
+    vi.spyOn(collectionsApi, 'list').mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
     openFor();
     render(<SaveToCollectionModal />);
     expect(document.querySelector('.animate-spin')).not.toBeNull();
@@ -158,18 +161,20 @@ describe('SaveToCollectionModal', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Wishlist/ }));
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Added to Wishlist', 'success', undefined));
-    expect(save).toHaveBeenCalledWith(expect.objectContaining({
-      collection_id: 2,
-      source_trip_id: 5,
-      source_place_id: 42,
-      name: 'Colosseum',
-      lat: 41.89,
-      lng: 12.49,
-      google_place_id: 'gp-1',
-      osm_id: 'osm-1',
-      website: 'https://colosseo.example',
-      force: true,
-    }));
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection_id: 2,
+        source_trip_id: 5,
+        source_place_id: 42,
+        name: 'Colosseum',
+        lat: 41.89,
+        lng: 12.49,
+        google_place_id: 'gp-1',
+        osm_id: 'osm-1',
+        website: 'https://colosseo.example',
+        force: true,
+      })
+    );
     expect(useSaveToCollectionStore.getState().version).toBe(1);
   });
 
@@ -181,14 +186,16 @@ describe('SaveToCollectionModal', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Wishlist/ }));
 
     await waitFor(() => expect(save).toHaveBeenCalled());
-    expect(save).toHaveBeenCalledWith(expect.objectContaining({
-      collection_id: 2,
-      name: 'Nameless bar',
-      lat: null,
-      lng: null,
-      source_trip_id: null,
-      phone: null,
-    }));
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection_id: 2,
+        name: 'Nameless bar',
+        lat: null,
+        lng: null,
+        source_trip_id: null,
+        phone: null,
+      })
+    );
   });
 
   it('FE-COMP-SAVETOCOL-011: picking a saved list removes that place instead', async () => {
@@ -221,7 +228,11 @@ describe('SaveToCollectionModal', () => {
 
   it('FE-COMP-SAVETOCOL-013: every row locks while a save runs', async () => {
     let resolve!: (v: CollectionSaveResult) => void;
-    const save = vi.spyOn(collectionsApi, 'savePlace').mockReturnValue(new Promise(r => { resolve = r; }));
+    const save = vi.spyOn(collectionsApi, 'savePlace').mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
     openFor();
     render(<SaveToCollectionModal />);
 
@@ -253,7 +264,11 @@ describe('SaveToCollectionModal', () => {
 
   it('FE-COMP-SAVETOCOL-016: a response landing after the picker closed is dropped', async () => {
     let resolve!: (v: CollectionListResponse) => void;
-    vi.spyOn(collectionsApi, 'list').mockReturnValue(new Promise(r => { resolve = r; }));
+    vi.spyOn(collectionsApi, 'list').mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
     openFor();
     const { unmount } = render(<SaveToCollectionModal />);
     unmount();

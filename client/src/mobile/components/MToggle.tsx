@@ -1,9 +1,9 @@
 interface MToggleProps {
-  checked: boolean
-  onChange: (checked: boolean) => void
-  ariaLabel?: string
-  disabled?: boolean
-  className?: string
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  ariaLabel?: string;
+  disabled?: boolean;
+  className?: string;
 }
 
 /** iOS-style switch: --m-act track when on, --m-trackoff when off, 18px knob. */
@@ -26,5 +26,5 @@ export default function MToggle({ checked, onChange, ariaLabel, disabled = false
         }`}
       />
     </button>
-  )
+  );
 }

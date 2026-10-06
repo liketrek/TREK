@@ -1,5 +1,5 @@
-import type { BookPeer } from './useBookPresence'
-import { peerColour } from './peerColour'
+import { peerColour } from './peerColour';
+import type { BookPeer } from './useBookPresence';
 
 /**
  * Who else has the book open.
@@ -12,7 +12,7 @@ import { peerColour } from './peerColour'
  * The same colour as their pointer, so the two read as one person.
  */
 export function PeerBadges({ peers, t }: { peers: BookPeer[]; t: (k: string) => string }) {
-  if (peers.length === 0) return null
+  if (peers.length === 0) return null;
 
   /*
    * By person, not by socket.
@@ -22,31 +22,29 @@ export function PeerBadges({ peers, t }: { peers: BookPeer[]; t: (k: string) => 
    * twice is one person, and showing them as two says the room is busier than
    * it is.
    */
-  const seen = new Map<number, BookPeer>()
-  for (const p of peers) if (!seen.has(p.userId)) seen.set(p.userId, p)
-  const people = [...seen.values()]
+  const seen = new Map<number, BookPeer>();
+  for (const p of peers) if (!seen.has(p.userId)) seen.set(p.userId, p);
+  const people = [...seen.values()];
 
-  const shown = people.slice(0, 4)
-  const rest = people.length - shown.length
+  const shown = people.slice(0, 4);
+  const rest = people.length - shown.length;
 
   return (
-    <div className="st-peers" title={people.map(p => p.username).join(', ')}>
+    <div className="st-peers" title={people.map((p) => p.username).join(', ')}>
       <span className="st-peer-faces">
-        {shown.map(p => (
+        {shown.map((p) => (
           <span
             key={p.userId}
             className="st-peer-dot"
             style={{ background: peerColour(p.userId) }}
             aria-label={p.username}
           >
-            {p.avatar
-              ? <img src={p.avatar} alt="" />
-              : (p.username?.[0] ?? '?').toUpperCase()}
+            {p.avatar ? <img src={p.avatar} alt="" /> : (p.username?.[0] ?? '?').toUpperCase()}
           </span>
         ))}
       </span>
       {rest > 0 && <span className="st-peer-more">+{rest}</span>}
       <span className="st-peer-label">{t('journey.studio.peersHere')}</span>
     </div>
-  )
+  );
 }

@@ -6,12 +6,20 @@
  * real-SQL canAccessTrip over the temp db. Only the permission check, the
  * WebSocket broadcast and the notification sender stay mocked.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { PackingModule } from '../../src/nest/packing/packing.module';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -106,11 +114,15 @@ vi.mock('../../src/db/database', () => ({
   // Real-SQL trip access over the temp db — PackingService.verifyTripAccess and
   // DatabaseModule both read the mocked singleton.
   canAccessTrip: (tripId: number | string, userId: number) =>
-    db.prepare(`
+    db
+      .prepare(
+        `
       SELECT t.id, t.user_id FROM trips t
       LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
       WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-    `).get(userId, tripId, userId),
+    `,
+      )
+      .get(userId, tripId, userId),
   isOwner: () => false,
   getPlaceWithTags: () => null,
   closeDb: () => {},
@@ -118,22 +130,19 @@ vi.mock('../../src/db/database', () => ({
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
-
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
 let checkPermission: MockInstance;
 
-import { PackingModule } from '../../src/nest/packing/packing.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
-
-function insertItem(tripId: number, name: string, extra: Partial<{ sort_order: number; category: string; is_private: number; owner_id: number }> = {}): number {
+function insertItem(
+  tripId: number,
+  name: string,
+  extra: Partial<{ sort_order: number; category: string; is_private: number; owner_id: number }> = {},
+): number {
   const res = db
-    .prepare('INSERT INTO packing_items (trip_id, name, sort_order, category, is_private, owner_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)')
+    .prepare(
+      'INSERT INTO packing_items (trip_id, name, sort_order, category, is_private, owner_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
+    )
     .run(tripId, name, extra.sort_order ?? 0, extra.category ?? null, extra.is_private ?? 0, extra.owner_id ?? null);
   return Number(res.lastInsertRowid);
 }
@@ -144,7 +153,14 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, PackingModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        PackingModule,
+      ],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -189,7 +205,7 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
     expect(res.status).toBe(401);
   });
 
-  it('200 list, hiding another member\'s private items from the viewer (#858)', async () => {
+  it("200 list, hiding another member's private items from the viewer (#858)", async () => {
     insertItem(tripId, 'Shared', { sort_order: 0 });
     insertItem(tripId, 'Secret', { sort_order: 1, is_private: 1, owner_id: 2 });
     const res = await request(server).get(`/api/trips/${tripId}/packing`).set('Cookie', sessionCookie(1));
@@ -205,57 +221,98 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
 
   it('201 on create, inserting the row with the legacy defaults', async () => {
     insertItem(tripId, 'Existing', { sort_order: 4 });
-    const res = await request(server).post(`/api/trips/${tripId}/packing`).set('Cookie', sessionCookie(1)).send({ name: 'Socks' });
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/packing`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Socks' });
     expect(res.status).toBe(201);
     // 'Other' is the unified category default (shared with bulkImport/saveAsTemplate).
-    expect(res.body.item).toMatchObject({ name: 'Socks', checked: 0, category: 'Other', quantity: 1, sort_order: 5, owner_id: 1 });
+    expect(res.body.item).toMatchObject({
+      name: 'Socks',
+      checked: 0,
+      category: 'Other',
+      quantity: 1,
+      sort_order: 5,
+      owner_id: 1,
+    });
     expect(db.prepare('SELECT name FROM packing_items WHERE id = ?').get(res.body.item.id)).toEqual({ name: 'Socks' });
   });
 
   it('201 on create persists weight_grams, bag_id and quantity (#2154)', async () => {
-    const bag = await request(server).post(`/api/trips/${tripId}/packing/bags`).set('Cookie', sessionCookie(1)).send({ name: 'Carry-On' });
+    const bag = await request(server)
+      .post(`/api/trips/${tripId}/packing/bags`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Carry-On' });
     const res = await request(server)
       .post(`/api/trips/${tripId}/packing`)
       .set('Cookie', sessionCookie(1))
       .send({ name: 'Tent', weight_grams: 250, bag_id: bag.body.bag.id, quantity: 3 });
     expect(res.status).toBe(201);
     expect(res.body.item).toMatchObject({ name: 'Tent', weight_grams: 250, bag_id: bag.body.bag.id, quantity: 3 });
-    expect(db.prepare('SELECT weight_grams, bag_id, quantity FROM packing_items WHERE id = ?').get(res.body.item.id))
-      .toEqual({ weight_grams: 250, bag_id: bag.body.bag.id, quantity: 3 });
+    expect(
+      db.prepare('SELECT weight_grams, bag_id, quantity FROM packing_items WHERE id = ?').get(res.body.item.id),
+    ).toEqual({ weight_grams: 250, bag_id: bag.body.bag.id, quantity: 3 });
   });
 
   it('400 "Bag not found" on create for a bag off the trip; camelCase keys still strip (#2154)', async () => {
     // A REAL bag on a different trip — existence alone must not be enough.
-    const otherTripId = Number(db.prepare('INSERT INTO trips (user_id, title) VALUES (1, ?)').run('Other').lastInsertRowid);
-    const foreignBag = Number(db.prepare('INSERT INTO packing_bags (trip_id, name) VALUES (?, ?)').run(otherTripId, 'Foreign').lastInsertRowid);
+    const otherTripId = Number(
+      db.prepare('INSERT INTO trips (user_id, title) VALUES (1, ?)').run('Other').lastInsertRowid,
+    );
+    const foreignBag = Number(
+      db.prepare('INSERT INTO packing_bags (trip_id, name) VALUES (?, ?)').run(otherTripId, 'Foreign').lastInsertRowid,
+    );
 
-    const cross = await request(server).post(`/api/trips/${tripId}/packing`).set('Cookie', sessionCookie(1)).send({ name: 'Tent', bag_id: foreignBag });
+    const cross = await request(server)
+      .post(`/api/trips/${tripId}/packing`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Tent', bag_id: foreignBag });
     expect(cross.status).toBe(400);
     expect(cross.body).toEqual({ error: 'Bag not found' });
-    const dead = await request(server).post(`/api/trips/${tripId}/packing`).set('Cookie', sessionCookie(1)).send({ name: 'Tent', bag_id: 99999 });
+    const dead = await request(server)
+      .post(`/api/trips/${tripId}/packing`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Tent', bag_id: 99999 });
     expect(dead.status).toBe(400);
     expect(dead.body).toEqual({ error: 'Bag not found' });
-    expect((db.prepare('SELECT COUNT(*) AS n FROM packing_items WHERE trip_id = ?').get(tripId) as { n: number }).n).toBe(0);
+    expect(
+      (db.prepare('SELECT COUNT(*) AS n FROM packing_items WHERE trip_id = ?').get(tripId) as { n: number }).n,
+    ).toBe(0);
 
     // camelCase was never part of the contract: the keys strip as they always did.
-    const camel = await request(server).post(`/api/trips/${tripId}/packing`).set('Cookie', sessionCookie(1)).send({ name: 'Probe', weightGrams: 250, bagId: foreignBag });
+    const camel = await request(server)
+      .post(`/api/trips/${tripId}/packing`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Probe', weightGrams: 250, bagId: foreignBag });
     expect(camel.status).toBe(201);
     expect(camel.body.item).toMatchObject({ weight_grams: null, bag_id: null, quantity: 1 });
   });
 
   it('400 "Bag not found" on update for a bag off the trip, leaving the row alone (#2154)', async () => {
-    const otherTripId = Number(db.prepare('INSERT INTO trips (user_id, title) VALUES (1, ?)').run('Other').lastInsertRowid);
-    const foreignBag = Number(db.prepare('INSERT INTO packing_bags (trip_id, name) VALUES (?, ?)').run(otherTripId, 'Foreign').lastInsertRowid);
+    const otherTripId = Number(
+      db.prepare('INSERT INTO trips (user_id, title) VALUES (1, ?)').run('Other').lastInsertRowid,
+    );
+    const foreignBag = Number(
+      db.prepare('INSERT INTO packing_bags (trip_id, name) VALUES (?, ?)').run(otherTripId, 'Foreign').lastInsertRowid,
+    );
     const id = insertItem(tripId, 'Tent');
-    const res = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ bag_id: foreignBag });
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/packing/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ bag_id: foreignBag });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Bag not found' });
-    expect((db.prepare('SELECT bag_id FROM packing_items WHERE id = ?').get(id) as { bag_id: number | null }).bag_id).toBeNull();
+    expect(
+      (db.prepare('SELECT bag_id FROM packing_items WHERE id = ?').get(id) as { bag_id: number | null }).bag_id,
+    ).toBeNull();
   });
 
   it('403 on create without permission, writing nothing', async () => {
     checkPermission.mockReturnValue(false);
-    const res = await request(server).post(`/api/trips/${tripId}/packing`).set('Cookie', sessionCookie(1)).send({ name: 'X' });
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/packing`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'X' });
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'No permission' });
     expect((db.prepare('SELECT COUNT(*) AS n FROM packing_items').get() as { n: number }).n).toBe(0);
@@ -263,18 +320,30 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
 
   it('200 on update; bodyKeys gate the sentinel columns, omitted keys stay', async () => {
     const id = insertItem(tripId, 'Tent', { category: 'Gear' });
-    const renamed = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ name: 'Big tent' });
+    const renamed = await request(server)
+      .put(`/api/trips/${tripId}/packing/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Big tent' });
     expect(renamed.status).toBe(200);
     expect(renamed.body.item).toMatchObject({ id, name: 'Big tent', category: 'Gear' });
     // weight_grams only writes when its key is present in the body.
-    const weighted = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ weight_grams: 1200 });
+    const weighted = await request(server)
+      .put(`/api/trips/${tripId}/packing/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ weight_grams: 1200 });
     expect(weighted.body.item.weight_grams).toBe(1200);
-    const untouched = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ name: 'Still big' });
+    const untouched = await request(server)
+      .put(`/api/trips/${tripId}/packing/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Still big' });
     expect(untouched.body.item.weight_grams).toBe(1200);
   });
 
   it('404 on update of a missing item', async () => {
-    const res = await request(server).put(`/api/trips/${tripId}/packing/9999`).set('Cookie', sessionCookie(1)).send({ name: 'X' });
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/packing/9999`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'X' });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Item not found' });
   });
@@ -285,7 +354,10 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
   // column-affinity CAST to simply not match (the legacy outcome was also a
   // 404, same status — this pins the gate itself, not just the status).
   it('404 (not 500) on update with a non-numeric :id', async () => {
-    const res = await request(server).put(`/api/trips/${tripId}/packing/abc`).set('Cookie', sessionCookie(1)).send({ name: 'X' });
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/packing/abc`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'X' });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Item not found' });
   });
@@ -301,7 +373,9 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
     expect(res.body.error).toBe('conflict');
     expect(res.body.server.name).toBe('Original');
     // The row must NOT have been overwritten.
-    expect((db.prepare('SELECT name FROM packing_items WHERE id = ?').get(id) as { name: string }).name).toBe('Original');
+    expect((db.prepare('SELECT name FROM packing_items WHERE id = ?').get(id) as { name: string }).name).toBe(
+      'Original',
+    );
   });
 
   it('200 on delete, removing the row; 404 when already gone', async () => {
@@ -325,10 +399,15 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
   it('200 on reorder, persisting the new sort_order', async () => {
     const a = insertItem(tripId, 'A', { sort_order: 0 });
     const b = insertItem(tripId, 'B', { sort_order: 1 });
-    const res = await request(server).put(`/api/trips/${tripId}/packing/reorder`).set('Cookie', sessionCookie(1)).send({ orderedIds: [b, a] });
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/packing/reorder`)
+      .set('Cookie', sessionCookie(1))
+      .send({ orderedIds: [b, a] });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true });
-    const rows = db.prepare('SELECT id FROM packing_items WHERE trip_id = ? ORDER BY sort_order').all(tripId) as { id: number }[];
+    const rows = db.prepare('SELECT id FROM packing_items WHERE trip_id = ? ORDER BY sort_order').all(tripId) as {
+      id: number;
+    }[];
     expect(rows.map((r) => r.id)).toEqual([b, a]);
   });
 
@@ -345,7 +424,10 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
   });
 
   it('400 on import with an empty array', async () => {
-    const res = await request(server).post(`/api/trips/${tripId}/packing/import`).set('Cookie', sessionCookie(1)).send({ items: [] });
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/packing/import`)
+      .set('Cookie', sessionCookie(1))
+      .send({ items: [] });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'items must be a non-empty array' });
   });
@@ -357,79 +439,134 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
   });
 
   it('400 from the Zod pipe on reorder without orderedIds', async () => {
-    const res = await request(server).put(`/api/trips/${tripId}/packing/reorder`).set('Cookie', sessionCookie(1)).send({});
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/packing/reorder`)
+      .set('Cookie', sessionCookie(1))
+      .send({});
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('orderedIds');
   });
 
   it('400 from the Zod pipe on sharing with an invalid visibility', async () => {
     const id = insertItem(tripId, 'Tent');
-    const res = await request(server).put(`/api/trips/${tripId}/packing/${id}/sharing`).set('Cookie', sessionCookie(1)).send({ visibility: 'secret' });
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/packing/${id}/sharing`)
+      .set('Cookie', sessionCookie(1))
+      .send({ visibility: 'secret' });
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('visibility');
   });
 
   it('accepts the legacy numeric checked form through the pipe', async () => {
     const id = insertItem(tripId, 'Toggle me');
-    const res = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ checked: 1 });
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/packing/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ checked: 1 });
     expect(res.status).toBe(200);
     expect(res.body.item.checked).toBe(1);
   });
 
   it('counts packed pieces and ticks the item once the count is full (#2296)', async () => {
     const id = insertItem(tripId, 'Shirts');
-    await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ quantity: 3 });
-    const partial = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ packed_quantity: 2 });
+    await request(server)
+      .put(`/api/trips/${tripId}/packing/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ quantity: 3 });
+    const partial = await request(server)
+      .put(`/api/trips/${tripId}/packing/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ packed_quantity: 2 });
     expect(partial.status).toBe(200);
     expect(partial.body.item).toMatchObject({ packed_quantity: 2, checked: 0 });
-    const full = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ packed_quantity: 3 });
+    const full = await request(server)
+      .put(`/api/trips/${tripId}/packing/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ packed_quantity: 3 });
     expect(full.body.item).toMatchObject({ packed_quantity: null, checked: 1 });
-    const negative = await request(server).put(`/api/trips/${tripId}/packing/${id}`).set('Cookie', sessionCookie(1)).send({ packed_quantity: -1 });
+    const negative = await request(server)
+      .put(`/api/trips/${tripId}/packing/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ packed_quantity: -1 });
     expect(negative.status).toBe(400);
   });
 
   it('whitespace-only bag name still gets the bespoke 400', async () => {
-    const res = await request(server).post(`/api/trips/${tripId}/packing/bags`).set('Cookie', sessionCookie(1)).send({ name: '   ' });
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/packing/bags`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: '   ' });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Name is required' });
   });
 
   it('bags round-trip: 201 create (default color), 200 update (COALESCE), 200 delete, then 404', async () => {
-    const created = await request(server).post(`/api/trips/${tripId}/packing/bags`).set('Cookie', sessionCookie(1)).send({ name: 'Duffel' });
+    const created = await request(server)
+      .post(`/api/trips/${tripId}/packing/bags`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Duffel' });
     expect(created.status).toBe(201);
     expect(created.body.bag).toMatchObject({ name: 'Duffel', color: '#6366f1' });
     const bagId = created.body.bag.id;
 
-    const updated = await request(server).put(`/api/trips/${tripId}/packing/bags/${bagId}`).set('Cookie', sessionCookie(1)).send({ color: '#ff0000' });
+    const updated = await request(server)
+      .put(`/api/trips/${tripId}/packing/bags/${bagId}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ color: '#ff0000' });
     expect(updated.status).toBe(200);
     expect(updated.body.bag).toMatchObject({ name: 'Duffel', color: '#ff0000' });
 
     // weight_limit_grams follows the bodyKeys protocol: set, keep when omitted, clear with null.
-    const limited = await request(server).put(`/api/trips/${tripId}/packing/bags/${bagId}`).set('Cookie', sessionCookie(1)).send({ weight_limit_grams: 8000 });
+    const limited = await request(server)
+      .put(`/api/trips/${tripId}/packing/bags/${bagId}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ weight_limit_grams: 8000 });
     expect(limited.body.bag.weight_limit_grams).toBe(8000);
-    const kept = await request(server).put(`/api/trips/${tripId}/packing/bags/${bagId}`).set('Cookie', sessionCookie(1)).send({ name: 'Duffel XL' });
+    const kept = await request(server)
+      .put(`/api/trips/${tripId}/packing/bags/${bagId}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Duffel XL' });
     expect(kept.body.bag.weight_limit_grams).toBe(8000);
-    const cleared = await request(server).put(`/api/trips/${tripId}/packing/bags/${bagId}`).set('Cookie', sessionCookie(1)).send({ weight_limit_grams: null });
+    const cleared = await request(server)
+      .put(`/api/trips/${tripId}/packing/bags/${bagId}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ weight_limit_grams: null });
     expect(cleared.body.bag.weight_limit_grams).toBeNull();
 
-    const deleted = await request(server).delete(`/api/trips/${tripId}/packing/bags/${bagId}`).set('Cookie', sessionCookie(1));
+    const deleted = await request(server)
+      .delete(`/api/trips/${tripId}/packing/bags/${bagId}`)
+      .set('Cookie', sessionCookie(1));
     expect(deleted.status).toBe(200);
     expect(deleted.body).toEqual({ success: true });
-    const missing = await request(server).delete(`/api/trips/${tripId}/packing/bags/${bagId}`).set('Cookie', sessionCookie(1));
+    const missing = await request(server)
+      .delete(`/api/trips/${tripId}/packing/bags/${bagId}`)
+      .set('Cookie', sessionCookie(1));
     expect(missing.status).toBe(404);
     expect(missing.body).toEqual({ error: 'Bag not found' });
   });
 
   it('201 on bag create persists weight_limit_grams (#2154)', async () => {
-    const res = await request(server).post(`/api/trips/${tripId}/packing/bags`).set('Cookie', sessionCookie(1)).send({ name: 'Backpack', weight_limit_grams: 8000 });
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/packing/bags`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Backpack', weight_limit_grams: 8000 });
     expect(res.status).toBe(201);
     expect(res.body.bag).toMatchObject({ name: 'Backpack', weight_limit_grams: 8000 });
-    expect((db.prepare('SELECT weight_limit_grams FROM packing_bags WHERE id = ?').get(res.body.bag.id) as { weight_limit_grams: number | null }).weight_limit_grams).toBe(8000);
+    expect(
+      (
+        db.prepare('SELECT weight_limit_grams FROM packing_bags WHERE id = ?').get(res.body.bag.id) as {
+          weight_limit_grams: number | null;
+        }
+      ).weight_limit_grams,
+    ).toBe(8000);
   });
 
   it('bag members: sets roster members only, dropping off-trip user ids', async () => {
     db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(tripId, 2);
-    const created = await request(server).post(`/api/trips/${tripId}/packing/bags`).set('Cookie', sessionCookie(1)).send({ name: 'Main' });
+    const created = await request(server)
+      .post(`/api/trips/${tripId}/packing/bags`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Main' });
     const bagId = created.body.bag.id;
     const res = await request(server)
       .put(`/api/trips/${tripId}/packing/bags/${bagId}/members`)
@@ -440,17 +577,34 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
   });
 
   it('apply-template: 200 with the added items; 404 for an empty template', async () => {
-    const templateId = Number(db.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, 1)').run('Camping').lastInsertRowid);
-    const catId = Number(db.prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, 0)').run(templateId, 'Gear').lastInsertRowid);
-    db.prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, 0)').run(catId, 'Tent');
+    const templateId = Number(
+      db.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, 1)').run('Camping').lastInsertRowid,
+    );
+    const catId = Number(
+      db
+        .prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, 0)')
+        .run(templateId, 'Gear').lastInsertRowid,
+    );
+    db.prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, 0)').run(
+      catId,
+      'Tent',
+    );
 
-    const ok = await request(server).post(`/api/trips/${tripId}/packing/apply-template/${templateId}`).set('Cookie', sessionCookie(1)).send({});
+    const ok = await request(server)
+      .post(`/api/trips/${tripId}/packing/apply-template/${templateId}`)
+      .set('Cookie', sessionCookie(1))
+      .send({});
     expect(ok.status).toBe(200); // @HttpCode(200) — the legacy POST returned 200
     expect(ok.body.count).toBe(1);
     expect(ok.body.items[0]).toMatchObject({ name: 'Tent', category: 'Gear' });
 
-    const emptyId = Number(db.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, 1)').run('Empty').lastInsertRowid);
-    const missing = await request(server).post(`/api/trips/${tripId}/packing/apply-template/${emptyId}`).set('Cookie', sessionCookie(1)).send({});
+    const emptyId = Number(
+      db.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, 1)').run('Empty').lastInsertRowid,
+    );
+    const missing = await request(server)
+      .post(`/api/trips/${tripId}/packing/apply-template/${emptyId}`)
+      .set('Cookie', sessionCookie(1))
+      .send({});
     expect(missing.status).toBe(404);
     expect(missing.body).toEqual({ error: 'Template not found or empty' });
   });
@@ -459,11 +613,17 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
     db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(tripId, 3);
     insertItem(tripId, 'Shirt', { category: 'Clothes' });
 
-    const denied = await request(server).post(`/api/trips/${tripId}/packing/save-as-template`).set('Cookie', sessionCookie(1)).send({ name: 'Tpl' });
+    const denied = await request(server)
+      .post(`/api/trips/${tripId}/packing/save-as-template`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Tpl' });
     expect(denied.status).toBe(403);
     expect(denied.body).toEqual({ error: 'Admin access required' });
 
-    const saved = await request(server).post(`/api/trips/${tripId}/packing/save-as-template`).set('Cookie', sessionCookie(3)).send({ name: 'Tpl' });
+    const saved = await request(server)
+      .post(`/api/trips/${tripId}/packing/save-as-template`)
+      .set('Cookie', sessionCookie(3))
+      .send({ name: 'Tpl' });
     expect(saved.status).toBe(201);
     expect(saved.body.template).toMatchObject({ name: 'Tpl', categoryCount: 1, itemCount: 1 });
   });
@@ -476,7 +636,9 @@ describe('Packing e2e (real auth guard + real SQL over temp SQLite)', () => {
       .send({ user_ids: [1, 2] });
     expect(put.status).toBe(200);
     expect(put.body.assignees).toHaveLength(2);
-    const get = await request(server).get(`/api/trips/${tripId}/packing/category-assignees`).set('Cookie', sessionCookie(1));
+    const get = await request(server)
+      .get(`/api/trips/${tripId}/packing/category-assignees`)
+      .set('Cookie', sessionCookie(1));
     expect(get.status).toBe(200);
     expect(get.body.assignees.Clothes).toHaveLength(2);
     const replaced = await request(server)

@@ -1,32 +1,32 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { resolvePackedState, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
+import { PackingBags } from '../../db/entities/PackingBags.entity';
+import { PackingCategoryAssignees } from '../../db/entities/PackingCategoryAssignees.entity';
+import { PackingItemContributors } from '../../db/entities/PackingItemContributors.entity';
+import { PackingItems } from '../../db/entities/PackingItems.entity';
+import { PackingTemplateCategories } from '../../db/entities/PackingTemplateCategories.entity';
+import { PackingTemplateItems } from '../../db/entities/PackingTemplateItems.entity';
+import { PackingTemplates } from '../../db/entities/PackingTemplates.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { PackingBagsRepository, PackingBagMemberForTripRow } from '../../db/repositories/PackingBags.repository';
+import type { PackingCategoryAssigneesRepository } from '../../db/repositories/PackingCategoryAssignees.repository';
+import type { PackingItemContributorsRepository } from '../../db/repositories/PackingItemContributors.repository';
+import type { PackingItemsRepository, PackingItemRow } from '../../db/repositories/PackingItems.repository';
+import type { PackingTemplateCategoriesRepository } from '../../db/repositories/PackingTemplateCategories.repository';
+import type { PackingTemplateItemsRepository } from '../../db/repositories/PackingTemplateItems.repository';
+import type { PackingTemplatesRepository } from '../../db/repositories/PackingTemplates.repository';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
 import { avatarUrl } from '../common/avatarUrl';
 import type { UpdateConflict } from '../common/conflictResult';
-import type { User } from '../../types';
-import type { TripAccess } from '../../db/repositories/Trips.repository';
-import { NotificationsService } from '../notifications/notifications.service';
 import { UnitOfWork } from '../database/unit-of-work';
-import { PackingItems } from '../../db/entities/PackingItems.entity';
-import type { PackingItemsRepository, PackingItemRow } from '../../db/repositories/PackingItems.repository';
-import { PackingItemContributors } from '../../db/entities/PackingItemContributors.entity';
-import type { PackingItemContributorsRepository } from '../../db/repositories/PackingItemContributors.repository';
-import { PackingBags } from '../../db/entities/PackingBags.entity';
-import type { PackingBagsRepository, PackingBagMemberForTripRow } from '../../db/repositories/PackingBags.repository';
-import { PackingCategoryAssignees } from '../../db/entities/PackingCategoryAssignees.entity';
-import type { PackingCategoryAssigneesRepository } from '../../db/repositories/PackingCategoryAssignees.repository';
-import { PackingTemplates } from '../../db/entities/PackingTemplates.entity';
-import type { PackingTemplatesRepository } from '../../db/repositories/PackingTemplates.repository';
-import { PackingTemplateCategories } from '../../db/entities/PackingTemplateCategories.entity';
-import type { PackingTemplateCategoriesRepository } from '../../db/repositories/PackingTemplateCategories.repository';
-import { PackingTemplateItems } from '../../db/entities/PackingTemplateItems.entity';
-import type { PackingTemplateItemsRepository } from '../../db/repositories/PackingTemplateItems.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { resolvePackedState, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
 
 /** Privacy fields stamped on a packing item (#858). */
 type PrivacyFields = { is_private?: number; owner_id?: number | null };
@@ -60,7 +60,24 @@ interface ImportItem {
   is_private?: boolean;
 }
 
-const BAG_COLORS = ['#6366f1', '#ec4899', '#f97316', '#10b981', '#06b6d4', '#8b5cf6', '#ef4444', '#f59e0b', '#3b82f6', '#84cc16', '#d946ef', '#14b8a6', '#f43f5e', '#a855f7', '#eab308', '#64748b'];
+const BAG_COLORS = [
+  '#6366f1',
+  '#ec4899',
+  '#f97316',
+  '#10b981',
+  '#06b6d4',
+  '#8b5cf6',
+  '#ef4444',
+  '#f59e0b',
+  '#3b82f6',
+  '#84cc16',
+  '#d946ef',
+  '#14b8a6',
+  '#f43f5e',
+  '#a855f7',
+  '#eab308',
+  '#64748b',
+];
 
 /**
  * Packing domain service — owns the packing business logic (the bodyKeys
@@ -91,9 +108,11 @@ export class PackingService {
     @InjectRepository(PackingItems) private readonly itemsRepo: PackingItemsRepository,
     @InjectRepository(PackingItemContributors) private readonly contributorsRepo: PackingItemContributorsRepository,
     @InjectRepository(PackingBags) private readonly bagsRepo: PackingBagsRepository,
-    @InjectRepository(PackingCategoryAssignees) private readonly categoryAssigneesRepo: PackingCategoryAssigneesRepository,
+    @InjectRepository(PackingCategoryAssignees)
+    private readonly categoryAssigneesRepo: PackingCategoryAssigneesRepository,
     @InjectRepository(PackingTemplates) private readonly templatesRepo: PackingTemplatesRepository,
-    @InjectRepository(PackingTemplateCategories) private readonly templateCategoriesRepo: PackingTemplateCategoriesRepository,
+    @InjectRepository(PackingTemplateCategories)
+    private readonly templateCategoriesRepo: PackingTemplateCategoriesRepository,
     @InjectRepository(PackingTemplateItems) private readonly templateItemsRepo: PackingTemplateItemsRepository,
     @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
     // Plan 4 Task 3: `DatabaseService.rosterUserIds` inlined onto
@@ -115,7 +134,12 @@ export class PackingService {
     return this.permissions.checkPermission('packing_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -124,14 +148,26 @@ export class PackingService {
    * screens: when the item is private the event is delivered only to its owner's
    * sockets. Shared items broadcast to the whole trip room as before.
    */
-  broadcastItem<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, item: PrivacyFields | null | undefined, socketId: string | undefined): void {
+  broadcastItem<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    item: PrivacyFields | null | undefined,
+    socketId: string | undefined,
+  ): void {
     const onlyUserId = item?.is_private && item.owner_id != null ? item.owner_id : undefined;
     this.realtime.broadcast(tripId, event, payload, socketId, onlyUserId);
   }
 
   /** Deliver an item event to a specific set of viewers (#858 shared items) — the
    *  owner plus the recipients it was shared with — without leaking to the room. */
-  broadcastToViewers<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, viewerIds: number[], socketId: string | undefined): void {
+  broadcastToViewers<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    viewerIds: number[],
+    socketId: string | undefined,
+  ): void {
     for (const uid of new Set(viewerIds)) {
       if (uid != null) this.realtime.broadcast(tripId, event, payload, socketId, uid);
     }
@@ -139,15 +175,23 @@ export class PackingService {
 
   /** The users who can currently see an item: everyone (null) for Common, or
    *  owner + recipients for a restricted item. */
-  viewersOf(item: { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] } | null | undefined): number[] | null {
+  viewersOf(
+    item: { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] } | null | undefined,
+  ): number[] | null {
     if (!item || !item.is_private) return null; // Common — visible to the whole room
-    const ids = [item.owner_id, ...(item.recipients || []).map(r => r.user_id)].filter((x): x is number => x != null);
+    const ids = [item.owner_id, ...(item.recipients || []).map((r) => r.user_id)].filter((x): x is number => x != null);
     return ids;
   }
 
   /** Deliver an item event to exactly the people who can see it (#858): the whole
    *  room for a Common item, or owner + recipients for a restricted one. */
-  emitToViewers<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, item: PrivacyFields | null | undefined, socketId: string | undefined): void {
+  emitToViewers<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    item: PrivacyFields | null | undefined,
+    socketId: string | undefined,
+  ): void {
     const viewers = this.viewersOf(item);
     if (viewers === null) {
       this.broadcast(tripId, event, payload, socketId);
@@ -188,7 +232,13 @@ export class PackingService {
    * plugin deps factory), with a comment asking for all of them to be kept in
    * lockstep by hand.
    */
-  broadcastUpdate(tripId: string, id: string | number, item: PrivacyFields, wasPrivate: boolean, socketId: string | undefined): void {
+  broadcastUpdate(
+    tripId: string,
+    id: string | number,
+    item: PrivacyFields,
+    wasPrivate: boolean,
+    socketId: string | undefined,
+  ): void {
     const nowPrivate = !!item.is_private;
     if (nowPrivate) {
       if (wasPrivate) {
@@ -214,11 +264,11 @@ export class PackingService {
    */
   private async enrichItems(items: any[]): Promise<any[]> {
     if (items.length === 0) return items;
-    const ids = items.map(i => i.id);
-    const ownerIds = [...new Set(items.map(i => i.owner_id).filter((id): id is number => id != null))];
+    const ids = items.map((i) => i.id);
+    const ownerIds = [...new Set(items.map((i) => i.owner_id).filter((id): id is number => id != null))];
 
     const owners = await this.itemsRepo.listOwnersForIds(ownerIds);
-    const ownerName = new Map(owners.map(o => [o.id, o.username]));
+    const ownerName = new Map(owners.map((o) => [o.id, o.username]));
 
     const recipientRows = await this.itemsRepo.listRecipientsForItems(ids);
     const recipientsByItem = new Map<number, { user_id: number; username: string }[]>();
@@ -234,9 +284,9 @@ export class PackingService {
       contributorsByItem.get(c.item_id)!.push({ user_id: c.user_id, username: c.username, status: c.status });
     }
 
-    return items.map(i => ({
+    return items.map((i) => ({
       ...i,
-      owner_username: i.owner_id != null ? ownerName.get(i.owner_id) ?? null : null,
+      owner_username: i.owner_id != null ? (ownerName.get(i.owner_id) ?? null) : null,
       recipients: recipientsByItem.get(i.id) || [],
       contributors: contributorsByItem.get(i.id) || [],
     }));
@@ -249,7 +299,10 @@ export class PackingService {
     // returned — every current caller (trip summary, offline bundle, prompts,
     // resources, plugin host) passes the viewer; omit it only for genuinely
     // viewer-less internal reads.
-    const rows: PackingItemRow[] = userId == null ? await this.itemsRepo.listForTrip(tripId) : await this.itemsRepo.listVisibleToActor(tripId, userId);
+    const rows: PackingItemRow[] =
+      userId == null
+        ? await this.itemsRepo.listForTrip(tripId)
+        : await this.itemsRepo.listVisibleToActor(tripId, userId);
     return await this.enrichItems(rows);
   }
 
@@ -273,7 +326,17 @@ export class PackingService {
 
   async createItem(
     tripId: string | number,
-    data: { name: string; category?: string; checked?: boolean; quantity?: number; weight_grams?: number | null; bag_id?: number | null; is_private?: boolean; visibility?: PackingVisibility; recipient_ids?: number[] },
+    data: {
+      name: string;
+      category?: string;
+      checked?: boolean;
+      quantity?: number;
+      weight_grams?: number | null;
+      bag_id?: number | null;
+      is_private?: boolean;
+      visibility?: PackingVisibility;
+      recipient_ids?: number[];
+    },
     ownerId?: number,
   ) {
     if (data.bag_id != null && !(await this.bagInTrip(tripId, data.bag_id))) return { invalidBag: true } as const;
@@ -298,7 +361,7 @@ export class PackingService {
       // "Shared with specific people" — record the recipients it covers.
       if (data.visibility === 'shared' && Array.isArray(data.recipient_ids)) {
         const roster = await this.tripRosterIds(tripId);
-        const recipients = data.recipient_ids.filter(uid => uid !== ownerId && roster.has(uid));
+        const recipients = data.recipient_ids.filter((uid) => uid !== ownerId && roster.has(uid));
         await this.itemsRepo.insertRecipientsIgnore(id, recipients);
       }
       return id;
@@ -311,7 +374,16 @@ export class PackingService {
   async updateItem(
     tripId: string | number,
     id: number,
-    data: { name?: string; checked?: number; category?: string; weight_grams?: number | null; bag_id?: number | null; quantity?: number; packed_quantity?: number | null; is_private?: boolean },
+    data: {
+      name?: string;
+      checked?: number;
+      category?: string;
+      weight_grams?: number | null;
+      bag_id?: number | null;
+      quantity?: number;
+      packed_quantity?: number | null;
+      is_private?: boolean;
+    },
     bodyKeys: string[],
     ifMatch?: string,
     actingUserId?: number,
@@ -335,11 +407,14 @@ export class PackingService {
 
     // Privatizing an unowned (legacy) item stamps the acting user as its owner so
     // the visibility filter still has someone to match (#858).
-    const claimOwner = bodyKeys.includes('is_private') && !!data.is_private && item.owner_id == null && actingUserId != null;
+    const claimOwner =
+      bodyKeys.includes('is_private') && !!data.is_private && item.owner_id == null && actingUserId != null;
 
     // The box and the packed count (#2296) are settled together, so a count
     // that reaches the quantity ticks the item and a tick clears the count.
-    const quantity = bodyKeys.includes('quantity') ? Math.max(1, Math.min(999, Number(data.quantity) || 1)) : (item.quantity || 1);
+    const quantity = bodyKeys.includes('quantity')
+      ? Math.max(1, Math.min(999, Number(data.quantity) || 1))
+      : item.quantity || 1;
     const packed = resolvePackedState(
       { checked: item.checked ? 1 : 0, packed_quantity: item.packed_quantity ?? null },
       { bodyKeys, checked: data.checked, packed_quantity: data.packed_quantity, quantity },
@@ -389,7 +464,7 @@ export class PackingService {
       if (visibility === 'shared') {
         const owner = item.owner_id ?? actingUserId;
         const roster = await this.tripRosterIds(tripId);
-        const recipients = recipientIds.filter(uid => uid !== owner && roster.has(uid));
+        const recipients = recipientIds.filter((uid) => uid !== owner && roster.has(uid));
         await this.itemsRepo.insertRecipientsIgnore(id, recipients);
       }
       // Leaving the Common tier drops any co-contributors (they only apply to Common).
@@ -438,7 +513,7 @@ export class PackingService {
     if (bag.user_id === userId) return bagId;
     const memberIds = await this.bagsRepo.listMemberIdsForBag(bagId);
     if (bag.user_id == null && memberIds.length === 0) return bagId; // shared bag, nobody's in particular
-    return memberIds.some(uid => uid === userId) ? bagId : null;
+    return memberIds.some((uid) => uid === userId) ? bagId : null;
   }
 
   /**
@@ -450,14 +525,18 @@ export class PackingService {
   async cloneItem(tripId: string | number, id: number, userId: number) {
     const item = await this.itemsRepo.findVisibleInTrip(id, tripId, userId);
     if (!item) return null;
-    return await this.createItem(tripId, {
-      name: item.name,
-      category: item.category || undefined,
-      quantity: item.quantity,
-      weight_grams: item.weight_grams,
-      bag_id: await this.bagForCloner(tripId, item.bag_id, userId),
-      visibility: 'personal',
-    }, userId);
+    return await this.createItem(
+      tripId,
+      {
+        name: item.name,
+        category: item.category || undefined,
+        quantity: item.quantity,
+        weight_grams: item.weight_grams,
+        bag_id: await this.bagForCloner(tripId, item.bag_id, userId),
+        visibility: 'personal',
+      },
+      userId,
+    );
   }
 
   /** `id: number` — same Plan 4 Task 8b (U6) narrowing as {@link addContributor} (`PackingController.remove`/`packing.mcp.ts`'s Zod-typed `itemId`/`packing.rpc.ts`'s `num()`-derived `itemId`). */
@@ -547,7 +626,7 @@ export class PackingService {
    */
   private async bagWeightTotals(tripId: string | number): Promise<Map<number | null, number>> {
     const rows = await this.itemsRepo.bagWeightTotals(tripId);
-    return new Map(rows.map(r => [r.bag_id, r.total ?? 0]));
+    return new Map(rows.map((r) => [r.bag_id, r.total ?? 0]));
   }
 
   /** The weight of everything in the trip that is in no bag (#2191). */
@@ -580,9 +659,9 @@ export class PackingService {
       if (!membersByBag.has(m.bag_id)) membersByBag.set(m.bag_id, []);
       membersByBag.get(m.bag_id)!.push(m);
     }
-    return bags.map(b => ({
+    return bags.map((b) => ({
       ...b,
-      members: (membersByBag.get(b.id) || []).map(m => ({ ...m, avatar: avatarUrl(m) })),
+      members: (membersByBag.get(b.id) || []).map((m) => ({ ...m, avatar: avatarUrl(m) })),
       total_weight_grams: totals.get(b.id) ?? 0,
     }));
   }
@@ -607,11 +686,11 @@ export class PackingService {
       await this.bagsRepo.deleteMembersForBag(bagId);
       // Only real trip members may be bag members — never write an arbitrary account id.
       const roster = await this.tripRosterIds(tripId);
-      const members = userIds.filter(uid => roster.has(uid));
+      const members = userIds.filter((uid) => roster.has(uid));
       await this.bagsRepo.insertMembersIgnore(bagId, members);
     });
     const rows = await this.bagsRepo.listMembersWithUserForBag(bagId);
-    return rows.map(m => ({ ...m, avatar: avatarUrl(m) }));
+    return rows.map((m) => ({ ...m, avatar: avatarUrl(m) }));
   }
 
   async createBag(tripId: string | number, data: { name: string; color?: string; weight_limit_grams?: number | null }) {
@@ -631,13 +710,14 @@ export class PackingService {
     tripId: string | number,
     bagId: number,
     data: { name?: string; color?: string; weight_limit_grams?: number | null; user_id?: number | null },
-    bodyKeys?: string[]
+    bodyKeys?: string[],
   ) {
     const bag = await this.bagsRepo.findInTrip(bagId, tripId);
     if (!bag) return null;
 
     // A bag may only be assigned to a real trip member; an off-roster id becomes unassigned.
-    const assignUser = data.user_id != null && (await this.tripRosterIds(tripId)).has(data.user_id) ? data.user_id : null;
+    const assignUser =
+      data.user_id != null && (await this.tripRosterIds(tripId)).has(data.user_id) ? data.user_id : null;
     // weight_limit_grams follows the bodyKeys presence protocol like user_id:
     // an omitted key leaves the limit unchanged, an explicit null clears it.
     await this.bagsRepo.update(bagId, {
@@ -694,8 +774,15 @@ export class PackingService {
         // created, the way the import does it.
         const bagId = await this.bagIdByName(tripId, ti.bag_name);
         const newId = await this.itemsRepo.insertFromTemplate({
-          trip_id: tripId, name: ti.name, category: ti.category, sort_order: sortOrder++, is_private: isPrivate, owner_id: owner,
-          weight_grams: ti.weight_grams ?? null, quantity: Math.max(1, ti.quantity), bag_id: bagId,
+          trip_id: tripId,
+          name: ti.name,
+          category: ti.category,
+          sort_order: sortOrder++,
+          is_private: isPrivate,
+          owner_id: owner,
+          weight_grams: ti.weight_grams ?? null,
+          quantity: Math.max(1, ti.quantity),
+          bag_id: bagId,
         });
         added.push(await this.itemsRepo.findById(newId));
       }
@@ -714,7 +801,7 @@ export class PackingService {
 
     if (items.length === 0) return null;
 
-    const categories = [...new Set(items.map(i => i.category || 'Other'))];
+    const categories = [...new Set(items.map((i) => i.category || 'Other'))];
 
     const templateId = await this.uow.transactional(async () => {
       const id = await this.templatesRepo.insertTemplate(templateName, userId);
@@ -730,8 +817,12 @@ export class PackingService {
         const catId = catIdMap.get(item.category || 'Other')!;
         const order = itemsByCategory.get(item.category || 'Other') || 0;
         await this.templateItemsRepo.insertTemplateItem({
-          category_id: catId, name: item.name, sort_order: order,
-          weight_grams: item.weight_grams ?? null, quantity: Math.max(1, item.quantity), bag_name: item.bag_name ?? null,
+          category_id: catId,
+          name: item.name,
+          sort_order: order,
+          weight_grams: item.weight_grams ?? null,
+          quantity: Math.max(1, item.quantity),
+          bag_name: item.bag_name ?? null,
         });
         itemsByCategory.set(item.category || 'Other', order + 1);
       }
@@ -763,13 +854,13 @@ export class PackingService {
       if (Array.isArray(userIds) && userIds.length > 0) {
         // Same rule as setBagMembers: only people on this trip may be assigned.
         const roster = await this.tripRosterIds(tripId);
-        const scoped = userIds.filter(uid => roster.has(uid));
+        const scoped = userIds.filter((uid) => roster.has(uid));
         await this.categoryAssigneesRepo.insertIgnore(tripId, categoryName, scoped);
       }
     });
 
     const updated = await this.categoryAssigneesRepo.listForCategory(tripId, categoryName);
-    return updated.map(m => ({ ...m, avatar: avatarUrl(m) }));
+    return updated.map((m) => ({ ...m, avatar: avatarUrl(m) }));
   }
 
   // ── Reorder ────────────────────────────────────────────────────────────────
@@ -845,8 +936,7 @@ export class PackingService {
   async updateTemplateCategory(templateId: string, catId: string, data: { name?: string }) {
     const cat = await this.templateCategoriesRepo.findInTemplate(catId, templateId);
     if (!cat) return { error: 'Category not found', status: 404 };
-    if (data.name?.trim())
-      await this.templateCategoriesRepo.updateName(catId, data.name.trim());
+    if (data.name?.trim()) await this.templateCategoriesRepo.updateName(catId, data.name.trim());
     return { category: await this.templateCategoriesRepo.findById(catId) };
   }
 
@@ -864,15 +954,18 @@ export class PackingService {
     const cat = await this.templateCategoriesRepo.findInTemplate(catId, templateId);
     if (!cat) return { error: 'Category not found', status: 404 };
     const maxOrder = await this.templateItemsRepo.maxSortOrder(catId);
-    const newId = await this.templateItemsRepo.insertTemplateItem({ category_id: catId, name: name.trim(), sort_order: (maxOrder ?? -1) + 1 });
+    const newId = await this.templateItemsRepo.insertTemplateItem({
+      category_id: catId,
+      name: name.trim(),
+      sort_order: (maxOrder ?? -1) + 1,
+    });
     return { item: await this.templateItemsRepo.findById(newId) };
   }
 
   async updateTemplateItem(templateId: string, itemId: string, data: { name?: string }) {
     const item = await this.templateItemsRepo.findScoped(itemId, templateId);
     if (!item) return { error: 'Item not found', status: 404 };
-    if (data.name?.trim())
-      await this.templateItemsRepo.updateName(itemId, data.name.trim());
+    if (data.name?.trim()) await this.templateItemsRepo.updateName(itemId, data.name.trim());
     return { item: await this.templateItemsRepo.findById(itemId) };
   }
 
@@ -891,12 +984,14 @@ export class PackingService {
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
     const tripTitle = await this.tripsRepo.getTitle(tripId);
-    this.notifications.send({
-      event: 'packing_tagged',
-      actorId: actor.id,
-      scope: 'trip',
-      targetId: Number(tripId),
-      params: { trip: tripTitle || 'Untitled', actor: actor.email, category, tripId: String(tripId) },
-    }).catch(() => {});
+    this.notifications
+      .send({
+        event: 'packing_tagged',
+        actorId: actor.id,
+        scope: 'trip',
+        targetId: Number(tripId),
+        params: { trip: tripTitle || 'Untitled', actor: actor.email, category, tripId: String(tripId) },
+      })
+      .catch(() => {});
   }
 }

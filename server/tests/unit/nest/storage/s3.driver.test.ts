@@ -1,8 +1,3 @@
-import { describe, it, expect, vi } from 'vitest';
-import { Readable } from 'node:stream';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import {
   S3Driver,
   MULTIPART_THRESHOLD,
@@ -15,6 +10,12 @@ import {
   StorageInvalidKeyError,
   StorageNotFoundError,
 } from '../../../../src/nest/storage/storage.types';
+
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { Readable } from 'node:stream';
+import { describe, it, expect, vi } from 'vitest';
 
 /** Mock client: every method rejects unless a test overrides it. */
 function makeMockApi(overrides: Partial<S3Api> = {}): S3Api {
@@ -59,7 +60,9 @@ function awsError(statusCode: number | undefined, code?: string): Error {
 
 describe('S3Driver construction', () => {
   it('normalizes the key prefix to "" or "segments/" form', async () => {
-    const api = makeMockApi({ HeadObject: vi.fn().mockResolvedValue({ ContentLength: 1, LastModified: new Date(1000) }) });
+    const api = makeMockApi({
+      HeadObject: vi.fn().mockResolvedValue({ ContentLength: 1, LastModified: new Date(1000) }),
+    });
     await makeDriver(api, { keyPrefix: '/trek/prod/' }).stat('a/x.bin');
     expect(api.HeadObject).toHaveBeenCalledWith(expect.objectContaining({ Key: 'trek/prod/a/x.bin' }));
   });
@@ -69,8 +72,15 @@ describe('S3Driver construction', () => {
   it('makes no client call at construction (boot must not touch the network)', () => {
     const factory = vi.fn();
     void new S3Driver({
-      id: 's3-test', endpoint: 'http://127.0.0.1:9000', region: 'us-east-1', bucket: 'trek',
-      keyPrefix: '', accessKeyId: 'ak', secretAccessKey: 'sk', retries: 1, timeoutMs: 200,
+      id: 's3-test',
+      endpoint: 'http://127.0.0.1:9000',
+      region: 'us-east-1',
+      bucket: 'trek',
+      keyPrefix: '',
+      accessKeyId: 'ak',
+      secretAccessKey: 'sk',
+      retries: 1,
+      timeoutMs: 200,
       clientFactory: factory,
     });
     expect(factory).not.toHaveBeenCalled();
@@ -79,12 +89,16 @@ describe('S3Driver construction', () => {
 
 describe('S3Driver stat/delete', () => {
   it('maps HeadObject to ObjectStat', async () => {
-    const api = makeMockApi({ HeadObject: vi.fn().mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000) }) });
+    const api = makeMockApi({
+      HeadObject: vi.fn().mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000) }),
+    });
     expect(await makeDriver(api).stat('a/x.bin')).toEqual({ key: 'a/x.bin', size: 42, mtimeMs: 5000 });
   });
   it('surfaces the bucket ETag verbatim (quotes included) so the serving path can use it as a validator', async () => {
     const api = makeMockApi({
-      HeadObject: vi.fn().mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000), ETag: '"d41d8cd98f00b204"' }),
+      HeadObject: vi
+        .fn()
+        .mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000), ETag: '"d41d8cd98f00b204"' }),
     });
     expect(await makeDriver(api).stat('a/x.bin')).toEqual({
       key: 'a/x.bin',
@@ -106,7 +120,9 @@ describe('S3Driver stat/delete', () => {
     });
     expect((await makeDriver(weak).stat('a/x.bin'))!.etag).toBe('W/"abc"');
 
-    const none = makeMockApi({ HeadObject: vi.fn().mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000) }) });
+    const none = makeMockApi({
+      HeadObject: vi.fn().mockResolvedValue({ ContentLength: 42, LastModified: new Date(5000) }),
+    });
     expect((await makeDriver(none).stat('a/x.bin'))!.etag).toBeUndefined();
 
     const blank = makeMockApi({
@@ -146,10 +162,7 @@ describe('S3Driver stat/delete', () => {
   });
   it('caches the client across calls and retries a failed factory', async () => {
     const api = makeMockApi({ HeadObject: vi.fn().mockResolvedValue({ ContentLength: 1, LastModified: new Date(0) }) });
-    const factory = vi
-      .fn()
-      .mockRejectedValueOnce(new Error('init boom'))
-      .mockResolvedValue(api);
+    const factory = vi.fn().mockRejectedValueOnce(new Error('init boom')).mockResolvedValue(api);
     const driver = makeDriver(api, { clientFactory: factory });
     await expect(driver.stat('a/x.bin')).rejects.toBeInstanceOf(StorageBackendError);
     await driver.stat('a/x.bin'); // second call retries the factory
@@ -289,8 +302,12 @@ describe('S3Driver list', () => {
 describe('defaultClientFactory', () => {
   it('builds a real aws-lite client exposing the S3 surface (no network at init)', async () => {
     const s3 = await defaultClientFactory({
-      endpoint: 'http://127.0.0.1:1', region: 'us-east-1',
-      accessKeyId: 'ak', secretAccessKey: 'sk', retries: 0, keepAlive: false,
+      endpoint: 'http://127.0.0.1:1',
+      region: 'us-east-1',
+      accessKeyId: 'ak',
+      secretAccessKey: 'sk',
+      retries: 0,
+      keepAlive: false,
     });
     for (const method of ['PutObject', 'Upload', 'GetObject', 'HeadObject', 'DeleteObject', 'ListObjectsV2'] as const) {
       expect(typeof s3[method]).toBe('function');
@@ -458,14 +475,18 @@ describe('S3Driver put — LocalTempFile ownership', () => {
     expect(fs.existsSync(tmp)).toBe(false);
   });
   it('routes a threshold-sized temp file to Upload', async () => {
-    const api = makeMockApi({ Upload: vi.fn().mockImplementation(async ({ Body }: { Body: Readable }) => drain(Body)) });
+    const api = makeMockApi({
+      Upload: vi.fn().mockImplementation(async ({ Body }: { Body: Readable }) => drain(Body)),
+    });
     const tmp = await makeTmp(MULTIPART_THRESHOLD);
     await makeDriver(api).put('a/t.bin', { tmpPath: tmp });
     expect(api.Upload).toHaveBeenCalled();
     expect(fs.existsSync(tmp)).toBe(false);
   });
   it('never passes ContentType to a temp-file Upload either (same upstream MalformedXML defect)', async () => {
-    const api = makeMockApi({ Upload: vi.fn().mockImplementation(async ({ Body }: { Body: Readable }) => drain(Body)) });
+    const api = makeMockApi({
+      Upload: vi.fn().mockImplementation(async ({ Body }: { Body: Readable }) => drain(Body)),
+    });
     const tmp = await makeTmp(MULTIPART_THRESHOLD);
     await makeDriver(api).put('a/t.zip', { tmpPath: tmp }, { contentType: 'application/zip' });
     expect(api.Upload).toHaveBeenCalled();
@@ -487,9 +508,9 @@ describe('S3Driver put — LocalTempFile ownership', () => {
       ),
     });
     const tmp = await makeTmp(MULTIPART_THRESHOLD);
-    await expect(
-      makeDriver(api, { timeoutMs: 60 }).put('a/stall-tmp.bin', { tmpPath: tmp }),
-    ).rejects.toBeInstanceOf(StorageBackendError);
+    await expect(makeDriver(api, { timeoutMs: 60 }).put('a/stall-tmp.bin', { tmpPath: tmp })).rejects.toBeInstanceOf(
+      StorageBackendError,
+    );
   });
   it('consumes the temp file on the failure path too (MirrorDriver precedent)', async () => {
     const api = makeMockApi({ PutObject: vi.fn().mockRejectedValue(awsError(500)) });

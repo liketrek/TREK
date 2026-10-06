@@ -1,24 +1,29 @@
-import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react'
-import { Link, Loader2, MoreVertical, Star } from 'lucide-react'
-import MDancingTrek from '../../../components/MDancingTrek'
-import { useTranslation, translateApiError } from '../../../../i18n'
-import { filesApi } from '../../../../api/client'
-import { openFile } from '../../../../utils/fileDownload'
-import { isMedia, formatSize } from '../../../../components/Files/FileManager.helpers'
-import type { TripFile } from '../../../../types'
-import { TabScroller } from './tabChrome'
-import type { MTabScreenProps } from './tabModel'
-import MFileMenuSheet from './MFileMenuSheet'
-import MFileLinkSheet from './MFileLinkSheet'
-import MFileTrashSheet from './MFileTrashSheet'
-import MDocSyncSheet from './MDocSyncSheet'
-import { canManageDocSync } from '../../../../components/Files/docsync/useDocSync'
-import { useAuthStore } from '../../../../store/authStore'
-import MFileLightbox from './MFileLightbox'
+import { Link, Loader2, MoreVertical, Star } from 'lucide-react';
+import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react';
+import { filesApi } from '../../../../api/client';
+import { formatSize, isMedia } from '../../../../components/Files/FileManager.helpers';
+import { canManageDocSync } from '../../../../components/Files/docsync/useDocSync';
+import { translateApiError, useTranslation } from '../../../../i18n';
+import { useAuthStore } from '../../../../store/authStore';
+import type { TripFile } from '../../../../types';
+import { openFile } from '../../../../utils/fileDownload';
+import MDancingTrek from '../../../components/MDancingTrek';
+import MDocSyncSheet from './MDocSyncSheet';
+import MFileLightbox from './MFileLightbox';
+import MFileLinkSheet from './MFileLinkSheet';
+import MFileMenuSheet from './MFileMenuSheet';
+import MFileTrashSheet from './MFileTrashSheet';
 import {
-  FILE_FILTERS, buildFileLinkLabels, formatFileDate, getFileTypeMeta,
-  matchesFileFilter, sortFilesStarredFirst, type FileFilterId,
-} from './filesModel'
+  FILE_FILTERS,
+  buildFileLinkLabels,
+  formatFileDate,
+  getFileTypeMeta,
+  matchesFileFilter,
+  sortFilesStarredFirst,
+  type FileFilterId,
+} from './filesModel';
+import { TabScroller } from './tabChrome';
+import type { MTabScreenProps } from './tabModel';
 
 /**
  * Tab 5 — Dateien. Real `planner.files` (already non-deleted, §7.2), the
@@ -31,128 +36,128 @@ import {
  * mutations the store owns).
  */
 export default function MFilesTab({ planner, shell }: MTabScreenProps) {
-  const { t } = planner
-  const files = planner.files || []
+  const { t } = planner;
+  const files = planner.files || [];
 
-  const [filter, setFilter] = useState<FileFilterId>('all')
-  const [menuFileId, setMenuFileId] = useState<number | null>(null)
-  const [linkFileId, setLinkFileId] = useState<number | null>(null)
-  const currentUser = useAuthStore(st => st.user)
-  const maxUploadMb = useAuthStore(st => st.maxUploadMb)
-  const [trashOpen, setTrashOpen] = useState(false)
-  const [docSyncOpen, setDocSyncOpen] = useState(false)
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-  const [uploading, setUploading] = useState(false)
+  const [filter, setFilter] = useState<FileFilterId>('all');
+  const [menuFileId, setMenuFileId] = useState<number | null>(null);
+  const [linkFileId, setLinkFileId] = useState<number | null>(null);
+  const currentUser = useAuthStore((st) => st.user);
+  const maxUploadMb = useAuthStore((st) => st.maxUploadMb);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [docSyncOpen, setDocSyncOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const menuFile = menuFileId != null ? files.find(f => f.id === menuFileId) ?? null : null
-  const linkFile = linkFileId != null ? files.find(f => f.id === linkFileId) ?? null : null
+  const menuFile = menuFileId != null ? (files.find((f) => f.id === menuFileId) ?? null) : null;
+  const linkFile = linkFileId != null ? (files.find((f) => f.id === linkFileId) ?? null) : null;
 
   // ── Upload: the shell's header "Upload" button only increments a signal —
   // this panel owns the actual file picker + upload call. ──
-  const inputRef = useRef<HTMLInputElement>(null)
-  const lastUploadSignal = useRef(shell.uploadFilesSignal)
+  const inputRef = useRef<HTMLInputElement>(null);
+  const lastUploadSignal = useRef(shell.uploadFilesSignal);
   useEffect(() => {
     if (shell.uploadFilesSignal !== lastUploadSignal.current && shell.uploadFilesSignal > 0) {
-      inputRef.current?.click()
+      inputRef.current?.click();
     }
-    lastUploadSignal.current = shell.uploadFilesSignal
-  }, [shell.uploadFilesSignal])
+    lastUploadSignal.current = shell.uploadFilesSignal;
+  }, [shell.uploadFilesSignal]);
 
   const uploadFiles = async (list: File[]) => {
-    const maxBytes = maxUploadMb * 1024 * 1024
-    const tooBig = list.filter(f => f.size > maxBytes)
-    const okFiles = list.filter(f => f.size <= maxBytes)
-    if (tooBig.length > 0) planner.toast.error(t('files.uploadErrorSize', { max: maxUploadMb }))
-    if (okFiles.length === 0) return
-    setUploading(true)
-    let uploaded = 0
-    const failures: unknown[] = []
+    const maxBytes = maxUploadMb * 1024 * 1024;
+    const tooBig = list.filter((f) => f.size > maxBytes);
+    const okFiles = list.filter((f) => f.size <= maxBytes);
+    if (tooBig.length > 0) planner.toast.error(t('files.uploadErrorSize', { max: maxUploadMb }));
+    if (okFiles.length === 0) return;
+    setUploading(true);
+    let uploaded = 0;
+    const failures: unknown[] = [];
     for (const file of okFiles) {
-      const fd = new FormData()
-      fd.append('file', file)
+      const fd = new FormData();
+      fd.append('file', file);
       try {
-        await planner.tripActions.addFile(planner.tripId, fd)
-        uploaded++
+        await planner.tripActions.addFile(planner.tripId, fd);
+        uploaded++;
       } catch (err) {
         // One rejected file must not drop the rest of the batch.
-        failures.push(err)
+        failures.push(err);
       }
     }
-    setUploading(false)
-    if (uploaded > 0) planner.toast.success(t('files.uploaded', { count: uploaded }))
-    if (failures.length > 0) planner.toast.error(translateApiError(t, failures[0], 'files.uploadError'))
-  }
+    setUploading(false);
+    if (uploaded > 0) planner.toast.success(t('files.uploaded', { count: uploaded }));
+    if (failures.length > 0) planner.toast.error(translateApiError(t, failures[0], 'files.uploadError'));
+  };
 
   const onPickFiles = (e: ChangeEvent<HTMLInputElement>) => {
-    const list = Array.from(e.target.files || [])
-    e.target.value = ''
-    if (list.length > 0) void uploadFiles(list)
-  }
+    const list = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (list.length > 0) void uploadFiles(list);
+  };
 
   const onPaste = (e: ClipboardEvent<HTMLDivElement>) => {
-    if (!planner.canUploadFiles) return
-    const items = e.clipboardData?.items
-    if (!items) return
-    const pasted: File[] = []
+    if (!planner.canUploadFiles) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const pasted: File[] = [];
     for (const item of Array.from(items)) {
       if (item.kind === 'file') {
-        const f = item.getAsFile()
-        if (f) pasted.push(f)
+        const f = item.getAsFile();
+        if (f) pasted.push(f);
       }
     }
     if (pasted.length > 0) {
-      e.preventDefault()
-      void uploadFiles(pasted)
+      e.preventDefault();
+      void uploadFiles(pasted);
     }
-  }
+  };
 
   // ── Trash: same signal pattern as upload. ──
-  const lastTrashSignal = useRef(shell.openFilesTrashSignal)
+  const lastTrashSignal = useRef(shell.openFilesTrashSignal);
   useEffect(() => {
     if (shell.openFilesTrashSignal !== lastTrashSignal.current && shell.openFilesTrashSignal > 0) {
-      setTrashOpen(true)
+      setTrashOpen(true);
     }
-    lastTrashSignal.current = shell.openFilesTrashSignal
-  }, [shell.openFilesTrashSignal])
+    lastTrashSignal.current = shell.openFilesTrashSignal;
+  }, [shell.openFilesTrashSignal]);
 
   // ── Document sync: same signal pattern again. ──
-  const lastDocSyncSignal = useRef(shell.openDocSyncSignal)
+  const lastDocSyncSignal = useRef(shell.openDocSyncSignal);
   useEffect(() => {
     if (shell.openDocSyncSignal !== lastDocSyncSignal.current && shell.openDocSyncSignal > 0) {
-      setDocSyncOpen(true)
+      setDocSyncOpen(true);
     }
-    lastDocSyncSignal.current = shell.openDocSyncSignal
-  }, [shell.openDocSyncSignal])
+    lastDocSyncSignal.current = shell.openDocSyncSignal;
+  }, [shell.openDocSyncSignal]);
 
   // ── Star toggle (ungated, §7.6) — direct filesApi call + store refresh, same as §7.3. ──
   const toggleStar = async (file: TripFile) => {
     try {
-      await filesApi.toggleStar(planner.tripId, file.id)
-      planner.tripActions.loadFiles(planner.tripId)
+      await filesApi.toggleStar(planner.tripId, file.id);
+      planner.tripActions.loadFiles(planner.tripId);
     } catch {
-      planner.toast.error(t('files.toast.assignError'))
+      planner.toast.error(t('files.toast.assignError'));
     }
-  }
+  };
 
-  const sorted = sortFilesStarredFirst(files)
-  const visible = sorted.filter(f => matchesFileFilter(f, filter))
-  const mediaFiles = visible.filter(f => isMedia(f.mime_type))
+  const sorted = sortFilesStarredFirst(files);
+  const visible = sorted.filter((f) => matchesFileFilter(f, filter));
+  const mediaFiles = visible.filter((f) => isMedia(f.mime_type));
 
   const openRow = (file: TripFile) => {
     if (isMedia(file.mime_type)) {
       // Only rows out of `visible` get here, so the file is always in mediaFiles.
-      setLightboxIndex(mediaFiles.findIndex(f => f.id === file.id))
+      setLightboxIndex(mediaFiles.findIndex((f) => f.id === file.id));
     } else {
       // Wallet passes and everything else (PDF/docs) share the same browser-native
       // handling as the transport/reservation file chips: openFile() opens PDFs
       // inline (SAFE_INLINE_TYPES) and forces a download for anything unsafe
       // (incl. .pkpass, so it reaches Apple Wallet, #1447).
-      openFile(file.url, file.original_name).catch(() => planner.toast.error(t('files.openError')))
+      openFile(file.url, file.original_name).catch(() => planner.toast.error(t('files.openError')));
     }
-  }
+  };
 
-  const visibleFilters = FILE_FILTERS.filter(f => f.id !== 'collab' || files.some(x => x.note_id != null))
-  const isEmpty = files.length === 0
+  const visibleFilters = FILE_FILTERS.filter((f) => f.id !== 'collab' || files.some((x) => x.note_id != null));
+  const isEmpty = files.length === 0;
 
   return (
     <TabScroller>
@@ -174,10 +179,10 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
         ) : (
           <>
             <div className="grid gap-[6px]" style={{ gridTemplateColumns: `repeat(${visibleFilters.length}, 1fr)` }}>
-              {visibleFilters.map(f => {
-                const Icon = f.icon
-                const active = filter === f.id
-                const count = files.filter(x => matchesFileFilter(x, f.id)).length
+              {visibleFilters.map((f) => {
+                const Icon = f.icon;
+                const active = filter === f.id;
+                const count = files.filter((x) => matchesFileFilter(x, f.id)).length;
                 return (
                   <button
                     key={f.id}
@@ -193,15 +198,17 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
                     <div className="mt-1 truncate font-geist text-[0.5625rem] font-bold">{t(f.labelKey)}</div>
                     <div className="mt-px font-geist text-[0.5625rem] font-bold opacity-55">{count}</div>
                   </button>
-                )
+                );
               })}
             </div>
 
             {visible.length === 0 ? (
-              <div className="pt-14 text-center font-geist text-[0.8125rem] text-m-faint">{t('mobileTrip.filesEmpty')}</div>
+              <div className="pt-14 text-center font-geist text-[0.8125rem] text-m-faint">
+                {t('mobileTrip.filesEmpty')}
+              </div>
             ) : (
               <div className="flex flex-col">
-                {visible.map(file => (
+                {visible.map((file) => (
                   <FileRow
                     key={file.id}
                     file={file}
@@ -221,7 +228,10 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
         planner={planner}
         file={menuFile}
         onClose={() => setMenuFileId(null)}
-        onOpenLinks={f => { setMenuFileId(null); setLinkFileId(f.id) }}
+        onOpenLinks={(f) => {
+          setMenuFileId(null);
+          setLinkFileId(f.id);
+        }}
       />
       <MFileLinkSheet planner={planner} file={linkFile} onClose={() => setLinkFileId(null)} />
       <MFileTrashSheet planner={planner} open={trashOpen} onClose={() => setTrashOpen(false)} />
@@ -242,22 +252,28 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
         />
       )}
     </TabScroller>
-  )
+  );
 }
 
-function FileRow({ file, planner, onOpen, onStar, onMenu }: {
-  file: TripFile
-  planner: MTabScreenProps['planner']
-  onOpen: () => void
-  onStar: () => void
-  onMenu: () => void
+function FileRow({
+  file,
+  planner,
+  onOpen,
+  onStar,
+  onMenu,
+}: {
+  file: TripFile;
+  planner: MTabScreenProps['planner'];
+  onOpen: () => void;
+  onStar: () => void;
+  onMenu: () => void;
 }) {
-  const { t } = planner
-  const { locale } = useTranslation()
-  const meta = getFileTypeMeta(file)
-  const TypeIcon = meta.icon
-  const linkLabels = buildFileLinkLabels(file, planner.places, planner.reservations, planner.TRANSPORT_TYPES, t)
-  const starred = !!file.starred
+  const { t } = planner;
+  const { locale } = useTranslation();
+  const meta = getFileTypeMeta(file);
+  const TypeIcon = meta.icon;
+  const linkLabels = buildFileLinkLabels(file, planner.places, planner.reservations, planner.TRANSPORT_TYPES, t);
+  const starred = !!file.starred;
 
   return (
     <div className="mt-2 flex items-center gap-[11px] rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop px-[11px] py-[10px]">
@@ -287,7 +303,9 @@ function FileRow({ file, planner, onOpen, onStar, onMenu }: {
                 <span className="flex h-3 w-3 flex-none items-center justify-center rounded-full bg-m-act font-geist text-[0.40625rem] font-extrabold text-m-actfg">
                   {file.uploaded_by_name[0]?.toUpperCase()}
                 </span>
-                <span className="max-w-[92px] truncate font-geist text-[0.53125rem] font-bold text-m-muted">{file.uploaded_by_name}</span>
+                <span className="max-w-[92px] truncate font-geist text-[0.53125rem] font-bold text-m-muted">
+                  {file.uploaded_by_name}
+                </span>
               </span>
             )}
           </div>
@@ -303,7 +321,10 @@ function FileRow({ file, planner, onOpen, onStar, onMenu }: {
 
       <button
         type="button"
-        onClick={e => { e.stopPropagation(); onStar() }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onStar();
+        }}
         aria-label={starred ? t('files.unstar') : t('files.star')}
         className={`flex h-7 w-7 flex-none items-center justify-center rounded-full ${
           starred ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-muted'
@@ -313,12 +334,15 @@ function FileRow({ file, planner, onOpen, onStar, onMenu }: {
       </button>
       <button
         type="button"
-        onClick={e => { e.stopPropagation(); onMenu() }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onMenu();
+        }}
         aria-label={t('files.menu')}
         className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
       >
         <MoreVertical size={14} strokeWidth={2} />
       </button>
     </div>
-  )
+  );
 }

@@ -1,6 +1,6 @@
 // FE-COMP-PACKING-082 to FE-COMP-PACKING-083
 import { vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { QuantityInput } from './PackingListPanelQuantityInput';
 
 describe('QuantityInput', () => {

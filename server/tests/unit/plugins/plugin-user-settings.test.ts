@@ -5,6 +5,20 @@
  * ciphertext, only DECLARED user-scope keys are accepted, and the runtime read
  * (ctx.settings) returns the decrypted value.
  */
+import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
+import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
+import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
+import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
+import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
+import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import { PluginsService } from '../../../src/nest/plugins/plugins.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { sharedTestOrm } from '../../helpers/test-uow';
+
+import Database from 'better-sqlite3';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Reversible crypto stub so we can assert encrypt-at-rest without a real key env.
@@ -14,21 +28,11 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
 }));
 
 const { getDb } = vi.hoisted(() => ({ getDb: { current: null as unknown } }));
-vi.mock('../../../src/db/database', () => ({ get db() { return getDb.current; } }));
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-
-import Database from 'better-sqlite3';
-import { PluginsService } from '../../../src/nest/plugins/plugins.service';
-import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
-import { sharedTestOrm } from '../../helpers/test-uow';
-import { Plugins } from '../../../src/db/entities/Plugins.entity';
-import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
-import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
-import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
-import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
-import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
-import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
+vi.mock('../../../src/db/database', () => ({
+  get db() {
+    return getDb.current;
+  },
+}));
 
 /** Plan 3j Task 2 — PluginsService's own six repositories, over whichever fresh `getDb.current` the caller just set. */
 async function makePluginsService(): Promise<PluginsService> {
@@ -57,7 +61,9 @@ async function userSettings(): Promise<PluginUserSettingsService> {
 function freshDb() {
   const d = createSnapshotTestDb();
   // p: a user-scope api key (secret) + a user-scope pref (not secret) + an INSTANCE field.
-  const ins = d.prepare('INSERT INTO plugin_settings_fields (plugin_id, field_key, input_type, required, secret, scope, sort_order) VALUES (?,?,?,?,?,?,?)');
+  const ins = d.prepare(
+    'INSERT INTO plugin_settings_fields (plugin_id, field_key, input_type, required, secret, scope, sort_order) VALUES (?,?,?,?,?,?,?)',
+  );
   ins.run('p', 'apiKey', 'text', 1, 1, 'user', 0);
   ins.run('p', 'units', 'select', 0, 0, 'user', 1);
   ins.run('p', 'adminOnly', 'text', 0, 1, 'instance', 2);
@@ -75,13 +81,13 @@ describe('per-user plugin settings', () => {
 
   it('lists only the user-scope fields, in order', async () => {
     const fields = await svc.userSettingsFields('p');
-    expect(fields.map(f => f.key)).toEqual(['apiKey', 'units']); // not the instance field
+    expect(fields.map((f) => f.key)).toEqual(['apiKey', 'units']); // not the instance field
     expect(fields[0]).toMatchObject({ secret: true, required: true });
   });
 
   it('encrypts a secret at rest, masks it to the client, stores a plain field verbatim', async () => {
     const masked = await svc.updateUserConfig('p', 42, { apiKey: 'sk-123', units: 'metric' });
-    expect(masked.apiKey).toBe('••••••••');       // never echoed
+    expect(masked.apiKey).toBe('••••••••'); // never echoed
     expect(masked.units).toBe('metric');
     // decrypted runtime read returns the real value; the stored form is ciphertext
     expect(await (await userSettings()).readOne('p', 42, 'apiKey')).toBe('sk-123');
@@ -98,14 +104,17 @@ describe('per-user plugin settings', () => {
   it('ignores keys that are not declared user-scope fields', async () => {
     // apiKey is required — filled here so the save isn't refused; the assertion is
     // about adminOnly/bogus being dropped, not about required enforcement.
-    await svc.updateUserConfig('p', 42, { apiKey: 'sk-123', adminOnly: 'nope', bogus: 'x', units: 'metric' } as Record<string, unknown>);
+    await svc.updateUserConfig('p', 42, { apiKey: 'sk-123', adminOnly: 'nope', bogus: 'x', units: 'metric' } as Record<
+      string,
+      unknown
+    >);
     const cfg = await svc.getUserConfig('p', 42);
     expect(cfg.adminOnly).toBeUndefined(); // instance field — not accepted here
     expect(cfg.bogus).toBeUndefined();
     expect(cfg.units).toBe('metric');
   });
 
-  it('is per-user — one user cannot see another\'s value', async () => {
+  it("is per-user — one user cannot see another's value", async () => {
     // apiKey is required — filled here so the save isn't refused; the point of this
     // test is that user 99 sees none of user 42's values.
     await svc.updateUserConfig('p', 42, { apiKey: 'sk-123', units: 'metric' });
@@ -144,7 +153,12 @@ describe('manifest defaults reach the runtime reads', () => {
 
   it('readAll folds defaults in for the fields the user left unset', async () => {
     await svc.updateUserConfig('p', 42, { apiKey: 'sk-123', region: 'us' });
-    expect(await (await userSettings()).readAll('p', 42)).toMatchObject({ apiKey: 'sk-123', region: 'us', retries: 3, endpoint: 'https://api.example' });
+    expect(await (await userSettings()).readAll('p', 42)).toMatchObject({
+      apiKey: 'sk-123',
+      region: 'us',
+      retries: 3,
+      endpoint: 'https://api.example',
+    });
   });
 
   it('hasRequired treats a required field with a default as filled', async () => {
@@ -165,7 +179,9 @@ describe('hasRequired applies the same "filled" rule as the save gate', () => {
     getDb.current = freshDb();
     svc = await makePluginsService();
     (getDb.current as import('better-sqlite3').Database)
-      .prepare('INSERT INTO plugin_settings_fields (plugin_id, field_key, input_type, required, secret, scope, sort_order) VALUES (?,?,?,?,?,?,?)')
+      .prepare(
+        'INSERT INTO plugin_settings_fields (plugin_id, field_key, input_type, required, secret, scope, sort_order) VALUES (?,?,?,?,?,?,?)',
+      )
       .run('p', 'consent', 'checkbox', 1, 0, 'user', 9);
   });
 

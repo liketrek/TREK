@@ -1,12 +1,12 @@
 // FE-PLANNER-BOOKIMP-001 to FE-PLANNER-BOOKIMP-021
-import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { readMultipart } from '../../../tests/helpers/multipart';
-import { useBackgroundTasksStore } from '../../store/backgroundTasksStore';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { saveImportFiles } from '../../db/offlineDb';
+import { useBackgroundTasksStore } from '../../store/backgroundTasksStore';
 import BookingImportModal from './BookingImportModal';
 
 vi.mock('../../db/offlineDb', () => ({ saveImportFiles: vi.fn(async () => {}) }));
@@ -31,7 +31,7 @@ beforeEach(() => {
   vi.mocked(saveImportFiles).mockClear();
   server.use(
     http.get('/api/health/features', () => HttpResponse.json({ bookingImport: true, aiParsing: false })),
-    http.post('/api/trips/4/reservations/import/booking/async', () => HttpResponse.json({ jobId: 'job-1' })),
+    http.post('/api/trips/4/reservations/import/booking/async', () => HttpResponse.json({ jobId: 'job-1' }))
   );
 });
 
@@ -114,7 +114,7 @@ describe('BookingImportModal', () => {
       http.post('/api/trips/4/reservations/import/booking/async', async ({ request }) => {
         sentMode = (await readMultipart(request)).fields.mode ?? null;
         return HttpResponse.json({ jobId: 'job-42' });
-      }),
+      })
     );
     render(<BookingImportModal {...defaultProps} onClose={onClose} />);
     fireEvent.change(fileInput(), { target: { files: [eml('a.eml'), eml('b.pdf')] } });
@@ -123,7 +123,7 @@ describe('BookingImportModal', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(sentMode).toBe('no-ai');
     expect(vi.mocked(saveImportFiles).mock.calls[0][0]).toBe('job-42');
-    const task = useBackgroundTasksStore.getState().tasks.find(t => t.id === 'job-42');
+    const task = useBackgroundTasksStore.getState().tasks.find((t) => t.id === 'job-42');
     expect(task).toMatchObject({ tripId: '4', label: 'a.eml, b.pdf', total: 2, mode: 'no-ai' });
   });
 
@@ -134,7 +134,7 @@ describe('BookingImportModal', () => {
       http.post('/api/trips/4/reservations/import/booking/async', async ({ request }) => {
         sentMode = (await readMultipart(request)).fields.mode ?? null;
         return HttpResponse.json({ jobId: 'job-ai' });
-      }),
+      })
     );
     render(<BookingImportModal {...defaultProps} />);
     // Wait for the feature probe to land before kicking off the import.
@@ -148,7 +148,8 @@ describe('BookingImportModal', () => {
     const onClose = vi.fn();
     server.use(
       http.post('/api/trips/4/reservations/import/booking/async', () =>
-        HttpResponse.json({ error: 'Storage full' }, { status: 500 })),
+        HttpResponse.json({ error: 'Storage full' }, { status: 500 })
+      )
     );
     render(<BookingImportModal {...defaultProps} onClose={onClose} />);
     fireEvent.change(fileInput(), { target: { files: [eml()] } });
@@ -159,9 +160,7 @@ describe('BookingImportModal', () => {
   });
 
   it('FE-PLANNER-BOOKIMP-013: an error without a server message falls back to the generic parse error', async () => {
-    server.use(
-      http.post('/api/trips/4/reservations/import/booking/async', () => HttpResponse.error()),
-    );
+    server.use(http.post('/api/trips/4/reservations/import/booking/async', () => HttpResponse.error()));
     render(<BookingImportModal {...defaultProps} />);
     fireEvent.change(fileInput(), { target: { files: [eml()] } });
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
@@ -209,7 +208,7 @@ describe('BookingImportModal with a model that reads images', () => {
       http.post('/api/trips/4/reservations/import/booking/async', async ({ request }) => {
         mode = (await readMultipart(request)).fields.mode ?? null;
         return HttpResponse.json({ jobId: 'job-2' });
-      }),
+      })
     );
     render(<BookingImportModal {...defaultProps} kind="transports" />);
 
@@ -219,7 +218,11 @@ describe('BookingImportModal with a model that reads images', () => {
     expect(screen.getByText('ticket.jpg')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Import' }));
-    await waitFor(() => expect(useBackgroundTasksStore.getState().tasks.find(t => t.id === 'job-2')).toMatchObject({ kind: 'transports' }));
+    await waitFor(() =>
+      expect(useBackgroundTasksStore.getState().tasks.find((t) => t.id === 'job-2')).toMatchObject({
+        kind: 'transports',
+      })
+    );
     expect(mode).toBe('fallback-on-empty');
   });
 

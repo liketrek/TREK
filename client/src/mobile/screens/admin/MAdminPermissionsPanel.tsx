@@ -1,16 +1,16 @@
-import React, { useEffect, useState, useMemo } from 'react'
-import { adminApi } from '../../../api/client'
-import { useTranslation } from '../../../i18n'
-import { usePermissionsStore, PermissionLevel } from '../../../store/permissionsStore'
-import { useToast } from '../../../components/shared/Toast'
-import { Save, RotateCcw } from 'lucide-react'
-import { MAdminButton, MAdminCard } from './MAdminUi'
+import { RotateCcw, Save } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { adminApi } from '../../../api/client';
+import { useToast } from '../../../components/shared/Toast';
+import { useTranslation } from '../../../i18n';
+import { PermissionLevel, usePermissionsStore } from '../../../store/permissionsStore';
+import { MAdminButton, MAdminCard } from './MAdminUi';
 
 interface PermissionEntry {
-  key: string
-  level: PermissionLevel
-  defaultLevel: PermissionLevel
-  allowedLevels: PermissionLevel[]
+  key: string;
+  level: PermissionLevel;
+  defaultLevel: PermissionLevel;
+  allowedLevels: PermissionLevel[];
 }
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -18,7 +18,7 @@ const LEVEL_LABELS: Record<string, string> = {
   trip_owner: 'perm.level.tripOwner',
   trip_member: 'perm.level.tripMember',
   everybody: 'perm.level.everybody',
-}
+};
 
 const CATEGORIES = [
   { id: 'trip', keys: ['trip_create', 'trip_edit', 'trip_delete', 'trip_archive', 'trip_cover_upload'] },
@@ -26,66 +26,66 @@ const CATEGORIES = [
   { id: 'files', keys: ['file_upload', 'file_edit', 'file_delete'] },
   { id: 'content', keys: ['place_edit', 'day_edit', 'reservation_edit'] },
   { id: 'extras', keys: ['budget_edit', 'packing_edit', 'collab_edit', 'share_manage'] },
-]
+];
 
 export default function MAdminPermissionsPanel(): React.ReactElement {
-  const { t } = useTranslation()
-  const toast = useToast()
-  const [entries, setEntries] = useState<PermissionEntry[]>([])
-  const [values, setValues] = useState<Record<string, PermissionLevel>>({})
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [dirty, setDirty] = useState(false)
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [entries, setEntries] = useState<PermissionEntry[]>([]);
+  const [values, setValues] = useState<Record<string, PermissionLevel>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
-    void loadPermissions()
-  }, [])
+    void loadPermissions();
+  }, []);
 
   const loadPermissions = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const data = await adminApi.getPermissions()
-      setEntries(data.permissions)
-      const vals: Record<string, PermissionLevel> = {}
-      for (const p of data.permissions) vals[p.key] = p.level
-      setValues(vals)
-      setDirty(false)
+      const data = await adminApi.getPermissions();
+      setEntries(data.permissions);
+      const vals: Record<string, PermissionLevel> = {};
+      for (const p of data.permissions) vals[p.key] = p.level;
+      setValues(vals);
+      setDirty(false);
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleChange = (key: string, level: PermissionLevel) => {
-    setValues(prev => ({ ...prev, [key]: level }))
-    setDirty(true)
-  }
+    setValues((prev) => ({ ...prev, [key]: level }));
+    setDirty(true);
+  };
 
   const handleSave = async () => {
-    setSaving(true)
+    setSaving(true);
     try {
-      const data = await adminApi.updatePermissions(values)
+      const data = await adminApi.updatePermissions(values);
       if (data.permissions) {
-        usePermissionsStore.getState().setPermissions(data.permissions)
+        usePermissionsStore.getState().setPermissions(data.permissions);
       }
-      setDirty(false)
-      toast.success(t('perm.saved'))
+      setDirty(false);
+      toast.success(t('perm.saved'));
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleReset = () => {
-    const defaults: Record<string, PermissionLevel> = {}
-    for (const p of entries) defaults[p.key] = p.defaultLevel
-    setValues(defaults)
-    setDirty(true)
-  }
+    const defaults: Record<string, PermissionLevel> = {};
+    for (const p of entries) defaults[p.key] = p.defaultLevel;
+    setValues(defaults);
+    setDirty(true);
+  };
 
-  const entryMap = useMemo(() => new Map(entries.map(e => [e.key, e])), [entries])
+  const entryMap = useMemo(() => new Map(entries.map((e) => [e.key, e])), [entries]);
 
   if (loading) {
     return (
@@ -94,7 +94,7 @@ export default function MAdminPermissionsPanel(): React.ReactElement {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-[color:var(--m-ink)]" />
         </div>
       </MAdminCard>
-    )
+    );
   }
 
   return (
@@ -104,12 +104,7 @@ export default function MAdminPermissionsPanel(): React.ReactElement {
           <div className="text-[0.875rem] font-extrabold text-m-ink">{t('perm.title')}</div>
           <div className="mt-[2px] font-geist text-[0.625rem] leading-relaxed text-m-muted">{t('perm.subtitle')}</div>
         </div>
-        <MAdminButton
-          variant="ghost"
-          disabled={saving}
-          title={t('perm.resetDefaults')}
-          onClick={handleReset}
-        >
+        <MAdminButton variant="ghost" disabled={saving} title={t('perm.resetDefaults')} onClick={handleReset}>
           <RotateCcw size={12} strokeWidth={2.2} />
         </MAdminButton>
         <MAdminButton busy={saving} disabled={saving || !dirty} onClick={handleSave}>
@@ -119,17 +114,17 @@ export default function MAdminPermissionsPanel(): React.ReactElement {
       </div>
 
       <div>
-        {CATEGORIES.map(cat => (
-          <div key={cat.id} className="border-t border-[color:var(--m-rowbr)] pt-3 mt-3">
+        {CATEGORIES.map((cat) => (
+          <div key={cat.id} className="mt-3 border-t border-[color:var(--m-rowbr)] pt-3">
             <div className="mb-2 font-geist text-[0.5625rem] font-extrabold uppercase tracking-wider text-m-faint">
               {t(`perm.cat.${cat.id}`)}
             </div>
             <div className="space-y-3">
-              {cat.keys.map(key => {
-                const entry = entryMap.get(key)
-                if (!entry) return null
-                const currentLevel = values[key] || entry.defaultLevel
-                const isDefault = currentLevel === entry.defaultLevel
+              {cat.keys.map((key) => {
+                const entry = entryMap.get(key);
+                if (!entry) return null;
+                const currentLevel = values[key] || entry.defaultLevel;
+                const isDefault = currentLevel === entry.defaultLevel;
                 return (
                   <div key={key}>
                     <div className="mb-[6px] flex items-start gap-2">
@@ -151,19 +146,19 @@ export default function MAdminPermissionsPanel(): React.ReactElement {
                       aria-label={t(`perm.action.${key}`)}
                       className="h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none"
                     >
-                      {entry.allowedLevels.map(l => (
+                      {entry.allowedLevels.map((l) => (
                         <option key={l} value={l}>
                           {t(LEVEL_LABELS[l] || l)}
                         </option>
                       ))}
                     </select>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
         ))}
       </div>
     </MAdminCard>
-  )
+  );
 }

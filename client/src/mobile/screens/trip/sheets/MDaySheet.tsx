@@ -1,29 +1,40 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarDays, Compass, Eraser, Hotel, MapPin, Pencil, Plus, RotateCcw, Route as RouteIcon, TramFront } from 'lucide-react'
-import type { WeatherResult } from '@trek/shared'
-import MSheet from '../../../components/MSheet'
-import type { MTripSheetsProps } from '../MTripShell'
-import { useTranslation } from '../../../../i18n'
-import { weatherApi } from '../../../../api/client'
-import { useSettingsStore } from '../../../../store/settingsStore'
-import { routeModeIcon, useRouteModeOptions } from '../../../../components/Planner/routeModes'
-import { dayHeadingParts } from '../../../../utils/dayLabel'
-import { stayDayTimes } from '../../../../components/Planner/stayDayTimes'
-import { useDayNotes } from '../../../../hooks/useDayNotes'
-import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
-import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
-import { getTransportForDay, hasCarrierEndpointOnDay } from '../../../../utils/dayMerge'
-import { splitReservationDateTime } from '../../../../utils/formatters'
-import { dayCoMapsUrl, dayGoogleMapsUrl, optimizeDayOrder } from '../lib/dayRoute'
-import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon'
-import { BlurredCode } from '../../../../components/shared/BookingCode'
-import { splitNoteTime } from '../lib/dayNotes'
-import { weatherIconFor } from '../plan/planTimelineModel'
-import type { Assignment, DayNote, Reservation } from '../../../../types'
-import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
+import type { WeatherResult } from '@trek/shared';
+import {
+  CalendarDays,
+  Compass,
+  Eraser,
+  Hotel,
+  MapPin,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Route as RouteIcon,
+  TramFront,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { weatherApi } from '../../../../api/client';
+import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants';
+import { routeModeIcon, useRouteModeOptions } from '../../../../components/Planner/routeModes';
+import { stayDayTimes } from '../../../../components/Planner/stayDayTimes';
+import { BlurredCode } from '../../../../components/shared/BookingCode';
+import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon';
+import { useDayNotes } from '../../../../hooks/useDayNotes';
+import { useTranslation } from '../../../../i18n';
+import { useSettingsStore } from '../../../../store/settingsStore';
+import type { Assignment, DayNote, Reservation } from '../../../../types';
+import { dayHeadingParts } from '../../../../utils/dayLabel';
+import { getTransportForDay, hasCarrierEndpointOnDay } from '../../../../utils/dayMerge';
+import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder';
+import { splitReservationDateTime } from '../../../../utils/formatters';
+import MSheet from '../../../components/MSheet';
+import { splitNoteTime } from '../lib/dayNotes';
+import { dayCoMapsUrl, dayGoogleMapsUrl, optimizeDayOrder } from '../lib/dayRoute';
+import type { MTripSheetsProps } from '../MTripShell';
+import { weatherIconFor } from '../plan/planTimelineModel';
+import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi';
 
 interface DaySheetPayload {
-  dayId?: number
+  dayId?: number;
 }
 
 /**
@@ -33,212 +44,257 @@ interface DaySheetPayload {
  * optimize, transit search, Google-Maps export).
  */
 export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
-  const { t, locale } = useTranslation()
-  const open = shell.sheet?.id === 'day'
-  const payload = (shell.sheet?.payload ?? {}) as DaySheetPayload
-  const dayId = payload.dayId ?? planner.selectedDayId
+  const { t, locale } = useTranslation();
+  const open = shell.sheet?.id === 'day';
+  const payload = (shell.sheet?.payload ?? {}) as DaySheetPayload;
+  const dayId = payload.dayId ?? planner.selectedDayId;
 
-  const day = planner.days.find(d => d.id === dayId) ?? null
-  const dayIndex = day ? planner.days.indexOf(day) : -1
-  const canEditDays = planner.can('day_edit', planner.trip)
-  const canEditReservations = planner.can('reservation_edit', planner.trip)
-  const tripHasDates = Boolean(planner.trip?.start_date && planner.trip?.end_date)
+  const day = planner.days.find((d) => d.id === dayId) ?? null;
+  const dayIndex = day ? planner.days.indexOf(day) : -1;
+  const canEditDays = planner.can('day_edit', planner.trip);
+  const canEditReservations = planner.can('reservation_edit', planner.trip);
+  const tripHasDates = Boolean(planner.trip?.start_date && planner.trip?.end_date);
 
-  const routeProfileOptions = useRouteModeOptions()
+  const routeProfileOptions = useRouteModeOptions();
 
-  const isFahrenheit = useSettingsStore(s => s.settings.temperature_unit) === 'fahrenheit'
-  const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
-  const blurCodes = useSettingsStore(s => s.settings.blur_booking_codes)
-  const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
-  const dateFirst = useSettingsStore(s => s.settings.day_date_first === true)
+  const isFahrenheit = useSettingsStore((s) => s.settings.temperature_unit) === 'fahrenheit';
+  const timeFormat = useSettingsStore((s) => s.settings.time_format) || '24h';
+  const blurCodes = useSettingsStore((s) => s.settings.blur_booking_codes);
+  const optimizeFromAccommodation = useSettingsStore((s) => s.settings.optimize_from_accommodation);
+  const dateFirst = useSettingsStore((s) => s.settings.day_date_first === true);
 
   const dayAssignments = useMemo<Assignment[]>(() => {
-    if (!day) return []
-    return [...(planner.assignments[String(day.id)] || [])].sort((a, b) => a.order_index - b.order_index)
-  }, [day, planner.assignments])
+    if (!day) return [];
+    return [...(planner.assignments[String(day.id)] || [])].sort((a, b) => a.order_index - b.order_index);
+  }, [day, planner.assignments]);
 
   // Weather anchor, day-local only (#2167): the day's first located stop, else the
   // hotel you wake up in (unconditional bookend lookup, mirroring useMPlanTimeline).
   // Never a place from another day — on a roadtrip that silently showed another
   // city's weather with nothing naming the place.
-  const locatedPlace = dayAssignments.find(a => a.place?.lat && a.place?.lng)?.place
-  const weatherHotel = day && !locatedPlace
-    ? getDayBookendHotels(day, planner.days, planner.tripAccommodations).morning
-    : undefined
-  const lat = locatedPlace?.lat ?? weatherHotel?.place_lat ?? null
-  const lng = locatedPlace?.lng ?? weatherHotel?.place_lng ?? null
-  const weatherPlaceName = locatedPlace?.name ?? weatherHotel?.place_name ?? null
+  const locatedPlace = dayAssignments.find((a) => a.place?.lat && a.place?.lng)?.place;
+  const weatherHotel =
+    day && !locatedPlace ? getDayBookendHotels(day, planner.days, planner.tripAccommodations).morning : undefined;
+  const lat = locatedPlace?.lat ?? weatherHotel?.place_lat ?? null;
+  const lng = locatedPlace?.lng ?? weatherHotel?.place_lng ?? null;
+  const weatherPlaceName = locatedPlace?.name ?? weatherHotel?.place_name ?? null;
 
-  const [weather, setWeather] = useState<WeatherResult | null>(null)
-  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weather, setWeather] = useState<WeatherResult | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
   useEffect(() => {
-    if (!open || !day?.date || lat == null || lng == null) { setWeather(null); return }
-    let cancelled = false
-    setWeatherLoading(true)
-    weatherApi.getDetailed(lat, lng, day.date, planner.language)
-      .then(data => { if (!cancelled) setWeather(data.error ? null : data) })
-      .catch(() => { if (!cancelled) setWeather(null) })
-      .finally(() => { if (!cancelled) setWeatherLoading(false) })
-    return () => { cancelled = true }
-  }, [open, day?.date, lat, lng, planner.language])
+    if (!open || !day?.date || lat == null || lng == null) {
+      setWeather(null);
+      return;
+    }
+    let cancelled = false;
+    setWeatherLoading(true);
+    weatherApi
+      .getDetailed(lat, lng, day.date, planner.language)
+      .then((data) => {
+        if (!cancelled) setWeather(data.error ? null : data);
+      })
+      .catch(() => {
+        if (!cancelled) setWeather(null);
+      })
+      .finally(() => {
+        if (!cancelled) setWeatherLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, day?.date, lat, lng, planner.language]);
 
   // Inline rename — the day sheet owns the pencil on mobile (#1065 parity).
-  const [editingTitle, setEditingTitle] = useState(false)
-  const [titleDraft, setTitleDraft] = useState('')
-  const titleInputRef = useRef<HTMLInputElement | null>(null)
-  useEffect(() => { if (editingTitle) titleInputRef.current?.focus() }, [editingTitle])
-  useEffect(() => { if (!open) setEditingTitle(false) }, [open])
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (editingTitle) titleInputRef.current?.focus();
+  }, [editingTitle]);
+  useEffect(() => {
+    if (!open) setEditingTitle(false);
+  }, [open]);
   const commitRename = () => {
-    setEditingTitle(false)
-    if (day) planner.handleUpdateDayTitle(day.id, titleDraft.trim())
-  }
+    setEditingTitle(false);
+    if (day) planner.handleUpdateDayTitle(day.id, titleDraft.trim());
+  };
 
-  const notes = useDayNotes(planner.tripId)
+  const notes = useDayNotes(planner.tripId);
   const dayNotes: DayNote[] = day
     ? [...(notes.dayNotes[String(day.id)] || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-    : []
+    : [];
 
   const dayReservations = useMemo(() => {
-    if (!day) return []
-    return planner.reservations.filter(r => {
-      if (r.type === 'hotel') return false
-      if (r.assignment_id && dayAssignments.some(a => a.id === r.assignment_id)) return true
-      return r.day_id === day.id
-    })
-  }, [day, planner.reservations, dayAssignments])
+    if (!day) return [];
+    return planner.reservations.filter((r) => {
+      if (r.type === 'hotel') return false;
+      if (r.assignment_id && dayAssignments.some((a) => a.id === r.assignment_id)) return true;
+      return r.day_id === day.id;
+    });
+  }, [day, planner.reservations, dayAssignments]);
 
   const dayAccommodations = useMemo(() => {
-    if (!day) return []
-    return planner.tripAccommodations.filter(a =>
-      isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, planner.days),
-    )
-  }, [day, planner.tripAccommodations, planner.days])
+    if (!day) return [];
+    return planner.tripAccommodations.filter((a) =>
+      isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, planner.days)
+    );
+  }, [day, planner.tripAccommodations, planner.days]);
 
-  const routedStops = dayAssignments.filter(a => a.place?.lat != null && a.place?.lng != null)
-  const bookends = day && optimizeFromAccommodation !== false
-    ? getDayBookendHotels(day, planner.days, planner.tripAccommodations)
-    : null
-  const routable = routedStops.length >= 2 || (routedStops.length >= 1 && !!bookends?.morning)
-  const routeActive = planner.routeShown && planner.selectedDayId === day?.id
+  const routedStops = dayAssignments.filter((a) => a.place?.lat != null && a.place?.lng != null);
+  const bookends =
+    day && optimizeFromAccommodation !== false
+      ? getDayBookendHotels(day, planner.days, planner.tripAccommodations)
+      : null;
+  const routable = routedStops.length >= 2 || (routedStops.length >= 1 && !!bookends?.morning);
+  const routeActive = planner.routeShown && planner.selectedDayId === day?.id;
 
   const toggleRoute = () => {
-    if (!day) return
+    if (!day) return;
     if (planner.selectedDayId === day.id) {
-      planner.setRouteShown(v => !v)
+      planner.setRouteShown((v) => !v);
     } else {
-      planner.handleSelectDay(day.id, true)
-      if (!planner.routeShown) planner.setRouteShown(true)
+      planner.handleSelectDay(day.id, true);
+      if (!planner.routeShown) planner.setRouteShown(true);
     }
-  }
+  };
 
   const openReservation = (r: Reservation) => {
-    const isTransport = planner.TRANSPORT_TYPES.has(r.type)
+    const isTransport = planner.TRANSPORT_TYPES.has(r.type);
     if (isTransport && canEditDays) {
-      planner.setEditingTransport(r)
-      planner.setTransportModalDayId(r.day_id ?? null)
-      planner.setShowTransportModal(true)
+      planner.setEditingTransport(r);
+      planner.setTransportModalDayId(r.day_id ?? null);
+      planner.setShowTransportModal(true);
     } else if (!isTransport && canEditReservations) {
-      planner.setEditingReservation(r)
-      planner.setShowReservationModal(true)
+      planner.setEditingReservation(r);
+      planner.setShowReservationModal(true);
     } else {
-      return
+      return;
     }
-    shell.closeSheet()
-  }
+    shell.closeSheet();
+  };
 
   const planTransit = () => {
-    if (!day) return
-    planner.setTransportModalDayId(day.id)
-    planner.setEditingTransport(null)
-    planner.setTransitPrefill(null)
-    planner.setTransportModalAutomated(true)
-    planner.setShowTransportModal(true)
-    shell.closeSheet()
-  }
+    if (!day) return;
+    planner.setTransportModalDayId(day.id);
+    planner.setEditingTransport(null);
+    planner.setTransitPrefill(null);
+    planner.setTransportModalAutomated(true);
+    planner.setShowTransportModal(true);
+    shell.closeSheet();
+  };
 
   // Same optimizer as the desktop day plan: timed places stay anchored, the
   // rest is rerouted (optionally hotel-bookended); handleReorder owns the undo.
   const optimizeDay = () => {
-    if (!day || dayAssignments.length < 3) return
+    if (!day || dayAssignments.length < 3) return;
     const result = optimizeDayOrder(
-      day, planner.days, dayAssignments, planner.tripAccommodations, optimizeFromAccommodation !== false, dayHasCarrier,
-    )
-    if (!result) return
-    planner.handleReorder(day.id, result.order.map(a => a.id))
-    planner.toast.success(result.usedHotel
-      ? t('dayplan.toast.routeOptimizedFromHotel')
-      : t('dayplan.toast.routeOptimized'))
-  }
+      day,
+      planner.days,
+      dayAssignments,
+      planner.tripAccommodations,
+      optimizeFromAccommodation !== false,
+      dayHasCarrier
+    );
+    if (!result) return;
+    planner.handleReorder(
+      day.id,
+      result.order.map((a) => a.id)
+    );
+    planner.toast.success(
+      result.usedHotel ? t('dayplan.toast.routeOptimizedFromHotel') : t('dayplan.toast.routeOptimized')
+    );
+  };
 
   // Carrier evidence for the export bookends (#2157) — via the span-aware transport
   // filter the timeline uses, not dayReservations above, which matches on day_id
   // only and would miss an overnight carrier that merely arrives today.
   const dayHasCarrier = useMemo(() => {
-    if (!day) return false
+    if (!day) return false;
     return getTransportForDay({
       reservations: planner.reservations,
       dayId: day.id,
-      dayAssignmentIds: dayAssignments.map(a => a.id),
+      dayAssignmentIds: dayAssignments.map((a) => a.id),
       days: planner.days,
-    }).some(r => hasCarrierEndpointOnDay(r, day.id))
-  }, [day, planner.reservations, planner.days, dayAssignments])
+    }).some((r) => hasCarrierEndpointOnDay(r, day.id));
+  }, [day, planner.reservations, planner.days, dayAssignments]);
 
   // Google-Maps export of the day's stops, hotel-bookended like the drawn route (#1372/#1465).
   const openInGoogleMaps = () => {
-    if (!day) return
+    if (!day) return;
     const url = dayGoogleMapsUrl(
-      day, planner.days, dayAssignments, planner.tripAccommodations, optimizeFromAccommodation !== false,
-      { located: dayHasCarrier },
-    )
-    if (url) window.open(url, '_blank', 'noopener,noreferrer')
-  }
+      day,
+      planner.days,
+      dayAssignments,
+      planner.tripAccommodations,
+      optimizeFromAccommodation !== false,
+      { located: dayHasCarrier }
+    );
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   // The same day in CoMaps, for navigating it offline (#1904).
   const openInCoMaps = () => {
-    if (!day) return
+    if (!day) return;
     const url = dayCoMapsUrl(
-      day, planner.days, dayAssignments, planner.tripAccommodations, optimizeFromAccommodation !== false,
-      day.default_transport_mode ?? planner.routeProfile, { located: dayHasCarrier },
-    )
-    if (url) window.open(url, '_blank', 'noopener,noreferrer')
-  }
+      day,
+      planner.days,
+      dayAssignments,
+      planner.tripAccommodations,
+      optimizeFromAccommodation !== false,
+      day.default_transport_mode ?? planner.routeProfile,
+      { located: dayHasCarrier }
+    );
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const addAccommodation = () => {
-    if (!day) return
-    shell.openSheet('accommodation', { dayId: day.id })
-  }
+    if (!day) return;
+    shell.openSheet('accommodation', { dayId: day.id });
+  };
 
   // Tapping the stay opens the stay. It used to open the place the stay is
   // pinned to, which put check-in/check-out/confirmation out of reach entirely —
   // MAccommodationSheet has taken an accId all along, nothing ever passed one (#2001).
   const editAccommodation = (accId: number) => {
-    if (!day) return
-    shell.openSheet('accommodation', { dayId: day.id, accId })
-  }
+    if (!day) return;
+    shell.openSheet('accommodation', { dayId: day.id, accId });
+  };
   const openAccommodationPlace = (placeId: number) => {
-    shell.closeSheet()
-    planner.handlePlaceClick(placeId)
-  }
+    shell.closeSheet();
+    planner.handlePlaceClick(placeId);
+  };
 
-  const cTemp = (c: number) => Math.round(isFahrenheit ? c * 9 / 5 + 32 : c)
+  const cTemp = (c: number) => Math.round(isFahrenheit ? (c * 9) / 5 + 32 : c);
   const formattedDate = day?.date
     ? new Date(`${day.date.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, {
-        weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'UTC',
       })
-    : null
+    : null;
   // A day_number of 0 is as unusable as a missing one — both fall back to the row position.
-  const dayLabel = day?.title || t('planner.dayN', { n: day ? day.day_number || dayIndex + 1 : '?' })
-  const heading = dayHeadingParts(dayLabel, formattedDate, dateFirst)
-  const WeatherIcon = weatherIconFor(weather?.main)
+  const dayLabel = day?.title || t('planner.dayN', { n: day ? day.day_number || dayIndex + 1 : '?' });
+  const heading = dayHeadingParts(dayLabel, formattedDate, dateFirst);
+  const WeatherIcon = weatherIconFor(weather?.main);
 
   const stayBadge = (acc: (typeof dayAccommodations)[number]) => {
-    const isIn = acc.start_day_id === day?.id
-    const isOut = acc.end_day_id === day?.id
-    if (isIn && isOut) return { label: `${t('day.checkIn')} & ${t('day.checkOut')}`, cls: 'border-[color:var(--m-st-confirmed)] text-[color:var(--m-st-confirmed)]' }
-    if (isIn) return { label: t('day.checkIn'), cls: 'border-[color:var(--m-st-confirmed)] text-[color:var(--m-st-confirmed)]' }
-    if (isOut) return { label: t('day.checkOut'), cls: 'border-[color:var(--m-st-danger)] text-[color:var(--m-st-danger)]' }
-    return { label: t('mobileTrip.stay'), cls: 'border-[color:var(--m-faint)] text-m-muted' }
-  }
+    const isIn = acc.start_day_id === day?.id;
+    const isOut = acc.end_day_id === day?.id;
+    if (isIn && isOut)
+      return {
+        label: `${t('day.checkIn')} & ${t('day.checkOut')}`,
+        cls: 'border-[color:var(--m-st-confirmed)] text-[color:var(--m-st-confirmed)]',
+      };
+    if (isIn)
+      return {
+        label: t('day.checkIn'),
+        cls: 'border-[color:var(--m-st-confirmed)] text-[color:var(--m-st-confirmed)]',
+      };
+    if (isOut)
+      return { label: t('day.checkOut'), cls: 'border-[color:var(--m-st-danger)] text-[color:var(--m-st-danger)]' };
+    return { label: t('mobileTrip.stay'), cls: 'border-[color:var(--m-faint)] text-m-muted' };
+  };
 
   return (
     <MSheet open={open && !!day} onClose={shell.closeSheet} variant="card" material="glass" ariaLabel={dayLabel}>
@@ -247,31 +303,39 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
           <div className="flex-none px-[18px] pt-4">
             <TileHeader
               icon={<CalendarDays size={19} strokeWidth={1.8} />}
-              title={editingTitle ? (
-                <input
-                  ref={titleInputRef}
-                  value={titleDraft}
-                  onChange={e => setTitleDraft(e.target.value)}
-                  onBlur={commitRename}
-                  onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingTitle(false) }}
-                  placeholder={t('planner.dayN', { n: dayIndex + 1 })}
-                  className="w-full border-b-[1.5px] border-[color:var(--m-ink)] bg-transparent p-0 font-[inherit] text-[1.0625rem] font-bold outline-none"
-                />
-              ) : (
-                <>
-                  <span className="truncate">{heading.primary}</span>
-                  {canEditDays && (
-                    <button
-                      type="button"
-                      onClick={() => { setTitleDraft(day.title || ''); setEditingTitle(true) }}
-                      aria-label={t('mobileTrip.renameDay')}
-                      className="flex flex-none p-[3px] text-m-faint"
-                    >
-                      <Pencil size={12} strokeWidth={1.8} />
-                    </button>
-                  )}
-                </>
-              )}
+              title={
+                editingTitle ? (
+                  <input
+                    ref={titleInputRef}
+                    value={titleDraft}
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitRename();
+                      if (e.key === 'Escape') setEditingTitle(false);
+                    }}
+                    placeholder={t('planner.dayN', { n: dayIndex + 1 })}
+                    className="w-full border-b-[1.5px] border-[color:var(--m-ink)] bg-transparent p-0 font-[inherit] text-[1.0625rem] font-bold outline-none"
+                  />
+                ) : (
+                  <>
+                    <span className="truncate">{heading.primary}</span>
+                    {canEditDays && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTitleDraft(day.title || '');
+                          setEditingTitle(true);
+                        }}
+                        aria-label={t('mobileTrip.renameDay')}
+                        className="flex flex-none p-[3px] text-m-faint"
+                      >
+                        <Pencil size={12} strokeWidth={1.8} />
+                      </button>
+                    )}
+                  </>
+                )
+              }
               sub={heading.secondary}
               onClose={shell.closeSheet}
               closeLabel={t('common.close')}
@@ -280,8 +344,10 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
 
           <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px]">
             {/* ── Weather (16-day forecast, climate fallback) ── */}
-            {day.date && lat != null && lng != null && (
-              weatherLoading ? (
+            {day.date &&
+              lat != null &&
+              lng != null &&
+              (weatherLoading ? (
                 <div className="mt-[14px] flex items-center gap-3">
                   <div className="h-8 w-8 animate-pulse rounded-[10px] bg-[color:var(--m-ic)]" />
                   <div className="h-6 w-24 animate-pulse rounded-[8px] bg-[color:var(--m-ic)]" />
@@ -291,11 +357,14 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                   <div className="flex items-center gap-3">
                     <WeatherIcon size={32} strokeWidth={1.6} />
                     <span className="text-[2rem] font-bold leading-none">
-                      {weather.type === 'climate' ? 'Ø ' : ''}{cTemp(weather.temp)}°
+                      {weather.type === 'climate' ? 'Ø ' : ''}
+                      {cTemp(weather.temp)}°
                     </span>
                     <span className="min-w-0 font-geist text-[0.75rem] text-m-muted">
                       {weather.temp_max != null && weather.temp_min != null && (
-                        <>{cTemp(weather.temp_max)}° / {cTemp(weather.temp_min)}° · </>
+                        <>
+                          {cTemp(weather.temp_max)}° / {cTemp(weather.temp_min)}° ·{' '}
+                        </>
                       )}
                       <span className="capitalize">{weather.description}</span>
                     </span>
@@ -308,13 +377,14 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                     </div>
                   )}
                   {weather.type === 'climate' && (
-                    <div className="mt-[6px] font-geist text-[0.625rem] italic text-m-faint">{t('day.climateHint')}</div>
+                    <div className="mt-[6px] font-geist text-[0.625rem] italic text-m-faint">
+                      {t('day.climateHint')}
+                    </div>
                   )}
                 </div>
               ) : (
                 <div className="mt-[14px] font-geist text-[0.75rem] text-m-faint">{t('day.noWeather')}</div>
-              )
-            )}
+              ))}
 
             {/* ── Day actions: route / Google Maps / optimize / profile / transit ── */}
             {(routable || canEditDays) && (
@@ -334,9 +404,9 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                 )}
                 {routable && (
                   <div className={`flex overflow-hidden rounded-full ${INNER_CLS}`}>
-                    {routeProfileOptions.map(p => {
-                      const ProfileIcon = routeModeIcon(p.key)
-                      const active = planner.routeProfile === p.key
+                    {routeProfileOptions.map((p) => {
+                      const ProfileIcon = routeModeIcon(p.key);
+                      const active = planner.routeProfile === p.key;
                       return (
                         <button
                           key={p.key}
@@ -349,7 +419,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                         >
                           <ProfileIcon size={13} strokeWidth={2} />
                         </button>
-                      )
+                      );
                     })}
                   </div>
                 )}
@@ -411,10 +481,10 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
               <>
                 <Eyebrow className="mb-[6px] mt-[14px]">{t('day.reservations')}</Eyebrow>
                 <div className="flex flex-col gap-[6px]">
-                  {dayReservations.map(r => {
-                    const ResIcon = RES_ICONS[r.type as keyof typeof RES_ICONS] || RES_ICONS.other
-                    const { time: startTime } = splitReservationDateTime(r.reservation_time)
-                    const { time: endTime } = splitReservationDateTime(r.reservation_end_time)
+                  {dayReservations.map((r) => {
+                    const ResIcon = RES_ICONS[r.type as keyof typeof RES_ICONS] || RES_ICONS.other;
+                    const { time: startTime } = splitReservationDateTime(r.reservation_time);
+                    const { time: endTime } = splitReservationDateTime(r.reservation_end_time);
                     return (
                       <button
                         key={r.id}
@@ -431,7 +501,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                           </span>
                         )}
                       </button>
-                    )
+                    );
                   })}
                 </div>
               </>
@@ -455,16 +525,18 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                 </div>
                 {dayNotes.length > 0 && (
                   <div className="flex flex-col gap-[6px]">
-                    {dayNotes.map(note => {
-                      const NoteIcon = getNoteIcon(note.icon)
+                    {dayNotes.map((note) => {
+                      const NoteIcon = getNoteIcon(note.icon);
                       // The time column is a free detail line; only a leading
                       // HH:MM renders as an actual time (desktop semantics).
-                      const { time: noteTime, detail } = splitNoteTime(note.time)
+                      const { time: noteTime, detail } = splitNoteTime(note.time);
                       return (
                         <button
                           key={note.id}
                           type="button"
-                          onClick={() => { if (canEditDays) shell.openSheet('note', { dayId: day.id, note }) }}
+                          onClick={() => {
+                            if (canEditDays) shell.openSheet('note', { dayId: day.id, note });
+                          }}
                           className={`flex w-full items-center gap-[10px] rounded-[13px] px-[11px] py-[9px] text-left ${INNER_CLS}`}
                         >
                           <NoteIcon size={15} strokeWidth={1.8} className="flex-none text-m-muted" />
@@ -480,7 +552,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                             </span>
                           )}
                         </button>
-                      )
+                      );
                     })}
                   </div>
                 )}
@@ -491,43 +563,47 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
             <Eyebrow className="mb-[6px] mt-[14px]">{t('day.accommodation')}</Eyebrow>
             {dayAccommodations.length > 0 && (
               <div className="flex flex-col gap-2">
-                {dayAccommodations.map(acc => {
-                  const badge = stayBadge(acc)
-                  const times = stayDayTimes(acc, day.id)
+                {dayAccommodations.map((acc) => {
+                  const badge = stayBadge(acc);
+                  const times = stayDayTimes(acc, day.id);
                   // The desk time carries the arrival or departure colour itself (#2393),
                   // so the head keeps its room for the name and drops the badge.
-                  const badgeAtTime = times.checkIn || times.checkOut
-                  const linked = planner.reservations.find(r => String(r.accommodation_id ?? '') === String(acc.id))
+                  const badgeAtTime = times.checkIn || times.checkOut;
+                  const linked = planner.reservations.find((r) => String(r.accommodation_id ?? '') === String(acc.id));
                   return (
                     <div key={acc.id} className={`rounded-[16px] px-3 py-[11px] ${INNER_CLS}`}>
                       <div className="flex items-center gap-[10px]">
                         <button
                           type="button"
                           onClick={() => {
-                            if (canEditDays) editAccommodation(acc.id)
-                            else if (acc.place_id) openAccommodationPlace(acc.place_id)
+                            if (canEditDays) editAccommodation(acc.id);
+                            else if (acc.place_id) openAccommodationPlace(acc.place_id);
                           }}
                           className="flex min-w-0 flex-1 items-center gap-[10px] text-left"
                         >
-                        {acc.place_image ? (
-                          <div
-                            className="h-10 w-10 flex-none rounded-[12px] bg-cover bg-center"
-                            style={{ backgroundImage: `url('${acc.place_image}')` }}
-                          />
-                        ) : (
-                          <div className="flex h-10 w-10 flex-none items-center justify-center rounded-[12px] bg-[color:var(--m-ic)]">
-                            <Hotel size={17} strokeWidth={1.8} className="text-m-muted" />
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-[0.875rem] font-semibold">{acc.place_name}</div>
-                          {acc.place_address && (
-                            <div className="truncate font-geist text-[0.65625rem] text-m-muted">{acc.place_address}</div>
+                          {acc.place_image ? (
+                            <div
+                              className="h-10 w-10 flex-none rounded-[12px] bg-cover bg-center"
+                              style={{ backgroundImage: `url('${acc.place_image}')` }}
+                            />
+                          ) : (
+                            <div className="flex h-10 w-10 flex-none items-center justify-center rounded-[12px] bg-[color:var(--m-ic)]">
+                              <Hotel size={17} strokeWidth={1.8} className="text-m-muted" />
+                            </div>
                           )}
-                        </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-[0.875rem] font-semibold">{acc.place_name}</div>
+                            {acc.place_address && (
+                              <div className="truncate font-geist text-[0.65625rem] text-m-muted">
+                                {acc.place_address}
+                              </div>
+                            )}
+                          </div>
                         </button>
                         {!badgeAtTime && (
-                          <span className={`flex-none rounded-full border px-[7px] py-[2px] text-[0.5625rem] font-bold uppercase tracking-[.05em] ${badge.cls}`}>
+                          <span
+                            className={`flex-none rounded-full border px-[7px] py-[2px] text-[0.5625rem] font-bold uppercase tracking-[.05em] ${badge.cls}`}
+                          >
                             {badge.label}
                           </span>
                         )}
@@ -552,7 +628,11 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                             />
                           )}
                           {times.checkOut && acc.check_out && (
-                            <StatBox value={displayTime(acc.check_out, locale, timeFormat)} label={t('day.checkOut')} labelTone="danger" />
+                            <StatBox
+                              value={displayTime(acc.check_out, locale, timeFormat)}
+                              label={t('day.checkOut')}
+                              labelTone="danger"
+                            />
                           )}
                           {acc.confirmation && (
                             <StatBox value={acc.confirmation} label={t('day.confirmation')} blurred={blurCodes} />
@@ -569,17 +649,27 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                         >
                           <span
                             className="h-2 w-2 flex-none rounded-full"
-                            style={{ background: linked.status === 'confirmed' ? 'var(--m-st-confirmed)' : 'var(--m-st-pending)' }}
+                            style={{
+                              background:
+                                linked.status === 'confirmed' ? 'var(--m-st-confirmed)' : 'var(--m-st-pending)',
+                            }}
                           />
                           <span className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] text-m-muted">
                             {linked.status === 'confirmed' ? t('reservations.confirmed') : t('reservations.pending')}
                             {/* The strip is a button already, so the code gets the plain blur, not a toggle. */}
-                            {linked.confirmation_number ? <> · <BlurredCode interactive={false}>{`#${linked.confirmation_number}`}</BlurredCode></> : ''}
+                            {linked.confirmation_number ? (
+                              <>
+                                {' '}
+                                · <BlurredCode interactive={false}>{`#${linked.confirmation_number}`}</BlurredCode>
+                              </>
+                            ) : (
+                              ''
+                            )}
                           </span>
                         </button>
                       )}
                     </div>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -597,5 +687,5 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
         </>
       )}
     </MSheet>
-  )
+  );
 }

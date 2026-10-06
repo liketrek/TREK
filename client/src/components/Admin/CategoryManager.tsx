@@ -1,108 +1,136 @@
-import { useState, useEffect, useRef, useId } from 'react'
-import { categoriesApi } from '../../api/client'
-import { useToast } from '../shared/Toast'
-import { Plus, Pencil, Trash2, Pipette, Tags, Loader2 } from 'lucide-react'
-import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
-import { Tooltip } from '../shared/Tooltip'
-import ConfirmDialog from '../shared/ConfirmDialog'
-import { SettingRows, SettingsCard, SettingsHint, StatusPill, SETTINGS_BUTTON_PRIMARY, SETTINGS_ICON_BUTTON } from '../Settings/settingsKit'
-import { CATEGORY_ICON_MAP, ICON_LABELS, getCategoryIcon } from '../shared/categoryIcons'
-import { useTranslation } from '../../i18n'
-import { getApiErrorMessage } from '../../types'
+import { Loader2, Pencil, Pipette, Plus, Tags, Trash2 } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { categoriesApi } from '../../api/client';
+import { useTranslation } from '../../i18n';
+import { getApiErrorMessage } from '../../types';
+import {
+  SETTINGS_BUTTON_PRIMARY,
+  SETTINGS_ICON_BUTTON,
+  SettingRows,
+  SettingsCard,
+  SettingsHint,
+  StatusPill,
+} from '../Settings/settingsKit';
+import { CATEGORY_ICON_MAP, ICON_LABELS, getCategoryIcon } from '../shared/categoryIcons';
+import ConfirmDialog from '../shared/ConfirmDialog';
+import {
+  DialogButton,
+  DialogFooter,
+  DialogHeader,
+  DialogSection,
+  DialogShell,
+  DialogTile,
+  FooterSpacer,
+  NEUTRAL_TINT,
+  fs,
+} from '../shared/DialogShell';
+import { useToast } from '../shared/Toast';
+import { Tooltip } from '../shared/Tooltip';
 
 const PRESET_COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316',
-  '#f59e0b', '#10b981', '#06b6d4', '#3b82f6', '#84cc16',
-  '#6b7280', '#1f2937',
-]
+  '#6366f1',
+  '#8b5cf6',
+  '#ec4899',
+  '#ef4444',
+  '#f97316',
+  '#f59e0b',
+  '#10b981',
+  '#06b6d4',
+  '#3b82f6',
+  '#84cc16',
+  '#6b7280',
+  '#1f2937',
+];
 
 // The colour a new category is stored with: data the server keeps, not a theme colour.
-const DEFAULT_COLOR = '#6366f1' // theme-lint-disable: a stored category colour, not styling
+const DEFAULT_COLOR = '#6366f1'; // theme-lint-disable: a stored category colour, not styling
 
-const ICON_NAMES = Object.keys(CATEGORY_ICON_MAP)
+const ICON_NAMES = Object.keys(CATEGORY_ICON_MAP);
 
 export default function CategoryManager() {
-  const [categories, setCategories] = useState([])
-  const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ name: '', color: DEFAULT_COLOR, icon: 'MapPin' })
-  const [isSaving, setIsSaving] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [categories, setCategories] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState({ name: '', color: DEFAULT_COLOR, icon: 'MapPin' });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   // The category whose delete waits for the answer in the confirm dialog.
-  const [deleteId, setDeleteId] = useState(null)
-  const colorInputRef = useRef(null)
-  const toast = useToast()
-  const { t } = useTranslation()
-  const labelId = useId()
+  const [deleteId, setDeleteId] = useState(null);
+  const colorInputRef = useRef(null);
+  const toast = useToast();
+  const { t } = useTranslation();
+  const labelId = useId();
 
-  useEffect(() => { void loadCategories() }, [])
+  useEffect(() => {
+    void loadCategories();
+  }, []);
 
   const loadCategories = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const data = await categoriesApi.list()
-      setCategories(data.categories || [])
+      const data = await categoriesApi.list();
+      setCategories(data.categories || []);
     } catch (err: unknown) {
-      toast.error(t('categories.toast.loadError'))
+      toast.error(t('categories.toast.loadError'));
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleStartEdit = (cat) => {
-    setEditingId(cat.id)
-    setForm({ name: cat.name, color: cat.color || DEFAULT_COLOR, icon: cat.icon || 'MapPin' })
-    setShowForm(false)
-  }
+    setEditingId(cat.id);
+    setForm({ name: cat.name, color: cat.color || DEFAULT_COLOR, icon: cat.icon || 'MapPin' });
+    setShowForm(false);
+  };
 
   const handleStartCreate = () => {
-    setEditingId(null)
-    setForm({ name: '', color: DEFAULT_COLOR, icon: 'MapPin' })
-    setShowForm(true)
-  }
+    setEditingId(null);
+    setForm({ name: '', color: DEFAULT_COLOR, icon: 'MapPin' });
+    setShowForm(true);
+  };
 
   const handleCancel = () => {
-    setShowForm(false)
-    setEditingId(null)
-  }
+    setShowForm(false);
+    setEditingId(null);
+  };
 
   // The Save button carries disabled={… || !form.name.trim()}, so the name is set here.
   const handleSave = async () => {
-    setIsSaving(true)
+    setIsSaving(true);
     try {
       if (editingId) {
-        const result = await categoriesApi.update(editingId, form)
-        setCategories(prev => prev.map(c => c.id === editingId ? result.category : c))
-        setEditingId(null)
-        toast.success(t('categories.toast.updated'))
+        const result = await categoriesApi.update(editingId, form);
+        setCategories((prev) => prev.map((c) => (c.id === editingId ? result.category : c)));
+        setEditingId(null);
+        toast.success(t('categories.toast.updated'));
       } else {
-        const result = await categoriesApi.create(form)
-        setCategories(prev => [...prev, result.category])
-        setShowForm(false)
-        toast.success(t('categories.toast.created'))
+        const result = await categoriesApi.create(form);
+        setCategories((prev) => [...prev, result.category]);
+        setShowForm(false);
+        toast.success(t('categories.toast.created'));
       }
-      setForm({ name: '', color: DEFAULT_COLOR, icon: 'MapPin' })
+      setForm({ name: '', color: DEFAULT_COLOR, icon: 'MapPin' });
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('categories.toast.saveError')))
+      toast.error(getApiErrorMessage(err, t('categories.toast.saveError')));
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const handleDelete = async (id) => {
     try {
-      await categoriesApi.delete(id)
-      setCategories(prev => prev.filter(c => c.id !== id))
-      toast.success(t('categories.toast.deleted'))
+      await categoriesApi.delete(id);
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      toast.success(t('categories.toast.deleted'));
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('categories.toast.deleteError')))
+      toast.error(getApiErrorMessage(err, t('categories.toast.deleteError')));
     }
-  }
+  };
 
-  const isPresetColor = PRESET_COLORS.includes(form.color)
-  const PreviewIcon = getCategoryIcon(form.icon)
-  const formOpen = showForm || editingId !== null
-  const saveDisabled = isSaving || !form.name.trim()
+  const isPresetColor = PRESET_COLORS.includes(form.color);
+  const PreviewIcon = getCategoryIcon(form.icon);
+  const formOpen = showForm || editingId !== null;
+  const saveDisabled = isSaving || !form.name.trim();
 
   const categoryDialog = (
     <DialogShell
@@ -111,18 +139,24 @@ export default function CategoryManager() {
       width="detail"
       header={
         <DialogHeader
-          tile={<DialogTile><PreviewIcon size={20} strokeWidth={1.9} color={form.color} /></DialogTile>}
+          tile={
+            <DialogTile>
+              <PreviewIcon size={20} strokeWidth={1.9} color={form.color} />
+            </DialogTile>
+          }
           tint={NEUTRAL_TINT}
           labelId={labelId}
           onClose={handleCancel}
           eyebrow={editingId ? t('common.edit') : t('categories.new')}
           titleInput={{
             value: form.name,
-            onChange: name => setForm(prev => ({ ...prev, name })),
+            onChange: (name) => setForm((prev) => ({ ...prev, name })),
             label: t('categories.namePlaceholder'),
             placeholder: t('categories.namePlaceholder'),
             autoFocus: true,
-            onKeyDown: e => { if (e.key === 'Enter' && !saveDisabled) void handleSave() },
+            onKeyDown: (e) => {
+              if (e.key === 'Enter' && !saveDisabled) void handleSave();
+            },
           }}
         />
       }
@@ -139,9 +173,9 @@ export default function CategoryManager() {
       <DialogSection label={t('categories.icon')}>
         <div className="max-h-52 overflow-y-auto rounded-[14px] border border-edge-faint bg-surface-secondary p-2">
           <div className="grid grid-cols-[repeat(auto-fill,minmax(38px,1fr))] gap-1">
-            {ICON_NAMES.map(name => {
-              const Icon = CATEGORY_ICON_MAP[name]
-              const isSelected = form.icon === name
+            {ICON_NAMES.map((name) => {
+              const Icon = CATEGORY_ICON_MAP[name];
+              const isSelected = form.icon === name;
               return (
                 <button
                   key={name}
@@ -149,15 +183,17 @@ export default function CategoryManager() {
                   title={ICON_LABELS[name] || name}
                   aria-label={ICON_LABELS[name] || name}
                   aria-pressed={isSelected}
-                  onClick={() => setForm(prev => ({ ...prev, icon: name }))}
+                  onClick={() => setForm((prev) => ({ ...prev, icon: name }))}
                   className={`grid h-[38px] place-items-center rounded-[10px] transition-colors ${
-                    isSelected ? 'bg-surface-card shadow-sm ring-2 ring-content' : 'text-content-secondary hover:bg-surface-card'
+                    isSelected
+                      ? 'bg-surface-card shadow-sm ring-2 ring-content'
+                      : 'text-content-secondary hover:bg-surface-card'
                   }`}
                   style={isSelected ? { background: `${form.color}18` } : undefined}
                 >
                   <Icon size={17} strokeWidth={1.8} color={isSelected ? form.color : 'currentColor'} />
                 </button>
-              )
+              );
             })}
           </div>
         </div>
@@ -165,12 +201,16 @@ export default function CategoryManager() {
 
       <DialogSection label={t('categories.color')}>
         <div className="flex flex-wrap items-center gap-2">
-          {PRESET_COLORS.map(color => (
-            <button key={color} type="button" onClick={() => setForm(prev => ({ ...prev, color }))}
+          {PRESET_COLORS.map((color) => (
+            <button
+              key={color}
+              type="button"
+              onClick={() => setForm((prev) => ({ ...prev, color }))}
               aria-label={color}
               aria-pressed={form.color === color}
               className={`h-7 w-7 rounded-full transition-transform hover:scale-110 ${form.color === color ? 'scale-110 ring-2 ring-content ring-offset-2 ring-offset-surface-card' : ''}`}
-              style={{ backgroundColor: color }} />
+              style={{ backgroundColor: color }}
+            />
           ))}
 
           {/* Custom color button */}
@@ -178,7 +218,7 @@ export default function CategoryManager() {
             ref={colorInputRef}
             type="color"
             value={form.color}
-            onChange={e => setForm(prev => ({ ...prev, color: e.target.value }))}
+            onChange={(e) => setForm((prev) => ({ ...prev, color: e.target.value }))}
             className="sr-only"
             tabIndex={-1}
             aria-hidden
@@ -202,15 +242,17 @@ export default function CategoryManager() {
 
       <DialogSection label={t('categories.preview')}>
         <div className="flex items-center rounded-[14px] border border-edge-faint bg-surface-secondary px-3.5 py-3">
-          <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 truncate rounded-full px-2.5 py-1 font-semibold"
-            style={{ ...fs(12.5, 'body'), backgroundColor: `${form.color}20`, color: form.color }}>
+          <span
+            className="inline-flex min-w-0 max-w-full items-center gap-1.5 truncate rounded-full px-2.5 py-1 font-semibold"
+            style={{ ...fs(12.5, 'body'), backgroundColor: `${form.color}20`, color: form.color }}
+          >
             <PreviewIcon size={14} strokeWidth={1.8} className="flex-none" />
             {form.name || t('categories.defaultName')}
           </span>
         </div>
       </DialogSection>
     </DialogShell>
-  )
+  );
 
   return (
     <SettingsCard
@@ -235,35 +277,55 @@ export default function CategoryManager() {
         </div>
       ) : (
         <SettingRows>
-          {categories.map(cat => {
-            const Icon = getCategoryIcon(cat.icon)
+          {categories.map((cat) => {
+            const Icon = getCategoryIcon(cat.icon);
             return (
-              <div key={cat.id} data-category-row={cat.id} className={`group flex items-center gap-3 px-3.5 py-3 ${editingId === cat.id ? 'bg-surface-secondary' : ''}`}>
-                <span className="grid h-9 w-9 flex-none place-items-center rounded-[10px]"
-                  style={{ backgroundColor: `${cat.color}20` }}>
+              <div
+                key={cat.id}
+                data-category-row={cat.id}
+                className={`group flex items-center gap-3 px-3.5 py-3 ${editingId === cat.id ? 'bg-surface-secondary' : ''}`}
+              >
+                <span
+                  className="grid h-9 w-9 flex-none place-items-center rounded-[10px]"
+                  style={{ backgroundColor: `${cat.color}20` }}
+                >
                   <Icon size={17} strokeWidth={1.8} color={cat.color} />
                 </span>
                 <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <span className="min-w-0 truncate font-medium text-content" style={fs(13, 'body')}>{cat.name}</span>
-                  <span className="flex-none rounded-full px-2 py-[2px] font-geist font-semibold uppercase tabular-nums"
-                    style={{ ...fs(10.5), backgroundColor: `${cat.color}20`, color: cat.color }}>
+                  <span className="min-w-0 truncate font-medium text-content" style={fs(13, 'body')}>
+                    {cat.name}
+                  </span>
+                  <span
+                    className="flex-none rounded-full px-2 py-[2px] font-geist font-semibold uppercase tabular-nums"
+                    style={{ ...fs(10.5), backgroundColor: `${cat.color}20`, color: cat.color }}
+                  >
                     {cat.color}
                   </span>
                 </div>
                 <div className="flex flex-none items-center gap-1.5">
                   <Tooltip label={t('common.edit')}>
-                    <button type="button" onClick={() => handleStartEdit(cat)} aria-label={t('common.edit')} className={SETTINGS_ICON_BUTTON}>
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(cat)}
+                      aria-label={t('common.edit')}
+                      className={SETTINGS_ICON_BUTTON}
+                    >
                       <Pencil size={14} strokeWidth={2} />
                     </button>
                   </Tooltip>
                   <Tooltip label={t('common.delete')}>
-                    <button type="button" onClick={() => setDeleteId(cat.id)} aria-label={t('common.delete')} className={`${SETTINGS_ICON_BUTTON} hover:!text-danger`}>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteId(cat.id)}
+                      aria-label={t('common.delete')}
+                      className={`${SETTINGS_ICON_BUTTON} hover:!text-danger`}
+                    >
                       <Trash2 size={14} strokeWidth={2} />
                     </button>
                   </Tooltip>
                 </div>
               </div>
-            )
+            );
           })}
         </SettingRows>
       )}
@@ -271,11 +333,13 @@ export default function CategoryManager() {
       <ConfirmDialog
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
-        onConfirm={() => { if (deleteId !== null) void handleDelete(deleteId) }}
+        onConfirm={() => {
+          if (deleteId !== null) void handleDelete(deleteId);
+        }}
         message={t('categories.confirm.delete')}
         confirmLabel={t('common.delete')}
         danger
       />
     </SettingsCard>
-  )
+  );
 }

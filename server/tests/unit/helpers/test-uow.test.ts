@@ -1,9 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestUnitOfWork } from '../../helpers/test-uow';
-import { createUser } from '../../helpers/factories';
-import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let uow: UnitOfWork;

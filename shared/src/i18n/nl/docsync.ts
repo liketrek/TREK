@@ -71,7 +71,7 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': 'Verwijderd in TREK',
   'docsync.state.scope_drift': 'Buiten de map verplaatst',
 
-  'docsync.conflict.resolve': "{count} oplossen",
+  'docsync.conflict.resolve': '{count} oplossen',
 
   'docsync.conflict.title': 'Beide kopieën zijn gewijzigd',
   'docsync.conflict.keepTrek': 'De TREK-versie behouden',
@@ -175,7 +175,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'De overdracht is niet gelukt.',
 
   'docsync.error.unknown_provider': 'Deze aanbieder is niet beschikbaar op deze instantie.',
-  'docsync.error.provider_disabled': 'Gepauzeerd: een beheerder heeft deze aanbieder uitgeschakeld. De synchronisatie gaat verder zodra hij weer aanstaat.',
+  'docsync.error.provider_disabled':
+    'Gepauzeerd: een beheerder heeft deze aanbieder uitgeschakeld. De synchronisatie gaat verder zodra hij weer aanstaat.',
   'docsync.binding.reconnect': 'Opnieuw verbinden',
 };
 

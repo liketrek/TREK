@@ -1,3 +1,6 @@
+import { decodeBase64Url } from '../../../app-config';
+
+import jwt from 'jsonwebtoken';
 import {
   createCipheriv,
   createECDH,
@@ -8,8 +11,6 @@ import {
   randomBytes,
   type KeyObject,
 } from 'node:crypto';
-import jwt from 'jsonwebtoken';
-import { decodeBase64Url } from '../../../app-config';
 
 /**
  * Web Push message encryption (RFC 8291, `aes128gcm` from RFC 8188) and the

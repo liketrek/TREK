@@ -13,8 +13,34 @@
  * The last block is the exception: an admin's provider switch lives in the
  * service's query, so it runs the tick over the real service and a database.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
+import { ADDON_IDS } from '../../../../src/addons';
+import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
+import type { AddonsService } from '../../../../src/nest/addons/addons.service';
+import { DocSyncConfigService, type LinkRow } from '../../../../src/nest/doc-sync/doc-sync-config.service';
+import { SETTING_POLL_INTERVAL, SETTING_SYNC_ENABLED } from '../../../../src/nest/doc-sync/doc-sync.constants';
+import { DocSyncJob } from '../../../../src/nest/doc-sync/doc-sync.job';
+import { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
+import type { DocumentProvider } from '../../../../src/nest/doc-sync/document-provider';
+import { DocumentProviderRegistry } from '../../../../src/nest/doc-sync/document-provider.registry';
+import { AllowedFileTypesService } from '../../../../src/nest/files/allowed-file-types.service';
+import type { FilesService } from '../../../../src/nest/files/files.service';
+import type { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
+import type { CronRegistrarService } from '../../../../src/nest/scheduling/cron-registrar.service';
+import type { StorageService } from '../../../../src/nest/storage/storage.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import {
+  createTestDocumentConnectionsRepo,
+  createTestDocumentProviderFieldsRepo,
+  createTestDocumentProvidersRepo,
+  createTestDocumentSyncItemsRepo,
+  createTestFileLinksRepo,
+  createTestTripDocumentLinksRepo,
+  createTestTripFilesRepo,
+} from '../../../helpers/doc-sync-repos';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo } from '../../../helpers/test-uow';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 const log = vi.hoisted(() => ({
   LOG_LEVEL: 'error',
@@ -25,33 +51,7 @@ const log = vi.hoisted(() => ({
 }));
 vi.mock('../../../../src/nest/audit/audit-log.logger', () => log);
 
-import { ADDON_IDS } from '../../../../src/addons';
-import { DocSyncJob } from '../../../../src/nest/doc-sync/doc-sync.job';
-import { SETTING_POLL_INTERVAL, SETTING_SYNC_ENABLED } from '../../../../src/nest/doc-sync/doc-sync.constants';
-import { DocSyncConfigService, type LinkRow } from '../../../../src/nest/doc-sync/doc-sync-config.service';
-import { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
-import { DocumentProviderRegistry } from '../../../../src/nest/doc-sync/document-provider.registry';
-import type { DocumentProvider } from '../../../../src/nest/doc-sync/document-provider';
-import type { AddonsService } from '../../../../src/nest/addons/addons.service';
-import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
-import type { CronRegistrarService } from '../../../../src/nest/scheduling/cron-registrar.service';
-import { AllowedFileTypesService } from '../../../../src/nest/files/allowed-file-types.service';
-import type { FilesService } from '../../../../src/nest/files/files.service';
-import type { StorageService } from '../../../../src/nest/storage/storage.service';
-import type { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
-import { createTrip, createUser } from '../../../helpers/factories';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo } from '../../../helpers/test-uow';
-import {
-  createTestDocumentConnectionsRepo,
-  createTestDocumentProviderFieldsRepo,
-  createTestDocumentProvidersRepo,
-  createTestDocumentSyncItemsRepo,
-  createTestFileLinksRepo,
-  createTestTripDocumentLinksRepo,
-  createTestTripFilesRepo,
-} from '../../../helpers/doc-sync-repos';
-
-const link = (id: number): LinkRow => ({ id, provider_id: 'paperless' } as LinkRow);
+const link = (id: number): LinkRow => ({ id, provider_id: 'paperless' }) as LinkRow;
 
 const RUN = { state: 'ok', pulled: 0, pushed: 0, conflicts: 0, missing: 0 };
 
@@ -91,7 +91,9 @@ function makeJob(over: Partial<Setup> = {}) {
     // CronRegistrarService.runOnBoot instead of directly inline — this
     // double just runs fn immediately, reproducing the pre-fix behaviour
     // exactly, so every existing assertion below is unaffected.
-    runOnBoot: vi.fn(async (_name: string, fn: () => void | Promise<void>) => { await fn(); }),
+    runOnBoot: vi.fn(async (_name: string, fn: () => void | Promise<void>) => {
+      await fn();
+    }),
   };
 
   // Both stubs carry the real signatures, so a case can read back which link a
@@ -422,11 +424,23 @@ describe('DocSyncJob and a provider switched off in the admin panel', () => {
   const fakeProvider = (id: string) => ({
     id,
     capabilities: () => ({
-      push: 'none', stableId: true, remoteTrash: true, replaceInPlace: true, contentHashInListing: true,
-      maxUploadBytes: null, acceptedMimeTypes: null, canCreateScope: true,
+      push: 'none',
+      stableId: true,
+      remoteTrash: true,
+      replaceInPlace: true,
+      contentHashInListing: true,
+      maxUploadBytes: null,
+      acceptedMimeTypes: null,
+      canCreateScope: true,
     }),
-    resolveScope: vi.fn(async () => ({ success: true, data: { scopeKey: 'tag:1', label: 'Japan', remoteRootId: '1', remoteRootPath: null } })),
-    list: vi.fn(async () => ({ success: true, data: { documents: [], cursor: null, cursorUnchanged: false, truncated: false } })),
+    resolveScope: vi.fn(async () => ({
+      success: true,
+      data: { scopeKey: 'tag:1', label: 'Japan', remoteRootId: '1', remoteRootPath: null },
+    })),
+    list: vi.fn(async () => ({
+      success: true,
+      data: { documents: [], cursor: null, cursorUnchanged: false, truncated: false },
+    })),
   });
   const paperless = fakeProvider('paperless');
   const nextcloud = fakeProvider('nextcloud');
@@ -467,7 +481,9 @@ describe('DocSyncJob and a provider switched off in the admin panel', () => {
       appSettingsRepo,
       config,
       registry,
-      {} as StorageService, {} as FilesService, new AllowedFileTypesService(appSettingsRepo),
+      {} as StorageService,
+      {} as FilesService,
+      new AllowedFileTypesService(appSettingsRepo),
       { broadcast: vi.fn() } as unknown as RealtimeService,
       addons,
       await createTestUnitOfWork(testDb),
@@ -481,14 +497,16 @@ describe('DocSyncJob and a provider switched off in the admin panel', () => {
            VALUES (?, ?, ?, 'https://docs.example.com', NULL, '{}')`,
         )
         .run(tripId, providerId, ownerId);
-      return Number(testDb
-        .prepare(
-          `INSERT INTO trip_document_links
+      return Number(
+        testDb
+          .prepare(
+            `INSERT INTO trip_document_links
              (trip_id, connection_id, provider_id, remote_scope_key, remote_label, direction, delete_policy,
               conflict_policy, sync_enabled, created_by)
            VALUES (?, ?, ?, 'tag:1', 'Japan', 'both', 'unlink', 'manual', 1, ?)`,
-        )
-        .run(tripId, conn.lastInsertRowid, providerId, ownerId).lastInsertRowid);
+          )
+          .run(tripId, conn.lastInsertRowid, providerId, ownerId).lastInsertRowid,
+      );
     };
     paperlessLink = bind('paperless');
     nextcloudLink = bind('nextcloud');

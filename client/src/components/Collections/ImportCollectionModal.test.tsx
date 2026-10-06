@@ -1,7 +1,7 @@
 // FE-COMP-COLLIMPORT-001 to FE-COMP-COLLIMPORT-026
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import type { Collection, CollectionFile } from '@trek/shared';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { useTranslation } from '../../i18n/TranslationContext';
 import ImportCollectionModal from './ImportCollectionModal';
 import type { GpxReader } from './collectionFile';
@@ -14,10 +14,15 @@ function Harness(props: Omit<React.ComponentProps<typeof ImportCollectionModal>,
 }
 
 const listFile: CollectionFile = {
-  format: 'trek.collection', version: 1, name: 'Lisbon',
+  format: 'trek.collection',
+  version: 1,
+  name: 'Lisbon',
   description: 'Worth it if you have three days',
   color: '#ef4444',
-  labels: [{ name: 'Must see', color: '#ff0000' }, { name: 'Rainy day', color: '#00ff00' }],
+  labels: [
+    { name: 'Must see', color: '#ff0000' },
+    { name: 'Rainy day', color: '#00ff00' },
+  ],
   places: [{ name: 'Time Out Market' }, { name: 'Miradouro' }, { name: 'Pastéis de Belém' }],
 } as CollectionFile;
 
@@ -147,10 +152,13 @@ describe('ImportCollectionModal (#2198)', () => {
 describe('ImportCollectionModal with a GPX (#2301)', () => {
   const gpx = '<?xml version="1.0"?><gpx version="1.1"><wpt lat="1" lon="2"><name>Pena Palace</name></wpt></gpx>';
   const gpxFile: CollectionFile = {
-    format: 'trek.collection', version: 1, name: 'Sintra loop',
+    format: 'trek.collection',
+    version: 1,
+    name: 'Sintra loop',
     places: [{ name: 'Pena Palace' }, { name: 'Moorish Castle' }],
   } as CollectionFile;
-  const refusal = (code: string) => Object.assign(new Error('Request failed'), { response: { status: 400, data: { error: 'no', code } } });
+  const refusal = (code: string) =>
+    Object.assign(new Error('Request failed'), { response: { status: 400, data: { error: 'no', code } } });
 
   it('FE-COMP-COLLIMPORT-011: says which files it takes', () => {
     renderModal();
@@ -170,7 +178,9 @@ describe('ImportCollectionModal with a GPX (#2301)', () => {
     expect(onReadGpx).toHaveBeenCalledWith(gpx, 'sintra.gpx');
     expect(screen.getByText('2 places')).toBeInTheDocument();
     expect(screen.getByText('2 waypoints without usable coordinates are left out.')).toBeInTheDocument();
-    expect(screen.getByText('This file also has 8 track points. Tracks are not imported, only waypoints.')).toBeInTheDocument();
+    expect(
+      screen.getByText('This file also has 8 track points. Tracks are not imported, only waypoints.')
+    ).toBeInTheDocument();
     // The note about ratings and members is about TREK files; a GPX never had any.
     expect(screen.queryByText(/Ratings, members/)).toBeNull();
 
@@ -197,13 +207,18 @@ describe('ImportCollectionModal with a GPX (#2301)', () => {
 
     await choose(gpx, 'track.gpx');
 
-    await waitFor(() => expect(screen.getByText('This GPX file has no waypoints, so there is nothing to import.')).toBeInTheDocument());
-    expect(screen.getByText('This file also has 120 track points. Tracks are not imported, only waypoints.')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText('This GPX file has no waypoints, so there is nothing to import.')).toBeInTheDocument()
+    );
+    expect(
+      screen.getByText('This file also has 120 track points. Tracks are not imported, only waypoints.')
+    ).toBeInTheDocument();
     expect(importButton()).toBeDisabled();
   });
 
   it('FE-COMP-COLLIMPORT-015: says in its own words why a GPX was refused', async () => {
-    const onReadGpx = vi.fn()
+    const onReadGpx = vi
+      .fn()
       .mockRejectedValueOnce(refusal('not-gpx'))
       .mockRejectedValueOnce(refusal('too-many-places'))
       .mockRejectedValueOnce(refusal('unreadable'));
@@ -212,9 +227,11 @@ describe('ImportCollectionModal with a GPX (#2301)', () => {
     await choose(gpx, 'a.gpx');
     await waitFor(() => expect(screen.getByText('That is not a GPX file.')).toBeInTheDocument());
     await choose(gpx, 'b.gpx');
-    await waitFor(() => expect(screen.getByText(
-      'That file has more than 1000 places. Split it and import the parts one at a time.',
-    )).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByText('That file has more than 1000 places. Split it and import the parts one at a time.')
+      ).toBeInTheDocument()
+    );
     await choose(gpx, 'c.gpx');
     await waitFor(() => expect(screen.getByText('That file could not be read.')).toBeInTheDocument());
     expect(importButton()).toBeDisabled();
@@ -222,7 +239,12 @@ describe('ImportCollectionModal with a GPX (#2301)', () => {
 
   it('FE-COMP-COLLIMPORT-016: says it is reading while the server reads, and why it could not', async () => {
     let fail: ((err: unknown) => void) | null = null;
-    const onReadGpx = vi.fn<GpxReader>(() => new Promise((_, reject) => { fail = reject; }));
+    const onReadGpx = vi.fn<GpxReader>(
+      () =>
+        new Promise((_, reject) => {
+          fail = reject;
+        })
+    );
     renderModal({ onReadGpx });
 
     await choose(gpx, 'slow.gpx');
@@ -277,7 +299,9 @@ describe('ImportCollectionModal into an existing list', () => {
     await userEvent.click(screen.getByText('Porto'));
     await userEvent.click(screen.getByRole('button', { name: 'Add to list' }));
 
-    await waitFor(() => expect(props.onImportInto).toHaveBeenCalledWith(expect.objectContaining({ name: 'Lisbon' }), 9));
+    await waitFor(() =>
+      expect(props.onImportInto).toHaveBeenCalledWith(expect.objectContaining({ name: 'Lisbon' }), 9)
+    );
     expect(props.onImport).not.toHaveBeenCalled();
   });
 
@@ -303,9 +327,13 @@ describe('ImportCollectionModal into an existing list', () => {
   });
 
   it('FE-COMP-COLLIMPORT-025: keeps the dialog open and says why when adding fails', async () => {
-    const onImportInto = vi.fn().mockRejectedValue(
-      Object.assign(new Error('x'), { response: { status: 403, data: { error: 'You have read-only access to this list' } } }),
-    );
+    const onImportInto = vi
+      .fn()
+      .mockRejectedValue(
+        Object.assign(new Error('x'), {
+          response: { status: 403, data: { error: 'You have read-only access to this list' } },
+        })
+      );
     intoProps({ onImportInto });
     await choose(JSON.stringify(listFile));
     await waitFor(() => expect(screen.getByText('Add to a list')).toBeInTheDocument());
@@ -325,7 +353,9 @@ describe('ImportCollectionModal into an existing list', () => {
     await userEvent.click(screen.getByText('New list'));
     await userEvent.click(importButton());
 
-    await waitFor(() => expect(props.onImport).toHaveBeenCalledWith(expect.objectContaining({ name: 'Lisbon' }), undefined));
+    await waitFor(() =>
+      expect(props.onImport).toHaveBeenCalledWith(expect.objectContaining({ name: 'Lisbon' }), undefined)
+    );
     expect(props.onImportInto).not.toHaveBeenCalled();
   });
 });

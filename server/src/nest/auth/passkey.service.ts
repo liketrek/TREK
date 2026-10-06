@@ -1,6 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Users } from '../../db/entities/Users.entity';
+import { WebauthnChallenges } from '../../db/entities/WebauthnChallenges.entity';
+import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
+import type { UsersRepository, UserRow } from '../../db/repositories/Users.repository';
+import type { WebauthnChallengesRepository } from '../../db/repositories/WebauthnChallenges.repository';
+import type { WebauthnCredentialsRepository } from '../../db/repositories/WebauthnCredentials.repository';
+import type { User } from '../../types';
+import { avatarUrl } from '../common/avatarUrl';
+import { toRowId } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
+import { stripUserForClient } from './auth.helpers';
+import { AuthService } from './auth.service';
+import { WebauthnConfigService, originWithinRpScope, type WebauthnConfig } from './webauthn-config.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import bcrypt from 'bcryptjs';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -8,19 +20,8 @@ import {
   verifyAuthenticationResponse,
   type AuthenticatorTransportFuture,
 } from '@simplewebauthn/server';
-import { WebauthnConfigService, originWithinRpScope, type WebauthnConfig } from './webauthn-config.service';
-import { avatarUrl } from '../common/avatarUrl';
-import { stripUserForClient } from './auth.helpers';
-import { AuthService } from './auth.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
-import type { WebauthnCredentialsRepository } from '../../db/repositories/WebauthnCredentials.repository';
-import { WebauthnChallenges } from '../../db/entities/WebauthnChallenges.entity';
-import type { WebauthnChallengesRepository } from '../../db/repositories/WebauthnChallenges.repository';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository, UserRow } from '../../db/repositories/Users.repository';
-import type { User } from '../../types';
-import { toRowId } from '../common/row-id';
+
+import bcrypt from 'bcryptjs';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -145,8 +146,18 @@ export class PasskeyService {
     await this.webauthnChallenges.purgeExpired(now);
   }
 
-  private async storeChallenge(challenge: string, userId: number | null, type: 'registration' | 'authentication', now: number): Promise<void> {
-    await this.webauthnChallenges.insertChallenge({ challenge, user_id: userId, type, expires_at: now + CHALLENGE_TTL_MS });
+  private async storeChallenge(
+    challenge: string,
+    userId: number | null,
+    type: 'registration' | 'authentication',
+    now: number,
+  ): Promise<void> {
+    await this.webauthnChallenges.insertChallenge({
+      challenge,
+      user_id: userId,
+      type,
+      expires_at: now + CHALLENGE_TTL_MS,
+    });
   }
 
   /**
@@ -155,7 +166,11 @@ export class PasskeyService {
    * concurrent double-submit of the same assertion can never spend one challenge
    * twice (the replay window a SELECT→await→DELETE ordering would open).
    */
-  private async claimChallenge(challenge: string, type: 'registration' | 'authentication', now: number): Promise<{ user_id: number | null } | null> {
+  private async claimChallenge(
+    challenge: string,
+    type: 'registration' | 'authentication',
+    now: number,
+  ): Promise<{ user_id: number | null } | null> {
     return this.webauthnChallenges.claimChallenge(challenge, type, now);
   }
 
@@ -451,7 +466,11 @@ export class PasskeyService {
     return rows.map((r) => ({ ...r, backed_up: r.backed_up === 1 }));
   }
 
-  async renamePasskey(userId: number, id: string, name: unknown): Promise<{ error?: string; status?: number; success?: boolean }> {
+  async renamePasskey(
+    userId: number,
+    id: string,
+    name: unknown,
+  ): Promise<{ error?: string; status?: number; success?: boolean }> {
     const cleanName = sanitizeName(name);
     if (!cleanName) return { error: 'Name is required', status: 400 };
     // Convert, VALIDATE, and answer the legacy not-found before the
@@ -496,7 +515,9 @@ export class PasskeyService {
   }
 
   /** Admin: clear all of a user's passkeys (e.g. on suspected compromise). */
-  async adminResetPasskeys(targetUserId: number): Promise<{ error?: string; status?: number; success?: boolean; deleted?: number; email?: string }> {
+  async adminResetPasskeys(
+    targetUserId: number,
+  ): Promise<{ error?: string; status?: number; success?: boolean; deleted?: number; email?: string }> {
     // `AdminService.resetUserPasskeys` converts the route param with a bare
     // `Number(id)` before calling in — a non-numeric id arrives here as
     // `NaN`, still typed `number` at the JS level. Same F1 guard: validate

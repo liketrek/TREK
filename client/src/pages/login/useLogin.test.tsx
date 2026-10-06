@@ -1,17 +1,17 @@
 // FE-LOGIN-HOOK-001 to FE-LOGIN-HOOK-040
-import React from 'react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act, waitFor } from '../../../tests/helpers/render';
-import { MemoryRouter, type MemoryRouterProps } from 'react-router';
+import { startAuthentication } from '@simplewebauthn/browser';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
-import { resetAllStores } from '../../../tests/helpers/store';
+import React from 'react';
+import { MemoryRouter, type MemoryRouterProps } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildAppConfig } from '../../../tests/helpers/factories';
-import { markSignedOut, clearSignedOut, wasSignedOut } from '../../utils/signedOut';
+import { server } from '../../../tests/helpers/msw/server';
+import { act, renderHook, waitFor } from '../../../tests/helpers/render';
+import { resetAllStores } from '../../../tests/helpers/store';
 import { TranslationProvider } from '../../i18n/TranslationContext';
 import { useAuthStore, type LoginResult } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { startAuthentication } from '@simplewebauthn/browser';
+import { clearSignedOut, markSignedOut, wasSignedOut } from '../../utils/signedOut';
 import { START_DESTINATION_ROUTE } from '../../utils/startDestination';
 import { useLogin } from './useLogin';
 
@@ -112,9 +112,7 @@ describe('useLogin — app config probe', () => {
   });
 
   it('FE-LOGIN-HOOK-002: switches to register on a fresh instance with no users', async () => {
-    server.use(
-      http.get('/api/auth/app-config', () => HttpResponse.json(buildAppConfig({ has_users: false }))),
-    );
+    server.use(http.get('/api/auth/app-config', () => HttpResponse.json(buildAppConfig({ has_users: false }))));
     const { result } = renderLogin();
     await ready(result);
 
@@ -172,8 +170,8 @@ describe('useLogin — app config probe', () => {
   it('FE-LOGIN-HOOK-007: sends the browser straight to the IdP when passwords are disabled', async () => {
     server.use(
       http.get('/api/auth/app-config', () =>
-        HttpResponse.json(buildAppConfig({ password_login: false, oidc_configured: true, oidc_login: true })),
-      ),
+        HttpResponse.json(buildAppConfig({ password_login: false, oidc_configured: true, oidc_login: true }))
+      )
     );
 
     const { result } = renderLogin();
@@ -188,8 +186,8 @@ describe('useLogin — app config probe', () => {
   it('FE-LOGIN-HOOK-008: does not bounce back to the IdP right after a logout', async () => {
     server.use(
       http.get('/api/auth/app-config', () =>
-        HttpResponse.json(buildAppConfig({ password_login: false, oidc_configured: true, oidc_login: true })),
-      ),
+        HttpResponse.json(buildAppConfig({ password_login: false, oidc_configured: true, oidc_login: true }))
+      )
     );
 
     const { result } = renderLogin([{ pathname: '/login', state: { noRedirect: true } }]);
@@ -202,7 +200,7 @@ describe('useLogin — app config probe', () => {
   it('FE-LOGIN-HOOK-009: never auto-redirects on a cached config', async () => {
     localStorage.setItem(
       CONFIG_CACHE_KEY,
-      JSON.stringify(buildAppConfig({ password_login: false, oidc_configured: true, oidc_login: true })),
+      JSON.stringify(buildAppConfig({ password_login: false, oidc_configured: true, oidc_login: true }))
     );
     server.use(http.get('/api/auth/app-config', () => HttpResponse.error()));
 
@@ -259,7 +257,9 @@ describe('useLogin — redirect target', () => {
     await act(async () => {
       await result.current.handleDemoLogin();
     });
-    act(() => { vi.advanceTimersByTime(2600); });
+    act(() => {
+      vi.advanceTimersByTime(2600);
+    });
     expect(mockNavigate).toHaveBeenCalledWith(START_DESTINATION_ROUTE);
   });
 
@@ -286,9 +286,7 @@ describe('useLogin — invite links', () => {
 
   it('FE-LOGIN-HOOK-015: reports an invite link the server rejects', async () => {
     setSearch('?invite=expired');
-    server.use(
-      http.get('/api/auth/invite/:token', () => HttpResponse.json({ error: 'gone' }, { status: 410 })),
-    );
+    server.use(http.get('/api/auth/invite/:token', () => HttpResponse.json({ error: 'gone' }, { status: 410 })));
 
     const { result } = renderLogin();
     await waitFor(() => expect(result.current.error).toBe('Invalid or expired invite link'));
@@ -303,9 +301,7 @@ describe('useLogin — OIDC callback', () => {
 
     const { result } = renderLogin();
 
-    await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('/oauth/consent?client_id=foo', { replace: true }),
-    );
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/oauth/consent?client_id=foo', { replace: true }));
     expect(auth.loadUser).toHaveBeenCalled();
     await waitFor(() => expect(result.current.isLoading).toBe(false));
   });
@@ -317,7 +313,7 @@ describe('useLogin — OIDC callback', () => {
       http.get('/api/auth/oidc/exchange', () => {
         exchanges += 1;
         return HttpResponse.json({ token: 'tok' });
-      }),
+      })
     );
 
     renderLogin();
@@ -364,9 +360,7 @@ describe('useLogin — OIDC callback', () => {
     setSearch('?oidc_error=registration_disabled');
 
     const { result } = renderLogin();
-    await waitFor(() =>
-      expect(result.current.error).toBe('Registration is disabled. Contact your administrator.'),
-    );
+    await waitFor(() => expect(result.current.error).toBe('Registration is disabled. Contact your administrator.'));
     expect(sessionStorage.getItem('oidc_redirect')).toBeNull();
   });
 
@@ -413,7 +407,7 @@ describe('useLogin — language detection', () => {
 
     const { result } = renderLogin();
     await waitFor(() =>
-      expect(warn).toHaveBeenCalledWith('Failed to fetch default language config:', expect.anything()),
+      expect(warn).toHaveBeenCalledWith('Failed to fetch default language config:', expect.anything())
     );
     await ready(result);
 
@@ -513,7 +507,7 @@ describe('useLogin — passkey login', () => {
   beforeEach(() => {
     server.use(
       http.post('/api/auth/passkey/login/options', () => HttpResponse.json({ challenge: 'chal' })),
-      http.post('/api/auth/passkey/login/verify', () => HttpResponse.json({ token: 'tok', user: {} })),
+      http.post('/api/auth/passkey/login/verify', () => HttpResponse.json({ token: 'tok', user: {} }))
     );
   });
 
@@ -554,7 +548,7 @@ describe('useLogin — passkey login', () => {
       expect(result.current.error).toBe('');
       expect(result.current.isLoading).toBe(false);
       expect(result.current.showTakeoff).toBe(false);
-    },
+    }
   );
 
   it('FE-LOGIN-HOOK-033: reports a real passkey failure', async () => {
@@ -894,7 +888,7 @@ describe('useLogin — forced password change', () => {
       http.put('/api/auth/me/password', async ({ request }) => {
         body = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
 
     const result = await reachPasswordChange();
@@ -922,8 +916,8 @@ describe('useLogin — forced password change', () => {
   it('FE-LOGIN-HOOK-052: surfaces a rejected password change', async () => {
     server.use(
       http.put('/api/auth/me/password', () =>
-        HttpResponse.json({ error: 'Current password is wrong' }, { status: 400 }),
-      ),
+        HttpResponse.json({ error: 'Current password is wrong' }, { status: 400 })
+      )
     );
 
     const result = await reachPasswordChange();
@@ -945,8 +939,8 @@ describe('useLogin — register visibility rules', () => {
   it('FE-LOGIN-HOOK-053: hides registration once setup is complete and passwords are closed', async () => {
     server.use(
       http.get('/api/auth/app-config', () =>
-        HttpResponse.json({ ...buildAppConfig({ password_registration: false }), setup_complete: true }),
-      ),
+        HttpResponse.json({ ...buildAppConfig({ password_registration: false }), setup_complete: true })
+      )
     );
 
     const { result } = renderLogin();
@@ -961,8 +955,8 @@ describe('useLogin — register visibility rules', () => {
         HttpResponse.json({
           ...buildAppConfig({ has_users: false, password_registration: false }),
           setup_complete: false,
-        }),
-      ),
+        })
+      )
     );
 
     const { result } = renderLogin();
@@ -981,7 +975,10 @@ describe('OIDC-only auto-redirect suppression', () => {
   function oidcOnly() {
     server.use(
       http.get('/api/auth/app-config', () =>
-        HttpResponse.json(buildAppConfig({ password_login: false, oidc_login: true, oidc_configured: true, has_users: true }))),
+        HttpResponse.json(
+          buildAppConfig({ password_login: false, oidc_login: true, oidc_configured: true, has_users: true })
+        )
+      )
     );
   }
 
@@ -993,9 +990,11 @@ describe('OIDC-only auto-redirect suppression', () => {
     let release: (v: unknown) => void = () => {};
     server.use(
       http.get('/api/auth/oidc/exchange', async () => {
-        await new Promise(r => { release = r; });
+        await new Promise((r) => {
+          release = r;
+        });
         return HttpResponse.json({ token: 'tok' });
-      }),
+      })
     );
     setSearch('?oidc_code=CODE-1');
     renderLogin();
@@ -1008,7 +1007,7 @@ describe('OIDC-only auto-redirect suppression', () => {
     setSearch('');
     await act(async () => {
       useSettingsStore.getState().setLanguageTransient('fr');
-      await new Promise(r => setTimeout(r, 20));
+      await new Promise((r) => setTimeout(r, 20));
     });
 
     expect(window.location.href).not.toContain('/api/auth/oidc/login');
@@ -1044,7 +1043,10 @@ describe('OIDC-only auto-redirect suppression', () => {
   it('FE-LOGIN-HOOK-204: password installs are untouched by the marker', async () => {
     server.use(
       http.get('/api/auth/app-config', () =>
-        HttpResponse.json(buildAppConfig({ password_login: true, oidc_login: true, oidc_configured: true, has_users: true }))),
+        HttpResponse.json(
+          buildAppConfig({ password_login: true, oidc_login: true, oidc_configured: true, has_users: true })
+        )
+      )
     );
     markSignedOut();
     const { result } = renderLogin();
@@ -1062,18 +1064,24 @@ describe('useLogin — the wait before the sign-in is known (#1167)', () => {
   /** An app-config probe that answers only when the test lets it. */
   function heldConfig(answer: ReturnType<typeof buildAppConfig> | 'error'): () => void {
     let release!: () => void;
-    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     server.use(
       http.get('/api/auth/app-config', async () => {
         await gate;
         return answer === 'error' ? HttpResponse.error() : HttpResponse.json(answer);
-      }),
+      })
     );
     return release;
   }
 
-  beforeEach(() => { localStorage.removeItem(CONFIG_CACHE_KEY); });
-  afterEach(() => { localStorage.removeItem(CONFIG_CACHE_KEY); });
+  beforeEach(() => {
+    localStorage.removeItem(CONFIG_CACHE_KEY);
+  });
+  afterEach(() => {
+    localStorage.removeItem(CONFIG_CACHE_KEY);
+  });
 
   it('FE-LOGIN-HOOK-205: offers no form while the config is still out, only a wait', async () => {
     const release = heldConfig(buildAppConfig());
@@ -1121,9 +1129,13 @@ describe('useLogin — the wait before the sign-in is known (#1167)', () => {
     const { result } = renderLogin();
 
     expect(result.current.redirectScreen).toBe(true);
-    act(() => { vi.advanceTimersByTime(7999); });
+    act(() => {
+      vi.advanceTimersByTime(7999);
+    });
     expect(result.current.idpSlow).toBe(false);
-    act(() => { vi.advanceTimersByTime(1); });
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
     expect(result.current.idpSlow).toBe(true);
   });
 

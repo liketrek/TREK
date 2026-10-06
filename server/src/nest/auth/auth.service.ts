@@ -1,60 +1,45 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import path from 'path';
-import fs from 'fs';
-import { authenticator } from 'otplib';
-import QRCode from 'qrcode';
-import { randomBytes, createHash } from 'crypto';
-import type { Request, Response } from 'express';
-import { WEB_PUSH_CHANNEL_ID } from '@trek/shared';
 import { readEnv } from '../../app-config';
+import { getAppUrl } from '../../app-config';
 import { JWT_SECRET, SESSION_DURATION_SECONDS, SESSION_DURATION_REMEMBER_SECONDS } from '../../config';
-import { UnitOfWork } from '../database/unit-of-work';
-import { PermissionsService } from '../permissions/permissions.service';
-import { validatePassword } from '../common/passwordPolicy';
-import { encryptMfaSecret, decryptMfaSecret } from '../common/crypto/mfaCrypto';
-import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { resolveApiKey } from '../settings/instance-api-keys';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { InviteTokens } from '../../db/entities/InviteTokens.entity';
-import type { InviteTokensRepository } from '../../db/repositories/InviteTokens.repository';
 import { McpTokens } from '../../db/entities/McpTokens.entity';
-import type { McpTokensRepository } from '../../db/repositories/McpTokens.repository';
 import { OauthTokens } from '../../db/entities/OauthTokens.entity';
-import type { OauthTokensRepository } from '../../db/repositories/OauthTokens.repository';
-import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
-import type { WebauthnCredentialsRepository } from '../../db/repositories/WebauthnCredentials.repository';
 import { PasswordResetTokens } from '../../db/entities/PasswordResetTokens.entity';
-import type { PasswordResetTokensRepository } from '../../db/repositories/PasswordResetTokens.repository';
 import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
+import { Users } from '../../db/entities/Users.entity';
+import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { InviteTokensRepository } from '../../db/repositories/InviteTokens.repository';
+import type { McpTokensRepository } from '../../db/repositories/McpTokens.repository';
+import type { OauthTokensRepository } from '../../db/repositories/OauthTokens.repository';
+import type { PasswordResetTokensRepository } from '../../db/repositories/PasswordResetTokens.repository';
 import type { PushSubscriptionsRepository } from '../../db/repositories/PushSubscriptions.repository';
-// Type-and-guard only: the app-config read reports the provider choice, it does
-// not construct one, so this does not pull the maps domain into auth.
-import { isPlacesProviderChoice } from '../maps/providers/places-provider';
-import { EphemeralTokenService } from './ephemeral-token.service';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
+import type { UserRow } from '../../db/repositories/Users.repository';
+import type { WebauthnCredentialsRepository } from '../../db/repositories/WebauthnCredentials.repository';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
 // every consumer of this module — a nest→mcp→nest module cycle.
 import { revokeUserSessions } from '../../mcp/sessionManager';
-import { UserCleanupService } from './user-cleanup.service';
-import { splitManagedKeys } from '../common/managed';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
-import { verifyJwtAndLoadUser } from './jwt-verify';
 import { User } from '../../types';
-import type { UserRow } from '../../db/repositories/Users.repository';
-import { DEMO_EMAIL_PRIMARY, DEMO_PASS, isDemoEmail } from '../common/demo';
 import { avatarUrl } from '../common/avatarUrl';
-import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import { WebauthnConfigService } from './webauthn-config.service';
 import { setAuthCookie, clearAuthCookie } from '../common/cookie';
-import { MailerService } from '../notifications/mailer/mailer.service';
+import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { encryptMfaSecret, decryptMfaSecret } from '../common/crypto/mfaCrypto';
+import { DEMO_EMAIL_PRIMARY, DEMO_PASS, isDemoEmail } from '../common/demo';
+import { splitManagedKeys } from '../common/managed';
+import { validatePassword } from '../common/passwordPolicy';
+import { UnitOfWork } from '../database/unit-of-work';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
-import { getAppUrl } from '../../app-config';
+// Type-and-guard only: the app-config read reports the provider choice, it does
+// not construct one, so this does not pull the maps domain into auth.
+import { isPlacesProviderChoice } from '../maps/providers/places-provider';
+import { MailerService } from '../notifications/mailer/mailer.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { resolveApiKey } from '../settings/instance-api-keys';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import {
   ADMIN_SETTINGS_KEYS,
   BCRYPT_COST,
@@ -67,6 +52,22 @@ import {
   parseBackupCodeHashes,
   stripUserForClient,
 } from './auth.helpers';
+import { EphemeralTokenService } from './ephemeral-token.service';
+import { verifyJwtAndLoadUser } from './jwt-verify';
+import { UserCleanupService } from './user-cleanup.service';
+import { WebauthnConfigService } from './webauthn-config.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { WEB_PUSH_CHANNEL_ID } from '@trek/shared';
+
+import bcrypt from 'bcryptjs';
+import { randomBytes, createHash } from 'crypto';
+import type { Request, Response } from 'express';
+import fs from 'fs';
+import jwt from 'jsonwebtoken';
+import { authenticator } from 'otplib';
+import path from 'path';
+import QRCode from 'qrcode';
 
 // Mutates otplib module state; must run before any TOTP verify in either the
 // container singleton or the bridge instance (legacy parity — same line sat at
@@ -98,7 +99,7 @@ function hashResetToken(raw: string): string {
  * the route handler to decide whether to send an email / log a link.
  */
 export interface PasswordResetRequestOutcome {
-  tokenForDelivery: string | null;   // raw token — send via email or log, never return to client
+  tokenForDelivery: string | null; // raw token — send via email or log, never return to client
   userId: number | null;
   userEmail: string | null;
   reason: 'issued' | 'no_user' | 'oidc_only' | 'throttled_per_email' | 'password_login_disabled';
@@ -110,12 +111,15 @@ export interface PasswordResetRequestOutcome {
 const perEmailResetAttempts = new Map<string, { count: number; first: number }>();
 const PASSWORD_RESET_PER_EMAIL_WINDOW_MS = 15 * 60 * 1000;
 const PASSWORD_RESET_PER_EMAIL_MAX = 3;
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, record] of perEmailResetAttempts) {
-    if (now - record.first >= PASSWORD_RESET_PER_EMAIL_WINDOW_MS) perEmailResetAttempts.delete(key);
-  }
-}, 5 * 60 * 1000).unref?.();
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, record] of perEmailResetAttempts) {
+      if (now - record.first >= PASSWORD_RESET_PER_EMAIL_WINDOW_MS) perEmailResetAttempts.delete(key);
+    }
+  },
+  5 * 60 * 1000,
+).unref?.();
 
 export interface ResetPasswordOutcome {
   error?: string;
@@ -188,12 +192,20 @@ export class AuthService {
   ) {}
 
   // Cookie
-  setAuthCookie(res: Response, token: string, req: Request, remember?: boolean) { setAuthCookie(res, token, req, remember); }
-  clearAuthCookie(res: Response, req: Request) { clearAuthCookie(res, req); }
+  setAuthCookie(res: Response, token: string, req: Request, remember?: boolean) {
+    setAuthCookie(res, token, req, remember);
+  }
+  clearAuthCookie(res: Response, req: Request) {
+    clearAuthCookie(res, req);
+  }
 
   // Reset-email delivery (canonical app URL, never request headers)
-  getAppUrl() { return getAppUrl(); }
-  sendPasswordResetEmail(email: string, url: string, userId: number | null) { return this.mailer.sendPasswordResetEmail(email, url, userId); }
+  getAppUrl() {
+    return getAppUrl();
+  }
+  sendPasswordResetEmail(email: string, url: string, userId: number | null) {
+    return this.mailer.sendPasswordResetEmail(email, url, userId);
+  }
 
   // -------------------------------------------------------------------------
   // Toggles + tokens
@@ -215,7 +227,9 @@ export class AuthService {
     const passkey_login = (await get('passkey_login')) === 'true';
 
     const hasNewKeys = (
-      await Promise.all(['password_login', 'password_registration', 'oidc_login', 'oidc_registration'].map((k) => get(k)))
+      await Promise.all(
+        ['password_login', 'password_registration', 'oidc_login', 'oidc_registration'].map((k) => get(k)),
+      )
     ).some((v) => v !== null);
 
     if (hasNewKeys) {
@@ -256,9 +270,10 @@ export class AuthService {
   }
 
   async generateToken(user: { id: number | bigint; password_version?: number }, remember?: boolean) {
-    const pv = typeof user.password_version === 'number'
-      ? user.password_version
-      : ((await this.usersRepo.getPasswordVersion(Number(user.id))) ?? 0);
+    const pv =
+      typeof user.password_version === 'number'
+        ? user.password_version
+        : ((await this.usersRepo.getPasswordVersion(Number(user.id))) ?? 0);
     // "Remember me" extends the JWT lifetime to match the persistent cookie maxAge;
     // the cookie service decides session-vs-persistent off the same flag.
     const expiresIn = remember === true ? SESSION_DURATION_REMEMBER_SECONDS : SESSION_DURATION_SECONDS;
@@ -266,11 +281,10 @@ export class AuthService {
     // same duration AND cookie semantics (false → browser-session cookie is not
     // recoverable from exp − iat). Omitted when the caller didn't choose, so
     // register/demo/passkey tokens keep their historical payload.
-    return jwt.sign(
-      { id: user.id, pv, ...(typeof remember === 'boolean' ? { remember } : {}) },
-      JWT_SECRET,
-      { expiresIn, algorithm: 'HS256' }
-    );
+    return jwt.sign({ id: user.id, pv, ...(typeof remember === 'boolean' ? { remember } : {}) }, JWT_SECRET, {
+      expiresIn,
+      algorithm: 'HS256',
+    });
   }
 
   getPendingMfaSecret(userId: number): string | null {
@@ -300,9 +314,7 @@ export class AuthService {
     if (!cfg) return false;
     if (cfg.rpID !== 'localhost' || cfg.explicitOrigins) return true;
     const env = readEnv();
-    const declaredRpId = (
-      env.webauthn.rpId || (await this.appSettings.getValue('webauthn_rp_id'))
-    )?.trim();
+    const declaredRpId = (env.webauthn.rpId || (await this.appSettings.getValue('webauthn_rp_id')))?.trim();
     return !!(declaredRpId || env.app.appUrl || env.http.allowedOriginsRaw);
   }
 
@@ -318,20 +330,46 @@ export class AuthService {
     // nor hide them from a member who does have one (#1939). Unauthenticated the
     // question is only about the instance, which is the first two steps of the
     // chain; id 0 matches no row.
-    const hasGoogleKey = !!(await resolveApiKey(this.appSettings, this.usersRepo, 'maps_api_key', authenticatedUser?.id ?? 0, readEnv().maps.placesApiKey)).key;
+    const hasGoogleKey = !!(
+      await resolveApiKey(
+        this.appSettings,
+        this.usersRepo,
+        'maps_api_key',
+        authenticatedUser?.id ?? 0,
+        readEnv().maps.placesApiKey,
+      )
+    ).key;
     // The same question for Amap, asked the same way. The client needs both to
     // tell "search is unavailable" from "search runs on OpenStreetMap", and to
     // know whether the provider the admin selected actually has a credential.
-    const hasAmapKey = !!(await resolveApiKey(this.appSettings, this.usersRepo, 'amap_api_key', authenticatedUser?.id ?? 0, readEnv().maps.amapApiKey)).key;
+    const hasAmapKey = !!(
+      await resolveApiKey(
+        this.appSettings,
+        this.usersRepo,
+        'amap_api_key',
+        authenticatedUser?.id ?? 0,
+        readEnv().maps.amapApiKey,
+      )
+    ).key;
 
     // AU5's 14 literal `app_settings` reads collapse into one `getValues` call
     // (Task 5 brief ruling — the repository already has it, and the map is read
     // the same way a missing/NULL-valued row was before: absent from the map).
     const settings = await this.appSettings.getValues([
-      'places_provider', 'oidc_display_name', 'oidc_issuer', 'oidc_client_id', 'require_mfa',
-      'notification_channel', 'notify_trip_reminder', 'smtp_host', 'notification_channels',
-      'places_photos_enabled', 'places_autocomplete_enabled', 'places_details_enabled',
-      'places_enrich_enabled', 'place_shadow_enabled',
+      'places_provider',
+      'oidc_display_name',
+      'oidc_issuer',
+      'oidc_client_id',
+      'require_mfa',
+      'notification_channel',
+      'notify_trip_reminder',
+      'smtp_host',
+      'notification_channels',
+      'places_photos_enabled',
+      'places_autocomplete_enabled',
+      'places_details_enabled',
+      'places_enrich_enabled',
+      'place_shadow_enabled',
     ]);
 
     const placesProviderRow = settings.get('places_provider');
@@ -346,7 +384,13 @@ export class AuthService {
     const tripReminderSetting = settings.get('notify_trip_reminder');
     const hasSmtpHost = !!(readEnv().smtp.host || settings.get('smtp_host'));
     const notifChannelsRaw = settings.get('notification_channels') || notifChannel;
-    const activeChannels = notifChannelsRaw === 'none' ? [] : notifChannelsRaw.split(',').map((c: string) => c.trim()).filter(Boolean);
+    const activeChannels =
+      notifChannelsRaw === 'none'
+        ? []
+        : notifChannelsRaw
+            .split(',')
+            .map((c: string) => c.trim())
+            .filter(Boolean);
     const hasWebhookEnabled = activeChannels.includes('webhook');
     const hasPushEnabled = activeChannels.includes(WEB_PUSH_CHANNEL_ID);
     const tripRemindersEnabled = tripReminderSetting !== 'false';
@@ -362,7 +406,7 @@ export class AuthService {
 
     return {
       // Legacy fields (backward compat)
-      allow_registration: isDemo ? false : (toggles.password_registration || toggles.oidc_registration),
+      allow_registration: isDemo ? false : toggles.password_registration || toggles.oidc_registration,
       oidc_only_mode: !toggles.password_login && !toggles.password_registration,
       // Granular toggles
       password_login: toggles.password_login,
@@ -384,7 +428,7 @@ export class AuthService {
       has_amap_key: hasAmapKey,
       places_provider: placesProvider,
       oidc_configured: oidcConfigured,
-      oidc_display_name: oidcConfigured ? (oidcDisplayName || 'SSO') : undefined,
+      oidc_display_name: oidcConfigured ? oidcDisplayName || 'SSO' : undefined,
       require_mfa: requireMfaValue === 'true',
       // The canonical live-read: same query + DEFAULT_ALLOWED_EXTENSIONS
       // fallback the upload filters use, so the client's picker and the
@@ -411,7 +455,7 @@ export class AuthService {
       places_details_enabled: placesDetailsEnabled,
       places_enrich_enabled: placesEnrichEnabled,
       place_shadow_enabled: placeShadowEnabled,
-      permissions: authenticatedUser ? (await this.permissions.getAllPermissions()) : undefined,
+      permissions: authenticatedUser ? await this.permissions.getAllPermissions() : undefined,
       // Case-sensitive on purpose (legacy parity).
       dev_mode: readEnv().app.nodeEnv === 'development',
     };
@@ -432,11 +476,20 @@ export class AuthService {
     return { token, user: { ...safe, avatar_url: avatarUrl(user) } };
   }
 
-  async validateInviteToken(token: string): Promise<{ error?: string; status?: number; valid?: boolean; max_uses?: number; used_count?: number; expires_at?: string | null }> {
+  async validateInviteToken(token: string): Promise<{
+    error?: string;
+    status?: number;
+    valid?: boolean;
+    max_uses?: number;
+    used_count?: number;
+    expires_at?: string | null;
+  }> {
     const invite = await this.inviteTokens.findByToken(token);
     if (!invite) return { error: 'Invalid invite link', status: 404 };
-    if (invite.max_uses > 0 && invite.used_count >= invite.max_uses) return { error: 'Invite link has been fully used', status: 410 };
-    if (invite.expires_at && new Date(invite.expires_at) < new Date()) return { error: 'Invite link has expired', status: 410 };
+    if (invite.max_uses > 0 && invite.used_count >= invite.max_uses)
+      return { error: 'Invite link has been fully used', status: 410 };
+    if (invite.expires_at && new Date(invite.expires_at) < new Date())
+      return { error: 'Invite link has expired', status: 410 };
     // Rule 16 (nullable columns stay null on the wire, docs/superpowers/plans/
     // 2026-09-21-orm-migration-program.md:45; task-5-review-security.md F1 /
     // task-5-review-template.md T1): pass the repository's `string | null`
@@ -445,7 +498,14 @@ export class AuthService {
     return { valid: true, max_uses: invite.max_uses, used_count: invite.used_count, expires_at: invite.expires_at };
   }
 
-  async registerUser(rawBody: unknown): Promise<{ error?: string; status?: number; token?: string; user?: Record<string, unknown>; auditUserId?: number; auditDetails?: Record<string, unknown> }> {
+  async registerUser(rawBody: unknown): Promise<{
+    error?: string;
+    status?: number;
+    token?: string;
+    user?: Record<string, unknown>;
+    auditUserId?: number;
+    auditDetails?: Record<string, unknown>;
+  }> {
     const body = rawBody as { username?: string; email?: string; password?: string; invite_token?: string };
     const username = typeof body.username === 'string' ? body.username.trim() : '';
     const email = typeof body.email === 'string' ? body.email.trim() : '';
@@ -457,8 +517,10 @@ export class AuthService {
     if (invite_token) {
       validInvite = await this.inviteTokens.findByToken(invite_token);
       if (!validInvite) return { error: 'Invalid invite link', status: 400 };
-      if (validInvite.max_uses > 0 && validInvite.used_count >= validInvite.max_uses) return { error: 'Invite link has been fully used', status: 410 };
-      if (validInvite.expires_at && new Date(validInvite.expires_at) < new Date()) return { error: 'Invite link has expired', status: 410 };
+      if (validInvite.max_uses > 0 && validInvite.used_count >= validInvite.max_uses)
+        return { error: 'Invite link has been fully used', status: 410 };
+      if (validInvite.expires_at && new Date(validInvite.expires_at) < new Date())
+        return { error: 'Invite link has expired', status: 410 };
     }
 
     if (userCount > 0 && !validInvite) {
@@ -494,7 +556,11 @@ export class AuthService {
       // bookkeeping, trip auto-join) must not leave a half-registered user.
       return await this.uow.transactional(async () => {
         const inserted = await this.usersRepo.insertUser({
-          username, email, password_hash, role, first_seen_version: readEnv().app.appVersion || '0.0.0',
+          username,
+          email,
+          password_hash,
+          role,
+          first_seen_version: readEnv().app.appVersion || '0.0.0',
         });
 
         const user = { id: inserted.id, username, email, role, avatar: null, mfa_enabled: false };
@@ -503,12 +569,18 @@ export class AuthService {
         if (validInvite) {
           const updated = await this.inviteTokens.incrementUsedCount(validInvite.token);
           if (!updated) {
-            console.warn(`[Auth] Invite token ${validInvite.token.slice(0, 8)}... exceeded max_uses due to race condition`);
+            console.warn(
+              `[Auth] Invite token ${validInvite.token.slice(0, 8)}... exceeded max_uses due to race condition`,
+            );
           }
           // Trip-bound invite (#1402): auto-add the freshly registered user to the
           // trip. Idempotent + owner-safe; no-ops if the bound trip was since deleted.
           if (validInvite.trip_id) {
-            await this.membership.joinTripAsMember(Number(validInvite.trip_id), Number(inserted.id), validInvite.created_by ?? null);
+            await this.membership.joinTripAsMember(
+              Number(validInvite.trip_id),
+              Number(inserted.id),
+              validInvite.created_by ?? null,
+            );
           }
         }
 
@@ -558,30 +630,38 @@ export class AuthService {
 
     if (!user) {
       return {
-        error: 'Invalid email or password', status: 401,
-        auditUserId: null, auditAction: 'user.login_failed', auditDetails: { email, reason: 'unknown_email' },
+        error: 'Invalid email or password',
+        status: 401,
+        auditUserId: null,
+        auditAction: 'user.login_failed',
+        auditDetails: { email, reason: 'unknown_email' },
       };
     }
     if (!user.password_hash) {
       return {
-        error: 'Invalid email or password', status: 401,
-        auditUserId: Number(user.id), auditAction: 'user.login_failed', auditDetails: { email, reason: 'oidc_only' },
+        error: 'Invalid email or password',
+        status: 401,
+        auditUserId: Number(user.id),
+        auditAction: 'user.login_failed',
+        auditDetails: { email, reason: 'oidc_only' },
       };
     }
     if (!validPassword) {
       return {
-        error: 'Invalid email or password', status: 401,
-        auditUserId: Number(user.id), auditAction: 'user.login_failed', auditDetails: { email, reason: 'wrong_password' },
+        error: 'Invalid email or password',
+        status: 401,
+        auditUserId: Number(user.id),
+        auditAction: 'user.login_failed',
+        auditDetails: { email, reason: 'wrong_password' },
       };
     }
 
     if (user.mfa_enabled === 1) {
       const pv = user.password_version ?? 0;
-      const mfa_token = jwt.sign(
-        { id: Number(user.id), purpose: 'mfa_login', pv },
-        JWT_SECRET,
-        { expiresIn: '5m', algorithm: 'HS256' }
-      );
+      const mfa_token = jwt.sign({ id: Number(user.id), purpose: 'mfa_login', pv }, JWT_SECRET, {
+        expiresIn: '5m',
+        algorithm: 'HS256',
+      });
       return { mfa_required: true, mfa_token };
     }
 
@@ -604,8 +684,10 @@ export class AuthService {
   // -------------------------------------------------------------------------
 
   async getCurrentUser(
-    userId: number
-  ): Promise<(Record<string, unknown> & Pick<User, 'id' | 'username' | 'email' | 'role'> & { avatar_url: string }) | null> {
+    userId: number,
+  ): Promise<
+    (Record<string, unknown> & Pick<User, 'id' | 'username' | 'email' | 'role'> & { avatar_url: string }) | null
+  > {
     const user = await this.usersRepo.findMeRow(userId);
     if (!user) return null;
     // `findMeRow`'s projection (id/username/email/role/avatar/oidc_issuer/
@@ -617,7 +699,14 @@ export class AuthService {
     // anyway (password_hash, the API-key columns, mfa_secret), so they're
     // simply absent, exactly as before.
     const base = stripUserForClient(user as unknown as User) as Record<string, unknown>;
-    return { ...base, id: user.id, username: user.username, email: user.email, role: user.role === 'admin' ? 'admin' : 'user', avatar_url: avatarUrl(user) };
+    return {
+      ...base,
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role === 'admin' ? 'admin' : 'user',
+      avatar_url: avatarUrl(user),
+    };
   }
 
   // -------------------------------------------------------------------------
@@ -662,7 +751,9 @@ export class AuthService {
       await this.mcpTokens.deleteAllForUser(userId);
       try {
         await this.oauthTokens.revokeAllForUser(userId);
-      } catch { /* oauth_tokens table may not exist in very old installs */ }
+      } catch {
+        /* oauth_tokens table may not exist in very old installs */
+      }
       // Push devices keep receiving notifications without any session, so they
       // go too. The device the change was made on registers again right away:
       // the client reloads the user after the change, and that re-syncs its
@@ -670,7 +761,11 @@ export class AuthService {
       await this.pushSubscriptions.deleteAllForUser(userId);
     });
 
-    try { revokeUserSessions?.(userId); } catch { /* best-effort */ }
+    try {
+      revokeUserSessions?.(userId);
+    } catch {
+      /* best-effort */
+    }
 
     // Re-issue a session bound to the new password_version so the current device
     // stays logged in while other existing sessions are rotated out by the pv
@@ -680,7 +775,11 @@ export class AuthService {
     return { success: true, token };
   }
 
-  async deleteAccount(userId: number, userEmail: string, userRole: string): Promise<{ error?: string; status?: number; success?: boolean }> {
+  async deleteAccount(
+    userId: number,
+    userEmail: string,
+    userRole: string,
+  ): Promise<{ error?: string; status?: number; success?: boolean }> {
     if (readEnv().demo.enabled && isDemoEmail(userEmail)) {
       return { error: 'Account deletion is disabled in demo mode.', status: 403 };
     }
@@ -716,14 +815,16 @@ export class AuthService {
     const result: Record<string, string> = {};
     for (const key of ADMIN_SETTINGS_KEYS) {
       const value = await this.appSettings.getValue(key);
-      if (value !== null) result[key] = (key === 'smtp_pass' || key === 'admin_webhook_url' || key === 'admin_ntfy_token') ? '••••••••' : value;
+      if (value !== null)
+        result[key] =
+          key === 'smtp_pass' || key === 'admin_webhook_url' || key === 'admin_ntfy_token' ? '••••••••' : value;
     }
     return { data: result };
   }
 
   async updateAppSettings(
     userId: number,
-    rawBody: unknown
+    rawBody: unknown,
   ): Promise<{
     error?: string;
     status?: number;
@@ -745,7 +846,8 @@ export class AuthService {
       const adminHasPasskey = await this.webauthnCredentials.hasAny(userId);
       if (!(adminMfa?.mfa_enabled === 1) && !adminHasPasskey) {
         return {
-          error: 'Secure your own account with two-factor authentication or a passkey before requiring it for all users.',
+          error:
+            'Secure your own account with two-factor authentication or a passkey before requiring it for all users.',
           status: 400,
         };
       }
@@ -758,8 +860,9 @@ export class AuthService {
         (readEnv().oidc.issuer || (await this.appSettings.getValue('oidc_issuer'))) &&
         (readEnv().oidc.clientId || (await this.appSettings.getValue('oidc_client_id')))
       );
-      const nextPasswordLogin = body.password_login !== undefined ? (String(body.password_login) === 'true') : current.password_login;
-      const nextOidcLogin = body.oidc_login !== undefined ? (String(body.oidc_login) === 'true') : current.oidc_login;
+      const nextPasswordLogin =
+        body.password_login !== undefined ? String(body.password_login) === 'true' : current.password_login;
+      const nextOidcLogin = body.oidc_login !== undefined ? String(body.oidc_login) === 'true' : current.oidc_login;
       if (!nextPasswordLogin && (!nextOidcLogin || !oidcConfigured)) {
         return { error: 'Cannot disable all login methods. At least one must remain enabled.', status: 400 };
       }
@@ -792,13 +895,15 @@ export class AuthService {
       }
     }
 
-    const changedKeys = ADMIN_SETTINGS_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !(k === 'smtp_pass' && String(body[k]) === '••••••••'));
+    const changedKeys = ADMIN_SETTINGS_KEYS.filter(
+      (k) => !blocked.includes(k) && body[k] !== undefined && !(k === 'smtp_pass' && String(body[k]) === '••••••••'),
+    );
 
     const summary: Record<string, unknown> = {};
-    const smtpChanged = changedKeys.some(k => k.startsWith('smtp_'));
+    const smtpChanged = changedKeys.some((k) => k.startsWith('smtp_'));
     if (changedKeys.includes('notification_channels')) summary.notification_channels = body.notification_channels;
     if (changedKeys.includes('admin_webhook_url')) summary.admin_webhook_url_updated = true;
-    if (changedKeys.some(k => k.startsWith('admin_ntfy_'))) summary.admin_ntfy_updated = true;
+    if (changedKeys.some((k) => k.startsWith('admin_ntfy_'))) summary.admin_ntfy_updated = true;
     if (smtpChanged) summary.smtp_settings_updated = true;
     if (changedKeys.includes('allow_registration')) summary.allow_registration = body.allow_registration;
     if (changedKeys.includes('allowed_file_types')) summary.allowed_file_types_updated = true;
@@ -818,7 +923,10 @@ export class AuthService {
   // MFA
   // -------------------------------------------------------------------------
 
-  async setupMfa(userId: number, userEmail: string): Promise<{ error?: string; status?: number; secret?: string; otpauth_url?: string; qrPromise?: Promise<string> }> {
+  async setupMfa(
+    userId: number,
+    userEmail: string,
+  ): Promise<{ error?: string; status?: number; secret?: string; otpauth_url?: string; qrPromise?: Promise<string> }> {
     if (readEnv().demo.enabled && isDemoEmail(userEmail)) {
       return { error: 'MFA is not available in demo mode.', status: 403 };
     }
@@ -838,7 +946,10 @@ export class AuthService {
     return { secret, otpauth_url, qrPromise: QRCode.toString(otpauth_url, { type: 'svg', width: 250 }) };
   }
 
-  async enableMfa(userId: number, rawCode: unknown): Promise<{ error?: string; status?: number; success?: boolean; mfa_enabled?: boolean; backup_codes?: string[] }> {
+  async enableMfa(
+    userId: number,
+    rawCode: unknown,
+  ): Promise<{ error?: string; status?: number; success?: boolean; mfa_enabled?: boolean; backup_codes?: string[] }> {
     const code = rawCode as string | undefined;
     if (!code) {
       return { error: 'Verification code is required', status: 400 };
@@ -863,7 +974,7 @@ export class AuthService {
   async disableMfa(
     userId: number,
     userEmail: string,
-    rawBody: unknown
+    rawBody: unknown,
   ): Promise<{ error?: string; status?: number; success?: boolean; mfa_enabled?: boolean }> {
     const body = rawBody as { password?: string; code?: string };
     if (readEnv().demo.enabled && isDemoEmail(userEmail)) {
@@ -957,7 +1068,9 @@ export class AuthService {
   // -------------------------------------------------------------------------
 
   async requestPasswordReset(rawEmail: string, createdIp: string | null): Promise<PasswordResetRequestOutcome> {
-    const email = String(rawEmail || '').trim().toLowerCase();
+    const email = String(rawEmail || '')
+      .trim()
+      .toLowerCase();
     // Basic shape check — a fully empty / malformed email is treated like
     // "no user" so we still spend the same time internally. Same "x@y.z somewhere
     // on one line" test as the old /.+@.+\..+/, but anchored per line and pinned to
@@ -975,7 +1088,11 @@ export class AuthService {
     const throttleKey = email || '__noemail__';
     const now = Date.now();
     const record = perEmailResetAttempts.get(throttleKey);
-    if (record && record.count >= PASSWORD_RESET_PER_EMAIL_MAX && now - record.first < PASSWORD_RESET_PER_EMAIL_WINDOW_MS) {
+    if (
+      record &&
+      record.count >= PASSWORD_RESET_PER_EMAIL_MAX &&
+      now - record.first < PASSWORD_RESET_PER_EMAIL_WINDOW_MS
+    ) {
       return { tokenForDelivery: null, userId: null, userEmail: null, reason: 'throttled_per_email' };
     }
     if (!record || now - record.first >= PASSWORD_RESET_PER_EMAIL_WINDOW_MS) {
@@ -1094,14 +1211,20 @@ export class AuthService {
       await this.mcpTokens.deleteAllForUser(user.id);
       try {
         await this.oauthTokens.revokeAllForUser(user.id);
-      } catch { /* oauth_tokens table may not exist in very old installs */ }
+      } catch {
+        /* oauth_tokens table may not exist in very old installs */
+      }
       // Push devices are a delivery channel that outlives every session, so an
       // intruder's browser would keep reading this account's notifications.
       await this.pushSubscriptions.deleteAllForUser(user.id);
     });
 
     // Kick off any MCP/WS session cleanup — same hook the account-delete path uses.
-    try { revokeUserSessions?.(user.id); } catch { /* best-effort */ }
+    try {
+      revokeUserSessions?.(user.id);
+    } catch {
+      /* best-effort */
+    }
 
     return { success: true, userId: user.id };
   }

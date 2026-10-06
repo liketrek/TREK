@@ -17,12 +17,22 @@
  * cross-user isolation — someone else's suggestion is invisible and untouchable
  * through your own session, and answers the same 404 a missing one does.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { AddonsService } from '../../src/nest/addons/addons.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { DawarichClient } from '../../src/nest/integrations/dawarich.client';
+import { DawarichModule } from '../../src/nest/integrations/dawarich.module';
+import { createUser } from '../helpers/factories';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb } = await import('../helpers/db-mock');
@@ -45,25 +55,16 @@ vi.mock('../../src/db/database', async () => {
 const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
 vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.fn() }));
 
-import { db } from '../../src/db/database';
-import { createUser } from '../helpers/factories';
-import { DawarichModule } from '../../src/nest/integrations/dawarich.module';
-import { DawarichClient } from '../../src/nest/integrations/dawarich.client';
-import { AddonsService } from '../../src/nest/addons/addons.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
-
 /**
  * Every outbound call an instance would ever receive, stubbed to throw. A route
  * that unexpectedly reaches upstream fails this suite instead of quietly
  * hanging on a DNS lookup in CI.
  */
 function makeClientStub() {
-  const boom = (name: string) => vi.fn(() => {
-    throw new Error(`DawarichClient.${name} must not be called from the e2e suite`);
-  });
+  const boom = (name: string) =>
+    vi.fn(() => {
+      throw new Error(`DawarichClient.${name} must not be called from the e2e suite`);
+    });
   return {
     probe: boom('probe'),
     listVisits: boom('listVisits'),
@@ -82,7 +83,18 @@ function seedSuggestion(userId: number, sourceVisitId: string, name: string): nu
          (user_id, source_visit_id, name, lat, lng, started_at, ended_at, duration_minutes, local_date, source_hash)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(userId, sourceVisitId, name, 48.8584, 2.2945, '2026-05-01T10:00:00+02:00', '2026-05-01T12:30:00+02:00', 150, '2026-05-01', 'hash-' + sourceVisitId);
+    .run(
+      userId,
+      sourceVisitId,
+      name,
+      48.8584,
+      2.2945,
+      '2026-05-01T10:00:00+02:00',
+      '2026-05-01T12:30:00+02:00',
+      150,
+      '2026-05-01',
+      'hash-' + sourceVisitId,
+    );
   return Number(info.lastInsertRowid);
 }
 
@@ -94,7 +106,9 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
   let strangerSuggestionId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), DawarichModule] })
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), DawarichModule],
+    })
       .overrideProvider(AddonsService)
       .useValue({ isAddonEnabled })
       .overrideProvider(DawarichClient)
@@ -112,7 +126,8 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
 
   beforeAll(async () => {
     ownerId = createUser(db as never, { username: 'dawarich-owner', email: 'dawarich-owner@test.example' }).user.id;
-    strangerId = createUser(db as never, { username: 'dawarich-stranger', email: 'dawarich-stranger@test.example' }).user.id;
+    strangerId = createUser(db as never, { username: 'dawarich-stranger', email: 'dawarich-stranger@test.example' })
+      .user.id;
     strangerSuggestionId = seedSuggestion(strangerId, 'visit-stranger-1', 'Eiffel Tower');
     app = await build();
     server = app.getHttpServer();
@@ -137,9 +152,7 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
 
   it('DAWARICH-E2E-002: a session on a disabled addon gets 404 with the Dawarich label, not a 403 that confirms the route', async () => {
     isAddonEnabled.mockReturnValue(false);
-    const res = await request(server)
-      .get('/api/integrations/dawarich/settings')
-      .set('Cookie', sessionCookie(ownerId));
+    const res = await request(server).get('/api/integrations/dawarich/settings').set('Cookie', sessionCookie(ownerId));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Dawarich addon is not enabled' });
   });
@@ -163,9 +176,13 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
 
   it('DAWARICH-E2E-005: the addon flag is re-read per request — switching it back on reopens the route without a restart', async () => {
     isAddonEnabled.mockReturnValue(false);
-    expect((await request(server).get('/api/integrations/dawarich/settings').set('Cookie', sessionCookie(ownerId))).status).toBe(404);
+    expect(
+      (await request(server).get('/api/integrations/dawarich/settings').set('Cookie', sessionCookie(ownerId))).status,
+    ).toBe(404);
     isAddonEnabled.mockReturnValue(true);
-    expect((await request(server).get('/api/integrations/dawarich/settings').set('Cookie', sessionCookie(ownerId))).status).toBe(200);
+    expect(
+      (await request(server).get('/api/integrations/dawarich/settings').set('Cookie', sessionCookie(ownerId))).status,
+    ).toBe(200);
   });
 
   // ── Connection ───────────────────────────────────────────────────────────
@@ -230,7 +247,9 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
     expect(put.status).toBe(200);
     expect(put.body).toEqual({ success: true });
 
-    const row = db.prepare('SELECT url, api_key, sync_enabled FROM dawarich_connections WHERE user_id = ?').get(ownerId);
+    const row = db
+      .prepare('SELECT url, api_key, sync_enabled FROM dawarich_connections WHERE user_id = ?')
+      .get(ownerId);
     expect(row).toEqual({ url: null, api_key: null, sync_enabled: 0 });
 
     const res = await request(server).get('/api/integrations/dawarich/settings').set('Cookie', sessionCookie(ownerId));
@@ -240,7 +259,9 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
   });
 
   it('DAWARICH-E2E-015: DELETE settings answers 200 even when there was nothing to disconnect', async () => {
-    const res = await request(server).delete('/api/integrations/dawarich/settings').set('Cookie', sessionCookie(ownerId));
+    const res = await request(server)
+      .delete('/api/integrations/dawarich/settings')
+      .set('Cookie', sessionCookie(ownerId));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true });
   });
@@ -274,7 +295,9 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
   // ── Suggestions ──────────────────────────────────────────────────────────
 
   it('DAWARICH-E2E-020: GET suggestions without a connection answers the envelope with connected:false — an empty list alone would read as "no stays"', async () => {
-    const res = await request(server).get('/api/integrations/dawarich/suggestions').set('Cookie', sessionCookie(ownerId));
+    const res = await request(server)
+      .get('/api/integrations/dawarich/suggestions')
+      .set('Cookie', sessionCookie(ownerId));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       suggestions: [],
@@ -306,15 +329,18 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
   it("DAWARICH-E2E-030: another user's suggestion never appears in your own list", async () => {
     const mine = seedSuggestion(ownerId, 'visit-mine-1', 'Gare du Nord');
 
-    const res = await request(server).get('/api/integrations/dawarich/suggestions').set('Cookie', sessionCookie(ownerId));
+    const res = await request(server)
+      .get('/api/integrations/dawarich/suggestions')
+      .set('Cookie', sessionCookie(ownerId));
     expect(res.status).toBe(200);
     const ids = res.body.suggestions.map((s: { id: number }) => s.id);
     expect(ids).toEqual([mine]);
     expect(ids).not.toContain(strangerSuggestionId);
     // And the row really is there for the other user, so this is isolation and
     // not an empty table.
-    expect(db.prepare('SELECT user_id FROM dawarich_visit_suggestions WHERE id = ?').get(strangerSuggestionId))
-      .toEqual({ user_id: strangerId });
+    expect(db.prepare('SELECT user_id FROM dawarich_visit_suggestions WHERE id = ?').get(strangerSuggestionId)).toEqual(
+      { user_id: strangerId },
+    );
   });
 
   it("DAWARICH-E2E-031: PUT state on another user's suggestion is a 404 — the same answer a missing id gets, so nothing is enumerable", async () => {
@@ -325,8 +351,9 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Suggestion not found' });
-    expect(db.prepare('SELECT state FROM dawarich_visit_suggestions WHERE id = ?').get(strangerSuggestionId))
-      .toEqual({ state: 'new' });
+    expect(db.prepare('SELECT state FROM dawarich_visit_suggestions WHERE id = ?').get(strangerSuggestionId)).toEqual({
+      state: 'new',
+    });
 
     const missing = await request(server)
       .put('/api/integrations/dawarich/suggestions/999999/state')
@@ -344,8 +371,9 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Suggestion not found', code: 'not_found' });
-    expect(db.prepare('SELECT state, target FROM dawarich_visit_suggestions WHERE id = ?').get(strangerSuggestionId))
-      .toEqual({ state: 'new', target: null });
+    expect(
+      db.prepare('SELECT state, target FROM dawarich_visit_suggestions WHERE id = ?').get(strangerSuggestionId),
+    ).toEqual({ state: 'new', target: null });
   });
 
   it('DAWARICH-E2E-033: your own suggestion is reachable through the same route, which is what makes the two 404s above meaningful', async () => {
@@ -359,6 +387,8 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(mine);
     expect(res.body.state).toBe('dismissed');
-    expect(db.prepare('SELECT state FROM dawarich_visit_suggestions WHERE id = ?').get(mine)).toEqual({ state: 'dismissed' });
+    expect(db.prepare('SELECT state FROM dawarich_visit_suggestions WHERE id = ?').get(mine)).toEqual({
+      state: 'dismissed',
+    });
   });
 });

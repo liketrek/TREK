@@ -1,17 +1,7 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
 import type { User } from '../../types';
-import { AssignmentsService } from './assignments.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import {
   AssignmentCreateDto,
   AssignmentReorderDto,
@@ -23,10 +13,8 @@ import {
   AssignmentRouteDto,
   AssignmentParticipantsDto,
 } from './assignments.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-
+import { AssignmentsService } from './assignments.service';
+import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 /**
  * /api/trips/:tripId/days/:dayId/assignments — the day's ordered itinerary items.
@@ -47,7 +35,7 @@ export class DayAssignmentsController {
 
   @Get()
   async list(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('dayId') dayId: string) {
-    if (!await this.assignments.dayExists(dayId, tripId)) {
+    if (!(await this.assignments.dayExists(dayId, tripId))) {
       throw new HttpException({ error: 'Day not found' }, 404);
     }
     return { assignments: await this.assignments.listDayAssignments(dayId) };
@@ -62,10 +50,10 @@ export class DayAssignmentsController {
     @Body() body: AssignmentCreateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!await this.assignments.dayExists(dayId, tripId)) {
+    if (!(await this.assignments.dayExists(dayId, tripId))) {
       throw new HttpException({ error: 'Day not found' }, 404);
     }
-    if (!await this.assignments.placeExists(body.place_id, tripId)) {
+    if (!(await this.assignments.placeExists(body.place_id, tripId))) {
       throw new HttpException({ error: 'Place not found' }, 404);
     }
     const assignment = await this.assignments.createAssignment(dayId, body.place_id, body.notes);
@@ -83,11 +71,16 @@ export class DayAssignmentsController {
     @Body() body: AssignmentReorderDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!await this.assignments.dayExists(dayId, tripId)) {
+    if (!(await this.assignments.dayExists(dayId, tripId))) {
       throw new HttpException({ error: 'Day not found' }, 404);
     }
     await this.assignments.reorderAssignments(dayId, body.orderedIds);
-    this.assignments.broadcast(tripId, 'assignment:reordered', { dayId: Number(dayId), orderedIds: body.orderedIds }, socketId);
+    this.assignments.broadcast(
+      tripId,
+      'assignment:reordered',
+      { dayId: Number(dayId), orderedIds: body.orderedIds },
+      socketId,
+    );
     return { success: true };
   }
 
@@ -100,7 +93,7 @@ export class DayAssignmentsController {
     @Param('dayId') dayId: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!await this.assignments.dayExists(dayId, tripId)) {
+    if (!(await this.assignments.dayExists(dayId, tripId))) {
       throw new HttpException({ error: 'Day not found' }, 404);
     }
     const removedIds = await this.assignments.clearDay(dayId);
@@ -120,11 +113,16 @@ export class DayAssignmentsController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!await this.assignments.assignmentExistsInDay(id, dayId, tripId)) {
+    if (!(await this.assignments.assignmentExistsInDay(id, dayId, tripId))) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
     await this.assignments.deleteAssignment(id);
-    this.assignments.broadcast(tripId, 'assignment:deleted', { assignmentId: Number(id), dayId: Number(dayId) }, socketId);
+    this.assignments.broadcast(
+      tripId,
+      'assignment:deleted',
+      { assignmentId: Number(id), dayId: Number(dayId) },
+      socketId,
+    );
     await this.assignments.reconcile(tripId, socketId);
     return { success: true };
   }
@@ -153,21 +151,26 @@ export class AssignmentOpsController {
     @Body() body: AssignmentMoveDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!await this.assignments.getAssignmentForTrip(id, tripId)) {
+    if (!(await this.assignments.getAssignmentForTrip(id, tripId))) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
-    if (!await this.assignments.dayExists(String(body.new_day_id), tripId)) {
+    if (!(await this.assignments.dayExists(String(body.new_day_id), tripId))) {
       throw new HttpException({ error: 'Target day not found' }, 404);
     }
     const { assignment, oldDayId } = await this.assignments.moveAssignment(id, body.new_day_id, body.order_index);
-    this.assignments.broadcast(tripId, 'assignment:moved', { assignment, oldDayId: Number(oldDayId), newDayId: Number(body.new_day_id) }, socketId);
+    this.assignments.broadcast(
+      tripId,
+      'assignment:moved',
+      { assignment, oldDayId: Number(oldDayId), newDayId: Number(body.new_day_id) },
+      socketId,
+    );
     await this.assignments.reconcile(tripId, socketId);
     return { assignment };
   }
 
   @Get(':id/participants')
   async participants(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string) {
-    if (!await this.assignments.getAssignmentForTrip(id, tripId)) {
+    if (!(await this.assignments.getAssignmentForTrip(id, tripId))) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
     return { participants: await this.assignments.getParticipants(id) };
@@ -182,7 +185,7 @@ export class AssignmentOpsController {
     @Body() body: AssignmentTimeDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!await this.assignments.getAssignmentForTrip(id, tripId)) {
+    if (!(await this.assignments.getAssignmentForTrip(id, tripId))) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
     const { assignment, reordered, vias } = await this.assignments.updateTime(id, body.place_time, body.end_time);
@@ -208,7 +211,7 @@ export class AssignmentOpsController {
     @Body() body: AssignmentEndDayDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!await this.assignments.getAssignmentForTrip(id, tripId)) {
+    if (!(await this.assignments.getAssignmentForTrip(id, tripId))) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
     const assignment = await this.assignments.setEndDay(id, body.end_day);
@@ -228,7 +231,7 @@ export class AssignmentOpsController {
     @Body() body: AssignmentNotesDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!await this.assignments.getAssignmentForTrip(id, tripId)) {
+    if (!(await this.assignments.getAssignmentForTrip(id, tripId))) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
     const assignment = await this.assignments.updateNotes(id, body.notes);
@@ -245,12 +248,13 @@ export class AssignmentOpsController {
     @Body() body: AssignmentTransportDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!await this.assignments.getAssignmentForTrip(id, tripId)) {
+    if (!(await this.assignments.getAssignmentForTrip(id, tripId))) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
-    const assignment = body.direction === 'incoming'
-      ? await this.assignments.setIncomingLegTransportMode(id, body.transport_mode ?? null)
-      : await this.assignments.setLegTransportMode(id, body.transport_mode ?? null);
+    const assignment =
+      body.direction === 'incoming'
+        ? await this.assignments.setIncomingLegTransportMode(id, body.transport_mode ?? null)
+        : await this.assignments.setLegTransportMode(id, body.transport_mode ?? null);
     this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
     return { assignment };
   }
@@ -264,7 +268,7 @@ export class AssignmentOpsController {
     @Body() body: AssignmentRouteDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!await this.assignments.getAssignmentForTrip(id, tripId)) {
+    if (!(await this.assignments.getAssignmentForTrip(id, tripId))) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
     const assignment = await this.assignments.setRouteExcluded(id, body.excluded);
@@ -281,7 +285,7 @@ export class AssignmentOpsController {
     @Body() body: AssignmentParticipantsDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    if (!await this.assignments.getAssignmentForTrip(id, tripId)) {
+    if (!(await this.assignments.getAssignmentForTrip(id, tripId))) {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
     const participants = await this.assignments.setParticipants(id, body.user_ids, tripId);

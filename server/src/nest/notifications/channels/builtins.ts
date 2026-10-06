@@ -1,10 +1,10 @@
-import { WEB_PUSH_CHANNEL_ID } from '@trek/shared';
 import { registerChannel } from '../channel-registry';
-import { ADMIN_SCOPED_EVENTS, type ChannelMessage, type ExternalChannel } from '../notification-events';
 import type { MailerService } from '../mailer/mailer.service';
+import { ADMIN_SCOPED_EVENTS, type ChannelMessage, type ExternalChannel } from '../notification-events';
 import { resolveAdminNtfyUrl, resolveNtfyToken, resolveNtfyUrl, type NtfyService } from '../transports/ntfy.service';
-import type { WebhookService } from '../transports/webhook.service';
 import type { WebPushService } from '../transports/web-push.service';
+import type { WebhookService } from '../transports/webhook.service';
+import { WEB_PUSH_CHANNEL_ID } from '@trek/shared';
 
 // The built-in external channels. Email, webhook and ntfy wrap the transports
 // that were free functions in services/notifications.ts before the fold; no
@@ -70,7 +70,13 @@ export function buildBuiltinChannels({ mailer, webhook, ntfy, push }: BuiltinCha
     async sendToUser(userId, msg) {
       const url = await webhook.getUserWebhookUrl(userId);
       if (!url) return false;
-      return webhook.sendWebhook(url, { event: msg.event, title: msg.title, body: msg.body, tripName: msg.tripName, link: msg.url });
+      return webhook.sendWebhook(url, {
+        event: msg.event,
+        title: msg.title,
+        body: msg.body,
+        tripName: msg.tripName,
+        link: msg.url,
+      });
     },
     async sendGlobal(msg: ChannelMessage) {
       const url = await webhook.getAdminWebhookUrl();
@@ -90,7 +96,8 @@ export function buildBuiltinChannels({ mailer, webhook, ntfy, push }: BuiltinCha
     labelKey: 'settings.notificationPreferences.ntfy',
     supportsAdminGlobal: true,
     supportsEvent: supportsAllButSynology,
-    isConfiguredFor: async (userId) => !!resolveNtfyUrl(await ntfy.getAdminNtfyConfig(), await ntfy.getUserNtfyConfig(userId)),
+    isConfiguredFor: async (userId) =>
+      !!resolveNtfyUrl(await ntfy.getAdminNtfyConfig(), await ntfy.getUserNtfyConfig(userId)),
     async sendToUser(userId, msg) {
       const userCfg = await ntfy.getUserNtfyConfig(userId);
       const adminCfg = await ntfy.getAdminNtfyConfig();
@@ -99,7 +106,12 @@ export function buildBuiltinChannels({ mailer, webhook, ntfy, push }: BuiltinCha
       // Not `?? adminCfg.token`: the user picks their own ntfy_server, so that
       // handed the operator's decrypted token to whatever host they named, on
       // every ordinary send and with no test route involved (GHSA-7pqc-fj3c-9346).
-      return ntfy.sendNtfy(url, resolveNtfyToken(adminCfg, userCfg), { event: msg.event, title: msg.title, body: msg.body, link: msg.url });
+      return ntfy.sendNtfy(url, resolveNtfyToken(adminCfg, userCfg), {
+        event: msg.event,
+        title: msg.title,
+        body: msg.body,
+        link: msg.url,
+      });
     },
     async sendGlobal(msg: ChannelMessage) {
       const adminCfg = await ntfy.getAdminNtfyConfig();
@@ -108,7 +120,8 @@ export function buildBuiltinChannels({ mailer, webhook, ntfy, push }: BuiltinCha
       return ntfy.sendNtfy(url, adminCfg.token, { event: msg.event, title: msg.title, body: msg.body, link: msg.url });
     },
     async test(userId, override) {
-      const topic = typeof override?.topic === 'string' ? override.topic : (await ntfy.getUserNtfyConfig(userId))?.topic;
+      const topic =
+        typeof override?.topic === 'string' ? override.topic : (await ntfy.getUserNtfyConfig(userId))?.topic;
       if (!topic) return { success: false, error: 'Could not resolve ntfy URL — missing topic' };
       return ntfy.testNtfy({
         topic,

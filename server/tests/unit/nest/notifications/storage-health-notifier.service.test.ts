@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
-import { StorageHealthNotifierService } from '../../../../src/nest/notifications/storage-health-notifier.service';
 import type { NotificationsService } from '../../../../src/nest/notifications/notifications.service';
+import { StorageHealthNotifierService } from '../../../../src/nest/notifications/storage-health-notifier.service';
+import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 // L4 (task-7-review.md): `orm` is now a required constructor param — in
 // production it is always injected, so `@Optional()` was a fail-open seam
@@ -44,8 +45,6 @@ describe('StorageHealthNotifierService', () => {
     const send = vi.fn().mockRejectedValue(new Error('smtp down'));
     const notifier = new StorageHealthNotifierService(events, { send } as unknown as NotificationsService, t.orm);
     notifier.onApplicationBootstrap();
-    expect(() =>
-      events.emitReplicaFailure({ backend: 'b', key: 'k', op: 'delete', error: 'e', at: 3 }),
-    ).not.toThrow();
+    expect(() => events.emitReplicaFailure({ backend: 'b', key: 'k', op: 'delete', error: 'e', at: 3 })).not.toThrow();
   });
 });

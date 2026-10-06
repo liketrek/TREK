@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useSystemNoticeStore, type SystemNoticeDTO } from '../../store/systemNoticeStore.js';
 import { useTranslation } from '../../i18n/index.js';
-import { ModalRenderer } from './SystemNoticeModal.js';
+import { useSystemNoticeStore, type SystemNoticeDTO } from '../../store/systemNoticeStore.js';
 import { BannerRenderer, ToastRenderer } from './SystemNoticeBanner.js';
+import { ModalRenderer } from './SystemNoticeModal.js';
 
 // Mobile breakpoint matches the modal sheet's (max-width: 639px).
 function useIsMobile() {
@@ -55,7 +55,7 @@ function hasCopy(notice: SystemNoticeDTO, t: (key: string) => string): boolean {
   const keys = notice.release
     ? [notice.release.headlineKey, notice.release.introKey, notice.release.note.titleKey]
     : [notice.titleKey, notice.bodyKey];
-  return keys.some(key => !KEY_SHAPE.test(key) || t(key) !== key);
+  return keys.some((key) => !KEY_SHAPE.test(key) || t(key) !== key);
 }
 
 export function SystemNoticeHost() {
@@ -70,24 +70,24 @@ export function SystemNoticeHost() {
     if (!loaded) {
       useSystemNoticeStore.getState().fetch();
     }
-  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!loaded) return null;
 
   // desktopOnly notices (e.g. the thank-you/support modal) are hidden on mobile, and a
   // notice whose copy this build does not have yet waits for the reload (see hasCopy).
-  const readable = notices.filter(n => hasCopy(n, t));
-  const visible = isMobile ? readable.filter(n => !n.desktopOnly) : readable;
+  const readable = notices.filter((n) => hasCopy(n, t));
+  const visible = isMobile ? readable.filter((n) => !n.desktopOnly) : readable;
 
-  const modals  = visible.filter(n => n.display === 'modal');
-  const banners = visible.filter(n => n.display === 'banner');
-  const toasts  = visible.filter(n => n.display === 'toast');
+  const modals = visible.filter((n) => n.display === 'modal');
+  const banners = visible.filter((n) => n.display === 'banner');
+  const toasts = visible.filter((n) => n.display === 'toast');
 
   return (
     <>
       <BannerRenderer notices={banners} />
-      <ModalRenderer  notices={modals}  />
-      <ToastRenderer  notices={toasts}  />
+      <ModalRenderer notices={modals} />
+      <ToastRenderer notices={toasts} />
     </>
   );
 }

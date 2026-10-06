@@ -50,12 +50,7 @@ export function toCamelCase<V>(value: V): V;
 export function toCamelCase(value: unknown): unknown {
   if (Array.isArray(value)) return value.map((item) => toCamelCase(item));
 
-  if (
-    value === null ||
-    typeof value !== 'object' ||
-    value instanceof Date ||
-    Buffer.isBuffer(value)
-  ) {
+  if (value === null || typeof value !== 'object' || value instanceof Date || Buffer.isBuffer(value)) {
     return value;
   }
 

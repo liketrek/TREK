@@ -1,6 +1,6 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { DocumentProviderFieldsRepository } from '../repositories/DocumentProviderFields.repository';
 import { DocumentProviders } from './DocumentProviders.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class DocumentProviderFields {
   [EntityRepositoryType]?: DocumentProviderFieldsRepository;

@@ -1,5 +1,5 @@
-import type { ReactElement } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react';
+import type { ReactElement } from 'react';
 
 /**
  * The attachment point for surfaces that only exist on a centrally administered
@@ -26,9 +26,9 @@ import type { LucideIcon } from 'lucide-react'
 
 export interface ManagedRoute {
   /** Router path, e.g. `/subscription`. Must not collide with an existing one. */
-  path: string
+  path: string;
   /** Rendered inside the app's ProtectedRoute wrapper, like every other screen. */
-  element: ReactElement
+  element: ReactElement;
   /**
    * Refuse the route to anyone but an admin, the same way /admin does.
    *
@@ -37,16 +37,16 @@ export interface ManagedRoute {
    * was invited to one trip. Set this alongside `adminOnly` on the matching nav
    * entry; the two answer different questions.
    */
-  adminOnly?: boolean
+  adminOnly?: boolean;
 }
 
 export interface ManagedNavItem {
   /** Stable id for React keys; prefixed by the consumer, so keep it bare. */
-  id: string
-  path: string
-  label: string
+  id: string;
+  path: string;
+  label: string;
   /** lucide-react, like every other icon in the app — see the theme README. */
-  Icon: LucideIcon
+  Icon: LucideIcon;
   /**
    * Hide the entry from everyone but an admin.
    *
@@ -56,32 +56,32 @@ export interface ManagedNavItem {
    * confusing at worst. The route behind it still checks for itself; this only
    * decides who is offered the door.
    */
-  adminOnly?: boolean
+  adminOnly?: boolean;
 }
 
 /** Filter for the two nav bars. Exported so both apply the same rule. */
 export function visibleManagedNavItems(isAdmin: boolean): ManagedNavItem[] {
-  return managedNavItems.filter((item) => !item.adminOnly || isAdmin)
+  return managedNavItems.filter((item) => !item.adminOnly || isAdmin);
 }
 
 export interface ManagedAdminTab {
   /** Tab id, also the deep-link value of ?tab= on /admin. Keep it bare. */
-  id: string
-  label: string
+  id: string;
+  label: string;
   /** lucide-react, like every other icon in the app. */
-  Icon: LucideIcon
+  Icon: LucideIcon;
   /**
    * Which group heading the tab sits under. The admin sidebar groups tabs and
    * requires a group's tabs to be contiguous, so this is appended to the end of
    * whichever group it names rather than inserted mid-list.
    */
-  group?: 'users' | 'config' | 'integration' | 'maintenance'
+  group?: 'users' | 'config' | 'integration' | 'maintenance';
   /** Rendered in the tab body. /admin already requires an admin to get here. */
-  element: ReactElement
+  element: ReactElement;
 }
 
 /** Extra protected routes. Spread into the router next to the built-in ones. */
-export const managedRoutes: ManagedRoute[] = []
+export const managedRoutes: ManagedRoute[] = [];
 
 /**
  * Extra tabs in Admin → the left sidebar.
@@ -92,7 +92,7 @@ export const managedRoutes: ManagedRoute[] = []
  * A top-level nav entry would put it next to My Trips for a screen opened once
  * a month by one person.
  */
-export const managedAdminTabs: ManagedAdminTab[] = []
+export const managedAdminTabs: ManagedAdminTab[] = [];
 
 /** Extra entries for the desktop navbar and the mobile tab bar. */
-export const managedNavItems: ManagedNavItem[] = []
+export const managedNavItems: ManagedNavItem[] = [];

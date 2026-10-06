@@ -137,6 +137,7 @@ const storage: TranslationStrings = {
   'storage.migrate.cancel': 'Verplaatsen annuleren',
   'storage.migrate.promptCancel': 'Annuleren',
   'storage.migrate.queued': 'In wachtrij: {categories}',
-  'storage.migrate.queueDropped': 'Kon de volgende verplaatsing niet starten — de resterende wachtrij is gewist: {categories}',
+  'storage.migrate.queueDropped':
+    'Kon de volgende verplaatsing niet starten — de resterende wachtrij is gewist: {categories}',
 };
 export default storage;

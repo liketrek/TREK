@@ -1,14 +1,7 @@
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import Database from 'better-sqlite3';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-
 import { openDatabase } from '../../../src/db/connection';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { TripsService } from '../../../src/nest/trips/trips.service';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm } from '../../helpers/test-orm';
 import {
   createDayAssignment,
   createDayNote,
@@ -17,6 +10,13 @@ import {
   createTrip,
   createUser,
 } from '../../helpers/factories';
+import { createTestOrm } from '../../helpers/test-orm';
+
+import Database from 'better-sqlite3';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 // #2518: a container with a read-only root filesystem and no tmpfs on /tmp
 // gives SQLite nowhere to put a temp file, so deleting a trip failed with

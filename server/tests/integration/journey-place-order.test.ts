@@ -16,10 +16,17 @@
  * tests/unit/nest/places.controller.test.ts for the unit-level ordering test
  * that stubs a macrotask hop and does catch a detached hook today.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, createPlace, createJourney, linkTripToJourney } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -40,13 +47,6 @@ vi.mock('../../src/websocket', () => ({
   getOnlineUserIds: vi.fn(() => []),
 }));
 
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createPlace, createJourney, linkTripToJourney } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
-
 let nestApp: INestApplication;
 let app: Application;
 
@@ -59,9 +59,11 @@ beforeEach(() => {
   resetRateLimits(nestApp);
   invalidatePermissionsCache();
   // Enable the journey addon.
-  testDb.prepare(
-    "INSERT OR REPLACE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES ('journey', 'Journey', 'Travel journal', 'global', 'Compass', 1, 35)"
-  ).run();
+  testDb
+    .prepare(
+      "INSERT OR REPLACE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES ('journey', 'Journey', 'Travel journal', 'global', 'Compass', 1, 35)",
+    )
+    .run();
 });
 afterAll(async () => {
   await nestApp.close();
@@ -81,10 +83,14 @@ describe('deleting a place detaches its journey entry ahead of the FK cascade', 
     // annotated, rather than deleted outright (that path is for content-less
     // skeletons) or left dangling with a stale source_place_id.
     const now = Date.now();
-    const entryId = testDb.prepare(`
+    const entryId = testDb
+      .prepare(
+        `
       INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, story, entry_date, visibility, sort_order, created_at, updated_at)
       VALUES (?, ?, ?, ?, 'entry', ?, ?, '2026-01-15', 'private', 0, ?, ?)
-    `).run(journey.id, trip.id, place.id, user.id, 'A café', 'Lovely coffee.', now, now).lastInsertRowid;
+    `,
+      )
+      .run(journey.id, trip.id, place.id, user.id, 'A café', 'Lovely coffee.', now, now).lastInsertRowid;
 
     const res = await request(app)
       .delete(`/api/trips/${trip.id}/places/${place.id}`)
@@ -118,10 +124,14 @@ describe('deleting a place detaches its journey entry ahead of the FK cascade', 
     linkTripToJourney(testDb, journey.id, trip.id);
 
     const now = Date.now();
-    const entryId = testDb.prepare(`
+    const entryId = testDb
+      .prepare(
+        `
       INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, entry_date, visibility, sort_order, created_at, updated_at)
       VALUES (?, ?, ?, ?, 'skeleton', ?, '2026-01-16', 'private', 0, ?, ?)
-    `).run(journey.id, trip.id, place.id, user.id, place.name, now, now).lastInsertRowid;
+    `,
+      )
+      .run(journey.id, trip.id, place.id, user.id, place.name, now, now).lastInsertRowid;
 
     const res = await request(app)
       .delete(`/api/trips/${trip.id}/places/${place.id}`)

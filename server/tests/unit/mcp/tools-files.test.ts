@@ -8,11 +8,28 @@
  * read_trip_file has to stay behind files:content while list_trip_files answers
  * on files:read alone.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { FilesMcp } from '../../../src/nest/files/files.mcp';
+import { FilesModule } from '../../../src/nest/files/files.module';
+import { FILE_CONTENT_MAX } from '../../../src/nest/files/files.service';
+import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
+import { StorageService } from '../../../src/nest/storage/storage.service';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createDayAssignment,
+  createReservation,
+  addTripMember,
+} from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
+import { resetTestDb } from '../../helpers/test-db';
+
 import fs from 'node:fs';
 import nodePath from 'node:path';
-
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -39,16 +56,6 @@ vi.mock('../../helpers/storage-fixture', async (importOriginal) => {
   return { makeStorageFixture: () => shared };
 });
 
-import { resetTestDb } from '../../helpers/test-db';
-import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment, createReservation, addTripMember } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
-import { FilesModule } from '../../../src/nest/files/files.module';
-import { FilesMcp } from '../../../src/nest/files/files.mcp';
-import { FILE_CONTENT_MAX } from '../../../src/nest/files/files.service';
-import { StorageService } from '../../../src/nest/storage/storage.service';
-
 beforeEach(() => {
   resetTestDb(testDb);
   broadcastMock.mockClear();
@@ -64,7 +71,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 /** Lower a configurable action the way the admin permission panel does. */
@@ -88,25 +99,34 @@ interface FileRowOverrides {
 
 /** A trip_files row, straight in, so each case controls every column. */
 function insertFile(tripId: number, overrides: Partial<FileRowOverrides> = {}) {
-  const info = testDb.prepare(`
+  const info = testDb
+    .prepare(
+      `
     INSERT INTO trip_files (trip_id, filename, original_name, file_size, mime_type, description, uploaded_by, place_id, reservation_id, starred, deleted_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    tripId,
-    overrides.filename ?? 'stored-visa.pdf',
-    overrides.original_name ?? 'visa.pdf',
-    // `??` would swallow an explicit null here, and a row with no recorded size
-    // or type is exactly what the fallback cases need.
-    overrides.file_size === undefined ? 2 : overrides.file_size,
-    overrides.mime_type === undefined ? 'application/pdf' : overrides.mime_type,
-    overrides.description ?? null,
-    overrides.uploaded_by ?? null,
-    overrides.place_id ?? null,
-    overrides.reservation_id ?? null,
-    overrides.starred ?? 0,
-    overrides.deleted_at ?? null,
-  );
-  return testDb.prepare('SELECT * FROM trip_files WHERE id = ?').get(info.lastInsertRowid) as { id: number; description: string | null; place_id: number | null; reservation_id: number | null };
+  `,
+    )
+    .run(
+      tripId,
+      overrides.filename ?? 'stored-visa.pdf',
+      overrides.original_name ?? 'visa.pdf',
+      // `??` would swallow an explicit null here, and a row with no recorded size
+      // or type is exactly what the fallback cases need.
+      overrides.file_size === undefined ? 2 : overrides.file_size,
+      overrides.mime_type === undefined ? 'application/pdf' : overrides.mime_type,
+      overrides.description ?? null,
+      overrides.uploaded_by ?? null,
+      overrides.place_id ?? null,
+      overrides.reservation_id ?? null,
+      overrides.starred ?? 0,
+      overrides.deleted_at ?? null,
+    );
+  return testDb.prepare('SELECT * FROM trip_files WHERE id = ?').get(info.lastInsertRowid) as {
+    id: number;
+    description: string | null;
+    place_id: number | null;
+    reservation_id: number | null;
+  };
 }
 
 /** Put real bytes where the storage layer will look for `filename`. */
@@ -115,13 +135,20 @@ function storeBytes(filename: string, body: Buffer | string) {
 }
 
 function fileRow(id: number) {
-  return testDb.prepare('SELECT description, place_id, reservation_id FROM trip_files WHERE id = ?').get(id) as
-    { description: string | null; place_id: number | null; reservation_id: number | null };
+  return testDb.prepare('SELECT description, place_id, reservation_id FROM trip_files WHERE id = ?').get(id) as {
+    description: string | null;
+    place_id: number | null;
+    reservation_id: number | null;
+  };
 }
 
 function linkRows(fileId: number) {
-  return testDb.prepare('SELECT * FROM file_links WHERE file_id = ?').all(fileId) as
-    { id: number; reservation_id: number | null; assignment_id: number | null; place_id: number | null }[];
+  return testDb.prepare('SELECT * FROM file_links WHERE file_id = ?').all(fileId) as {
+    id: number;
+    reservation_id: number | null;
+    assignment_id: number | null;
+    place_id: number | null;
+  }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -135,8 +162,13 @@ describe('Tool: list_trip_files', () => {
     const place = createPlace(testDb, trip.id);
     const reservation = createReservation(testDb, trip.id, { title: 'Hotel Ritz' });
     const file = insertFile(trip.id, {
-      original_name: 'boarding-pass.pdf', file_size: 4242, uploaded_by: user.id,
-      place_id: place.id, reservation_id: reservation.id, starred: 1, description: 'AF1234',
+      original_name: 'boarding-pass.pdf',
+      file_size: 4242,
+      uploaded_by: user.id,
+      place_id: place.id,
+      reservation_id: reservation.id,
+      starred: 1,
+      description: 'AF1234',
     });
 
     await withHarness(user.id, async (h) => {
@@ -164,10 +196,14 @@ describe('Tool: list_trip_files', () => {
     insertFile(trip.id, { original_name: 'trashed.pdf', deleted_at: '2027-01-01 10:00:00' });
 
     await withHarness(user.id, async (h) => {
-      const live = parseToolResult(await h.client.callTool({ name: 'list_trip_files', arguments: { tripId: trip.id } })) as any;
+      const live = parseToolResult(
+        await h.client.callTool({ name: 'list_trip_files', arguments: { tripId: trip.id } }),
+      ) as any;
       expect(live.files.map((f: any) => f.original_name)).toEqual(['live.pdf']);
 
-      const trashed = parseToolResult(await h.client.callTool({ name: 'list_trip_files', arguments: { tripId: trip.id, trash: true } })) as any;
+      const trashed = parseToolResult(
+        await h.client.callTool({ name: 'list_trip_files', arguments: { tripId: trip.id, trash: true } }),
+      ) as any;
       expect(trashed.files.map((f: any) => f.original_name)).toEqual(['trashed.pdf']);
     });
   });
@@ -182,7 +218,9 @@ describe('Tool: list_trip_files', () => {
     testDb.prepare('INSERT INTO file_links (file_id, place_id) VALUES (?, ?)').run(file.id, place.id);
 
     await withHarness(user.id, async (h) => {
-      const data = parseToolResult(await h.client.callTool({ name: 'list_trip_files', arguments: { tripId: trip.id } })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({ name: 'list_trip_files', arguments: { tripId: trip.id } }),
+      ) as any;
       expect(data.files[0].linked_reservation_ids).toEqual([reservation.id]);
       expect(data.files[0].linked_place_ids).toEqual([place.id]);
     });
@@ -209,15 +247,28 @@ describe('Tool: read_trip_file', () => {
   it('returns a text document as text', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const file = insertFile(trip.id, { filename: 'notes.txt', original_name: 'packing-notes.txt', mime_type: 'text/plain', file_size: 11 });
+    const file = insertFile(trip.id, {
+      filename: 'notes.txt',
+      original_name: 'packing-notes.txt',
+      mime_type: 'text/plain',
+      file_size: 11,
+    });
     storeBytes('notes.txt', 'Bring socks');
 
     await withHarness(user.id, async (h) => {
-      const data = parseToolResult(await h.client.callTool({
-        name: 'read_trip_file', arguments: { tripId: trip.id, fileId: file.id },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'read_trip_file',
+          arguments: { tripId: trip.id, fileId: file.id },
+        }),
+      ) as any;
       expect(data.file).toMatchObject({
-        id: file.id, name: 'packing-notes.txt', mimetype: 'text/plain', size: 11, encoding: 'utf8', content: 'Bring socks',
+        id: file.id,
+        name: 'packing-notes.txt',
+        mimetype: 'text/plain',
+        size: 11,
+        encoding: 'utf8',
+        content: 'Bring socks',
       });
     });
   });
@@ -230,9 +281,12 @@ describe('Tool: read_trip_file', () => {
     storeBytes('stored.pdf', bytes);
 
     await withHarness(user.id, async (h) => {
-      const data = parseToolResult(await h.client.callTool({
-        name: 'read_trip_file', arguments: { tripId: trip.id, fileId: file.id },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'read_trip_file',
+          arguments: { tripId: trip.id, fileId: file.id },
+        }),
+      ) as any;
       expect(data.file.encoding).toBe('base64');
       expect(Buffer.from(data.file.content, 'base64').equals(bytes)).toBe(true);
     });
@@ -245,9 +299,12 @@ describe('Tool: read_trip_file', () => {
     storeBytes('unknown.bin', 'hi');
 
     await withHarness(user.id, async (h) => {
-      const data = parseToolResult(await h.client.callTool({
-        name: 'read_trip_file', arguments: { tripId: trip.id, fileId: file.id },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'read_trip_file',
+          arguments: { tripId: trip.id, fileId: file.id },
+        }),
+      ) as any;
       expect(data.file.mimetype).toBe('application/octet-stream');
       expect(data.file.encoding).toBe('base64');
     });
@@ -261,7 +318,10 @@ describe('Tool: read_trip_file', () => {
     storeBytes('foreign.txt', 'secret');
 
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'read_trip_file', arguments: { tripId: trip.id, fileId: foreign.id } });
+      const result = await h.client.callTool({
+        name: 'read_trip_file',
+        arguments: { tripId: trip.id, fileId: foreign.id },
+      });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain('File not found.');
     });
@@ -270,11 +330,18 @@ describe('Tool: read_trip_file', () => {
   it('refuses a trashed file', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const file = insertFile(trip.id, { filename: 'trashed.txt', mime_type: 'text/plain', deleted_at: '2027-01-01 10:00:00' });
+    const file = insertFile(trip.id, {
+      filename: 'trashed.txt',
+      mime_type: 'text/plain',
+      deleted_at: '2027-01-01 10:00:00',
+    });
     storeBytes('trashed.txt', 'gone');
 
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'read_trip_file', arguments: { tripId: trip.id, fileId: file.id } });
+      const result = await h.client.callTool({
+        name: 'read_trip_file',
+        arguments: { tripId: trip.id, fileId: file.id },
+      });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain('File not found.');
     });
@@ -288,7 +355,10 @@ describe('Tool: read_trip_file', () => {
     const file = insertFile(trip.id, { filename: 'huge.mp4', mime_type: 'video/mp4', file_size: FILE_CONTENT_MAX + 1 });
 
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'read_trip_file', arguments: { tripId: trip.id, fileId: file.id } });
+      const result = await h.client.callTool({
+        name: 'read_trip_file',
+        arguments: { tripId: trip.id, fileId: file.id },
+      });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain('too large to read here (over 10 MB)');
     });
@@ -300,7 +370,10 @@ describe('Tool: read_trip_file', () => {
     const file = insertFile(trip.id, { filename: 'never-stored.pdf' });
 
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'read_trip_file', arguments: { tripId: trip.id, fileId: file.id } });
+      const result = await h.client.callTool({
+        name: 'read_trip_file',
+        arguments: { tripId: trip.id, fileId: file.id },
+      });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain('File contents are not available.');
     });
@@ -317,7 +390,10 @@ describe('Tool: read_trip_file', () => {
 
     try {
       await withHarness(user.id, async (h) => {
-        const result = await h.client.callTool({ name: 'read_trip_file', arguments: { tripId: trip.id, fileId: file.id } });
+        const result = await h.client.callTool({
+          name: 'read_trip_file',
+          arguments: { tripId: trip.id, fileId: file.id },
+        });
         expect(result.isError).toBe(true);
         const text = JSON.stringify(result.content);
         expect(text).not.toContain('File not found.');
@@ -336,7 +412,10 @@ describe('Tool: read_trip_file', () => {
     storeBytes('members-only.txt', 'secret');
 
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'read_trip_file', arguments: { tripId: trip.id, fileId: file.id } });
+      const result = await h.client.callTool({
+        name: 'read_trip_file',
+        arguments: { tripId: trip.id, fileId: file.id },
+      });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain('Trip not found or access denied.');
     });
@@ -355,10 +434,12 @@ describe('Tool: update_trip_file', () => {
     const file = insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
-      const data = parseToolResult(await h.client.callTool({
-        name: 'update_trip_file',
-        arguments: { tripId: trip.id, fileId: file.id, description: 'Museum ticket', place_id: place.id },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'update_trip_file',
+          arguments: { tripId: trip.id, fileId: file.id, description: 'Museum ticket', place_id: place.id },
+        }),
+      ) as any;
       expect(data.file.description).toBe('Museum ticket');
       expect(fileRow(file.id)).toMatchObject({ description: 'Museum ticket', place_id: place.id });
     });
@@ -493,15 +574,32 @@ describe('Tool: upload_trip_file', () => {
     const booking = createReservation(testDb, trip.id);
 
     await withHarness(user.id, async (h) => {
-      const data = parseToolResult(await h.client.callTool({
-        name: 'upload_trip_file',
-        arguments: { tripId: trip.id, filename: 'C:\\mail\\hotel.pdf', content: pdf, description: 'Hotel', reservation_id: booking.id },
-      })) as any;
-      expect(data.file).toMatchObject({ original_name: 'hotel.pdf', mime_type: 'application/pdf', file_size: 16, description: 'Hotel', reservation_id: booking.id, uploaded_by: user.id });
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'upload_trip_file',
+          arguments: {
+            tripId: trip.id,
+            filename: 'C:\\mail\\hotel.pdf',
+            content: pdf,
+            description: 'Hotel',
+            reservation_id: booking.id,
+          },
+        }),
+      ) as any;
+      expect(data.file).toMatchObject({
+        original_name: 'hotel.pdf',
+        mime_type: 'application/pdf',
+        file_size: 16,
+        description: 'Hotel',
+        reservation_id: booking.id,
+        uploaded_by: user.id,
+      });
       expect(data.file.filename).toMatch(/^[0-9a-f-]{36}\.pdf$/);
       expect(fs.readFileSync(nodePath.join(fixture.root, data.file.filename), 'utf8')).toBe('%PDF-1.4 booking');
       // And the read tool hands the same bytes back.
-      const read = parseToolResult(await h.client.callTool({ name: 'read_trip_file', arguments: { tripId: trip.id, fileId: data.file.id } })) as any;
+      const read = parseToolResult(
+        await h.client.callTool({ name: 'read_trip_file', arguments: { tripId: trip.id, fileId: data.file.id } }),
+      ) as any;
       expect(Buffer.from(read.file.content, 'base64').toString()).toBe('%PDF-1.4 booking');
     });
     expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'file:created', expect.objectContaining({ _source: 'mcp' }));
@@ -512,7 +610,10 @@ describe('Tool: upload_trip_file', () => {
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
       for (const filename of ['evil.html', 'logo.svg', 'tool.exe', 'noext']) {
-        const result = await h.client.callTool({ name: 'upload_trip_file', arguments: { tripId: trip.id, filename, content: pdf } });
+        const result = await h.client.callTool({
+          name: 'upload_trip_file',
+          arguments: { tripId: trip.id, filename, content: pdf },
+        });
         expect(result.isError).toBe(true);
         expect(JSON.stringify(result.content)).toContain('not allowed');
       }
@@ -525,10 +626,18 @@ describe('Tool: upload_trip_file', () => {
     const trip = createTrip(testDb, user.id);
     testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allowed_file_types', 'pdf')").run();
     await withHarness(user.id, async (h) => {
-      const refused = await h.client.callTool({ name: 'upload_trip_file', arguments: { tripId: trip.id, filename: 'notes.txt', content: pdf } });
+      const refused = await h.client.callTool({
+        name: 'upload_trip_file',
+        arguments: { tripId: trip.id, filename: 'notes.txt', content: pdf },
+      });
       expect(refused.isError).toBe(true);
       testDb.prepare("UPDATE app_settings SET value = '*' WHERE key = 'allowed_file_types'").run();
-      const data = parseToolResult(await h.client.callTool({ name: 'upload_trip_file', arguments: { tripId: trip.id, filename: 'route.gpx', content: pdf } })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'upload_trip_file',
+          arguments: { tripId: trip.id, filename: 'route.gpx', content: pdf },
+        }),
+      ) as any;
       expect(data.file.mime_type).toBe('application/gpx+xml');
     });
   });
@@ -537,9 +646,15 @@ describe('Tool: upload_trip_file', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const bad = await h.client.callTool({ name: 'upload_trip_file', arguments: { tripId: trip.id, filename: 'a.pdf', content: 'not base64!' } });
+      const bad = await h.client.callTool({
+        name: 'upload_trip_file',
+        arguments: { tripId: trip.id, filename: 'a.pdf', content: 'not base64!' },
+      });
       expect(JSON.stringify(bad.content)).toContain('not valid base64');
-      const empty = await h.client.callTool({ name: 'upload_trip_file', arguments: { tripId: trip.id, filename: 'a.pdf', content: '==' } });
+      const empty = await h.client.callTool({
+        name: 'upload_trip_file',
+        arguments: { tripId: trip.id, filename: 'a.pdf', content: '==' },
+      });
       expect(JSON.stringify(empty.content)).toContain('empty');
     });
   });
@@ -550,7 +665,10 @@ describe('Tool: upload_trip_file', () => {
     // Just past the cap after decoding, still inside the schema's base64 length.
     const big = Buffer.alloc(FILE_CONTENT_MAX + 1, 1).toString('base64');
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'upload_trip_file', arguments: { tripId: trip.id, filename: 'big.pdf', content: big } });
+      const result = await h.client.callTool({
+        name: 'upload_trip_file',
+        arguments: { tripId: trip.id, filename: 'big.pdf', content: big },
+      });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain('too large');
     });
@@ -562,7 +680,10 @@ describe('Tool: upload_trip_file', () => {
     const foreignTrip = createTrip(testDb, user.id);
     const foreignPlace = createPlace(testDb, foreignTrip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'upload_trip_file', arguments: { tripId: trip.id, filename: 'a.pdf', content: pdf, place_id: foreignPlace.id } });
+      const result = await h.client.callTool({
+        name: 'upload_trip_file',
+        arguments: { tripId: trip.id, filename: 'a.pdf', content: pdf, place_id: foreignPlace.id },
+      });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain('does not belong to this trip');
     });
@@ -576,7 +697,10 @@ describe('Tool: upload_trip_file', () => {
     addTripMember(testDb, trip.id, member.id);
     setPermission('file_upload', 'trip_owner');
     await withHarness(member.id, async (h) => {
-      const result = await h.client.callTool({ name: 'upload_trip_file', arguments: { tripId: trip.id, filename: 'a.pdf', content: pdf } });
+      const result = await h.client.callTool({
+        name: 'upload_trip_file',
+        arguments: { tripId: trip.id, filename: 'a.pdf', content: pdf },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -586,14 +710,20 @@ describe('Tool: upload_trip_file', () => {
     const { user: other } = createUser(testDb);
     const foreign = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'upload_trip_file', arguments: { tripId: foreign.id, filename: 'a.pdf', content: pdf } });
+      const result = await h.client.callTool({
+        name: 'upload_trip_file',
+        arguments: { tripId: foreign.id, filename: 'a.pdf', content: pdf },
+      });
       expect(JSON.stringify(result.content)).toContain('Trip not found or access denied.');
     });
     process.env.DEMO_MODE = 'true';
     const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
     const own = createTrip(testDb, demo.id);
     await withHarness(demo.id, async (h) => {
-      const result = await h.client.callTool({ name: 'upload_trip_file', arguments: { tripId: own.id, filename: 'a.pdf', content: pdf } });
+      const result = await h.client.callTool({
+        name: 'upload_trip_file',
+        arguments: { tripId: own.id, filename: 'a.pdf', content: pdf },
+      });
       expect(result.isError).toBe(true);
     });
     expect(testDb.prepare('SELECT COUNT(*) AS n FROM trip_files').get()).toEqual({ n: 0 });
@@ -615,10 +745,12 @@ describe('Tool: link_trip_file', () => {
     const file = insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
-      const first = parseToolResult(await h.client.callTool({
-        name: 'link_trip_file',
-        arguments: { tripId: trip.id, fileId: file.id, reservation_id: reservation.id },
-      })) as any;
+      const first = parseToolResult(
+        await h.client.callTool({
+          name: 'link_trip_file',
+          arguments: { tripId: trip.id, fileId: file.id, reservation_id: reservation.id },
+        }),
+      ) as any;
       expect(first.success).toBe(true);
       expect(first.links).toHaveLength(1);
 
@@ -640,7 +772,10 @@ describe('Tool: link_trip_file', () => {
     const file = insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'link_trip_file', arguments: { tripId: trip.id, fileId: file.id } });
+      const result = await h.client.callTool({
+        name: 'link_trip_file',
+        arguments: { tripId: trip.id, fileId: file.id },
+      });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain('at least one of reservation_id');
     });
@@ -771,10 +906,12 @@ describe('Tool: unlink_trip_file', () => {
     const doomed = linkRows(file.id)[0].id;
 
     await withHarness(user.id, async (h) => {
-      const data = parseToolResult(await h.client.callTool({
-        name: 'unlink_trip_file',
-        arguments: { tripId: trip.id, fileId: file.id, linkId: doomed },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'unlink_trip_file',
+          arguments: { tripId: trip.id, fileId: file.id, linkId: doomed },
+        }),
+      ) as any;
       expect(data.success).toBe(true);
     });
     const left = linkRows(file.id);
@@ -788,7 +925,9 @@ describe('Tool: unlink_trip_file', () => {
     const otherTrip = createTrip(testDb, user.id);
     const foreignFile = insertFile(otherTrip.id);
     const foreignReservation = createReservation(testDb, otherTrip.id);
-    testDb.prepare('INSERT INTO file_links (file_id, reservation_id) VALUES (?, ?)').run(foreignFile.id, foreignReservation.id);
+    testDb
+      .prepare('INSERT INTO file_links (file_id, reservation_id) VALUES (?, ?)')
+      .run(foreignFile.id, foreignReservation.id);
     const linkId = linkRows(foreignFile.id)[0].id;
 
     await withHarness(user.id, async (h) => {
@@ -872,11 +1011,18 @@ describe('Tool: list_trip_file_links', () => {
     testDb.prepare('INSERT INTO file_links (file_id, reservation_id) VALUES (?, ?)').run(file.id, reservation.id);
 
     await withHarness(user.id, async (h) => {
-      const data = parseToolResult(await h.client.callTool({
-        name: 'list_trip_file_links', arguments: { tripId: trip.id, fileId: file.id },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'list_trip_file_links',
+          arguments: { tripId: trip.id, fileId: file.id },
+        }),
+      ) as any;
       expect(data.links).toHaveLength(1);
-      expect(data.links[0]).toMatchObject({ file_id: file.id, reservation_id: reservation.id, reservation_title: 'Nightjet 421' });
+      expect(data.links[0]).toMatchObject({
+        file_id: file.id,
+        reservation_id: reservation.id,
+        reservation_title: 'Nightjet 421',
+      });
       expect(typeof data.links[0].id).toBe('number');
     });
   });
@@ -889,7 +1035,8 @@ describe('Tool: list_trip_file_links', () => {
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
-        name: 'list_trip_file_links', arguments: { tripId: trip.id, fileId: foreign.id },
+        name: 'list_trip_file_links',
+        arguments: { tripId: trip.id, fileId: foreign.id },
       });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain('File not found.');
@@ -904,7 +1051,8 @@ describe('Tool: list_trip_file_links', () => {
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
-        name: 'list_trip_file_links', arguments: { tripId: trip.id, fileId: file.id },
+        name: 'list_trip_file_links',
+        arguments: { tripId: trip.id, fileId: file.id },
       });
       expect(result.isError).toBe(true);
     });

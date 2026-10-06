@@ -1,6 +1,6 @@
-import { Collection, EntityRepositoryType, defineEntity, p } from '@mikro-orm/core';
 import { PhotoProvidersRepository } from '../repositories/PhotoProviders.repository';
 import { PhotoProviderFields } from './PhotoProviderFields.entity';
+import { Collection, EntityRepositoryType, defineEntity, p } from '@mikro-orm/core';
 
 export class PhotoProviders {
   [EntityRepositoryType]?: PhotoProvidersRepository;

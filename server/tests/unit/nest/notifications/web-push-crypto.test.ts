@@ -5,9 +5,6 @@
  * RFC 8291 Appendix A, and by a decrypt written here from the receiving side,
  * the way a browser unwraps the message, for fresh keys and salts.
  */
-import { describe, it, expect } from 'vitest';
-import { createDecipheriv, createECDH, createPublicKey, hkdfSync, type ECDH } from 'node:crypto';
-import jwt from 'jsonwebtoken';
 import {
   MAX_PUSH_PLAINTEXT_BYTES,
   PUSH_RECORD_SIZE,
@@ -19,6 +16,10 @@ import {
   isP256Point,
   isVapidKeyPair,
 } from '../../../../src/nest/notifications/push/web-push-crypto';
+
+import jwt from 'jsonwebtoken';
+import { createDecipheriv, createECDH, createPublicKey, hkdfSync, type ECDH } from 'node:crypto';
+import { describe, it, expect } from 'vitest';
 
 const b64 = (value: string) => Buffer.from(value, 'base64url');
 

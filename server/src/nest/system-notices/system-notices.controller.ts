@@ -1,9 +1,9 @@
+import type { User } from '../../types';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { SystemNoticesService } from './system-notices.service';
 import { Controller, Get, HttpCode, HttpException, Param, Post, Query, UseGuards } from '@nestjs/common';
 import type { SystemNoticeDto } from '@trek/shared';
-import type { User } from '../../types';
-import { SystemNoticesService } from './system-notices.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
 
 /**
  * `?supports=release` names the layouts the calling bundle can draw, comma separated,
@@ -12,8 +12,8 @@ import { CurrentUser } from '../auth/current-user.decorator';
  */
 function parseSupports(raw: string | string[] | undefined): Set<string> {
   const values = Array.isArray(raw) ? raw : [raw];
-  const names = values.flatMap(v => (typeof v === 'string' ? v.split(',') : []));
-  return new Set(names.map(s => s.trim()).filter(Boolean));
+  const names = values.flatMap((v) => (typeof v === 'string' ? v.split(',') : []));
+  return new Set(names.map((s) => s.trim()).filter(Boolean));
 }
 
 /**

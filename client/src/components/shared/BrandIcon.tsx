@@ -1,7 +1,7 @@
-import React from 'react'
+import React from 'react';
 
 export interface BrandIconProps {
-  size?: number
+  size?: number;
   /**
    * Fill the box it sits in, corner to corner.
    *
@@ -9,17 +9,17 @@ export interface BrandIconProps {
    * float in the middle of one — which is what the lucide line icons beside it
    * need, and it does not.
    */
-  fill?: boolean
+  fill?: boolean;
   /**
    * Drain the colour, for a switched-off addon. Every other tile greys its glyph
    * out; a full-colour badge among them reads as the one thing that is on.
    */
-  muted?: boolean
+  muted?: boolean;
   /**
    * Sizing classes, so the mark can stand in wherever a lucide icon is expected
    * (`w-5 h-5 …`). When set it wins over `size`.
    */
-  className?: string
+  className?: string;
 }
 
 /**
@@ -61,5 +61,5 @@ export default function BrandIcon({
         ...(muted ? { filter: 'grayscale(1)', opacity: 0.55 } : {}),
       }}
     />
-  )
+  );
 }

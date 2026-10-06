@@ -1,7 +1,7 @@
-import { BellRing, BellOff, Send } from 'lucide-react'
-import { useTranslation } from '../../../i18n'
-import { useWebPush } from '../../../hooks/useWebPush'
-import { MSetButton, MSetEyebrow, MSetHint } from './MSettingsUi'
+import { BellOff, BellRing, Send } from 'lucide-react';
+import { useWebPush } from '../../../hooks/useWebPush';
+import { useTranslation } from '../../../i18n';
+import { MSetButton, MSetEyebrow, MSetHint } from './MSettingsUi';
 
 /**
  * Phone twin of the desktop `WebPushCard`: markup only, over the same
@@ -9,8 +9,8 @@ import { MSetButton, MSetEyebrow, MSetHint } from './MSettingsUi'
  * push channel switched on.
  */
 export default function MWebPushCard() {
-  const { t } = useTranslation()
-  const push = useWebPush()
+  const { t } = useTranslation();
+  const push = useWebPush();
 
   return (
     <div className="mb-3 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3">
@@ -34,5 +34,5 @@ export default function MWebPushCard() {
         </div>
       )}
     </div>
-  )
+  );
 }

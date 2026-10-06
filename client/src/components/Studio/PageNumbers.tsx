@@ -1,7 +1,7 @@
-import type { BookPageSetup, BookSpread } from '@trek/shared'
-import { fontStack } from './bookFonts'
-import { folioInk } from './folioColour'
-import { isNumbered } from './bookSheets'
+import type { BookPageSetup, BookSpread } from '@trek/shared';
+import { fontStack } from './bookFonts';
+import { isNumbered } from './bookSheets';
+import { folioInk } from './folioColour';
 
 /**
  * The folios.
@@ -22,32 +22,38 @@ import { isNumbered } from './bookSheets'
  * the side of the book they are bound on (#2317).
  */
 export function PageNumbers({
-  spread, page, folios,
+  spread,
+  page,
+  folios,
 }: {
-  spread: BookSpread
-  page: BookPageSetup
+  spread: BookSpread;
+  page: BookPageSetup;
   /**
    * The numbers this spread carries, from foliosOf: two for a spread, one for
    * a first or last page, none for a cover. Counted by the caller, which has
    * the whole book — a spread on its own does not know how many pages sit
    * before it.
    */
-  folios: readonly number[]
+  folios: readonly number[];
 }) {
-  const cfg = page.pageNumbers
-  if (!cfg?.show || !isNumbered(spread.role) || folios.length === 0) return null
+  const cfg = page.pageNumbers;
+  if (!cfg?.show || !isNumbered(spread.role) || folios.length === 0) return null;
 
   /*
    * Which page of the sheet each number sits on. A spread numbers both; the
    * first page is a right-hand leaf and the last a left-hand one, and each
    * carries its one number on the side it actually is.
    */
-  const sides: Array<['left' | 'right', number]> = spread.role === 'inner'
-    ? [['left', folios[0]], ['right', folios[1]]]
-    : [[spread.role === 'first' ? 'right' : 'left', folios[0]]]
+  const sides: Array<['left' | 'right', number]> =
+    spread.role === 'inner'
+      ? [
+          ['left', folios[0]],
+          ['right', folios[1]],
+        ]
+      : [[spread.role === 'first' ? 'right' : 'left', folios[0]]];
 
-  const size = cfg.size
-  const y = page.pageHeight - cfg.margin
+  const size = cfg.size;
+  const y = page.pageHeight - cfg.margin;
 
   /**
    * Where the number sits on each page, given which edge it hangs from.
@@ -57,23 +63,23 @@ export function PageNumbers({
    * the outer one.
    */
   const place = (side: 'left' | 'right') => {
-    const pageX = side === 'left' || spread.role !== 'inner' ? 0 : page.pageWidth
+    const pageX = side === 'left' || spread.role !== 'inner' ? 0 : page.pageWidth;
     if (cfg.position === 'centre') {
-      return { x: pageX, w: page.pageWidth, align: 'center' as const }
+      return { x: pageX, w: page.pageWidth, align: 'center' as const };
     }
     // Outer is the cut edge, inner is the gutter — the distinction only exists
     // on a spread, and getting it backwards puts both numbers in the fold.
-    const outward = cfg.position === 'outer'
-    const atLeftEdge = side === 'left' ? outward : !outward
+    const outward = cfg.position === 'outer';
+    const atLeftEdge = side === 'left' ? outward : !outward;
     return atLeftEdge
       ? { x: pageX + cfg.margin, w: page.pageWidth * 0.4, align: 'left' as const }
-      : { x: pageX + page.pageWidth * 0.6 - cfg.margin, w: page.pageWidth * 0.4, align: 'right' as const }
-  }
+      : { x: pageX + page.pageWidth * 0.6 - cfg.margin, w: page.pageWidth * 0.4, align: 'right' as const };
+  };
 
   return (
     <>
       {sides.map(([side, number]) => {
-        const at = place(side)
+        const at = place(side);
         /*
          * Sampled at the middle of the number's own box, which is where the
          * digits actually are — the box is 40% of the page wide so that the
@@ -82,7 +88,7 @@ export function PageNumbers({
          */
         const ink = cfg.autoColor
           ? folioInk(spread, at.x + at.w / 2, y - size * 0.18)
-          : { color: cfg.color, shadow: undefined }
+          : { color: cfg.color, shadow: undefined };
         return (
           <div
             key={side}
@@ -105,8 +111,8 @@ export function PageNumbers({
           >
             {number}
           </div>
-        )
+        );
       })}
     </>
-  )
+  );
 }

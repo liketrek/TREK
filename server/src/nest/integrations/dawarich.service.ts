@@ -1,5 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { DawarichConnections } from '../../db/entities/DawarichConnections.entity';
+import {
+  DawarichConnectionsRepository,
+  type DawarichConnectionRow,
+} from '../../db/repositories/DawarichConnections.repository';
+import { checkSsrf } from '../../utils/ssrfGuard';
+import { AuditService } from '../audit/audit.service';
+import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { UnitOfWork } from '../database/unit-of-work';
+import { DawarichClient, DawarichError, type DawarichCreds } from './dawarich.client';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import {
   DAWARICH_KEY_MASK,
   type DawarichCapabilities,
@@ -7,13 +17,6 @@ import {
   type DawarichStatus,
   type DawarichSyncState,
 } from '@trek/shared';
-import { DawarichConnections } from '../../db/entities/DawarichConnections.entity';
-import { DawarichConnectionsRepository, type DawarichConnectionRow } from '../../db/repositories/DawarichConnections.repository';
-import { AuditService } from '../audit/audit.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { checkSsrf } from '../../utils/ssrfGuard';
-import { DawarichClient, DawarichError, type DawarichCreds } from './dawarich.client';
 
 /**
  * The Dawarich connection: credentials, the probe, and what the connected
@@ -103,7 +106,14 @@ export class DawarichService {
     allowInsecureTls: boolean,
     syncEnabled: boolean,
     clientIp: string | null,
-  ): Promise<{ success: boolean; warning?: string; warningCode?: string; warningIp?: string; error?: string; code?: string }> {
+  ): Promise<{
+    success: boolean;
+    warning?: string;
+    warningCode?: string;
+    warningIp?: string;
+    error?: string;
+    code?: string;
+  }> {
     const trimmedUrl = (url || '').trim();
     let warning: string | undefined;
     let warningCode: string | undefined;

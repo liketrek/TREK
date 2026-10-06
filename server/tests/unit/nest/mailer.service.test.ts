@@ -1,3 +1,14 @@
+import { db as testDb } from '../../../src/db/database';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { Settings } from '../../../src/db/entities/Settings.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { logError, logInfo, logWarn } from '../../../src/nest/audit/audit-log.logger';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
 /**
  * mailer.service.test.ts
  *
@@ -11,7 +22,6 @@
  */
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -21,9 +31,8 @@ vi.mock('../../../src/db/database', async () => {
     canAccessTrip: () => undefined,
     isOwner: () => false,
   };
-    return mock;
+  return mock;
 });
-
 
 const { sendMail, createTransport } = vi.hoisted(() => {
   const send = vi.fn().mockResolvedValue({ messageId: 'test' });
@@ -40,16 +49,6 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
   logError: vi.fn(),
   logWarn: vi.fn(),
 }));
-
-import { db as testDb } from '../../../src/db/database';
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { resetTestDb } from '../../helpers/test-db';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { logError, logInfo, logWarn } from '../../../src/nest/audit/audit-log.logger';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { Settings } from '../../../src/db/entities/Settings.entity';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 
 function setAppSetting(key: string, value: string): void {
   testDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, value);
@@ -264,8 +263,10 @@ describe('MailerService test send', () => {
 
     expect(await newMailer().testSmtp('admin@example.com')).toEqual({ success: true });
 
-    const lines = vi.mocked(logInfo).mock.calls.map(call => call[0]);
-    expect(lines.some(line => line.includes('SMTP test email sent to=admin@example.com smtp=mail.internal.example:587'))).toBe(true);
+    const lines = vi.mocked(logInfo).mock.calls.map((call) => call[0]);
+    expect(
+      lines.some((line) => line.includes('SMTP test email sent to=admin@example.com smtp=mail.internal.example:587')),
+    ).toBe(true);
   });
 });
 
@@ -291,7 +292,7 @@ describe('MailerService header logo (#2507)', () => {
   function expectLogoResolves(mail: { html?: string; attachments?: SentAttachment[] }): void {
     const cid = /<img src="cid:([^"]+)"/.exec(mail.html ?? '')?.[1];
     expect(cid).toBeTruthy();
-    const logo = mail.attachments?.find(a => a.cid === cid);
+    const logo = mail.attachments?.find((a) => a.cid === cid);
     expect(logo).toBeDefined();
     expect(logo!.contentType).toBe('image/png');
     expect(logo!.contentDisposition).toBe('inline');
@@ -312,7 +313,9 @@ describe('MailerService header logo (#2507)', () => {
   it('MAILER-016: the password-reset mail carries it too', async () => {
     configureSmtp();
 
-    expect((await newMailer().sendPasswordResetEmail('someone@example.com', 'https://trek.example/reset', null)).delivered).toBe('email');
+    expect(
+      (await newMailer().sendPasswordResetEmail('someone@example.com', 'https://trek.example/reset', null)).delivered,
+    ).toBe('email');
 
     expectLogoResolves(lastMail());
   });

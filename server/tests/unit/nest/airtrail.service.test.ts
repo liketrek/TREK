@@ -12,24 +12,24 @@
  * `checkSsrf` and the `AirtrailClient` are the only two fakes: both would
  * otherwise leave the process.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
+import { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { checkSsrf } = vi.hoisted(() => ({ checkSsrf: vi.fn() }));
 vi.mock('../../../src/utils/ssrfGuard', () => ({
   checkSsrf,
   safeFetch: vi.fn(),
 }));
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createUser } from '../../helpers/factories';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
-import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -40,7 +40,9 @@ const listFlights = vi.fn();
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   usersRepo = t.repo(Users);
-  svc = new AirtrailService(usersRepo, new AuditService(t.repo(AuditLog), usersRepo), { listFlights } as unknown as AirtrailClient);
+  svc = new AirtrailService(usersRepo, new AuditService(t.repo(AuditLog), usersRepo), {
+    listFlights,
+  } as unknown as AirtrailClient);
 });
 beforeEach(() => {
   resetTestDb(testDb);
@@ -48,10 +50,15 @@ beforeEach(() => {
   checkSsrf.mockReset();
   checkSsrf.mockResolvedValue({ allowed: true, isPrivate: false });
 });
-afterAll(async () => { await t.close(); testDb.close(); });
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function rawAirtrailKey(userId: number): string | null {
-  return (testDb.prepare('SELECT airtrail_api_key FROM users WHERE id = ?').get(userId) as { airtrail_api_key: string | null }).airtrail_api_key;
+  return (
+    testDb.prepare('SELECT airtrail_api_key FROM users WHERE id = ?').get(userId) as { airtrail_api_key: string | null }
+  ).airtrail_api_key;
 }
 
 describe('AirtrailService — at-rest encryption (3h L3)', () => {

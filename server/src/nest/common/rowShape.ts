@@ -1,5 +1,5 @@
-import type { Tag, Participant } from '../../types';
 import type { AssignmentWithPlaceRow } from '../../db/repositories/DayAssignments.repository';
+import type { Tag, Participant } from '../../types';
 import type { PlaceRatingRow } from '../query-helpers/query-helpers.service';
 
 /**
@@ -24,7 +24,11 @@ import type { PlaceRatingRow } from '../query-helpers/query-helpers.service';
  * parameter on it directly removes all three casts in one change instead of
  * adding a fourth.
  */
-export function formatAssignmentWithPlace(a: AssignmentWithPlaceRow, tags: Partial<Tag>[], participants: Participant[]) {
+export function formatAssignmentWithPlace(
+  a: AssignmentWithPlaceRow,
+  tags: Partial<Tag>[],
+  participants: Participant[],
+) {
   return {
     id: a.id,
     day_id: a.day_id,
@@ -72,14 +76,16 @@ export function formatAssignmentWithPlace(a: AssignmentWithPlaceRow, tags: Parti
       // Same reason: the rail resets a range budget here and has to know how far this
       // stop fills, not how far the traveller's default one does.
       fill_percent: a.fill_percent ?? null,
-      category: a.category_id ? {
-        id: a.category_id,
-        name: a.category_name,
-        color: a.category_color,
-        icon: a.category_icon,
-      } : null,
+      category: a.category_id
+        ? {
+            id: a.category_id,
+            name: a.category_name,
+            color: a.category_color,
+            icon: a.category_icon,
+          }
+        : null,
       tags: tags || [],
-    }
+    },
   };
 }
 

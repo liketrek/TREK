@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { RateLimitService } from './rate-limit.service';
+import { Module } from '@nestjs/common';
 
 /**
  * One module owning the limiter, imported by every consumer.

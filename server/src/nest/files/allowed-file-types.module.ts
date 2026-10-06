@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { AllowedFileTypesService } from './allowed-file-types.service';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { AllowedFileTypesService } from './allowed-file-types.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * A leaf so both upload paths can reach the extension list without importing

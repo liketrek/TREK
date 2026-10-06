@@ -1,17 +1,17 @@
-import React from 'react'
-import { MapViewAuto } from '../Map/MapViewAuto'
-import type { CollectionPlace } from '@trek/shared'
-import { mappablePlaces } from '../../pages/collections/collectionsModel'
-import { useTileUrl } from '../../hooks/useTileUrl'
-import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults'
+import type { CollectionPlace } from '@trek/shared';
+import React from 'react';
+import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults';
+import { useTileUrl } from '../../hooks/useTileUrl';
+import { mappablePlaces } from '../../pages/collections/collectionsModel';
+import { MapViewAuto } from '../Map/MapViewAuto';
 
 interface CollectionMapProps {
-  places: CollectionPlace[]
-  selectedPlaceId: number | null
-  onOpenPlace: (id: number) => void
+  places: CollectionPlace[];
+  selectedPlaceId: number | null;
+  onOpenPlace: (id: number) => void;
   /** Clicking the map background clears the selection. */
-  onDeselect?: () => void
-  dark: boolean
+  onDeselect?: () => void;
+  dark: boolean;
 }
 
 /**
@@ -20,9 +20,15 @@ interface CollectionMapProps {
  * The parent `.col-mapwrap` supplies the rounded, bordered box + height, so this
  * just fills it.
  */
-export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, onDeselect, dark }: CollectionMapProps): React.ReactElement {
-  const pts = mappablePlaces(places)
-  const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_POSITRON)
+export default function CollectionMap({
+  places,
+  selectedPlaceId,
+  onOpenPlace,
+  onDeselect,
+  dark,
+}: CollectionMapProps): React.ReactElement {
+  const pts = mappablePlaces(places);
+  const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_POSITRON);
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
@@ -41,5 +47,5 @@ export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, on
         fitKey={pts.length}
       />
     </div>
-  )
+  );
 }

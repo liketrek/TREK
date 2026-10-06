@@ -1,3 +1,6 @@
+import { clampPoiBbox, type PoiBbox } from '../../maps/maps.helpers';
+import { sanitiseAssistantText } from '../text-sanitize';
+import { normalizeSearchHit } from './plugin-search.helpers';
 import {
   PLUGIN_POI_DETAIL_LABEL_MAX,
   PLUGIN_POI_DETAIL_VALUE_MAX,
@@ -8,9 +11,6 @@ import {
   type PluginPoiCategory,
   type PluginPoiDetail,
 } from '@trek/shared';
-import { clampPoiBbox, type PoiBbox } from '../../maps/maps.helpers';
-import { sanitiseAssistantText } from '../text-sanitize';
-import { normalizeSearchHit } from './plugin-search.helpers';
 
 /**
  * Turning what a `poiCategoryProvider` answers into explore-pill POIs (#1781).

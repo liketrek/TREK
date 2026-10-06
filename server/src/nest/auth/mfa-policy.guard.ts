@@ -1,17 +1,18 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { Request } from 'express';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { Users } from '../../db/entities/Users.entity';
+import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
+import type { WebauthnCredentialsRepository } from '../../db/repositories/WebauthnCredentials.repository';
+import type { User } from '../../types';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { DEMO_EMAILS } from '../common/demo';
 import { IS_PUBLIC } from './public.decorator';
-import type { User } from '../../types';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
-import type { WebauthnCredentialsRepository } from '../../db/repositories/WebauthnCredentials.repository';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+
+import type { Request } from 'express';
 
 /** Metadata key `@MfaExempt()` writes. */
 export const MFA_EXEMPT = 'trek:mfa-exempt';

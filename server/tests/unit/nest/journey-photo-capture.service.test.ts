@@ -3,17 +3,18 @@
  * surface runs it, and the refresh that has to follow it so the gallery re-sorts
  * without anyone reloading.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import { JourneyPhotoCaptureService } from '../../../src/nest/journey/journey-photo-capture.service';
-import { PhotoCaptureBackfillService } from '../../../src/nest/memories/photo-capture-backfill.service';
+import { Users } from '../../../src/db/entities/Users.entity';
 import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { JourneyPhotoCaptureService } from '../../../src/nest/journey/journey-photo-capture.service';
+import type { MapsService } from '../../../src/nest/maps/maps.service';
+import { PhotoCaptureBackfillService } from '../../../src/nest/memories/photo-capture-backfill.service';
 import type { PhotoResolverService } from '../../../src/nest/memories/photo-resolver.service';
 import type { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
-import type { MapsService } from '../../../src/nest/maps/maps.service';
-import { Users } from '../../../src/db/entities/Users.entity';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // The schedule* methods fork their own `withRequestContext`, so the service
 // needs a real `MikroORM` — the `ImportJobsService` precedent
@@ -43,11 +44,25 @@ function build(changed: boolean | Error = true) {
   const reverseGeocode = vi.fn(async () => ({ name: 'Marienplatz', address: 'Munich' }));
   const svc = new JourneyPhotoCaptureService(
     { run, schedule } as unknown as PhotoCaptureBackfillService,
-    { broadcastJourneyEvent, journeyIdOfEntry, placeEntriesFromPhotos, nameEntryLocation } as unknown as JourneyDomainService,
+    {
+      broadcastJourneyEvent,
+      journeyIdOfEntry,
+      placeEntriesFromPhotos,
+      nameEntryLocation,
+    } as unknown as JourneyDomainService,
     { reverseGeocode } as unknown as MapsService,
     t.orm,
   );
-  return { svc, run, schedule, broadcastJourneyEvent, journeyIdOfEntry, placeEntriesFromPhotos, nameEntryLocation, reverseGeocode };
+  return {
+    svc,
+    run,
+    schedule,
+    broadcastJourneyEvent,
+    journeyIdOfEntry,
+    placeEntriesFromPhotos,
+    nameEntryLocation,
+    reverseGeocode,
+  };
 }
 
 beforeEach(() => vi.restoreAllMocks());
@@ -56,7 +71,14 @@ describe('JourneyPhotoCaptureService', () => {
   it('JPCAP-001: fills the added photos, then tells everyone on the journey, the importer included', async () => {
     const { svc, run, broadcastJourneyEvent } = build(true);
 
-    svc.scheduleForJourney(9, [{ id: 1, photo_id: 11 }, { id: 2, photo_id: 12 }], 3);
+    svc.scheduleForJourney(
+      9,
+      [
+        { id: 1, photo_id: 11 },
+        { id: 2, photo_id: 12 },
+      ],
+      3,
+    );
 
     await vi.waitFor(() => expect(broadcastJourneyEvent).toHaveBeenCalled());
     expect(run).toHaveBeenCalledWith([11, 12], 3);
@@ -82,12 +104,16 @@ describe('JourneyPhotoCaptureService', () => {
 
   it('JPCAP-003b: a journey lookup that rejects is logged against the entry and fills nothing', async () => {
     const { svc, run, journeyIdOfEntry, broadcastJourneyEvent } = build(true);
-    journeyIdOfEntry.mockImplementation(() => { throw new Error('db gone'); });
+    journeyIdOfEntry.mockImplementation(() => {
+      throw new Error('db gone');
+    });
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     svc.scheduleForEntry(4, [{ id: 1, photo_id: 11 }], 3);
 
-    await vi.waitFor(() => expect(error).toHaveBeenCalledWith('[Journey] capture refresh failed for entry 4:', 'db gone'));
+    await vi.waitFor(() =>
+      expect(error).toHaveBeenCalledWith('[Journey] capture refresh failed for entry 4:', 'db gone'),
+    );
     expect(run).not.toHaveBeenCalled();
     expect(broadcastJourneyEvent).not.toHaveBeenCalled();
   });
@@ -116,7 +142,9 @@ describe('JourneyPhotoCaptureService', () => {
 
   it('JPCAP-006: a refresh that could not be sent is logged, never thrown at a detached caller', async () => {
     const { svc, broadcastJourneyEvent } = build(true);
-    broadcastJourneyEvent.mockImplementation(() => { throw new Error('socket gone'); });
+    broadcastJourneyEvent.mockImplementation(() => {
+      throw new Error('socket gone');
+    });
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(svc.fill(9, [11], 3)).resolves.toBe(true);
@@ -159,7 +187,9 @@ describe('JourneyPhotoCaptureService', () => {
       { entryId: 5, journeyId: 9, lat: 48.137, lng: 11.575 },
       { entryId: 6, journeyId: 9, lat: 1, lng: 2 },
     ]);
-    reverseGeocode.mockResolvedValueOnce({ name: 'Marienplatz', address: 'Munich' }).mockRejectedValueOnce(new Error('timeout'));
+    reverseGeocode
+      .mockResolvedValueOnce({ name: 'Marienplatz', address: 'Munich' })
+      .mockRejectedValueOnce(new Error('timeout'));
 
     await expect(svc.placeEntries([11, 12])).resolves.toBe(2);
     expect(reverseGeocode).toHaveBeenCalledWith('48.137', '11.575', undefined, { timeoutMs: 8000, locality: true });
@@ -189,7 +219,9 @@ describe('JourneyPhotoCaptureService', () => {
 
   it('JPCAP-1003d: placing entries that throws never costs the refresh of the gallery order', async () => {
     const { svc, placeEntriesFromPhotos, broadcastJourneyEvent } = build(true);
-    placeEntriesFromPhotos.mockImplementation(() => { throw new Error('no such column'); });
+    placeEntriesFromPhotos.mockImplementation(() => {
+      throw new Error('no such column');
+    });
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     await expect(svc.fill(9, [11], 3)).resolves.toBe(true);
     expect(broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:photos:updated', {});
@@ -203,14 +235,14 @@ describe('JourneyPhotoCaptureService', () => {
     await vi.waitFor(() => expect(error).toHaveBeenCalledWith('[Journey] capture for uploads failed:', 'disk'));
   });
 
-  it('JPCAP-009: provider adds from every surface share the user\'s four lookup slots, uploads read their own files, and only the provider adds refresh', async () => {
+  it("JPCAP-009: provider adds from every surface share the user's four lookup slots, uploads read their own files, and only the provider adds refresh", async () => {
     // A gallery add (REST or MCP), an entry add and a device upload (REST or
     // plugin RPC) landing together: three detached runs on the one backfill.
     const load = { inFlight: 0, peak: 0 };
     const getPhotoInfo = vi.fn(async () => {
       load.inFlight++;
       load.peak = Math.max(load.peak, load.inFlight);
-      await new Promise(resolve => setTimeout(resolve, 5));
+      await new Promise((resolve) => setTimeout(resolve, 5));
       load.inFlight--;
       return { success: true, data: { takenAt: '2026-03-15T08:00:00Z' } };
     });
@@ -228,7 +260,11 @@ describe('JourneyPhotoCaptureService', () => {
     const broadcastJourneyEvent = vi.fn();
     const svc = new JourneyPhotoCaptureService(
       backfill,
-      { broadcastJourneyEvent, journeyIdOfEntry: () => 9, placeEntriesFromPhotos: () => [] } as unknown as JourneyDomainService,
+      {
+        broadcastJourneyEvent,
+        journeyIdOfEntry: () => 9,
+        placeEntriesFromPhotos: () => [],
+      } as unknown as JourneyDomainService,
       { reverseGeocode: vi.fn() } as unknown as MapsService,
       t.orm,
     );
@@ -243,7 +279,11 @@ describe('JourneyPhotoCaptureService', () => {
     expect(getPhotoInfo).toHaveBeenCalledTimes(10);
     expect(load.peak).toBe(4);
     expect(withLocalFile).toHaveBeenCalledTimes(5);
-    expect(recordCaptureMetadata).toHaveBeenCalledWith(30, { takenAt: '2026-03-15T09:00:00.000Z', lat: null, lng: null });
+    expect(recordCaptureMetadata).toHaveBeenCalledWith(30, {
+      takenAt: '2026-03-15T09:00:00.000Z',
+      lat: null,
+      lng: null,
+    });
     // One event per provider batch, none for the upload.
     await vi.waitFor(() => expect(broadcastJourneyEvent).toHaveBeenCalledTimes(2));
     expect(broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:photos:updated', {});
@@ -261,11 +301,16 @@ describe('JourneyPhotoCaptureService', () => {
  * would stay green with the wrap removed.
  */
 describe('JourneyPhotoCaptureService — request context of the detached work', () => {
-  const realRead = async () => { await t.repo(Users).findOne({ id: -1 }); };
+  const realRead = async () => {
+    await t.repo(Users).findOne({ id: -1 });
+  };
 
   it('JPCAP-CTX-001: scheduleForJourney, called from a bare (non-request) context, runs the backfill inside its own fork', async () => {
     const { svc, run, broadcastJourneyEvent } = build(true);
-    run.mockImplementation(async () => { await realRead(); return true; });
+    run.mockImplementation(async () => {
+      await realRead();
+      return true;
+    });
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     svc.scheduleForJourney(9, [{ id: 1, photo_id: 11 }], 3);
@@ -276,7 +321,10 @@ describe('JourneyPhotoCaptureService — request context of the detached work', 
 
   it('JPCAP-CTX-002: scheduleForEntry looks the journey up inside the fork too', async () => {
     const { svc, journeyIdOfEntry, broadcastJourneyEvent } = build(true);
-    journeyIdOfEntry.mockImplementation((async () => { await realRead(); return 9; }) as never);
+    journeyIdOfEntry.mockImplementation((async () => {
+      await realRead();
+      return 9;
+    }) as never);
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     svc.scheduleForEntry(4, [{ id: 1, photo_id: 11 }], 3);
@@ -289,14 +337,17 @@ describe('JourneyPhotoCaptureService — request context of the detached work', 
     const { svc, placeEntriesFromPhotos } = build(true);
     // The read sits in the continuation chained after the backfill, so this fails if
     // only the backfill itself were wrapped.
-    placeEntriesFromPhotos.mockImplementation((async () => { await realRead(); return []; }) as never);
+    placeEntriesFromPhotos.mockImplementation((async () => {
+      await realRead();
+      return [];
+    }) as never);
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     svc.scheduleUpload([{ id: 1, photo_id: 11 }], 3);
 
     await vi.waitFor(() => expect(placeEntriesFromPhotos).toHaveBeenCalledWith([11]));
     // Let the chained continuation settle before reading the log.
-    await new Promise(resolve => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
     expect(error).not.toHaveBeenCalled();
   });
 });

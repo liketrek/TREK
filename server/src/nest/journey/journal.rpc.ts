@@ -1,18 +1,19 @@
-import pathMod from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { Readable } from 'node:stream';
-import { journalPluginPhotoInputSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import { ADDON_IDS } from '../../addons';
+import { DemoService } from '../common/demo.service';
+import { AllowedFileTypesService } from '../files/allowed-file-types.service';
 import { PluginGuards } from '../plugins/host/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { asPayload, num } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
-import { ADDON_IDS } from '../../addons';
-import { AllowedFileTypesService } from '../files/allowed-file-types.service';
+import { asPayload, num } from '../plugins/host/rpc-params';
 import { StorageService } from '../storage/storage.service';
-import { DemoService } from '../common/demo.service';
 import { JourneyDomainService } from './journey-domain.service';
 import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
+import { journalPluginPhotoInputSchema } from '@trek/shared';
+
+import { randomUUID } from 'node:crypto';
+import pathMod from 'node:path';
+import { Readable } from 'node:stream';
 
 /** 10MB decoded, the same cap the file surface applies to plugin uploads. */
 const PHOTO_CONTENT_MAX = 10 * 1024 * 1024;
@@ -24,8 +25,14 @@ const PHOTO_CONTENT_MAX = 10 * 1024 * 1024;
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.heic', '.heif'];
 
 const MIME_BY_EXT: Record<string, string> = {
-  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif',
-  '.webp': 'image/webp', '.avif': 'image/avif', '.heic': 'image/heic', '.heif': 'image/heif',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif',
 };
 
 /**

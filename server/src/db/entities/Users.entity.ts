@@ -1,4 +1,3 @@
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { UsersRepository } from '../repositories/Users.repository';
 import { DbTimestampType } from '../types';
 import { AssignmentParticipants } from './AssignmentParticipants.entity';
@@ -71,6 +70,7 @@ import { VisitedCountries } from './VisitedCountries.entity';
 import { VisitedRegions } from './VisitedRegions.entity';
 import { WebauthnChallenges } from './WebauthnChallenges.entity';
 import { WebauthnCredentials } from './WebauthnCredentials.entity';
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class Users {
   [EntityRepositoryType]?: UsersRepository;
@@ -284,7 +284,8 @@ export const UsersSchema = defineEntity({
     journey_share_tokens_collection: () => p.oneToMany(JourneyShareTokens).mappedBy('createdByRef').hidden(),
     journeys_collection: () => p.oneToMany(Journeys).mappedBy('user').hidden(),
     mcp_tokens_collection: () => p.oneToMany(McpTokens).mappedBy('user').hidden(),
-    notification_channel_preferences_collection: () => p.oneToMany(NotificationChannelPreferences).mappedBy('user').hidden(),
+    notification_channel_preferences_collection: () =>
+      p.oneToMany(NotificationChannelPreferences).mappedBy('user').hidden(),
     notifications_collection: () => p.oneToMany(Notifications).mappedBy('sender').hidden(),
     notifications_collection1: () => p.oneToMany(Notifications).mappedBy('recipient').hidden(),
     oauth_clients_collection: () => p.oneToMany(OauthClients).mappedBy('user').hidden(),

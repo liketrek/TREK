@@ -100,7 +100,7 @@ const collection: TranslationStrings = {
   'collections.markVisited': 'Marquer comme visité',
   'collections.markVisitedAll': 'Visité partout',
   'collections.markVisitedSelection': 'Marquer comme visité dans vos listes',
-  'collections.markVisitedNone': 'Aucun de ces lieux n\'est enregistré dans une liste',
+  'collections.markVisitedNone': "Aucun de ces lieux n'est enregistré dans une liste",
   'collections.markedVisited': 'Marqué comme visité',
   'collections.markedVisitedTrip': '{count} lieux marqués comme visités',
 
@@ -156,7 +156,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'Ajouter à une liste',
   'collections.file.targetExistingHint': 'À une liste que vous avez déjà',
   'collections.file.searchLists': 'Rechercher une liste',
-  'collections.file.intoHint': 'Les lieux déjà dans la liste restent tels quels, comme son nom et sa couleur. Les étiquettes du fichier sont ajoutées.',
+  'collections.file.intoHint':
+    'Les lieux déjà dans la liste restent tels quels, comme son nom et sa couleur. Les étiquettes du fichier sont ajoutées.',
   'collections.file.confirmInto': 'Ajouter à la liste',
   'collections.file.doneInto': '{count} lieux ajoutés à {name}',
   'collections.file.doneIntoDuplicates': '{count} ajoutés à {name}, {duplicates} y étaient déjà',

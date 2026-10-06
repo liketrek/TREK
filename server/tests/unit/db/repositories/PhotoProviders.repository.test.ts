@@ -1,9 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { PhotoProviders } from '../../../../src/db/entities/PhotoProviders.entity';
+import type { PhotoProvidersRepository } from '../../../../src/db/repositories/PhotoProviders.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { PhotoProviders } from '../../../../src/db/entities/PhotoProviders.entity';
-import type { PhotoProvidersRepository } from '../../../../src/db/repositories/PhotoProviders.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -66,7 +67,14 @@ describe('PhotoProvidersRepository.listEnabled', () => {
   });
 
   it('ADDONSPPREPO-004: carries the full row shape (id, name, description, icon, enabled, sort_order)', async () => {
-    insertProvider({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', icon: 'image', enabled: 1, sort_order: 4 });
+    insertProvider({
+      id: 'immich',
+      name: 'Immich',
+      description: 'Self-hosted photos',
+      icon: 'image',
+      enabled: 1,
+      sort_order: 4,
+    });
     const [row] = await photoProviders.listEnabled();
     expect(row).toEqual({
       id: 'immich',
@@ -106,7 +114,9 @@ describe('PhotoProvidersRepository.listAllOrdered (AD27) / findById (AD31/AD40)'
     insertProvider({ id: 'off', name: 'Off', enabled: 0, sort_order: 1 });
     insertProvider({ id: 'immich', name: 'Immich', enabled: 1, sort_order: 0 });
 
-    const legacy = testDb.prepare('SELECT id, name, description, icon, enabled, sort_order FROM photo_providers ORDER BY sort_order, id').all();
+    const legacy = testDb
+      .prepare('SELECT id, name, description, icon, enabled, sort_order FROM photo_providers ORDER BY sort_order, id')
+      .all();
     const rows = await photoProviders.listAllOrdered();
     expect(rows.map((r) => r.id)).toEqual(['immich', 'off']); // includes the disabled one, unlike listEnabled
     expect(rows).toEqual(legacy);
@@ -117,9 +127,23 @@ describe('PhotoProvidersRepository.listAllOrdered (AD27) / findById (AD31/AD40)'
   });
 
   it('ADDONSPPREPO-007: findById matches SELECT * FROM photo_providers WHERE id = ?, on both a pre-write read and a post-write re-select (byte-identical text at both call sites)', async () => {
-    insertProvider({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', icon: 'image', enabled: 0, sort_order: 2 });
+    insertProvider({
+      id: 'immich',
+      name: 'Immich',
+      description: 'Self-hosted photos',
+      icon: 'image',
+      enabled: 0,
+      sort_order: 2,
+    });
     const preWrite = await photoProviders.findById('immich');
-    expect(preWrite).toEqual({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', icon: 'image', enabled: 0, sort_order: 2 });
+    expect(preWrite).toEqual({
+      id: 'immich',
+      name: 'Immich',
+      description: 'Self-hosted photos',
+      icon: 'image',
+      enabled: 0,
+      sort_order: 2,
+    });
 
     testDb.prepare('UPDATE photo_providers SET enabled = 1 WHERE id = ?').run('immich');
     const postWrite = await photoProviders.findById('immich');

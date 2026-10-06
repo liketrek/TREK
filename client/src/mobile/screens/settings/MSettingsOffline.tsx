@@ -7,53 +7,87 @@
  * The logic itself lives in the shared `useOfflineSettings` hook; only the
  * markup differs between the two shells.
  */
-import { useState } from 'react'
-import { RefreshCw, Trash2, Database, CloudOff, Download, Check, GitMerge, Map as MapIcon, AlertTriangle } from 'lucide-react'
-import { useOfflineSettings, offlineNoticeKey, isOfflineNoticeWarning } from '../../../components/Settings/useOfflineSettings'
-import { useTranslation } from '../../../i18n'
-import type { ConflictStrategy } from '../../../sync/offlinePrefs'
-import type { QueuedMutation } from '../../../db/offlineDb'
-import { MSetCard, MSetEyebrow, MSetRow, MSetSegments, MSetButton } from './MSettingsUi'
-import MToggle from '../../components/MToggle'
-import MConfirmSheet from './MConfirmSheet'
+import {
+  AlertTriangle,
+  Check,
+  CloudOff,
+  Database,
+  Download,
+  GitMerge,
+  Map as MapIcon,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
+import { useState } from 'react';
+import {
+  isOfflineNoticeWarning,
+  offlineNoticeKey,
+  useOfflineSettings,
+} from '../../../components/Settings/useOfflineSettings';
+import type { QueuedMutation } from '../../../db/offlineDb';
+import { useTranslation } from '../../../i18n';
+import type { ConflictStrategy } from '../../../sync/offlinePrefs';
+import MToggle from '../../components/MToggle';
+import MConfirmSheet from './MConfirmSheet';
+import { MSetButton, MSetCard, MSetEyebrow, MSetRow, MSetSegments } from './MSettingsUi';
 
 function conflictName(m: QueuedMutation): string {
-  const body = (m.body ?? {}) as { name?: unknown }
-  const server = (m.conflictServer ?? {}) as { name?: unknown }
-  return (typeof body.name === 'string' && body.name)
-    || (typeof server.name === 'string' && server.name)
-    || `#${m.entityId ?? ''}`
+  const body = (m.body ?? {}) as { name?: unknown };
+  const server = (m.conflictServer ?? {}) as { name?: unknown };
+  return (
+    (typeof body.name === 'string' && body.name) ||
+    (typeof server.name === 'string' && server.name) ||
+    `#${m.entityId ?? ''}`
+  );
 }
 
 export default function MSettingsOffline() {
-  const { t } = useTranslation()
-  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const { t } = useTranslation();
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const {
-    offline, forced,
-    rows, allTrips, pendingCount, failedCount, conflicts,
-    syncing, clearing, loading, preparing, progress, notice, prefs, canClear,
-    runPrepare, handleToggleForce, handleResync, handleClear,
-    handleToggleTiles, tripStorageState, handleToggleTrip, resolveConflict,
+    offline,
+    forced,
+    rows,
+    allTrips,
+    pendingCount,
+    failedCount,
+    conflicts,
+    syncing,
+    clearing,
+    loading,
+    preparing,
+    progress,
+    notice,
+    prefs,
+    canClear,
+    runPrepare,
+    handleToggleForce,
+    handleResync,
+    handleClear,
+    handleToggleTiles,
+    tripStorageState,
+    handleToggleTrip,
+    resolveConflict,
     handleConflictStrategy,
-  } = useOfflineSettings()
+  } = useOfflineSettings();
 
   async function doClear() {
-    await handleClear()
-    setShowClearConfirm(false)
+    await handleClear();
+    setShowClearConfirm(false);
   }
 
   const formatDate = (d: string | null | undefined) =>
-    d ? new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+    d ? new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
   const progressLabel = progress
     ? `${t(`settings.offline.prepare.phase.${progress.phase === 'done' ? 'trips' : progress.phase}`)} · ${progress.current}/${progress.total}`
-    : ''
+    : '';
 
   const strategyOptions: { value: ConflictStrategy; label: string }[] = [
     { value: 'ask', label: t('settings.offline.conflicts.strategy.ask') },
     { value: 'mine', label: t('settings.offline.conflicts.strategy.mine') },
     { value: 'server', label: t('settings.offline.conflicts.strategy.server') },
-  ]
+  ];
 
   return (
     <>
@@ -64,7 +98,9 @@ export default function MSettingsOffline() {
             first
             label={t('settings.offline.mode.force')}
             sub={t('settings.offline.mode.forceHint')}
-            trailing={<MToggle checked={forced} onChange={handleToggleForce} ariaLabel={t('settings.offline.mode.force')} />}
+            trailing={
+              <MToggle checked={forced} onChange={handleToggleForce} ariaLabel={t('settings.offline.mode.force')} />
+            }
           />
         </div>
         {forced && (
@@ -97,12 +133,15 @@ export default function MSettingsOffline() {
                 />
               </div>
               <div className="mt-1 font-geist text-[0.625rem] text-m-muted">
-                {progressLabel}{progress.label ? ` · ${progress.label}` : ''}
+                {progressLabel}
+                {progress.label ? ` · ${progress.label}` : ''}
               </div>
             </div>
           )}
           {!preparing && notice && notice.kind !== 'load-failed' && (
-            <div className={`mt-[10px] flex items-center gap-[6px] font-geist text-[0.6875rem] ${isOfflineNoticeWarning(notice) ? 'text-[color:var(--m-st-pending)]' : 'text-[color:var(--m-st-confirmed)]'}`}>
+            <div
+              className={`mt-[10px] flex items-center gap-[6px] font-geist text-[0.6875rem] ${isOfflineNoticeWarning(notice) ? 'text-[color:var(--m-st-pending)]' : 'text-[color:var(--m-st-confirmed)]'}`}
+            >
               {isOfflineNoticeWarning(notice) ? <AlertTriangle size={14} /> : <Check size={14} />}
               {t(offlineNoticeKey(notice), notice.kind === 'stored' ? { count: notice.trips } : undefined)}
             </div>
@@ -117,7 +156,7 @@ export default function MSettingsOffline() {
             {t('settings.offline.conflicts.hint')}
           </p>
           <div className="mt-2 flex flex-col gap-2">
-            {conflicts.map(c => (
+            {conflicts.map((c) => (
               <div
                 key={c.id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[10px]"
@@ -162,16 +201,24 @@ export default function MSettingsOffline() {
             first
             label={t('settings.offline.storage.tiles')}
             sub={t('settings.offline.storage.tilesHint')}
-            trailing={<MToggle checked={prefs.cacheTiles} onChange={handleToggleTiles} ariaLabel={t('settings.offline.storage.tiles')} />}
+            trailing={
+              <MToggle
+                checked={prefs.cacheTiles}
+                onChange={handleToggleTiles}
+                ariaLabel={t('settings.offline.storage.tiles')}
+              />
+            }
           />
         </div>
         {allTrips.length > 0 && (
           <div className="mt-3 border-t border-[color:var(--m-rowbr)] pt-3">
-            <div className="mb-1 text-[0.78125rem] font-bold text-m-ink">{t('settings.offline.storage.tripsTitle')}</div>
+            <div className="mb-1 text-[0.78125rem] font-bold text-m-ink">
+              {t('settings.offline.storage.tripsTitle')}
+            </div>
             <div>
               {allTrips.map((trip, i) => {
-                const { on, dateEligible } = tripStorageState(trip)
-                const sub = on ? t('settings.offline.storage.tripOn') : t('settings.offline.storage.tripOff')
+                const { on, dateEligible } = tripStorageState(trip);
+                const sub = on ? t('settings.offline.storage.tripOn') : t('settings.offline.storage.tripOff');
                 return (
                   <MSetRow
                     key={trip.id}
@@ -180,7 +227,7 @@ export default function MSettingsOffline() {
                     sub={dateEligible ? sub : `${sub} · ${t('settings.offline.storage.tripFinished')}`}
                     trailing={<MToggle checked={on} onChange={() => handleToggleTrip(trip)} ariaLabel={trip.title} />}
                   />
-                )
+                );
               })}
             </div>
           </div>
@@ -192,7 +239,9 @@ export default function MSettingsOffline() {
         <div className="flex flex-wrap gap-2">
           <MStat label={t('settings.offline.stats.trips')} value={rows.length} />
           <MStat label={t('settings.offline.stats.pending')} value={pendingCount} />
-          {conflicts.length > 0 && <MStat label={t('settings.offline.stats.conflicts')} value={conflicts.length} danger />}
+          {conflicts.length > 0 && (
+            <MStat label={t('settings.offline.stats.conflicts')} value={conflicts.length} danger />
+          )}
           {failedCount > 0 && <MStat label={t('settings.offline.stats.failed')} value={failedCount} danger />}
         </div>
 
@@ -220,13 +269,19 @@ export default function MSettingsOffline() {
                   <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-bold text-m-ink">{trip.title}</span>
                   <span className="flex-none font-geist text-[0.625rem] text-m-faint">
                     {meta.lastSyncedAt
-                      ? new Date(meta.lastSyncedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+                      ? new Date(meta.lastSyncedAt).toLocaleTimeString(undefined, {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
                       : '—'}
                   </span>
                 </div>
                 <span className="font-geist text-[0.6875rem] text-m-muted">
                   {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
-                  {' · '}{placeCount}{' · '}{fileCount}
+                  {' · '}
+                  {placeCount}
+                  {' · '}
+                  {fileCount}
                 </span>
               </div>
             ))}
@@ -246,16 +301,18 @@ export default function MSettingsOffline() {
         onConfirm={doClear}
       />
     </>
-  )
+  );
 }
 
 function MStat({ label, value, danger = false }: { label: string; value: number; danger?: boolean }) {
   return (
     <div className="min-w-[92px] rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[9px]">
-      <div className={`text-[1.125rem] font-extrabold tabular-nums ${danger ? 'text-[color:var(--m-st-danger)]' : 'text-m-ink'}`}>
+      <div
+        className={`text-[1.125rem] font-extrabold tabular-nums ${danger ? 'text-[color:var(--m-st-danger)]' : 'text-m-ink'}`}
+      >
         {value}
       </div>
       <div className="font-geist text-[0.5625rem] font-bold uppercase tracking-[.06em] text-m-faint">{label}</div>
     </div>
-  )
+  );
 }

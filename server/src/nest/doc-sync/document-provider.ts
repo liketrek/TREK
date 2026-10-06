@@ -1,5 +1,6 @@
-import type { Readable } from 'node:stream';
 import type { DocsyncErrorCode } from '@trek/shared';
+
+import type { Readable } from 'node:stream';
 
 /**
  * The adapter seam for document providers.
@@ -23,17 +24,15 @@ import type { DocsyncErrorCode } from '@trek/shared';
 
 /** Uniform result shape, mirroring `ServiceResult` in memories.helpers.ts. */
 export type DocResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: { code: DocsyncErrorCode; detail?: string; status?: number } };
+  { success: true; data: T } | { success: false; error: { code: DocsyncErrorCode; detail?: string; status?: number } };
 
 export type DocFailure = { success: false; error: { code: DocsyncErrorCode; detail?: string; status?: number } };
 
 export const docOk = <T>(data: T): DocResult<T> => ({ success: true, data });
-export const docFail = <T>(
-  code: DocsyncErrorCode,
-  detail?: string,
-  status?: number,
-): DocResult<T> => ({ success: false, error: { code, detail, status } });
+export const docFail = <T>(code: DocsyncErrorCode, detail?: string, status?: number): DocResult<T> => ({
+  success: false,
+  error: { code, detail, status },
+});
 
 /**
  * Narrow a result to its failure half.
@@ -214,7 +213,9 @@ export interface DocumentProvider {
    * exception, because the settings UI shows it inline (the photo providers
    * pin that with a test marked CRITICAL in their e2e suite).
    */
-  probe(conn: DocumentConnectionRef): Promise<DocResult<{ account: string; capabilities: DocumentProviderCapabilities }>>;
+  probe(
+    conn: DocumentConnectionRef,
+  ): Promise<DocResult<{ account: string; capabilities: DocumentProviderCapabilities }>>;
 
   /** Offer the containers a trip could be bound to: folders, tags, spaces. */
   listScopes(conn: DocumentConnectionRef, query?: string): Promise<DocResult<DocumentScopeOption[]>>;
@@ -235,19 +236,29 @@ export interface DocumentProvider {
    * `modified` at all. `cursorUnchanged` lets an adapter short-circuit the walk
    * (the WebDAV root ETag) while keeping the core's model identical.
    */
-  list(conn: DocumentConnectionRef, scope: DocumentScopeRef): Promise<DocResult<{
-    documents: RemoteDocument[];
-    cursor: string | null;
-    cursorUnchanged: boolean;
-    /** True when the listing hit a page cap and is therefore not the whole truth. */
-    truncated: boolean;
-  }>>;
+  list(
+    conn: DocumentConnectionRef,
+    scope: DocumentScopeRef,
+  ): Promise<
+    DocResult<{
+      documents: RemoteDocument[];
+      cursor: string | null;
+      cursorUnchanged: boolean;
+      /** True when the listing hit a page cap and is therefore not the whole truth. */
+      truncated: boolean;
+    }>
+  >;
 
   fetch(conn: DocumentConnectionRef, scope: DocumentScopeRef, remoteId: string): Promise<DocResult<FetchResult>>;
 
   push(conn: DocumentConnectionRef, scope: DocumentScopeRef, req: PushRequest): Promise<DocResult<PushResult>>;
 
-  rename(conn: DocumentConnectionRef, scope: DocumentScopeRef, remoteId: string, name: string): Promise<DocResult<{ remoteVersion: string }>>;
+  rename(
+    conn: DocumentConnectionRef,
+    scope: DocumentScopeRef,
+    remoteId: string,
+    name: string,
+  ): Promise<DocResult<{ remoteVersion: string }>>;
 
   /**
    * Move to the provider's recycle bin. Never a hard delete: Papra and
@@ -257,7 +268,12 @@ export interface DocumentProvider {
   trash(conn: DocumentConnectionRef, scope: DocumentScopeRef, remoteId: string): Promise<DocResult<void>>;
 
   /** Subscribe to change notifications, where TREK is allowed to do it itself. */
-  registerWebhook?(conn: DocumentConnectionRef, scope: DocumentScopeRef, callbackUrl: string, secret: string): Promise<DocResult<{ subscriptionId: string }>>;
+  registerWebhook?(
+    conn: DocumentConnectionRef,
+    scope: DocumentScopeRef,
+    callbackUrl: string,
+    secret: string,
+  ): Promise<DocResult<{ subscriptionId: string }>>;
   unregisterWebhook?(conn: DocumentConnectionRef, subscriptionId: string): Promise<DocResult<void>>;
 }
 

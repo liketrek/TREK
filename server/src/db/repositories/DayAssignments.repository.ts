@@ -1,8 +1,8 @@
-import type { Platform } from '@mikro-orm/core';
-import type { DayAssignments } from '../entities/DayAssignments.entity';
 import { coalesce, columnIncrementedBy, columnRef } from '../dialect/sql-functions';
+import type { DayAssignments } from '../entities/DayAssignments.entity';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
+import type { Platform } from '@mikro-orm/core';
 
 /**
  * The DY1/DY3/AS1/AS3 assignment-with-place projection row (Plan 3c Task 2's
@@ -534,7 +534,10 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
       .selectFrom('day_assignments as da')
       .innerJoin('places as p', 'p.id', 'da.place_id')
       .leftJoin('day_accommodations as acc', 'acc.id', 'da.accommodation_id')
-      .select((eb) => ['da.day_id as day_id', eb.fn.coalesce('da.assignment_time', 'p.place_time', 'acc.check_in').as('start')])
+      .select((eb) => [
+        'da.day_id as day_id',
+        eb.fn.coalesce('da.assignment_time', 'p.place_time', 'acc.check_in').as('start'),
+      ])
       .where('da.id', '=', id)
       .executeTakeFirst();
     return row as { day_id: number; start: string | null } | undefined;
@@ -614,10 +617,7 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
    * {@link listIdsForDay}).
    */
   async listIdsToClear(day_id: number): Promise<number[]> {
-    const rows = await this.qb('da')
-      .select(['da.id'])
-      .where({ day: day_id })
-      .execute<{ id: number }[]>('all', false);
+    const rows = await this.qb('da').select(['da.id']).where({ day: day_id }).execute<{ id: number }[]>('all', false);
     return rows.map((r) => r.id);
   }
 
@@ -653,17 +653,25 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
    * `places`. Same result set, same ordering; the root alias choice is not
    * observable from the row shape.
    */
-  async listItineraryForGpx(trip_id: string | number): Promise<{
-    day_number: number; date: string | null; title: string | null;
-    name: string; lat: number; lng: number;
-  }[]> {
+  async listItineraryForGpx(trip_id: string | number): Promise<
+    {
+      day_number: number;
+      date: string | null;
+      title: string | null;
+      name: string;
+      lat: number;
+      lng: number;
+    }[]
+  > {
     return this.qb('da')
       .join('da.day', 'd')
       .join('da.place', 'p')
       .select(['d.day_number', 'd.date', 'd.title', 'p.name', 'p.lat', 'p.lng'])
       .where('d.trip_id = ? AND p.lat IS NOT NULL AND p.lng IS NOT NULL', [trip_id])
       .orderBy({ 'd.day_number': 'asc', 'da.order_index': 'asc' })
-      .execute<{ day_number: number; date: string | null; title: string | null; name: string; lat: number; lng: number }[]>('all', false);
+      .execute<
+        { day_number: number; date: string | null; title: string | null; name: string; lat: number; lng: number }[]
+      >('all', false);
   }
 
   // ---------------------------------------------------------------------------
@@ -948,10 +956,17 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
   }
 
   /** AC25 (`AccommodationsService.ownStops`) — `SELECT id, day_id, place_id, order_index FROM day_assignments WHERE accommodation_id = ?`. `day_id`/`place_id` are `persist(false)` relation mirrors — `columnRef`, the same trap {@link getDayId} documents. */
-  async listOwnedByStay(accommodation_id: number): Promise<{ id: number; day_id: number; place_id: number; order_index: number | null }[]> {
+  async listOwnedByStay(
+    accommodation_id: number,
+  ): Promise<{ id: number; day_id: number; place_id: number; order_index: number | null }[]> {
     const platform = this.getEntityManager().getPlatform();
     return await this.qb('da')
-      .select(['da.id', columnRef(platform, 'da.day_id').as('day_id'), columnRef(platform, 'da.place_id').as('place_id'), 'da.order_index'])
+      .select([
+        'da.id',
+        columnRef(platform, 'da.day_id').as('day_id'),
+        columnRef(platform, 'da.place_id').as('place_id'),
+        'da.order_index',
+      ])
       .where({ accommodation_id })
       .execute<{ id: number; day_id: number; place_id: number; order_index: number | null }[]>('all', false);
   }

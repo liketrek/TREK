@@ -1,23 +1,38 @@
-import { useEffect, useMemo, useState } from 'react'
 import {
-  ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, FolderPlus, FolderSync, KeyRound, Link2Off,
-  Loader2, Plus, RefreshCw,
-} from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import MIconBtn from '../../../components/MIconBtn'
-import MToggle from '../../../components/MToggle'
-import MConfirmSheet from '../../settings/MConfirmSheet'
-import { TileHeader } from '../sheets/MTripSheetUi'
-import { useTranslation } from '../../../../i18n'
-import { DOCUMENT_PROVIDER_ICONS } from '../../../../components/shared/DocumentProviderIcons'
-import TrekIcon from '../../../../components/shared/TrekIcon'
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  FolderPlus,
+  FolderSync,
+  KeyRound,
+  Link2Off,
+  Loader2,
+  Plus,
+  RefreshCw,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { conflictPolicyKey, nextConflictPolicy } from '../../../../components/Files/docsync/DocSyncBits';
+import { useConflicts } from '../../../../components/Files/docsync/useConflicts';
+import { useConnectForm } from '../../../../components/Files/docsync/useConnectForm';
 import {
-  bindingNotice, needsReauth, storeName, useDocSync, type DocSyncLink, type DocSyncProvider,
-} from '../../../../components/Files/docsync/useDocSync'
-import { useConnectForm } from '../../../../components/Files/docsync/useConnectForm'
-import { conflictPolicyKey, nextConflictPolicy } from '../../../../components/Files/docsync/DocSyncBits'
-import { useConflicts } from '../../../../components/Files/docsync/useConflicts'
-import { relativeTime } from '../../../../utils/relativeTime'
+  bindingNotice,
+  needsReauth,
+  storeName,
+  useDocSync,
+  type DocSyncLink,
+  type DocSyncProvider,
+} from '../../../../components/Files/docsync/useDocSync';
+import { DOCUMENT_PROVIDER_ICONS } from '../../../../components/shared/DocumentProviderIcons';
+import TrekIcon from '../../../../components/shared/TrekIcon';
+import { useTranslation } from '../../../../i18n';
+import { relativeTime } from '../../../../utils/relativeTime';
+import MIconBtn from '../../../components/MIconBtn';
+import MSheet from '../../../components/MSheet';
+import MToggle from '../../../components/MToggle';
+import MConfirmSheet from '../../settings/MConfirmSheet';
+import { TileHeader } from '../sheets/MTripSheetUi';
 
 /**
  * Document sync on the phone.
@@ -31,7 +46,7 @@ import { relativeTime } from '../../../../utils/relativeTime'
  * list → credentials → folder → detail, and a phone that opens a sheet per step
  * buries the close button three layers deep.
  */
-type View = 'list' | 'detail' | 'connect' | 'scope'
+type View = 'list' | 'detail' | 'connect' | 'scope';
 
 export default function MDocSyncSheet({
   tripId,
@@ -40,77 +55,87 @@ export default function MDocSyncSheet({
   open,
   onClose,
 }: {
-  tripId: number | string
-  tripTitle?: string
-  canManage: boolean
-  open: boolean
-  onClose: () => void
+  tripId: number | string;
+  tripTitle?: string;
+  canManage: boolean;
+  open: boolean;
+  onClose: () => void;
 }) {
-  const { t } = useTranslation()
-  const sync = useDocSync(tripId, open)
-  const [view, setView] = useState<View>('list')
-  const [selected, setSelected] = useState<number | null>(null)
-  const [pending, setPending] = useState<DocSyncProvider | null>(null)
-  const [confirmUnlink, setConfirmUnlink] = useState(false)
+  const { t } = useTranslation();
+  const sync = useDocSync(tripId, open);
+  const [view, setView] = useState<View>('list');
+  const [selected, setSelected] = useState<number | null>(null);
+  const [pending, setPending] = useState<DocSyncProvider | null>(null);
+  const [confirmUnlink, setConfirmUnlink] = useState(false);
   // The binding whose credentials are being entered again, while the connect
   // view is open for it. Kept apart from `pending`, whose next step is the
   // folder picker: here the folder is known and the next step is the run that
   // the refusal stopped.
-  const [reconnectFor, setReconnectFor] = useState<number | null>(null)
+  const [reconnectFor, setReconnectFor] = useState<number | null>(null);
 
-  const bound = useMemo(() => new Set(sync.links.map(l => l.providerId)), [sync.links])
-  const available = sync.providers.filter(p => !bound.has(p.id))
-  const link = sync.links.find(l => l.id === selected) ?? null
+  const bound = useMemo(() => new Set(sync.links.map((l) => l.providerId)), [sync.links]);
+  const available = sync.providers.filter((p) => !bound.has(p.id));
+  const link = sync.links.find((l) => l.id === selected) ?? null;
   // Undefined once an admin has switched the store off: the form needs the
   // provider's field list, and the providers route no longer carries it.
-  const linkProvider = link ? sync.providers.find(p => p.id === link.providerId) : undefined
+  const linkProvider = link ? sync.providers.find((p) => p.id === link.providerId) : undefined;
 
   // A store that was removed elsewhere must not leave the detail view pointing
   // at nothing.
   useEffect(() => {
-    if (view === 'detail' && !link) setView('list')
-  }, [view, link])
+    if (view === 'detail' && !link) setView('list');
+  }, [view, link]);
 
   // Every open starts at the list: a sheet that reopens three steps deep is a
   // sheet somebody has to find their way out of.
   useEffect(() => {
-    if (!open) { setView('list'); setPending(null); setReconnectFor(null) }
-  }, [open])
+    if (!open) {
+      setView('list');
+      setPending(null);
+      setReconnectFor(null);
+    }
+  }, [open]);
 
   const openStore = (p: DocSyncProvider) => {
-    setReconnectFor(null)
-    setPending(p)
-    setView(sync.connectionFor(p.id) ? 'scope' : 'connect')
-  }
+    setReconnectFor(null);
+    setPending(p);
+    setView(sync.connectionFor(p.id) ? 'scope' : 'connect');
+  };
 
   const reconnect = (l: DocSyncLink, p: DocSyncProvider) => {
-    setReconnectFor(l.id)
-    setPending(p)
-    setView('connect')
-  }
+    setReconnectFor(l.id);
+    setPending(p);
+    setView('connect');
+  };
 
   /** The step before this one: the binding for a reconnect, the list otherwise. */
   const back = () => {
-    if (reconnectFor !== null) { setReconnectFor(null); setView('detail') } else setView('list')
-  }
+    if (reconnectFor !== null) {
+      setReconnectFor(null);
+      setView('detail');
+    } else setView('list');
+  };
 
   const connected = () => {
-    if (reconnectFor === null) { setView('scope'); return }
+    if (reconnectFor === null) {
+      setView('scope');
+      return;
+    }
     // Run straight away, as binding does: the card still reports the refusal
     // until a run says otherwise, and the person has just done the one thing
     // that could change the answer.
-    const id = reconnectFor
-    setReconnectFor(null)
-    setView('detail')
-    void sync.syncNow(id)
-  }
+    const id = reconnectFor;
+    setReconnectFor(null);
+    setView('detail');
+    void sync.syncNow(id);
+  };
 
   const title =
     view === 'connect' || view === 'scope'
-      ? pending?.name ?? t('docsync.title')
+      ? (pending?.name ?? t('docsync.title'))
       : view === 'detail' && link
         ? storeName(link, sync.providers)
-        : t('docsync.title')
+        : t('docsync.title');
 
   return (
     <>
@@ -143,11 +168,7 @@ export default function MDocSyncSheet({
             // Only with nothing bound, as on the desktop panel.
             <Empty text={t('docsync.noProviders')} hint={t('docsync.noProvidersHint')} />
           ) : view === 'connect' && pending ? (
-            <ConnectView
-              provider={pending}
-              sync={sync}
-              onDone={connected}
-            />
+            <ConnectView provider={pending} sync={sync} onDone={connected} />
           ) : view === 'scope' && pending && sync.connectionFor(pending.id) ? (
             <ScopeView
               connectionId={sync.connectionFor(pending.id)!.id}
@@ -171,7 +192,10 @@ export default function MDocSyncSheet({
               providers={sync.providers}
               available={available}
               canManage={canManage}
-              onOpen={id => { setSelected(id); setView('detail') }}
+              onOpen={(id) => {
+                setSelected(id);
+                setView('detail');
+              }}
               onAdd={openStore}
             />
           )}
@@ -187,12 +211,12 @@ export default function MDocSyncSheet({
         cancelLabel={t('common.cancel')}
         danger
         onConfirm={() => {
-          setConfirmUnlink(false)
-          if (link) void sync.removeLink(link.id).then(() => setView('list'))
+          setConfirmUnlink(false);
+          if (link) void sync.removeLink(link.id).then(() => setView('list'));
         }}
       />
     </>
-  )
+  );
 }
 
 /** The stores this trip uses, then the ones it could. */
@@ -204,21 +228,21 @@ function ListView({
   onOpen,
   onAdd,
 }: {
-  links: DocSyncLink[]
-  providers: DocSyncProvider[]
-  available: DocSyncProvider[]
-  canManage: boolean
-  onOpen: (id: number) => void
-  onAdd: (p: DocSyncProvider) => void
+  links: DocSyncLink[];
+  providers: DocSyncProvider[];
+  available: DocSyncProvider[];
+  canManage: boolean;
+  onOpen: (id: number) => void;
+  onAdd: (p: DocSyncProvider) => void;
 }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <div className="mt-3 flex flex-col gap-4">
       {links.length > 0 && (
         <section>
           <SectionLabel>{t('docsync.sidebar.connected')}</SectionLabel>
           <div className="flex flex-col gap-2">
-            {links.map(l => (
+            {links.map((l) => (
               <StoreRow
                 key={l.id}
                 providerId={l.providerId}
@@ -236,7 +260,7 @@ function ListView({
         <section>
           <SectionLabel>{links.length === 0 ? t('docsync.addProvider') : t('docsync.addAnother')}</SectionLabel>
           <div className="flex flex-col gap-2">
-            {available.map(p => (
+            {available.map((p) => (
               <StoreRow
                 key={p.id}
                 providerId={p.id}
@@ -254,7 +278,7 @@ function ListView({
         <Empty text={t('docsync.empty.title')} hint={t('docsync.empty.hintMember')} />
       )}
     </div>
-  )
+  );
 }
 
 /** One binding: the flow, a run button, its settings. */
@@ -267,41 +291,41 @@ function DetailView({
   onUnlink,
   onReconnect,
 }: {
-  link: DocSyncLink
-  tripId: number | string
-  providerName: string
-  sync: ReturnType<typeof useDocSync>
-  canManage: boolean
-  onUnlink: () => void
+  link: DocSyncLink;
+  tripId: number | string;
+  providerName: string;
+  sync: ReturnType<typeof useDocSync>;
+  canManage: boolean;
+  onUnlink: () => void;
   /**
    * Opens the credential form for this binding's store. Only the sheet can,
    * because the form needs the provider's field list, which the card does
    * not carry; left out, a refused credential is reported but not curable.
    */
-  onReconnect?: () => void
+  onReconnect?: () => void;
 }) {
-  const { t, language } = useTranslation()
-  const busy = sync.busy === `sync-${link.id}`
+  const { t, language } = useTranslation();
+  const busy = sync.busy === `sync-${link.id}`;
   // Not while the provider is switched off: the paused notice stands in front
   // of the refusal then, and a new credential would change nothing until an
   // admin turns the provider back on.
-  const reconnect = canManage && onReconnect && !link.providerOff && needsReauth(link) ? onReconnect : null
-  const holdings = link.holdings ?? { inTrek: 0, atProvider: 0, paired: 0, missing: 0 }
-  const pushOn = link.direction === 'both' || link.direction === 'push'
-  const pullOn = link.direction === 'both' || link.direction === 'pull'
-  const ProviderIcon = DOCUMENT_PROVIDER_ICONS[link.providerId]
+  const reconnect = canManage && onReconnect && !link.providerOff && needsReauth(link) ? onReconnect : null;
+  const holdings = link.holdings ?? { inTrek: 0, atProvider: 0, paired: 0, missing: 0 };
+  const pushOn = link.direction === 'both' || link.direction === 'push';
+  const pullOn = link.direction === 'both' || link.direction === 'pull';
+  const ProviderIcon = DOCUMENT_PROVIDER_ICONS[link.providerId];
 
   /** The last remaining direction cannot be switched off. */
   const toggle = (lane: 'push' | 'pull') => {
-    if (!canManage) return
-    const nextPush = lane === 'push' ? !pushOn : pushOn
-    const nextPull = lane === 'pull' ? !pullOn : pullOn
-    if (!nextPush && !nextPull) return
-    void sync.updateLink(link.id, { direction: nextPush && nextPull ? 'both' : nextPush ? 'push' : 'pull' })
-  }
+    if (!canManage) return;
+    const nextPush = lane === 'push' ? !pushOn : pushOn;
+    const nextPull = lane === 'pull' ? !pullOn : pullOn;
+    if (!nextPush && !nextPull) return;
+    void sync.updateLink(link.id, { direction: nextPush && nextPull ? 'both' : nextPush ? 'push' : 'pull' });
+  };
 
-  const ranAt = link.lastSyncAt ? Date.parse(link.lastSyncAt) : NaN
-  const notice = bindingNotice(link, t)
+  const ranAt = link.lastSyncAt ? Date.parse(link.lastSyncAt) : NaN;
+  const notice = bindingNotice(link, t);
 
   return (
     <div className="mt-3 flex flex-col gap-3">
@@ -310,7 +334,11 @@ function DetailView({
           a phone does not have. */}
       <section className="rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop p-3">
         <div className="flex items-stretch gap-2">
-          <EndBox glyph={<TrekIcon className="h-[18px] w-[18px]" />} count={holdings.inTrek} name={t('docsync.flow.trek')} />
+          <EndBox
+            glyph={<TrekIcon className="h-[18px] w-[18px]" />}
+            count={holdings.inTrek}
+            name={t('docsync.flow.trek')}
+          />
           <EndBox
             glyph={ProviderIcon ? <ProviderIcon className="h-[18px] w-[18px]" /> : null}
             count={holdings.atProvider}
@@ -366,7 +394,10 @@ function DetailView({
           flipped back, a conflict the server would not settle. Nothing said
           what happened to a tap before. */}
       {sync.error && (
-        <p role="alert" className="rounded-2xl bg-[color:var(--m-ic)] px-3 py-2 font-geist text-[0.6875rem] text-[color:var(--m-st-danger)]">
+        <p
+          role="alert"
+          className="rounded-2xl bg-[color:var(--m-ic)] px-3 py-2 font-geist text-[0.6875rem] text-[color:var(--m-st-danger)]"
+        >
           {t(`docsync.error.${sync.error}`)}
         </p>
       )}
@@ -408,9 +439,7 @@ function DetailView({
           <SettingRow label={t('docsync.conflictPolicy')} hint={t('docsync.binding.conflictHint')}>
             <button
               type="button"
-              onClick={() =>
-                void sync.updateLink(link.id, { conflictPolicy: nextConflictPolicy(link.conflictPolicy) })
-              }
+              onClick={() => void sync.updateLink(link.id, { conflictPolicy: nextConflictPolicy(link.conflictPolicy) })}
               className="rounded-full bg-[color:var(--m-ic)] px-3 py-[6px] font-geist text-[0.6875rem] font-bold text-m-ink"
             >
               {t(conflictPolicyKey(link.conflictPolicy))}
@@ -428,7 +457,7 @@ function DetailView({
         </>
       )}
     </div>
-  )
+  );
 }
 
 /**
@@ -444,19 +473,21 @@ function ConnectView({
   sync,
   onDone,
 }: {
-  provider: DocSyncProvider
-  sync: ReturnType<typeof useDocSync>
-  onDone: () => void
+  provider: DocSyncProvider;
+  sync: ReturnType<typeof useDocSync>;
+  onDone: () => void;
 }) {
-  const { t } = useTranslation()
-  const form = useConnectForm(provider, sync.connectionFor(provider.id), sync)
-  const [verdict, setVerdict] = useState<{ connected: boolean; account?: string; error?: string } | null>(null)
+  const { t } = useTranslation();
+  const form = useConnectForm(provider, sync.connectionFor(provider.id), sync);
+  const [verdict, setVerdict] = useState<{ connected: boolean; account?: string; error?: string } | null>(null);
 
   return (
     <div className="mt-3 flex flex-col gap-3">
-      <p className="font-geist text-[0.71875rem] leading-snug text-m-muted">{t(`docsync.connect.about.${provider.id}`)}</p>
+      <p className="font-geist text-[0.71875rem] leading-snug text-m-muted">
+        {t(`docsync.connect.about.${provider.id}`)}
+      </p>
 
-      {form.fields.map(f => (
+      {form.fields.map((f) => (
         <label key={f.field_key} className="flex flex-col gap-[6px]">
           <span className="font-geist text-[0.6875rem] font-bold text-m-muted">
             {t(form.labelKey(f))}
@@ -465,7 +496,10 @@ function ConnectView({
           <input
             type={f.input_type === 'password' ? 'password' : 'text'}
             value={form.valueOf(f.field_key)}
-            onChange={e => { form.setValue(f.field_key, e.target.value); setVerdict(null) }}
+            onChange={(e) => {
+              form.setValue(f.field_key, e.target.value);
+              setVerdict(null);
+            }}
             placeholder={form.placeholderOf(f)}
             autoCapitalize="none"
             autoCorrect="off"
@@ -485,11 +519,7 @@ function ConnectView({
             {t('docsync.connect.insecureHint')}
           </span>
         </span>
-        <MToggle
-          checked={form.insecureTls}
-          ariaLabel={t('docsync.allowInsecureTls')}
-          onChange={form.setInsecureTls}
-        />
+        <MToggle checked={form.insecureTls} ariaLabel={t('docsync.allowInsecureTls')} onChange={form.setInsecureTls} />
       </div>
 
       {verdict && (
@@ -523,7 +553,11 @@ function ConnectView({
         </button>
         <button
           type="button"
-          onClick={() => void form.save().then(ok => { if (ok) onDone() })}
+          onClick={() =>
+            void form.save().then((ok) => {
+              if (ok) onDone();
+            })
+          }
           disabled={!form.complete || sync.busy === 'save'}
           className="h-11 flex-1 rounded-2xl bg-m-act text-[0.8125rem] font-bold text-m-actfg disabled:opacity-50"
         >
@@ -531,7 +565,7 @@ function ConnectView({
         </button>
       </div>
     </div>
-  )
+  );
 }
 
 /** Which folder, tag or space this trip gets. */
@@ -541,36 +575,43 @@ function ScopeView({
   sync,
   onBound,
 }: {
-  connectionId: number
-  suggestedName: string
-  sync: ReturnType<typeof useDocSync>
-  onBound: () => void
+  connectionId: number;
+  suggestedName: string;
+  sync: ReturnType<typeof useDocSync>;
+  onBound: () => void;
 }) {
-  const { t } = useTranslation()
-  const [scopes, setScopes] = useState<Awaited<ReturnType<typeof sync.loadScopes>>['scopes'] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [name, setName] = useState(suggestedName)
-  const [working, setWorking] = useState<string | null>(null)
+  const { t } = useTranslation();
+  const [scopes, setScopes] = useState<Awaited<ReturnType<typeof sync.loadScopes>>['scopes'] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState(suggestedName);
+  const [working, setWorking] = useState<string | null>(null);
 
   // `loadScopes`, not `sync`: the hook hands back a fresh object on every
   // render of the panel above, so depending on it re-listed the provider's
   // folders each time anything up there changed. The callback itself is
   // stable. Taken out of `sync` first, because calling it as `sync.loadScopes`
   // inside the effect makes the whole object a dependency again.
-  const { loadScopes } = sync
+  const { loadScopes } = sync;
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
     void (async () => {
-      const res = await loadScopes(connectionId)
-      if (cancelled) return
-      setScopes(res.scopes)
-      setError(res.error ?? null)
-    })()
-    return () => { cancelled = true }
-  }, [connectionId, loadScopes])
+      const res = await loadScopes(connectionId);
+      if (cancelled) return;
+      setScopes(res.scopes);
+      setError(res.error ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [connectionId, loadScopes]);
 
-  const bind = async (scope: { scopeKey: string; label: string; remoteRootId: string | null; remoteRootPath: string | null }) => {
-    setWorking(scope.scopeKey)
+  const bind = async (scope: {
+    scopeKey: string;
+    label: string;
+    remoteRootId: string | null;
+    remoteRootPath: string | null;
+  }) => {
+    setWorking(scope.scopeKey);
     const ok = await sync.createLink({
       connectionId,
       scopeKey: scope.scopeKey,
@@ -581,10 +622,10 @@ function ScopeView({
       deletePolicy: 'unlink',
       conflictPolicy: 'manual',
       syncEnabled: true,
-    })
-    setWorking(null)
-    if (ok) onBound()
-  }
+    });
+    setWorking(null);
+    if (ok) onBound();
+  };
 
   return (
     <div className="mt-3 flex flex-col gap-3">
@@ -593,24 +634,31 @@ function ScopeView({
       <div className="flex gap-2">
         <input
           value={name}
-          onChange={e => setName(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
           placeholder={t('docsync.newFolderPlaceholder')}
           className="h-11 min-w-0 flex-1 rounded-2xl border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-3 text-[0.8125rem] text-m-ink outline-none"
         />
         <button
           type="button"
           onClick={() => {
-            const trimmed = name.trim()
-            if (!trimmed) return
-            setWorking('__new__')
-            void sync.createScope(connectionId, trimmed)
-              .then(scope => { if (scope) return bind(scope) })
-              .finally(() => setWorking(null))
+            const trimmed = name.trim();
+            if (!trimmed) return;
+            setWorking('__new__');
+            void sync
+              .createScope(connectionId, trimmed)
+              .then((scope) => {
+                if (scope) return bind(scope);
+              })
+              .finally(() => setWorking(null));
           }}
           disabled={!name.trim() || working !== null}
           className="flex h-11 flex-none items-center gap-2 rounded-2xl bg-m-act px-4 text-[0.8125rem] font-bold text-m-actfg disabled:opacity-50"
         >
-          {working === '__new__' ? <Loader2 size={15} className="animate-spin" /> : <FolderPlus size={15} strokeWidth={2.2} />}
+          {working === '__new__' ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : (
+            <FolderPlus size={15} strokeWidth={2.2} />
+          )}
           {t('docsync.scope.createAction')}
         </button>
       </div>
@@ -624,7 +672,9 @@ function ScopeView({
       <SectionLabel>{t('docsync.scope.pickTitle')}</SectionLabel>
 
       {scopes === null ? (
-        <div className="flex justify-center py-8"><Loader2 size={18} className="animate-spin text-m-faint" /></div>
+        <div className="flex justify-center py-8">
+          <Loader2 size={18} className="animate-spin text-m-faint" />
+        </div>
       ) : error ? (
         <p className="rounded-2xl bg-[color:var(--m-ic)] px-3 py-2 font-geist text-[0.6875rem] text-[color:var(--m-st-danger)]">
           {t(`docsync.error.${error}`)}
@@ -633,7 +683,7 @@ function ScopeView({
         <Empty text={t('docsync.noFolders')} />
       ) : (
         <div className="flex flex-col gap-2">
-          {scopes.map(s => (
+          {scopes.map((s) => (
             <button
               key={s.scopeKey}
               type="button"
@@ -644,18 +694,22 @@ function ScopeView({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[0.78125rem] font-semibold text-m-ink">{s.label}</span>
                 {s.remoteRootPath && (
-                  <span className="mt-[2px] block truncate font-geist text-[0.625rem] text-m-faint">{s.remoteRootPath}</span>
+                  <span className="mt-[2px] block truncate font-geist text-[0.625rem] text-m-faint">
+                    {s.remoteRootPath}
+                  </span>
                 )}
               </span>
-              {working === s.scopeKey
-                ? <Loader2 size={14} className="flex-none animate-spin text-m-faint" />
-                : <ChevronRight size={15} strokeWidth={2} className="flex-none text-m-faint" />}
+              {working === s.scopeKey ? (
+                <Loader2 size={14} className="flex-none animate-spin text-m-faint" />
+              ) : (
+                <ChevronRight size={15} strokeWidth={2} className="flex-none text-m-faint" />
+              )}
             </button>
           ))}
         </div>
       )}
     </div>
-  )
+  );
 }
 
 /** One store in the list, connected or not. */
@@ -667,14 +721,14 @@ function StoreRow({
   addable,
   onClick,
 }: {
-  providerId: string
-  title: string
-  sub: string
-  state?: string
-  addable?: boolean
-  onClick: () => void
+  providerId: string;
+  title: string;
+  sub: string;
+  state?: string;
+  addable?: boolean;
+  onClick: () => void;
 }) {
-  const Icon = DOCUMENT_PROVIDER_ICONS[providerId]
+  const Icon = DOCUMENT_PROVIDER_ICONS[providerId];
   return (
     <button
       type="button"
@@ -697,24 +751,26 @@ function StoreRow({
         </span>
       )}
     </button>
-  )
+  );
 }
 
 /** One side of the flow: how much it is holding. */
 function EndBox({ glyph, count, name }: { glyph: React.ReactNode; count: number; name: string }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl bg-[color:var(--m-inner)] px-2 py-3">
       <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[color:var(--m-ic)] text-m-ink">
         {glyph}
       </span>
-      <span className="text-[1.25rem] font-bold leading-none tabular-nums text-m-ink">{count}</span>
+      <span className="text-[1.25rem] font-bold tabular-nums leading-none text-m-ink">{count}</span>
       <span className="font-geist text-[0.5625rem] uppercase leading-none tracking-wide text-m-faint">
         {t('docsync.flow.documents')}
       </span>
-      <span className="w-full truncate text-center font-geist text-[0.625rem] text-m-muted" title={name}>{name}</span>
+      <span className="w-full truncate text-center font-geist text-[0.625rem] text-m-muted" title={name}>
+        {name}
+      </span>
     </div>
-  )
+  );
 }
 
 /**
@@ -730,11 +786,11 @@ function LaneRow({
   disabled,
   onClick,
 }: {
-  active: boolean
-  label: string
-  icon: React.ReactNode
-  disabled?: boolean
-  onClick: () => void
+  active: boolean;
+  label: string;
+  icon: React.ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
 }) {
   return (
     <button
@@ -758,36 +814,37 @@ function LaneRow({
       <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold">{label}</span>
       {active && <Check size={15} strokeWidth={2.4} className="flex-none" />}
     </button>
-  )
+  );
 }
 
 function StateDot({ state }: { state: string }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const tone =
-    state === 'ok' ? 'var(--m-st-ok, #22c55e)'
-    : state === 'partial' ? 'var(--m-st-warn, #f59e0b)'
-    : state === 'never' ? 'var(--m-trackoff)'
-    : 'var(--m-st-danger)'
-  return (
-    <span
-      className="h-2 w-2 rounded-full"
-      style={{ background: tone }}
-      title={t(`docsync.linkState.${state}`)}
-    />
-  )
+    state === 'ok'
+      ? 'var(--m-st-ok, #22c55e)'
+      : state === 'partial'
+        ? 'var(--m-st-warn, #f59e0b)'
+        : state === 'never'
+          ? 'var(--m-trackoff)'
+          : 'var(--m-st-danger)';
+  return <span className="h-2 w-2 rounded-full" style={{ background: tone }} title={t(`docsync.linkState.${state}`)} />;
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <div className="mb-2 font-geist text-[0.625rem] font-bold uppercase tracking-wide text-m-faint">{children}</div>
+  return (
+    <div className="mb-2 font-geist text-[0.625rem] font-bold uppercase tracking-wide text-m-faint">{children}</div>
+  );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop px-3 py-[9px]">
       <span className="font-geist text-[0.6875rem] text-m-muted">{label}</span>
-      <span className="min-w-0 truncate text-[0.78125rem] font-semibold text-m-ink" title={value}>{value}</span>
+      <span className="min-w-0 truncate text-[0.78125rem] font-semibold text-m-ink" title={value}>
+        {value}
+      </span>
     </div>
-  )
+  );
 }
 
 function SettingRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -799,16 +856,18 @@ function SettingRow({ label, hint, children }: { label: string; hint?: string; c
       </span>
       <span className="flex-none">{children}</span>
     </div>
-  )
+  );
 }
 
 function Empty({ text, hint }: { text: string; hint?: string }) {
   return (
     <div className="py-10 text-center">
       <div className="font-geist text-[0.78125rem] text-m-muted">{text}</div>
-      {hint && <div className="mx-auto mt-1 max-w-[16rem] font-geist text-[0.625rem] leading-snug text-m-faint">{hint}</div>}
+      {hint && (
+        <div className="mx-auto mt-1 max-w-[16rem] font-geist text-[0.625rem] leading-snug text-m-faint">{hint}</div>
+      )}
     </div>
-  )
+  );
 }
 
 /** A folder name from the trip's own title, so nobody has to invent one. */
@@ -819,8 +878,8 @@ function slugFor(title: string | undefined, tripId: number | string): string {
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 40)
-  return `${base || 'trek'}-${tripId}`
+    .slice(0, 40);
+  return `${base || 'trek'}-${tripId}`;
 }
 
 /**
@@ -835,22 +894,22 @@ function MConflicts({
   count,
   canManage,
 }: {
-  tripId: number | string
-  sync: ReturnType<typeof useDocSync>
-  count: number
-  canManage: boolean
+  tripId: number | string;
+  sync: ReturnType<typeof useDocSync>;
+  count: number;
+  canManage: boolean;
 }) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const conflicts = useConflicts(tripId, sync, canManage && open)
-  if (count === 0) return null
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const conflicts = useConflicts(tripId, sync, canManage && open);
+  if (count === 0) return null;
 
   const heading = (
     <span className="min-w-0">
       <span className="block font-geist text-[0.75rem] font-bold text-m-ink">{t('docsync.conflict.title')}</span>
       <span className="mt-0.5 block font-geist text-[0.6875rem] text-m-muted">{t('docsync.issues.conflict')}</span>
     </span>
-  )
+  );
 
   return (
     <section className="rounded-2xl bg-[color:var(--m-ic)] px-3 py-2.5">
@@ -859,7 +918,7 @@ function MConflicts({
       {canManage ? (
         <button
           type="button"
-          onClick={() => setOpen(v => !v)}
+          onClick={() => setOpen((v) => !v)}
           className="flex w-full items-center justify-between gap-3 text-left"
         >
           {heading}
@@ -881,11 +940,11 @@ function MConflicts({
               <Loader2 size={14} className="animate-spin text-m-muted" />
             </li>
           )}
-          {conflicts.items?.map(item => (
+          {conflicts.items?.map((item) => (
             <li key={item.id} className="rounded-2xl bg-m-card px-3 py-2.5">
               <p className="truncate font-geist text-[0.75rem] text-m-ink">{item.name}</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {(['trek', 'provider', 'both'] as const).map(keep => (
+                {(['trek', 'provider', 'both'] as const).map((keep) => (
                   <button
                     key={keep}
                     type="button"
@@ -893,7 +952,9 @@ function MConflicts({
                     onClick={() => void conflicts.resolve(item.id, keep)}
                     className="rounded-full bg-[color:var(--m-ic)] px-3 py-[6px] font-geist text-[0.6875rem] font-bold text-m-ink disabled:opacity-60"
                   >
-                    {t(`docsync.conflict.${keep === 'trek' ? 'keepTrek' : keep === 'provider' ? 'keepProvider' : 'keepBoth'}`)}
+                    {t(
+                      `docsync.conflict.${keep === 'trek' ? 'keepTrek' : keep === 'provider' ? 'keepProvider' : 'keepBoth'}`
+                    )}
                   </button>
                 ))}
               </div>
@@ -902,5 +963,5 @@ function MConflicts({
         </ul>
       )}
     </section>
-  )
+  );
 }

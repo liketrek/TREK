@@ -16,7 +16,13 @@ export interface VisitedRegionRow {
  * `DEFAULT CURRENT_TIMESTAMP` to fill it).
  */
 interface VisitedRegionsReadKyselyDB {
-  visited_regions: { user_id: number; region_code: string; region_name: string; country_code: string; created_at: string | null };
+  visited_regions: {
+    user_id: number;
+    region_code: string;
+    region_name: string;
+    country_code: string;
+    created_at: string | null;
+  };
 }
 interface VisitedRegionsWriteKyselyDB {
   visited_regions: { user_id: number; region_code: string; region_name: string; country_code: string };
@@ -84,11 +90,19 @@ export class VisitedRegionsRepository extends TrekRepository<VisitedRegions> {
 
   /** AT15 (`unmarkCountry`, inside its transaction) — `DELETE FROM visited_regions WHERE user_id = ? AND country_code = ?` (every region in the country). */
   async unmarkAllInCountry(userId: number, countryCode: string): Promise<void> {
-    await this.writeDb().deleteFrom('visited_regions').where('user_id', '=', userId).where('country_code', '=', countryCode).execute();
+    await this.writeDb()
+      .deleteFrom('visited_regions')
+      .where('user_id', '=', userId)
+      .where('country_code', '=', countryCode)
+      .execute();
   }
 
   /** AT26 (`unmarkRegion`, inside its transaction) — `DELETE FROM visited_regions WHERE user_id = ? AND region_code = ?` (one region). */
   async unmark(userId: number, regionCode: string): Promise<void> {
-    await this.writeDb().deleteFrom('visited_regions').where('user_id', '=', userId).where('region_code', '=', regionCode).execute();
+    await this.writeDb()
+      .deleteFrom('visited_regions')
+      .where('user_id', '=', userId)
+      .where('region_code', '=', regionCode)
+      .execute();
   }
 }

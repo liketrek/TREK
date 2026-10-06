@@ -83,12 +83,18 @@ class FixtureMcp {
   // Arguments reach the server as strings; a numeric one is parsed on the way in.
   @Prompt({ name: 'fixture_count', argsSchema: { count: z.string().regex(/^\d+$/).transform(Number) } })
   async fixtureCount({ count }: { count: number }, ctx: TestCtx) {
-    return { messages: [{ role: 'user', content: { type: 'text', text: `${typeof count} ${count + 1} for ${ctx.userId}` } }] };
+    return {
+      messages: [{ role: 'user', content: { type: 'text', text: `${typeof count} ${count + 1} for ${ctx.userId}` } }],
+    };
   }
 
   @Prompt({ name: 'fixture_bare', argsSchema: {} })
   async fixtureBare(args: Record<string, never>, ctx: TestCtx) {
-    return { messages: [{ role: 'user', content: { type: 'text', text: `${Object.keys(args).length} args for ${ctx.userId}` } }] };
+    return {
+      messages: [
+        { role: 'user', content: { type: 'text', text: `${Object.keys(args).length} args for ${ctx.userId}` } },
+      ],
+    };
   }
 }
 
@@ -249,8 +255,9 @@ describe('McpRegistry.attach', () => {
     harness = await createAttachHarness(buildRegistry(), { userId: 3 });
     const result = await harness.client.getPrompt({ name: 'fixture_count', arguments: { count: '41' } });
     expect(result.messages[0]?.content).toMatchObject({ type: 'text', text: 'number 42 for 3' });
-    await expect(harness.client.getPrompt({ name: 'fixture_count', arguments: { count: 'many' } }))
-      .rejects.toThrow(/Invalid arguments for prompt fixture_count/);
+    await expect(harness.client.getPrompt({ name: 'fixture_count', arguments: { count: 'many' } })).rejects.toThrow(
+      /Invalid arguments for prompt fixture_count/,
+    );
   });
 
   it('serves a prompt with an empty argsSchema to a request that omits arguments', async () => {
@@ -319,11 +326,13 @@ describe('McpRegistry.attach', () => {
     // Bypass createTestRegistry's validate() by assembling the registry by hand.
     const registry = new McpRegistry();
     registry.register(new DeclarativeOnly());
-    await expect(registry.attach(
+    await expect(
+      registry.attach(
         // attach never gets far enough to need a live server here
         {} as Parameters<typeof registry.attach>[0],
         { userId: 1 } as McpContext,
-      )).rejects.toThrow(/declares declarative access but no accessPolicy was configured/);
+      ),
+    ).rejects.toThrow(/declares declarative access but no accessPolicy was configured/);
   });
 });
 

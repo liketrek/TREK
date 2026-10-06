@@ -204,14 +204,18 @@ const journey: TranslationStrings = {
   'journey.settings.subtitlePlaceholder': 'π.χ. Ταϊλάνδη, Βιετνάμ & Καμπότζη',
   'journey.settings.tracks': 'Διαδρομές GPX',
   'journey.settings.showTripTracks': 'Εμφάνιση όλων των διαδρομών GPX των ταξιδιών',
-  'journey.settings.showTripTracksHint': 'Σχεδιάζει στον χάρτη τις καταγεγραμμένες διαδρομές από τα συνδεδεμένα ταξίδια.',
+  'journey.settings.showTripTracksHint':
+    'Σχεδιάζει στον χάρτη τις καταγεγραμμένες διαδρομές από τα συνδεδεμένα ταξίδια.',
   'journey.settings.status': 'Κατάσταση',
   'journey.settings.statusAuto': 'Αυτόματα',
-  'journey.settings.statusAutoHint': 'Ακολουθεί τις ημερομηνίες των συνδεδεμένων ταξιδιών. Χωρίς ταξίδι, το ημερολόγιο μένει πρόχειρο.',
-  'journey.settings.statusManualHint': 'Ορισμένη χειροκίνητα. Οι ημερομηνίες του ταξιδιού δεν την αλλάζουν μέχρι να επιστρέψετε στο αυτόματο.',
+  'journey.settings.statusAutoHint':
+    'Ακολουθεί τις ημερομηνίες των συνδεδεμένων ταξιδιών. Χωρίς ταξίδι, το ημερολόγιο μένει πρόχειρο.',
+  'journey.settings.statusManualHint':
+    'Ορισμένη χειροκίνητα. Οι ημερομηνίες του ταξιδιού δεν την αλλάζουν μέχρι να επιστρέψετε στο αυτόματο.',
   'journey.settings.photosSection': 'Φωτογραφίες',
   'journey.settings.photoLocation': 'Τοποθέτηση καταχωρίσεων από τις φωτογραφίες τους',
-  'journey.settings.photoLocationHint': 'Μια καταχώριση χωρίς τοποθεσία παίρνει το σημείο όπου τραβήχτηκε η πρώτη της φωτογραφία με GPS. Οι τοποθεσίες που ορίζετε εσείς δεν μετακινούνται ποτέ.',
+  'journey.settings.photoLocationHint':
+    'Μια καταχώριση χωρίς τοποθεσία παίρνει το σημείο όπου τραβήχτηκε η πρώτη της φωτογραφία με GPS. Οι τοποθεσίες που ορίζετε εσείς δεν μετακινούνται ποτέ.',
   'journey.settings.endJourney': 'Αρχειοθέτηση Ταξιδιού',
   'journey.settings.reopenJourney': 'Επαναφορά Ταξιδιού',
   'journey.settings.archived': 'Το ταξίδι αρχειοθετήθηκε',
@@ -289,7 +293,8 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Φινίρισμα',
   'journey.studio.exportMarks': 'Σημάδια κοπής',
   'journey.studio.exportMarksHint': 'Προσθέτει {bleed} mm μακετών σε κάθε ακμή και σημειώνει πού κόβεται',
-  'journey.studio.exportNote': '{sheets} φύλλα {width} × {height} mm. Ο browser μετατρέπει την προεπισκόπηση εκτύπωσης σε PDF.',
+  'journey.studio.exportNote':
+    '{sheets} φύλλα {width} × {height} mm. Ο browser μετατρέπει την προεπισκόπηση εκτύπωσης σε PDF.',
   'journey.studio.exportOpen': 'Προεπισκόπηση εκτύπωσης',
   'journey.studio.exportSave': 'Αποθήκευση ως PDF',
   'journey.studio.exportPreparing': 'Προετοιμασία',
@@ -300,12 +305,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Λήψη αυτού του δισέλιδου',
-  'journey.studio.downloadSpreadHint': 'Αποθηκεύει τη σχεδίαση του δισέλιδου ως αρχείο, χωρίς τις φωτογραφίες, για κοινή χρήση ή επαναχρησιμοποίηση',
+  'journey.studio.downloadSpreadHint':
+    'Αποθηκεύει τη σχεδίαση του δισέλιδου ως αρχείο, χωρίς τις φωτογραφίες, για κοινή χρήση ή επαναχρησιμοποίηση',
   'journey.studio.importSpread': 'Εισαγωγή',
   'journey.studio.importSpreadHint': 'Προσθέτει ένα δισέλιδο από αρχείο σχεδίασης που έχετε κατεβάσει',
   'journey.studio.importSpreadFailed': 'Αυτό το αρχείο δεν είναι δισέλιδο του TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Η σχεδίαση βιβλίου θέλει χώρο, γι\' αυτό το Studio υπάρχει μόνο στον υπολογιστή, όπως και η δημιουργία του PDF. Όλα τα άλλα του ταξιδιού σου δουλεύουν εδώ κανονικά.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    "Η σχεδίαση βιβλίου θέλει χώρο, γι' αυτό το Studio υπάρχει μόνο στον υπολογιστή, όπως και η δημιουργία του PDF. Όλα τα άλλα του ταξιδιού σου δουλεύουν εδώ κανονικά.", // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -369,7 +376,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -391,7 +399,8 @@ const journey: TranslationStrings = {
   'journey.studio.travel': 'Ταξίδι',
   'journey.studio.travelEmpty': 'Τα στοιχεία αυτού του ταξιδιού δεν είναι ακόμη έτοιμα.',
   'journey.studio.grids': 'Πλέγματα',
-  'journey.studio.gridHint': 'Ένα πλέγμα τοποθετεί μπλοκ κενών πλαισίων. Σύρετε πάνω τους φωτογραφίες από το Περιεχόμενο.',
+  'journey.studio.gridHint':
+    'Ένα πλέγμα τοποθετεί μπλοκ κενών πλαισίων. Σύρετε πάνω τους φωτογραφίες από το Περιεχόμενο.',
   'journey.studio.lines': 'Γραμμές',
   'journey.studio.frameStyles': 'Στυλ πλαισίου',
   'journey.studio.frameShapes': 'Σχήματα πλαισίου',
@@ -450,7 +459,8 @@ const journey: TranslationStrings = {
   'journey.studio.paste': 'Επικόλληση (Ctrl+V)',
   'journey.studio.pasteEmpty': 'Αντιγράψτε πρώτα κάτι και μετά επικολλήστε το σε οποιαδήποτε σελίδα',
   'journey.studio.myLayouts': 'Οι διατάξεις μου',
-  'journey.studio.myLayoutsEmpty': 'Κρατήστε μια σελίδα που έχετε διαμορφώσει και στήστε άλλες σελίδες με τον ίδιο τρόπο. Οι φωτογραφίες και τα κείμενά τους παραμένουν.',
+  'journey.studio.myLayoutsEmpty':
+    'Κρατήστε μια σελίδα που έχετε διαμορφώσει και στήστε άλλες σελίδες με τον ίδιο τρόπο. Οι φωτογραφίες και τα κείμενά τους παραμένουν.',
   'journey.studio.saveLayout': 'Αποθήκευση αυτής της σελίδας ως διάταξη',
   'journey.studio.saveLayoutHint': 'Κρατά τη διάταξη χωρίς τις φωτογραφίες, για όλους τους συντάκτες αυτού του βιβλίου',
   'journey.studio.saveLayoutFull': 'Αυτό το βιβλίο χωρά έως 24 διατάξεις. Διαγράψτε μία για να αποθηκεύσετε άλλη.',
@@ -562,7 +572,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Περιγράμματα',
   'journey.studio.mapSourceRelief': 'Ανάγλυφο',
   'journey.studio.mapSourceSatellite': 'Δορυφόρος',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 χωρίς σύννεφα, ελεύθερο για εκτύπωση με αναφορά. Ευκρινές μέχρι και τον δρόμο μιας πόλης.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 χωρίς σύννεφα, ελεύθερο για εκτύπωση με αναφορά. Ευκρινές μέχρι και τον δρόμο μιας πόλης.',
   'journey.studio.routeLook': 'Η γραμμή',
   'journey.studio.routeStyle': 'Μορφή',
   'journey.studio.routePlain': 'Λιτή',
@@ -574,7 +585,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapStops': 'Στάσεις',
   'journey.studio.pinDot': 'Κουκκίδες',
   'journey.studio.pinPhoto': 'Φωτογραφίες',
-  'journey.studio.pinPhotoNone': 'Δεν υπάρχουν ακόμη φωτογραφίες σε αυτές τις στάσεις, οπότε σχεδιάζονται ως κουκκίδες.',
+  'journey.studio.pinPhotoNone':
+    'Δεν υπάρχουν ακόμη φωτογραφίες σε αυτές τις στάσεις, οπότε σχεδιάζονται ως κουκκίδες.',
   'journey.studio.roads': 'Δρόμοι',
   'journey.studio.roadsFetch': 'Ακολούθηση δρόμων',
   'journey.studio.roadsFollow': 'Οδικά',
@@ -585,9 +597,12 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Νέα λήψη',
   'journey.studio.roadsClear': 'Καθαρισμός',
   'journey.studio.roadsBusy': 'Λήψη',
-  'journey.studio.roadsHint': 'Ζητήστε από μια υπηρεσία δρομολόγησης τον δρόμο που ακολούθησε κάθε σκέλος. Τα μεγάλα σκέλη μένουν ως έχουν.',
-  'journey.studio.roadsHave': 'Οι δρόμοι αποθηκεύονται σε αυτό το βιβλίο, ώστε να τυπώνεται η ίδια γραμμή και εκτός σύνδεσης.',
-  'journey.studio.mapSourceReliefHint': 'Σκιασμένο ανάγλυφο NASA, ελεύθερο για εκτύπωση. Ιδανικό για μια χώρα ή μια ήπειρο, πολύ αδρό για μία πόλη.',
+  'journey.studio.roadsHint':
+    'Ζητήστε από μια υπηρεσία δρομολόγησης τον δρόμο που ακολούθησε κάθε σκέλος. Τα μεγάλα σκέλη μένουν ως έχουν.',
+  'journey.studio.roadsHave':
+    'Οι δρόμοι αποθηκεύονται σε αυτό το βιβλίο, ώστε να τυπώνεται η ίδια γραμμή και εκτός σύνδεσης.',
+  'journey.studio.mapSourceReliefHint':
+    'Σκιασμένο ανάγλυφο NASA, ελεύθερο για εκτύπωση. Ιδανικό για μια χώρα ή μια ήπειρο, πολύ αδρό για μία πόλη.',
   'journey.studio.mapPrintDpi': 'Εκτύπωση περίπου',
   'journey.studio.mapPrintDpiLow': 'θολό σε αυτό το μέγεθος, δοκιμάστε ευρύτερη προβολή ή άλλη πηγή',
   'journey.studio.mapPerTrip': 'Ένα ταξίδι τη φορά',
@@ -631,7 +646,8 @@ const journey: TranslationStrings = {
   'journey.studio.noLoosePhotos': 'Κάθε φωτογραφία εδώ ανήκει σε μια καταχώρηση.',
   'journey.studio.uploadPhotos': 'Μεταφόρτωση φωτογραφιών',
   'journey.studio.fromProvider': 'Από {name}',
-  'journey.studio.fromProviderHint': 'Επιλέξτε φωτογραφίες από {name} και προσθέστε τες εκεί όπου θα πήγαινε μια μεταφόρτωση',
+  'journey.studio.fromProviderHint':
+    'Επιλέξτε φωτογραφίες από {name} και προσθέστε τες εκεί όπου θα πήγαινε μια μεταφόρτωση',
   'journey.studio.uploadHint': 'Αφήστε εικόνες εδώ ή κάντε κλικ για να επιλέξετε',
   'journey.studio.uploadToEntry': 'Οι νέες εικόνες θα μπουν σε αυτή την καταχώρηση',
   'journey.studio.uploadToGallery': 'Οι νέες εικόνες θα μπουν στη συλλογή',
@@ -655,8 +671,10 @@ const journey: TranslationStrings = {
   'journey.entry.offRoute': 'Εκτός διαδρομής',
   'journey.entry.draft': 'Πρόχειρο',
   'journey.editor.draft': 'Πρόχειρο',
-  'journey.editor.draftHint': 'Αυτή την καταχώριση τη βλέπετε μόνο εσείς και οι άλλοι συντελεστές. Το κοινόχρηστο Ταξίδι την παραλείπει μέχρι να το απενεργοποιήσετε.',
-  'journey.editor.tripSuggestionHint': 'Αυτή η ημέρα ανήκει σε αυτό το ταξίδι. Συνδέστε το και τα μέρη του θα προστεθούν σε αυτό το Ταξίδι.',
+  'journey.editor.draftHint':
+    'Αυτή την καταχώριση τη βλέπετε μόνο εσείς και οι άλλοι συντελεστές. Το κοινόχρηστο Ταξίδι την παραλείπει μέχρι να το απενεργοποιήσετε.',
+  'journey.editor.tripSuggestionHint':
+    'Αυτή η ημέρα ανήκει σε αυτό το ταξίδι. Συνδέστε το και τα μέρη του θα προστεθούν σε αυτό το Ταξίδι.',
   'journey.editor.tripSuggestionLater': 'Όχι τώρα',
   'journey.suggestions.dismiss': 'Απόρριψη αυτής της πρότασης',
   'journey.suggestions.dismissed': 'Η πρόταση απορρίφθηκε',
@@ -668,7 +686,8 @@ const journey: TranslationStrings = {
   'journey.detail.searchPlaceholder': 'Αναζήτηση σε αυτό το ταξίδι',
   'journey.detail.searchEmpty': 'Καμία καταχώριση δεν ταιριάζει με «{query}»',
   'journey.settings.entryFields': 'Πεδία της καταχώρισης',
-  'journey.settings.entryFieldsHint': 'Απενεργοποιήστε ό,τι δεν χρησιμοποιεί αυτό το ταξίδι. Τίποτα από όσα έχουν γραφτεί δεν χάνεται.',
+  'journey.settings.entryFieldsHint':
+    'Απενεργοποιήστε ό,τι δεν χρησιμοποιεί αυτό το ταξίδι. Τίποτα από όσα έχουν γραφτεί δεν χάνεται.',
   'journey.settings.showVerdict': 'Υπέρ και κατά',
   'journey.settings.showMood': 'Διάθεση',
   'journey.settings.showWeather': 'Καιρός',

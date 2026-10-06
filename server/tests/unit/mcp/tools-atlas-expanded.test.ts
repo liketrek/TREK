@@ -4,9 +4,20 @@
  * unmark_region_visited, get_country_atlas_places, update_bucket_list_item.
  * Also covers resources trek://atlas/stats and trek://atlas/regions.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { ADDON_IDS } from '../../../src/addons';
 import { db as testDb } from '../../../src/db/database';
+import {
+  createUser,
+  createBucketListItem,
+  createVisitedCountry,
+  createTrip,
+  createReservation,
+} from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { setAddonEnabled } from '../../helpers/test-db';
 
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -21,13 +32,6 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createBucketListItem, createVisitedCountry, createTrip, createReservation } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { setAddonEnabled } from '../../helpers/test-db';
-import { ADDON_IDS } from '../../../src/addons';
-
 beforeEach(() => {
   setAddonEnabled(testDb, ADDON_IDS.ATLAS, true);
   resetTestDb(testDb);
@@ -41,7 +45,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // The atlas resources register via the nest-mcp registry inside registerTools
@@ -49,7 +57,11 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 // (same shape as tools-vacay.test.ts's withResourceHarness).
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: true });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // A place carrying an address and coordinates, which createPlace does not write.
@@ -64,13 +76,17 @@ function insertPlace(tripId: number, name: string, address: string | null, lat: 
 // and never reaches for Nominatim (same trick as ATLAS-UNIT-020).
 function cacheRegion(placeId: number, countryCode: string, regionCode: string, regionName: string): void {
   testDb
-    .prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)')
+    .prepare(
+      'INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)',
+    )
     .run(placeId, countryCode, regionCode, regionName);
 }
 
 function insertEndpoint(reservationId: number, role: 'from' | 'to', sequence: number, lat: number, lng: number): void {
   testDb
-    .prepare('INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng) VALUES (?, ?, ?, ?, ?, ?)')
+    .prepare(
+      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng) VALUES (?, ?, ?, ?, ?, ?)',
+    )
     .run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng);
 }
 
@@ -170,9 +186,9 @@ describe('Tool: list_visited_regions', () => {
 
   it('groups a manual mark under its country, in the shape the map reads', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare(
-      'INSERT INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)'
-    ).run(user.id, 'FR-75', 'Paris', 'FR');
+    testDb
+      .prepare('INSERT INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)')
+      .run(user.id, 'FR-75', 'Paris', 'FR');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_visited_regions', arguments: {} });
       const data = parseToolResult(result) as any;
@@ -194,7 +210,9 @@ describe('Tool: list_visited_regions', () => {
       expect(data.regions.IT).toEqual([{ code: 'IT-62', name: 'Lazio', placeCount: 2, status: 'visited' }]);
       // Nothing was ever marked by hand, so the old manual-only read had no row
       // to answer with at all.
-      const marked = testDb.prepare('SELECT COUNT(*) AS c FROM visited_regions WHERE user_id = ?').get(user.id) as { c: number };
+      const marked = testDb.prepare('SELECT COUNT(*) AS c FROM visited_regions WHERE user_id = ?').get(user.id) as {
+        c: number;
+      };
       expect(marked.c).toBe(0);
     });
   });
@@ -328,7 +346,9 @@ describe('Tool: mark_region_visited', () => {
       expect(data.region.name).toBe('California');
       expect(data.region.country_code).toBe('US');
       expect(data.region.manuallyMarked).toBe(true);
-      const row = testDb.prepare('SELECT * FROM visited_regions WHERE user_id = ? AND region_code = ?').get(user.id, 'US-CA');
+      const row = testDb
+        .prepare('SELECT * FROM visited_regions WHERE user_id = ? AND region_code = ?')
+        .get(user.id, 'US-CA');
       expect(row).toBeTruthy();
     });
   });
@@ -353,9 +373,9 @@ describe('Tool: mark_region_visited', () => {
 describe('Tool: unmark_region_visited', () => {
   it('removes region and returns success', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare(
-      'INSERT INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)'
-    ).run(user.id, 'IT-LO', 'Lombardy', 'IT');
+    testDb
+      .prepare('INSERT INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)')
+      .run(user.id, 'IT-LO', 'Lombardy', 'IT');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'unmark_region_visited',
@@ -363,7 +383,9 @@ describe('Tool: unmark_region_visited', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      const row = testDb.prepare('SELECT * FROM visited_regions WHERE user_id = ? AND region_code = ?').get(user.id, 'IT-LO');
+      const row = testDb
+        .prepare('SELECT * FROM visited_regions WHERE user_id = ? AND region_code = ?')
+        .get(user.id, 'IT-LO');
       expect(row).toBeUndefined();
     });
   });
@@ -423,9 +445,9 @@ describe('Tool: get_country_atlas_places', () => {
 describe('Tool: update_bucket_list_item', () => {
   it('updates notes and returns item', async () => {
     const { user } = createUser(testDb);
-    const r = testDb.prepare(
-      'INSERT INTO bucket_list (user_id, name, lat, lng) VALUES (?, ?, NULL, NULL)'
-    ).run(user.id, 'Visit Tokyo');
+    const r = testDb
+      .prepare('INSERT INTO bucket_list (user_id, name, lat, lng) VALUES (?, ?, NULL, NULL)')
+      .run(user.id, 'Visit Tokyo');
     const itemId = r.lastInsertRowid as number;
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -440,9 +462,9 @@ describe('Tool: update_bucket_list_item', () => {
 
   it('updates name of existing item', async () => {
     const { user } = createUser(testDb);
-    const r = testDb.prepare(
-      'INSERT INTO bucket_list (user_id, name, lat, lng) VALUES (?, ?, NULL, NULL)'
-    ).run(user.id, 'Old Name');
+    const r = testDb
+      .prepare('INSERT INTO bucket_list (user_id, name, lat, lng) VALUES (?, ?, NULL, NULL)')
+      .run(user.id, 'Old Name');
     const itemId = r.lastInsertRowid as number;
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -476,7 +498,9 @@ describe('Tool: update_bucket_list_item', () => {
         arguments: { itemId, target_date: '2027-05' },
       });
       expect(result.isError).toBe(true);
-      const row = testDb.prepare('SELECT target_date FROM bucket_list WHERE id = ?').get(itemId) as { target_date: string };
+      const row = testDb.prepare('SELECT target_date FROM bucket_list WHERE id = ?').get(itemId) as {
+        target_date: string;
+      };
       expect(row.target_date).toBe('2028-09');
     });
   });
@@ -484,9 +508,9 @@ describe('Tool: update_bucket_list_item', () => {
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const r = testDb.prepare(
-      'INSERT INTO bucket_list (user_id, name, lat, lng) VALUES (?, ?, NULL, NULL)'
-    ).run(user.id, 'Bucket Item');
+    const r = testDb
+      .prepare('INSERT INTO bucket_list (user_id, name, lat, lng) VALUES (?, ?, NULL, NULL)')
+      .run(user.id, 'Bucket Item');
     const itemId = r.lastInsertRowid as number;
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -529,9 +553,9 @@ describe('Resource: trek://atlas/regions', () => {
 
   it('returns marked and derived regions together, as the tool does', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare(
-      'INSERT INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)'
-    ).run(user.id, 'ES-CT', 'Catalonia', 'ES');
+    testDb
+      .prepare('INSERT INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)')
+      .run(user.id, 'ES-CT', 'Catalonia', 'ES');
     const trip = createTrip(testDb, user.id, { title: 'Rome', start_date: PAST_START, end_date: PAST_END });
     cacheRegion(insertPlace(trip.id, 'Colosseum', null, 41.8902, 12.4922), 'IT', 'IT-62', 'Lazio');
 
@@ -552,7 +576,7 @@ describe('Resource: trek://atlas/regions', () => {
 // ---------------------------------------------------------------------------
 
 describe('Resource: trek://bucket-list', () => {
-  it('returns only the current user\'s bucket list items', async () => {
+  it("returns only the current user's bucket list items", async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
     createBucketListItem(testDb, user.id, { name: 'Tokyo' });
@@ -582,7 +606,7 @@ describe('Resource: trek://bucket-list', () => {
 // ---------------------------------------------------------------------------
 
 describe('Resource: trek://visited-countries', () => {
-  it('returns only the current user\'s visited countries', async () => {
+  it("returns only the current user's visited countries", async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
     createVisitedCountry(testDb, user.id, 'FR');

@@ -58,7 +58,18 @@ export class PhotoProviderFieldsRepository extends TrekRepository<PhotoProviderF
     const rows = await this.find(
       {},
       {
-        fields: ['provider', 'field_key', 'label', 'input_type', 'placeholder', 'required', 'secret', 'settings_key', 'payload_key', 'sort_order'],
+        fields: [
+          'provider',
+          'field_key',
+          'label',
+          'input_type',
+          'placeholder',
+          'required',
+          'secret',
+          'settings_key',
+          'payload_key',
+          'sort_order',
+        ],
         orderBy: { sort_order: 'asc', id: 'asc' },
       },
     );

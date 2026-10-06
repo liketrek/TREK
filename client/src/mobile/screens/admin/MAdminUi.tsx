@@ -1,15 +1,17 @@
-import { InputHTMLAttributes, ReactNode, useState } from 'react'
-import { Eye, EyeOff, Loader2, X } from 'lucide-react'
-import { useTranslation } from '../../../i18n'
-import MIconBtn from '../../components/MIconBtn'
+import { Eye, EyeOff, Loader2, X } from 'lucide-react';
+import { InputHTMLAttributes, ReactNode, useState } from 'react';
+import { useTranslation } from '../../../i18n';
+import MIconBtn from '../../components/MIconBtn';
 
 /** Opaque content card of the admin screen (r18, --m-sheetop on --m-rowbr). */
 export function MAdminCard({ className = '', children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={`rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[14px] ${className}`}>
+    <div
+      className={`rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[14px] ${className}`}
+    >
       {children}
     </div>
-  )
+  );
 }
 
 /** Card header: 14px/800 title, small Geist hint, optional trailing control. */
@@ -18,9 +20,9 @@ export function MAdminCardHead({
   hint,
   trailing,
 }: {
-  title: ReactNode
-  hint?: ReactNode
-  trailing?: ReactNode
+  title: ReactNode;
+  hint?: ReactNode;
+  trailing?: ReactNode;
 }) {
   return (
     <div className="mb-1 flex items-center gap-2">
@@ -30,7 +32,7 @@ export function MAdminCardHead({
       </div>
       {trailing}
     </div>
-  )
+  );
 }
 
 /** Settings row: bold 13px title + Geist hint on the left, control on the right. */
@@ -40,10 +42,10 @@ export function MAdminRow({
   trailing,
   first = false,
 }: {
-  title: ReactNode
-  hint?: ReactNode
-  trailing?: ReactNode
-  first?: boolean
+  title: ReactNode;
+  hint?: ReactNode;
+  trailing?: ReactNode;
+  first?: boolean;
 }) {
   return (
     <div
@@ -57,7 +59,7 @@ export function MAdminRow({
       </div>
       {trailing}
     </div>
-  )
+  );
 }
 
 /** Labelled form field with an optional hint line under the control. */
@@ -68,7 +70,7 @@ export function MAdminField({ label, hint, children }: { label: ReactNode; hint?
       {children}
       {hint && <div className="mt-[5px] font-geist text-[0.625rem] leading-relaxed text-m-muted">{hint}</div>}
     </div>
-  )
+  );
 }
 
 export function MAdminInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
@@ -77,12 +79,12 @@ export function MAdminInput({ className = '', ...props }: InputHTMLAttributes<HT
       {...props}
       className={`h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     />
-  )
+  );
 }
 
 /** Password-style input with the show/hide eye of the desktop admin forms. */
 export function MAdminSecretInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  const [show, setShow] = useState(false)
+  const [show, setShow] = useState(false);
   return (
     <div className="relative">
       <MAdminInput {...props} type={show ? 'text' : 'password'} className={`pr-10 ${className}`} />
@@ -96,17 +98,17 @@ export function MAdminSecretInput({ className = '', ...props }: InputHTMLAttribu
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
     </div>
-  )
+  );
 }
 
 interface MAdminButtonProps {
-  variant?: 'primary' | 'ghost' | 'danger'
-  busy?: boolean
-  disabled?: boolean
-  onClick?: () => void
-  title?: string
-  className?: string
-  children: ReactNode
+  variant?: 'primary' | 'ghost' | 'danger';
+  busy?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  title?: string;
+  className?: string;
+  children: ReactNode;
 }
 
 /** Pill action button (design: r999, --m-act surface, 11px/700). */
@@ -124,7 +126,7 @@ export function MAdminButton({
       ? 'bg-m-act text-m-actfg'
       : variant === 'danger'
         ? 'bg-[color:var(--m-st-danger)] text-white'
-        : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
+        : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink';
   return (
     <button
       type="button"
@@ -136,7 +138,7 @@ export function MAdminButton({
       {busy && <Loader2 size={12} className="animate-spin" />}
       {children}
     </button>
-  )
+  );
 }
 
 /** Sheet body frame: title row + close, scrollable content, optional footer. */
@@ -146,12 +148,12 @@ export function MAdminSheetFrame({
   footer,
   children,
 }: {
-  title: ReactNode
-  onClose: () => void
-  footer?: ReactNode
-  children: ReactNode
+  title: ReactNode;
+  onClose: () => void;
+  footer?: ReactNode;
+  children: ReactNode;
 }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <>
       <div className="flex flex-none items-center gap-2 px-4 pb-2 pt-4">
@@ -167,5 +169,5 @@ export function MAdminSheetFrame({
         </div>
       )}
     </>
-  )
+  );
 }

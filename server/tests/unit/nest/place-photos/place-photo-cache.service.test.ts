@@ -22,11 +22,21 @@
  * DDL omits, which is not the case here), wired through `createTestOrm()`.
  * Plan 4 Task 4 dropped the now-unused `DatabaseService` injection entirely.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import path from 'node:path';
-import fs from 'node:fs';
-import crypto from 'node:crypto';
+import { CollectionPlaces } from '../../../../src/db/entities/CollectionPlaces.entity';
+import { GooglePlacePhotoMeta } from '../../../../src/db/entities/GooglePlacePhotoMeta.entity';
+import { Places } from '../../../../src/db/entities/Places.entity';
+import type { CollectionPlacesRepository } from '../../../../src/db/repositories/CollectionPlaces.repository';
+import type { GooglePlacePhotoMetaRepository } from '../../../../src/db/repositories/GooglePlacePhotoMeta.repository';
+import type { PlacesRepository } from '../../../../src/db/repositories/Places.repository';
+import { PlacePhotoCacheService } from '../../../../src/nest/place-photos/place-photo-cache.service';
+import { makeStorageFixture, type StorageFixture } from '../../../helpers/storage-fixture';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
 import { Jimp, JimpMime } from 'jimp';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 const { testDb } = vi.hoisted(() => {
   const Db = require('better-sqlite3');
@@ -56,16 +66,6 @@ testDb.exec(`
 `);
 
 vi.mock('../../../../src/db/database', () => ({ db: testDb }));
-
-import { PlacePhotoCacheService } from '../../../../src/nest/place-photos/place-photo-cache.service';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { GooglePlacePhotoMeta } from '../../../../src/db/entities/GooglePlacePhotoMeta.entity';
-import type { GooglePlacePhotoMetaRepository } from '../../../../src/db/repositories/GooglePlacePhotoMeta.repository';
-import { Places } from '../../../../src/db/entities/Places.entity';
-import type { PlacesRepository } from '../../../../src/db/repositories/Places.repository';
-import { CollectionPlaces } from '../../../../src/db/entities/CollectionPlaces.entity';
-import type { CollectionPlacesRepository } from '../../../../src/db/repositories/CollectionPlaces.repository';
-import { makeStorageFixture, type StorageFixture } from '../../../helpers/storage-fixture';
 
 async function makeJpeg(width: number, height: number): Promise<Buffer> {
   const img = new Jimp({ width, height, color: 0xff0000ff });
@@ -105,7 +105,9 @@ beforeAll(async () => {
   placesRepo = t.repo(Places);
   collectionPlacesRepo = t.repo(CollectionPlaces);
 });
-afterAll(async () => { await t.close(); });
+afterAll(async () => {
+  await t.close();
+});
 
 describe.each([
   ['mode A (photos/google/ prefix)', 'photos/google/'],
@@ -185,7 +187,9 @@ describe.each([
         .run('gone-place', 'Bob', Date.now());
 
       expect(await cache.get('gone-place')).toBeNull();
-      expect(testDb.prepare('SELECT 1 FROM google_place_photo_meta WHERE place_id = ?').get('gone-place')).toBeUndefined();
+      expect(
+        testDb.prepare('SELECT 1 FROM google_place_photo_meta WHERE place_id = ?').get('gone-place'),
+      ).toBeUndefined();
     });
 
     it('PPC-014: returns the proxy URL + attribution for a cached photo', async () => {
@@ -204,7 +208,7 @@ describe.each([
     // a real `await` in the window — flagged, not fixed. This pins today's
     // outcome on a genuine race: two concurrent `get()` calls for a
     // never-checked placeId whose storage object is missing.
-    it('PPC-017 (§18.4 concurrency): two concurrent gets on a row whose storage object is missing both resolve null; the loser\'s delete is a harmless no-op', async () => {
+    it("PPC-017 (§18.4 concurrency): two concurrent gets on a row whose storage object is missing both resolve null; the loser's delete is a harmless no-op", async () => {
       testDb
         .prepare('INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at) VALUES (?, ?, ?)')
         .run('race-place', 'Dana', Date.now());
@@ -222,7 +226,9 @@ describe.each([
         expect(deleteSpy).toHaveBeenCalledTimes(2);
         expect(deleteSpy).toHaveBeenCalledWith('race-place');
         // Exactly one row existed to begin with — gone either way, not double-deleted into an error.
-        expect(testDb.prepare('SELECT 1 FROM google_place_photo_meta WHERE place_id = ?').get('race-place')).toBeUndefined();
+        expect(
+          testDb.prepare('SELECT 1 FROM google_place_photo_meta WHERE place_id = ?').get('race-place'),
+        ).toBeUndefined();
       } finally {
         deleteSpy.mockRestore();
       }

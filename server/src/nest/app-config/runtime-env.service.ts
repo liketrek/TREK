@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
 import { readEnv, type AppEnv } from '../../app-config';
+import { Injectable } from '@nestjs/common';
 
 /**
  * DI-friendly access to the RUNTIME-TOGGLED env values (DEMO_MODE, NODE_ENV,

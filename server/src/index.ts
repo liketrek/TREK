@@ -1,17 +1,20 @@
-import 'reflect-metadata';
-import 'dotenv/config';
+import { getAppUrl, getMcpSafeUrl, readEnv } from './app-config';
 // Fail-fast env validation — must stay directly after dotenv so a malformed
 // variable aborts before any other module runs its import-time side effects
 // (config.ts key resolution, db/database.ts initDb, ...).
 import './app-config/boot-validate';
-import path from 'node:path';
-import fs from 'node:fs';
-import http from 'node:http';
-import type { INestApplication } from '@nestjs/common';
 // bootstrap is required inside bootstrap() below, not imported here: importing
 // it opens the database, and a first-start restore (#1089) has to put the
 // backup's database in place before that happens.
 import type * as Bootstrap from './bootstrap';
+import { resolveDbPath } from './db/db-path';
+import type { INestApplication } from '@nestjs/common';
+
+import 'dotenv/config';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import 'reflect-metadata';
 
 // data/tmp is the driver-agnostic global scratch dir (restore-upload spool,
 // mirror stream staging) and stays boot-created here. Driver-owned roots — the
@@ -23,9 +26,6 @@ import type * as Bootstrap from './bootstrap';
 // category prefixes by tests/unit/uploads-dirs.test.ts.
 const tmpDir = path.join(__dirname, '../data/tmp');
 if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-
-import { getAppUrl, getMcpSafeUrl, readEnv } from './app-config';
-import { resolveDbPath } from './db/db-path';
 
 const PORT = readEnv().app.port;
 const HOST = readEnv().app.host;
@@ -55,21 +55,25 @@ const onListen = () => {
     `  User:           uid=${process.getuid?.()} gid=${process.getgid?.()}`,
     '──────────────────────────────────────',
   ];
-  banner.forEach(l => console.log(l));
+  banner.forEach((l) => console.log(l));
   sLogInfo('NestJS serving all routes (Express decommissioned)');
   if (env.app.appUrl) {
     let parsedAppUrl: URL | null = null;
-    try { parsedAppUrl = new URL(env.app.appUrl); } catch { /* invalid */ }
+    try {
+      parsedAppUrl = new URL(env.app.appUrl);
+    } catch {
+      /* invalid */
+    }
 
     if (!parsedAppUrl) {
       sLogWarn(`APP_URL: "${env.app.appUrl}" is not a valid URL — it will be ignored.`);
     }
 
-    const mcpSafe = parsedAppUrl !== null && (
-      parsedAppUrl.protocol === 'https:' ||
-      parsedAppUrl.hostname === 'localhost' ||
-      parsedAppUrl.hostname === '127.0.0.1'
-    );
+    const mcpSafe =
+      parsedAppUrl !== null &&
+      (parsedAppUrl.protocol === 'https:' ||
+        parsedAppUrl.hostname === 'localhost' ||
+        parsedAppUrl.hostname === '127.0.0.1');
     if (!mcpSafe) {
       sLogWarn(`APP_URL: not MCP-safe (requires https:// or http://localhost) — MCP will use ${resolvedAppUrl}.`);
     }
@@ -143,14 +147,17 @@ async function finishFirstBootRestore(
   app: INestApplication,
   restore: { uploads: string | null; staging: string },
 ): Promise<void> {
-  const { StorageService } = require('./nest/storage/storage.service') as typeof import('./nest/storage/storage.service');
+  const { StorageService } =
+    require('./nest/storage/storage.service') as typeof import('./nest/storage/storage.service');
   const { rehydrateUploads } = require('./nest/backup/backup.impl') as typeof import('./nest/backup/backup.impl');
   try {
     if (restore.uploads) await rehydrateUploads(app.get(StorageService), restore.uploads);
     fs.rmSync(restore.staging, { recursive: true, force: true });
     console.log('[restore] Backup restored. Sign in with an account from the backup.');
   } catch (err) {
-    console.error(`[restore] The database was restored, but the uploads could not be copied (${err instanceof Error ? err.message : String(err)}). They are still in ${restore.staging}.`);
+    console.error(
+      `[restore] The database was restored, but the uploads could not be copied (${err instanceof Error ? err.message : String(err)}). They are still in ${restore.staging}.`,
+    );
   }
 }
 
@@ -182,10 +189,14 @@ function shutdown(signal: string): void {
     server,
     // nestApp.close() stops every cron via the scheduling registrar's shutdown
     // hook, and tears the plugin supervisor's forked children down.
-    closeNestApp: async () => { await nestApp?.close(); },
+    closeNestApp: async () => {
+      await nestApp?.close();
+    },
     getWsClients: () => getServer()?.clients ?? null,
     closeMcpSessions,
-    closeDb: () => { require('./db/database').closeDb(); },
+    closeDb: () => {
+      require('./db/database').closeDb();
+    },
     logInfo: sLogInfo,
     logError: sLogError,
     exit: (code: number) => process.exit(code),

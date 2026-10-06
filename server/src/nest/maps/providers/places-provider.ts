@@ -34,12 +34,7 @@ export type PlacesProviderId = 'google' | 'amap';
  */
 export type PlacesProviderChoice = 'auto' | PlacesProviderId | 'openstreetmap';
 
-export const PLACES_PROVIDER_CHOICES: readonly PlacesProviderChoice[] = [
-  'auto',
-  'google',
-  'amap',
-  'openstreetmap',
-];
+export const PLACES_PROVIDER_CHOICES: readonly PlacesProviderChoice[] = ['auto', 'google', 'amap', 'openstreetmap'];
 
 export function isPlacesProviderChoice(value: unknown): value is PlacesProviderChoice {
   return typeof value === 'string' && (PLACES_PROVIDER_CHOICES as readonly string[]).includes(value);

@@ -1,12 +1,12 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { PlaceDetailsCache } from '../../db/entities/PlaceDetailsCache.entity';
+import { RateLimitModule } from '../common/rate-limit.module';
 import { MapsModule } from '../maps/maps.module';
 import { PlacePhotosModule } from '../place-photos/place-photos.module';
-import { RateLimitModule } from '../common/rate-limit.module';
 import { PlaceEnrichmentController } from './place-enrichment.controller';
 import { PlaceEnrichmentService } from './place-enrichment.service';
-import { PlaceDetailsCache } from '../../db/entities/PlaceDetailsCache.entity';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Place enrichment (L4 leaf module). Registered in AppModule.
@@ -22,7 +22,12 @@ import { AppSettings } from '../../db/entities/AppSettings.entity';
  * constructor (Plan 3c Task 1).
  */
 @Module({
-  imports: [MapsModule, PlacePhotosModule, RateLimitModule, MikroOrmModule.forFeature([PlaceDetailsCache, AppSettings])],
+  imports: [
+    MapsModule,
+    PlacePhotosModule,
+    RateLimitModule,
+    MikroOrmModule.forFeature([PlaceDetailsCache, AppSettings]),
+  ],
   controllers: [PlaceEnrichmentController],
   providers: [PlaceEnrichmentService],
 })

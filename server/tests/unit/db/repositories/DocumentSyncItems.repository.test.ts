@@ -5,14 +5,15 @@
  * remote_id IS NOT NULL DO UPDATE`) and DS23's plain conditional update
  * (`recordAttempt`, ten `COALESCE` columns + the backoff second-count).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createTrip, createUser } from '../../../helpers/factories';
+import { currentTimestampKysely } from '../../../../src/db/dialect/sql-functions';
 import { DocumentSyncItems } from '../../../../src/db/entities/DocumentSyncItems.entity';
 import type { DocumentSyncItemsRepository } from '../../../../src/db/repositories/DocumentSyncItems.repository';
-import { currentTimestampKysely } from '../../../../src/db/dialect/sql-functions';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -22,8 +23,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(DocumentSyncItems);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function fixture() {
   const { user } = createUser(testDb);
@@ -43,7 +50,11 @@ function fixture() {
   return { user, trip, linkId: Number(linkInfo.lastInsertRowid) };
 }
 
-function insertData(linkId: number, tripId: number, over: Partial<Parameters<DocumentSyncItemsRepository['insertOrUpsertOnConflict']>[0]> = {}) {
+function insertData(
+  linkId: number,
+  tripId: number,
+  over: Partial<Parameters<DocumentSyncItemsRepository['insertOrUpsertOnConflict']>[0]> = {},
+) {
   return {
     link_id: linkId,
     trip_id: tripId,
@@ -73,10 +84,23 @@ describe('DocumentSyncItemsRepository', () => {
         .getKysely<{ document_sync_items: Record<string, unknown> }>()
         .insertInto('document_sync_items')
         .values({
-          link_id: 1, trip_id: 1, file_id: null, trek_doc_uid: 'x', remote_id: 'r1', remote_name: null,
-          remote_version: null, remote_size: null, remote_modified_at: null, content_sha256: null,
-          pushed_sha256: null, state: 'synced', error_code: null, attempts: 0, next_attempt_at: null,
-          synced_at: null, last_seen_at: 'CURRENT_TIMESTAMP',
+          link_id: 1,
+          trip_id: 1,
+          file_id: null,
+          trek_doc_uid: 'x',
+          remote_id: 'r1',
+          remote_name: null,
+          remote_version: null,
+          remote_size: null,
+          remote_modified_at: null,
+          content_sha256: null,
+          pushed_sha256: null,
+          state: 'synced',
+          error_code: null,
+          attempts: 0,
+          next_attempt_at: null,
+          synced_at: null,
+          last_seen_at: 'CURRENT_TIMESTAMP',
         })
         .onConflict((oc) =>
           oc
@@ -86,9 +110,12 @@ describe('DocumentSyncItemsRepository', () => {
               state: (eb) => eb.ref('excluded.state'),
               error_code: (eb) => eb.ref('excluded.error_code'),
               file_id: (eb) => eb.fn.coalesce(eb.ref('excluded.file_id'), eb.ref('document_sync_items.file_id')),
-              remote_version: (eb) => eb.fn.coalesce(eb.ref('excluded.remote_version'), eb.ref('document_sync_items.remote_version')),
-              content_sha256: (eb) => eb.fn.coalesce(eb.ref('excluded.content_sha256'), eb.ref('document_sync_items.content_sha256')),
-              pushed_sha256: (eb) => eb.fn.coalesce(eb.ref('excluded.pushed_sha256'), eb.ref('document_sync_items.pushed_sha256')),
+              remote_version: (eb) =>
+                eb.fn.coalesce(eb.ref('excluded.remote_version'), eb.ref('document_sync_items.remote_version')),
+              content_sha256: (eb) =>
+                eb.fn.coalesce(eb.ref('excluded.content_sha256'), eb.ref('document_sync_items.content_sha256')),
+              pushed_sha256: (eb) =>
+                eb.fn.coalesce(eb.ref('excluded.pushed_sha256'), eb.ref('document_sync_items.pushed_sha256')),
               last_seen_at: () => currentTimestampKysely(platform),
             }),
         )
@@ -98,13 +125,21 @@ describe('DocumentSyncItemsRepository', () => {
       // restated verbatim (SQLite's own requirement, DS24's own doc
       // comment) and the DO UPDATE SET matches the legacy statement's own
       // five re-written columns plus the two verbatim-from-excluded ones.
-      expect(compiled.sql).toContain('on conflict ("link_id", "remote_id") where "remote_id" is not null do update set');
+      expect(compiled.sql).toContain(
+        'on conflict ("link_id", "remote_id") where "remote_id" is not null do update set',
+      );
       expect(compiled.sql).toContain('"state" = "excluded"."state"');
       expect(compiled.sql).toContain('"error_code" = "excluded"."error_code"');
       expect(compiled.sql).toContain('"file_id" = coalesce("excluded"."file_id", "document_sync_items"."file_id")');
-      expect(compiled.sql).toContain('"remote_version" = coalesce("excluded"."remote_version", "document_sync_items"."remote_version")');
-      expect(compiled.sql).toContain('"content_sha256" = coalesce("excluded"."content_sha256", "document_sync_items"."content_sha256")');
-      expect(compiled.sql).toContain('"pushed_sha256" = coalesce("excluded"."pushed_sha256", "document_sync_items"."pushed_sha256")');
+      expect(compiled.sql).toContain(
+        '"remote_version" = coalesce("excluded"."remote_version", "document_sync_items"."remote_version")',
+      );
+      expect(compiled.sql).toContain(
+        '"content_sha256" = coalesce("excluded"."content_sha256", "document_sync_items"."content_sha256")',
+      );
+      expect(compiled.sql).toContain(
+        '"pushed_sha256" = coalesce("excluded"."pushed_sha256", "document_sync_items"."pushed_sha256")',
+      );
       expect(compiled.sql).toContain('"last_seen_at" = CURRENT_TIMESTAMP');
       // Pinned in full, for the task report:
       expect(compiled.sql).toBe(
@@ -122,16 +157,31 @@ describe('DocumentSyncItemsRepository', () => {
      */
     it('DS24REPO-002 (R3 mutation proof): a colliding (link_id, remote_id) pair upserts in place rather than duplicating', async () => {
       const { linkId, trip } = fixture();
-      await repo.insertOrUpsertOnConflict(insertData(linkId, trip.id, { remote_id: 'r1', trek_doc_uid: 'uid-a', state: 'synced', remote_version: 'v1' }));
-      await repo.insertOrUpsertOnConflict(insertData(linkId, trip.id, { remote_id: 'r2', trek_doc_uid: 'uid-b', state: 'synced', remote_version: 'v1' }));
-      const afterTwo = testDb.prepare('SELECT id, remote_id, remote_version FROM document_sync_items WHERE link_id = ? ORDER BY id').all(linkId) as Array<{ id: number; remote_id: string; remote_version: string }>;
+      await repo.insertOrUpsertOnConflict(
+        insertData(linkId, trip.id, { remote_id: 'r1', trek_doc_uid: 'uid-a', state: 'synced', remote_version: 'v1' }),
+      );
+      await repo.insertOrUpsertOnConflict(
+        insertData(linkId, trip.id, { remote_id: 'r2', trek_doc_uid: 'uid-b', state: 'synced', remote_version: 'v1' }),
+      );
+      const afterTwo = testDb
+        .prepare('SELECT id, remote_id, remote_version FROM document_sync_items WHERE link_id = ? ORDER BY id')
+        .all(linkId) as Array<{ id: number; remote_id: string; remote_version: string }>;
       expect(afterTwo).toHaveLength(2);
       const r1Id = afterTwo.find((r) => r.remote_id === 'r1')!.id;
 
       // The colliding insert: same link_id + remote_id='r1' as the first row.
-      await repo.insertOrUpsertOnConflict(insertData(linkId, trip.id, { remote_id: 'r1', trek_doc_uid: 'uid-c', state: 'conflict', remote_version: 'v2' }));
+      await repo.insertOrUpsertOnConflict(
+        insertData(linkId, trip.id, {
+          remote_id: 'r1',
+          trek_doc_uid: 'uid-c',
+          state: 'conflict',
+          remote_version: 'v2',
+        }),
+      );
 
-      const afterThree = testDb.prepare('SELECT id, remote_id, remote_version, state FROM document_sync_items WHERE link_id = ? ORDER BY id').all(linkId) as Array<{ id: number; remote_id: string; remote_version: string; state: string }>;
+      const afterThree = testDb
+        .prepare('SELECT id, remote_id, remote_version, state FROM document_sync_items WHERE link_id = ? ORDER BY id')
+        .all(linkId) as Array<{ id: number; remote_id: string; remote_version: string; state: string }>;
       // Still exactly two rows — the third insert upserted onto the first, not a third row.
       expect(afterThree).toHaveLength(2);
       const upserted = afterThree.find((r) => r.id === r1Id)!;
@@ -151,12 +201,27 @@ describe('DocumentSyncItemsRepository', () => {
 
   describe('recordAttempt (DS23, R3 — the plain conditional update, itemId≠null)', () => {
     async function seedRow(linkId: number, tripId: number) {
-      const id = await repo.insertOrUpsertOnConflict(
-        insertData(linkId, tripId, {
-          remote_id: 'r1', file_id: null, remote_name: 'a.pdf', remote_version: 'v1', remote_size: 512,
-          remote_modified_at: '2026-09-01T08:00:00Z', content_sha256: 'old-hash', pushed_sha256: 'old-pushed',
-        }),
-      ).then(() => (testDb.prepare('SELECT id FROM document_sync_items WHERE link_id = ? AND remote_id = ?').get(linkId, 'r1') as { id: number }).id);
+      const id = await repo
+        .insertOrUpsertOnConflict(
+          insertData(linkId, tripId, {
+            remote_id: 'r1',
+            file_id: null,
+            remote_name: 'a.pdf',
+            remote_version: 'v1',
+            remote_size: 512,
+            remote_modified_at: '2026-09-01T08:00:00Z',
+            content_sha256: 'old-hash',
+            pushed_sha256: 'old-pushed',
+          }),
+        )
+        .then(
+          () =>
+            (
+              testDb
+                .prepare('SELECT id FROM document_sync_items WHERE link_id = ? AND remote_id = ?')
+                .get(linkId, 'r1') as { id: number }
+            ).id,
+        );
       return id;
     }
 
@@ -172,31 +237,63 @@ describe('DocumentSyncItemsRepository', () => {
       const { linkId, trip } = fixture();
       const itemId = await seedRow(linkId, trip.id);
       const newFileId = Number(
-        testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, 'stored.pdf', 'b.pdf').lastInsertRowid,
+        testDb
+          .prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)')
+          .run(trip.id, 'stored.pdf', 'b.pdf').lastInsertRowid,
       );
 
       // Branch 1: every COALESCE column gets a genuinely new, non-null value.
       await repo.recordAttempt(itemId, {
-        state: 'synced', error_code: null, file_id: newFileId, remote_id: 'r1-new', remote_version: 'v2',
-        remote_name: 'b.pdf', remote_size: 2048, remote_modified_at: '2026-09-18T10:00:00Z',
-        content_sha256: 'new-hash', pushed_sha256: 'new-pushed', attempts: 0, next_attempt_after_seconds: null,
+        state: 'synced',
+        error_code: null,
+        file_id: newFileId,
+        remote_id: 'r1-new',
+        remote_version: 'v2',
+        remote_name: 'b.pdf',
+        remote_size: 2048,
+        remote_modified_at: '2026-09-18T10:00:00Z',
+        content_sha256: 'new-hash',
+        pushed_sha256: 'new-pushed',
+        attempts: 0,
+        next_attempt_after_seconds: null,
       });
       let row = testDb.prepare('SELECT * FROM document_sync_items WHERE id = ?').get(itemId) as Record<string, unknown>;
       expect(row).toMatchObject({
-        file_id: newFileId, remote_id: 'r1-new', remote_version: 'v2', remote_name: 'b.pdf', remote_size: 2048,
-        remote_modified_at: '2026-09-18T10:00:00Z', content_sha256: 'new-hash', pushed_sha256: 'new-pushed',
+        file_id: newFileId,
+        remote_id: 'r1-new',
+        remote_version: 'v2',
+        remote_name: 'b.pdf',
+        remote_size: 2048,
+        remote_modified_at: '2026-09-18T10:00:00Z',
+        content_sha256: 'new-hash',
+        pushed_sha256: 'new-pushed',
       });
 
       // Branch 2: every COALESCE column arrives null — the existing (branch-1) value survives untouched.
       await repo.recordAttempt(itemId, {
-        state: 'synced', error_code: null, file_id: null, remote_id: null, remote_version: null,
-        remote_name: null, remote_size: null, remote_modified_at: null, content_sha256: null,
-        pushed_sha256: null, attempts: 0, next_attempt_after_seconds: null,
+        state: 'synced',
+        error_code: null,
+        file_id: null,
+        remote_id: null,
+        remote_version: null,
+        remote_name: null,
+        remote_size: null,
+        remote_modified_at: null,
+        content_sha256: null,
+        pushed_sha256: null,
+        attempts: 0,
+        next_attempt_after_seconds: null,
       });
       row = testDb.prepare('SELECT * FROM document_sync_items WHERE id = ?').get(itemId) as Record<string, unknown>;
       expect(row).toMatchObject({
-        file_id: newFileId, remote_id: 'r1-new', remote_version: 'v2', remote_name: 'b.pdf', remote_size: 2048,
-        remote_modified_at: '2026-09-18T10:00:00Z', content_sha256: 'new-hash', pushed_sha256: 'new-pushed',
+        file_id: newFileId,
+        remote_id: 'r1-new',
+        remote_version: 'v2',
+        remote_name: 'b.pdf',
+        remote_size: 2048,
+        remote_modified_at: '2026-09-18T10:00:00Z',
+        content_sha256: 'new-hash',
+        pushed_sha256: 'new-pushed',
       });
     });
 
@@ -205,20 +302,49 @@ describe('DocumentSyncItemsRepository', () => {
       const itemId = await seedRow(linkId, trip.id);
 
       await repo.recordAttempt(itemId, {
-        state: 'error', error_code: 'timeout', file_id: null, remote_id: null, remote_version: null,
-        remote_name: null, remote_size: null, remote_modified_at: null, content_sha256: null,
-        pushed_sha256: null, attempts: 1, next_attempt_after_seconds: 300,
+        state: 'error',
+        error_code: 'timeout',
+        file_id: null,
+        remote_id: null,
+        remote_version: null,
+        remote_name: null,
+        remote_size: null,
+        remote_modified_at: null,
+        content_sha256: null,
+        pushed_sha256: null,
+        attempts: 1,
+        next_attempt_after_seconds: 300,
       });
-      const row = testDb.prepare("SELECT next_attempt_at, datetime('now', '+300 seconds') AS expected FROM document_sync_items WHERE id = ?").get(itemId) as { next_attempt_at: string; expected: string };
+      const row = testDb
+        .prepare(
+          "SELECT next_attempt_at, datetime('now', '+300 seconds') AS expected FROM document_sync_items WHERE id = ?",
+        )
+        .get(itemId) as { next_attempt_at: string; expected: string };
       expect(row.next_attempt_at).not.toBeNull();
-      expect(Math.abs(new Date(`${row.next_attempt_at.replace(' ', 'T')}Z`).getTime() - new Date(`${row.expected.replace(' ', 'T')}Z`).getTime())).toBeLessThan(5000);
+      expect(
+        Math.abs(
+          new Date(`${row.next_attempt_at.replace(' ', 'T')}Z`).getTime() -
+            new Date(`${row.expected.replace(' ', 'T')}Z`).getTime(),
+        ),
+      ).toBeLessThan(5000);
 
       await repo.recordAttempt(itemId, {
-        state: 'synced', error_code: null, file_id: null, remote_id: null, remote_version: null,
-        remote_name: null, remote_size: null, remote_modified_at: null, content_sha256: null,
-        pushed_sha256: null, attempts: 0, next_attempt_after_seconds: null,
+        state: 'synced',
+        error_code: null,
+        file_id: null,
+        remote_id: null,
+        remote_version: null,
+        remote_name: null,
+        remote_size: null,
+        remote_modified_at: null,
+        content_sha256: null,
+        pushed_sha256: null,
+        attempts: 0,
+        next_attempt_after_seconds: null,
       });
-      const cleared = testDb.prepare('SELECT next_attempt_at FROM document_sync_items WHERE id = ?').get(itemId) as { next_attempt_at: string | null };
+      const cleared = testDb.prepare('SELECT next_attempt_at FROM document_sync_items WHERE id = ?').get(itemId) as {
+        next_attempt_at: string | null;
+      };
       expect(cleared.next_attempt_at).toBeNull();
     });
 
@@ -228,18 +354,42 @@ describe('DocumentSyncItemsRepository', () => {
       testDb.prepare("UPDATE document_sync_items SET synced_at = '2020-01-01 00:00:00' WHERE id = ?").run(itemId);
 
       await repo.recordAttempt(itemId, {
-        state: 'error', error_code: 'timeout', file_id: null, remote_id: null, remote_version: null,
-        remote_name: null, remote_size: null, remote_modified_at: null, content_sha256: null,
-        pushed_sha256: null, attempts: 1, next_attempt_after_seconds: null,
+        state: 'error',
+        error_code: 'timeout',
+        file_id: null,
+        remote_id: null,
+        remote_version: null,
+        remote_name: null,
+        remote_size: null,
+        remote_modified_at: null,
+        content_sha256: null,
+        pushed_sha256: null,
+        attempts: 1,
+        next_attempt_after_seconds: null,
       });
-      expect((testDb.prepare('SELECT synced_at FROM document_sync_items WHERE id = ?').get(itemId) as { synced_at: string }).synced_at).toBe('2020-01-01 00:00:00');
+      expect(
+        (testDb.prepare('SELECT synced_at FROM document_sync_items WHERE id = ?').get(itemId) as { synced_at: string })
+          .synced_at,
+      ).toBe('2020-01-01 00:00:00');
 
       await repo.recordAttempt(itemId, {
-        state: 'synced', error_code: null, file_id: null, remote_id: null, remote_version: null,
-        remote_name: null, remote_size: null, remote_modified_at: null, content_sha256: null,
-        pushed_sha256: null, attempts: 0, next_attempt_after_seconds: null,
+        state: 'synced',
+        error_code: null,
+        file_id: null,
+        remote_id: null,
+        remote_version: null,
+        remote_name: null,
+        remote_size: null,
+        remote_modified_at: null,
+        content_sha256: null,
+        pushed_sha256: null,
+        attempts: 0,
+        next_attempt_after_seconds: null,
       });
-      expect((testDb.prepare('SELECT synced_at FROM document_sync_items WHERE id = ?').get(itemId) as { synced_at: string }).synced_at).not.toBe('2020-01-01 00:00:00');
+      expect(
+        (testDb.prepare('SELECT synced_at FROM document_sync_items WHERE id = ?').get(itemId) as { synced_at: string })
+          .synced_at,
+      ).not.toBe('2020-01-01 00:00:00');
     });
   });
 });

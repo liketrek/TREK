@@ -1,6 +1,6 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { SettingsRepository } from '../repositories/Settings.repository';
 import { Users } from './Users.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class Settings {
   [EntityRepositoryType]?: SettingsRepository;

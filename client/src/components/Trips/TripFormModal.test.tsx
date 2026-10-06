@@ -1,17 +1,25 @@
 // FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-097
-import type { Mock } from 'vitest';
-import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { delay, http, HttpResponse } from 'msw';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
-import { useSettingsStore } from '../../store/settingsStore';
-import { usePermissionsStore } from '../../store/permissionsStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip, buildDay, buildAssignment, buildPlace, buildReservation, buildBudgetItem } from '../../../tests/helpers/factories';
-import { server } from '../../../tests/helpers/msw/server';
-import type { Accommodation, BudgetItem, Reservation, Trip } from '../../types';
 import { MAX_TRIP_DAYS } from '@trek/shared';
+import { delay, http, HttpResponse } from 'msw';
+import type { Mock } from 'vitest';
+import {
+  buildAssignment,
+  buildBudgetItem,
+  buildDay,
+  buildPlace,
+  buildReservation,
+  buildTrip,
+  buildUser,
+} from '../../../tests/helpers/factories';
+import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { useAuthStore } from '../../store/authStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { useTripStore } from '../../store/tripStore';
+import type { Accommodation, BudgetItem, Reservation, Trip } from '../../types';
 import TripFormModal from './TripFormModal';
 
 const defaultProps = {
@@ -50,7 +58,7 @@ const pngFile = () => new File(['img'], 'cover.png', { type: 'image/png' });
 const fileInput = () => document.querySelector('input[type="file"]') as HTMLInputElement;
 
 const submitNewTrip = async (user: ReturnType<typeof userEvent.setup>) => {
-  const btn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
+  const btn = screen.getAllByText('Create New Trip').find((el) => el.closest('button'))!;
   await user.click(btn.closest('button')!);
 };
 
@@ -106,9 +114,9 @@ describe('TripFormModal', () => {
     const user = userEvent.setup();
     render(<TripFormModal {...defaultProps} />);
     // Click submit without filling title
-    const submitBtn = screen.getAllByText('Create New Trip').find(
-      el => el.tagName === 'BUTTON' || el.closest('button')
-    );
+    const submitBtn = screen
+      .getAllByText('Create New Trip')
+      .find((el) => el.tagName === 'BUTTON' || el.closest('button'));
     if (submitBtn) {
       await user.click(submitBtn.closest('button') || submitBtn);
     }
@@ -122,7 +130,7 @@ describe('TripFormModal', () => {
     render(<TripFormModal {...defaultProps} onSave={onSave} />);
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Paris 2026');
     const submitBtns = screen.getAllByText('Create New Trip');
-    const submitBtn = submitBtns.find(el => el.closest('button'));
+    const submitBtn = submitBtns.find((el) => el.closest('button'));
     await user.click(submitBtn!.closest('button')!);
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'Paris 2026' }));
@@ -224,11 +232,7 @@ describe('TripFormModal', () => {
   });
 
   it('FE-COMP-TRIPFORM-023: member selector appears when creating and other users exist', async () => {
-    server.use(
-      http.get('/api/auth/users', () =>
-        HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })
-      )
-    );
+    server.use(http.get('/api/auth/users', () => HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })));
     render(<TripFormModal {...defaultProps} trip={null} />);
     expect(await screen.findByText('Travel buddies')).toBeInTheDocument();
   });
@@ -236,11 +240,7 @@ describe('TripFormModal', () => {
   it('FE-COMP-TRIPFORM-024: selecting a member adds a chip', async () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
-    server.use(
-      http.get('/api/auth/users', () =>
-        HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })
-      )
-    );
+    server.use(http.get('/api/auth/users', () => HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })));
     render(<TripFormModal {...defaultProps} trip={null} />);
     // Wait for member section to load
     await screen.findByText('Travel buddies');
@@ -257,11 +257,7 @@ describe('TripFormModal', () => {
   it('FE-COMP-TRIPFORM-025: removing a member chip deselects them', async () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
-    server.use(
-      http.get('/api/auth/users', () =>
-        HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })
-      )
-    );
+    server.use(http.get('/api/auth/users', () => HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })));
     render(<TripFormModal {...defaultProps} trip={null} />);
     await screen.findByText('Travel buddies');
     // Select alice
@@ -304,7 +300,7 @@ describe('TripFormModal', () => {
     render(<TripFormModal {...defaultProps} onSave={onSave} trip={null} />);
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'My Trip');
     const submitBtns = screen.getAllByText('Create New Trip');
-    const submitBtn = submitBtns.find(el => el.closest('button'))!;
+    const submitBtn = submitBtns.find((el) => el.closest('button'))!;
     await user.click(submitBtn.closest('button')!);
     expect(await screen.findByText('Server error')).toBeInTheDocument();
   });
@@ -315,7 +311,7 @@ describe('TripFormModal', () => {
     render(<TripFormModal {...defaultProps} onSave={onSave} trip={null} />);
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'My Trip');
     const submitBtns = screen.getAllByText('Create New Trip');
-    const submitBtn = submitBtns.find(el => el.closest('button'))!;
+    const submitBtn = submitBtns.find((el) => el.closest('button'))!;
     await user.click(submitBtn.closest('button')!);
     await waitFor(() => expect(screen.getByText('Saving...')).toBeInTheDocument());
   });
@@ -336,7 +332,7 @@ describe('TripFormModal', () => {
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'No-date Trip');
     const dayInput = document.querySelector(`input[max="${MAX_TRIP_DAYS}"]`) as HTMLInputElement;
     fireEvent.change(dayInput, { target: { value: '' } });
-    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
+    const submitBtn = screen.getAllByText('Create New Trip').find((el) => el.closest('button'))!;
     await user.click(submitBtn.closest('button')!);
     await screen.findByText('Number of days is required');
     expect(onSave).not.toHaveBeenCalled();
@@ -349,20 +345,24 @@ describe('TripFormModal', () => {
     server.use(
       http.get('/api/trips/cover-images/search', () =>
         HttpResponse.json({
-          photos: [{
-            id: 'unsplash-1',
-            url: 'https://images.example.com/regular.jpg',
-            thumb: 'https://images.example.com/thumb.jpg',
-            description: 'Mountain lake',
-            photographer: 'Alice',
-            link: 'https://unsplash.com/photos/unsplash-1',
-          }],
+          photos: [
+            {
+              id: 'unsplash-1',
+              url: 'https://images.example.com/regular.jpg',
+              thumb: 'https://images.example.com/thumb.jpg',
+              description: 'Mountain lake',
+              photographer: 'Alice',
+              link: 'https://unsplash.com/photos/unsplash-1',
+            },
+          ],
         })
       ),
       http.put('/api/trips/99', async ({ request }) => {
         updateBody = await request.json();
-        return HttpResponse.json({ trip: buildTrip({ id: 99, cover_image: 'https://images.example.com/regular.jpg' }) });
-      }),
+        return HttpResponse.json({
+          trip: buildTrip({ id: 99, cover_image: 'https://images.example.com/regular.jpg' }),
+        });
+      })
     );
 
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
@@ -371,7 +371,7 @@ describe('TripFormModal', () => {
     await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
     await user.click(await screen.findByRole('button', { name: /Use Unsplash photo by Alice/i }));
 
-    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
+    const submitBtn = screen.getAllByText('Create New Trip').find((el) => el.closest('button'))!;
     await user.click(submitBtn.closest('button')!);
 
     await waitFor(() => {
@@ -392,21 +392,21 @@ describe('TripFormModal', () => {
     render(<TripFormModal {...defaultProps} onSave={onSave} />);
 
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Moscow 2026');
-    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
+    const submitBtn = screen.getAllByText('Create New Trip').find((el) => el.closest('button'))!;
     await user.click(submitBtn.closest('button')!);
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ currency: 'EUR' }));
   });
 
-  it('FE-COMP-TRIPFORM-033b: a new trip defaults to the user\'s default_currency (#1784)', async () => {
+  it("FE-COMP-TRIPFORM-033b: a new trip defaults to the user's default_currency (#1784)", async () => {
     seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'USD' } });
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     render(<TripFormModal {...defaultProps} onSave={onSave} />);
 
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'New York 2026');
-    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
+    const submitBtn = screen.getAllByText('Create New Trip').find((el) => el.closest('button'))!;
     await user.click(submitBtn.closest('button')!);
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
@@ -436,10 +436,12 @@ describe('TripFormModal', () => {
 
     await user.click(screen.getByRole('button', { name: /Update/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      start_date: '2025-05-31',
-      date_shift_mode: 'keep_bookings',
-    }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        start_date: '2025-05-31',
+        date_shift_mode: 'keep_bookings',
+      })
+    );
   });
 
   it('FE-COMP-TRIPFORM-036: picking "Shift everything" sends shift_all', async () => {
@@ -559,7 +561,7 @@ describe('TripFormModal', () => {
       http.post('/api/trips/99/members', async ({ request }) => {
         identifiers.push(((await request.json()) as { identifier: string }).identifier);
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
@@ -580,7 +582,7 @@ describe('TripFormModal', () => {
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
     server.use(
       http.get('/api/auth/users', () => HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })),
-      http.post('/api/trips/99/members', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+      http.post('/api/trips/99/members', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
     );
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} onClose={onClose} />);
@@ -598,9 +600,7 @@ describe('TripFormModal', () => {
   it('FE-COMP-TRIPFORM-045: a staged cover file is uploaded once the trip exists', async () => {
     const user = userEvent.setup();
     const onCoverUpdate = vi.fn();
-    server.use(
-      http.post('/api/trips/99/cover', () => HttpResponse.json({ cover_image: '/uploads/covers/new.jpg' })),
-    );
+    server.use(http.post('/api/trips/99/cover', () => HttpResponse.json({ cover_image: '/uploads/covers/new.jpg' })));
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} onCoverUpdate={onCoverUpdate} />);
 
@@ -632,9 +632,11 @@ describe('TripFormModal', () => {
     const user = userEvent.setup();
     server.use(
       http.get('/api/trips/cover-images/search', () =>
-        HttpResponse.json({ photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Alice' }] })
+        HttpResponse.json({
+          photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Alice' }],
+        })
       ),
-      http.put('/api/trips/99', () => HttpResponse.json({}, { status: 500 })),
+      http.put('/api/trips/99', () => HttpResponse.json({}, { status: 500 }))
     );
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
@@ -651,10 +653,10 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-048: picking a file on an existing trip uploads it immediately', async () => {
     const onCoverUpdate = vi.fn();
-    server.use(
-      http.post('/api/trips/1/cover', () => HttpResponse.json({ cover_image: '/uploads/covers/edit.jpg' })),
+    server.use(http.post('/api/trips/1/cover', () => HttpResponse.json({ cover_image: '/uploads/covers/edit.jpg' })));
+    render(
+      <TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Edit Me' })} onCoverUpdate={onCoverUpdate} />
     );
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Edit Me' })} onCoverUpdate={onCoverUpdate} />);
 
     fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
 
@@ -678,7 +680,12 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-050: clearing the file picker uploads nothing', async () => {
     let uploads = 0;
-    server.use(http.post('/api/trips/1/cover', () => { uploads++; return HttpResponse.json({ cover_image: 'x' }); }));
+    server.use(
+      http.post('/api/trips/1/cover', () => {
+        uploads++;
+        return HttpResponse.json({ cover_image: 'x' });
+      })
+    );
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1 })} />);
 
     fireEvent.change(fileInput(), { target: { files: [] } });
@@ -729,7 +736,7 @@ describe('TripFormModal', () => {
     server.use(
       http.get('/api/trips/cover-images/search', () =>
         HttpResponse.json({ error: 'Unsplash key missing' }, { status: 500 })
-      ),
+      )
     );
     render(<TripFormModal {...defaultProps} trip={null} />);
 
@@ -743,8 +750,10 @@ describe('TripFormModal', () => {
     const user = userEvent.setup();
     server.use(
       http.get('/api/trips/cover-images/search', () =>
-        HttpResponse.json({ photos: [{ id: 'p1', url: '', thumb: 'https://img/t.jpg', description: null, photographer: null }] })
-      ),
+        HttpResponse.json({
+          photos: [{ id: 'p1', url: '', thumb: 'https://img/t.jpg', description: null, photographer: null }],
+        })
+      )
     );
     render(<TripFormModal {...defaultProps} trip={null} />);
 
@@ -767,14 +776,18 @@ describe('TripFormModal', () => {
     let putBody: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/cover-images/search', () =>
-        HttpResponse.json({ photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Bob' }] })
+        HttpResponse.json({
+          photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Bob' }],
+        })
       ),
       http.put('/api/trips/1', async ({ request }) => {
         putBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ trip: buildTrip({ id: 1 }) });
-      }),
+      })
     );
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Edit Me' })} onCoverUpdate={onCoverUpdate} />);
+    render(
+      <TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Edit Me' })} onCoverUpdate={onCoverUpdate} />
+    );
 
     await user.type(screen.getByPlaceholderText('Search destination photos'), 'alps');
     await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
@@ -789,9 +802,11 @@ describe('TripFormModal', () => {
     const user = userEvent.setup();
     server.use(
       http.get('/api/trips/cover-images/search', () =>
-        HttpResponse.json({ photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Bob' }] })
+        HttpResponse.json({
+          photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Bob' }],
+        })
       ),
-      http.put('/api/trips/1', () => HttpResponse.json({ error: 'Cover rejected' }, { status: 500 })),
+      http.put('/api/trips/1', () => HttpResponse.json({ error: 'Cover rejected' }, { status: 500 }))
     );
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Edit Me' })} />);
 
@@ -807,7 +822,12 @@ describe('TripFormModal', () => {
   it('FE-COMP-TRIPFORM-058: removing a staged cover only clears the preview', async () => {
     const user = userEvent.setup();
     let puts = 0;
-    server.use(http.put('/api/trips/1', () => { puts++; return HttpResponse.json({}); }));
+    server.use(
+      http.put('/api/trips/1', () => {
+        puts++;
+        return HttpResponse.json({});
+      })
+    );
     render(<TripFormModal {...defaultProps} trip={null} />);
 
     fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
@@ -827,9 +847,15 @@ describe('TripFormModal', () => {
       http.put('/api/trips/1', async ({ request }) => {
         putBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ trip: buildTrip({ id: 1 }) });
-      }),
+      })
     );
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, cover_image: '/uploads/covers/a.jpg' })} onCoverUpdate={onCoverUpdate} />);
+    render(
+      <TripFormModal
+        {...defaultProps}
+        trip={buildTrip({ id: 1, cover_image: '/uploads/covers/a.jpg' })}
+        onCoverUpdate={onCoverUpdate}
+      />
+    );
 
     await user.click(screen.getByRole('button', { name: /Change/i }).nextElementSibling as HTMLElement);
 
@@ -896,7 +922,12 @@ describe('TripFormModal', () => {
   it('FE-COMP-TRIPFORM-064: without the edit permission the text fields are read-only', () => {
     seedStore(useAuthStore, { user: buildUser({ id: 7, role: 'user' }), isAuthenticated: true });
     seedStore(usePermissionsStore, { permissions: { trip_edit: 'admin' } });
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, user_id: 7, title: 'Locked', description: 'read only' })} />);
+    render(
+      <TripFormModal
+        {...defaultProps}
+        trip={buildTrip({ id: 1, user_id: 7, title: 'Locked', description: 'read only' })}
+      />
+    );
 
     const title = screen.getByPlaceholderText(/Summer in Japan/i);
     expect(title).toHaveAttribute('readonly');
@@ -924,9 +955,9 @@ describe('TripFormModal', () => {
     // The day-count field disappears once the trip is dated.
     await waitFor(() => expect(document.querySelector(`input[max="${MAX_TRIP_DAYS}"]`)).toBeNull());
     await submitNewTrip(user);
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ start_date: '2026-04-10', end_date: '2026-04-10' })
-    ));
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ start_date: '2026-04-10', end_date: '2026-04-10' }))
+    );
   });
 
   it('FE-COMP-TRIPFORM-066: an end date set first survives a later, earlier start date', async () => {
@@ -947,9 +978,9 @@ describe('TripFormModal', () => {
     fireEvent.keyDown(startInput, { key: 'Enter' });
 
     await submitNewTrip(user);
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ start_date: '2026-01-01', end_date: '2026-03-01' })
-    ));
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ start_date: '2026-01-01', end_date: '2026-03-01' }))
+    );
   });
 
   it('FE-COMP-TRIPFORM-067: the day count is clamped to the 1..MAX_TRIP_DAYS range', async () => {
@@ -1015,9 +1046,15 @@ describe('TripFormModal', () => {
   const editMembersServer = (members: { id: number; username: string }[]) => {
     server.use(
       http.get('/api/auth/users', () =>
-        HttpResponse.json({ users: [{ id: 1, username: 'me' }, { id: 100, username: 'alice' }, { id: 200, username: 'bob' }] })
+        HttpResponse.json({
+          users: [
+            { id: 1, username: 'me' },
+            { id: 100, username: 'alice' },
+            { id: 200, username: 'bob' },
+          ],
+        })
       ),
-      http.get('/api/trips/1/members', () => HttpResponse.json({ members })),
+      http.get('/api/trips/1/members', () => HttpResponse.json({ members }))
     );
   };
 
@@ -1025,12 +1062,15 @@ describe('TripFormModal', () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
     let deletedId: string | null = null;
-    editMembersServer([{ id: 1, username: 'me' }, { id: 100, username: 'alice' }]);
+    editMembersServer([
+      { id: 1, username: 'me' },
+      { id: 100, username: 'alice' },
+    ]);
     server.use(
       http.delete('/api/trips/1/members/:userId', ({ params }) => {
         deletedId = params.userId as string;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Crew' })} />);
 
@@ -1066,7 +1106,7 @@ describe('TripFormModal', () => {
       http.post('/api/trips/1/members', async ({ request }) => {
         identifier = ((await request.json()) as { identifier: string }).identifier;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Crew' })} />);
 
@@ -1113,7 +1153,13 @@ describe('TripFormModal', () => {
   it('FE-COMP-TRIPFORM-077: a save error from the date-shift step is shown on that step', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockRejectedValue(new Error('Shift failed'));
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Dated', start_date: '2025-06-01', end_date: '2025-06-05' })} onSave={onSave} />);
+    render(
+      <TripFormModal
+        {...defaultProps}
+        trip={buildTrip({ id: 1, title: 'Dated', start_date: '2025-06-01', end_date: '2025-06-05' })}
+        onSave={onSave}
+      />
+    );
 
     await changeStartDate(user, '2025-05-31');
     await user.click(screen.getByRole('button', { name: /Update/i }));
@@ -1144,9 +1190,7 @@ describe('TripFormModal', () => {
     await user.type(screen.getByPlaceholderText(/What is this trip about/i), '  Two weeks off  ');
     await submitNewTrip(user);
 
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ description: 'Two weeks off' })
-    ));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ description: 'Two weeks off' })));
   });
 
   it('FE-COMP-TRIPFORM-080: the cover button reports the upload while it runs', async () => {
@@ -1154,7 +1198,7 @@ describe('TripFormModal', () => {
       http.post('/api/trips/1/cover', async () => {
         await delay(30);
         return HttpResponse.json({ cover_image: '/uploads/covers/late.jpg' });
-      }),
+      })
     );
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, cover_image: '/uploads/covers/a.jpg' })} />);
 
@@ -1174,10 +1218,14 @@ describe('TripFormModal', () => {
         if (query === 'slow') {
           await delay(60);
           staleResolved = true;
-          return HttpResponse.json({ photos: [{ id: 's', url: 'https://img/s.jpg', thumb: 'https://img/st.jpg', photographer: 'Stale' }] });
+          return HttpResponse.json({
+            photos: [{ id: 's', url: 'https://img/s.jpg', thumb: 'https://img/st.jpg', photographer: 'Stale' }],
+          });
         }
-        return HttpResponse.json({ photos: [{ id: 'f', url: 'https://img/f.jpg', thumb: 'https://img/ft.jpg', photographer: 'Fresh' }] });
-      }),
+        return HttpResponse.json({
+          photos: [{ id: 'f', url: 'https://img/f.jpg', thumb: 'https://img/ft.jpg', photographer: 'Fresh' }],
+        });
+      })
     );
     render(<TripFormModal {...defaultProps} trip={null} />);
     const search = screen.getByPlaceholderText('Search destination photos');
@@ -1202,8 +1250,10 @@ describe('TripFormModal', () => {
           staleResolved = true;
           return HttpResponse.json({ error: 'Stale failure' }, { status: 500 });
         }
-        return HttpResponse.json({ photos: [{ id: 'f', url: 'https://img/f.jpg', thumb: 'https://img/ft.jpg', photographer: 'Fresh' }] });
-      }),
+        return HttpResponse.json({
+          photos: [{ id: 'f', url: 'https://img/f.jpg', thumb: 'https://img/ft.jpg', photographer: 'Fresh' }],
+        });
+      })
     );
     render(<TripFormModal {...defaultProps} trip={null} />);
     const search = screen.getByPlaceholderText('Search destination photos');
@@ -1222,13 +1272,19 @@ describe('TripFormModal', () => {
     // The trip planner keeps the modal mounted behind the page.
     const seen: string[] = [];
     server.use(
-      http.get('/api/auth/users', () => { seen.push('users'); return HttpResponse.json({ users: [] }); }),
-      http.get('/api/trips/:id/members', () => { seen.push('members'); return HttpResponse.json({ members: [] }); }),
+      http.get('/api/auth/users', () => {
+        seen.push('users');
+        return HttpResponse.json({ users: [] });
+      }),
+      http.get('/api/trips/:id/members', () => {
+        seen.push('members');
+        return HttpResponse.json({ members: [] });
+      })
     );
     const trip = buildTrip({ id: 5 });
     const { rerender } = render(<TripFormModal {...defaultProps} isOpen={false} trip={trip} />);
 
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(seen).toEqual([]);
 
     rerender(<TripFormModal {...defaultProps} isOpen trip={trip} />);
@@ -1257,9 +1313,9 @@ describe('TripFormModal', () => {
     const trip = buildTrip({ id: 1, title: 'Gap year', start_date: '2025-01-26', end_date: '2026-01-28' });
     render(<TripFormModal {...defaultProps} trip={trip} onSave={onSave} />);
     await user.click(screen.getByRole('button', { name: /Update/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ start_date: '2025-01-26', end_date: '2026-01-28' })
-    ));
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ start_date: '2025-01-26', end_date: '2026-01-28' }))
+    );
   });
 
   it('FE-COMP-TRIPFORM-086: a range past MAX_TRIP_DAYS is refused before anything is sent', async () => {
@@ -1286,28 +1342,43 @@ describe('TripFormModal', () => {
     await user.clear(screen.getByPlaceholderText(/Summer in Japan/i));
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Renamed');
     await user.click(screen.getByRole('button', { name: /Update/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Renamed', start_date: '2020-01-01', end_date: '2030-01-01' })
-    ));
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Renamed', start_date: '2020-01-01', end_date: '2030-01-01' })
+      )
+    );
   });
 
   // ── Shortening: the warning before days go ────────────────────────────────
 
   /** A week in October with a place on its last two days, and the trip's bookings and stays. */
-  const shrinkableTrip = () => buildTrip({ id: 1, title: 'Coast week', start_date: '2026-10-01', end_date: '2026-10-07' });
-  const seedTripDays = (extras: { reservations?: Reservation[]; accommodations?: Accommodation[]; budget?: BudgetItem[]; empty?: boolean } = {}) => {
-    const days = Array.from({ length: 7 }, (_, i) => buildDay({
-      id: 300 + i,
-      trip_id: 1,
-      day_number: i + 1,
-      date: `2026-10-0${i + 1}`,
-      assignments: !extras.empty && i >= 5 ? [buildAssignment({ day_id: 300 + i, place: buildPlace({ id: 400 + i }) })] : [],
-    }));
+  const shrinkableTrip = () =>
+    buildTrip({ id: 1, title: 'Coast week', start_date: '2026-10-01', end_date: '2026-10-07' });
+  const seedTripDays = (
+    extras: {
+      reservations?: Reservation[];
+      accommodations?: Accommodation[];
+      budget?: BudgetItem[];
+      empty?: boolean;
+    } = {}
+  ) => {
+    const days = Array.from({ length: 7 }, (_, i) =>
+      buildDay({
+        id: 300 + i,
+        trip_id: 1,
+        day_number: i + 1,
+        date: `2026-10-0${i + 1}`,
+        assignments:
+          !extras.empty && i >= 5 ? [buildAssignment({ day_id: 300 + i, place: buildPlace({ id: 400 + i }) })] : [],
+      })
+    );
     server.use(
       http.get('/api/trips/:id/days', () => HttpResponse.json({ days })),
       http.get('/api/trips/:id/reservations', () => HttpResponse.json({ reservations: extras.reservations ?? [] })),
-      http.get('/api/trips/:id/accommodations', () => HttpResponse.json({ accommodations: extras.accommodations ?? [] })),
-      http.get('/api/trips/:id/budget', () => HttpResponse.json({ items: extras.budget ?? [] })),
+      http.get('/api/trips/:id/accommodations', () =>
+        HttpResponse.json({ accommodations: extras.accommodations ?? [] })
+      ),
+      http.get('/api/trips/:id/budget', () => HttpResponse.json({ items: extras.budget ?? [] }))
     );
   };
   const changeEndDate = async (user: ReturnType<typeof userEvent.setup>, iso: string) => {
@@ -1319,8 +1390,12 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-088: an earlier end asks first and names the days it takes, with what is on them', async () => {
     seedTripDays({
-      accommodations: [{ id: 9, trip_id: 1, start_day_id: 304, end_day_id: 306, place_name: 'Harbour Hotel' } as Accommodation],
-      reservations: [buildReservation({ id: 70, day_id: 304, type: 'hotel', title: 'Harbour, 2 nights', accommodation_id: 9 })],
+      accommodations: [
+        { id: 9, trip_id: 1, start_day_id: 304, end_day_id: 306, place_name: 'Harbour Hotel' } as Accommodation,
+      ],
+      reservations: [
+        buildReservation({ id: 70, day_id: 304, type: 'hotel', title: 'Harbour, 2 nights', accommodation_id: 9 }),
+      ],
       budget: [buildBudgetItem({ reservation_id: 70, total_price: 240 })],
     });
     const user = userEvent.setup();
@@ -1336,7 +1411,9 @@ describe('TripFormModal', () => {
     expect(within(list).getByText('Tue, Oct 6')).toBeInTheDocument();
     expect(within(list).getByText('Wed, Oct 7')).toBeInTheDocument();
     expect(within(list).getByText('Stay at Harbour Hotel').closest('li')).toHaveAttribute('data-tone', 'danger');
-    expect(within(list).getByText(/Its booking "Harbour, 2 nights" and its expense stay under Bookings/)).toBeInTheDocument();
+    expect(
+      within(list).getByText(/Its booking "Harbour, 2 nights" and its expense stay under Bookings/)
+    ).toBeInTheDocument();
     expect(within(list).getByText('Planned places: 2')).toBeInTheDocument();
     // No start moved, so no shift question.
     expect(screen.queryByText('Keep bookings on their dates')).not.toBeInTheDocument();
@@ -1401,7 +1478,9 @@ describe('TripFormModal', () => {
     await user.click(screen.getByRole('button', { name: /Update/i }));
 
     const list = await screen.findByRole('list', { name: 'Remove days?' });
-    expect(within(list).getByText(/One whose date is still part of the trip goes back onto that day/)).toBeInTheDocument();
+    expect(
+      within(list).getByText(/One whose date is still part of the trip goes back onto that day/)
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: /Shift everything/i }));
     expect(within(list).getByText('They stay under Bookings, without a day.')).toBeInTheDocument();
 
@@ -1449,8 +1528,12 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-097: a removed stay whose booking carries no expense does not claim one', async () => {
     seedTripDays({
-      accommodations: [{ id: 9, trip_id: 1, start_day_id: 304, end_day_id: 306, place_name: 'Harbour Hotel' } as Accommodation],
-      reservations: [buildReservation({ id: 70, day_id: 304, type: 'hotel', title: 'Harbour, 2 nights', accommodation_id: 9 })],
+      accommodations: [
+        { id: 9, trip_id: 1, start_day_id: 304, end_day_id: 306, place_name: 'Harbour Hotel' } as Accommodation,
+      ],
+      reservations: [
+        buildReservation({ id: 70, day_id: 304, type: 'hotel', title: 'Harbour, 2 nights', accommodation_id: 9 }),
+      ],
     });
     const user = userEvent.setup();
     render(<TripFormModal {...defaultProps} trip={shrinkableTrip()} onSave={vi.fn()} />);
@@ -1459,7 +1542,11 @@ describe('TripFormModal', () => {
     await user.click(screen.getByRole('button', { name: /Update/i }));
 
     const list = await screen.findByRole('list', { name: 'Remove days?' });
-    expect(within(list).getByText('Checks in or out on a removed day, so the whole stay is removed. Its booking "Harbour, 2 nights" stays under Bookings.')).toBeInTheDocument();
+    expect(
+      within(list).getByText(
+        'Checks in or out on a removed day, so the whole stay is removed. Its booking "Harbour, 2 nights" stays under Bookings.'
+      )
+    ).toBeInTheDocument();
     expect(within(list).queryByText(/its expense/)).not.toBeInTheDocument();
   });
 

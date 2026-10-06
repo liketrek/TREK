@@ -1,14 +1,14 @@
-import React, { useId, useState } from 'react'
-import { HardDrive } from 'lucide-react'
 import {
   STORAGE_BACKEND_TYPES,
   STORAGE_BACKEND_TYPE_IDS,
   type StorageBackend,
   type StorageBackendFieldDef,
   type StorageBackendTypeId,
-} from '@trek/shared'
-import { useTranslation } from '../../../i18n'
-import CustomSelect from '../../shared/CustomSelect'
+} from '@trek/shared';
+import { HardDrive } from 'lucide-react';
+import React, { useId, useState } from 'react';
+import { useTranslation } from '../../../i18n';
+import CustomSelect from '../../shared/CustomSelect';
 import {
   DialogButton,
   DialogFooter,
@@ -19,45 +19,45 @@ import {
   FooterSpacer,
   NEUTRAL_TINT,
   fs,
-} from '../../shared/DialogShell'
-import { EditorField, GRID_2, INPUT } from '../../shared/dialogParts'
+} from '../../shared/DialogShell';
+import { EditorField, GRID_2, INPUT } from '../../shared/dialogParts';
 
-type FieldValues = Record<string, string | string[]>
+type FieldValues = Record<string, string | string[]>;
 
 function valuesOf(backend: StorageBackend | null): FieldValues {
-  if (!backend) return {}
-  const values: FieldValues = {}
+  if (!backend) return {};
+  const values: FieldValues = {};
   for (const [key, value] of Object.entries(backend.options)) {
-    values[key] = Array.isArray(value) ? value : String(value)
+    values[key] = Array.isArray(value) ? value : String(value);
   }
-  return values
+  return values;
 }
 
 export interface BackendFormMirrorProps {
   /** Selectable replica targets (the form excludes its own name at render). */
-  candidates: string[]
-  initialTargets: string[]
+  candidates: string[];
+  initialTargets: string[];
 }
 
 interface BackendFormProps {
   /** null = new backend */
-  initial: StorageBackend | null
+  initial: StorageBackend | null;
   /** Every defined backend name — mirror-target options and the duplicate pre-check. */
-  backendNames: string[]
+  backendNames: string[];
   /**
    * Present on non-mirror backends: renders the Mirror-targets composer
    * (replicas-on-primary — panel-supplied chrome, never a registry field).
    * When present, onCommit's second argument is always an array.
    */
-  mirror?: BackendFormMirrorProps
-  onCommit: (backend: StorageBackend, mirrorTargets?: string[]) => void
-  onCancel: () => void
+  mirror?: BackendFormMirrorProps;
+  onCommit: (backend: StorageBackend, mirrorTargets?: string[]) => void;
+  onCancel: () => void;
 }
 
 /** A box of checkbox rows, the white list the settings cards use. */
-const CHECK_ROWS = 'divide-y divide-edge-faint overflow-hidden rounded-[12px] border border-edge-faint bg-surface-card'
-const CHECK_ROW = 'flex cursor-pointer items-center gap-3 px-3.5 py-2.5 text-content hover:bg-surface-secondary'
-const CHECKBOX = 'h-4 w-4 flex-none cursor-pointer accent-accent'
+const CHECK_ROWS = 'divide-y divide-edge-faint overflow-hidden rounded-[12px] border border-edge-faint bg-surface-card';
+const CHECK_ROW = 'flex cursor-pointer items-center gap-3 px-3.5 py-2.5 text-content hover:bg-surface-secondary';
+const CHECKBOX = 'h-4 w-4 flex-none cursor-pointer accent-accent';
 
 /**
  * Renders whatever STORAGE_BACKEND_TYPES declares, by field kind. The raw
@@ -73,52 +73,50 @@ export default function BackendForm({
   onCommit,
   onCancel,
 }: BackendFormProps): React.ReactElement {
-  const { t } = useTranslation()
-  const labelId = useId()
-  const fieldId = (key: string) => `${labelId}-${key}`
-  const [type, setType] = useState<StorageBackendTypeId>(initial?.type ?? 'local')
-  const [name, setName] = useState(initial?.name ?? '')
-  const [values, setValues] = useState<FieldValues>(() => valuesOf(initial))
-  const [targets, setTargets] = useState<string[]>(mirror?.initialTargets ?? [])
+  const { t } = useTranslation();
+  const labelId = useId();
+  const fieldId = (key: string) => `${labelId}-${key}`;
+  const [type, setType] = useState<StorageBackendTypeId>(initial?.type ?? 'local');
+  const [name, setName] = useState(initial?.name ?? '');
+  const [values, setValues] = useState<FieldValues>(() => valuesOf(initial));
+  const [targets, setTargets] = useState<string[]>(mirror?.initialTargets ?? []);
 
-  const fields = STORAGE_BACKEND_TYPES[type].fields as readonly StorageBackendFieldDef[]
-  const refOptions = backendNames.filter((candidate) => candidate !== name.trim())
-  const setValue = (key: string, value: string | string[]) =>
-    setValues((prev) => ({ ...prev, [key]: value }))
+  const fields = STORAGE_BACKEND_TYPES[type].fields as readonly StorageBackendFieldDef[];
+  const refOptions = backendNames.filter((candidate) => candidate !== name.trim());
+  const setValue = (key: string, value: string | string[]) => setValues((prev) => ({ ...prev, [key]: value }));
 
   const filled = (field: StorageBackendFieldDef): boolean => {
-    const value = values[field.key]
-    if (field.kind === 'backend-ref-list') return Array.isArray(value) && value.length > 0
-    return typeof value === 'string' && value.trim() !== ''
-  }
-  const duplicate = name.trim() !== (initial?.name ?? '') && backendNames.includes(name.trim())
-  const canApply =
-    name.trim() !== '' && !duplicate && fields.every((f) => !f.required || filled(f))
+    const value = values[field.key];
+    if (field.kind === 'backend-ref-list') return Array.isArray(value) && value.length > 0;
+    return typeof value === 'string' && value.trim() !== '';
+  };
+  const duplicate = name.trim() !== (initial?.name ?? '') && backendNames.includes(name.trim());
+  const canApply = name.trim() !== '' && !duplicate && fields.every((f) => !f.required || filled(f));
 
   const apply = () => {
-    const options: Record<string, unknown> = {}
+    const options: Record<string, unknown> = {};
     for (const field of fields) {
-      const value = values[field.key]
+      const value = values[field.key];
       if (field.kind === 'backend-ref-list') {
-        options[field.key] = Array.isArray(value) ? value : []
-        continue
+        options[field.key] = Array.isArray(value) ? value : [];
+        continue;
       }
-      const text = typeof value === 'string' ? value : ''
-      if (text === '' && !field.required) continue // omitted → the shared schema default applies
-      options[field.key] = field.kind === 'number' ? Number(text) : text
+      const text = typeof value === 'string' ? value : '';
+      if (text === '' && !field.required) continue; // omitted → the shared schema default applies
+      options[field.key] = field.kind === 'number' ? Number(text) : text;
     }
     // The options were built from the same field defs the schema is generated
     // from — this is the same sanctioned cast storageModel.asWireBackend makes.
-    const payload = { name: name.trim(), type, options } as StorageBackend
+    const payload = { name: name.trim(), type, options } as StorageBackend;
     // Arity matters: the landed tests pin single-argument calls when no mirror
     // block is supplied (toHaveBeenCalledWith treats a trailing undefined as a
     // mismatch), so the second argument exists only when the composer does.
-    if (mirror) onCommit(payload, targets)
-    else onCommit(payload)
-  }
+    if (mirror) onCommit(payload, targets);
+    else onCommit(payload);
+  };
 
   const renderField = (field: StorageBackendFieldDef): React.ReactElement => {
-    const value = values[field.key]
+    const value = values[field.key];
     if (field.kind === 'backend-ref') {
       return (
         <EditorField key={field.key} label={t(field.labelKey)}>
@@ -130,10 +128,10 @@ export default function BackendForm({
             size="sm"
           />
         </EditorField>
-      )
+      );
     }
     if (field.kind === 'backend-ref-list') {
-      const selected = Array.isArray(value) ? value : []
+      const selected = Array.isArray(value) ? value : [];
       return (
         <EditorField key={field.key} label={t(field.labelKey)} className="col-span-full">
           <div className={CHECK_ROWS}>
@@ -148,7 +146,7 @@ export default function BackendForm({
                       field.key,
                       e.target.checked
                         ? [...selected, candidate]
-                        : selected.filter((existing) => existing !== candidate),
+                        : selected.filter((existing) => existing !== candidate)
                     )
                   }
                 />
@@ -157,9 +155,9 @@ export default function BackendForm({
             ))}
           </div>
         </EditorField>
-      )
+      );
     }
-    const inputType = field.kind === 'secret' ? 'password' : field.kind === 'number' ? 'number' : 'text'
+    const inputType = field.kind === 'secret' ? 'password' : field.kind === 'number' ? 'number' : 'text';
     return (
       <EditorField
         key={field.key}
@@ -178,10 +176,10 @@ export default function BackendForm({
           className={`${INPUT} ${inputType === 'number' ? 'tabular-nums' : ''}`}
         />
       </EditorField>
-    )
-  }
+    );
+  };
 
-  const visibleCandidates = mirror ? mirror.candidates.filter((candidate) => candidate !== name.trim()) : []
+  const visibleCandidates = mirror ? mirror.candidates.filter((candidate) => candidate !== name.trim()) : [];
 
   return (
     <DialogShell
@@ -192,7 +190,11 @@ export default function BackendForm({
       discardGuard={{ name, type, values, targets }}
       header={
         <DialogHeader
-          tile={<DialogTile><HardDrive size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tile={
+            <DialogTile>
+              <HardDrive size={20} strokeWidth={1.9} className="text-content-muted" />
+            </DialogTile>
+          }
           tint={NEUTRAL_TINT}
           labelId={labelId}
           onClose={onCancel}
@@ -233,8 +235,8 @@ export default function BackendForm({
           <CustomSelect
             value={type}
             onChange={(next) => {
-              setType(next as StorageBackendTypeId)
-              setValues({}) // a different type has different fields
+              setType(next as StorageBackendTypeId);
+              setValues({}); // a different type has different fields
             }}
             options={STORAGE_BACKEND_TYPE_IDS.filter((id) => id !== 'mirror').map((id) => ({
               value: id,
@@ -250,7 +252,9 @@ export default function BackendForm({
 
       {mirror && (
         <DialogSection label={t('storage.mirror.targets')}>
-          <p className="m-0 mb-2.5 leading-normal text-content-faint" style={fs(11.5)}>{t('storage.mirror.targetsHelp')}</p>
+          <p className="m-0 mb-2.5 leading-normal text-content-faint" style={fs(11.5)}>
+            {t('storage.mirror.targetsHelp')}
+          </p>
           {visibleCandidates.length > 0 && (
             <div className={CHECK_ROWS}>
               {visibleCandidates.map((candidate) => (
@@ -263,7 +267,7 @@ export default function BackendForm({
                       setTargets(
                         e.target.checked
                           ? [...targets, candidate]
-                          : targets.filter((existing) => existing !== candidate),
+                          : targets.filter((existing) => existing !== candidate)
                       )
                     }
                   />
@@ -273,12 +277,16 @@ export default function BackendForm({
             </div>
           )}
           {targets.length > 0 && (
-            <p className="m-0 mt-2.5 rounded-[12px] bg-warning-soft px-3 py-2 leading-normal text-warning" style={fs(11.5, 'body')} role="note">
+            <p
+              className="m-0 mt-2.5 rounded-[12px] bg-warning-soft px-3 py-2 leading-normal text-warning"
+              style={fs(11.5, 'body')}
+              role="note"
+            >
               {t('storage.mirror.latencyNote')}
             </p>
           )}
         </DialogSection>
       )}
     </DialogShell>
-  )
+  );
 }

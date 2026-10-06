@@ -6,11 +6,11 @@
  * that only the wiki knows about is one the compose file never shows. These
  * tests pin the pieces that drifted once.
  */
-import { describe, it, expect } from 'vitest';
+import { OVERPASS_TIMEOUT_DEFAULT_MS } from '../../../src/nest/maps/maps.helpers';
+
 import fs from 'node:fs';
 import path from 'node:path';
-
-import { OVERPASS_TIMEOUT_DEFAULT_MS } from '../../../src/nest/maps/maps.helpers';
+import { describe, it, expect } from 'vitest';
 
 const REPO_ROOT = path.join(__dirname, '..', '..', '..', '..');
 
@@ -38,7 +38,14 @@ describe('OVERPASS_TIMEOUT_MS in the templates', () => {
 describe('the Places and Amap switches in the templates', () => {
   // The index is asked by default and the only way to stop that is this
   // variable, so an operator has to be able to find it where they look.
-  const documented = ['TREK_PLACES_ENABLED', 'TREK_PLACES_URL', 'PLACES_API_KEY', 'AMAP_API_KEY', 'AMAP_API_SECRET', 'AMAP_API_BASE'];
+  const documented = [
+    'TREK_PLACES_ENABLED',
+    'TREK_PLACES_URL',
+    'PLACES_API_KEY',
+    'AMAP_API_KEY',
+    'AMAP_API_SECRET',
+    'AMAP_API_BASE',
+  ];
 
   it('.env.example documents every one of them', () => {
     for (const name of documented) {
@@ -116,7 +123,10 @@ describe('the Web Push keys in the templates', () => {
   it('no template says a broken pair is ignored, since push is off until it is fixed and no stored pair stands in', () => {
     // The Helm comment wraps, so its lines are joined back into one sentence first.
     const helmPrivateKey = helmValues
-      .slice(helmValues.indexOf('# Optional Web Push key pair, private half'), helmValues.indexOf('  VAPID_PRIVATE_KEY: ""'))
+      .slice(
+        helmValues.indexOf('# Optional Web Push key pair, private half'),
+        helmValues.indexOf('  VAPID_PRIVATE_KEY: ""'),
+      )
       .replace(/\s*\n\s*#\s*/g, ' ');
     const privateKeyDocs = [
       envExample.split(/\r?\n/).find((l) => l.includes('# VAPID_PRIVATE_KEY=')),

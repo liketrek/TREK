@@ -8,13 +8,14 @@
  * (CAT-SVC-016 covered the deleted categories.bridge; the plugin RPC host
  * now injects CategoriesService directly.)
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { createTestCategoriesRepo, sharedTestOrm } from '../../helpers/test-uow';
-import type { TestOrm } from '../../helpers/test-orm';
 import { CategoriesService } from '../../../src/nest/categories/categories.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import { createTestCategoriesRepo, sharedTestOrm } from '../../helpers/test-uow';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 

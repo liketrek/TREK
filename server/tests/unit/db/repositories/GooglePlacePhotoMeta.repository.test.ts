@@ -4,12 +4,13 @@
  * `place_id` is a TEXT key — pseudo-ids like `coords:lat:lng` are legal
  * values, exercised below alongside real Google place ids.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { GooglePlacePhotoMeta } from '../../../../src/db/entities/GooglePlacePhotoMeta.entity';
+import type { GooglePlacePhotoMetaRepository } from '../../../../src/db/repositories/GooglePlacePhotoMeta.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { GooglePlacePhotoMeta } from '../../../../src/db/entities/GooglePlacePhotoMeta.entity';
-import type { GooglePlacePhotoMetaRepository } from '../../../../src/db/repositories/GooglePlacePhotoMeta.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -19,8 +20,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   meta = t.repo(GooglePlacePhotoMeta);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function rawRow(placeId: string): unknown {
   return testDb.prepare('SELECT * FROM google_place_photo_meta WHERE place_id = ?').get(placeId);
@@ -28,12 +35,20 @@ function rawRow(placeId: string): unknown {
 
 describe('GooglePlacePhotoMetaRepository.findLive / findErrored', () => {
   it('GPPMREPO-001: findLive returns the attribution only when error_at is NULL', async () => {
-    testDb.prepare('INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, ?, ?, NULL)').run('p1', 'Some Author', 1000);
+    testDb
+      .prepare(
+        'INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, ?, ?, NULL)',
+      )
+      .run('p1', 'Some Author', 1000);
     expect(await meta.findLive('p1')).toEqual({ attribution: 'Some Author' });
   });
 
   it('GPPMREPO-002: findLive returns null when error_at is set, even with an attribution present', async () => {
-    testDb.prepare('INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, NULL, ?, ?)').run('p1', 1000, 2000);
+    testDb
+      .prepare(
+        'INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, NULL, ?, ?)',
+      )
+      .run('p1', 1000, 2000);
     expect(await meta.findLive('p1')).toBeNull();
   });
 
@@ -43,24 +58,40 @@ describe('GooglePlacePhotoMetaRepository.findLive / findErrored', () => {
 
   it('GPPMREPO-004: works with coords:lat:lng pseudo-ids (TEXT key, colons and dots included)', async () => {
     const pseudoId = 'coords:48.8566:2.3522';
-    testDb.prepare('INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, NULL, ?, NULL)').run(pseudoId, 1000);
+    testDb
+      .prepare(
+        'INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, NULL, ?, NULL)',
+      )
+      .run(pseudoId, 1000);
     expect(await meta.findLive(pseudoId)).toEqual({ attribution: null });
   });
 
   it('GPPMREPO-005: findErrored returns {error_at} only when error_at IS NOT NULL', async () => {
-    testDb.prepare('INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, NULL, ?, ?)').run('p1', 1000, 5000);
+    testDb
+      .prepare(
+        'INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, NULL, ?, ?)',
+      )
+      .run('p1', 1000, 5000);
     expect(await meta.findErrored('p1')).toEqual({ error_at: 5000 });
   });
 
   it('GPPMREPO-006: findErrored returns null when error_at is NULL', async () => {
-    testDb.prepare('INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, ?, ?, NULL)').run('p1', 'A', 1000);
+    testDb
+      .prepare(
+        'INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, ?, ?, NULL)',
+      )
+      .run('p1', 'A', 1000);
     expect(await meta.findErrored('p1')).toBeNull();
   });
 });
 
 describe('GooglePlacePhotoMetaRepository.deleteByPlaceId', () => {
   it('GPPMREPO-007: deletes the row for the given place_id', async () => {
-    testDb.prepare('INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, NULL, ?, NULL)').run('p1', 1000);
+    testDb
+      .prepare(
+        'INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, NULL, ?, NULL)',
+      )
+      .run('p1', 1000);
     await meta.deleteByPlaceId('p1');
     expect(rawRow('p1')).toBeUndefined();
   });
@@ -78,7 +109,12 @@ describe('GooglePlacePhotoMetaRepository.upsertError / upsertPhoto — INSERT OR
 
   it('GPPMREPO-010: upsertPhoto writes the attribution with a NULL error_at on a fresh row', async () => {
     await meta.upsertPhoto('p1', 'Some Author · CC BY 2.0', 999);
-    expect(rawRow('p1')).toMatchObject({ place_id: 'p1', attribution: 'Some Author · CC BY 2.0', fetched_at: 999, error_at: null });
+    expect(rawRow('p1')).toMatchObject({
+      place_id: 'p1',
+      attribution: 'Some Author · CC BY 2.0',
+      fetched_at: 999,
+      error_at: null,
+    });
   });
 
   // PP4 forces attribution NULL; PP5 forces error_at NULL — same PK, mirror
@@ -95,7 +131,9 @@ describe('GooglePlacePhotoMetaRepository.upsertError / upsertPhoto — INSERT OR
     expect(rawRow('p1')).toMatchObject({ attribution: 'Author B', fetched_at: 300, error_at: null });
 
     // Only one row exists for this PK throughout — no duplicate insert.
-    expect(testDb.prepare('SELECT COUNT(*) as c FROM google_place_photo_meta WHERE place_id = ?').get('p1')).toEqual({ c: 1 });
+    expect(testDb.prepare('SELECT COUNT(*) as c FROM google_place_photo_meta WHERE place_id = ?').get('p1')).toEqual({
+      c: 1,
+    });
   });
 });
 
@@ -118,7 +156,11 @@ describe('GooglePlacePhotoMetaRepository.listPlaceIds', () => {
 // non-PK-only `findOne` always re-runs its WHERE against the live table).
 describe('GooglePlacePhotoMetaRepository — fresh after a raw UPDATE', () => {
   it('GPPMREPO-014 (fresh after a raw UPDATE, not D-shape): a raw write after an unrelated identity-map read is visible in the next findLive call, in one query (disableIdentityMap regression)', async () => {
-    testDb.prepare('INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, ?, ?, NULL)').run('p1', 'Old', 1000);
+    testDb
+      .prepare(
+        'INSERT INTO google_place_photo_meta (place_id, attribution, fetched_at, error_at) VALUES (?, ?, ?, NULL)',
+      )
+      .run('p1', 'Old', 1000);
     // The FIRST, wider setup read passes `disableIdentityMap: false`
     // explicitly and carries the column the later write targets
     // (`attribution`) — a PK-only `findOne` on `place_id` alone (not

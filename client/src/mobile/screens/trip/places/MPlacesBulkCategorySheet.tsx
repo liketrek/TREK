@@ -1,16 +1,16 @@
-import { MapPin, X } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import MIconBtn from '../../../components/MIconBtn'
-import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
-import { useTranslation } from '../../../../i18n'
-import type { Category } from '../../../../types'
+import { MapPin, X } from 'lucide-react';
+import { getCategoryIcon } from '../../../../components/shared/categoryIcons';
+import { useTranslation } from '../../../../i18n';
+import type { Category } from '../../../../types';
+import MIconBtn from '../../../components/MIconBtn';
+import MSheet from '../../../components/MSheet';
 
 interface MPlacesBulkCategorySheetProps {
-  open: boolean
-  count: number
-  categories: Category[]
-  onPick: (categoryId: number | null) => void
-  onClose: () => void
+  open: boolean;
+  count: number;
+  categories: Category[];
+  onPick: (categoryId: number | null) => void;
+  onClose: () => void;
 }
 
 /**
@@ -18,22 +18,30 @@ interface MPlacesBulkCategorySheetProps {
  * category to every selected place (mobile counterpart of
  * PlacesBulkCategoryModal).
  */
-export default function MPlacesBulkCategorySheet({ open, count, categories, onPick, onClose }: MPlacesBulkCategorySheetProps) {
-  const { t } = useTranslation()
+export default function MPlacesBulkCategorySheet({
+  open,
+  count,
+  categories,
+  onPick,
+  onClose,
+}: MPlacesBulkCategorySheetProps) {
+  const { t } = useTranslation();
   return (
     <MSheet open={open} onClose={onClose} variant="card" ariaLabel={t('places.changeCategory')}>
       <div className="flex flex-none items-center border-b border-[color:var(--m-rowbr)] px-[18px] pb-[11px] pt-4">
         <div className="min-w-0 flex-1">
           <div className="text-[1.03125rem] font-bold text-m-ink">{t('places.changeCategory')}</div>
-          <div className="mt-[2px] font-geist text-[0.6875rem] text-m-muted">{t('places.selectionCount', { count })}</div>
+          <div className="mt-[2px] font-geist text-[0.6875rem] text-m-muted">
+            {t('places.selectionCount', { count })}
+          </div>
         </div>
         <MIconBtn variant="neutral" size={34} onClick={onClose} ariaLabel={t('common.close')}>
           <X size={15} strokeWidth={2.2} />
         </MIconBtn>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-[10px] pb-3 pt-[6px]">
-        {categories.map(c => {
-          const CatIcon = getCategoryIcon(c.icon)
+        {categories.map((c) => {
+          const CatIcon = getCategoryIcon(c.icon);
           return (
             <button
               key={c.id}
@@ -44,7 +52,7 @@ export default function MPlacesBulkCategorySheet({ open, count, categories, onPi
               <CatIcon size={16} strokeWidth={2} className="flex-none" style={{ color: c.color || 'var(--m-muted)' }} />
               <span className="min-w-0 flex-1 truncate">{c.name}</span>
             </button>
-          )
+          );
         })}
         <button
           type="button"
@@ -58,5 +66,5 @@ export default function MPlacesBulkCategorySheet({ open, count, categories, onPi
         </button>
       </div>
     </MSheet>
-  )
+  );
 }

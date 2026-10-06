@@ -1,3 +1,42 @@
+// ---------------------------------------------------------------------------
+// Imports (after the mocks)
+// ---------------------------------------------------------------------------
+import { db as testDb } from '../../../src/db/database';
+import type { McpTokensRepository } from '../../../src/db/repositories/McpTokens.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import { PublicStatsController } from '../../../src/nest/atlas/public-stats.controller';
+import type { AuditService } from '../../../src/nest/audit/audit.service';
+import { AuthController } from '../../../src/nest/auth/auth.controller';
+import type { AuthService } from '../../../src/nest/auth/auth.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import type { UserProfileService } from '../../../src/nest/auth/user-profile.service';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
+import { ApiTokenGuard } from '../../../src/nest/public-api/api-token.guard';
+import { grantedScopes, narrowToGrant, requireScope } from '../../../src/nest/public-api/public-api-request';
+import { PublicApiController } from '../../../src/nest/public-api/public-api.controller';
+import type { PublicApiService } from '../../../src/nest/public-api/public-api.service';
+import type { StorageService } from '../../../src/nest/storage/storage.service';
+import { TokenService } from '../../../src/nest/tokens/token.service';
+import type { User } from '../../../src/types';
+import { createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestMcpTokensRepo, createTestUsersRepo } from '../../helpers/test-uow';
+import { HttpException } from '@nestjs/common';
+import type { ExecutionContext } from '@nestjs/common';
+import {
+  PUBLIC_API_INCLUDES,
+  PUBLIC_API_SCOPES,
+  apiTokenCreateRequestSchema,
+  mcpTokenCreateRequestSchema,
+  type PublicApiGrant,
+  type PublicApiScope,
+} from '@trek/shared';
+
+import type { Request } from 'express';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
 /**
  * Per-key read scopes for /api/v1 (#2279).
  *
@@ -39,51 +78,12 @@ vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
-  LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn(),
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
 }));
-
-// ---------------------------------------------------------------------------
-// Imports (after the mocks)
-// ---------------------------------------------------------------------------
-
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { ExecutionContext } from '@nestjs/common';
-import type { Request } from 'express';
-import {
-  PUBLIC_API_INCLUDES,
-  PUBLIC_API_SCOPES,
-  apiTokenCreateRequestSchema,
-  mcpTokenCreateRequestSchema,
-  type PublicApiGrant,
-  type PublicApiScope,
-} from '@trek/shared';
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { TokenService } from '../../../src/nest/tokens/token.service';
-import type { McpTokensRepository } from '../../../src/db/repositories/McpTokens.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import { createTestMcpTokensRepo, createTestUsersRepo } from '../../helpers/test-uow';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
-import { ApiTokenGuard } from '../../../src/nest/public-api/api-token.guard';
-import { PublicApiController } from '../../../src/nest/public-api/public-api.controller';
-import type { PublicApiService } from '../../../src/nest/public-api/public-api.service';
-import { PublicStatsController } from '../../../src/nest/atlas/public-stats.controller';
-import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
-import {
-  grantedScopes,
-  narrowToGrant,
-  requireScope,
-} from '../../../src/nest/public-api/public-api-request';
-import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
-import { AuthController } from '../../../src/nest/auth/auth.controller';
-import type { AuthService } from '../../../src/nest/auth/auth.service';
-import type { AuditService } from '../../../src/nest/audit/audit.service';
-import type { UserProfileService } from '../../../src/nest/auth/user-profile.service';
-import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import type { StorageService } from '../../../src/nest/storage/storage.service';
-import type { User } from '../../../src/types';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -142,8 +142,13 @@ function statsController() {
   return new PublicStatsController(
     {
       getTravelStats: vi.fn(() => ({
-        countries: ['JP'], cities: ['tokyo'], coords: [],
-        totalTrips: 1, totalDays: 2, totalPlaces: 3, totalDistanceKm: 4,
+        countries: ['JP'],
+        cities: ['tokyo'],
+        coords: [],
+        totalTrips: 1,
+        totalDays: 2,
+        totalPlaces: 3,
+        totalDistanceKm: 4,
       })),
       lastTrip: vi.fn(() => null),
       nextTrip: vi.fn(() => null),
@@ -190,10 +195,7 @@ describe('public-api scopes — the grant on the request', () => {
   });
 
   it('PUBAPI-SCOPE-U005: narrowToGrant filters instead of refusing, and keeps the caller’s order', () => {
-    expect(narrowToGrant([...PUBLIC_API_INCLUDES], req(limited('trips', 'days', 'notes')))).toEqual([
-      'days',
-      'notes',
-    ]);
+    expect(narrowToGrant([...PUBLIC_API_INCLUDES], req(limited('trips', 'days', 'notes')))).toEqual(['days', 'notes']);
     expect(narrowToGrant([...PUBLIC_API_INCLUDES], req(ALL))).toEqual([...PUBLIC_API_INCLUDES]);
     expect(narrowToGrant([...PUBLIC_API_INCLUDES], req(limited('trips')))).toEqual([]);
   });
@@ -390,7 +392,11 @@ describe('TokenService — storing and resolving a grant', () => {
   let tokens: TokenService;
 
   beforeAll(async () => {
-    tokens = new TokenService(await createTestMcpTokensRepo(testDb), await createTestUsersRepo(testDb), new EphemeralTokenService());
+    tokens = new TokenService(
+      await createTestMcpTokensRepo(testDb),
+      await createTestUsersRepo(testDb),
+      new EphemeralTokenService(),
+    );
   });
 
   beforeEach(() => {
@@ -448,7 +454,14 @@ describe('TokenService — storing and resolving a grant', () => {
   it('PUBAPI-SCOPE-U042: a row with no narrowing at all still reads everything', async () => {
     const noColumns = new TokenService(
       {
-        findGrantByHash: async () => ({ id: 3, username: 'ada', email: 'a@b.c', role: 'user', scope_mode: null, api_scopes: null }),
+        findGrantByHash: async () => ({
+          id: 3,
+          username: 'ada',
+          email: 'a@b.c',
+          role: 'user',
+          scope_mode: null,
+          api_scopes: null,
+        }),
         touchLastUsedByHash: async () => {},
       } as unknown as McpTokensRepository,
       {} as UsersRepository,
@@ -547,7 +560,7 @@ describe('TokenService — storing and resolving a grant', () => {
     const { user } = createUser(testDb);
     await mint(user.id, 'Wide');
     await mint(user.id, 'Narrow', ['trips']);
-    const listed = await tokens.listApiTokens(user.id) as Array<Record<string, unknown>>;
+    const listed = (await tokens.listApiTokens(user.id)) as Array<Record<string, unknown>>;
     expect(listed).toHaveLength(2);
     expect(listed.map((t) => [t.name, t.scope_mode, t.scopes])).toEqual(
       expect.arrayContaining([
@@ -565,15 +578,13 @@ describe('TokenService — storing and resolving a grant', () => {
     // Stored as the column default, because an MCP token carries no read scopes
     // and must not look as if it did.
     expect(rowFor(mcp.id)).toEqual({ kind: 'mcp', scope_mode: 'all', api_scopes: null });
-    const listed = await tokens.listMcpTokens(user.id) as Array<Record<string, unknown>>;
+    const listed = (await tokens.listMcpTokens(user.id)) as Array<Record<string, unknown>>;
     expect(listed).toHaveLength(1);
     // The MCP panel cannot act on scopes, so it is not shown two columns that
     // would always say the same thing.
     expect(listed[0]).not.toHaveProperty('scope_mode');
     expect(listed[0]).not.toHaveProperty('scopes');
-    expect(Object.keys(listed[0]).sort()).toEqual(
-      ['created_at', 'id', 'last_used_at', 'name', 'token_prefix'].sort(),
-    );
+    expect(Object.keys(listed[0]).sort()).toEqual(['created_at', 'id', 'last_used_at', 'name', 'token_prefix'].sort());
   });
 
   it('PUBAPI-SCOPE-U052: an API key still does not verify as an MCP token, scopes or not', async () => {
@@ -587,15 +598,19 @@ describe('TokenService — storing and resolving a grant', () => {
     const { user } = createUser(testDb);
     const created = await mint(user.id, 'Dawarich', ['trips']);
     expect(
-      (testDb.prepare('SELECT last_used_at FROM mcp_tokens WHERE id = ?').get(created.id) as {
-        last_used_at: string | null;
-      }).last_used_at,
+      (
+        testDb.prepare('SELECT last_used_at FROM mcp_tokens WHERE id = ?').get(created.id) as {
+          last_used_at: string | null;
+        }
+      ).last_used_at,
     ).toBeNull();
     await tokens.verifyApiTokenWithGrant(created.raw_token);
     expect(
-      (testDb.prepare('SELECT last_used_at FROM mcp_tokens WHERE id = ?').get(created.id) as {
-        last_used_at: string | null;
-      }).last_used_at,
+      (
+        testDb.prepare('SELECT last_used_at FROM mcp_tokens WHERE id = ?').get(created.id) as {
+          last_used_at: string | null;
+        }
+      ).last_used_at,
     ).not.toBeNull();
   });
 
@@ -618,11 +633,13 @@ describe('TokenService — storing and resolving a grant', () => {
 
   it('PUBAPI-SCOPE-U060: POST /api/auth/api-tokens stores the scopes it was given', async () => {
     const { user } = createUser(testDb);
-    const created = (await authController().createApiToken(
-      { id: user.id } as User,
-      { name: 'Dawarich', scopes: ['trips', 'days'] },
-      httpReq,
-    )).token as { id: number; scope_mode: string; scopes: string[]; raw_token: string };
+    const created = (
+      await authController().createApiToken(
+        { id: user.id } as User,
+        { name: 'Dawarich', scopes: ['trips', 'days'] },
+        httpReq,
+      )
+    ).token as { id: number; scope_mode: string; scopes: string[]; raw_token: string };
 
     expect(rowFor(created.id)).toMatchObject({
       scope_mode: 'limited',
@@ -659,11 +676,13 @@ describe('TokenService — storing and resolving a grant', () => {
     const ctl = authController();
     // The DTO is a different schema on purpose, so the field never survives the
     // pipe — and even handed straight to the controller it changes nothing.
-    const created = (await ctl.createMcpToken(
-      { id: user.id } as User,
-      { name: 'Assistant', scopes: ['trips'] } as { name: string },
-      httpReq,
-    )).token as Record<string, unknown>;
+    const created = (
+      await ctl.createMcpToken(
+        { id: user.id } as User,
+        { name: 'Assistant', scopes: ['trips'] } as { name: string },
+        httpReq,
+      )
+    ).token as Record<string, unknown>;
 
     expect(rowFor(created.id as number)).toEqual({ kind: 'mcp', scope_mode: 'all', api_scopes: null });
     expect(created).not.toHaveProperty('scope_mode');

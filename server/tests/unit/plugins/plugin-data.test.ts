@@ -3,11 +3,16 @@
  * idempotent, reads/writes work against the plugin's OWN file, and the guard
  * blocks statements that would let a plugin escape its file (ATTACH/PRAGMA).
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import {
+  PluginDataDb,
+  removePluginData,
+  snapshotAllPluginDataDbs,
+} from '../../../src/nest/plugins/host/plugin-data.service';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { PluginDataDb, removePluginData, snapshotAllPluginDataDbs } from '../../../src/nest/plugins/host/plugin-data.service';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 let tmp: string;
 beforeAll(() => {
@@ -41,8 +46,12 @@ describe('PluginDataDb', () => {
     expect(() => db.exec("ATTACH DATABASE 'trek.db' AS core")).toThrow(/not allowed/);
     expect(() => db.query('PRAGMA table_info(x)')).toThrow(/not allowed/);
     // WITH RECURSIVE is the unbounded-CPU vector on the synchronous host — refused
-    expect(() => db.query('WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM r) SELECT x FROM r')).toThrow(/not allowed/);
-    expect(() => db.exec('WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM r) INSERT INTO t SELECT x FROM r')).toThrow(/not allowed/);
+    expect(() => db.query('WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM r) SELECT x FROM r')).toThrow(
+      /not allowed/,
+    );
+    expect(() =>
+      db.exec('WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM r) INSERT INTO t SELECT x FROM r'),
+    ).toThrow(/not allowed/);
     expect(() => db.exec(123 as unknown as string)).toThrow(/must be a string/);
     expect(() => db.query('x'.repeat(100_001))).toThrow(/too long/);
     db.close();
@@ -71,13 +80,20 @@ describe('PluginDataDb', () => {
       { sql: 'SELECT id, bal FROM acct ORDER BY id' },
     ]);
     expect(out.results[0]).toEqual({ changes: 1 });
-    expect(out.results[2]).toEqual({ rows: [{ id: 1, bal: 60 }, { id: 2, bal: 40 }] });
+    expect(out.results[2]).toEqual({
+      rows: [
+        { id: 1, bal: 60 },
+        { id: 2, bal: 40 },
+      ],
+    });
 
     // failure path: a later statement throws → the earlier write must NOT persist
-    expect(() => db.tx([
-      { sql: 'UPDATE acct SET bal = 0 WHERE id = ?', args: [1] },
-      { sql: 'INSERT INTO nonexistent (x) VALUES (1)' },
-    ])).toThrow();
+    expect(() =>
+      db.tx([
+        { sql: 'UPDATE acct SET bal = 0 WHERE id = ?', args: [1] },
+        { sql: 'INSERT INTO nonexistent (x) VALUES (1)' },
+      ]),
+    ).toThrow();
     expect(db.query('SELECT bal FROM acct WHERE id = 1')).toEqual([{ bal: 60 }]); // unchanged
 
     // guard + caps apply inside a batch too
@@ -87,12 +103,12 @@ describe('PluginDataDb', () => {
 
     // a raw COMMIT inside the batch must be refused (else it breaks atomicity), but a
     // CASE ... END expression (END not at statement start) stays allowed
-    expect(() => db.tx([
-      { sql: 'UPDATE acct SET bal = 0 WHERE id = ?', args: [1] },
-      { sql: 'COMMIT' },
-    ])).toThrow(/transaction-control/);
-    expect(db.tx([{ sql: "SELECT CASE WHEN bal > 0 THEN 'y' ELSE 'n' END AS s FROM acct WHERE id = 1" }]).results[0])
-      .toEqual({ rows: [{ s: 'y' }] });
+    expect(() => db.tx([{ sql: 'UPDATE acct SET bal = 0 WHERE id = ?', args: [1] }, { sql: 'COMMIT' }])).toThrow(
+      /transaction-control/,
+    );
+    expect(
+      db.tx([{ sql: "SELECT CASE WHEN bal > 0 THEN 'y' ELSE 'n' END AS s FROM acct WHERE id = 1" }]).results[0],
+    ).toEqual({ rows: [{ s: 'y' }] });
     // the row cap is now for the WHOLE batch, not per statement
     db.exec('CREATE TABLE big (n INTEGER)');
     db.exec('INSERT INTO big (n) VALUES ' + Array.from({ length: 400 }, (_, i) => `(${i})`).join(','));

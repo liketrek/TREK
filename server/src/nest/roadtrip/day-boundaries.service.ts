@@ -1,10 +1,10 @@
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
+import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
+import type { RoadtripDayBoundariesRepository } from '../../db/repositories/RoadtripDayBoundaries.repository';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { HttpException, Injectable } from '@nestjs/common';
 import type { RoadtripDayBoundary } from '@trek/shared';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
-import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
-import type { RoadtripDayBoundariesRepository } from '../../db/repositories/RoadtripDayBoundaries.repository';
 
 @Injectable()
 export class DayBoundariesService {
@@ -29,7 +29,10 @@ export class DayBoundariesService {
     // dropped (proven for this task's report by hand-dropping one and reverting).
     // `DayAssignmentsRepository.findInTrip` (AS12) is the trip-scoped read.
     const belongs = async (id: number) => !!(await this.dayAssignmentsRepo.findInTrip(id, tripIdNum));
-    if (!(await belongs(boundary.from_assignment_id)) || (boundary.to_assignment_id !== null && !(await belongs(boundary.to_assignment_id)))) {
+    if (
+      !(await belongs(boundary.from_assignment_id)) ||
+      (boundary.to_assignment_id !== null && !(await belongs(boundary.to_assignment_id)))
+    ) {
       throw new HttpException({ error: 'Stop not found' }, 404);
     }
     // RB2 → RB3, un-transacted (R7 — pin, don't fix): the ownership check above and

@@ -97,15 +97,19 @@
   background: transparent;
   color: var(--text-muted);
   font-size: 0;
-  transition: background-color 150ms ease, color 150ms ease !important;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease !important;
 }
 
 .leaflet-container .trek-hazard-popup a.leaflet-popup-close-button span {
   display: none;
 }
 
-.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::before,
-.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::after {
+.trek-hazard-popup
+  :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::before,
+.trek-hazard-popup
+  :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::after {
   content: '';
   position: absolute;
   top: 12px;
@@ -117,11 +121,13 @@
   transform: rotate(45deg);
 }
 
-.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::after {
+.trek-hazard-popup
+  :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::after {
   transform: rotate(-45deg);
 }
 
-.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button):hover {
+.trek-hazard-popup
+  :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button):hover {
   background: var(--bg-hover);
   color: var(--text-primary);
   transform: none;

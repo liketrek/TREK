@@ -26,7 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Selecione o modelo...',
   'settings.mapDefaultHint': 'Deixe vazio para OpenStreetMap (padrão)',
   'settings.routingBase': 'Servidor de rotas próprio',
-  'settings.routingBaseHint': 'Uma instância própria do OSRM. Vazio usa os servidores públicos, que permitem cerca de uma requisição por segundo — suficiente para um dia, apertado para uma viagem de carro. Passa a valer após reiniciar o servidor.',
+  'settings.routingBaseHint':
+    'Uma instância própria do OSRM. Vazio usa os servidores públicos, que permitem cerca de uma requisição por segundo — suficiente para um dia, apertado para uma viagem de carro. Passa a valer após reiniciar o servidor.',
   'settings.valhallaBase': 'Instância Valhalla própria',
   'settings.valhallaBaseHint':
     'Por padrão, o TREK usa a Valhalla pública da FOSSGIS para evitar pedágios, rodovias e balsas. Insira aqui a URL da sua própria Valhalla para usá-la no lugar. Se apenas uma instância de roteamento própria estiver configurada, a Valhalla pública não será usada. Após inserir uma URL própria, reinicie o servidor e recarregue a página.',
@@ -83,7 +84,8 @@ const settings: TranslationStrings = {
     'Primeiro dia da semana em todos os seletores de data. O Vacay tem sua própria configuração.',
   'settings.preferredNavApp': 'Abrir lugares em',
   'settings.preferredNavAppAsk': 'Perguntar sempre',
-  'settings.preferredNavAppHint': 'Com um app escolhido, o botão de navegação o abre direto em vez de oferecer todos os apps de mapa.',
+  'settings.preferredNavAppHint':
+    'Com um app escolhido, o botão de navegação o abre direto em vez de oferecer todos os apps de mapa.',
   'settings.blurBookingCodes': 'Ocultar códigos de reserva',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -548,7 +550,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'Sem conexão. Conecte-se para salvar viagens off-line.',
   'settings.offline.notice.signedOut': 'Sua sessão expirou. Entre novamente para sincronizar.',
   'settings.offline.notice.failed': 'O download não pôde ser concluído. Verifique sua conexão e tente de novo.',
-  'settings.offline.notice.loadFailed': 'Não foi possível ler o armazenamento off-line deste dispositivo. Limpar o cache costuma resolver.',
+  'settings.offline.notice.loadFailed':
+    'Não foi possível ler o armazenamento off-line deste dispositivo. Limpar o cache costuma resolver.',
   'settings.offline.clear': 'Limpar cache',
   'settings.offline.clearConfirm':
     'Limpar todos os dados de viagem offline? Você pode sincronizar novamente a qualquer momento quando estiver online.',
@@ -607,7 +610,8 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Lista de desejos',
   'settings.apiScopes.stats': 'Totais',
   'settings.apiKeys.title': 'Chaves de API',
-  'settings.apiKeys.description': 'Chaves para a API pública, para que outros softwares possam ler suas viagens. Somente leitura: uma chave não pode alterar nem excluir nada.',
+  'settings.apiKeys.description':
+    'Chaves para a API pública, para que outros softwares possam ler suas viagens. Somente leitura: uma chave não pode alterar nem excluir nada.',
   'settings.apiKeys.create': 'Criar chave',
   'settings.apiKeys.empty': 'Nenhuma chave ainda. Crie uma para conectar outros softwares.',
   'settings.apiKeys.createdAt': 'criada',
@@ -622,7 +626,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.endpoint': 'Endpoint',
   'settings.apiKeys.neverUsed': 'nunca usada',
   'settings.apiKeys.loadFailed': 'Não foi possível carregar suas chaves. Recarregue a página para tentar de novo.',
-  'settings.apiKeys.limitReached': 'Você tem {max} chaves, o máximo por conta. Exclua uma que não usa mais para criar outra.',
+  'settings.apiKeys.limitReached':
+    'Você tem {max} chaves, o máximo por conta. Exclua uma que não usa mais para criar outra.',
   'settings.apiKeys.copyFailed': 'Não foi possível copiar. Selecione o texto e copie manualmente.',
   'settings.apiKeys.modal.createTitle': 'Criar chave de API',
   'settings.apiKeys.modal.name': 'Nome',
@@ -631,7 +636,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Criando...',
   'settings.apiKeys.modal.create': 'Criar',
   'settings.apiKeys.modal.createdTitle': 'Chave de API criada',
-  'settings.apiKeys.modal.createdWarning': 'Copie a chave agora. Ela é exibida uma única vez e não pode ser recuperada depois.',
+  'settings.apiKeys.modal.createdWarning':
+    'Copie a chave agora. Ela é exibida uma única vez e não pode ser recuperada depois.',
   'settings.apiKeys.modal.done': 'Concluído',
 };
 

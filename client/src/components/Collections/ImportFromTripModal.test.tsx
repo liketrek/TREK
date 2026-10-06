@@ -1,23 +1,53 @@
 // FE-COMP-COLIMPORT-001 to FE-COMP-COLIMPORT-007
-import React from 'react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { useTranslation } from '../../i18n/TranslationContext';
 import ImportFromTripModal from './ImportFromTripModal';
 
 const BASE = '/api/addons/collections';
 
 const TRIPS = [
-  { id: 7, user_id: 1, title: 'Rome 2026', currency: 'EUR', is_archived: 0, reminder_days: 3, start_date: '2026-05-01', end_date: '2026-05-08', place_count: 3, cover_image: null },
-  { id: 9, user_id: 1, title: 'Lisbon', currency: 'EUR', is_archived: 0, reminder_days: 3, place_count: 0, cover_image: null },
+  {
+    id: 7,
+    user_id: 1,
+    title: 'Rome 2026',
+    currency: 'EUR',
+    is_archived: 0,
+    reminder_days: 3,
+    start_date: '2026-05-01',
+    end_date: '2026-05-08',
+    place_count: 3,
+    cover_image: null,
+  },
+  {
+    id: 9,
+    user_id: 1,
+    title: 'Lisbon',
+    currency: 'EUR',
+    is_archived: 0,
+    reminder_days: 3,
+    place_count: 0,
+    cover_image: null,
+  },
 ];
 
 const place = (over: Record<string, unknown>) => ({
-  place_id: 1, name: 'Somewhere', address: null, lat: null, lng: null, category_id: null,
-  image_url: null, already_in_list: false, scheduled: false, day_number: null, date: null, ...over,
+  place_id: 1,
+  name: 'Somewhere',
+  address: null,
+  lat: null,
+  lng: null,
+  category_id: null,
+  image_url: null,
+  already_in_list: false,
+  scheduled: false,
+  day_number: null,
+  date: null,
+  ...over,
 });
 
 // Colosseum sits on day 2, the market was never scheduled, the Pantheon is already saved.
@@ -49,7 +79,7 @@ function useHandlers(importable = IMPORTABLE, onPost?: (body: unknown) => void) 
     http.post(`${BASE}/places/from-trip-many`, async ({ request }) => {
       onPost?.(await request.json());
       return HttpResponse.json({ copied: 2, skipped: [{ id: 13, name: 'Pantheon' }] });
-    }),
+    })
   );
 }
 
@@ -105,7 +135,9 @@ describe('ImportFromTripModal', () => {
 
     const row = screen.getByText('Colosseum').closest('button')!;
     expect(within(row).getByText('Day 2')).toBeInTheDocument();
-    expect(within(screen.getByText('Testaccio Market').closest('button')!).getByText('Unscheduled')).toBeInTheDocument();
+    expect(
+      within(screen.getByText('Testaccio Market').closest('button')!).getByText('Unscheduled')
+    ).toBeInTheDocument();
   });
 
   it('FE-COMP-COLIMPORT-005: only the selected ids are sent, and the result is reported', async () => {

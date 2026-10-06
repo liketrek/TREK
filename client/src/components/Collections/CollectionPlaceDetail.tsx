@@ -1,64 +1,101 @@
-import React, { useEffect, useRef, useState } from 'react'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import { markdownLinkComponents } from '../shared/markdownLink'
-import { X, Pencil, Copy, Trash2, MapPin, Link2, Plus, ExternalLink, Check, Tag, Tags, Camera, Loader2, Navigation } from 'lucide-react'
-import type { CollectionPlace, CollectionStatus, CollectionLink, CollectionLabel } from '@trek/shared'
-import type { Category, TranslationFn } from '../../types'
-import MarkdownToolbar from '../Journey/MarkdownToolbar'
-import { NumericInput } from '../shared/NumericInput'
-import { mapsApi } from '../../api/client'
-import { entityGradient } from '../../utils/gradients'
-import { getCategoryIcon } from '../shared/categoryIcons'
-import { NavigationMenu } from '../shared/NavigationMenu'
-import { navigationTargetLabel, getNavigationTargets, openNavigationTarget } from '../Planner/placeNavigation'
-import { STATUS_META, STATUS_ORDER, normalizeLinkUrl } from '../../pages/collections/collectionsModel'
-import { useToast } from '../shared/Toast'
-import { Tooltip } from '../shared/Tooltip'
-import PlaceRating from '../shared/StarRating'
-import { normalizeImageFile } from '../../utils/convertHeic'
-import { getApiErrorMessage } from '../../utils/apiError'
+import type { CollectionLabel, CollectionLink, CollectionPlace, CollectionStatus } from '@trek/shared';
+import {
+  Camera,
+  Check,
+  Copy,
+  ExternalLink,
+  Link2,
+  Loader2,
+  MapPin,
+  Navigation,
+  Pencil,
+  Plus,
+  Tag,
+  Tags,
+  Trash2,
+  X,
+} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import Markdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
+import { mapsApi } from '../../api/client';
+import { STATUS_META, STATUS_ORDER, normalizeLinkUrl } from '../../pages/collections/collectionsModel';
+import type { Category, TranslationFn } from '../../types';
+import { getApiErrorMessage } from '../../utils/apiError';
+import { normalizeImageFile } from '../../utils/convertHeic';
+import { entityGradient } from '../../utils/gradients';
+import MarkdownToolbar from '../Journey/MarkdownToolbar';
+import { getNavigationTargets, navigationTargetLabel, openNavigationTarget } from '../Planner/placeNavigation';
+import { getCategoryIcon } from '../shared/categoryIcons';
+import { markdownLinkComponents } from '../shared/markdownLink';
+import { NavigationMenu } from '../shared/NavigationMenu';
+import { NumericInput } from '../shared/NumericInput';
+import PlaceRating from '../shared/StarRating';
+import { useToast } from '../shared/Toast';
+import { Tooltip } from '../shared/Tooltip';
 
 function linkHost(url: string): string {
-  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
 }
 
 interface CollectionPlaceDetailProps {
-  place: CollectionPlace
-  canEdit: boolean
-  canDelete: boolean
-  categories: Category[]
+  place: CollectionPlace;
+  canEdit: boolean;
+  canDelete: boolean;
+  categories: Category[];
   /** The active list's custom labels, for the assign chips. */
-  labels: CollectionLabel[]
+  labels: CollectionLabel[];
   /** When set, dock the sheet over that column (desktop split) instead of centred. */
-  anchorRect?: { left: number; width: number } | null
-  onClose: () => void
-  onSetStatus: (status: CollectionStatus) => void
-  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null; lat?: number | null; lng?: number | null; address?: string | null }) => Promise<void>
+  anchorRect?: { left: number; width: number } | null;
+  onClose: () => void;
+  onSetStatus: (status: CollectionStatus) => void;
+  onSave: (patch: {
+    name?: string;
+    description?: string | null;
+    links?: CollectionLink[];
+    category_id?: number | null;
+    label_ids?: number[];
+    image_url?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+    address?: string | null;
+  }) => Promise<void>;
   /** Upload a custom cover image (#1136); enables the cover change/remove controls. */
-  onUploadImage?: (file: File) => Promise<void>
-  onCopyToTrip: () => void
-  onRemove: () => void
+  onUploadImage?: (file: File) => Promise<void>;
+  onCopyToTrip: () => void;
+  onRemove: () => void;
   /** Cast/clear the current user's star vote (#1435); every member may vote. */
-  onRate?: (rating: number | null) => Promise<void> | void
-  t: TranslationFn
+  onRate?: (rating: number | null) => Promise<void> | void;
+  t: TranslationFn;
 }
 
-function StatusSegment({ status, onSet, t }: { status: CollectionStatus; onSet: (s: CollectionStatus) => void; t: TranslationFn }): React.ReactElement {
+function StatusSegment({
+  status,
+  onSet,
+  t,
+}: {
+  status: CollectionStatus;
+  onSet: (s: CollectionStatus) => void;
+  t: TranslationFn;
+}): React.ReactElement {
   return (
     <div className="col-detail-seg" role="group">
-      {STATUS_ORDER.map(s => {
-        const Icon = STATUS_META[s].icon
-        const on = status === s
+      {STATUS_ORDER.map((s) => {
+        const Icon = STATUS_META[s].icon;
+        const on = status === s;
         return (
           <button key={s} type="button" aria-pressed={on} onClick={() => onSet(s)} className={on ? 'on' : ''}>
             <Icon size={14} style={{ color: on ? STATUS_META[s].color : undefined }} /> {t(STATUS_META[s].labelKey)}
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 /**
@@ -69,114 +106,169 @@ function StatusSegment({ status, onSet, t }: { status: CollectionStatus; onSet: 
  * is an always-live segmented control (auto-saves).
  */
 export default function CollectionPlaceDetail({
-  place, canEdit, canDelete, categories, labels, anchorRect, onClose, onSetStatus, onSave, onUploadImage, onCopyToTrip, onRemove, onRate, t,
+  place,
+  canEdit,
+  canDelete,
+  categories,
+  labels,
+  anchorRect,
+  onClose,
+  onSetStatus,
+  onSave,
+  onUploadImage,
+  onCopyToTrip,
+  onRemove,
+  onRate,
+  t,
 }: CollectionPlaceDetailProps): React.ReactElement {
-  const toast = useToast()
-  const [editing, setEditing] = useState(false)
-  const coverInputRef = useRef<HTMLInputElement>(null)
-  const [imgBusy, setImgBusy] = useState(false)
-  const [navOpen, setNavOpen] = useState(false)
-  const navBtnRef = useRef<HTMLButtonElement>(null)
-  const navigationTargets = getNavigationTargets(place)
-  const [name, setName] = useState(place.name)
-  const [categoryId, setCategoryId] = useState<number | null>(place.category_id ?? null)
-  const [description, setDescription] = useState(place.description ?? '')
-  const [links, setLinks] = useState<CollectionLink[]>(place.links ?? [])
-  const [labelIds, setLabelIds] = useState<number[]>(place.label_ids ?? [])
-  const [address, setAddress] = useState(place.address ?? '')
-  const [lat, setLat] = useState(place.lat != null ? String(place.lat) : '')
-  const [lng, setLng] = useState(place.lng != null ? String(place.lng) : '')
-  const [saving, setSaving] = useState(false)
+  const toast = useToast();
+  const [editing, setEditing] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const [imgBusy, setImgBusy] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const navBtnRef = useRef<HTMLButtonElement>(null);
+  const navigationTargets = getNavigationTargets(place);
+  const [name, setName] = useState(place.name);
+  const [categoryId, setCategoryId] = useState<number | null>(place.category_id ?? null);
+  const [description, setDescription] = useState(place.description ?? '');
+  const [links, setLinks] = useState<CollectionLink[]>(place.links ?? []);
+  const [labelIds, setLabelIds] = useState<number[]>(place.label_ids ?? []);
+  const [address, setAddress] = useState(place.address ?? '');
+  const [lat, setLat] = useState(place.lat != null ? String(place.lat) : '');
+  const [lng, setLng] = useState(place.lng != null ? String(place.lng) : '');
+  const [saving, setSaving] = useState(false);
   // A higher-res photo pulled from the maps provider when the place has none of
   // its own — the list avatar's little thumbnail is too low-res for the cover.
-  const [fetchedPhoto, setFetchedPhoto] = useState<string | null>(null)
-  const descRef = useRef<HTMLTextAreaElement>(null)
+  const [fetchedPhoto, setFetchedPhoto] = useState<string | null>(null);
+  const descRef = useRef<HTMLTextAreaElement>(null);
 
   // Reset only when a DIFFERENT place is opened (keyed on id, not on every field).
   useEffect(() => {
-    setEditing(false)
-    setName(place.name)
-    setCategoryId(place.category_id ?? null)
-    setDescription(place.description ?? '')
-    setLinks(place.links ?? [])
-    setLabelIds(place.label_ids ?? [])
-    setAddress(place.address ?? '')
-    setLat(place.lat != null ? String(place.lat) : '')
-    setLng(place.lng != null ? String(place.lng) : '')
+    setEditing(false);
+    setName(place.name);
+    setCategoryId(place.category_id ?? null);
+    setDescription(place.description ?? '');
+    setLinks(place.links ?? []);
+    setLabelIds(place.label_ids ?? []);
+    setAddress(place.address ?? '');
+    setLat(place.lat != null ? String(place.lat) : '');
+    setLng(place.lng != null ? String(place.lng) : '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [place.id])
+  }, [place.id]);
 
   // Fetch a cover photo when the place doesn't carry its own image.
   useEffect(() => {
-    setFetchedPhoto(null)
-    if (place.image_url) return
-    const photoId = place.google_place_id || place.osm_id || (place.lat != null && place.lng != null ? `${place.lat},${place.lng}` : null)
-    if (!photoId) return
-    let cancelled = false
-    mapsApi.placePhoto(photoId, place.lat ?? undefined, place.lng ?? undefined, place.name)
-      .then(res => { if (!cancelled && res?.photoUrl) setFetchedPhoto(res.photoUrl) })
-      .catch(() => {})
-    return () => { cancelled = true }
+    setFetchedPhoto(null);
+    if (place.image_url) return;
+    const photoId =
+      place.google_place_id ||
+      place.osm_id ||
+      (place.lat != null && place.lng != null ? `${place.lat},${place.lng}` : null);
+    if (!photoId) return;
+    let cancelled = false;
+    mapsApi
+      .placePhoto(photoId, place.lat ?? undefined, place.lng ?? undefined, place.name)
+      .then((res) => {
+        if (!cancelled && res?.photoUrl) setFetchedPhoto(res.photoUrl);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [place.id])
+  }, [place.id]);
 
-  const banner = place.image_url || fetchedPhoto
+  const banner = place.image_url || fetchedPhoto;
 
   const handleCoverPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file || !onUploadImage) return
-    setImgBusy(true)
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !onUploadImage) return;
+    setImgBusy(true);
     try {
-      await onUploadImage(await normalizeImageFile(file))
+      await onUploadImage(await normalizeImageFile(file));
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('places.imageUploadError')))
+      toast.error(getApiErrorMessage(err, t('places.imageUploadError')));
     } finally {
-      setImgBusy(false)
+      setImgBusy(false);
     }
-  }
+  };
 
   const handleImageRemove = async () => {
-    setImgBusy(true)
+    setImgBusy(true);
     try {
-      await onSave({ image_url: null })
+      await onSave({ image_url: null });
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('places.imageUploadError')))
+      toast.error(getApiErrorMessage(err, t('places.imageUploadError')));
     } finally {
-      setImgBusy(false)
+      setImgBusy(false);
     }
-  }
+  };
 
-  const setLink = (i: number, patch: Partial<CollectionLink>) => setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
-  const toggleLabel = (id: number) => setLabelIds(labelIds.includes(id) ? labelIds.filter(x => x !== id) : [...labelIds, id])
-  const resetForm = () => { setEditing(false); setName(place.name); setCategoryId(place.category_id ?? null); setDescription(place.description ?? ''); setLinks(place.links ?? []); setLabelIds(place.label_ids ?? []); setAddress(place.address ?? ''); setLat(place.lat != null ? String(place.lat) : ''); setLng(place.lng != null ? String(place.lng) : '') }
+  const setLink = (i: number, patch: Partial<CollectionLink>) =>
+    setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  const toggleLabel = (id: number) =>
+    setLabelIds(labelIds.includes(id) ? labelIds.filter((x) => x !== id) : [...labelIds, id]);
+  const resetForm = () => {
+    setEditing(false);
+    setName(place.name);
+    setCategoryId(place.category_id ?? null);
+    setDescription(place.description ?? '');
+    setLinks(place.links ?? []);
+    setLabelIds(place.label_ids ?? []);
+    setAddress(place.address ?? '');
+    setLat(place.lat != null ? String(place.lat) : '');
+    setLng(place.lng != null ? String(place.lng) : '');
+  };
   const coordPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const text = e.clipboardData.getData('text').trim()
-    const match = text.match(/^(-?\d+(?:\.\d*)?)(?:\s*[,;]\s*|\s+)(-?\d+(?:\.\d*)?)$/)
-    if (match) { e.preventDefault(); setLat(match[1]); setLng(match[2]) }
-  }
-  const assignedLabels = labels.filter(l => (place.label_ids ?? []).includes(l.id))
+    const text = e.clipboardData.getData('text').trim();
+    const match = text.match(/^(-?\d+(?:\.\d*)?)(?:\s*[,;]\s*|\s+)(-?\d+(?:\.\d*)?)$/);
+    if (match) {
+      e.preventDefault();
+      setLat(match[1]);
+      setLng(match[2]);
+    }
+  };
+  const assignedLabels = labels.filter((l) => (place.label_ids ?? []).includes(l.id));
 
   const save = async () => {
-    const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
-    const latNum = lat.trim() ? Number(lat) : Number.NaN
-    const lngNum = lng.trim() ? Number(lng) : Number.NaN
-    setSaving(true)
+    const cleanLinks = links
+      .map((l) => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) }))
+      .filter((l) => l.url);
+    const latNum = lat.trim() ? Number(lat) : Number.NaN;
+    const lngNum = lng.trim() ? Number(lng) : Number.NaN;
+    setSaving(true);
     try {
-      await onSave({ name: name.trim() || place.name, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds, address: address.trim() || null, lat: Number.isFinite(latNum) ? latNum : null, lng: Number.isFinite(lngNum) ? lngNum : null })
-      setEditing(false)
+      await onSave({
+        name: name.trim() || place.name,
+        description: description.trim() || null,
+        links: cleanLinks,
+        category_id: categoryId,
+        label_ids: labelIds,
+        address: address.trim() || null,
+        lat: Number.isFinite(latNum) ? latNum : null,
+        lng: Number.isFinite(lngNum) ? lngNum : null,
+      });
+      setEditing(false);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
-  const dockStyle = anchorRect ? { left: anchorRect.left, width: anchorRect.width, transform: 'none' as const } : undefined
-  const CatIcon = getCategoryIcon(place.category?.icon)
+  const dockStyle = anchorRect
+    ? { left: anchorRect.left, width: anchorRect.width, transform: 'none' as const }
+    : undefined;
+  const CatIcon = getCategoryIcon(place.category?.icon);
 
   return (
-    <div className={`col-detail${anchorRect ? ' docked' : ''}`} style={dockStyle} role="presentation" onClick={e => e.stopPropagation()}>
+    <div
+      className={`col-detail${anchorRect ? 'docked' : ''}`}
+      style={dockStyle}
+      role="presentation"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="col-detail-cover" style={banner ? undefined : { backgroundImage: entityGradient(place.id) }}>
         {banner && <img src={banner} alt="" />}
         <div className="col-detail-cover-scrim" />
@@ -185,7 +277,10 @@ export default function CollectionPlaceDetail({
             them, however many buttons there are and whatever size phones give them. */}
         <div className="absolute left-[14px] right-[12px] top-[12px] z-[2] flex items-center gap-[8px]">
           {place.category?.name && (
-            <span className="col-detail-cover-cat min-w-0" style={{ ['--cat' as string]: place.category.color || '#6366f1' }}>
+            <span
+              className="col-detail-cover-cat min-w-0"
+              style={{ ['--cat' as string]: place.category.color || '#6366f1' }}
+            >
               <CatIcon size={12} className="flex-none" />
               <span className="truncate">{place.category.name}</span>
             </span>
@@ -195,10 +290,21 @@ export default function CollectionPlaceDetail({
           <div className="ms-auto flex flex-none gap-[6px]">
             {canEdit && onUploadImage && (
               <>
-                <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" style={{ display: 'none' }} onChange={handleCoverPick} />
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif"
+                  style={{ display: 'none' }}
+                  onChange={handleCoverPick}
+                />
                 {place.image_url && !imgBusy && (
                   <Tooltip label={t('places.removeImage')} placement="bottom">
-                    <button type="button" className="col-detail-close" onClick={handleImageRemove} aria-label={t('places.removeImage')}>
+                    <button
+                      type="button"
+                      className="col-detail-close"
+                      onClick={handleImageRemove}
+                      aria-label={t('places.removeImage')}
+                    >
                       <Trash2 size={16} />
                     </button>
                   </Tooltip>
@@ -208,7 +314,9 @@ export default function CollectionPlaceDetail({
                     type="button"
                     className="col-detail-close"
                     style={imgBusy ? { cursor: 'default' } : undefined}
-                    onClick={() => { if (!imgBusy) coverInputRef.current?.click() }}
+                    onClick={() => {
+                      if (!imgBusy) coverInputRef.current?.click();
+                    }}
                     aria-label={place.image_url ? t('places.changeImage') : t('places.uploadImage')}
                   >
                     {imgBusy ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
@@ -216,13 +324,23 @@ export default function CollectionPlaceDetail({
                 </Tooltip>
               </>
             )}
-            <button type="button" className="col-detail-close" onClick={onClose} aria-label={t('common.close')}><X size={16} /></button>
+            <button type="button" className="col-detail-close" onClick={onClose} aria-label={t('common.close')}>
+              <X size={16} />
+            </button>
           </div>
         </div>
         <div className="col-detail-head">
-          {editing
-            ? <input value={name} onChange={e => setName(e.target.value)} className="col-detail-name-input" autoFocus aria-label={t('collections.listName')} />
-            : <h2 className="col-detail-name">{place.name}</h2>}
+          {editing ? (
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="col-detail-name-input"
+              autoFocus
+              aria-label={t('collections.listName')}
+            />
+          ) : (
+            <h2 className="col-detail-name">{place.name}</h2>
+          )}
         </div>
       </div>
 
@@ -230,7 +348,11 @@ export default function CollectionPlaceDetail({
         {/* Meta (view only) */}
         {!editing && place.address && (
           <div className="col-detail-meta">
-            {place.address && <span className="col-detail-addr"><MapPin size={12} /> {place.address}</span>}
+            {place.address && (
+              <span className="col-detail-addr">
+                <MapPin size={12} /> {place.address}
+              </span>
+            )}
             {/* Same picker as inside a trip (#1455). A saved place is somewhere
                 you intend to go, and until now the only way to get directions
                 was to add it to a trip first. */}
@@ -252,11 +374,16 @@ export default function CollectionPlaceDetail({
                 <PlaceRating ratings={place.ratings ?? []} ratingAvg={place.rating_avg} onRate={onRate} />
               </div>
             )}
-            {!editing && assignedLabels.map(l => (
-              <span key={l.id} className="col-labelchip on static big" style={{ ['--label' as string]: l.color || 'var(--accent)' }}>
-                <span className="col-labelchip-dot" /> {l.name}
-              </span>
-            ))}
+            {!editing &&
+              assignedLabels.map((l) => (
+                <span
+                  key={l.id}
+                  className="col-labelchip on big static"
+                  style={{ ['--label' as string]: l.color || 'var(--accent)' }}
+                >
+                  <span className="col-labelchip-dot" /> {l.name}
+                </span>
+              ))}
           </div>
         )}
 
@@ -264,45 +391,89 @@ export default function CollectionPlaceDetail({
           <div className="col-detail-edit">
             {/* Category */}
             <div className="col-detail-field">
-              <div className="col-detail-label"><Tag size={12} /> {t('collections.category')}</div>
+              <div className="col-detail-label">
+                <Tag size={12} /> {t('collections.category')}
+              </div>
               <div className="col-detail-cats">
-                <button type="button" onClick={() => setCategoryId(null)} className={`col-detail-cat${categoryId == null ? ' on' : ''}`}>{t('collections.noCategory')}</button>
-                {categories.map(cat => {
-                  const Icon = getCategoryIcon(cat.icon ?? undefined)
-                  const on = categoryId === cat.id
+                <button
+                  type="button"
+                  onClick={() => setCategoryId(null)}
+                  className={`col-detail-cat${categoryId == null ? 'on' : ''}`}
+                >
+                  {t('collections.noCategory')}
+                </button>
+                {categories.map((cat) => {
+                  const Icon = getCategoryIcon(cat.icon ?? undefined);
+                  const on = categoryId === cat.id;
                   return (
-                    <button key={cat.id} type="button" onClick={() => setCategoryId(cat.id)} className={`col-detail-cat${on ? ' on' : ''}`} style={{ ['--cat' as string]: cat.color || '#6366f1' }}>
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCategoryId(cat.id)}
+                      className={`col-detail-cat${on ? 'on' : ''}`}
+                      style={{ ['--cat' as string]: cat.color || '#6366f1' }}
+                    >
                       <Icon size={12} /> {cat.name}
                     </button>
-                  )
+                  );
                 })}
               </div>
             </div>
             {/* Address (#1870): free text, the coordinates stay separate */}
             <div className="col-detail-field">
-              <div className="col-detail-label"><MapPin size={12} /> {t('places.formAddress')}</div>
-              <input value={address} onChange={e => setAddress(e.target.value)} placeholder={t('places.formAddressPlaceholder')} className="col-detail-input" />
+              <div className="col-detail-label">
+                <MapPin size={12} /> {t('places.formAddress')}
+              </div>
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder={t('places.formAddressPlaceholder')}
+                className="col-detail-input"
+              />
             </div>
             {/* Coordinates */}
             <div className="col-detail-field">
-              <div className="col-detail-label"><MapPin size={12} /> {t('collections.coordinates')}</div>
+              <div className="col-detail-label">
+                <MapPin size={12} /> {t('collections.coordinates')}
+              </div>
               <div className="col-detail-link-row">
-                <NumericInput mode="signed" value={lat} onValueChange={setLat} onPaste={coordPaste} placeholder={t('places.formLat')} className="col-detail-input flex-1" />
-                <NumericInput mode="signed" value={lng} onValueChange={setLng} placeholder={t('places.formLng')} className="col-detail-input flex-1" />
+                <NumericInput
+                  mode="signed"
+                  value={lat}
+                  onValueChange={setLat}
+                  onPaste={coordPaste}
+                  placeholder={t('places.formLat')}
+                  className="col-detail-input flex-1"
+                />
+                <NumericInput
+                  mode="signed"
+                  value={lng}
+                  onValueChange={setLng}
+                  placeholder={t('places.formLng')}
+                  className="col-detail-input flex-1"
+                />
               </div>
             </div>
             {/* Labels */}
             {labels.length > 0 && (
               <div className="col-detail-field">
-                <div className="col-detail-label"><Tags size={12} /> {t('collections.labels.title')}</div>
+                <div className="col-detail-label">
+                  <Tags size={12} /> {t('collections.labels.title')}
+                </div>
                 <div className="col-detail-cats">
-                  {labels.map(l => {
-                    const on = labelIds.includes(l.id)
+                  {labels.map((l) => {
+                    const on = labelIds.includes(l.id);
                     return (
-                      <button key={l.id} type="button" onClick={() => toggleLabel(l.id)} className={`col-detail-cat${on ? ' on' : ''}`} style={{ ['--cat' as string]: l.color || '#6366f1' }}>
+                      <button
+                        key={l.id}
+                        type="button"
+                        onClick={() => toggleLabel(l.id)}
+                        className={`col-detail-cat${on ? 'on' : ''}`}
+                        style={{ ['--cat' as string]: l.color || '#6366f1' }}
+                      >
                         <span className="col-labelchip-dot" /> {l.name}
                       </button>
-                    )
+                    );
                   })}
                 </div>
               </div>
@@ -311,7 +482,14 @@ export default function CollectionPlaceDetail({
             <div className="col-detail-field">
               <div className="col-detail-label">{t('collections.description')}</div>
               <MarkdownToolbar textareaRef={descRef} onUpdate={setDescription} />
-              <textarea ref={descRef} value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder={t('collections.descriptionPlaceholder')} className="col-detail-textarea" />
+              <textarea
+                ref={descRef}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+                placeholder={t('collections.descriptionPlaceholder')}
+                className="col-detail-textarea"
+              />
             </div>
             {/* Links */}
             <div className="col-detail-field">
@@ -319,12 +497,31 @@ export default function CollectionPlaceDetail({
               <div className="col-detail-links-edit">
                 {links.map((l, i) => (
                   <div key={i} className="col-detail-link-row">
-                    <input value={l.label ?? ''} onChange={e => setLink(i, { label: e.target.value })} placeholder={t('collections.linkLabel')} className="col-detail-input w-28" />
-                    <input value={l.url} onChange={e => setLink(i, { url: e.target.value })} placeholder="https://…" className="col-detail-input flex-1" />
-                    <button type="button" onClick={() => setLinks(links.filter((_, idx) => idx !== i))} className="col-detail-icon-btn" aria-label={t('common.delete')}><Trash2 size={14} /></button>
+                    <input
+                      value={l.label ?? ''}
+                      onChange={(e) => setLink(i, { label: e.target.value })}
+                      placeholder={t('collections.linkLabel')}
+                      className="col-detail-input w-28"
+                    />
+                    <input
+                      value={l.url}
+                      onChange={(e) => setLink(i, { url: e.target.value })}
+                      placeholder="https://…"
+                      className="col-detail-input flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLinks(links.filter((_, idx) => idx !== i))}
+                      className="col-detail-icon-btn"
+                      aria-label={t('common.delete')}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))}
-                <button type="button" onClick={() => setLinks([...links, { url: '' }])} className="col-detail-add-link"><Plus size={13} /> <Link2 size={12} /> {t('collections.addLink')}</button>
+                <button type="button" onClick={() => setLinks([...links, { url: '' }])} className="col-detail-add-link">
+                  <Plus size={13} /> <Link2 size={12} /> {t('collections.addLink')}
+                </button>
               </div>
             </div>
           </div>
@@ -332,7 +529,9 @@ export default function CollectionPlaceDetail({
           <>
             {place.description && (
               <div className="col-detail-md collab-note-md">
-                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{place.description}</Markdown>
+                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>
+                  {place.description}
+                </Markdown>
               </div>
             )}
             {place.links && place.links.length > 0 && (
@@ -351,13 +550,23 @@ export default function CollectionPlaceDetail({
       <div className="col-detail-footer">
         {editing ? (
           <>
-            <button type="button" onClick={resetForm} className="col-detail-btn">{t('common.cancel')}</button>
-            <button type="button" onClick={save} disabled={saving} className="col-detail-btn primary"><Check size={14} /> {t('common.save')}</button>
+            <button type="button" onClick={resetForm} className="col-detail-btn">
+              {t('common.cancel')}
+            </button>
+            <button type="button" onClick={save} disabled={saving} className="col-detail-btn primary">
+              <Check size={14} /> {t('common.save')}
+            </button>
           </>
         ) : (
           <>
-            {canEdit && <button type="button" onClick={() => setEditing(true)} className="col-detail-btn"><Pencil size={14} /> {t('common.edit')}</button>}
-            <button type="button" onClick={onCopyToTrip} className="col-detail-btn"><Copy size={14} /> {t('collections.copyToTrip')}</button>
+            {canEdit && (
+              <button type="button" onClick={() => setEditing(true)} className="col-detail-btn">
+                <Pencil size={14} /> {t('common.edit')}
+              </button>
+            )}
+            <button type="button" onClick={onCopyToTrip} className="col-detail-btn">
+              <Copy size={14} /> {t('collections.copyToTrip')}
+            </button>
             {/* Beside the other two rather than up by the address: getting directions is
                 something you DO with the place, like editing it or copying it into a
                 trip, and the row of things you do belongs in one place. */}
@@ -368,12 +577,14 @@ export default function CollectionPlaceDetail({
                   type="button"
                   className="col-detail-btn"
                   onClick={() => {
-                    if (navigationTargets.length === 1) openNavigationTarget(navigationTargets[0])
-                    else setNavOpen(o => !o)
+                    if (navigationTargets.length === 1) openNavigationTarget(navigationTargets[0]);
+                    else setNavOpen((o) => !o);
                   }}
                 >
                   <Navigation size={14} />
-                  {navigationTargets.length === 1 ? navigationTargetLabel(navigationTargets[0], t) : t('inspector.navigation')}
+                  {navigationTargets.length === 1
+                    ? navigationTargetLabel(navigationTargets[0], t)
+                    : t('inspector.navigation')}
                 </button>
                 {navOpen && (
                   <NavigationMenu
@@ -385,10 +596,14 @@ export default function CollectionPlaceDetail({
               </>
             )}
             <div className="col-detail-footer-spacer" />
-            {canDelete && <button type="button" onClick={onRemove} className="col-detail-btn danger"><Trash2 size={14} /> {t('collections.removeFromList')}</button>}
+            {canDelete && (
+              <button type="button" onClick={onRemove} className="col-detail-btn danger">
+                <Trash2 size={14} /> {t('collections.removeFromList')}
+              </button>
+            )}
           </>
         )}
       </div>
     </div>
-  )
+  );
 }

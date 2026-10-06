@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
 import { safeFetch } from '../../utils/ssrfGuard';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Thin HTTP client for the AirTrail REST API (github.com/johanohly/AirTrail).
@@ -156,7 +156,10 @@ function apiBase(baseUrl: string): string {
   // Tolerate a pasted trailing slash or '/api' suffix so we never build '/api/api'.
   // The lookbehind matches only the first slash of the trailing run. Without it the
   // engine retries from every slash, which is quadratic on a slash-heavy value.
-  const origin = baseUrl.trim().replace(/(?<!\/)\/+$/, '').replace(/\/api$/i, '');
+  const origin = baseUrl
+    .trim()
+    .replace(/(?<!\/)\/+$/, '')
+    .replace(/\/api$/i, '');
   return origin + '/api';
 }
 
@@ -201,7 +204,6 @@ async function request(creds: AirtrailCreds, path: string, init: RequestInit): P
   }
   return resp;
 }
-
 
 /**
  * The AirTrail HTTP surface, as a provider.

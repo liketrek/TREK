@@ -12,9 +12,9 @@ import {
 } from 'lucide-react';
 import React, { useId } from 'react';
 import { adminApi } from '../../api/client';
-import CustomSelect from '../../components/shared/CustomSelect';
+import { SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER } from '../../components/Settings/settingsKit';
 import ConfirmDialog from '../../components/shared/ConfirmDialog';
-import { Tooltip } from '../../components/shared/Tooltip';
+import CustomSelect from '../../components/shared/CustomSelect';
 import {
   DialogButton,
   DialogFooter,
@@ -26,11 +26,11 @@ import {
   NEUTRAL_TINT,
   fs,
 } from '../../components/shared/DialogShell';
+import PasswordChecklist from '../../components/shared/PasswordChecklist';
+import { Tooltip } from '../../components/shared/Tooltip';
 import { EditorField, GRID_2, INPUT } from '../../components/shared/dialogParts';
-import { SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER } from '../../components/Settings/settingsKit';
 import type { TranslationFn } from '../../types';
 import type { useAdmin } from './useAdmin';
-import PasswordChecklist from '../../components/shared/PasswordChecklist';
 
 interface AdminUserModalsProps {
   admin: ReturnType<typeof useAdmin>;

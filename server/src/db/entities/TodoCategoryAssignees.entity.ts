@@ -1,7 +1,7 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { TodoCategoryAssigneesRepository } from '../repositories/TodoCategoryAssignees.repository';
 import { Trips } from './Trips.entity';
 import { Users } from './Users.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class TodoCategoryAssignees {
   [EntityRepositoryType]?: TodoCategoryAssigneesRepository;

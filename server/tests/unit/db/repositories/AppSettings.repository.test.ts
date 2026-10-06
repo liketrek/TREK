@@ -1,9 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
+import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -13,8 +14,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   appSettings = t.repo(AppSettings);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function rawRow(key: string): unknown {
   return testDb.prepare('SELECT * FROM app_settings WHERE key = ?').get(key);
@@ -57,7 +64,12 @@ describe('AppSettingsRepository', () => {
     insertRaw('collab_chat_enabled', 'false');
     insertRaw('collab_notes_enabled', 'true');
     const values = await appSettings.getValues(['collab_chat_enabled', 'collab_notes_enabled', 'collab_links_enabled']);
-    expect(values).toEqual(new Map([['collab_chat_enabled', 'false'], ['collab_notes_enabled', 'true']]));
+    expect(values).toEqual(
+      new Map([
+        ['collab_chat_enabled', 'false'],
+        ['collab_notes_enabled', 'true'],
+      ]),
+    );
   });
 
   it('APPSETREPO-012 (M1): getValues also drops a key whose row exists but whose value is NULL, matching the "row present with a NULL value" case as absent, same as a missing row', async () => {
@@ -103,7 +115,9 @@ describe('AppSettingsRepository', () => {
     await appSettings.setValue('bag_tracking_enabled', 'true');
     expect(rawRow('bag_tracking_enabled')).toStrictEqual({ key: 'bag_tracking_enabled', value: 'true' });
     // Only the one row exists for that key — no duplicate/ghost row from upsert.
-    expect(testDb.prepare('SELECT COUNT(*) as c FROM app_settings WHERE key = ?').get('bag_tracking_enabled')).toEqual({ c: 1 });
+    expect(testDb.prepare('SELECT COUNT(*) as c FROM app_settings WHERE key = ?').get('bag_tracking_enabled')).toEqual({
+      c: 1,
+    });
   });
 
   it('APPSETREPO-006: deleteValue removes the row and returns the legacy DELETE-affected-row count', async () => {
@@ -122,10 +136,12 @@ describe('AppSettingsRepository', () => {
     insertRaw('unrelated_key', '3');
     const rows = await appSettings.findByKeyPrefix('perm_');
     expect(rows.map((r) => r.key).sort()).toEqual(['perm_edit_budget', 'perm_view_days']);
-    expect(rows).toEqual(expect.arrayContaining([
-      { key: 'perm_view_days', value: '1' },
-      { key: 'perm_edit_budget', value: '2' },
-    ]));
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { key: 'perm_view_days', value: '1' },
+        { key: 'perm_edit_budget', value: '2' },
+      ]),
+    );
   });
 
   it('APPSETREPO-009: findByKeyPrefix with no matches returns an empty array', async () => {
@@ -156,7 +172,9 @@ describe('AppSettingsRepository', () => {
     insertRaw('storage.usage', '{"computedAt":1}');
     await appSettings.upsertOrReplace('storage.usage', '{"computedAt":2}');
     expect(rawRow('storage.usage')).toStrictEqual({ key: 'storage.usage', value: '{"computedAt":2}' });
-    expect(testDb.prepare('SELECT COUNT(*) as c FROM app_settings WHERE key = ?').get('storage.usage')).toEqual({ c: 1 });
+    expect(testDb.prepare('SELECT COUNT(*) as c FROM app_settings WHERE key = ?').get('storage.usage')).toEqual({
+      c: 1,
+    });
   });
 
   // LIKE-escaping finding: neither the legacy `LIKE 'prefix%'` literal nor
@@ -181,7 +199,11 @@ describe('AppSettingsRepository', () => {
       insertRaw('abXcd', '2');
       insertRaw('abcd', '3'); // one character short at that position — no match
       const rows = await appSettings.findByKeyPrefix('ab_c');
-      expect(rows.map((r) => r.key).sort()).toEqual(legacyPrefixMatch('ab_c').map((r) => r.key).sort());
+      expect(rows.map((r) => r.key).sort()).toEqual(
+        legacyPrefixMatch('ab_c')
+          .map((r) => r.key)
+          .sort(),
+      );
       expect(rows.map((r) => r.key).sort()).toEqual(['abXcd', 'ab_cd']);
     });
 
@@ -192,7 +214,11 @@ describe('AppSettingsRepository', () => {
       insertRaw('abZZc', '2');
       insertRaw('abd', '3'); // no 'c' after the gap — no match
       const rows = await appSettings.findByKeyPrefix('ab%c');
-      expect(rows.map((r) => r.key).sort()).toEqual(legacyPrefixMatch('ab%c').map((r) => r.key).sort());
+      expect(rows.map((r) => r.key).sort()).toEqual(
+        legacyPrefixMatch('ab%c')
+          .map((r) => r.key)
+          .sort(),
+      );
       expect(rows.map((r) => r.key).sort()).toEqual(['abZZc', 'abc']);
     });
   });

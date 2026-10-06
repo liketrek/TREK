@@ -1,7 +1,7 @@
-import { EntityRepositoryType, type Opt, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { JourneyContributorsRepository } from '../repositories/JourneyContributors.repository';
 import { Journeys } from './Journeys.entity';
 import { Users } from './Users.entity';
+import { EntityRepositoryType, type Opt, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class JourneyContributors {
   [EntityRepositoryType]?: JourneyContributorsRepository;
@@ -22,7 +22,8 @@ export const JourneyContributorsSchema = defineEntity({
   properties: {
     journey: () => p.manyToOne(Journeys).primary().ref().hidden(),
     journey_id: p.integer().persist(false),
-    user: () => p.manyToOne(Users).primary().ref().deleteRule('no action').hidden().index('idx_journey_contributors_user'),
+    user: () =>
+      p.manyToOne(Users).primary().ref().deleteRule('no action').hidden().index('idx_journey_contributors_user'),
     user_id: p.integer().persist(false).index('idx_journey_contributors_user'),
     role: p.text(),
     added_at: p.integer(),

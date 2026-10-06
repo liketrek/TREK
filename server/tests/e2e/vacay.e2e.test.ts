@@ -5,12 +5,20 @@
  * and notification side channels stay mocked. Focuses on auth, status codes
  * (POSTs stay 200), the Zod-pipe 400 envelope and a 403 body.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { VacayModule } from '../../src/nest/vacay/vacay.module';
+import { broadcastToUser } from '../../src/websocket';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -73,20 +81,19 @@ const { db } = vi.hoisted(() => {
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
 
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { VacayModule } from '../../src/nest/vacay/vacay.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { broadcastToUser } from '../../src/websocket';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
-
 describe('Vacay e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, VacayModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        VacayModule,
+      ],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -121,8 +128,11 @@ describe('Vacay e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('200 (not 201) on POST entries/toggle, forwarding the socket id', async () => {
-    const res = await request(server).post('/api/addons/vacay/entries/toggle')
-      .set('Cookie', sessionCookie(1)).set('X-Socket-Id', 'sock-7').send({ date: '2026-07-01' });
+    const res = await request(server)
+      .post('/api/addons/vacay/entries/toggle')
+      .set('Cookie', sessionCookie(1))
+      .set('X-Socket-Id', 'sock-7')
+      .send({ date: '2026-07-01' });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ action: 'added', fraction: 1, kind: 'vacation' });
     expect(db.prepare("SELECT id FROM vacay_entries WHERE user_id = 1 AND date = '2026-07-01'").get()).toBeDefined();
@@ -136,7 +146,10 @@ describe('Vacay e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('403 on color for a user not in the plan', async () => {
-    const res = await request(server).put('/api/addons/vacay/color').set('Cookie', sessionCookie(1)).send({ color: '#fff', target_user_id: 99 });
+    const res = await request(server)
+      .put('/api/addons/vacay/color')
+      .set('Cookie', sessionCookie(1))
+      .send({ color: '#fff', target_user_id: 99 });
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'User not in plan' });
   });

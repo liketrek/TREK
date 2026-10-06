@@ -1,9 +1,21 @@
-import type { Reservations } from '../entities/Reservations.entity';
+import {
+  castIntegerKysely,
+  coalesceOverride,
+  columnRef,
+  concatKysely,
+  dayDistance,
+  startsWithIsoDateKysely,
+  substringKysely,
+} from '../dialect/sql-functions';
 import { DayAssignments } from '../entities/DayAssignments.entity';
 import { Days } from '../entities/Days.entity';
-import { castIntegerKysely, coalesceOverride, columnRef, concatKysely, dayDistance, startsWithIsoDateKysely, substringKysely } from '../dialect/sql-functions';
-import { publicReservationExpr, publicStayExists, type ReservationVisibilityKyselyDB } from './_shared/reservation-visibility';
+import type { Reservations } from '../entities/Reservations.entity';
 import type { DayAssignmentRow } from './DayAssignments.repository';
+import {
+  publicReservationExpr,
+  publicStayExists,
+  type ReservationVisibilityKyselyDB,
+} from './_shared/reservation-visibility';
 import { TrekRepository } from './_shared/trek-repository';
 
 /**
@@ -216,7 +228,13 @@ export interface CalendarReservationRow extends ReservationAllColumnsRow {
 interface CalendarReservationKyselyDB {
   reservations: ReservationJoinKyselyDB['reservations'];
   places: { id: number; lat: number | null; lng: number | null };
-  day_accommodations: { id: number; start_day_id: number | null; end_day_id: number | null; check_in: string | null; check_out: string | null };
+  day_accommodations: {
+    id: number;
+    start_day_id: number | null;
+    end_day_id: number | null;
+    check_in: string | null;
+    check_out: string | null;
+  };
   days: { id: number; date: string | null };
 }
 
@@ -246,12 +264,31 @@ export interface CalendarStopRow extends DayAssignmentRow {
 
 interface CalendarStopsKyselyDB {
   day_assignments: {
-    id: number; day_id: number; place_id: number; order_index: number | null; notes: string | null;
-    reservation_status: string | null; reservation_notes: string | null; reservation_datetime: string | null;
-    created_at: string | null; assignment_time: string | null; assignment_end_time: string | null;
-    leg_transport_mode: string | null; incoming_leg_transport_mode: string | null; end_day: number; accommodation_id: number | null;
+    id: number;
+    day_id: number;
+    place_id: number;
+    order_index: number | null;
+    notes: string | null;
+    reservation_status: string | null;
+    reservation_notes: string | null;
+    reservation_datetime: string | null;
+    created_at: string | null;
+    assignment_time: string | null;
+    assignment_end_time: string | null;
+    leg_transport_mode: string | null;
+    incoming_leg_transport_mode: string | null;
+    end_day: number;
+    accommodation_id: number | null;
   };
-  places: { id: number; name: string; address: string | null; lat: number | null; lng: number | null; place_time: string | null; end_time: string | null };
+  places: {
+    id: number;
+    name: string;
+    address: string | null;
+    lat: number | null;
+    lng: number | null;
+    place_time: string | null;
+    end_time: string | null;
+  };
 }
 
 /**
@@ -288,8 +325,14 @@ export interface CalendarStayRow {
 
 interface CalendarStayKyselyDB extends ReservationVisibilityKyselyDB {
   day_accommodations: {
-    id: number; trip_id: number | string; place_id: number | null; start_day_id: number | null; end_day_id: number | null;
-    check_in: string | null; check_in_end: string | null; check_out: string | null;
+    id: number;
+    trip_id: number | string;
+    place_id: number | null;
+    start_day_id: number | null;
+    end_day_id: number | null;
+    check_in: string | null;
+    check_in_end: string | null;
+    check_out: string | null;
   };
   reservations: ReservationVisibilityKyselyDB['reservations'] & { title: string };
   days: { id: number; date: string | null };
@@ -348,15 +391,29 @@ interface UpcomingReservationsKyselyDB {
   trips: { id: number; user_id: number; title: string; cover_image: string | null; is_archived: number };
   trip_members: { trip_id: number; user_id: number };
   reservations: {
-    id: number; trip_id: number; title: string; type: string | null; status: string | null;
-    location: string | null; reservation_time: string | null; confirmation_number: string | null;
-    day_id: number | null; place_id: number | null; accommodation_id: string | null;
+    id: number;
+    trip_id: number;
+    title: string;
+    type: string | null;
+    status: string | null;
+    location: string | null;
+    reservation_time: string | null;
+    confirmation_number: string | null;
+    day_id: number | null;
+    place_id: number | null;
+    accommodation_id: string | null;
   };
   days: { id: number; date: string | null };
   places: { id: number; name: string | null; image_url: string | null };
   day_accommodations: {
-    id: number; trip_id: number; place_id: number | null; start_day_id: number; end_day_id: number;
-    check_in: string | null; check_out: string | null; confirmation: string | null;
+    id: number;
+    trip_id: number;
+    place_id: number | null;
+    start_day_id: number;
+    end_day_id: number;
+    check_in: string | null;
+    check_out: string | null;
+    confirmation: string | null;
   };
 }
 
@@ -386,8 +443,16 @@ export interface ShareEndpointRow {
 
 interface ShareEndpointsKyselyDB {
   reservation_endpoints: {
-    reservation_id: number; role: string; sequence: number; name: string; code: string | null;
-    lat: number; lng: number; timezone: string | null; local_date: string | null; local_time: string | null;
+    reservation_id: number;
+    role: string;
+    sequence: number;
+    name: string;
+    code: string | null;
+    lat: number;
+    lng: number;
+    timezone: string | null;
+    local_date: string | null;
+    local_time: string | null;
   };
   reservations: { id: number; trip_id: number | string };
 }
@@ -443,10 +508,19 @@ export interface SharePublicReservationRow {
 interface SharePublicReservationKyselyDB {
   reservations: ReservationVisibilityKyselyDB['reservations'] & {
     trip_id: number | string;
-    day_id: number | null; end_day_id: number | null; place_id: number | null; title: string;
-    type: string | null; status: string | null; location: string | null;
-    reservation_time: string | null; reservation_end_time: string | null;
-    notes: string | null; url: string | null; metadata: string | null; created_at: string | null;
+    day_id: number | null;
+    end_day_id: number | null;
+    place_id: number | null;
+    title: string;
+    type: string | null;
+    status: string | null;
+    location: string | null;
+    reservation_time: string | null;
+    reservation_end_time: string | null;
+    notes: string | null;
+    url: string | null;
+    metadata: string | null;
+    created_at: string | null;
   };
 }
 
@@ -478,8 +552,15 @@ export interface SharePublicAccommodationRow {
 
 interface SharePublicAccommodationKyselyDB extends ReservationVisibilityKyselyDB {
   day_accommodations: {
-    id: number; trip_id: number | string; place_id: number | null; start_day_id: number | null; end_day_id: number | null;
-    check_in: string | null; check_in_end: string | null; check_out: string | null; notes: string | null;
+    id: number;
+    trip_id: number | string;
+    place_id: number | null;
+    start_day_id: number | null;
+    end_day_id: number | null;
+    check_in: string | null;
+    check_in_end: string | null;
+    check_out: string | null;
+    notes: string | null;
   };
   places: { id: number; name: string | null; address: string | null; lat: number | null; lng: number | null };
 }
@@ -510,9 +591,16 @@ export type PublicApiUnscheduledReservationRow = Omit<PublicApiScheduledReservat
 
 interface PublicApiReservationKyselyDB {
   reservations: {
-    id: number; trip_id: number; day_id: number | null; type: string | null; title: string | null;
-    location: string | null; reservation_time: string | null; reservation_end_time: string | null;
-    status: string | null; notes: string | null;
+    id: number;
+    trip_id: number;
+    day_id: number | null;
+    type: string | null;
+    title: string | null;
+    location: string | null;
+    reservation_time: string | null;
+    reservation_end_time: string | null;
+    status: string | null;
+    notes: string | null;
   };
 }
 
@@ -537,7 +625,16 @@ export interface PublicApiAccommodationRow {
 }
 
 interface PublicApiAccommodationKyselyDB {
-  day_accommodations: { id: number; trip_id: number; place_id: number | null; start_day_id: number | null; end_day_id: number | null; check_in: string | null; check_out: string | null; notes: string | null };
+  day_accommodations: {
+    id: number;
+    trip_id: number;
+    place_id: number | null;
+    start_day_id: number | null;
+    end_day_id: number | null;
+    check_in: string | null;
+    check_out: string | null;
+    notes: string | null;
+  };
   places: { id: number; name: string | null; address: string | null; lat: number | null; lng: number | null };
   days: { id: number; date: string | null };
 }
@@ -569,9 +666,19 @@ export interface PublicApiUnplannedPlaceRow {
 
 interface PublicApiUnplannedPlaceKyselyDB {
   places: {
-    id: number; trip_id: number; name: string; address: string | null; lat: number | null; lng: number | null;
-    place_time: string | null; end_time: string | null; duration_minutes: number | null; notes: string | null;
-    transport_mode: string | null; category_id: number | null; created_at: string | null;
+    id: number;
+    trip_id: number;
+    name: string;
+    address: string | null;
+    lat: number | null;
+    lng: number | null;
+    place_time: string | null;
+    end_time: string | null;
+    duration_minutes: number | null;
+    notes: string | null;
+    transport_mode: string | null;
+    category_id: number | null;
+    created_at: string | null;
   };
   categories: { id: number; name: string };
   day_assignments: { id: number; place_id: number };
@@ -584,7 +691,13 @@ interface PublicApiUnplannedPlaceKyselyDB {
  * `NOT EXISTS` guard needs.
  */
 interface FlightsMissingEndpointsKyselyDB {
-  reservations: { id: number; metadata: string | null; reservation_time: string | null; reservation_end_time: string | null; type: string | null };
+  reservations: {
+    id: number;
+    metadata: string | null;
+    reservation_time: string | null;
+    reservation_end_time: string | null;
+    type: string | null;
+  };
   reservation_endpoints: { id: number; reservation_id: number };
 }
 
@@ -645,11 +758,17 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
   }
 
   /** RS45 (`ReservationsService.remove`'s pre-image read) — `SELECT id, title, type, accommodation_id FROM reservations WHERE id = ? AND trip_id = ?`. */
-  async findHeaderInTrip(id: number, trip_id: number): Promise<{ id: number; title: string; type: string | null; accommodation_id: string | null } | undefined> {
+  async findHeaderInTrip(
+    id: number,
+    trip_id: number,
+  ): Promise<{ id: number; title: string; type: string | null; accommodation_id: string | null } | undefined> {
     return this.qb('r')
       .select(['r.id', 'r.title', 'r.type', 'r.accommodation_id'])
       .where({ id, trip: trip_id })
-      .execute<{ id: number; title: string; type: string | null; accommodation_id: string | null } | undefined>('get', false);
+      .execute<{ id: number; title: string; type: string | null; accommodation_id: string | null } | undefined>(
+        'get',
+        false,
+      );
   }
 
   /**
@@ -658,19 +777,38 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * reservations WHERE trip_id = ? AND (type != 'hotel' OR accommodation_id
    * IS NULL) AND reservation_time IS NOT NULL`.
    */
-  async listResyncCandidates(trip_id: number): Promise<{
-    id: number; reservation_time: string | null; reservation_end_time: string | null;
-    day_id: number | null; end_day_id: number | null;
-  }[]> {
+  async listResyncCandidates(trip_id: number): Promise<
+    {
+      id: number;
+      reservation_time: string | null;
+      reservation_end_time: string | null;
+      day_id: number | null;
+      end_day_id: number | null;
+    }[]
+  > {
     const platform = this.getEntityManager().getPlatform();
     return this.qb('r')
-      .select(['r.id', 'r.reservation_time', 'r.reservation_end_time', columnRef(platform, 'r.day_id').as('day_id'), columnRef(platform, 'r.end_day_id').as('end_day_id')])
+      .select([
+        'r.id',
+        'r.reservation_time',
+        'r.reservation_end_time',
+        columnRef(platform, 'r.day_id').as('day_id'),
+        columnRef(platform, 'r.end_day_id').as('end_day_id'),
+      ])
       .where({
         trip: trip_id,
         $or: [{ type: { $ne: 'hotel' } }, { accommodation_id: null }],
         reservation_time: { $ne: null },
       })
-      .execute<{ id: number; reservation_time: string | null; reservation_end_time: string | null; day_id: number | null; end_day_id: number | null }[]>('all', false);
+      .execute<
+        {
+          id: number;
+          reservation_time: string | null;
+          reservation_end_time: string | null;
+          day_id: number | null;
+          end_day_id: number | null;
+        }[]
+      >('all', false);
   }
 
   /** RS13 (`resyncReservationDays`'s per-row write) — `UPDATE reservations SET day_id = ?, end_day_id = ? WHERE id = ?`. */
@@ -740,42 +878,48 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * is handed — no SQL-side COALESCE. `id: number` (rule 21 — the SAME
    * `toRowId`-parsed value `findInTrip`'s gate read used).
    */
-  async updateReservation(id: number, write: {
-    title: string;
-    reservation_time: string | null;
-    reservation_end_time: string | null;
-    location: string | null;
-    confirmation_number: string | null;
-    notes: string | null;
-    url: string | null;
-    day_id: number | null;
-    end_day_id: number | null;
-    place_id: number | null;
-    assignment_id: number | null;
-    status: string;
-    type: string;
-    accommodation_id: string | null;
-    metadata: string | null;
-    needs_review: number;
-  }): Promise<void> {
-    await this.nativeUpdate({ id }, {
-      title: write.title,
-      reservation_time: write.reservation_time,
-      reservation_end_time: write.reservation_end_time,
-      location: write.location,
-      confirmation_number: write.confirmation_number,
-      notes: write.notes,
-      url: write.url,
-      day: write.day_id,
-      endDay: write.end_day_id,
-      place: write.place_id,
-      assignment: write.assignment_id,
-      status: write.status,
-      type: write.type,
-      accommodation_id: write.accommodation_id,
-      metadata: write.metadata,
-      needs_review: write.needs_review,
-    });
+  async updateReservation(
+    id: number,
+    write: {
+      title: string;
+      reservation_time: string | null;
+      reservation_end_time: string | null;
+      location: string | null;
+      confirmation_number: string | null;
+      notes: string | null;
+      url: string | null;
+      day_id: number | null;
+      end_day_id: number | null;
+      place_id: number | null;
+      assignment_id: number | null;
+      status: string;
+      type: string;
+      accommodation_id: string | null;
+      metadata: string | null;
+      needs_review: number;
+    },
+  ): Promise<void> {
+    await this.nativeUpdate(
+      { id },
+      {
+        title: write.title,
+        reservation_time: write.reservation_time,
+        reservation_end_time: write.reservation_end_time,
+        location: write.location,
+        confirmation_number: write.confirmation_number,
+        notes: write.notes,
+        url: write.url,
+        day: write.day_id,
+        endDay: write.end_day_id,
+        place: write.place_id,
+        assignment: write.assignment_id,
+        status: write.status,
+        type: write.type,
+        accommodation_id: write.accommodation_id,
+        metadata: write.metadata,
+        needs_review: write.needs_review,
+      },
+    );
   }
 
   /**
@@ -795,15 +939,34 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
   }
 
   /** DY14 (`DaysService.restampReservationDates`) — `SELECT id, day_id, end_day_id, reservation_time, reservation_end_time FROM reservations WHERE trip_id = ?`. */
-  async listForRestamp(trip_id: number): Promise<{
-    id: number; day_id: number | null; end_day_id: number | null;
-    reservation_time: string | null; reservation_end_time: string | null;
-  }[]> {
+  async listForRestamp(trip_id: number): Promise<
+    {
+      id: number;
+      day_id: number | null;
+      end_day_id: number | null;
+      reservation_time: string | null;
+      reservation_end_time: string | null;
+    }[]
+  > {
     const platform = this.getEntityManager().getPlatform();
     return this.qb('r')
-      .select(['r.id', columnRef(platform, 'r.day_id').as('day_id'), columnRef(platform, 'r.end_day_id').as('end_day_id'), 'r.reservation_time', 'r.reservation_end_time'])
+      .select([
+        'r.id',
+        columnRef(platform, 'r.day_id').as('day_id'),
+        columnRef(platform, 'r.end_day_id').as('end_day_id'),
+        'r.reservation_time',
+        'r.reservation_end_time',
+      ])
       .where({ trip: trip_id })
-      .execute<{ id: number; day_id: number | null; end_day_id: number | null; reservation_time: string | null; reservation_end_time: string | null }[]>('all', false);
+      .execute<
+        {
+          id: number;
+          day_id: number | null;
+          end_day_id: number | null;
+          reservation_time: string | null;
+          reservation_end_time: string | null;
+        }[]
+      >('all', false);
   }
 
   /** DY15 — `UPDATE reservations SET reservation_time = ? WHERE id = ?`. */
@@ -842,7 +1005,14 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
           .case()
           .when('reservation_time', 'is', null)
           .then(eb.val(date))
-          .else(concatKysely(platform, eb, { value: date }, { expression: substringKysely(platform, eb, 'reservation_time', 11) }))
+          .else(
+            concatKysely(
+              platform,
+              eb,
+              { value: date },
+              { expression: substringKysely(platform, eb, 'reservation_time', 11) },
+            ),
+          )
           .end(),
       }))
       .where('accommodation_id', '=', accommodation_id)
@@ -1176,7 +1346,12 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
   }
 
   /** RS20 — see {@link UpcomingReservationRow}'s docstring. */
-  async listUpcomingForUser(user_id: number, today: string, now_hhmm: string, limit: number): Promise<UpcomingReservationRow[]> {
+  async listUpcomingForUser(
+    user_id: number,
+    today: string,
+    now_hhmm: string,
+    limit: number,
+  ): Promise<UpcomingReservationRow[]> {
     const platform = this.getEntityManager().getPlatform();
 
     // The `COALESCE(place name, nameless-stay's-linked-booking title, trip
@@ -1191,10 +1366,15 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
       .with('visible_trips', (qb) =>
         qb
           .selectFrom('trips as t')
-          .leftJoin('trip_members as tm', (join) => join.onRef('tm.trip_id', '=', 't.id').on('tm.user_id', '=', user_id))
+          .leftJoin('trip_members as tm', (join) =>
+            join.onRef('tm.trip_id', '=', 't.id').on('tm.user_id', '=', user_id),
+          )
           .select(['t.id', 't.title', 't.cover_image'])
           .where((eb) =>
-            eb.and([eb.or([eb('t.user_id', '=', user_id), eb('tm.user_id', 'is not', null)]), eb('t.is_archived', '=', 0)]),
+            eb.and([
+              eb.or([eb('t.user_id', '=', user_id), eb('tm.user_id', 'is not', null)]),
+              eb('t.is_archived', '=', 0),
+            ]),
           ),
       )
       .with('entries', (qb) => {
@@ -1244,8 +1424,8 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
           .select((eb) => [
             'a.id as id',
             'a.trip_id as trip_id',
-            eb
-              .fn.coalesce(
+            eb.fn
+              .coalesce(
                 eb.ref('p.name'),
                 eb
                   .selectFrom('reservations as res')
@@ -1285,8 +1465,8 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
           .select((eb) => [
             'a.id as id',
             'a.trip_id as trip_id',
-            eb
-              .fn.coalesce(
+            eb.fn
+              .coalesce(
                 eb.ref('p.name'),
                 eb
                   .selectFrom('reservations as res')
@@ -1321,7 +1501,21 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
         return bookings.unionAll(checkins).unionAll(checkouts);
       })
       .selectFrom('entries')
-      .select(['id', 'trip_id', 'title', 'type', 'status', 'location', 'reservation_time', 'confirmation_number', 'trip_title', 'trip_cover', 'day_date', 'place_name', 'place_image'])
+      .select([
+        'id',
+        'trip_id',
+        'title',
+        'type',
+        'status',
+        'location',
+        'reservation_time',
+        'confirmation_number',
+        'trip_title',
+        'trip_cover',
+        'day_date',
+        'place_name',
+        'place_image',
+      ])
       .where('at_date', 'is not', null)
       .where((eb) =>
         eb.or([
@@ -1342,7 +1536,18 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<ShareEndpointsKyselyDB>()
       .selectFrom('reservation_endpoints as e')
       .innerJoin('reservations as r', 'r.id', 'e.reservation_id')
-      .select(['e.reservation_id', 'e.role', 'e.sequence', 'e.name', 'e.code', 'e.lat', 'e.lng', 'e.timezone', 'e.local_date', 'e.local_time'])
+      .select([
+        'e.reservation_id',
+        'e.role',
+        'e.sequence',
+        'e.name',
+        'e.code',
+        'e.lat',
+        'e.lng',
+        'e.timezone',
+        'e.local_date',
+        'e.local_time',
+      ])
       .where('r.trip_id', '=', trip_id)
       .orderBy('e.reservation_id', 'asc')
       .orderBy('e.sequence', 'asc')
@@ -1366,9 +1571,22 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<SharePublicReservationKyselyDB>()
       .selectFrom('reservations as r')
       .select([
-        'r.id', 'r.trip_id', 'r.day_id', 'r.end_day_id', 'r.place_id', 'r.accommodation_id',
-        'r.title', 'r.type', 'r.status', 'r.location', 'r.reservation_time', 'r.reservation_end_time',
-        'r.notes', 'r.url', 'r.metadata', 'r.created_at',
+        'r.id',
+        'r.trip_id',
+        'r.day_id',
+        'r.end_day_id',
+        'r.place_id',
+        'r.accommodation_id',
+        'r.title',
+        'r.type',
+        'r.status',
+        'r.location',
+        'r.reservation_time',
+        'r.reservation_end_time',
+        'r.notes',
+        'r.url',
+        'r.metadata',
+        'r.created_at',
       ])
       .where('r.trip_id', '=', trip_id)
       .where((eb) => publicReservationExpr(eb, 'r.ingest_state'))
@@ -1385,9 +1603,19 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
       .where((eb) => publicStayExists(eb))
       .innerJoin('places as p', 'p.id', 'a.place_id')
       .select([
-        'a.id', 'a.trip_id', 'a.place_id', 'a.start_day_id', 'a.end_day_id',
-        'a.check_in', 'a.check_in_end', 'a.check_out', 'a.notes',
-        'p.name as place_name', 'p.address as place_address', 'p.lat as place_lat', 'p.lng as place_lng',
+        'a.id',
+        'a.trip_id',
+        'a.place_id',
+        'a.start_day_id',
+        'a.end_day_id',
+        'a.check_in',
+        'a.check_in_end',
+        'a.check_out',
+        'a.notes',
+        'p.name as place_name',
+        'p.address as place_address',
+        'p.lat as place_lat',
+        'p.lng as place_lng',
       ])
       .execute();
     return rows as SharePublicAccommodationRow[];
@@ -1443,7 +1671,17 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
       .leftJoin('places as p', 'p.id', 'a.place_id')
       .leftJoin('days as ds', 'ds.id', 'a.start_day_id')
       .leftJoin('days as de', 'de.id', 'a.end_day_id')
-      .select(['p.name', 'p.address', 'p.lat', 'p.lng', 'ds.date as start_date', 'de.date as end_date', 'a.check_in', 'a.check_out', 'a.notes'])
+      .select([
+        'p.name',
+        'p.address',
+        'p.lat',
+        'p.lng',
+        'ds.date as start_date',
+        'de.date as end_date',
+        'a.check_in',
+        'a.check_out',
+        'a.notes',
+      ])
       .where('a.trip_id', '=', trip_id)
       .orderBy('ds.date', 'asc')
       .execute();
@@ -1456,12 +1694,24 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
       .selectFrom('places as p')
       .leftJoin('categories as c', 'c.id', 'p.category_id')
       .select((eb) => [
-        'p.name', 'p.address', 'p.lat', 'p.lng', 'p.place_time', 'p.end_time',
-        'p.duration_minutes', 'p.notes', 'p.transport_mode', 'c.name as category',
+        'p.name',
+        'p.address',
+        'p.lat',
+        'p.lng',
+        'p.place_time',
+        'p.end_time',
+        'p.duration_minutes',
+        'p.notes',
+        'p.transport_mode',
+        'c.name as category',
       ])
       .where('p.trip_id', '=', trip_id)
-      .where((eb) => eb.not(eb.exists(eb.selectFrom('day_assignments as da').select('da.id').whereRef('da.place_id', '=', 'p.id'))))
-      .where((eb) => eb.not(eb.exists(eb.selectFrom('day_accommodations as a').select('a.id').whereRef('a.place_id', '=', 'p.id'))))
+      .where((eb) =>
+        eb.not(eb.exists(eb.selectFrom('day_assignments as da').select('da.id').whereRef('da.place_id', '=', 'p.id'))),
+      )
+      .where((eb) =>
+        eb.not(eb.exists(eb.selectFrom('day_accommodations as a').select('a.id').whereRef('a.place_id', '=', 'p.id'))),
+      )
       .orderBy('p.created_at', 'asc')
       .orderBy('p.id', 'asc')
       .execute();
@@ -1501,7 +1751,10 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
   // ---------------------------------------------------------------------------
 
   /** BG54/BG85 — `SELECT id, metadata FROM reservations WHERE id = ? AND trip_id = ?`. */
-  async getIdAndMetadata(id: number | string, trip_id: number | string): Promise<{ id: number; metadata: string | null } | undefined> {
+  async getIdAndMetadata(
+    id: number | string,
+    trip_id: number | string,
+  ): Promise<{ id: number; metadata: string | null } | undefined> {
     return await this.kysely<{ reservations: { id: number; trip_id: number; metadata: string | null } }>()
       .selectFrom('reservations')
       .select(['id', 'metadata'])
@@ -1548,7 +1801,9 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
   }
 
   /** ATI2 (`airtrail-import.service.ts#importAirtrailFlights`, existing-flight signature dedup) — `SELECT r.id, r.reservation_time, r.metadata FROM reservations r WHERE r.trip_id = ? AND r.type = 'flight'`. */
-  async listFlightReservationsForTrip(trip_id: number): Promise<{ id: number; reservation_time: string | null; metadata: string | null }[]> {
+  async listFlightReservationsForTrip(
+    trip_id: number,
+  ): Promise<{ id: number; reservation_time: string | null; metadata: string | null }[]> {
     return this.qb('r')
       .select(['r.id', 'r.reservation_time', 'r.metadata'])
       .where({ trip: trip_id, type: 'flight' })
@@ -1566,8 +1821,16 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * untracked reservation. Preserved exactly, not "fixed" with an added
    * `uow.transactional` wrap.
    */
-  async linkAirtrailMultiLeg(id: number, external_id: string, external_owner_user_id: number, external_synced_at: string): Promise<void> {
-    await this.nativeUpdate({ id }, { external_source: 'airtrail', external_id, external_owner_user_id, sync_enabled: 0, external_synced_at });
+  async linkAirtrailMultiLeg(
+    id: number,
+    external_id: string,
+    external_owner_user_id: number,
+    external_synced_at: string,
+  ): Promise<void> {
+    await this.nativeUpdate(
+      { id },
+      { external_source: 'airtrail', external_id, external_owner_user_id, sync_enabled: 0, external_synced_at },
+    );
   }
 
   /**
@@ -1577,8 +1840,24 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * external_hash = ?, external_synced_at = ? WHERE id = ?`. Same
    * pre-existing tx gap as {@link linkAirtrailMultiLeg} — report don't fix.
    */
-  async linkAirtrailSingleFlight(id: number, external_id: string, external_owner_user_id: number, external_hash: string, external_synced_at: string): Promise<void> {
-    await this.nativeUpdate({ id }, { external_source: 'airtrail', external_id, external_owner_user_id, sync_enabled: 1, external_hash, external_synced_at });
+  async linkAirtrailSingleFlight(
+    id: number,
+    external_id: string,
+    external_owner_user_id: number,
+    external_hash: string,
+    external_synced_at: string,
+  ): Promise<void> {
+    await this.nativeUpdate(
+      { id },
+      {
+        external_source: 'airtrail',
+        external_id,
+        external_owner_user_id,
+        sync_enabled: 1,
+        external_hash,
+        external_synced_at,
+      },
+    );
   }
 
   /** ATL2 (`airtrail-link.service.ts#detach`) — `UPDATE reservations SET sync_enabled = 0 WHERE id = ?`. */
@@ -1593,12 +1872,36 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * via `columnRef` (the `listResyncCandidates` precedent above) — the
    * mirror column, not a bare select.
    */
-  async findAirtrailLinked(id: number): Promise<{ id: number; trip_id: number; external_id: string | null; external_owner_user_id: number | null; sync_enabled: number | null } | undefined> {
+  async findAirtrailLinked(id: number): Promise<
+    | {
+        id: number;
+        trip_id: number;
+        external_id: string | null;
+        external_owner_user_id: number | null;
+        sync_enabled: number | null;
+      }
+    | undefined
+  > {
     const platform = this.getEntityManager().getPlatform();
     return this.qb('r')
-      .select(['r.id', columnRef(platform, 'r.trip_id').as('trip_id'), 'r.external_id', 'r.external_owner_user_id', 'r.sync_enabled'])
+      .select([
+        'r.id',
+        columnRef(platform, 'r.trip_id').as('trip_id'),
+        'r.external_id',
+        'r.external_owner_user_id',
+        'r.sync_enabled',
+      ])
       .where({ id, external_source: 'airtrail' })
-      .execute<{ id: number; trip_id: number; external_id: string | null; external_owner_user_id: number | null; sync_enabled: number | null } | undefined>('get', false);
+      .execute<
+        | {
+            id: number;
+            trip_id: number;
+            external_id: string | null;
+            external_owner_user_id: number | null;
+            sync_enabled: number | null;
+          }
+        | undefined
+      >('get', false);
   }
 
   /**
@@ -1616,12 +1919,17 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * external_id, external_hash FROM reservations WHERE external_source =
    * 'airtrail' AND sync_enabled = 1 AND external_owner_user_id = ?`.
    */
-  async listAirtrailSyncCandidatesForOwner(owner_user_id: number): Promise<{ id: number; trip_id: number; external_id: string | null; external_hash: string | null }[]> {
+  async listAirtrailSyncCandidatesForOwner(
+    owner_user_id: number,
+  ): Promise<{ id: number; trip_id: number; external_id: string | null; external_hash: string | null }[]> {
     const platform = this.getEntityManager().getPlatform();
     return this.qb('r')
       .select(['r.id', columnRef(platform, 'r.trip_id').as('trip_id'), 'r.external_id', 'r.external_hash'])
       .where({ external_source: 'airtrail', sync_enabled: 1, external_owner_user_id: owner_user_id })
-      .execute<{ id: number; trip_id: number; external_id: string | null; external_hash: string | null }[]>('all', false);
+      .execute<{ id: number; trip_id: number; external_id: string | null; external_hash: string | null }[]>(
+        'all',
+        false,
+      );
   }
 
   /**
@@ -1648,12 +1956,20 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * EXISTS guard, same shape as `Reservations.repository.ts`'s own
    * `listUnplannedPlacesForPublicApi` NOT EXISTS precedent (`eb.not(eb.exists(...))`).
    */
-  async listFlightsMissingEndpoints(): Promise<{ id: number; metadata: string | null; reservation_time: string | null; reservation_end_time: string | null }[]> {
+  async listFlightsMissingEndpoints(): Promise<
+    { id: number; metadata: string | null; reservation_time: string | null; reservation_end_time: string | null }[]
+  > {
     const rows = await this.kysely<FlightsMissingEndpointsKyselyDB>()
       .selectFrom('reservations as r')
       .select(['r.id', 'r.metadata', 'r.reservation_time', 'r.reservation_end_time'])
       .where('r.type', '=', 'flight')
-      .where((eb) => eb.not(eb.exists(eb.selectFrom('reservation_endpoints as e').select('e.id').whereRef('e.reservation_id', '=', 'r.id'))))
+      .where((eb) =>
+        eb.not(
+          eb.exists(
+            eb.selectFrom('reservation_endpoints as e').select('e.id').whereRef('e.reservation_id', '=', 'r.id'),
+          ),
+        ),
+      )
       .execute();
     return rows;
   }
@@ -1666,18 +1982,17 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
   /** RPL4/RPL5's shared select list, the columns of `RoadtripCarrierRow`. */
   private roadtripCarrierQuery() {
     const platform = this.getEntityManager().getPlatform();
-    return this.qb('r')
-      .select([
-        'r.id',
-        'r.type',
-        'r.title',
-        columnRef(platform, 'r.day_id').as('day_id'),
-        columnRef(platform, 'r.end_day_id').as('end_day_id'),
-        'r.reservation_time',
-        'r.reservation_end_time',
-        'r.metadata',
-        'r.day_plan_position',
-      ]);
+    return this.qb('r').select([
+      'r.id',
+      'r.type',
+      'r.title',
+      columnRef(platform, 'r.day_id').as('day_id'),
+      columnRef(platform, 'r.end_day_id').as('end_day_id'),
+      'r.reservation_time',
+      'r.reservation_end_time',
+      'r.metadata',
+      'r.day_plan_position',
+    ]);
   }
 
   /**
@@ -1701,9 +2016,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * NULL`. Which of them count as rides is `undatedRides` (shared) alone.
    */
   async listRoadtripUndated(trip_id: number): Promise<RoadtripCarrierRow[]> {
-    return this.roadtripCarrierQuery()
-      .where({ trip: trip_id, day: null })
-      .execute<RoadtripCarrierRow[]>('all', false);
+    return this.roadtripCarrierQuery().where({ trip: trip_id, day: null }).execute<RoadtripCarrierRow[]>('all', false);
   }
 }
 

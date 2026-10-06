@@ -1,3 +1,5 @@
+import { toNativeBase, extractEnforced } from '../../../../src/nest/llm-parse/router/ollama-format.client';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The client goes through safeFetchLlm (SSRF guard: blocks the cloud-metadata
@@ -6,8 +8,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // recorded-call assertions are unchanged.
 const { safeFetchLlmMock } = vi.hoisted(() => ({ safeFetchLlmMock: vi.fn() }));
 vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetchLlm: safeFetchLlmMock }));
-
-import { toNativeBase, extractEnforced } from '../../../../src/nest/llm-parse/router/ollama-format.client';
 
 function mockFetch(impl: (url: string, init: RequestInit) => Promise<Response> | Response) {
   safeFetchLlmMock.mockImplementation(impl as unknown as typeof fetch);

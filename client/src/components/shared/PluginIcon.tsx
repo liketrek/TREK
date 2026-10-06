@@ -1,11 +1,11 @@
-import type { CSSProperties } from 'react'
-import * as LucideIcons from 'lucide-react'
-import { Blocks, type LucideIcon } from 'lucide-react'
+import * as LucideIcons from 'lucide-react';
+import { Blocks, type LucideIcon } from 'lucide-react';
+import type { CSSProperties } from 'react';
 
 // Lucide names are PascalCase. Restricting the lookup to that shape keeps a manifest
 // from reaching lucide's non-icon exports (`createLucideIcon`, `icons`, `default`,
 // `module.exports`), which are all lowercase-initial.
-const LUCIDE_ICON_NAME = /^[A-Z][A-Za-z0-9]*$/
+const LUCIDE_ICON_NAME = /^[A-Z][A-Za-z0-9]*$/;
 
 /**
  * Resolves a plugin manifest's `icon` (a lucide icon name, e.g. "Stethoscope") to the
@@ -17,18 +17,23 @@ const LUCIDE_ICON_NAME = /^[A-Z][A-Za-z0-9]*$/
  * building nav/tab arrays.
  */
 export function resolvePluginIcon(name: string | null | undefined): LucideIcon {
-  if (!name || !LUCIDE_ICON_NAME.test(name)) return Blocks
-  const icon = (LucideIcons as unknown as Record<string, LucideIcon | undefined>)[name]
-  return icon ?? Blocks
+  if (!name || !LUCIDE_ICON_NAME.test(name)) return Blocks;
+  const icon = (LucideIcons as unknown as Record<string, LucideIcon | undefined>)[name];
+  return icon ?? Blocks;
 }
 
 /** Renders the lucide icon a plugin declares in its manifest (Blocks if unknown). */
-export default function PluginIcon({ name, size = 20, className, style }: {
-  name: string | null | undefined
-  size?: number
-  className?: string
-  style?: CSSProperties
+export default function PluginIcon({
+  name,
+  size = 20,
+  className,
+  style,
+}: {
+  name: string | null | undefined;
+  size?: number;
+  className?: string;
+  style?: CSSProperties;
 }) {
-  const Icon = resolvePluginIcon(name)
-  return <Icon size={size} className={className} style={style} />
+  const Icon = resolvePluginIcon(name);
+  return <Icon size={size} className={className} style={style} />;
 }

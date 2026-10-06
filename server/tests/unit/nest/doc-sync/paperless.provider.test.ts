@@ -17,43 +17,14 @@
  * command. The behaviour asserted here was measured against a live
  * Paperless-ngx 3.1.3 first; see BEFUND-paperless.md in the test lab.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Readable } from 'node:stream';
-
-const {
-  safeFetchMock,
-  readCappedJsonMock,
-  readCappedTextMock,
-  discardBodyMock,
-  FakeSsrfBlockedError,
-} = vi.hoisted(() => {
-  // Declared inside the hoisted block: a class at module level is not hoisted
-  // with the vi.mock factory and would be read before it exists.
-  class FakeSsrfBlockedError extends Error {
-    constructor(message: string) {
-      super(message);
-      this.name = 'SsrfBlockedError';
-    }
-  }
-  return {
-    safeFetchMock: vi.fn(),
-    readCappedJsonMock: vi.fn(),
-    readCappedTextMock: vi.fn(),
-    discardBodyMock: vi.fn(),
-    FakeSsrfBlockedError,
-  };
-});
-
-vi.mock('../../../../src/utils/ssrfGuard', () => ({
-  safeFetch: safeFetchMock,
-  SsrfBlockedError: FakeSsrfBlockedError,
-}));
-vi.mock('../../../../src/utils/cappedFetch', () => ({
-  readCappedJson: readCappedJsonMock,
-  readCappedText: readCappedTextMock,
-  discardBody: discardBodyMock,
-}));
-
+import { PROVIDER_MAX_PAGES } from '../../../../src/nest/doc-sync/doc-sync.constants';
+import type {
+  DocResult,
+  DocumentConnectionRef,
+  DocumentScopeRef,
+  PushRequest,
+} from '../../../../src/nest/doc-sync/document-provider';
+import { docFailed } from '../../../../src/nest/doc-sync/document-provider';
 import {
   PaperlessClient,
   PaperlessError,
@@ -73,14 +44,39 @@ import {
   parseScopeKey,
   titleFromFileName,
 } from '../../../../src/nest/doc-sync/providers/paperless.provider';
-import { PROVIDER_MAX_PAGES } from '../../../../src/nest/doc-sync/doc-sync.constants';
-import type {
-  DocResult,
-  DocumentConnectionRef,
-  DocumentScopeRef,
-  PushRequest,
-} from '../../../../src/nest/doc-sync/document-provider';
-import { docFailed } from '../../../../src/nest/doc-sync/document-provider';
+
+import { Readable } from 'node:stream';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const { safeFetchMock, readCappedJsonMock, readCappedTextMock, discardBodyMock, FakeSsrfBlockedError } = vi.hoisted(
+  () => {
+    // Declared inside the hoisted block: a class at module level is not hoisted
+    // with the vi.mock factory and would be read before it exists.
+    class FakeSsrfBlockedError extends Error {
+      constructor(message: string) {
+        super(message);
+        this.name = 'SsrfBlockedError';
+      }
+    }
+    return {
+      safeFetchMock: vi.fn(),
+      readCappedJsonMock: vi.fn(),
+      readCappedTextMock: vi.fn(),
+      discardBodyMock: vi.fn(),
+      FakeSsrfBlockedError,
+    };
+  },
+);
+
+vi.mock('../../../../src/utils/ssrfGuard', () => ({
+  safeFetch: safeFetchMock,
+  SsrfBlockedError: FakeSsrfBlockedError,
+}));
+vi.mock('../../../../src/utils/cappedFetch', () => ({
+  readCappedJson: readCappedJsonMock,
+  readCappedText: readCappedTextMock,
+  discardBody: discardBodyMock,
+}));
 
 const TOKEN = 'ba17f0c4d2e94f118a6c0d3b7e5a9c21f4d6b8e0';
 const BASE = 'https://papers.example.org';
@@ -272,11 +268,8 @@ beforeEach(() => {
     async (url: string, init: RequestInit, options?: { rejectUnauthorized?: boolean }) => {
       const parsed = new URL(url);
       const method = (init.method ?? 'GET').toUpperCase();
-      const body = typeof init.body === 'string'
-        ? init.body
-        : Buffer.isBuffer(init.body)
-          ? init.body.toString('latin1')
-          : '';
+      const body =
+        typeof init.body === 'string' ? init.body : Buffer.isBuffer(init.body) ? init.body.toString('latin1') : '';
       calls.push({ url: parsed, init, options, body });
       const queue = routes.get(`${method} ${parsed.pathname}`);
       if (queue === undefined || queue.length === 0) {
@@ -329,11 +322,14 @@ describe('PaperlessClient: the request it builds', () => {
   });
 
   it('PAPERLESS-005: reads the profile that does not echo the token back', async () => {
-    on('GET /api/ui_settings/', reply({
-      user: { username: 'admin' },
-      settings: { version: '3.1.3' },
-      permissions: ['add_workflow', 'add_document'],
-    }));
+    on(
+      'GET /api/ui_settings/',
+      reply({
+        user: { username: 'admin' },
+        settings: { version: '3.1.3' },
+        permissions: ['add_workflow', 'add_document'],
+      }),
+    );
     const probed = expectOk(await provider.probe(CONN));
     expect(probed.account).toBe('admin');
     expect(requests('GET /api/profile/')).toHaveLength(0);
@@ -342,11 +338,14 @@ describe('PaperlessClient: the request it builds', () => {
 
 describe('PaperlessProvider: probing a connection', () => {
   it('PAPERLESS-010: reports the self-registering webhook when the token may create workflows', async () => {
-    on('GET /api/ui_settings/', reply({
-      user: { username: 'admin' },
-      settings: { version: '3.1.3' },
-      permissions: ['add_workflow'],
-    }));
+    on(
+      'GET /api/ui_settings/',
+      reply({
+        user: { username: 'admin' },
+        settings: { version: '3.1.3' },
+        permissions: ['add_workflow'],
+      }),
+    );
     const probed = expectOk(await provider.probe(CONN));
     expect(probed.capabilities.push).toBe('webhook-self-registered');
     expect(probed.capabilities.stableId).toBe(true);
@@ -356,11 +355,14 @@ describe('PaperlessProvider: probing a connection', () => {
   });
 
   it('PAPERLESS-011: downgrades to a manual webhook when the token may not create one', async () => {
-    on('GET /api/ui_settings/', reply({
-      user: { username: 'reisender' },
-      settings: { version: '3.1.3' },
-      permissions: ['view_document', 'add_document'],
-    }));
+    on(
+      'GET /api/ui_settings/',
+      reply({
+        user: { username: 'reisender' },
+        settings: { version: '3.1.3' },
+        permissions: ['view_document', 'add_document'],
+      }),
+    );
     const probed = expectOk(await provider.probe(CONN));
     expect(probed.capabilities.push).toBe('webhook-manual');
     // The capability the CORE reads stays the provider's own answer; only the
@@ -493,9 +495,14 @@ describe('PaperlessProvider: listing a scope', () => {
   });
 
   it('PAPERLESS-031: a checksum that is not sha256 is reported as no hash at all', async () => {
-    on('GET /api/documents/', reply(page([
-      docRow({ versions: [{ id: 1, checksum: 'a91fe3f8e2cf4b2b5560b2222d65d60c', added: null, is_root: true }] }),
-    ])));
+    on(
+      'GET /api/documents/',
+      reply(
+        page([
+          docRow({ versions: [{ id: 1, checksum: 'a91fe3f8e2cf4b2b5560b2222d65d60c', added: null, is_root: true }] }),
+        ]),
+      ),
+    );
     const listed = expectOk(await provider.list(CONN, SCOPE));
     expect(listed.documents[0]?.contentHash).toBeNull();
     expect(sha256OrNull('A'.repeat(64))).toBe('a'.repeat(64));
@@ -503,31 +510,38 @@ describe('PaperlessProvider: listing a scope', () => {
   });
 
   it('PAPERLESS-032: after a replace the hash is the newest revision, not the root one', async () => {
-    on('GET /api/documents/', reply(page([
-      docRow({
-        versions: [
-          { id: 12, checksum: HASH_B, added: '2026-09-18T15:40:00.000000Z', is_root: false },
-          { id: 11, checksum: HASH_A, added: '2026-09-18T15:29:00.000000Z', is_root: true },
-        ],
-      }),
-    ])));
+    on(
+      'GET /api/documents/',
+      reply(
+        page([
+          docRow({
+            versions: [
+              { id: 12, checksum: HASH_B, added: '2026-09-18T15:40:00.000000Z', is_root: false },
+              { id: 11, checksum: HASH_A, added: '2026-09-18T15:29:00.000000Z', is_root: true },
+            ],
+          }),
+        ]),
+      ),
+    );
     const listed = expectOk(await provider.list(CONN, SCOPE));
     expect(listed.documents[0]?.contentHash).toBe(HASH_B);
     // Independent of the order the instance happens to send them in.
-    expect(currentVersion({
-      id: 1,
-      title: '',
-      originalFileName: null,
-      mimeType: null,
-      modified: null,
-      added: null,
-      deletedAt: null,
-      tagIds: [],
-      versions: [
-        { id: 11, checksum: HASH_A, added: '2026-09-18T15:29:00.000000Z', isRoot: true },
-        { id: 12, checksum: HASH_B, added: '2026-09-18T15:40:00.000000Z', isRoot: false },
-      ],
-    })?.checksum).toBe(HASH_B);
+    expect(
+      currentVersion({
+        id: 1,
+        title: '',
+        originalFileName: null,
+        mimeType: null,
+        modified: null,
+        added: null,
+        deletedAt: null,
+        tagIds: [],
+        versions: [
+          { id: 11, checksum: HASH_A, added: '2026-09-18T15:29:00.000000Z', isRoot: true },
+          { id: 12, checksum: HASH_B, added: '2026-09-18T15:40:00.000000Z', isRoot: false },
+        ],
+      })?.checksum,
+    ).toBe(HASH_B);
   });
 
   it('PAPERLESS-033: a listing that hits the page cap says so and claims nothing about the cursor', async () => {
@@ -554,11 +568,16 @@ describe('PaperlessProvider: listing a scope', () => {
   });
 
   it('PAPERLESS-035: a document without a title still gets a usable name', async () => {
-    on('GET /api/documents/', reply(page([
-      docRow({ id: 5, title: '', original_file_name: 'scan_2026.PDF' }),
-      docRow({ id: 6, title: '', original_file_name: null, mime_type: 'image/png' }),
-      docRow({ id: 7, title: 'Bordkarte.pdf', original_file_name: 'bordkarte.pdf' }),
-    ])));
+    on(
+      'GET /api/documents/',
+      reply(
+        page([
+          docRow({ id: 5, title: '', original_file_name: 'scan_2026.PDF' }),
+          docRow({ id: 6, title: '', original_file_name: null, mime_type: 'image/png' }),
+          docRow({ id: 7, title: 'Bordkarte.pdf', original_file_name: 'bordkarte.pdf' }),
+        ]),
+      ),
+    );
     const listed = expectOk(await provider.list(CONN, SCOPE));
     expect(listed.documents.map((doc) => doc.name)).toEqual([
       'scan_2026.PDF',
@@ -566,17 +585,19 @@ describe('PaperlessProvider: listing a scope', () => {
       // An extension the title already carries is not doubled.
       'Bordkarte.pdf',
     ]);
-    expect(documentFileName({
-      id: 8,
-      title: 'Notiz',
-      originalFileName: null,
-      mimeType: 'text/plain',
-      modified: null,
-      added: null,
-      deletedAt: null,
-      tagIds: [],
-      versions: [],
-    })).toBe('Notiz.txt');
+    expect(
+      documentFileName({
+        id: 8,
+        title: 'Notiz',
+        originalFileName: null,
+        mimeType: 'text/plain',
+        modified: null,
+        added: null,
+        deletedAt: null,
+        tagIds: [],
+        versions: [],
+      }),
+    ).toBe('Notiz.txt');
   });
 
   it('PAPERLESS-036: an answer that is not a listing is a provider error', async () => {
@@ -588,10 +609,13 @@ describe('PaperlessProvider: listing a scope', () => {
 describe('PaperlessProvider: fetching bytes', () => {
   it('PAPERLESS-040: asks for the original file and hands back the stream with its version', async () => {
     on('GET /api/documents/11/', reply(docRow()));
-    on('GET /api/documents/11/download/', streamReply('%PDF-1.4 hotel', {
-      'content-length': '14',
-      'content-type': 'application/pdf',
-    }));
+    on(
+      'GET /api/documents/11/download/',
+      streamReply('%PDF-1.4 hotel', {
+        'content-length': '14',
+        'content-type': 'application/pdf',
+      }),
+    );
     const fetched = expectOk(await provider.fetch(CONN, SCOPE, '11'));
     expect(lastRequest('GET /api/documents/11/download/').url.searchParams.get('original')).toBe('true');
     expect(fetched.size).toBe(14);
@@ -646,10 +670,16 @@ describe('PaperlessProvider: pushing bytes', () => {
   }
 
   it('PAPERLESS-050: an unaccepted type is refused before a single byte is uploaded', async () => {
-    const error = expectFail(await provider.push(CONN, SCOPE, pushRequest({
-      fileName: 'tour.gpx',
-      mimeType: 'application/gpx+xml',
-    })));
+    const error = expectFail(
+      await provider.push(
+        CONN,
+        SCOPE,
+        pushRequest({
+          fileName: 'tour.gpx',
+          mimeType: 'application/gpx+xml',
+        }),
+      ),
+    );
     expect(error.code).toBe('unsupported_type');
     expect(calls).toHaveLength(0);
   });
@@ -659,10 +689,16 @@ describe('PaperlessProvider: pushing bytes', () => {
     on('POST /api/documents/post_document/', reply('"task-uuid-1"'));
     on('GET /api/tasks/', reply(page([taskRow()])));
     on('GET /api/documents/11/', reply(docRow({ mime_type: 'text/plain' })));
-    expectOk(await provider.push(CONN, SCOPE, pushRequest({
-      fileName: 'notiz.txt',
-      mimeType: 'Text/Plain; charset=utf-8',
-    })));
+    expectOk(
+      await provider.push(
+        CONN,
+        SCOPE,
+        pushRequest({
+          fileName: 'notiz.txt',
+          mimeType: 'Text/Plain; charset=utf-8',
+        }),
+      ),
+    );
     expect(lastRequest('POST /api/documents/post_document/').body).toContain('Content-Type: text/plain\r\n');
     expect(normalizeMime('application/pdf')).toBe('application/pdf');
   });
@@ -701,10 +737,15 @@ describe('PaperlessProvider: pushing bytes', () => {
   });
 
   it('PAPERLESS-053: a custom field list from a build that ignores the filter is not trusted', async () => {
-    on('GET /api/custom_fields/', reply(page([
-      { id: 8, name: 'rechnungsnummer', data_type: 'string' },
-      { id: 9, name: 'TREK_TRIP_ID', data_type: 'string' },
-    ])));
+    on(
+      'GET /api/custom_fields/',
+      reply(
+        page([
+          { id: 8, name: 'rechnungsnummer', data_type: 'string' },
+          { id: 9, name: 'TREK_TRIP_ID', data_type: 'string' },
+        ]),
+      ),
+    );
     on('POST /api/documents/post_document/', reply('"task-uuid-1"'));
     on('GET /api/tasks/', reply(page([taskRow()])));
     on('GET /api/documents/11/', reply(docRow()));
@@ -716,20 +757,34 @@ describe('PaperlessProvider: pushing bytes', () => {
   it('PAPERLESS-054: a consume that fails is a provider error, a duplicate one a conflict', async () => {
     on('GET /api/custom_fields/', reply(page([{ id: 1, name: TRIP_UID_FIELD_NAME, data_type: 'string' }])));
     on('POST /api/documents/post_document/', reply('"task-uuid-1"'));
-    on('GET /api/tasks/', reply(page([taskRow({
-      status: 'failure',
-      related_document_ids: [],
-      result_data: { error_type: 'ConsumerError', error_message: 'kaputt.pdf: InputFileError' },
-    })])));
+    on(
+      'GET /api/tasks/',
+      reply(
+        page([
+          taskRow({
+            status: 'failure',
+            related_document_ids: [],
+            result_data: { error_type: 'ConsumerError', error_message: 'kaputt.pdf: InputFileError' },
+          }),
+        ]),
+      ),
+    );
     const failed = expectFail(await provider.push(CONN, SCOPE, pushRequest()));
     expect(failed.code).toBe('provider_error');
     expect(failed.detail).toContain('InputFileError');
 
-    on('GET /api/tasks/', reply(page([taskRow({
-      status: 'FAILURE',
-      related_document_ids: [],
-      result_data: { error_message: 'It is a duplicate of Rechnung (#4)' },
-    })])));
+    on(
+      'GET /api/tasks/',
+      reply(
+        page([
+          taskRow({
+            status: 'FAILURE',
+            related_document_ids: [],
+            result_data: { error_message: 'It is a duplicate of Rechnung (#4)' },
+          }),
+        ]),
+      ),
+    );
     expect(expectFail(await provider.push(CONN, SCOPE, pushRequest())).code).toBe('conflict');
   });
 
@@ -741,9 +796,9 @@ describe('PaperlessProvider: pushing bytes', () => {
     // The only way out is the poll budget, so the client is asked directly with
     // a short one rather than holding the test for two minutes.
     const creds = { baseUrl: BASE, token: TOKEN, allowInsecureTls: false };
-    await expect(
-      client.awaitConsume(creds, 'task-uuid-1', { intervalMs: 1, timeoutMs: 5 }),
-    ).rejects.toMatchObject({ code: 'timeout' });
+    await expect(client.awaitConsume(creds, 'task-uuid-1', { intervalMs: 1, timeoutMs: 5 })).rejects.toMatchObject({
+      code: 'timeout',
+    });
   });
 
   it('PAPERLESS-056: an upload whose task outlives the budget is found again by its checksum', async () => {
@@ -754,10 +809,7 @@ describe('PaperlessProvider: pushing bytes', () => {
     on('POST /api/documents/post_document/', reply('"task-uuid-1"'));
     // One document with the same bytes in another tag, one in ours: the tagged
     // one is the upload we just made.
-    on('GET /api/documents/', reply(page([
-      docRow({ id: 21, tags: [99] }),
-      docRow({ id: 11, tags: [3] }),
-    ])));
+    on('GET /api/documents/', reply(page([docRow({ id: 21, tags: [99] }), docRow({ id: 11, tags: [3] })])));
     on('GET /api/documents/11/', reply(docRow()));
     const pushed = expectOk(await provider.push(CONN, SCOPE, pushRequest()));
     expect(pushed.remoteId).toBe('11');
@@ -793,13 +845,18 @@ describe('PaperlessProvider: pushing bytes', () => {
     // update_version files the new revision under a fresh internal id that
     // answers 404 on its own. Adopting it would break the mapping.
     on('GET /api/tasks/', reply(page([taskRow({ task_id: 'task-uuid-2', related_document_ids: [77] })])));
-    on('GET /api/documents/11/', reply(docRow({
-      modified: '2026-09-18T18:00:00.000000+02:00',
-      versions: [
-        { id: 12, checksum: HASH_A, added: '2026-09-18T16:00:00.000000Z', is_root: false },
-        { id: 11, checksum: HASH_B, added: '2026-09-18T15:29:00.000000Z', is_root: true },
-      ],
-    })));
+    on(
+      'GET /api/documents/11/',
+      reply(
+        docRow({
+          modified: '2026-09-18T18:00:00.000000+02:00',
+          versions: [
+            { id: 12, checksum: HASH_A, added: '2026-09-18T16:00:00.000000Z', is_root: false },
+            { id: 11, checksum: HASH_B, added: '2026-09-18T15:29:00.000000Z', is_root: true },
+          ],
+        }),
+      ),
+    );
     const pushed = expectOk(await provider.push(CONN, SCOPE, pushRequest({ remoteId: '11' })));
     expect(pushed.remoteId).toBe('11');
     expect(pushed.remoteVersion).toBe('2026-09-18T18:00:00.000000+02:00');
@@ -823,9 +880,14 @@ describe('PaperlessProvider: pushing bytes', () => {
     on('GET /api/custom_fields/', reply(page([{ id: 1, name: TRIP_UID_FIELD_NAME, data_type: 'string' }])));
     on('POST /api/documents/post_document/', reply('"task-uuid-1"'));
     on('GET /api/tasks/', reply(page([taskRow()])));
-    on('GET /api/documents/11/', reply(docRow({
-      versions: [{ id: 11, checksum: HASH_B, added: '2026-09-18T15:29:00.000000Z', is_root: true }],
-    })));
+    on(
+      'GET /api/documents/11/',
+      reply(
+        docRow({
+          versions: [{ id: 11, checksum: HASH_B, added: '2026-09-18T15:29:00.000000Z', is_root: true }],
+        }),
+      ),
+    );
     on('DELETE /api/documents/11/', reply('', 204));
     const error = expectFail(await provider.push(CONN, SCOPE, pushRequest({ sha256: HASH_A })));
     expect(error.code).toBe('checksum_mismatch');
@@ -835,9 +897,14 @@ describe('PaperlessProvider: pushing bytes', () => {
   it('PAPERLESS-062: a mismatch after a replace leaves the existing document alone', async () => {
     on('POST /api/documents/11/update_version/', reply('"task-uuid-2"'));
     on('GET /api/tasks/', reply(page([taskRow({ task_id: 'task-uuid-2' })])));
-    on('GET /api/documents/11/', reply(docRow({
-      versions: [{ id: 12, checksum: HASH_B, added: '2026-09-18T16:00:00.000000Z', is_root: false }],
-    })));
+    on(
+      'GET /api/documents/11/',
+      reply(
+        docRow({
+          versions: [{ id: 12, checksum: HASH_B, added: '2026-09-18T16:00:00.000000Z', is_root: false }],
+        }),
+      ),
+    );
     const error = expectFail(await provider.push(CONN, SCOPE, pushRequest({ remoteId: '11', sha256: HASH_A })));
     expect(error.code).toBe('checksum_mismatch');
     expect(requests('DELETE /api/documents/11/')).toHaveLength(0);
@@ -943,14 +1010,11 @@ describe('PaperlessProvider: the self-registered webhook', () => {
 
 describe('the multipart body', () => {
   it('PAPERLESS-095: a file name cannot break out of the Content-Disposition header', () => {
-    const { body, contentType } = buildMultipart(
-      [{ name: 'tags', value: '3' }],
-      {
-        fileName: 'a";\r\nX-Injected: 1\r\n\r\nevil.pdf',
-        mimeType: 'application/pdf',
-        bytes: Buffer.from('bytes'),
-      },
-    );
+    const { body, contentType } = buildMultipart([{ name: 'tags', value: '3' }], {
+      fileName: 'a";\r\nX-Injected: 1\r\n\r\nevil.pdf',
+      mimeType: 'application/pdf',
+      bytes: Buffer.from('bytes'),
+    });
     const text = body.toString('latin1');
     expect(text).not.toContain('X-Injected: 1\r\n');
     // Quote, CR and LF each become an underscore; everything else survives, so

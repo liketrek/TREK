@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { BudgetController } from '../../../src/nest/budget/budget.controller';
+import type { BudgetService } from '../../../src/nest/budget/budget.service';
+import { TRIP_PERMISSION_KEY } from '../../../src/nest/permissions/trip-access.guard';
+import type { User } from '../../../src/types';
 import { HttpException } from '@nestjs/common';
 import { HTTP_CODE_METADATA } from '@nestjs/common/constants';
-import { BudgetController } from '../../../src/nest/budget/budget.controller';
-import { TRIP_PERMISSION_KEY } from '../../../src/nest/permissions/trip-access.guard';
-import type { BudgetService } from '../../../src/nest/budget/budget.service';
-import type { User } from '../../../src/types';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 const trip = { id: 5, user_id: 1 };
@@ -50,7 +51,6 @@ async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number
 const tripRow = { id: 5, user_id: 42, currency: 'USD' } as never;
 
 describe('BudgetController (parity with the legacy /api/trips/:tripId/budget route)', () => {
-
   it('GET / returns items', async () => {
     const svc = makeService({ list: vi.fn().mockResolvedValue([{ id: 1 }]) } as Partial<BudgetService>);
     expect(await new BudgetController(svc).list(user, '5')).toEqual({ items: [{ id: 1 }] });
@@ -64,7 +64,9 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     } as Partial<BudgetService>);
     expect(await new BudgetController(svc).perPerson(user, '5')).toEqual({ summary: [{ userId: 1, owes: 10 }] });
     // A trip with no currency set falls back to EUR rather than passing undefined on.
-    expect(await new BudgetController(svc).settlement(user, { id: 5, user_id: 42 } as never, '5', {})).toEqual({ transfers: [] });
+    expect(await new BudgetController(svc).settlement(user, { id: 5, user_id: 42 } as never, '5', {})).toEqual({
+      transfers: [],
+    });
     expect(settlement).toHaveBeenLastCalledWith('5', undefined, 'EUR', undefined);
   });
 
@@ -92,7 +94,6 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       expect(await new BudgetController(svc).listSettlements(user, '5')).toEqual({ settlements: [{ id: 1 }] });
     });
 
-
     // The legacy 'from_user_id, to_user_id and amount are required' 400s are now
     // produced by the global ZodValidationPipe (budget.dto.ts) before the handler
     // runs — covered by the integration suite, not constructible here.
@@ -101,10 +102,24 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const createSettlement = vi.fn().mockResolvedValue({ id: 3, amount: 0 });
       const broadcast = vi.fn();
       const svc = makeService({ createSettlement, broadcast } as Partial<BudgetService>);
-      const res = await new BudgetController(svc).createSettlement(user, '5', { from_user_id: 1, to_user_id: 2, amount: 0, currency: 'USD', settled_at: '2026-01-05' }, 'sock');
+      const res = await new BudgetController(svc).createSettlement(
+        user,
+        '5',
+        { from_user_id: 1, to_user_id: 2, amount: 0, currency: 'USD', settled_at: '2026-01-05' },
+        'sock',
+      );
       expect(res).toEqual({ settlement: { id: 3, amount: 0 } });
-      expect(createSettlement).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 0, currency: 'USD', settled_at: '2026-01-05' }, user.id);
-      expect(broadcast).toHaveBeenCalledWith('5', 'budget:settlement-created', { settlement: { id: 3, amount: 0 } }, 'sock');
+      expect(createSettlement).toHaveBeenCalledWith(
+        '5',
+        { from_user_id: 1, to_user_id: 2, amount: 0, currency: 'USD', settled_at: '2026-01-05' },
+        user.id,
+      );
+      expect(broadcast).toHaveBeenCalledWith(
+        '5',
+        'budget:settlement-created',
+        { settlement: { id: 3, amount: 0 } },
+        'sock',
+      );
     });
 
     it('POST and PUT /settlements forward fallback_fx', async () => {
@@ -114,7 +129,11 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const svc = makeService({ createSettlement, updateSettlement } as Partial<BudgetService>);
       const body = { from_user_id: 1, to_user_id: 2, amount: 10, currency: 'EUR', fallback_fx };
       await new BudgetController(svc).createSettlement(user, '5', body);
-      expect(createSettlement).toHaveBeenCalledWith('5', expect.objectContaining({ currency: 'EUR', fallback_fx }), user.id);
+      expect(createSettlement).toHaveBeenCalledWith(
+        '5',
+        expect.objectContaining({ currency: 'EUR', fallback_fx }),
+        user.id,
+      );
       await new BudgetController(svc).updateSettlement(user, '5', '3', body);
       expect(updateSettlement).toHaveBeenCalledWith(3, '5', expect.objectContaining({ currency: 'EUR', fallback_fx }));
     });
@@ -133,7 +152,8 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     it('DELETE /settlements/:id 404 when missing', async () => {
       const svc = makeService({ deleteSettlement: vi.fn().mockResolvedValue(false) } as Partial<BudgetService>);
       expect(await thrownAsync(() => new BudgetController(svc).deleteSettlement(user, '5', '7'))).toEqual({
-        status: 404, body: { error: 'Settlement not found' },
+        status: 404,
+        body: { error: 'Settlement not found' },
       });
     });
 
@@ -141,30 +161,43 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     it('DELETE /settlements/:id 404 (not 500) on a non-numeric :settlementId', async () => {
       const svc = makeService({ deleteSettlement: vi.fn() } as Partial<BudgetService>);
       expect(await thrownAsync(() => new BudgetController(svc).deleteSettlement(user, '5', 'abc'))).toEqual({
-        status: 404, body: { error: 'Settlement not found' },
+        status: 404,
+        body: { error: 'Settlement not found' },
       });
     });
 
     it('DELETE /settlements/:id success broadcasts the numeric id', async () => {
       const broadcast = vi.fn();
-      const svc = makeService({ deleteSettlement: vi.fn().mockResolvedValue(true), broadcast } as Partial<BudgetService>);
+      const svc = makeService({
+        deleteSettlement: vi.fn().mockResolvedValue(true),
+        broadcast,
+      } as Partial<BudgetService>);
       expect(await new BudgetController(svc).deleteSettlement(user, '5', '7', 'sock')).toEqual({ success: true });
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:settlement-deleted', { settlementId: 7 }, 'sock');
     });
 
-
     it('PUT /settlements/:id 404 when missing', async () => {
       const svc = makeService({ updateSettlement: vi.fn().mockResolvedValue(null) } as Partial<BudgetService>);
-      expect(await thrownAsync(() => new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 1, to_user_id: 2, amount: 10 }))).toEqual({
-        status: 404, body: { error: 'Settlement not found' },
+      expect(
+        await thrownAsync(() =>
+          new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 1, to_user_id: 2, amount: 10 }),
+        ),
+      ).toEqual({
+        status: 404,
+        body: { error: 'Settlement not found' },
       });
     });
 
     // Plan 4 Task 8b (U6) — :settlementId is parsed ONCE at the controller gate (toRowId).
     it('PUT /settlements/:id 404 (not 500) on a non-numeric :settlementId', async () => {
       const svc = makeService({ updateSettlement: vi.fn() } as Partial<BudgetService>);
-      expect(await thrownAsync(() => new BudgetController(svc).updateSettlement(user, '5', 'abc', { from_user_id: 1, to_user_id: 2, amount: 10 }))).toEqual({
-        status: 404, body: { error: 'Settlement not found' },
+      expect(
+        await thrownAsync(() =>
+          new BudgetController(svc).updateSettlement(user, '5', 'abc', { from_user_id: 1, to_user_id: 2, amount: 10 }),
+        ),
+      ).toEqual({
+        status: 404,
+        body: { error: 'Settlement not found' },
       });
     });
 
@@ -172,11 +205,28 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const updateSettlement = vi.fn().mockResolvedValue({ id: 7, from_user_id: 2, to_user_id: 1, amount: 15 });
       const broadcast = vi.fn();
       const svc = makeService({ updateSettlement, broadcast } as Partial<BudgetService>);
-      const res = await new BudgetController(svc).updateSettlement(user, '5', '7', { from_user_id: 2, to_user_id: 1, amount: 15, currency: 'USD', settled_at: '2026-01-06' }, 'sock');
+      const res = await new BudgetController(svc).updateSettlement(
+        user,
+        '5',
+        '7',
+        { from_user_id: 2, to_user_id: 1, amount: 15, currency: 'USD', settled_at: '2026-01-06' },
+        'sock',
+      );
       expect(res).toEqual({ settlement: { id: 7, from_user_id: 2, to_user_id: 1, amount: 15 } });
       // Plan 4 Task 8b (U6) — :settlementId is now parsed ONCE at the controller gate (toRowId).
-      expect(updateSettlement).toHaveBeenCalledWith(7, '5', { from_user_id: 2, to_user_id: 1, amount: 15, currency: 'USD', settled_at: '2026-01-06' });
-      expect(broadcast).toHaveBeenCalledWith('5', 'budget:settlement-updated', { settlement: { id: 7, from_user_id: 2, to_user_id: 1, amount: 15 } }, 'sock');
+      expect(updateSettlement).toHaveBeenCalledWith(7, '5', {
+        from_user_id: 2,
+        to_user_id: 1,
+        amount: 15,
+        currency: 'USD',
+        settled_at: '2026-01-06',
+      });
+      expect(broadcast).toHaveBeenCalledWith(
+        '5',
+        'budget:settlement-updated',
+        { settlement: { id: 7, from_user_id: 2, to_user_id: 1, amount: 15 } },
+        'sock',
+      );
     });
   });
 
@@ -185,7 +235,10 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
 
     it('forwards fallback_fx and broadcasts per row', async () => {
       const healed = {
-        items: [{ id: 7, exchange_rate: 18241.3 }, { id: 8, exchange_rate: 18241.3 }],
+        items: [
+          { id: 7, exchange_rate: 18241.3 },
+          { id: 8, exchange_rate: 18241.3 },
+        ],
         settlements: [{ id: 3, exchange_rate: 18241.3 }],
         unresolved: ['XAF'],
       };
@@ -203,9 +256,13 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
 
     it('answers 409 and broadcasts nothing when the trip currency changed meanwhile', async () => {
       const broadcast = vi.fn();
-      const svc = makeService({ freezeMissingRates: vi.fn().mockResolvedValue(null), broadcast } as Partial<BudgetService>);
+      const svc = makeService({
+        freezeMissingRates: vi.fn().mockResolvedValue(null),
+        broadcast,
+      } as Partial<BudgetService>);
       expect(await thrownAsync(() => new BudgetController(svc).freezeRates(user, '5', {}))).toEqual({
-        status: 409, body: { error: 'The trip currency changed. Reload and try again.' },
+        status: 409,
+        body: { error: 'The trip currency changed. Reload and try again.' },
       });
       expect(broadcast).not.toHaveBeenCalled();
     });
@@ -218,7 +275,6 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
   });
 
   describe('POST /', () => {
-
     // The legacy 'Name is required' 400 is now produced by the global
     // ZodValidationPipe (budgetCreateItemRequestSchema requires name) before
     // the handler runs — covered by the integration suite.
@@ -229,7 +285,9 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const linkRefusal = vi.fn().mockReturnValue(null);
       const resyncReservationPrice = vi.fn();
       const svc = makeService({ create, broadcast, linkRefusal, resyncReservationPrice } as Partial<BudgetService>);
-      expect(await new BudgetController(svc).create(user, '5', { name: 'Hotel', total_price: 200 }, 'sock')).toEqual({ item: { id: 9, name: 'Hotel' } });
+      expect(await new BudgetController(svc).create(user, '5', { name: 'Hotel', total_price: 200 }, 'sock')).toEqual({
+        item: { id: 9, name: 'Hotel' },
+      });
       expect(linkRefusal).toHaveBeenCalledWith('5', { name: 'Hotel', total_price: 200 });
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:created', { item: { id: 9, name: 'Hotel' } }, 'sock');
       // Not linked to a booking, so no booking price to work out.
@@ -240,8 +298,19 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const item = { id: 9, name: 'Seat', total_price: 15, reservation_id: 42 };
       const resyncReservationPrice = vi.fn();
       const broadcast = vi.fn();
-      const svc = makeService({ create: vi.fn().mockReturnValue(item), resyncReservationPrice, broadcast } as Partial<BudgetService>);
-      expect(await new BudgetController(svc).create(user, '5', { name: 'Seat', total_price: 15, reservation_id: 42 }, 'sock')).toEqual({ item });
+      const svc = makeService({
+        create: vi.fn().mockReturnValue(item),
+        resyncReservationPrice,
+        broadcast,
+      } as Partial<BudgetService>);
+      expect(
+        await new BudgetController(svc).create(
+          user,
+          '5',
+          { name: 'Seat', total_price: 15, reservation_id: 42 },
+          'sock',
+        ),
+      ).toEqual({ item });
       expect(resyncReservationPrice).toHaveBeenCalledWith('5', 42, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:created', { item }, 'sock');
     });
@@ -256,7 +325,8 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const svc = makeService({ create, broadcast, linkRefusal, resyncReservationPrice } as Partial<BudgetService>);
       const body = { name: 'Hotel', total_price: 200, reservation_id: 4711 };
       expect(await thrownAsync(() => new BudgetController(svc).create(user, '5', body, 'sock'))).toEqual({
-        status: 400, body: { error: 'reservation_id does not belong to this trip.' },
+        status: 400,
+        body: { error: 'reservation_id does not belong to this trip.' },
       });
       expect(linkRefusal).toHaveBeenCalledWith('5', body);
       expect(create).not.toHaveBeenCalled();
@@ -270,8 +340,11 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
         create,
         linkRefusal: vi.fn().mockReturnValue('place_id does not belong to this trip.'),
       } as Partial<BudgetService>);
-      expect(await thrownAsync(() => new BudgetController(svc).create(user, '5', { name: 'Tickets', place_id: 4711 }))).toEqual({
-        status: 400, body: { error: 'place_id does not belong to this trip.' },
+      expect(
+        await thrownAsync(() => new BudgetController(svc).create(user, '5', { name: 'Tickets', place_id: 4711 })),
+      ).toEqual({
+        status: 400,
+        body: { error: 'place_id does not belong to this trip.' },
       });
       expect(create).not.toHaveBeenCalled();
     });
@@ -282,7 +355,8 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const resyncLinkedPrices = vi.fn();
       const svc = makeService({ update: vi.fn().mockReturnValue(null), resyncLinkedPrices } as Partial<BudgetService>);
       expect(await thrownAsync(() => new BudgetController(svc).update(user, '5', '9', { name: 'X' }))).toEqual({
-        status: 404, body: { error: 'Budget item not found' },
+        status: 404,
+        body: { error: 'Budget item not found' },
       });
       expect(resyncLinkedPrices).not.toHaveBeenCalled();
     });
@@ -291,7 +365,8 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     it('404 (not 500) on a non-numeric :id', async () => {
       const svc = makeService({ update: vi.fn() } as Partial<BudgetService>);
       expect(await thrownAsync(() => new BudgetController(svc).update(user, '5', 'abc', { name: 'X' }))).toEqual({
-        status: 404, body: { error: 'Budget item not found' },
+        status: 404,
+        body: { error: 'Budget item not found' },
       });
     });
 
@@ -302,8 +377,11 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const getBudgetItem = vi.fn();
       const linkRefusal = vi.fn().mockReturnValue('reservation_id does not belong to this trip.');
       const svc = makeService({ update, getBudgetItem, linkRefusal } as Partial<BudgetService>);
-      expect(await thrownAsync(() => new BudgetController(svc).update(user, '5', 'abc', { reservation_id: 4711 }))).toEqual({
-        status: 400, body: { error: 'reservation_id does not belong to this trip.' },
+      expect(
+        await thrownAsync(() => new BudgetController(svc).update(user, '5', 'abc', { reservation_id: 4711 })),
+      ).toEqual({
+        status: 400,
+        body: { error: 'reservation_id does not belong to this trip.' },
       });
       expect(linkRefusal).toHaveBeenCalledWith('5', { reservation_id: 4711 });
       expect(getBudgetItem).not.toHaveBeenCalled();
@@ -317,7 +395,9 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const resyncLinkedPrices = vi.fn();
       const broadcast = vi.fn();
       const svc = makeService({ update, getBudgetItem, resyncLinkedPrices, broadcast } as Partial<BudgetService>);
-      expect(await new BudgetController(svc).update(user, '5', '9', { total_price: 250 }, 'sock')).toEqual({ item: updated });
+      expect(await new BudgetController(svc).update(user, '5', '9', { total_price: 250 }, 'sock')).toEqual({
+        item: updated,
+      });
       // No link in the body, so the booking cannot have changed and the stored row is not read.
       expect(getBudgetItem).not.toHaveBeenCalled();
       expect(resyncLinkedPrices).toHaveBeenCalledWith('5', undefined, updated, { total_price: 250 }, 'sock');
@@ -326,9 +406,15 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
 
     it('snapshots the item before a re-link, so the booking it leaves is resynced too', async () => {
       const calls: string[] = [];
-      const getBudgetItem = vi.fn().mockImplementation(() => { calls.push('snapshot'); return { id: 9, reservation_id: 42 }; });
+      const getBudgetItem = vi.fn().mockImplementation(() => {
+        calls.push('snapshot');
+        return { id: 9, reservation_id: 42 };
+      });
       const updated = { id: 9, reservation_id: 43, total_price: 80 };
-      const update = vi.fn().mockImplementation(() => { calls.push('write'); return updated; });
+      const update = vi.fn().mockImplementation(() => {
+        calls.push('write');
+        return updated;
+      });
       const resyncLinkedPrices = vi.fn();
       const svc = makeService({ update, getBudgetItem, resyncLinkedPrices } as Partial<BudgetService>);
       await new BudgetController(svc).update(user, '5', '9', { reservation_id: 43 }, 'sock');
@@ -341,8 +427,14 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const getBudgetItem = vi.fn().mockReturnValue({ id: 9, reservation_id: 42 });
       const updated = { id: 9, reservation_id: null, total_price: 80 };
       const resyncLinkedPrices = vi.fn();
-      const svc = makeService({ update: vi.fn().mockReturnValue(updated), getBudgetItem, resyncLinkedPrices } as Partial<BudgetService>);
-      expect(await new BudgetController(svc).update(user, '5', '9', { reservation_id: null })).toEqual({ item: updated });
+      const svc = makeService({
+        update: vi.fn().mockReturnValue(updated),
+        getBudgetItem,
+        resyncLinkedPrices,
+      } as Partial<BudgetService>);
+      expect(await new BudgetController(svc).update(user, '5', '9', { reservation_id: null })).toEqual({
+        item: updated,
+      });
       expect(resyncLinkedPrices).toHaveBeenCalledWith('5', 42, updated, { reservation_id: null }, undefined);
     });
 
@@ -352,9 +444,18 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const resyncLinkedPrices = vi.fn();
       const broadcast = vi.fn();
       const linkRefusal = vi.fn().mockReturnValue('reservation_id does not belong to this trip.');
-      const svc = makeService({ update, getBudgetItem, resyncLinkedPrices, broadcast, linkRefusal } as Partial<BudgetService>);
-      expect(await thrownAsync(() => new BudgetController(svc).update(user, '5', '9', { reservation_id: 4711 }, 'sock'))).toEqual({
-        status: 400, body: { error: 'reservation_id does not belong to this trip.' },
+      const svc = makeService({
+        update,
+        getBudgetItem,
+        resyncLinkedPrices,
+        broadcast,
+        linkRefusal,
+      } as Partial<BudgetService>);
+      expect(
+        await thrownAsync(() => new BudgetController(svc).update(user, '5', '9', { reservation_id: 4711 }, 'sock')),
+      ).toEqual({
+        status: 400,
+        body: { error: 'reservation_id does not belong to this trip.' },
       });
       expect(linkRefusal).toHaveBeenCalledWith('5', { reservation_id: 4711 });
       expect(getBudgetItem).not.toHaveBeenCalled();
@@ -370,7 +471,8 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
         linkRefusal: vi.fn().mockReturnValue('place_id does not belong to this trip.'),
       } as Partial<BudgetService>);
       expect(await thrownAsync(() => new BudgetController(svc).update(user, '5', '9', { place_id: 4711 }))).toEqual({
-        status: 400, body: { error: 'place_id does not belong to this trip.' },
+        status: 400,
+        body: { error: 'place_id does not belong to this trip.' },
       });
       expect(update).not.toHaveBeenCalled();
     });
@@ -382,8 +484,11 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
 
     it('404 when the item is missing', async () => {
       const svc = makeService({ updateMembers: vi.fn().mockResolvedValue(null) } as Partial<BudgetService>);
-      expect(await thrownAsync(() => new BudgetController(svc).updateMembers(user, '5', '9', { user_ids: [2, 3] }))).toEqual({
-        status: 404, body: { error: 'Budget item not found' },
+      expect(
+        await thrownAsync(() => new BudgetController(svc).updateMembers(user, '5', '9', { user_ids: [2, 3] })),
+      ).toEqual({
+        status: 404,
+        body: { error: 'Budget item not found' },
       });
     });
 
@@ -395,13 +500,21 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       expect(res).toEqual({ members: [{ user_id: 2 }], item: { persons: 1 } });
       // Plan 4 Task 8b (U6) — :id is now parsed ONCE at the controller gate (toRowId).
       expect(updateMembers).toHaveBeenCalledWith(9, '5', [2]);
-      expect(broadcast).toHaveBeenCalledWith('5', 'budget:members-updated', { itemId: 9, members: [{ user_id: 2 }], persons: 1 }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith(
+        '5',
+        'budget:members-updated',
+        { itemId: 9, members: [{ user_id: 2 }], persons: 1 },
+        'sock',
+      );
     });
 
     it('404 (not 500) on a non-numeric :id', async () => {
       const svc = makeService({ updateMembers: vi.fn() } as Partial<BudgetService>);
-      expect(await thrownAsync(() => new BudgetController(svc).updateMembers(user, '5', 'abc', { user_ids: [2] }))).toEqual({
-        status: 404, body: { error: 'Budget item not found' },
+      expect(
+        await thrownAsync(() => new BudgetController(svc).updateMembers(user, '5', 'abc', { user_ids: [2] })),
+      ).toEqual({
+        status: 404,
+        body: { error: 'Budget item not found' },
       });
     });
   });
@@ -412,9 +525,17 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
 
     it('404 when the item is missing', async () => {
       const resyncReservationPrice = vi.fn();
-      const svc = makeService({ setPayers: vi.fn().mockResolvedValue(null), resyncReservationPrice } as Partial<BudgetService>);
-      expect(await thrownAsync(() => new BudgetController(svc).setPayers(user, '5', '9', { payers: [{ user_id: 2, amount: 10 }] }))).toEqual({
-        status: 404, body: { error: 'Budget item not found' },
+      const svc = makeService({
+        setPayers: vi.fn().mockResolvedValue(null),
+        resyncReservationPrice,
+      } as Partial<BudgetService>);
+      expect(
+        await thrownAsync(() =>
+          new BudgetController(svc).setPayers(user, '5', '9', { payers: [{ user_id: 2, amount: 10 }] }),
+        ),
+      ).toEqual({
+        status: 404,
+        body: { error: 'Budget item not found' },
       });
       expect(resyncReservationPrice).not.toHaveBeenCalled();
     });
@@ -424,11 +545,22 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const broadcast = vi.fn();
       const resyncReservationPrice = vi.fn();
       const svc = makeService({ setPayers, broadcast, resyncReservationPrice } as Partial<BudgetService>);
-      const res = await new BudgetController(svc).setPayers(user, '5', '9', { payers: [{ user_id: 2, amount: 10 }] }, 'sock');
+      const res = await new BudgetController(svc).setPayers(
+        user,
+        '5',
+        '9',
+        { payers: [{ user_id: 2, amount: 10 }] },
+        'sock',
+      );
       expect(res).toEqual({ item: { id: 9, payers: [{ user_id: 2, amount: 10 }] } });
       // Plan 4 Task 8b (U6) — :id is now parsed ONCE at the controller gate (toRowId).
       expect(setPayers).toHaveBeenCalledWith(9, '5', [{ user_id: 2, amount: 10 }]);
-      expect(broadcast).toHaveBeenCalledWith('5', 'budget:updated', { item: { id: 9, payers: [{ user_id: 2, amount: 10 }] } }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith(
+        '5',
+        'budget:updated',
+        { item: { id: 9, payers: [{ user_id: 2, amount: 10 }] } },
+        'sock',
+      );
       expect(resyncReservationPrice).not.toHaveBeenCalled();
     });
 
@@ -436,8 +568,14 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
       const item = { id: 9, reservation_id: 42, total_price: 30, payers: [{ user_id: 2, amount: 30 }] };
       const resyncReservationPrice = vi.fn();
       const broadcast = vi.fn();
-      const svc = makeService({ setPayers: vi.fn().mockReturnValue(item), resyncReservationPrice, broadcast } as Partial<BudgetService>);
-      expect(await new BudgetController(svc).setPayers(user, '5', '9', { payers: [{ user_id: 2, amount: 30 }] }, 'sock')).toEqual({ item });
+      const svc = makeService({
+        setPayers: vi.fn().mockReturnValue(item),
+        resyncReservationPrice,
+        broadcast,
+      } as Partial<BudgetService>);
+      expect(
+        await new BudgetController(svc).setPayers(user, '5', '9', { payers: [{ user_id: 2, amount: 30 }] }, 'sock'),
+      ).toEqual({ item });
       expect(resyncReservationPrice).toHaveBeenCalledWith('5', 42, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:updated', { item }, 'sock');
     });
@@ -445,7 +583,8 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     it('404 (not 500) on a non-numeric :id', async () => {
       const svc = makeService({ setPayers: vi.fn() } as Partial<BudgetService>);
       expect(await thrownAsync(() => new BudgetController(svc).setPayers(user, '5', 'abc', { payers: [] }))).toEqual({
-        status: 404, body: { error: 'Budget item not found' },
+        status: 404,
+        body: { error: 'Budget item not found' },
       });
     });
   });
@@ -454,8 +593,15 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     const toggleMemberPaid = vi.fn().mockResolvedValue({ user_id: 2, paid: 1 });
     const broadcast = vi.fn();
     const svc = makeService({ toggleMemberPaid, broadcast } as Partial<BudgetService>);
-    expect(await new BudgetController(svc).toggleMemberPaid(user, '5', '9', '2', { paid: true }, 'sock')).toEqual({ member: { user_id: 2, paid: 1 } });
-    expect(broadcast).toHaveBeenCalledWith('5', 'budget:member-paid-updated', { itemId: 9, userId: 2, paid: 1 }, 'sock');
+    expect(await new BudgetController(svc).toggleMemberPaid(user, '5', '9', '2', { paid: true }, 'sock')).toEqual({
+      member: { user_id: 2, paid: 1 },
+    });
+    expect(broadcast).toHaveBeenCalledWith(
+      '5',
+      'budget:member-paid-updated',
+      { itemId: 9, userId: 2, paid: 1 },
+      'sock',
+    );
   });
 
   it('PUT /:id/members/:userId/paid broadcasts paid: 0 when toggled off', async () => {
@@ -463,7 +609,12 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     const broadcast = vi.fn();
     const svc = makeService({ toggleMemberPaid, broadcast } as Partial<BudgetService>);
     await new BudgetController(svc).toggleMemberPaid(user, '5', '9', '2', { paid: false }, 'sock');
-    expect(broadcast).toHaveBeenCalledWith('5', 'budget:member-paid-updated', { itemId: 9, userId: 2, paid: 0 }, 'sock');
+    expect(broadcast).toHaveBeenCalledWith(
+      '5',
+      'budget:member-paid-updated',
+      { itemId: 9, userId: 2, paid: 0 },
+      'sock',
+    );
   });
 
   // Plan 4 Task 8b (U6) — :id/:userId are now parsed ONCE at the gate
@@ -480,13 +631,19 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     const res = await new BudgetController(svc).toggleMemberPaid(user, '5', 'abc', '2', { paid: true }, 'sock');
     expect(res).toEqual({ member: null });
     expect(toggleMemberPaid).not.toHaveBeenCalled();
-    expect(broadcast).toHaveBeenCalledWith('5', 'budget:member-paid-updated', { itemId: NaN, userId: 2, paid: 1 }, 'sock');
+    expect(broadcast).toHaveBeenCalledWith(
+      '5',
+      'budget:member-paid-updated',
+      { itemId: NaN, userId: 2, paid: 1 },
+      'sock',
+    );
   });
 
   it('DELETE /:id 404 when missing, success otherwise', async () => {
     const missing = makeService({ remove: vi.fn().mockResolvedValue(false) } as Partial<BudgetService>);
     expect(await thrownAsync(() => new BudgetController(missing).remove(user, '5', '9'))).toEqual({
-      status: 404, body: { error: 'Budget item not found' },
+      status: 404,
+      body: { error: 'Budget item not found' },
     });
     const ok = makeService({ remove: vi.fn().mockResolvedValue(true), broadcast: vi.fn() } as Partial<BudgetService>);
     expect(await new BudgetController(ok).remove(user, '5', '9')).toEqual({ success: true });
@@ -496,16 +653,23 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
   it('DELETE /:id 404 (not 500) on a non-numeric :id', async () => {
     const svc = makeService({ remove: vi.fn() } as Partial<BudgetService>);
     expect(await thrownAsync(() => new BudgetController(svc).remove(user, '5', 'abc'))).toEqual({
-      status: 404, body: { error: 'Budget item not found' },
+      status: 404,
+      body: { error: 'Budget item not found' },
     });
   });
 
   it('PUT /reorder/items + /reorder/categories broadcast budget:reordered', async () => {
-    const reorderItems = vi.fn(); const reorderCategories = vi.fn(); const broadcast = vi.fn();
+    const reorderItems = vi.fn();
+    const reorderCategories = vi.fn();
+    const broadcast = vi.fn();
     const svc = makeService({ reorderItems, reorderCategories, broadcast } as Partial<BudgetService>);
-    expect(await new BudgetController(svc).reorderItems(user, '5', { orderedIds: [3, 1] }, 'sock')).toEqual({ success: true });
+    expect(await new BudgetController(svc).reorderItems(user, '5', { orderedIds: [3, 1] }, 'sock')).toEqual({
+      success: true,
+    });
     expect(reorderItems).toHaveBeenCalledWith('5', [3, 1]);
-    expect(await new BudgetController(svc).reorderCategories(user, '5', { orderedCategories: ['food', 'fun'] }, 'sock')).toEqual({ success: true });
+    expect(
+      await new BudgetController(svc).reorderCategories(user, '5', { orderedCategories: ['food', 'fun'] }, 'sock'),
+    ).toEqual({ success: true });
     expect(reorderCategories).toHaveBeenCalledWith('5', ['food', 'fun']);
   });
 });

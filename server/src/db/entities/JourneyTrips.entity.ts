@@ -1,7 +1,7 @@
-import { EntityRepositoryType, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { JourneyTripsRepository } from '../repositories/JourneyTrips.repository';
 import { Journeys } from './Journeys.entity';
 import { Trips } from './Trips.entity';
+import { EntityRepositoryType, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class JourneyTrips {
   [EntityRepositoryType]?: JourneyTripsRepository;

@@ -1,10 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser, createTrip } from '../../../helpers/factories';
 import { DawarichVisitSuggestions } from '../../../../src/db/entities/DawarichVisitSuggestions.entity';
 import type { DawarichVisitSuggestionsRepository } from '../../../../src/db/repositories/DawarichVisitSuggestions.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser, createTrip } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -97,23 +98,33 @@ function rawRow(id: number): Record<string, unknown> {
 
 function seedPlace(tripId: number): number {
   const category = testDb.prepare('SELECT id FROM categories LIMIT 1').get() as { id: number } | undefined;
-  const result = testDb.prepare('INSERT INTO places (trip_id, name, category_id) VALUES (?, ?, ?)').run(tripId, 'A place', category?.id ?? null);
+  const result = testDb
+    .prepare('INSERT INTO places (trip_id, name, category_id) VALUES (?, ?, ?)')
+    .run(tripId, 'A place', category?.id ?? null);
   return Number(result.lastInsertRowid);
 }
 
 function seedJourneyEntry(userId: number): number {
   const journeyId = Number(
-    testDb.prepare("INSERT INTO journeys (user_id, title, status, created_at, updated_at) VALUES (?, 'Trip diary', 'active', 0, 0)").run(userId).lastInsertRowid,
+    testDb
+      .prepare(
+        "INSERT INTO journeys (user_id, title, status, created_at, updated_at) VALUES (?, 'Trip diary', 'active', 0, 0)",
+      )
+      .run(userId).lastInsertRowid,
   );
   return Number(
     testDb
-      .prepare("INSERT INTO journey_entries (journey_id, author_id, type, title, entry_date, created_at, updated_at) VALUES (?, ?, 'entry', 'Cafe', '2026-09-01', 0, 0)")
+      .prepare(
+        "INSERT INTO journey_entries (journey_id, author_id, type, title, entry_date, created_at, updated_at) VALUES (?, ?, 'entry', 'Cafe', '2026-09-01', 0, 0)",
+      )
       .run(journeyId, userId).lastInsertRowid,
   );
 }
 
 function seedBucketItem(userId: number): number {
-  return Number(testDb.prepare('INSERT INTO bucket_list (user_id, name) VALUES (?, ?)').run(userId, 'Wish').lastInsertRowid);
+  return Number(
+    testDb.prepare('INSERT INTO bucket_list (user_id, name) VALUES (?, ?)').run(userId, 'Wish').lastInsertRowid,
+  );
 }
 
 describe('DawarichVisitSuggestionsRepository', () => {
@@ -142,7 +153,7 @@ describe('DawarichVisitSuggestionsRepository', () => {
       expect(rows[0].matched_bucket_name).toBe('Wish');
     });
 
-    it('DVSREPO-002: scoped by user_id — a stranger\'s row never appears', async () => {
+    it("DVSREPO-002: scoped by user_id — a stranger's row never appears", async () => {
       const { user } = createUser(testDb);
       const { user: stranger } = createUser(testDb);
       seed(stranger.id);
@@ -213,7 +224,7 @@ describe('DawarichVisitSuggestionsRepository', () => {
       expect(rawRow(id).state).toBe('new');
     });
 
-    it('DVSREPO-014: an intact acceptance (place still exists) is left alone; another user\'s orphan is untouched', async () => {
+    it("DVSREPO-014: an intact acceptance (place still exists) is left alone; another user's orphan is untouched", async () => {
       const { user } = createUser(testDb);
       const { user: stranger } = createUser(testDb);
       const trip = createTrip(testDb, user.id);
@@ -318,7 +329,13 @@ describe('DawarichVisitSuggestionsRepository', () => {
 
       await suggestions.refreshHash(id, 'h3', '2026-03-01T00:00:00Z');
 
-      expect(rawRow(id)).toMatchObject({ name: 'Kept name', state: 'accepted', source_hash: 'h3', source_missing_at: null, last_seen_at: '2026-03-01T00:00:00Z' });
+      expect(rawRow(id)).toMatchObject({
+        name: 'Kept name',
+        state: 'accepted',
+        source_hash: 'h3',
+        source_missing_at: null,
+        last_seen_at: '2026-03-01T00:00:00Z',
+      });
     });
   });
 
@@ -374,7 +391,7 @@ describe('DawarichVisitSuggestionsRepository', () => {
   });
 
   describe('listHoldersOfWish/clearWishHolders/assignWishHolder (DSY11/12/13)', () => {
-    it('DVSREPO-060: listHoldersOfWish excludes the caller\'s own source_visit_id', async () => {
+    it("DVSREPO-060: listHoldersOfWish excludes the caller's own source_visit_id", async () => {
       const { user } = createUser(testDb);
       const wish = seedBucketItem(user.id);
       const holder = seed(user.id, { source_visit_id: 'holder', matched_bucket_list_item_id: wish });
@@ -397,7 +414,9 @@ describe('DawarichVisitSuggestionsRepository', () => {
       await suggestions.assignWishHolder(user.id, 'c', wish);
 
       const all = testDb
-        .prepare('SELECT id, matched_bucket_list_item_id FROM dawarich_visit_suggestions WHERE matched_bucket_list_item_id = ? AND user_id = ?')
+        .prepare(
+          'SELECT id, matched_bucket_list_item_id FROM dawarich_visit_suggestions WHERE matched_bucket_list_item_id = ? AND user_id = ?',
+        )
         .all(wish, user.id) as { id: number; matched_bucket_list_item_id: number }[];
       expect(all.map((r) => r.id)).toEqual([winnerId]);
       // clearWishHolders is scoped by user_id — another user's row with the
@@ -408,7 +427,7 @@ describe('DawarichVisitSuggestionsRepository', () => {
   });
 
   describe('matchedStayStart (DWS14)', () => {
-    it('DVSREPO-070: the most recent started_at among the user\'s stays matched to that wish', async () => {
+    it("DVSREPO-070: the most recent started_at among the user's stays matched to that wish", async () => {
       const { user } = createUser(testDb);
       const wish = seedBucketItem(user.id);
       seed(user.id, { matched_bucket_list_item_id: wish, started_at: '2026-01-01T00:00:00Z' });

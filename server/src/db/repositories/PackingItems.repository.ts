@@ -1,9 +1,9 @@
-import type { PackingItems } from '../entities/PackingItems.entity';
 import { currentTimestamp } from '../dialect/sql-functions';
+import type { PackingItems } from '../entities/PackingItems.entity';
+import { packingVisibleToActorExpr, type PackingVisibilityKyselyDB } from './_shared/packing-visibility';
+import { presenceSet } from './_shared/presence-set';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import { presenceSet } from './_shared/presence-set';
-import { packingVisibleToActorExpr, type PackingVisibilityKyselyDB } from './_shared/packing-visibility';
 
 /** A bare `packing_items` row — every scalar column, incl. the three `persist(false)` relation mirrors (`trip_id`, `bag_id`, `owner_id`) — the program-wide trap this class goes through Kysely throughout to avoid. */
 export interface PackingItemRow {
@@ -119,7 +119,13 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
 
   /** PK4 (`listItems`'s no-viewer branch) — `SELECT * FROM packing_items WHERE trip_id = ? ORDER BY sort_order ASC, created_at ASC`, unfiltered — only for genuinely viewer-less internal reads. */
   async listForTrip(trip_id: number | string): Promise<PackingItemRow[]> {
-    return await this.db().selectFrom('packing_items').selectAll().where('trip_id', '=', trip_id as number).orderBy('sort_order', 'asc').orderBy('created_at', 'asc').execute();
+    return await this.db()
+      .selectFrom('packing_items')
+      .selectAll()
+      .where('trip_id', '=', trip_id as number)
+      .orderBy('sort_order', 'asc')
+      .orderBy('created_at', 'asc')
+      .execute();
   }
 
   /**
@@ -161,13 +167,25 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
   }
 
   /** PK6 (`getItemPrivacy`) — `SELECT is_private, owner_id FROM packing_items WHERE id = ? AND trip_id = ?`. `id: number` (Plan 4 Task 8b, U6 — the program's gate-level id parsing carry: its one caller, `PackingService.getItemPrivacy`, is only reached with a `toRowId`-parsed id); `trip_id` stays `number | string`, a separate, still-accepted carry. */
-  async getPrivacy(id: number, trip_id: number | string): Promise<{ is_private: number; owner_id: number | null } | undefined> {
-    return await this.db().selectFrom('packing_items').select(['is_private', 'owner_id']).where('id', '=', id).where('trip_id', '=', trip_id as number).executeTakeFirst();
+  async getPrivacy(
+    id: number,
+    trip_id: number | string,
+  ): Promise<{ is_private: number; owner_id: number | null } | undefined> {
+    return await this.db()
+      .selectFrom('packing_items')
+      .select(['is_private', 'owner_id'])
+      .where('id', '=', id)
+      .where('trip_id', '=', trip_id as number)
+      .executeTakeFirst();
   }
 
   /** PK7/PK28/PK51 (`createItem`/`bulkImport`/`applyTemplate`) — `SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?`, one method, three call sites. */
   async maxSortOrder(trip_id: number | string): Promise<number | null> {
-    const row = await this.db().selectFrom('packing_items').select((eb) => eb.fn.max('sort_order').as('max')).where('trip_id', '=', trip_id as number).executeTakeFirst();
+    const row = await this.db()
+      .selectFrom('packing_items')
+      .select((eb) => eb.fn.max('sort_order').as('max'))
+      .where('trip_id', '=', trip_id as number)
+      .executeTakeFirst();
     return row?.max ?? null;
   }
 
@@ -195,8 +213,16 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
    * `day`/`place` precedent).
    */
   async insertItem(row: {
-    trip_id: number | string; name: string; checked: number; category: string; sort_order: number;
-    quantity: number; weight_grams: number | null; bag_id: number | null; is_private: number; owner_id: number | null;
+    trip_id: number | string;
+    name: string;
+    checked: number;
+    category: string;
+    sort_order: number;
+    quantity: number;
+    weight_grams: number | null;
+    bag_id: number | null;
+    is_private: number;
+    owner_id: number | null;
   }): Promise<number> {
     const platform = this.getEntityManager().getPlatform();
     const id = await this.insert({
@@ -224,8 +250,15 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
    * same reason as {@link insertItem}'s docstring. Returns the new row's id.
    */
   async insertFromTemplate(row: {
-    trip_id: number | string; name: string; category: string; sort_order: number; is_private: number; owner_id: number | null;
-    weight_grams: number | null; quantity: number; bag_id: number | null;
+    trip_id: number | string;
+    name: string;
+    category: string;
+    sort_order: number;
+    is_private: number;
+    owner_id: number | null;
+    weight_grams: number | null;
+    quantity: number;
+    bag_id: number | null;
   }): Promise<number> {
     const platform = this.getEntityManager().getPlatform();
     const id = await this.insert({
@@ -284,7 +317,11 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
    * sites now thread a `toRowId`-parsed/Zod-typed id); `trip_id` stays
    * `number | string`, a separate, still-accepted carry.
    */
-  async findVisibleInTrip(id: number, trip_id: number | string, actorId: number | undefined): Promise<PackingItemRow | undefined> {
+  async findVisibleInTrip(
+    id: number,
+    trip_id: number | string,
+    actorId: number | undefined,
+  ): Promise<PackingItemRow | undefined> {
     if (actorId == null) return undefined;
     return await this.db()
       .selectFrom('packing_items')
@@ -317,21 +354,31 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
    * no `updated_at` column at all).
    */
   /** `id: number`, same Plan 4 Task 8b (U6) narrowing as {@link findById} (its one caller, `updateItem`, is only reached with a `toRowId`-parsed/Zod-typed id). */
-  async update(id: number, write: {
-    name?: readonly [present: boolean, value: string | null];
-    checked?: readonly [present: boolean, value: number];
-    packed_quantity?: readonly [present: boolean, value: number | null];
-    category?: readonly [present: boolean, value: string | null];
-    weight_grams?: readonly [present: boolean, value: number | null];
-    bag_id?: readonly [present: boolean, value: number | null];
-    quantity?: readonly [present: boolean, value: number];
-    is_private?: readonly [present: boolean, value: number];
-    owner_id?: readonly [present: boolean, value: number | null];
-  }): Promise<void> {
+  async update(
+    id: number,
+    write: {
+      name?: readonly [present: boolean, value: string | null];
+      checked?: readonly [present: boolean, value: number];
+      packed_quantity?: readonly [present: boolean, value: number | null];
+      category?: readonly [present: boolean, value: string | null];
+      weight_grams?: readonly [present: boolean, value: number | null];
+      bag_id?: readonly [present: boolean, value: number | null];
+      quantity?: readonly [present: boolean, value: number];
+      is_private?: readonly [present: boolean, value: number];
+      owner_id?: readonly [present: boolean, value: number | null];
+    },
+  ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     const data = presenceSet<{
-      name: string | null; checked: number; packed_quantity: number | null; category: string | null; weight_grams: number | null;
-      bag: number | null; quantity: number; is_private: number; owner: number | null;
+      name: string | null;
+      checked: number;
+      packed_quantity: number | null;
+      category: string | null;
+      weight_grams: number | null;
+      bag: number | null;
+      quantity: number;
+      is_private: number;
+      owner: number | null;
     }>({
       name: write.name,
       checked: write.checked,
@@ -358,7 +405,9 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
    */
   async updateSharing(id: number, is_private: number, claimOwnerId?: number): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
-    const data = presenceSet<{ owner: number }>({ owner: claimOwnerId !== undefined ? [true, claimOwnerId] : undefined });
+    const data = presenceSet<{ owner: number }>({
+      owner: claimOwnerId !== undefined ? [true, claimOwnerId] : undefined,
+    });
     await this.nativeUpdate({ id }, { is_private, ...data, updated_at: currentTimestamp(platform) });
   }
 
@@ -469,7 +518,16 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
    * stay restricted, owned by the copier; recipient rows are not carried
    * over (the caller's own note, unchanged).
    */
-  async insertCopy(row: { trip_id: number | string; name: string; category: string | null; sort_order: number | null; weight_grams: number | null; bag_id: number | null; is_private: number; owner_id: number | null }): Promise<number> {
+  async insertCopy(row: {
+    trip_id: number | string;
+    name: string;
+    category: string | null;
+    sort_order: number | null;
+    weight_grams: number | null;
+    bag_id: number | null;
+    is_private: number;
+    owner_id: number | null;
+  }): Promise<number> {
     const platform = this.getEntityManager().getPlatform();
     const id = await this.insert({
       trip: row.trip_id,

@@ -1,11 +1,11 @@
-import { ReactNode } from 'react'
+import { ReactNode } from 'react';
 
 interface MDropdownPanelProps {
-  open: boolean
-  onClose: () => void
+  open: boolean;
+  onClose: () => void;
   /** Positioning classes (e.g. `top-[100px] right-4`); panel is fixed. */
-  className?: string
-  children: ReactNode
+  className?: string;
+  children: ReactNode;
 }
 
 /**
@@ -15,7 +15,7 @@ interface MDropdownPanelProps {
  * sheets (z-60), matching the design's stacking order.
  */
 export default function MDropdownPanel({ open, onClose, className = '', children }: MDropdownPanelProps) {
-  if (!open) return null
+  if (!open) return null;
 
   return (
     <>
@@ -28,5 +28,5 @@ export default function MDropdownPanel({ open, onClose, className = '', children
         {children}
       </div>
     </>
-  )
+  );
 }

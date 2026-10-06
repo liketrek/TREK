@@ -1,3 +1,12 @@
+import {
+  estimateCondition,
+  cacheKey,
+  getWeather,
+  getDetailedWeather,
+  ApiError,
+  type WeatherResult,
+} from '../../../../src/nest/weather/weather.impl';
+
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 
 // Fake timers for the cache-expiry cases below. The module no longer starts a
@@ -8,15 +17,6 @@ vi.useFakeTimers();
 vi.stubGlobal('fetch', vi.fn());
 
 afterAll(() => vi.unstubAllGlobals());
-
-import {
-  estimateCondition,
-  cacheKey,
-  getWeather,
-  getDetailedWeather,
-  ApiError,
-  type WeatherResult,
-} from '../../../../src/nest/weather/weather.impl';
 
 // ── estimateCondition ────────────────────────────────────────────────────────
 
@@ -275,9 +275,7 @@ describe('getWeather', () => {
           weathercode: [2],
         },
       };
-      vi.mocked(fetch)
-        .mockResolvedValueOnce(mockResponse(missBody))
-        .mockResolvedValueOnce(mockResponse(pastDaysBody));
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse(missBody)).mockResolvedValueOnce(mockResponse(pastDaysBody));
 
       const result = await getWeather('50.00', '60.00', date, 'en');
 
@@ -299,9 +297,7 @@ describe('getWeather', () => {
           weathercode: [3],
         },
       };
-      vi.mocked(fetch)
-        .mockResolvedValueOnce(mockResponse(body))
-        .mockResolvedValueOnce(mockResponse(body));
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse(body)).mockResolvedValueOnce(mockResponse(body));
 
       const en = await getWeather('50.01', '60.01', date, 'en');
       const de = await getWeather('50.01', '60.01', date, 'de');
@@ -336,8 +332,8 @@ describe('getWeather', () => {
       };
 
       vi.mocked(fetch)
-          .mockResolvedValueOnce(mockResponse(forecastBody))
-          .mockResolvedValueOnce(mockResponse(archiveBody));
+        .mockResolvedValueOnce(mockResponse(forecastBody))
+        .mockResolvedValueOnce(mockResponse(archiveBody));
 
       const result = await getWeather('13.00', '23.00', date, 'en');
 
@@ -392,9 +388,7 @@ describe('getWeather', () => {
           precipitation_sum: [2],
         },
       };
-      vi.mocked(fetch)
-        .mockResolvedValueOnce(mockResponse(missBody))
-        .mockResolvedValueOnce(mockResponse(archiveBody));
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse(missBody)).mockResolvedValueOnce(mockResponse(archiveBody));
 
       const result = await getWeather('51.01', '61.01', date, 'en');
 
@@ -411,10 +405,18 @@ describe('getWeather', () => {
       const hourly = { temperature_2m: Array(24).fill(null), weathercode: Array(24).fill(null) };
       hourly.temperature_2m[9] = 19;
       hourly.weathercode[9] = 1;
-      vi.mocked(fetch).mockResolvedValueOnce(mockResponse({
-        daily: { time: [date], temperature_2m_max: [18], temperature_2m_min: [10], weathercode: [2], precipitation_sum: [0] },
-        hourly,
-      }));
+      vi.mocked(fetch).mockResolvedValueOnce(
+        mockResponse({
+          daily: {
+            time: [date],
+            temperature_2m_max: [18],
+            temperature_2m_min: [10],
+            weathercode: [2],
+            precipitation_sum: [0],
+          },
+          hourly,
+        }),
+      );
 
       const result = await getWeather('51.02', '61.02', date, 'en', '09:15');
 
@@ -456,10 +458,18 @@ describe('getWeather', () => {
       const hourly = { temperature_2m: Array(24).fill(null), weathercode: Array(24).fill(null) };
       hourly.temperature_2m[14] = 21;
       hourly.weathercode[14] = 0;
-      vi.mocked(fetch).mockResolvedValueOnce(mockResponse({
-        daily: { time: [date], temperature_2m_max: [18], temperature_2m_min: [10], weathercode: [2], precipitation_sum: [0] },
-        hourly,
-      }));
+      vi.mocked(fetch).mockResolvedValueOnce(
+        mockResponse({
+          daily: {
+            time: [date],
+            temperature_2m_max: [18],
+            temperature_2m_min: [10],
+            weathercode: [2],
+            precipitation_sum: [0],
+          },
+          hourly,
+        }),
+      );
 
       const result = await getWeather('14.02', '24.02', date, 'en', '14:30');
 
@@ -471,10 +481,18 @@ describe('getWeather', () => {
 
     it('falls back to the daily figures when the hour has no reading', async () => {
       const date = dateOffset(-5);
-      vi.mocked(fetch).mockResolvedValueOnce(mockResponse({
-        daily: { time: [date], temperature_2m_max: [18], temperature_2m_min: [10], weathercode: [2], precipitation_sum: [0] },
-        hourly: { temperature_2m: Array(24).fill(null), weathercode: Array(24).fill(null) },
-      }));
+      vi.mocked(fetch).mockResolvedValueOnce(
+        mockResponse({
+          daily: {
+            time: [date],
+            temperature_2m_max: [18],
+            temperature_2m_min: [10],
+            weathercode: [2],
+            precipitation_sum: [0],
+          },
+          hourly: { temperature_2m: Array(24).fill(null), weathercode: Array(24).fill(null) },
+        }),
+      );
 
       const result = await getWeather('14.03', '24.03', date, 'en', '14:30');
 
@@ -484,9 +502,17 @@ describe('getWeather', () => {
 
     it('ignores an unparseable time rather than guessing midnight', async () => {
       const date = dateOffset(-5);
-      vi.mocked(fetch).mockResolvedValueOnce(mockResponse({
-        daily: { time: [date], temperature_2m_max: [18], temperature_2m_min: [10], weathercode: [2], precipitation_sum: [0] },
-      }));
+      vi.mocked(fetch).mockResolvedValueOnce(
+        mockResponse({
+          daily: {
+            time: [date],
+            temperature_2m_max: [18],
+            temperature_2m_min: [10],
+            weathercode: [2],
+            precipitation_sum: [0],
+          },
+        }),
+      );
 
       const result = await getWeather('14.04', '24.04', date, 'en', 'not-a-time');
 
@@ -496,7 +522,9 @@ describe('getWeather', () => {
 
     it('returns no_forecast error when archive has no data for the date', async () => {
       const date = dateOffset(-5);
-      vi.mocked(fetch).mockResolvedValueOnce(mockResponse({ daily: { time: [], temperature_2m_max: [], temperature_2m_min: [], weathercode: [] } }));
+      vi.mocked(fetch).mockResolvedValueOnce(
+        mockResponse({ daily: { time: [], temperature_2m_max: [], temperature_2m_min: [], weathercode: [] } }),
+      );
 
       const result = await getWeather('14.01', '24.01', date, 'en');
 
@@ -675,9 +703,7 @@ describe('getDetailedWeather', () => {
         },
         hourly: { time: [], temperature_2m: [] },
       };
-      vi.mocked(fetch)
-        .mockResolvedValueOnce(mockResponse(body))
-        .mockResolvedValueOnce(mockResponse(body));
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse(body)).mockResolvedValueOnce(mockResponse(body));
 
       const en = await getDetailedWeather('30.02', '40.02', date, 'en');
       const de = await getDetailedWeather('30.02', '40.02', date, 'de');
@@ -973,7 +999,15 @@ describe('getDetailedWeather', () => {
       const url = String(vi.mocked(fetch).mock.calls[0][0]);
       expect(url).toContain('archive-api.open-meteo.com');
       expect(url).toContain(`start_date=${date}&end_date=${date}`);
-      expect(result).toMatchObject({ type: 'forecast', temp: 19, temp_max: 24, temp_min: 14, main: 'Clouds', sunrise: '04:50', sunset: '21:30' });
+      expect(result).toMatchObject({
+        type: 'forecast',
+        temp: 19,
+        temp_max: 24,
+        temp_min: 14,
+        main: 'Clouds',
+        sunrise: '04:50',
+        sunset: '21:30',
+      });
       expect(result.hourly).toHaveLength(2);
       expect(result.hourly![1]).toMatchObject({ temp: 24, main: 'Rain', precipitation_probability: 0 });
     });

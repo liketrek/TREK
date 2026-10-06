@@ -7,10 +7,17 @@
  * silently miss). State management, auth codes, and findOrCreateUser run for
  * real on that same instance against the real test DB.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { OidcService } from '../../src/nest/oidc/oidc.service';
+import { createUser } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
+import type { MockInstance } from 'vitest';
 
 // ── DB mock (async vi.mock factory over the migrated schema snapshot) ────────
 
@@ -31,13 +38,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { db as testDb } from '../../src/db/database';
-import type { MockInstance } from 'vitest';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
-import { OidcService } from '../../src/nest/oidc/oidc.service';
 
 /** Read one cookie's value out of a response's Set-Cookie header, as a browser would. */
 function readCookie(res: request.Response, name: string): string | undefined {
@@ -165,7 +165,9 @@ describe('GET /api/auth/oidc/callback', () => {
     // Create a valid state token
     const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=authcode123&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=authcode123&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('/login?oidc_code=');
@@ -174,27 +176,47 @@ describe('GET /api/auth/oidc/callback', () => {
   it('OIDC-004b: a successful login writes the user.login row every other method writes (#2417)', async () => {
     const { user } = createUser(testDb, { email: 'audited@example.com' });
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
-    mockExchangeCode.mockResolvedValueOnce({ access_token: 'test-access-token', id_token: 'fake.id.token', _ok: true, _status: 200 });
+    mockExchangeCode.mockResolvedValueOnce({
+      access_token: 'test-access-token',
+      id_token: 'fake.id.token',
+      _ok: true,
+      _status: 200,
+    });
     mockVerifyIdToken.mockResolvedValueOnce({ ok: true, claims: { sub: 'sub-audited-1' } });
-    mockGetUserInfo.mockResolvedValueOnce({ sub: 'sub-audited-1', email: 'audited@example.com', name: 'Audited', email_verified: true });
+    mockGetUserInfo.mockResolvedValueOnce({
+      sub: 'sub-audited-1',
+      email: 'audited@example.com',
+      name: 'Audited',
+      email_verified: true,
+    });
     const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=authcode123&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=authcode123&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     // The query from the report, against the same table.
-    const rows = testDb.prepare('SELECT user_id, action, details FROM audit_log WHERE user_id = ? ORDER BY id DESC').all(user.id) as
-      { user_id: number; action: string; details: string | null }[];
-    expect(rows.map(r => r.action)).toContain('user.login');
-    const login = rows.find(r => r.action === 'user.login')!;
+    const rows = testDb
+      .prepare('SELECT user_id, action, details FROM audit_log WHERE user_id = ? ORDER BY id DESC')
+      .all(user.id) as { user_id: number; action: string; details: string | null }[];
+    expect(rows.map((r) => r.action)).toContain('user.login');
+    const login = rows.find((r) => r.action === 'user.login')!;
     expect(JSON.parse(login.details || '{}')).toEqual({ method: 'oidc' });
-    const counted = testDb.prepare('SELECT login_count FROM users WHERE id = ?').get(user.id) as { login_count: number };
+    const counted = testDb.prepare('SELECT login_count FROM users WHERE id = ?').get(user.id) as {
+      login_count: number;
+    };
     expect(counted.login_count).toBe(1);
   });
 
   it('OIDC-005: new user gets created when registration is open', async () => {
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
-    mockExchangeCode.mockResolvedValueOnce({ access_token: 'new-token', id_token: 'fake.id.token', _ok: true, _status: 200 });
+    mockExchangeCode.mockResolvedValueOnce({
+      access_token: 'new-token',
+      id_token: 'fake.id.token',
+      _ok: true,
+      _status: 200,
+    });
     mockVerifyIdToken.mockResolvedValueOnce({ ok: true, claims: { sub: 'sub-newuser-999' } });
     mockGetUserInfo.mockResolvedValueOnce({
       sub: 'sub-newuser-999',
@@ -204,20 +226,29 @@ describe('GET /api/auth/oidc/callback', () => {
 
     const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=code999&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=code999&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('/login?oidc_code=');
 
     // Verify user was created in DB
-    const newUser = testDb.prepare("SELECT * FROM users WHERE email = 'newuser@example.com'").get() as { id: number; username: string; role: string } | undefined;
+    const newUser = testDb.prepare("SELECT * FROM users WHERE email = 'newuser@example.com'").get() as
+      { id: number; username: string; role: string } | undefined;
     expect(newUser).toBeDefined();
     // Registered, the way the audit log reports a password signup, and then logged in:
     // an admin reading user.register for who got an account sees the SSO ones too.
-    const rows = testDb.prepare('SELECT action, details FROM audit_log WHERE user_id = ? ORDER BY id').all(newUser!.id) as
-      { action: string; details: string | null }[];
-    expect(rows.map(r => r.action)).toEqual(['user.register', 'user.login']);
-    expect(JSON.parse(rows[0].details || '{}')).toEqual({ username: newUser!.username, email: 'newuser@example.com', role: newUser!.role, method: 'oidc' });
+    const rows = testDb
+      .prepare('SELECT action, details FROM audit_log WHERE user_id = ? ORDER BY id')
+      .all(newUser!.id) as { action: string; details: string | null }[];
+    expect(rows.map((r) => r.action)).toEqual(['user.register', 'user.login']);
+    expect(JSON.parse(rows[0].details || '{}')).toEqual({
+      username: newUser!.username,
+      email: 'newuser@example.com',
+      role: newUser!.role,
+      method: 'oidc',
+    });
   });
 
   it('OIDC-006: invalid state → redirects with invalid_state error', async () => {
@@ -247,7 +278,9 @@ describe('GET /api/auth/oidc/callback', () => {
 
     const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=badcode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=badcode&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=token_failed');
@@ -259,7 +292,9 @@ describe('GET /api/auth/oidc/callback', () => {
 
     const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=anycode&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=no_id_token');
@@ -272,7 +307,9 @@ describe('GET /api/auth/oidc/callback', () => {
 
     const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=anycode&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=id_token_invalid');
@@ -290,7 +327,9 @@ describe('GET /api/auth/oidc/callback', () => {
 
     const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=anycode&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=subject_mismatch');
@@ -313,7 +352,9 @@ describe('GET /api/auth/oidc/callback', () => {
 
     const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=anycode&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=registration_disabled');
@@ -403,9 +444,7 @@ describe('OIDC remember-me (#1927)', () => {
     const binding = readCookie(cb, 'trek_oidc_exchange')!;
     expect(binding).toBeTruthy();
 
-    return request(app)
-      .get(`/api/auth/oidc/exchange?code=${oidcCode}`)
-      .set('Cookie', `trek_oidc_exchange=${binding}`);
+    return request(app).get(`/api/auth/oidc/exchange?code=${oidcCode}`).set('Cookie', `trek_oidc_exchange=${binding}`);
   }
 
   function sessionCookie(res: request.Response): string {
@@ -474,7 +513,9 @@ describe('OIDC auth-code binding', () => {
   it('OIDC-018: /callback sets the binding as an httpOnly cookie that dies with the code', async () => {
     const { response } = await loginUpToCallback('sub-bind-1', 'bind1@example.com');
 
-    const raw = (response.headers['set-cookie'] as unknown as string[]).find((c) => c.startsWith('trek_oidc_exchange='))!;
+    const raw = (response.headers['set-cookie'] as unknown as string[]).find((c) =>
+      c.startsWith('trek_oidc_exchange='),
+    )!;
     expect(raw).toMatch(/HttpOnly/i);
     expect(raw).toMatch(/SameSite=Lax/i);
     // Same minute the code lives; a cookie that outlived it could only ever fail.

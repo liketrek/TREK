@@ -20,7 +20,6 @@ const photos: TranslationStrings = {
   'photos.dayLabel': '{number}-ci gün',
   'photos.photoSelected': 'Foto seçildi',
   'photos.photosSelected': 'Fotolar seçildi',
-  'photos.fileTypeHint':
-    'JPG, PNG, WebP · maksimum 10 MB · 30 fotoyadək',
+  'photos.fileTypeHint': 'JPG, PNG, WebP · maksimum 10 MB · 30 fotoyadək',
 };
 export default photos;

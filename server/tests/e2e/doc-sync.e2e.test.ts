@@ -17,12 +17,33 @@
  * That last split is unusual for TREK (most trip routes treat members alike),
  * so it is worth a test that fails if someone "tidies" it away.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import type { McpContext } from '../../src/nest-mcp';
+import { AddonsService } from '../../src/nest/addons/addons.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { withRequestContext } from '../../src/nest/database/request-context';
+import { DocSyncMcp } from '../../src/nest/doc-sync/doc-sync.mcp';
+import { DocSyncModule } from '../../src/nest/doc-sync/doc-sync.module';
+import { DOCUMENT_PROVIDERS } from '../../src/nest/doc-sync/document-provider';
+import { PaperlessDocumentProvider } from '../../src/nest/doc-sync/providers/paperless.provider';
+import { PapraDocumentProvider } from '../../src/nest/doc-sync/providers/papra.provider';
+import { SynologyDriveDocumentProvider } from '../../src/nest/doc-sync/providers/synology-drive.provider';
+import {
+  NextcloudDocumentProvider,
+  OpencloudDocumentProvider,
+} from '../../src/nest/doc-sync/providers/webdav.provider';
+import { createTrip, createUser } from '../helpers/factories';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { MikroORM } from '@mikro-orm/core';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb } = await import('../helpers/db-mock');
@@ -63,24 +84,6 @@ vi.mock('../../src/utils/ssrfGuard', async (importOriginal) => {
   };
 });
 
-import { db } from '../../src/db/database';
-import { createTrip, createUser } from '../helpers/factories';
-import { DocSyncModule } from '../../src/nest/doc-sync/doc-sync.module';
-import { DocSyncMcp } from '../../src/nest/doc-sync/doc-sync.mcp';
-import type { McpContext } from '../../src/nest-mcp';
-import { MikroORM } from '@mikro-orm/core';
-import { withRequestContext } from '../../src/nest/database/request-context';
-import { AddonsService } from '../../src/nest/addons/addons.service';
-import { DOCUMENT_PROVIDERS } from '../../src/nest/doc-sync/document-provider';
-import { PaperlessDocumentProvider } from '../../src/nest/doc-sync/providers/paperless.provider';
-import { PapraDocumentProvider } from '../../src/nest/doc-sync/providers/papra.provider';
-import { SynologyDriveDocumentProvider } from '../../src/nest/doc-sync/providers/synology-drive.provider';
-import { NextcloudDocumentProvider, OpencloudDocumentProvider } from '../../src/nest/doc-sync/providers/webdav.provider';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
-
 /** A provider that answers plausibly but never opens a socket. */
 function fakeProvider(id: string) {
   const caps = {
@@ -109,7 +112,10 @@ function fakeProvider(id: string) {
       success: true as const,
       data: { scopeKey: 'tag:1', label: 'Japan 2026', remoteRootId: '1', remoteRootPath: '/TREK/japan' },
     })),
-    list: vi.fn(async () => ({ success: true as const, data: { documents: [], cursor: 'c1', cursorUnchanged: false, truncated: false } })),
+    list: vi.fn(async () => ({
+      success: true as const,
+      data: { documents: [], cursor: 'c1', cursorUnchanged: false, truncated: false },
+    })),
     fetch: vi.fn(async () => ({ success: false as const, error: { code: 'not_found' as const } })),
     push: vi.fn(async () => ({ success: false as const, error: { code: 'not_found' as const } })),
     rename: vi.fn(async () => ({ success: true as const, data: { remoteVersion: 'v2' } })),
@@ -133,7 +139,9 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
       [OpencloudDocumentProvider, 'opencloud'],
       [SynologyDriveDocumentProvider, 'synologydrive'],
     ] as const;
-    let builder = Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), DocSyncModule] })
+    let builder = Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), DocSyncModule],
+    })
       .overrideProvider(AddonsService)
       .useValue({ isAddonEnabled });
     const fakes = providers.map(([, id]) => fakeProvider(id));
@@ -176,10 +184,7 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
   it('answers 404 rather than 401 when the addon is off, to everyone alike', async () => {
     isAddonEnabled.mockReturnValue(false);
     await request(server).get(`/api/trips/${tripId}/docsync/status`).expect(404);
-    await request(server)
-      .get(`/api/trips/${tripId}/docsync/status`)
-      .set('Cookie', sessionCookie(ownerId))
-      .expect(404);
+    await request(server).get(`/api/trips/${tripId}/docsync/status`).set('Cookie', sessionCookie(ownerId)).expect(404);
   });
 
   it('refuses an unauthenticated caller', async () => {
@@ -205,10 +210,7 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
   });
 
   it('lets a plain member read the status but not change the binding', async () => {
-    await request(server)
-      .get(`/api/trips/${tripId}/docsync/status`)
-      .set('Cookie', sessionCookie(memberId))
-      .expect(200);
+    await request(server).get(`/api/trips/${tripId}/docsync/status`).set('Cookie', sessionCookie(memberId)).expect(200);
 
     await request(server)
       .put(`/api/trips/${tripId}/docsync/connections`)
@@ -221,7 +223,11 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
     await request(server)
       .put(`/api/trips/${tripId}/docsync/connections`)
       .set('Cookie', sessionCookie(ownerId))
-      .send({ providerId: 'papra', baseUrl: 'https://papra.example.com', credentials: { api_key: 'x', organization_id: 'org_1' } })
+      .send({
+        providerId: 'papra',
+        baseUrl: 'https://papra.example.com',
+        credentials: { api_key: 'x', organization_id: 'org_1' },
+      })
       .expect(400);
   });
 
@@ -249,7 +255,9 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
     expect(JSON.stringify(res.body)).not.toContain('super-secret-token');
 
     // And it is encrypted at rest, not merely hidden on the way out.
-    const row = db.prepare('SELECT secrets FROM document_connections WHERE trip_id = ?').get(tripId) as { secrets: string };
+    const row = db.prepare('SELECT secrets FROM document_connections WHERE trip_id = ?').get(tripId) as {
+      secrets: string;
+    };
     expect(row.secrets).toMatch(/^enc:v1:/);
     expect(row.secrets).not.toContain('super-secret-token');
   });
@@ -260,7 +268,9 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
       .set('Cookie', sessionCookie(ownerId))
       .send({ providerId: 'paperless', baseUrl: 'https://paperless.example.com', credentials: { api_token: '' } })
       .expect(200);
-    const row = db.prepare('SELECT secrets FROM document_connections WHERE trip_id = ?').get(tripId) as { secrets: string };
+    const row = db.prepare('SELECT secrets FROM document_connections WHERE trip_id = ?').get(tripId) as {
+      secrets: string;
+    };
     expect(row.secrets).toMatch(/^enc:v1:/);
   });
 
@@ -272,7 +282,9 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
       .set('Cookie', sessionCookie(ownerId))
       .send({ providerId: 'paperless', baseUrl: 'https://paperless.example.net', credentials: { api_token: '' } })
       .expect(400);
-    const row = db.prepare('SELECT base_url FROM document_connections WHERE trip_id = ?').get(tripId) as { base_url: string };
+    const row = db.prepare('SELECT base_url FROM document_connections WHERE trip_id = ?').get(tripId) as {
+      base_url: string;
+    };
     expect(row.base_url).toBe('https://paperless.example.com');
   });
 
@@ -335,7 +347,15 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
     await request(server)
       .post(`/api/trips/${tripId}/docsync/links`)
       .set('Cookie', sessionCookie(ownerId))
-      .send({ connectionId, scopeKey: 'tag:1', remoteLabel: 'Japan 2026', direction: 'both', deletePolicy: 'unlink', conflictPolicy: 'manual', syncEnabled: true })
+      .send({
+        connectionId,
+        scopeKey: 'tag:1',
+        remoteLabel: 'Japan 2026',
+        direction: 'both',
+        deletePolicy: 'unlink',
+        conflictPolicy: 'manual',
+        syncEnabled: true,
+      })
       .expect(200);
 
     const asMember = await request(server)
@@ -352,9 +372,7 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
   it('changes only the setting a patch names, through the real contract', async () => {
     // The unit tests call the handler directly and never see the pipe. Through
     // it, a schema that fills in defaults turns one switch into a full reset.
-    const links = await request(server)
-      .get(`/api/trips/${tripId}/docsync/links`)
-      .set('Cookie', sessionCookie(ownerId));
+    const links = await request(server).get(`/api/trips/${tripId}/docsync/links`).set('Cookie', sessionCookie(ownerId));
     const linkId = links.body[0].id;
     await request(server)
       .patch(`/api/trips/${tripId}/docsync/links/${linkId}`)
@@ -401,7 +419,9 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
       // (Plan 3c Task 0b: `verifyTripAccess` now reaches `TripsRepository`,
       // which validates one).
       const ctx = { userId: memberId, scopes: null, isStaticToken: false } as McpContext;
-      const result = await withRequestContext(app.get(MikroORM), () => app.get(DocSyncMcp).getTripDocumentSync({ tripId }, ctx));
+      const result = await withRequestContext(app.get(MikroORM), () =>
+        app.get(DocSyncMcp).getTripDocumentSync({ tripId }, ctx),
+      );
       const status = JSON.parse(result.content[0].text) as { links: Array<Record<string, unknown>> };
       expect(status.links[0]).toMatchObject({ providerId: 'paperless', providerName: 'Paperless-ngx' });
     } finally {
@@ -434,9 +454,7 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
   });
 
   it('unbinds without deleting anything', async () => {
-    const links = await request(server)
-      .get(`/api/trips/${tripId}/docsync/links`)
-      .set('Cookie', sessionCookie(ownerId));
+    const links = await request(server).get(`/api/trips/${tripId}/docsync/links`).set('Cookie', sessionCookie(ownerId));
     const linkId = links.body[0].id;
     const res = await request(server)
       .delete(`/api/trips/${tripId}/docsync/links/${linkId}`)
@@ -454,7 +472,15 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
     await request(server)
       .post(`/api/trips/${tripId}/docsync/links`)
       .set('Cookie', sessionCookie(ownerId))
-      .send({ connectionId, scopeKey: 'tag:2', remoteLabel: 'Norway', direction: 'both', deletePolicy: 'unlink', conflictPolicy: 'manual', syncEnabled: true })
+      .send({
+        connectionId,
+        scopeKey: 'tag:2',
+        remoteLabel: 'Norway',
+        direction: 'both',
+        deletePolicy: 'unlink',
+        conflictPolicy: 'manual',
+        syncEnabled: true,
+      })
       .expect(200);
 
     await request(server)
@@ -467,7 +493,9 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
       .expect(200);
 
     expect(res.body).toEqual({ success: true });
-    expect(db.prepare('SELECT COUNT(*) AS n FROM document_connections WHERE trip_id = ?').get(tripId)).toEqual({ n: 0 });
+    expect(db.prepare('SELECT COUNT(*) AS n FROM document_connections WHERE trip_id = ?').get(tripId)).toEqual({
+      n: 0,
+    });
     expect(db.prepare('SELECT COUNT(*) AS n FROM trip_document_links WHERE trip_id = ?').get(tripId)).toEqual({ n: 0 });
   });
 

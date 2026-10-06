@@ -1,3 +1,10 @@
+import { Users } from '../../../src/db/entities/Users.entity';
+import { TrekWsAdapter } from '../../../src/nest/realtime/trek-ws.adapter';
+import { getServer } from '../../../src/nest/realtime/ws-state';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import type { Server as HttpServer } from 'node:http';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 /**
@@ -16,7 +23,12 @@ const { wsOrigins, logError } = vi.hoisted(() => ({
   wsOrigins: { value: null as string[] | null },
   logError: vi.fn(),
 }));
-vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ logError, logInfo: vi.fn(), logDebug: vi.fn(), logWarn: vi.fn() }));
+vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
+  logError,
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logWarn: vi.fn(),
+}));
 vi.mock('../../../src/app-config', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
@@ -24,19 +36,12 @@ vi.mock('../../../src/app-config', async (importOriginal) => {
     readEnv: () => ({
       ...(actual.readEnv as () => { http: Record<string, unknown> })(),
       http: {
-        ...((actual.readEnv as () => { http: Record<string, unknown> })().http),
+        ...(actual.readEnv as () => { http: Record<string, unknown> })().http,
         wsOrigins: wsOrigins.value,
       },
     }),
   };
 });
-
-import { TrekWsAdapter } from '../../../src/nest/realtime/trek-ws.adapter';
-import { getServer } from '../../../src/nest/realtime/ws-state';
-import type { Server as HttpServer } from 'node:http';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { Users } from '../../../src/db/entities/Users.entity';
 
 const testDb = createSnapshotTestDb();
 
@@ -67,7 +72,9 @@ function fakeSocket() {
     readyState: 1,
     sent,
     terminate: vi.fn(),
-    send: (raw: string) => { sent.push(raw); },
+    send: (raw: string) => {
+      sent.push(raw);
+    },
     on: (event: string, fn: MessageListener) => {
       (listeners[event] ??= []).push(fn);
     },
@@ -88,9 +95,27 @@ let handlers: { message: string; callback: (data: unknown, socket: unknown) => u
 beforeEach(() => {
   handled = [];
   handlers = [
-    { message: 'join', callback: (data) => { handled.push(data); return { type: 'joined' }; } },
-    { message: 'leave', callback: (data) => { handled.push(data); return undefined; } },
-    { message: 'book:cursor', callback: (data) => { handled.push(data); return undefined; } },
+    {
+      message: 'join',
+      callback: (data) => {
+        handled.push(data);
+        return { type: 'joined' };
+      },
+    },
+    {
+      message: 'leave',
+      callback: (data) => {
+        handled.push(data);
+        return undefined;
+      },
+    },
+    {
+      message: 'book:cursor',
+      callback: (data) => {
+        handled.push(data);
+        return undefined;
+      },
+    },
   ];
 });
 
@@ -148,7 +173,14 @@ describe('TrekWsAdapter D6 request context (task-2-review.md C3 ruling)', () => 
     let handlerRan = false;
     ad.bindMessageHandlers(
       socket as never,
-      [{ message: 'join', callback: async () => { handlerRan = true; } }] as never,
+      [
+        {
+          message: 'join',
+          callback: async () => {
+            handlerRan = true;
+          },
+        },
+      ] as never,
       () => ({ subscribe: () => {} }) as never,
     );
     expect(() => socket.emit('message', frame({ type: 'join', tripId: 1 }))).toThrow(/no MikroORM available/i);
@@ -171,9 +203,18 @@ describe('TrekWsAdapter D6 request context (task-2-review.md C3 ruling)', () => 
       };
       ad.bindMessageHandlers(
         socket as never,
-        [{ message: 'join', callback: async () => {
-          try { result = await t.orm.em.find(Users, {}); } catch (e) { caught = e; }
-        } }] as never,
+        [
+          {
+            message: 'join',
+            callback: async () => {
+              try {
+                result = await t.orm.em.find(Users, {});
+              } catch (e) {
+                caught = e;
+              }
+            },
+          },
+        ] as never,
         capture,
       );
       socket.emit('message', frame({ type: 'join', tripId: 1 }));
@@ -317,7 +358,7 @@ describe('TrekWsAdapter D6 request context on connect (Plan 3b Task 0)', () => {
   // Task 7 review, A-L2 (T1-F7b, open since Task 1): handleConnection is
   // async and the 'connection' listener is not — a rejection inside the
   // wrapped callback used to be an unhandled rejection with no trace.
-  it('WSAD-054: a rejecting connection callback is caught and logged through the adapter\'s error path, not an unhandled rejection', async () => {
+  it("WSAD-054: a rejecting connection callback is caught and logged through the adapter's error path, not an unhandled rejection", async () => {
     const t = await createTestOrm(testDb, { allowGlobalContext: false });
     try {
       logError.mockClear();
@@ -403,7 +444,7 @@ describe('TrekWsAdapter D6 request context on disconnect (Task 0 review addendum
   });
 
   // Task 7 review, A-L2 (T1-F7b) — the disconnect twin of WSAD-054.
-  it('WSAD-055: a rejecting disconnect callback is caught and logged through the adapter\'s error path, not an unhandled rejection', async () => {
+  it("WSAD-055: a rejecting disconnect callback is caught and logged through the adapter's error path, not an unhandled rejection", async () => {
     const t = await createTestOrm(testDb, { allowGlobalContext: false });
     try {
       logError.mockClear();
@@ -549,9 +590,13 @@ describe('TrekWsAdapter server creation', () => {
         cb: (ok: boolean, code?: number, msg?: string) => void,
       ) => void;
       const seen: unknown[][] = [];
-      verify({ origin: 'http://192.168.1.20:3000', req: { headers: { host: '192.168.1.20:3000' } } }, (...args) => seen.push(args));
+      verify({ origin: 'http://192.168.1.20:3000', req: { headers: { host: '192.168.1.20:3000' } } }, (...args) =>
+        seen.push(args),
+      );
       // A foreign page cannot pick the Host header, so it still gets the 403.
-      verify({ origin: 'https://evil.example', req: { headers: { host: '192.168.1.20:3000' } } }, (...args) => seen.push(args));
+      verify({ origin: 'https://evil.example', req: { headers: { host: '192.168.1.20:3000' } } }, (...args) =>
+        seen.push(args),
+      );
       expect(seen).toEqual([[true], [false, 403, 'Origin not allowed']]);
     } finally {
       await ad.close(server as never);

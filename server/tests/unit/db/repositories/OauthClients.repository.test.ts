@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
 import { OauthClients } from '../../../../src/db/entities/OauthClients.entity';
 import type { OauthClientsRepository } from '../../../../src/db/repositories/OauthClients.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -18,35 +19,55 @@ beforeAll(async () => {
   clients = t.repo(OauthClients);
   uow = new UnitOfWork(t.em);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); testDb.exec('DELETE FROM oauth_clients'); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+  testDb.exec('DELETE FROM oauth_clients');
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function seedClient(
-  overrides: Partial<{ id: string; userId: number | null; name: string; clientId: string; secretHash: string; redirectUris: string; allowedScopes: string; isPublic: number; createdVia: string; allowsClientCredentials: number }> = {},
+  overrides: Partial<{
+    id: string;
+    userId: number | null;
+    name: string;
+    clientId: string;
+    secretHash: string;
+    redirectUris: string;
+    allowedScopes: string;
+    isPublic: number;
+    createdVia: string;
+    allowsClientCredentials: number;
+  }> = {},
 ): { id: string; userId: number | null; clientId: string } {
   const id = overrides.id ?? `row-${Math.random().toString(36).slice(2)}`;
   const clientId = overrides.clientId ?? `proto-${Math.random().toString(36).slice(2)}`;
-  testDb.prepare(
-    `INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash, redirect_uris, allowed_scopes, is_public, created_via, allows_client_credentials)
+  testDb
+    .prepare(
+      `INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash, redirect_uris, allowed_scopes, is_public, created_via, allows_client_credentials)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    id,
-    overrides.userId ?? null,
-    overrides.name ?? 'Test Client',
-    clientId,
-    overrides.secretHash ?? 'hash-value',
-    overrides.redirectUris ?? '["https://example.com/cb"]',
-    overrides.allowedScopes ?? '["trips:read"]',
-    overrides.isPublic ?? 0,
-    overrides.createdVia ?? 'settings_ui',
-    overrides.allowsClientCredentials ?? 0,
-  );
+    )
+    .run(
+      id,
+      overrides.userId ?? null,
+      overrides.name ?? 'Test Client',
+      clientId,
+      overrides.secretHash ?? 'hash-value',
+      overrides.redirectUris ?? '["https://example.com/cb"]',
+      overrides.allowedScopes ?? '["trips:read"]',
+      overrides.isPublic ?? 0,
+      overrides.createdVia ?? 'settings_ui',
+      overrides.allowsClientCredentials ?? 0,
+    );
   return { id, userId: overrides.userId ?? null, clientId };
 }
 
 describe('OauthClientsRepository', () => {
   describe('listByUser (OA1)', () => {
-    it('OAUTHCLIENTREPO-001: returns the caller\'s clients only, newest first, without the secret hash', async () => {
+    it("OAUTHCLIENTREPO-001: returns the caller's clients only, newest first, without the secret hash", async () => {
       const { user } = createUser(testDb);
       const { user: other } = createUser(testDb);
       seedClient({ userId: user.id, name: 'first', createdVia: 'settings_ui' });
@@ -76,7 +97,7 @@ describe('OauthClientsRepository', () => {
   });
 
   describe('countByUser / countAnonymous (OA2/OA3)', () => {
-    it('OAUTHCLIENTREPO-003: countByUser only counts the given user\'s rows', async () => {
+    it("OAUTHCLIENTREPO-003: countByUser only counts the given user's rows", async () => {
       const { user } = createUser(testDb);
       const { user: other } = createUser(testDb);
       seedClient({ userId: user.id });
@@ -121,7 +142,10 @@ describe('OauthClientsRepository', () => {
         created_via: 'settings_ui',
         allows_client_credentials: 0,
       });
-      const raw = testDb.prepare('SELECT * FROM oauth_clients WHERE id = ?').get('client-row-1') as Record<string, unknown>;
+      const raw = testDb.prepare('SELECT * FROM oauth_clients WHERE id = ?').get('client-row-1') as Record<
+        string,
+        unknown
+      >;
       expect(raw.client_secret_hash).toBe('secrethash');
     });
 
@@ -154,18 +178,20 @@ describe('OauthClientsRepository', () => {
 
     it('OAUTHCLIENTREPO-006b: throws when the read-back after insert finds no row (coverage: the guard branch)', async () => {
       const spy = vi.spyOn(clients, 'findPublicById').mockResolvedValueOnce(null);
-      await expect(clients.insertClient({
-        id: 'client-row-ghost',
-        user_id: null,
-        name: 'Ghost Client',
-        client_id: 'proto-ghost',
-        client_secret_hash: 'x',
-        redirect_uris: '[]',
-        allowed_scopes: '[]',
-        is_public: 1,
-        created_via: 'dcr',
-        allows_client_credentials: 0,
-      })).rejects.toThrow('OauthClientsRepository.insertClient: row client-row-ghost not found immediately after insert');
+      await expect(
+        clients.insertClient({
+          id: 'client-row-ghost',
+          user_id: null,
+          name: 'Ghost Client',
+          client_id: 'proto-ghost',
+          client_secret_hash: 'x',
+          redirect_uris: '[]',
+          allowed_scopes: '[]',
+          is_public: 1,
+          created_via: 'dcr',
+          allows_client_credentials: 0,
+        }),
+      ).rejects.toThrow('OauthClientsRepository.insertClient: row client-row-ghost not found immediately after insert');
       spy.mockRestore();
     });
   });
@@ -178,7 +204,7 @@ describe('OauthClientsRepository', () => {
       expect(row).toEqual({ id, client_id: clientId, is_public: 1 });
     });
 
-    it('OAUTHCLIENTREPO-008: 404-shape null for another user\'s client (never 403)', async () => {
+    it("OAUTHCLIENTREPO-008: 404-shape null for another user's client (never 403)", async () => {
       const { user } = createUser(testDb);
       const { user: other } = createUser(testDb);
       const { id } = seedClient({ userId: other.id });
@@ -190,7 +216,9 @@ describe('OauthClientsRepository', () => {
     it('OAUTHCLIENTREPO-009: writes the new hash, nothing else', async () => {
       const { id } = seedClient({ secretHash: 'old' });
       await clients.updateSecretHash(id, 'new-hash');
-      const row = testDb.prepare('SELECT client_secret_hash FROM oauth_clients WHERE id = ?').get(id) as { client_secret_hash: string };
+      const row = testDb.prepare('SELECT client_secret_hash FROM oauth_clients WHERE id = ?').get(id) as {
+        client_secret_hash: string;
+      };
       expect(row.client_secret_hash).toBe('new-hash');
     });
   });
@@ -276,7 +304,10 @@ describe('OauthClientsRepository', () => {
         });
       });
 
-      const row = testDb.prepare('SELECT client_secret_hash, name FROM oauth_clients WHERE id = ?').get(id) as { client_secret_hash: string; name: string };
+      const row = testDb.prepare('SELECT client_secret_hash, name FROM oauth_clients WHERE id = ?').get(id) as {
+        client_secret_hash: string;
+        name: string;
+      };
       expect(row.client_secret_hash).toBe('rotated'); // the nativeUpdate must stick
       expect(row.name).toBe('kept-name'); // untouched by either read
     });

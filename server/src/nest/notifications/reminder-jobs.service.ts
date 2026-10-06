@@ -1,14 +1,14 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { logInfo, logError } from '../audit/audit-log.logger';
-import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { TripsRepository } from '../../db/repositories/Trips.repository';
-import { TodoItemsRepository } from '../../db/repositories/TodoItems.repository';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { Trips } from '../../db/entities/Trips.entity';
 import { TodoItems } from '../../db/entities/TodoItems.entity';
-import { NotificationsService } from './notifications.service';
+import { Trips } from '../../db/entities/Trips.entity';
+import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { TodoItemsRepository } from '../../db/repositories/TodoItems.repository';
+import { TripsRepository } from '../../db/repositories/Trips.repository';
+import { logInfo, logError } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { NotificationsService } from './notifications.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * The trip-reminder and todo-due reminder crons, in the domain that owns them
@@ -52,13 +52,18 @@ export class ReminderJobsService implements OnApplicationBootstrap {
     await this.registrar.runOnBoot('reminder-jobs-boot', async () => {
       try {
         const reminderEnabled = (await this.appSettings.getValue('notify_trip_reminder')) !== 'false';
-        const channelsRaw = (await this.appSettings.getValue('notification_channels')) || (await this.appSettings.getValue('notification_channel')) || 'none';
-        const activeChannels = channelsRaw === 'none' ? [] : channelsRaw.split(',').map(c => c.trim());
+        const channelsRaw =
+          (await this.appSettings.getValue('notification_channels')) ||
+          (await this.appSettings.getValue('notification_channel')) ||
+          'none';
+        const activeChannels = channelsRaw === 'none' ? [] : channelsRaw.split(',').map((c) => c.trim());
         if (!reminderEnabled) {
           logInfo('Trip reminders: disabled in settings');
         } else {
           const tripCount = await this.trips.countActiveWithReminders();
-          logInfo(`Trip reminders: enabled via [${activeChannels.join(',')}]${tripCount > 0 ? `, ${tripCount} trip(s) with active reminders` : ''}`);
+          logInfo(
+            `Trip reminders: enabled via [${activeChannels.join(',')}]${tripCount > 0 ? `, ${tripCount} trip(s) with active reminders` : ''}`,
+          );
         }
 
         if ((await this.appSettings.getValue('notify_todo_due')) !== 'false') {
@@ -96,11 +101,21 @@ export class ReminderJobsService implements OnApplicationBootstrap {
       });
 
       for (const trip of trips) {
-        await this.notifications.send({ event: 'trip_reminder', actorId: null, scope: 'trip', targetId: trip.id, params: { trip: trip.title, tripId: String(trip.id) } }).catch(() => {});
+        await this.notifications
+          .send({
+            event: 'trip_reminder',
+            actorId: null,
+            scope: 'trip',
+            targetId: trip.id,
+            params: { trip: trip.title, tripId: String(trip.id) },
+          })
+          .catch(() => {});
       }
 
       if (trips.length > 0) {
-        logInfo(`Trip reminders sent for ${trips.length} trip(s): ${trips.map(t => `"${t.title}" (${t.reminder_days}d)`).join(', ')}`);
+        logInfo(
+          `Trip reminders sent for ${trips.length} trip(s): ${trips.map((t) => `"${t.title}" (${t.reminder_days}d)`).join(', ')}`,
+        );
       }
     } catch (err: unknown) {
       logError(`Trip reminder check failed: ${err instanceof Error ? err.message : err}`);
@@ -130,18 +145,20 @@ export class ReminderJobsService implements OnApplicationBootstrap {
       for (const todo of todos) {
         const targetScope: 'user' | 'trip' = todo.assigned_user_id ? 'user' : 'trip';
         const targetId = todo.assigned_user_id ?? todo.trip_id;
-        await this.notifications.send({
-          event: 'todo_due',
-          actorId: null,
-          scope: targetScope,
-          targetId,
-          params: {
-            todo: todo.name,
-            trip: todo.trip_title,
-            tripId: String(todo.trip_id),
-            due: todo.due_date,
-          },
-        }).catch(() => {});
+        await this.notifications
+          .send({
+            event: 'todo_due',
+            actorId: null,
+            scope: targetScope,
+            targetId,
+            params: {
+              todo: todo.name,
+              trip: todo.trip_title,
+              tripId: String(todo.trip_id),
+              due: todo.due_date,
+            },
+          })
+          .catch(() => {});
         // RJ5 stays AFTER the send, unchanged (plan3f-inputs.md correction #8).
         await this.todoItems.markReminded(todo.id);
       }

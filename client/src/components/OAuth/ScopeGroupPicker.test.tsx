@@ -1,6 +1,6 @@
 // FE-COMP-SCOPE-001 to FE-COMP-SCOPE-009
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import { render, screen } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import ScopeGroupPicker from './ScopeGroupPicker';
 
@@ -34,9 +34,7 @@ describe('ScopeGroupPicker', () => {
     // First collect all scopes by clicking Select All and capturing the callback
     const user = userEvent.setup();
     const captured: string[][] = [];
-    const { rerender } = render(
-      <ScopeGroupPicker selected={[]} onChange={s => captured.push(s)} />
-    );
+    const { rerender } = render(<ScopeGroupPicker selected={[]} onChange={(s) => captured.push(s)} />);
     await user.click(screen.getByRole('button', { name: /select all/i }));
     const allScopes = captured[0];
 
@@ -50,9 +48,7 @@ describe('ScopeGroupPicker', () => {
     const captured: string[][] = [];
 
     // Get all scopes first
-    const { rerender } = render(
-      <ScopeGroupPicker selected={[]} onChange={s => captured.push(s)} />
-    );
+    const { rerender } = render(<ScopeGroupPicker selected={[]} onChange={(s) => captured.push(s)} />);
     await user.click(screen.getByRole('button', { name: /select all/i }));
     const allScopes = captured[0];
 
@@ -67,10 +63,12 @@ describe('ScopeGroupPicker', () => {
     render(<ScopeGroupPicker selected={[]} onChange={vi.fn()} />);
 
     // Groups are collapsed by default — checkboxes for individual scopes not visible
-    const groupToggles = screen.getAllByRole('button').filter(b =>
-      !b.textContent?.toLowerCase().includes('select all') &&
-      !b.textContent?.toLowerCase().includes('deselect all')
-    );
+    const groupToggles = screen
+      .getAllByRole('button')
+      .filter(
+        (b) =>
+          !b.textContent?.toLowerCase().includes('select all') && !b.textContent?.toLowerCase().includes('deselect all')
+      );
     // Click the first group expand button
     await user.click(groupToggles[0]);
     // Individual scope checkboxes should now appear (more than just group-level ones)
@@ -96,10 +94,12 @@ describe('ScopeGroupPicker', () => {
     render(<ScopeGroupPicker selected={[]} onChange={onChange} />);
 
     // Expand first group
-    const groupToggles = screen.getAllByRole('button').filter(b =>
-      !b.textContent?.toLowerCase().includes('select all') &&
-      !b.textContent?.toLowerCase().includes('deselect all')
-    );
+    const groupToggles = screen
+      .getAllByRole('button')
+      .filter(
+        (b) =>
+          !b.textContent?.toLowerCase().includes('select all') && !b.textContent?.toLowerCase().includes('deselect all')
+      );
     await user.click(groupToggles[0]);
 
     // There are now individual scope checkboxes — click the second one (first is group-level)

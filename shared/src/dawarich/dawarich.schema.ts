@@ -1,5 +1,6 @@
-import { z } from 'zod';
 import { idSchema } from '../common/primitives.schema';
+
+import { z } from 'zod';
 
 /**
  * Dawarich integration contracts (#2279, #214).
@@ -249,10 +250,19 @@ export const dawarichAcceptSchema = z.object({
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
   /** `YYYY-MM-DD`. Falls back to the suggestion's resolved local date. */
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   /** `HH:MM`. Falls back to the recorded arrival and departure. */
-  time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
+  endTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
 });
 export type DawarichAccept = z.infer<typeof dawarichAcceptSchema>;
 

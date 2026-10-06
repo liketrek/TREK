@@ -12,67 +12,71 @@
  * viewport so it never competes with top navigation or sticky modal
  * headers. On mobile it hovers just above the bottom tab bar.
  */
-import React, { useState, useEffect } from 'react'
-import { WifiOff, RefreshCw, AlertTriangle, GitMerge } from 'lucide-react'
-import { mutationQueue } from '../../sync/mutationQueue'
-import { useNetworkMode } from '../../hooks/useNetworkMode'
-import { useTranslation } from '../../i18n'
+import { AlertTriangle, GitMerge, RefreshCw, WifiOff } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNetworkMode } from '../../hooks/useNetworkMode';
+import { useTranslation } from '../../i18n';
+import { mutationQueue } from '../../sync/mutationQueue';
 
-const POLL_MS = 3_000
+const POLL_MS = 3_000;
 
 export default function OfflineBanner(): React.ReactElement | null {
-  const { t } = useTranslation()
-  const { offline, forced } = useNetworkMode()
-  const [pendingCount, setPendingCount] = useState(0)
-  const [failedCount, setFailedCount] = useState(0)
-  const [conflictCount, setConflictCount] = useState(0)
+  const { t } = useTranslation();
+  const { offline, forced } = useNetworkMode();
+  const [pendingCount, setPendingCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
+  const [conflictCount, setConflictCount] = useState(0);
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
     async function poll() {
       const [n, failed, conflicts] = await Promise.all([
         mutationQueue.pendingCount(),
         mutationQueue.failedCount(),
         mutationQueue.conflictCount(),
-      ])
+      ]);
       if (!cancelled) {
-        setPendingCount(n)
-        setFailedCount(failed)
-        setConflictCount(conflicts)
+        setPendingCount(n);
+        setFailedCount(failed);
+        setConflictCount(conflicts);
       }
     }
-    void poll()
-    const id = setInterval(poll, POLL_MS)
-    return () => { cancelled = true; clearInterval(id) }
-  }, [])
+    void poll();
+    const id = setInterval(poll, POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
-  const hidden = !offline && pendingCount === 0 && failedCount === 0 && conflictCount === 0
-  if (hidden) return null
+  const hidden = !offline && pendingCount === 0 && failedCount === 0 && conflictCount === 0;
+  if (hidden) return null;
 
   // Failed mutations are the most important signal — they mean data was dropped.
   // Conflicts come next (they still need a decision), then plain offline status.
-  const failed = failedCount > 0
-  const conflict = !failed && conflictCount > 0
-  const bg = failed ? '#b91c1c' : conflict ? '#6d28d9' : offline ? '#92400e' : '#1e40af'
+  const failed = failedCount > 0;
+  const conflict = !failed && conflictCount > 0;
+  const bg = failed ? '#b91c1c' : conflict ? '#6d28d9' : offline ? '#92400e' : '#1e40af';
 
-  let label: string
-  let icon: React.ReactElement
+  let label: string;
+  let icon: React.ReactElement;
   if (failed) {
-    label = t('settings.offline.banner.failed', { count: failedCount })
-    icon = <AlertTriangle size={12} />
+    label = t('settings.offline.banner.failed', { count: failedCount });
+    icon = <AlertTriangle size={12} />;
   } else if (conflict) {
-    label = t('settings.offline.banner.conflicts', { count: conflictCount })
-    icon = <GitMerge size={12} />
+    label = t('settings.offline.banner.conflicts', { count: conflictCount });
+    icon = <GitMerge size={12} />;
   } else if (offline) {
-    label = pendingCount > 0
-      ? t('settings.offline.banner.queued', { count: pendingCount })
-      : forced
-        ? t('settings.offline.banner.forced')
-        : t('settings.offline.banner.offline')
-    icon = <WifiOff size={12} />
+    label =
+      pendingCount > 0
+        ? t('settings.offline.banner.queued', { count: pendingCount })
+        : forced
+          ? t('settings.offline.banner.forced')
+          : t('settings.offline.banner.offline');
+    icon = <WifiOff size={12} />;
   } else {
-    label = t('settings.offline.banner.syncing', { count: pendingCount })
-    icon = <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
+    label = t('settings.offline.banner.syncing', { count: pendingCount });
+    icon = <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />;
   }
 
   return (
@@ -104,5 +108,5 @@ export default function OfflineBanner(): React.ReactElement | null {
       {icon}
       {label}
     </div>
-  )
+  );
 }

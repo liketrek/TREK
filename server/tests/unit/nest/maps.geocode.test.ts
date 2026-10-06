@@ -8,6 +8,12 @@
  * admin leaves it on), and that a failure on either side ends as a coordinate
  * or a null rather than a half-answer the importer would store.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { mockSearch, mockNominatim } = vi.hoisted(() => ({
@@ -29,12 +35,6 @@ vi.mock('../../../src/nest/geo/nominatim.client', async (importOriginal) => ({
 }));
 
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { noGoogleQuota } from '../../helpers/google-quota';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 
 // keyedProvider/resolveMapsKey (maps.service.ts) go through instance-api-keys.ts
 // on every call now — none of these cases configure a key, so the stubs just

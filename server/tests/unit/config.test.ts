@@ -82,7 +82,9 @@ describe('config — encryption key resolution', () => {
     }) as never);
     const write = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => undefined);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    vi.spyOn(fs, 'existsSync').mockImplementation(((file: fs.PathLike) => String(file) === ENC_KEY_FILE) as typeof fs.existsSync);
+    vi.spyOn(fs, 'existsSync').mockImplementation(
+      ((file: fs.PathLike) => String(file) === ENC_KEY_FILE) as typeof fs.existsSync,
+    );
     stubKeyFileRead(() => '   \n');
 
     await expect(import('../../src/config')).rejects.toThrow('process.exit called');
@@ -97,7 +99,9 @@ describe('config — encryption key resolution', () => {
     vi.spyOn(fs, 'writeFileSync').mockImplementation(() => undefined);
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     // The key file is genuinely absent, so the empty-file guard must not fire.
-    vi.spyOn(fs, 'existsSync').mockImplementation(((file: fs.PathLike) => String(file) !== ENC_KEY_FILE) as typeof fs.existsSync);
+    vi.spyOn(fs, 'existsSync').mockImplementation(
+      ((file: fs.PathLike) => String(file) !== ENC_KEY_FILE) as typeof fs.existsSync,
+    );
     stubKeyFileRead(() => {
       throw enoent();
     });

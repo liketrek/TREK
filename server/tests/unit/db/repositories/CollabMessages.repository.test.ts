@@ -9,12 +9,13 @@
  * through this read (no `reply_text`/`reply_username`, unlike
  * `joinedQuery`), and a deleted message (`deleted = 1`) must never surface.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTrip, createUser } from '../../../helpers/factories';
-import { createTestCollabMessagesRepo } from '../../../helpers/collab-repos';
 import type { CollabMessagesRepository } from '../../../../src/db/repositories/CollabMessages.repository';
+import { createTestCollabMessagesRepo } from '../../../helpers/collab-repos';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let collabMessagesRepo: CollabMessagesRepository;
@@ -30,19 +31,27 @@ function insertMessage(
   userId: number,
   overrides: Partial<{ text: string; reply_to: number | null; deleted: number; created_at: string }> = {},
 ): number {
-  const result = testDb.prepare(
-    'INSERT INTO collab_messages (trip_id, user_id, text, reply_to, deleted, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-  ).run(
-    tripId, userId, overrides.text ?? 'hi', overrides.reply_to ?? null, overrides.deleted ?? 0,
-    overrides.created_at ?? '2026-09-01T00:00:00.000Z',
-  );
+  const result = testDb
+    .prepare(
+      'INSERT INTO collab_messages (trip_id, user_id, text, reply_to, deleted, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    )
+    .run(
+      tripId,
+      userId,
+      overrides.text ?? 'hi',
+      overrides.reply_to ?? null,
+      overrides.deleted ?? 0,
+      overrides.created_at ?? '2026-09-01T00:00:00.000Z',
+    );
   return Number(result.lastInsertRowid);
 }
 
 function legacyPublicForShare(tripId: number): unknown {
-  return testDb.prepare(
-    'SELECT m.*, u.username, u.avatar FROM collab_messages m JOIN users u ON m.user_id = u.id WHERE m.trip_id = ? AND m.deleted = 0 ORDER BY m.created_at ASC',
-  ).all(tripId);
+  return testDb
+    .prepare(
+      'SELECT m.*, u.username, u.avatar FROM collab_messages m JOIN users u ON m.user_id = u.id WHERE m.trip_id = ? AND m.deleted = 0 ORDER BY m.created_at ASC',
+    )
+    .all(tripId);
 }
 
 describe('CollabMessagesRepository — share.service.ts SH16 read', () => {
@@ -53,8 +62,16 @@ describe('CollabMessagesRepository — share.service.ts SH16 read', () => {
     const trip = createTrip(testDb, author.id);
     const other = createTrip(testDb, author.id);
 
-    const rootId = insertMessage(trip.id, author.id, { text: 'root', reply_to: null, created_at: '2026-09-01T10:00:00.000Z' });
-    const replyId = insertMessage(trip.id, replier.id, { text: 'reply', reply_to: rootId, created_at: '2026-09-01T11:00:00.000Z' });
+    const rootId = insertMessage(trip.id, author.id, {
+      text: 'root',
+      reply_to: null,
+      created_at: '2026-09-01T10:00:00.000Z',
+    });
+    const replyId = insertMessage(trip.id, replier.id, {
+      text: 'reply',
+      reply_to: rootId,
+      created_at: '2026-09-01T11:00:00.000Z',
+    });
     insertMessage(trip.id, author.id, { text: 'gone', deleted: 1, created_at: '2026-09-01T12:00:00.000Z' });
     insertMessage(other.id, author.id, { text: 'foreign' });
 

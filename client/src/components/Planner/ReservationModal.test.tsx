@@ -1,26 +1,26 @@
 // FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-105
-import { render, screen, waitFor, fireEvent, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
-import { useAddonStore } from '../../store/addonStore';
-import { useSettingsStore } from '../../store/settingsStore';
 import { isBlurred } from '../../../tests/helpers/bookingCodeBlur';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import {
-  buildUser,
-  buildTrip,
+  buildAssignment,
   buildDay,
   buildPlace,
-  buildAssignment,
   buildReservation,
+  buildTrip,
   buildTripFile,
+  buildUser,
 } from '../../../tests/helpers/factories';
+import { server } from '../../../tests/helpers/msw/server';
+import { act, fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { useAddonStore } from '../../store/addonStore';
+import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { useTripStore } from '../../store/tripStore';
+import type { TripMember } from '../Budget/BudgetPanelMemberChips';
 import { ReservationModal } from './ReservationModal';
 import type { BookingReviewDraft } from './parsedItemToDraft';
-import type { TripMember } from '../Budget/BudgetPanelMemberChips';
 
 // Mock react-router useParams
 vi.mock('react-router', async (importActual) => {
@@ -30,12 +30,20 @@ vi.mock('react-router', async (importActual) => {
 
 // Mock CustomDatePicker as a simple text input
 vi.mock('../shared/CustomDateTimePicker', () => ({
-  CustomDatePicker: ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) => (
+  CustomDatePicker: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+  }) => (
     <input
       data-testid="date-picker"
       type="text"
       value={value}
-      onChange={e => onChange(e.target.value)}
+      onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder ?? 'YYYY-MM-DD'}
     />
   ),
@@ -43,12 +51,20 @@ vi.mock('../shared/CustomDateTimePicker', () => ({
 
 // Mock CustomTimePicker as a simple text input
 vi.mock('../shared/CustomTimePicker', () => ({
-  default: ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) => (
+  default: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+  }) => (
     <input
       data-testid="time-picker"
       type="text"
       value={value}
-      onChange={e => onChange(e.target.value)}
+      onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder ?? '00:00'}
     />
   ),
@@ -168,13 +184,7 @@ describe('ReservationModal', () => {
     const day = buildDay({ id: 1, title: 'Day 1' });
     const place = buildPlace({ name: 'Museum' });
     const assignment = buildAssignment({ id: 99, day_id: 1, place });
-    render(
-      <ReservationModal
-        {...defaultProps}
-        days={[day]}
-        assignments={{ '1': [assignment] }}
-      />
-    );
+    render(<ReservationModal {...defaultProps} days={[day]} assignments={{ '1': [assignment] }} />);
     // Switch to hotel type
     await pickType(/Accommodation/i);
     expect(screen.queryByText(/Link to day assignment/i)).not.toBeInTheDocument();
@@ -240,7 +250,7 @@ describe('ReservationModal', () => {
     expect(addToast).toHaveBeenCalledWith(
       expect.stringMatching(/End date\/time must be after start/i),
       'error',
-      undefined,
+      undefined
     );
 
     delete window.__addToast;
@@ -258,9 +268,7 @@ describe('ReservationModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Le Jules Verne', type: 'restaurant' })
-    );
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'Le Jules Verne', type: 'restaurant' }));
   });
 
   it('FE-PLANNER-RESMODAL-017: status confirmed — onSave called with status confirmed', async () => {
@@ -279,9 +287,7 @@ describe('ReservationModal', () => {
     await userEvent.click(updateBtn);
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'confirmed' })
-    );
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ status: 'confirmed' }));
     unmount();
   });
 
@@ -301,7 +307,9 @@ describe('ReservationModal', () => {
   it('FE-PLANNER-RESMODAL-019: save button is disabled while saving', async () => {
     let resolveOnSave: () => void;
     const onSave = vi.fn().mockReturnValue(
-      new Promise<void>(resolve => { resolveOnSave = resolve; })
+      new Promise<void>((resolve) => {
+        resolveOnSave = resolve;
+      })
     );
     render(<ReservationModal {...defaultProps} onSave={onSave} />);
 
@@ -326,13 +334,7 @@ describe('ReservationModal', () => {
     const place = buildPlace({ name: 'Museum' });
     const assignment = buildAssignment({ id: 99, day_id: 1, order_index: 0, place });
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        days={[day]}
-        assignments={{ '1': [assignment] }}
-      />
-    );
+    render(<ReservationModal {...defaultProps} days={[day]} assignments={{ '1': [assignment] }} />);
 
     expect(screen.getByText(/Link to day assignment/i)).toBeInTheDocument();
   });
@@ -349,13 +351,7 @@ describe('ReservationModal', () => {
     // Add reservation_id field manually (not in standard TripFile type but used in component)
     (file as any).reservation_id = 5;
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[file]}
-      />
-    );
+    render(<ReservationModal {...defaultProps} reservation={res} files={[file]} />);
 
     expect(screen.getByText('ticket.pdf')).toBeInTheDocument();
   });
@@ -408,10 +404,28 @@ describe('ReservationModal', () => {
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1 }),
       budgetItems: [
-        { id: 7, trip_id: 1, name: 'Hotel deposit', total_price: 120, currency: 'EUR', category: 'accommodation', reservation_id: 9, members: [], payers: [], persons: 1, expense_date: null, paid_by_user_id: null },
+        {
+          id: 7,
+          trip_id: 1,
+          name: 'Hotel deposit',
+          total_price: 120,
+          currency: 'EUR',
+          category: 'accommodation',
+          reservation_id: 9,
+          members: [],
+          payers: [],
+          persons: 1,
+          expense_date: null,
+          paid_by_user_id: null,
+        },
       ],
     });
-    render(<ReservationModal {...defaultProps} reservation={buildReservation({ id: 9, type: 'hotel', title: 'Hotel Paris' })} />);
+    render(
+      <ReservationModal
+        {...defaultProps}
+        reservation={buildReservation({ id: 9, type: 'hotel', title: 'Hotel Paris' })}
+      />
+    );
     expect(screen.getByText('Hotel deposit')).toBeInTheDocument();
   });
 
@@ -451,9 +465,7 @@ describe('ReservationModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Grand Hotel', type: 'hotel' })
-    );
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'Grand Hotel', type: 'hotel' }));
   });
 
   it('FE-PLANNER-RESMODAL-031: event type — saving calls onSave with event type', async () => {
@@ -465,9 +477,7 @@ describe('ReservationModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Louvre Museum', type: 'event' })
-    );
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'Louvre Museum', type: 'event' }));
   });
 
   it('FE-PLANNER-RESMODAL-031b: parking type — saving calls onSave with parking type (#1444)', async () => {
@@ -479,9 +489,7 @@ describe('ReservationModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Airport Parking P1', type: 'parking' })
-    );
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'Airport Parking P1', type: 'parking' }));
   });
 
   it('FE-PLANNER-RESMODAL-032: edit mode — save button shows "Update"', () => {
@@ -505,13 +513,7 @@ describe('ReservationModal', () => {
   it('FE-PLANNER-RESMODAL-036: file upload to existing reservation calls onFileUpload', async () => {
     const onFileUpload = vi.fn().mockResolvedValue(undefined);
     const res = buildReservation({ id: 10, title: 'My Trip', type: 'other' });
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        onFileUpload={onFileUpload}
-      />
-    );
+    render(<ReservationModal {...defaultProps} reservation={res} onFileUpload={onFileUpload} />);
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const testFile = new File(['content'], 'boarding-pass.pdf', { type: 'application/pdf' });
@@ -529,13 +531,7 @@ describe('ReservationModal', () => {
     // File NOT attached to this reservation
     const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[unattachedFile]}
-      />
-    );
+    render(<ReservationModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
 
     expect(screen.getByRole('button', { name: /Link existing file/i })).toBeInTheDocument();
   });
@@ -544,13 +540,7 @@ describe('ReservationModal', () => {
     const res = buildReservation({ id: 5 });
     const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[unattachedFile]}
-      />
-    );
+    render(<ReservationModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
 
     await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
     expect(screen.getByText('invoice.pdf')).toBeInTheDocument();
@@ -559,19 +549,13 @@ describe('ReservationModal', () => {
   it('FE-PLANNER-RESMODAL-039: clicking file in picker links it and closes picker', async () => {
     server.use(
       http.post('/api/trips/1/files/99/link', () => HttpResponse.json({ success: true })),
-      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
+      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] }))
     );
 
     const res = buildReservation({ id: 5 });
     const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[unattachedFile]}
-      />
-    );
+    render(<ReservationModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
 
     await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
     await userEvent.click(screen.getByText('invoice.pdf'));
@@ -645,9 +629,7 @@ describe('ReservationModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Grand Hotel', type: 'hotel' })
-    );
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'Grand Hotel', type: 'hotel' }));
   });
 
   it('FE-PLANNER-RESMODAL-101: an imported track is not offered as the place of a stay', async () => {
@@ -656,7 +638,7 @@ describe('ReservationModal', () => {
     render(<ReservationModal {...defaultProps} places={[hotel, track]} />);
 
     await pickType(/Accommodation/i);
-    const field = screen.getAllByText('Accommodation').find(el => el.tagName === 'LABEL')!.parentElement!;
+    const field = screen.getAllByText('Accommodation').find((el) => el.tagName === 'LABEL')!.parentElement!;
     await userEvent.click(within(field).getByRole('button'));
 
     expect(screen.getByText('Hotel Adler')).toBeInTheDocument();
@@ -668,7 +650,15 @@ describe('ReservationModal', () => {
     const days = [buildDay({ id: 1 }), buildDay({ id: 2 })];
     const accommodations = [{ id: 7, trip_id: 1, place_id: 22, start_day_id: 1, end_day_id: 2 }];
     const res = buildReservation({ id: 9, type: 'hotel', title: 'Hut', accommodation_id: 7 });
-    render(<ReservationModal {...defaultProps} days={days} places={[track]} accommodations={accommodations as never} reservation={res} />);
+    render(
+      <ReservationModal
+        {...defaultProps}
+        days={days}
+        places={[track]}
+        accommodations={accommodations as never}
+        reservation={res}
+      />
+    );
 
     expect(screen.getByText('Rheinsteig')).toBeInTheDocument();
   });
@@ -677,13 +667,7 @@ describe('ReservationModal', () => {
     const res = buildReservation({ id: 5 });
     const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[unattachedFile]}
-      />
-    );
+    render(<ReservationModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
 
     await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
     const filePickerItem = screen.getByText('invoice.pdf').closest('button')!;
@@ -727,20 +711,14 @@ describe('ReservationModal', () => {
       http.post('/api/trips/1/files/42/link', () => HttpResponse.json({ success: true })),
       http.get('/api/trips/1/files/42/links', () => HttpResponse.json({ links: [{ id: 1, reservation_id: 7 }] })),
       http.delete('/api/trips/1/files/42/link/1', () => HttpResponse.json({ success: true })),
-      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
+      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] }))
     );
 
     const res = buildReservation({ id: 7 });
     // File is NOT attached (no reservation_id) — it will be in the "link existing" picker
     const looseFile = buildTripFile({ id: 42, original_name: 'receipt.pdf' });
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[looseFile]}
-      />
-    );
+    render(<ReservationModal {...defaultProps} reservation={res} files={[looseFile]} />);
 
     // Link the file via the picker
     await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
@@ -748,9 +726,7 @@ describe('ReservationModal', () => {
     await userEvent.click(screen.getByText('receipt.pdf'));
 
     // File is now in attached list; "Link existing file" button gone
-    await waitFor(() =>
-      expect(screen.queryByRole('button', { name: /Link existing file/i })).not.toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Link existing file/i })).not.toBeInTheDocument());
 
     // Click the X to unlink
     const fileRow = screen.getByText('receipt.pdf').closest('div')!;
@@ -773,9 +749,7 @@ describe('ReservationModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'hotel' })
-    );
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ type: 'hotel' }));
   });
 
   // ── Hotel day-range picker — non-monotonic IDs (issue #929) ───────────────
@@ -793,13 +767,13 @@ describe('ReservationModal', () => {
       buildDay({ id: 23, trip_id: 1, date: '2026-05-06', day_number: 7 }),
       buildDay({ id: 24, trip_id: 1, date: '2026-05-07', day_number: 8 }),
       buildDay({ id: 25, trip_id: 1, date: '2026-05-08', day_number: 9 }),
-      buildDay({ id: 1,  trip_id: 1, date: '2026-05-09', day_number: 10 }),
-      buildDay({ id: 2,  trip_id: 1, date: '2026-05-10', day_number: 11 }),
-      buildDay({ id: 3,  trip_id: 1, date: '2026-05-11', day_number: 12 }),
-      buildDay({ id: 4,  trip_id: 1, date: '2026-05-12', day_number: 13 }),
-      buildDay({ id: 5,  trip_id: 1, date: '2026-05-13', day_number: 14 }),
-      buildDay({ id: 6,  trip_id: 1, date: '2026-05-14', day_number: 15 }),
-      buildDay({ id: 7,  trip_id: 1, date: '2026-05-15', day_number: 16 }),
+      buildDay({ id: 1, trip_id: 1, date: '2026-05-09', day_number: 10 }),
+      buildDay({ id: 2, trip_id: 1, date: '2026-05-10', day_number: 11 }),
+      buildDay({ id: 3, trip_id: 1, date: '2026-05-11', day_number: 12 }),
+      buildDay({ id: 4, trip_id: 1, date: '2026-05-12', day_number: 13 }),
+      buildDay({ id: 5, trip_id: 1, date: '2026-05-13', day_number: 14 }),
+      buildDay({ id: 6, trip_id: 1, date: '2026-05-14', day_number: 15 }),
+      buildDay({ id: 7, trip_id: 1, date: '2026-05-15', day_number: 16 }),
     ] as any[];
   }
 
@@ -814,14 +788,28 @@ describe('ReservationModal', () => {
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Overlap Hotel');
 
     // Open start picker (first "Select day" trigger) and select Day 1 (id=17)
-    const startTrigger = () => screen.getAllByRole('button').filter(b => b.textContent?.includes('Select day') || b.textContent?.startsWith('Day '))[0];
+    const startTrigger = () =>
+      screen
+        .getAllByRole('button')
+        .filter((b) => b.textContent?.includes('Select day') || b.textContent?.startsWith('Day '))[0];
     await userEvent.click(startTrigger());
-    await userEvent.click(screen.getAllByRole('button').find(b => b.textContent?.startsWith('Day 1') && !b.textContent?.startsWith('Day 1 ') || b.textContent?.trim() === 'Day 1')!);
+    await userEvent.click(
+      screen
+        .getAllByRole('button')
+        .find(
+          (b) =>
+            (b.textContent?.startsWith('Day 1') && !b.textContent?.startsWith('Day 1 ')) ||
+            b.textContent?.trim() === 'Day 1'
+        )!
+    );
 
     // Open end picker and select Day 16 (id=7, low ID but last positionally)
-    const endTrigger = () => screen.getAllByRole('button').filter(b => b.textContent?.includes('Select day') || /^Day \d+/.test(b.textContent?.trim() ?? ''))[1];
+    const endTrigger = () =>
+      screen
+        .getAllByRole('button')
+        .filter((b) => b.textContent?.includes('Select day') || /^Day \d+/.test(b.textContent?.trim() ?? ''))[1];
     await userEvent.click(endTrigger());
-    await userEvent.click(screen.getAllByRole('button').find(b => b.textContent?.startsWith('Day 16'))!);
+    await userEvent.click(screen.getAllByRole('button').find((b) => b.textContent?.startsWith('Day 16'))!);
 
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
@@ -842,31 +830,41 @@ describe('ReservationModal', () => {
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Span Hotel');
 
     // Set end to Day 16 (id=7) first
-    const endTrigger = () => screen.getAllByRole('button').filter(b => b.textContent?.includes('Select day') || /^Day \d+/.test(b.textContent?.trim() ?? ''))[1];
+    const endTrigger = () =>
+      screen
+        .getAllByRole('button')
+        .filter((b) => b.textContent?.includes('Select day') || /^Day \d+/.test(b.textContent?.trim() ?? ''))[1];
     await userEvent.click(endTrigger());
-    await userEvent.click(screen.getAllByRole('button').find(b => b.textContent?.startsWith('Day 16'))!);
+    await userEvent.click(screen.getAllByRole('button').find((b) => b.textContent?.startsWith('Day 16'))!);
 
     // Set start to Day 9 (id=25, high ID but earlier by position than Day 16)
     // Old code: Math.max(25, 7) = 25 → end collapses to Day 9.
     // New code: position(id=25)=8 < position(id=7)=15 → end stays id=7.
-    const startTrigger = () => screen.getAllByRole('button').filter(b => b.textContent?.includes('Select day') || /^Day \d+/.test(b.textContent?.trim() ?? ''))[0];
+    const startTrigger = () =>
+      screen
+        .getAllByRole('button')
+        .filter((b) => b.textContent?.includes('Select day') || /^Day \d+/.test(b.textContent?.trim() ?? ''))[0];
     await userEvent.click(startTrigger());
-    await userEvent.click(screen.getAllByRole('button').find(b => b.textContent?.startsWith('Day 9'))!);
+    await userEvent.click(screen.getAllByRole('button').find((b) => b.textContent?.startsWith('Day 9'))!);
 
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const saved = onSave.mock.calls[0][0];
     expect(saved.create_accommodation?.start_day_id).toBe(25); // Day 9
-    expect(saved.create_accommodation?.end_day_id).toBe(7);    // Day 16 — must NOT have collapsed
+    expect(saved.create_accommodation?.end_day_id).toBe(7); // Day 16 — must NOT have collapsed
   });
 
   it('FE-PLANNER-RESMODAL-052: hotel with no accommodation_id sends assignment_id as null (issue #934)', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     // Hotel reservation with assignment_id set but no accommodation
     const res = buildReservation({
-      id: 10, title: 'Stale Hotel', type: 'hotel', status: 'confirmed',
-      accommodation_id: null, assignment_id: 99,
+      id: 10,
+      title: 'Stale Hotel',
+      type: 'hotel',
+      status: 'confirmed',
+      accommodation_id: null,
+      assignment_id: 99,
     } as any);
 
     render(<ReservationModal {...defaultProps} onSave={onSave} reservation={res} />);
@@ -887,7 +885,10 @@ describe('ReservationModal', () => {
       buildDay({ id: 2, trip_id: 1, date: '2026-05-02', day_number: 2 }),
     ];
     const res = buildReservation({
-      id: 3, title: 'Grand Hotel', type: 'hotel', accommodation_id: 8,
+      id: 3,
+      title: 'Grand Hotel',
+      type: 'hotel',
+      accommodation_id: 8,
     } as any);
     const acc = { id: 8, trip_id: 1, place_id: 5, start_day_id: 1, end_day_id: 2 } as any;
 
@@ -960,7 +961,13 @@ describe('ReservationModal', () => {
       confirmation_number: 'ADL-9',
       notes: 'Late arrival',
       url: 'https://adlon.example',
-      metadata: { check_in_time: '15:00', check_in_end_time: '23:00', check_out_time: '11:00', price: 240, priceCurrency: 'EUR' },
+      metadata: {
+        check_in_time: '15:00',
+        check_in_end_time: '23:00',
+        check_out_time: '11:00',
+        price: 240,
+        priceCurrency: 'EUR',
+      },
       _venue: { name: 'Hotel Adlon', address: 'Unter den Linden 77' },
       _accommodation: { check_in: '2026-05-01', check_out: '2026-05-03' },
       ...overrides,
@@ -980,14 +987,20 @@ describe('ReservationModal', () => {
     expect(screen.getByDisplayValue('Unter den Linden 77')).toBeInTheDocument();
     // Check-in / check-in-until / check-out come from the parsed metadata.
     const times = screen.getAllByTestId('time-picker') as HTMLInputElement[];
-    expect(times.map(i => i.value)).toEqual(['15:00', '23:00', '11:00']);
+    expect(times.map((i) => i.value)).toEqual(['15:00', '23:00', '11:00']);
   });
 
   it('FE-PLANNER-RESMODAL-056: saving a hotel prefill creates the accommodation over the resolved day range', async () => {
     const onSave = vi.fn().mockResolvedValue({ id: 77 });
     const place = buildPlace({ id: 5, name: 'Hotel Adlon', address: 'Unter den Linden 77' });
     render(
-      <ReservationModal {...defaultProps} onSave={onSave} prefill={hotelPrefill()} days={reviewDays()} places={[place]} />,
+      <ReservationModal
+        {...defaultProps}
+        onSave={onSave}
+        prefill={hotelPrefill()}
+        days={reviewDays()}
+        places={[place]}
+      />
     );
 
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
@@ -1021,7 +1034,7 @@ describe('ReservationModal', () => {
     const place = buildPlace({ id: 7, name: 'Some Hotel' });
     const prefill = hotelPrefill({ title: '', _venue: undefined, _accommodation: undefined });
     render(
-      <ReservationModal {...defaultProps} onSave={onSave} prefill={prefill} days={reviewDays()} places={[place]} />,
+      <ReservationModal {...defaultProps} onSave={onSave} prefill={prefill} days={reviewDays()} places={[place]} />
     );
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Unnamed stay');
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
@@ -1032,7 +1045,12 @@ describe('ReservationModal', () => {
   });
 
   it('FE-PLANNER-RESMODAL-059: a date-only end in the prefill fills the end date and leaves the time blank', () => {
-    const prefill = hotelPrefill({ type: 'event', reservation_end_time: '2026-05-03', _venue: undefined, _accommodation: undefined });
+    const prefill = hotelPrefill({
+      type: 'event',
+      reservation_end_time: '2026-05-03',
+      _venue: undefined,
+      _accommodation: undefined,
+    });
     render(<ReservationModal {...defaultProps} prefill={prefill} days={reviewDays()} />);
     const datePickers = screen.getAllByTestId('date-picker') as HTMLInputElement[];
     expect(datePickers[1].value).toBe('2026-05-03');
@@ -1049,7 +1067,11 @@ describe('ReservationModal', () => {
     expect(screen.getByText('Linked expense')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 240, category: 'accommodation', currency: 'EUR' });
+    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({
+      total_price: 240,
+      category: 'accommodation',
+      currency: 'EUR',
+    });
   });
 
   it('FE-PLANNER-RESMODAL-061: a prefill without a price creates no cost entry', async () => {
@@ -1076,7 +1098,7 @@ describe('ReservationModal', () => {
         onFileUpload={onFileUpload}
         prefill={prefill}
         days={reviewDays()}
-      />,
+      />
     );
     expect(screen.getByText('booking.pdf')).toBeInTheDocument();
 
@@ -1091,8 +1113,11 @@ describe('ReservationModal', () => {
 
   it('FE-PLANNER-RESMODAL-063: an ISO end timestamp is split into the end date and end time fields', () => {
     const res = buildReservation({
-      id: 4, type: 'event', title: 'Concert',
-      reservation_time: '2026-05-01T20:00:00', reservation_end_time: '2026-05-02T23:30:00',
+      id: 4,
+      type: 'event',
+      title: 'Concert',
+      reservation_time: '2026-05-01T20:00:00',
+      reservation_end_time: '2026-05-02T23:30:00',
     });
     render(<ReservationModal {...defaultProps} reservation={res} days={reviewDays()} />);
     const datePickers = screen.getAllByTestId('date-picker') as HTMLInputElement[];
@@ -1103,8 +1128,11 @@ describe('ReservationModal', () => {
 
   it('FE-PLANNER-RESMODAL-064: a date-only end is treated as an all-day end with no time', () => {
     const res = buildReservation({
-      id: 4, type: 'event', title: 'Festival',
-      reservation_time: '2026-05-01T20:00:00', reservation_end_time: '2026-05-03',
+      id: 4,
+      type: 'event',
+      title: 'Festival',
+      reservation_time: '2026-05-01T20:00:00',
+      reservation_end_time: '2026-05-03',
     });
     render(<ReservationModal {...defaultProps} reservation={res} days={reviewDays()} />);
     const datePickers = screen.getAllByTestId('date-picker') as HTMLInputElement[];
@@ -1176,7 +1204,7 @@ describe('ReservationModal', () => {
         onSave={onSave}
         days={[day]}
         assignments={assignments as unknown as typeof defaultProps.assignments}
-      />,
+      />
     );
 
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Guided tour');
@@ -1240,7 +1268,7 @@ describe('ReservationModal', () => {
         location: 'Pier 3',
         notes: 'Bring sunscreen',
         url: 'https://boats.example',
-      }),
+      })
     );
   });
 
@@ -1258,7 +1286,7 @@ describe('ReservationModal', () => {
       http.put('/api/trips/1/reservations/90/travelers', async ({ request }) => {
         body = (await request.json()) as { user_ids: number[] };
         return HttpResponse.json({ travelers: [] });
-      }),
+      })
     );
 
     render(<ReservationModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
@@ -1281,9 +1309,14 @@ describe('ReservationModal', () => {
       http.put('/api/trips/1/reservations/91/travelers', () => {
         calls += 1;
         return HttpResponse.json({ travelers: [] });
-      }),
+      })
     );
-    const res = buildReservation({ id: 91, type: 'event', title: 'Opera', travelers: [{ user_id: 1, username: 'alice' }] });
+    const res = buildReservation({
+      id: 91,
+      type: 'event',
+      title: 'Opera',
+      travelers: [{ user_id: 1, username: 'alice' }],
+    });
 
     render(<ReservationModal {...defaultProps} onSave={onSave} reservation={res} tripMembers={tripMembers} />);
     await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
@@ -1297,7 +1330,7 @@ describe('ReservationModal', () => {
     window.__addToast = addToast;
     const onSave = vi.fn().mockResolvedValue({ id: 92 });
     server.use(
-      http.put('/api/trips/1/reservations/92/travelers', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+      http.put('/api/trips/1/reservations/92/travelers', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
     );
 
     render(<ReservationModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
@@ -1316,7 +1349,20 @@ describe('ReservationModal', () => {
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1 }),
       budgetItems: [
-        { id: 7, trip_id: 1, name: 'Hotel deposit', total_price: 120, currency: 'EUR', category: 'accommodation', reservation_id: 9, members: [], payers: [], persons: 1, expense_date: null, paid_by_user_id: null },
+        {
+          id: 7,
+          trip_id: 1,
+          name: 'Hotel deposit',
+          total_price: 120,
+          currency: 'EUR',
+          category: 'accommodation',
+          reservation_id: 9,
+          members: [],
+          payers: [],
+          persons: 1,
+          expense_date: null,
+          paid_by_user_id: null,
+        },
       ],
     });
   }
@@ -1331,7 +1377,7 @@ describe('ReservationModal', () => {
         onSave={onSave}
         onOpenExpense={onOpenExpense}
         reservation={buildReservation({ id: 9, type: 'hotel', title: 'Hotel Paris' })}
-      />,
+      />
     );
 
     await userEvent.click(screen.getByRole('button', { name: /^Edit$/i }));
@@ -1348,10 +1394,13 @@ describe('ReservationModal', () => {
       http.delete('/api/trips/1/budget/7', () => {
         deleted = true;
         return HttpResponse.json({ error: 'nope' }, { status: 500 });
-      }),
+      })
     );
     render(
-      <ReservationModal {...defaultProps} reservation={buildReservation({ id: 9, type: 'hotel', title: 'Hotel Paris' })} />,
+      <ReservationModal
+        {...defaultProps}
+        reservation={buildReservation({ id: 9, type: 'hotel', title: 'Hotel Paris' })}
+      />
     );
 
     await userEvent.click(screen.getByRole('button', { name: /Remove expense/i }));
@@ -1368,11 +1417,27 @@ describe('ReservationModal', () => {
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1, currency: 'EUR' }),
       budgetItems: [
-        { id: 7, trip_id: 1, name: 'Hotel deposit', total_price: 120, currency: null, category: 'accommodation', reservation_id: 9, members: [], payers: [], persons: 1, expense_date: null, paid_by_user_id: null },
+        {
+          id: 7,
+          trip_id: 1,
+          name: 'Hotel deposit',
+          total_price: 120,
+          currency: null,
+          category: 'accommodation',
+          reservation_id: 9,
+          members: [],
+          payers: [],
+          persons: 1,
+          expense_date: null,
+          paid_by_user_id: null,
+        },
       ],
     });
     render(
-      <ReservationModal {...defaultProps} reservation={buildReservation({ id: 9, type: 'hotel', title: 'Hotel Paris' })} />,
+      <ReservationModal
+        {...defaultProps}
+        reservation={buildReservation({ id: 9, type: 'hotel', title: 'Hotel Paris' })}
+      />
     );
 
     expect(screen.getByText('Hotel deposit')).toBeInTheDocument();
@@ -1392,7 +1457,11 @@ describe('ReservationModal', () => {
     expect(screen.getByText('$801.76')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 801.76, category: 'accommodation', currency: 'USD' });
+    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({
+      total_price: 801.76,
+      category: 'accommodation',
+      currency: 'USD',
+    });
   });
 
   it('FE-PLANNER-RESMODAL-105: a parsed currency that is not a code previews and saves in the trip currency', async () => {
@@ -1437,7 +1506,7 @@ describe('ReservationModal', () => {
     window.__addToast = addToast;
     server.use(
       http.put('/api/trips/1/files/50', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-      http.get('/api/trips/1/files/50/links', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+      http.get('/api/trips/1/files/50/links', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
     );
     const res = buildReservation({ id: 13, type: 'other', title: 'Trip' });
     const attached = buildTripFile({ id: 50, original_name: 'voucher.pdf' });
@@ -1485,7 +1554,7 @@ describe('ReservationModal', () => {
         onSave={onSave}
         days={[day]}
         assignments={{ '1': [buildAssignment({ id: 201, day_id: 1, order_index: 0, place: museum })] }}
-      />,
+      />
     );
 
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Guided tour');
@@ -1528,7 +1597,9 @@ describe('ReservationModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][0].metadata).toEqual({
-      check_in_time: '15:00', check_in_end_time: '22:00', check_out_time: '11:00',
+      check_in_time: '15:00',
+      check_in_end_time: '22:00',
+      check_out_time: '11:00',
     });
   });
 
@@ -1561,7 +1632,7 @@ describe('ReservationModal', () => {
 
     expect(screen.getByDisplayValue('Grand Hotel')).toBeInTheDocument();
     const times = screen.getAllByTestId('time-picker') as HTMLInputElement[];
-    expect(times.map(i => i.value)).toEqual(['', '', '']);
+    expect(times.map((i) => i.value)).toEqual(['', '', '']);
   });
 
   // #2107 — a booking that lasts a whole day has no clock to compare, and filling the
@@ -1592,9 +1663,11 @@ describe('ReservationModal', () => {
 
     // The stored shape matters: the calendar export branches on whether the value
     // carries a clock, and a bare date is what makes it an all-day event.
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ reservation_time: '2026-05-02', reservation_end_time: '2026-05-02' }),
-    ));
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({ reservation_time: '2026-05-02', reservation_end_time: '2026-05-02' })
+      )
+    );
   });
 
   it('FE-PLANNER-RESMODAL-091: an end date before the start is still refused without times', async () => {
@@ -1610,7 +1683,11 @@ describe('ReservationModal', () => {
     fireEvent.submit(document.querySelector('form')!);
 
     expect(onSave).not.toHaveBeenCalled();
-    expect(addToast).toHaveBeenCalledWith(expect.stringMatching(/End date\/time must be after start/i), 'error', undefined);
+    expect(addToast).toHaveBeenCalledWith(
+      expect.stringMatching(/End date\/time must be after start/i),
+      'error',
+      undefined
+    );
     delete window.__addToast;
   });
 
@@ -1619,8 +1696,11 @@ describe('ReservationModal', () => {
     // The shape the booking import and the mobile sheet both write. Nothing is typed
     // here: the row alone used to leave the save button dead.
     const res = buildReservation({
-      id: 21, type: 'event', title: 'Day permit',
-      reservation_time: '2026-05-02T10:00:00', reservation_end_time: '2026-05-02',
+      id: 21,
+      type: 'event',
+      title: 'Day permit',
+      reservation_time: '2026-05-02T10:00:00',
+      reservation_end_time: '2026-05-02',
     });
     render(<ReservationModal {...defaultProps} reservation={res} onSave={onSave} days={reviewDays()} />);
 
@@ -1640,8 +1720,10 @@ describe('ReservationModal', () => {
     fireEvent.change(datePickers[1], { target: { value: '2026-05-01' } });
     expect(screen.getByText(/End date\/time must be after start/i)).toBeTruthy();
     // The footer button reads 'Add' while creating and 'Update' while editing.
-    const save = () => Array.from(document.querySelectorAll('button'))
-      .find(b => /^\s*(Add|Update)\s*$/.test(b.textContent || '')) as HTMLButtonElement;
+    const save = () =>
+      Array.from(document.querySelectorAll('button')).find((b) =>
+        /^\s*(Add|Update)\s*$/.test(b.textContent || '')
+      ) as HTMLButtonElement;
     expect(save().disabled).toBe(true);
 
     // The date panel is hidden for hotels, and the message sits inside it, so
@@ -1654,8 +1736,9 @@ describe('ReservationModal', () => {
 
   it('FE-PLANNER-RESMODAL-088: double-encoded metadata still fills the check-in times', () => {
     const res = buildReservation({ id: 18, title: 'Grand Hotel', type: 'hotel' });
-    (res as unknown as { metadata: string }).metadata =
-      JSON.stringify(JSON.stringify({ check_in_time: '16:00', check_out_time: '10:30' }));
+    (res as unknown as { metadata: string }).metadata = JSON.stringify(
+      JSON.stringify({ check_in_time: '16:00', check_out_time: '10:30' })
+    );
     render(<ReservationModal {...defaultProps} reservation={res} days={reviewDays()} />);
 
     const times = screen.getAllByTestId('time-picker') as HTMLInputElement[];
@@ -1666,7 +1749,8 @@ describe('ReservationModal', () => {
   // ── Blur booking codes in the edit form (#2457) ─────────────────────────────
 
   describe('blur booking codes (#2457)', () => {
-    const blurOn = (on: boolean) => seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: on } });
+    const blurOn = (on: boolean) =>
+      seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: on } });
 
     it('FE-PLANNER-RESMODAL-096: the booking code field is blurred while the setting is on and the field is not focused', () => {
       blurOn(true);

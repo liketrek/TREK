@@ -1,37 +1,38 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import path from 'path';
-import { randomUUID } from 'crypto';
-import { Readable } from 'node:stream';
-import type { Request } from 'express';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import { avatarUrl } from '../common/avatarUrl';
+import { BudgetItems } from '../../db/entities/BudgetItems.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { FileLinks } from '../../db/entities/FileLinks.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { TripFiles } from '../../db/entities/TripFiles.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
+import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
+import type { FileLinksRepository, FileLinkTargetRow } from '../../db/repositories/FileLinks.repository';
+import type { PlacesRepository } from '../../db/repositories/Places.repository';
+import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import type { TripFilesRepository, TripFileRow, TripFileJoinRow } from '../../db/repositories/TripFiles.repository';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
 import { EphemeralTokenService } from '../auth/ephemeral-token.service';
 import { verifyJwtAndLoadUser } from '../auth/jwt-verify';
-import { EntityManager } from '@mikro-orm/core';
-import { Users } from '../../db/entities/Users.entity';
-import type { User } from '../../types';
-import type { TripAccess } from '../../db/repositories/Trips.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { UnitOfWork } from '../database/unit-of-work';
+import { avatarUrl } from '../common/avatarUrl';
 import { toRowId } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { StorageService } from '../storage/storage.service';
 import { StorageNotFoundError, StorageInvalidKeyError, type ObjectStat } from '../storage/storage.types';
-import { TripFiles } from '../../db/entities/TripFiles.entity';
-import type { TripFilesRepository, TripFileRow, TripFileJoinRow } from '../../db/repositories/TripFiles.repository';
-import { FileLinks } from '../../db/entities/FileLinks.entity';
-import type { FileLinksRepository, FileLinkTargetRow } from '../../db/repositories/FileLinks.repository';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository } from '../../db/repositories/Places.repository';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
-import { BudgetItems } from '../../db/entities/BudgetItems.entity';
-import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
+import { EntityManager } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+
+import { randomUUID } from 'crypto';
+import type { Request } from 'express';
+import { Readable } from 'node:stream';
+import path from 'path';
 
 type Trip = TripAccess;
 type FilePermission = 'file_upload' | 'file_edit' | 'file_delete';
@@ -62,7 +63,10 @@ export const FILE_CONTENT_MAX = 10 * 1024 * 1024;
 export type FileContentRefusal = 'not-found' | 'too-large' | 'not-accessible';
 
 export class FileContentError extends Error {
-  constructor(readonly reason: FileContentRefusal, message: string) {
+  constructor(
+    readonly reason: FileContentRefusal,
+    message: string,
+  ) {
     super(message);
   }
 }
@@ -147,7 +151,12 @@ export class FilesService {
     return this.permissions.checkPermission(action, user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -159,7 +168,7 @@ export class FilesService {
   async authenticateDownload(req: Request): Promise<{ userId: number } | { error: string; status: number }> {
     const cookieToken = (req as { cookies?: Record<string, string> }).cookies?.trek_session;
     const authHeader = req.headers['authorization'];
-    const bearerToken = authHeader ? (authHeader.split(' ')[1] || undefined) : undefined;
+    const bearerToken = authHeader ? authHeader.split(' ')[1] || undefined : undefined;
     const queryToken = req.query.token as string | undefined;
 
     // Cookie and Bearer both carry a full JWT — try them first (cookie wins).
@@ -204,7 +213,12 @@ export class FilesService {
    */
   async findForeignLinkTarget(
     tripId: string | number,
-    opts: { reservation_id?: string | number | null; assignment_id?: string | number | null; place_id?: string | number | null; budget_item_id?: string | number | null }
+    opts: {
+      reservation_id?: string | number | null;
+      assignment_id?: string | number | null;
+      place_id?: string | number | null;
+      budget_item_id?: string | number | null;
+    },
   ): Promise<'reservation_id' | 'assignment_id' | 'place_id' | 'budget_item_id' | null> {
     const tripIdNum = toRowId(tripId);
     if (opts.reservation_id) {
@@ -269,7 +283,10 @@ export class FilesService {
     const file = await this.getFileById(fileId, tripId);
     if (!file || file.deleted_at) throw new FileContentError('not-found', `no file ${fileId} on trip ${tripId}`);
     if ((file.file_size ?? 0) > FILE_CONTENT_MAX) {
-      throw new FileContentError('too-large', `file too large to read (>${FILE_CONTENT_MAX} bytes); use the download UI`);
+      throw new FileContentError(
+        'too-large',
+        `file too large to read (>${FILE_CONTENT_MAX} bytes); use the download UI`,
+      );
     }
     let stream: Readable;
     let stat: ObjectStat;
@@ -284,7 +301,10 @@ export class FilesService {
     // Re-checked against the OBJECT, not the DB row: file_size can drift.
     if (stat.size > FILE_CONTENT_MAX) {
       stream.destroy();
-      throw new FileContentError('too-large', `file too large to read (>${FILE_CONTENT_MAX} bytes); use the download UI`);
+      throw new FileContentError(
+        'too-large',
+        `file too large to read (>${FILE_CONTENT_MAX} bytes); use the download UI`,
+      );
     }
     const chunks: Buffer[] = [];
     let total = 0;
@@ -310,7 +330,7 @@ export class FilesService {
     const tripIdNum = toRowId(tripId) ?? -1;
     const files = await this.tripFilesRepo.listForTrip(tripIdNum, showTrash);
 
-    const fileIds = files.map(f => f.id);
+    const fileIds = files.map((f) => f.id);
     const links = await this.fileLinksRepo.listForFiles(fileIds);
     const linksMap: Record<number, FileLinkTargetRow[]> = {};
     for (const link of links) {
@@ -318,13 +338,13 @@ export class FilesService {
       linksMap[link.file_id].push(link);
     }
 
-    return files.map(f => {
+    return files.map((f) => {
       const fileLinks = linksMap[f.id] || [];
       return {
         ...formatFile(f),
-        linked_reservation_ids: fileLinks.filter(l => l.reservation_id).map(l => l.reservation_id),
-        linked_place_ids: fileLinks.filter(l => l.place_id).map(l => l.place_id),
-        linked_budget_item_ids: fileLinks.filter(l => l.budget_item_id).map(l => l.budget_item_id),
+        linked_reservation_ids: fileLinks.filter((l) => l.reservation_id).map((l) => l.reservation_id),
+        linked_place_ids: fileLinks.filter((l) => l.place_id).map((l) => l.place_id),
+        linked_budget_item_ids: fileLinks.filter((l) => l.budget_item_id).map((l) => l.budget_item_id),
       };
     });
   }
@@ -334,7 +354,12 @@ export class FilesService {
     tripId: string | number,
     file: { filename: string; originalname: string; size: number; mimetype: string },
     uploadedBy: number,
-    opts: { place_id?: string | number | null; reservation_id?: string | number | null; budget_item_id?: string | number | null; description?: string | null }
+    opts: {
+      place_id?: string | number | null;
+      reservation_id?: string | number | null;
+      budget_item_id?: string | number | null;
+      description?: string | null;
+    },
   ) {
     const newId = await this.uow.transactional(async () => {
       const id = await this.tripFilesRepo.insertFile({
@@ -373,22 +398,35 @@ export class FilesService {
   ) {
     const filename = `${randomUUID()}${path.extname(upload.originalname)}`;
     await this.storage.put('files', filename, Readable.from([upload.bytes]), { contentType: upload.mimetype });
-    return this.createFile(tripId, { filename, originalname: upload.originalname, size: upload.bytes.length, mimetype: upload.mimetype }, uploadedBy, opts);
+    return this.createFile(
+      tripId,
+      { filename, originalname: upload.originalname, size: upload.bytes.length, mimetype: upload.mimetype },
+      uploadedBy,
+      opts,
+    );
   }
 
   /** R2: `updateFile`'s field update and its conditional `file_links` insert/delete (FL12+FL13+FL14) run inside one transaction. */
   async updateFile(
     id: string | number,
     current: TripFileRow,
-    updates: { description?: string; place_id?: string | number | null; reservation_id?: string | number | null; budget_item_id?: string | number | null }
+    updates: {
+      description?: string;
+      place_id?: string | number | null;
+      reservation_id?: string | number | null;
+      budget_item_id?: string | number | null;
+    },
   ) {
     const idNum = toRowId(id) ?? -1;
 
     await this.uow.transactional(async () => {
       await this.tripFilesRepo.updateFile(idNum, {
-        description: updates.description !== undefined ? (updates.description || null) : (current.description ?? null),
+        description: updates.description !== undefined ? updates.description || null : (current.description ?? null),
         place_id: updates.place_id !== undefined ? coerceLinkId(updates.place_id) : (current.place_id ?? null),
-        reservation_id: updates.reservation_id !== undefined ? coerceLinkId(updates.reservation_id) : (current.reservation_id ?? null),
+        reservation_id:
+          updates.reservation_id !== undefined
+            ? coerceLinkId(updates.reservation_id)
+            : (current.reservation_id ?? null),
       });
 
       if (updates.budget_item_id !== undefined) {
@@ -447,14 +485,16 @@ export class FilesService {
     // content was actually removed — failing unlinks keep their DB row
     // and a retry via the single-file delete path can try again.
     const successfullyUnlinked: number[] = [];
-    await Promise.all(trashed.map(async (file) => {
-      try {
-        await this.storage.delete('files', path.basename(file.filename));
-        successfullyUnlinked.push(file.id);
-      } catch (e) {
-        console.error(`[files] unlink failed for ${file.filename}, keeping DB row:`, e);
-      }
-    }));
+    await Promise.all(
+      trashed.map(async (file) => {
+        try {
+          await this.storage.delete('files', path.basename(file.filename));
+          successfullyUnlinked.push(file.id);
+        } catch (e) {
+          console.error(`[files] unlink failed for ${file.filename}, keeping DB row:`, e);
+        }
+      }),
+    );
     // A single statement is already atomic — no `uow.transactional` wrapper
     // needed here (task-8-review.md L1/U1: the wrapper this method used to
     // carry was vacuous, and FILE-SVC-062's "rollback" claim never actually
@@ -474,7 +514,12 @@ export class FilesService {
   // of returning a success-shaped links list (the legacy catch swallowed it).
   async createFileLink(
     fileId: string | number,
-    opts: { reservation_id?: string | number | null; assignment_id?: string | number | null; place_id?: string | number | null; budget_item_id?: string | number | null }
+    opts: {
+      reservation_id?: string | number | null;
+      assignment_id?: string | number | null;
+      place_id?: string | number | null;
+      budget_item_id?: string | number | null;
+    },
   ) {
     const idNum = toRowId(fileId) ?? -1;
     await this.fileLinksRepo.insertIgnore({

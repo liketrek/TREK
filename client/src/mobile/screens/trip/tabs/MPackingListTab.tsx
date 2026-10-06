@@ -1,39 +1,71 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import type { PackingUpdateBagRequest } from '@trek/shared';
+import type { LucideIcon } from 'lucide-react';
 import {
-  Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping, Minus,
-  Download, FileSpreadsheet, FileText, LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, Printer, RotateCcw, Save as SaveIcon,
-  Trash2, UserPlus, UserRound,
-} from 'lucide-react'
-import MDancingTrek from '../../../components/MDancingTrek'
-import { useAuthStore } from '../../../../store/authStore'
-import { useAddonStore } from '../../../../store/addonStore'
-import { useTripStore } from '../../../../store/tripStore'
-import { packingApi } from '../../../../api/client'
-import { useNetworkMode } from '../../../../hooks/useNetworkMode'
-import { useBagTotalsPing } from '../../../../components/Packing/useBagTotalsPing'
-import type { PackingUpdateBagRequest } from '@trek/shared'
-import type { PackingBag, PackingItem, TripMember } from '../../../../types'
-import type { TripPlanner } from '../MTripShell'
-import MConfirmSheet from '../../settings/MConfirmSheet'
-import { FIELD_CLS } from '../sheets/PlSheetChrome'
-import { TabScroller } from './tabChrome'
-import { katColor, newItemSharing, packedOf } from '../../../../components/Packing/packingListPanel.helpers'
-import { BAG_COLORS, PACKING_PLACEHOLDER_NAME } from '../../../../components/Packing/packingListPanel.constants'
+  Briefcase,
+  Check,
+  CheckCheck,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  HandHelping,
+  LayoutTemplate,
+  Minus,
+  MoreHorizontal,
+  Package,
+  Pencil,
+  Plus,
+  Printer,
+  RotateCcw,
+  Save as SaveIcon,
+  Trash2,
+  UserPlus,
+  UserRound,
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { packingApi } from '../../../../api/client';
+import { BAG_COLORS, PACKING_PLACEHOLDER_NAME } from '../../../../components/Packing/packingListPanel.constants';
+import { katColor, newItemSharing, packedOf } from '../../../../components/Packing/packingListPanel.helpers';
+import PackingPrintPreview from '../../../../components/Packing/PackingPrintPreview';
+import { useBagTotalsPing } from '../../../../components/Packing/useBagTotalsPing';
+import { usePackingExport } from '../../../../components/Packing/usePackingExport';
+import { useNetworkMode } from '../../../../hooks/useNetworkMode';
+import { useAddonStore } from '../../../../store/addonStore';
+import { useAuthStore } from '../../../../store/authStore';
+import { useTripStore } from '../../../../store/tripStore';
+import type { PackingBag, PackingItem, TripMember } from '../../../../types';
+import MDancingTrek from '../../../components/MDancingTrek';
+import MConfirmSheet from '../../settings/MConfirmSheet';
+import type { TripPlanner } from '../MTripShell';
+import { FIELD_CLS } from '../sheets/PlSheetChrome';
 import {
-  formatWeight, groupPackingItems, isLastCustomItemInCategory, isPackingPlaceholder,
-  packingCategoryOrder, packingProgress, packingViewItems,
-  type PackingCategoryGroup, type PackingStatusFilter, type PackingView,
-} from './listsModel'
-import MBagsSheet from './MBagsSheet'
-import MPackItemSheet from './MPackItemSheet'
-import MPackingImportSheet from './MPackingImportSheet'
-import PackingPrintPreview from '../../../../components/Packing/PackingPrintPreview'
-import { usePackingExport } from '../../../../components/Packing/usePackingExport'
+  formatWeight,
+  groupPackingItems,
+  isLastCustomItemInCategory,
+  isPackingPlaceholder,
+  packingCategoryOrder,
+  packingProgress,
+  packingViewItems,
+  type PackingCategoryGroup,
+  type PackingStatusFilter,
+  type PackingView,
+} from './listsModel';
+import MBagsSheet from './MBagsSheet';
+import MPackingImportSheet from './MPackingImportSheet';
+import MPackItemSheet from './MPackItemSheet';
+import { TabScroller } from './tabChrome';
 
-type ActionView = 'menu' | 'apply' | 'save'
-interface CategoryAssignee { user_id: number; username: string }
-interface PackingTemplate { id: number; name: string; item_count: number }
+type ActionView = 'menu' | 'apply' | 'save';
+interface CategoryAssignee {
+  user_id: number;
+  username: string;
+}
+interface PackingTemplate {
+  id: number;
+  name: string;
+  item_count: number;
+}
 
 /**
  * Packing sub-tab (spec 03 §4.1-4.4): progress card, action menu (remove
@@ -43,251 +75,281 @@ interface PackingTemplate { id: number; name: string; item_count: number }
  * the desktop `KategorieGruppe`/`ArtikelZeile` keep it local too.
  */
 export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
-  const { t, toast, tripId, packingItems: items, tripActions } = planner
-  const canEdit = planner.can('packing_edit', planner.trip)
-  const isAdmin = useAuthStore(s => s.user?.role === 'admin')
-  const currentUserId = useAuthStore(s => s.user?.id) ?? null
+  const { t, toast, tripId, packingItems: items, tripActions } = planner;
+  const canEdit = planner.can('packing_edit', planner.trip);
+  const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
+  const currentUserId = useAuthStore((s) => s.user?.id) ?? null;
   // Bag-tracking is a global addon flag, NOT part of planner.enabledAddons (§6.4).
-  const bagTrackingEnabled = useAddonStore(s => s.bagTracking)
-  const tripMembers = planner.tripMembers
+  const bagTrackingEnabled = useAddonStore((s) => s.bagTracking);
+  const tripMembers = planner.tripMembers;
 
-  const [view, setView] = useState<PackingView>('common')
-  const packingExport = usePackingExport(tripId, view)
+  const [view, setView] = useState<PackingView>('common');
+  const packingExport = usePackingExport(tripId, view);
   // Exporting changes nothing, so the menu is there for anyone with a list to take along.
-  const hasActions = canEdit || packingExport.hasItems
-  const [statusFilter, setStatusFilter] = useState<PackingStatusFilter>('all')
-  const [editMode, setEditMode] = useState(false)
-  const [actionsOpen, setActionsOpen] = useState(false)
-  const [actionView, setActionView] = useState<ActionView>('menu')
-  const [saveTemplateName, setSaveTemplateName] = useState('')
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-  const [addingCategory, setAddingCategory] = useState(false)
-  const [newCategoryName, setNewCategoryName] = useState('')
-  const [editingItemId, setEditingItemId] = useState<number | null>(null)
-  const [showBagsSheet, setShowBagsSheet] = useState(false)
-  const [showImportSheet, setShowImportSheet] = useState(false)
-  const [confirmClear, setConfirmClear] = useState(false)
-  const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<{ name: string; items: PackingItem[] } | null>(null)
+  const hasActions = canEdit || packingExport.hasItems;
+  const [statusFilter, setStatusFilter] = useState<PackingStatusFilter>('all');
+  const [editMode, setEditMode] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [actionView, setActionView] = useState<ActionView>('menu');
+  const [saveTemplateName, setSaveTemplateName] = useState('');
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [showBagsSheet, setShowBagsSheet] = useState(false);
+  const [showImportSheet, setShowImportSheet] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<{ name: string; items: PackingItem[] } | null>(null);
 
-  const [bags, setBags] = useState<PackingBag[]>([])
+  const [bags, setBags] = useState<PackingBag[]>([]);
   /** Server-summed weight of everything in no bag (#2191); null until first load. */
-  const [unassignedWeightGrams, setUnassignedWeightGrams] = useState<number | null>(null)
-  const [templates, setTemplates] = useState<PackingTemplate[]>([])
-  const [categoryAssignees, setCategoryAssignees] = useState<Record<string, CategoryAssignee[]>>({})
+  const [unassignedWeightGrams, setUnassignedWeightGrams] = useState<number | null>(null);
+  const [templates, setTemplates] = useState<PackingTemplate[]>([]);
+  const [categoryAssignees, setCategoryAssignees] = useState<Record<string, CategoryAssignee[]>>({});
 
   const reloadBags = useCallback(async () => {
-    if (!bagTrackingEnabled) return
+    if (!bagTrackingEnabled) return;
     try {
-      const r = await packingApi.listBags(tripId)
-      setBags(r.bags || [])
-      setUnassignedWeightGrams(r.unassigned_weight_grams ?? null)
+      const r = await packingApi.listBags(tripId);
+      setBags(r.bags || []);
+      setUnassignedWeightGrams(r.unassigned_weight_grams ?? null);
     } catch {
       // Offline or a failed read: the sheet falls back to the local sum.
     }
-  }, [tripId, bagTrackingEnabled])
+  }, [tripId, bagTrackingEnabled]);
 
-  useEffect(() => { void reloadBags() }, [reloadBags])
+  useEffect(() => {
+    void reloadBags();
+  }, [reloadBags]);
 
   // Bag weights are server-summed across every member (#2191), so an item this
   // viewer cannot see still moves them; the server pings the room content-free.
-  useBagTotalsPing(bagTrackingEnabled, reloadBags)
+  useBagTotalsPing(bagTrackingEnabled, reloadBags);
 
   // Bags have no offline cache, so their totals go stale the moment the device
   // does; offline the sheet sums what it can see instead (#2191).
-  const { offline } = useNetworkMode()
+  const { offline } = useNetworkMode();
 
   useEffect(() => {
-    packingApi.listTemplates(tripId).then(r => setTemplates(r.templates || [])).catch(() => {})
-  }, [tripId])
+    packingApi
+      .listTemplates(tripId)
+      .then((r) => setTemplates(r.templates || []))
+      .catch(() => {});
+  }, [tripId]);
 
   useEffect(() => {
-    packingApi.getCategoryAssignees(tripId).then(r => setCategoryAssignees(r.assignees || {})).catch(() => {})
-  }, [tripId])
+    packingApi
+      .getCategoryAssignees(tripId)
+      .then((r) => setCategoryAssignees(r.assignees || {}))
+      .catch(() => {});
+  }, [tripId]);
 
-  const defaultCategory = t('packing.defaultCategory')
-  const viewItems = useMemo(() => packingViewItems(items, view), [items, view])
-  const categoryOrder = useMemo(() => packingCategoryOrder(viewItems, defaultCategory), [viewItems, defaultCategory])
-  const groups = useMemo(() => groupPackingItems(viewItems, statusFilter, defaultCategory), [viewItems, statusFilter, defaultCategory])
-  const progress = packingProgress(viewItems)
-  const checkedCount = viewItems.filter(i => i.checked).length
+  const defaultCategory = t('packing.defaultCategory');
+  const viewItems = useMemo(() => packingViewItems(items, view), [items, view]);
+  const categoryOrder = useMemo(() => packingCategoryOrder(viewItems, defaultCategory), [viewItems, defaultCategory]);
+  const groups = useMemo(
+    () => groupPackingItems(viewItems, statusFilter, defaultCategory),
+    [viewItems, statusFilter, defaultCategory]
+  );
+  const progress = packingProgress(viewItems);
+  const checkedCount = viewItems.filter((i) => i.checked).length;
 
-  const toggleCategory = (cat: string) => setCollapsed(c => ({ ...c, [cat]: !c[cat] }))
+  const toggleCategory = (cat: string) => setCollapsed((c) => ({ ...c, [cat]: !c[cat] }));
 
   const addItemToCategory = async (category: string, name: string) => {
     try {
-      const placeholder = items.find(i => i.category === category && isPackingPlaceholder(i))
+      const placeholder = items.find((i) => i.category === category && isPackingPlaceholder(i));
       if (placeholder) {
-        await tripActions.updatePackingItem(tripId, placeholder.id, { name })
+        await tripActions.updatePackingItem(tripId, placeholder.id, { name });
       } else {
         await tripActions.addPackingItem(
           tripId,
           // In "my list", shared the way the category's own items all are (#2241).
-          { name, category, ...newItemSharing(items, category, view, currentUserId) } as Parameters<typeof tripActions.addPackingItem>[1],
-        )
+          { name, category, ...newItemSharing(items, category, view, currentUserId) } as Parameters<
+            typeof tripActions.addPackingItem
+          >[1]
+        );
       }
     } catch {
-      toast.error(t('packing.toast.addError'))
+      toast.error(t('packing.toast.addError'));
     }
-  }
+  };
 
   const deleteItem = async (item: PackingItem) => {
     try {
       if (isLastCustomItemInCategory(item, items)) {
-        if (item.checked) await tripActions.togglePackingItem(tripId, item.id, false)
+        if (item.checked) await tripActions.togglePackingItem(tripId, item.id, false);
         await tripActions.updatePackingItem(tripId, item.id, {
-          name: PACKING_PLACEHOLDER_NAME, weight_grams: null, bag_id: null, quantity: 1,
-        })
+          name: PACKING_PLACEHOLDER_NAME,
+          weight_grams: null,
+          bag_id: null,
+          quantity: 1,
+        });
       } else {
-        await tripActions.deletePackingItem(tripId, item.id)
+        await tripActions.deletePackingItem(tripId, item.id);
       }
     } catch {
-      toast.error(t('packing.toast.deleteError'))
+      toast.error(t('packing.toast.deleteError'));
     }
-  }
+  };
 
   const renameCategory = async (oldName: string, newName: string) => {
-    const toUpdate = items.filter(i => (i.category || defaultCategory) === oldName)
+    const toUpdate = items.filter((i) => (i.category || defaultCategory) === oldName);
     try {
-      for (const item of toUpdate) await tripActions.updatePackingItem(tripId, item.id, { category: newName })
+      for (const item of toUpdate) await tripActions.updatePackingItem(tripId, item.id, { category: newName });
     } catch {
-      toast.error(t('packing.toast.renameError'))
+      toast.error(t('packing.toast.renameError'));
     }
-  }
+  };
 
   const deleteCategoryItems = async (catItems: PackingItem[]) => {
-    let failed = false
+    let failed = false;
     for (const item of catItems) {
-      try { await tripActions.deletePackingItem(tripId, item.id) } catch { failed = true }
+      try {
+        await tripActions.deletePackingItem(tripId, item.id);
+      } catch {
+        failed = true;
+      }
     }
-    if (failed) toast.error(t('packing.toast.deleteError'))
-  }
+    if (failed) toast.error(t('packing.toast.deleteError'));
+  };
 
   const checkAllInCategory = async (catItems: PackingItem[]) => {
     try {
-      for (const item of catItems) if (!item.checked) await tripActions.togglePackingItem(tripId, item.id, true)
+      for (const item of catItems) if (!item.checked) await tripActions.togglePackingItem(tripId, item.id, true);
     } catch {
-      toast.error(t('packing.toast.saveError'))
+      toast.error(t('packing.toast.saveError'));
     }
-  }
+  };
   const uncheckAllInCategory = async (catItems: PackingItem[]) => {
     try {
-      for (const item of catItems) if (item.checked) await tripActions.togglePackingItem(tripId, item.id, false)
+      for (const item of catItems) if (item.checked) await tripActions.togglePackingItem(tripId, item.id, false);
     } catch {
-      toast.error(t('packing.toast.saveError'))
+      toast.error(t('packing.toast.saveError'));
     }
-  }
+  };
 
   const addNewCategory = async () => {
-    const trimmed = newCategoryName.trim()
-    if (!trimmed) return
-    let catName = trimmed
-    while (categoryOrder.includes(catName)) catName += '​'
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+    let catName = trimmed;
+    while (categoryOrder.includes(catName)) catName += '​';
     try {
-      await tripActions.addPackingItem(
-        tripId,
-        { name: PACKING_PLACEHOLDER_NAME, category: catName, visibility: view === 'personal' ? 'personal' : 'common' } as Parameters<typeof tripActions.addPackingItem>[1],
-      )
-      setNewCategoryName('')
-      setAddingCategory(false)
+      await tripActions.addPackingItem(tripId, {
+        name: PACKING_PLACEHOLDER_NAME,
+        category: catName,
+        visibility: view === 'personal' ? 'personal' : 'common',
+      } as Parameters<typeof tripActions.addPackingItem>[1]);
+      setNewCategoryName('');
+      setAddingCategory(false);
     } catch {
-      toast.error(t('packing.toast.addError'))
+      toast.error(t('packing.toast.addError'));
     }
-  }
+  };
 
   const clearChecked = async () => {
-    let failed = false
-    for (const item of items.filter(i => i.checked)) {
-      try { await tripActions.deletePackingItem(tripId, item.id) } catch { failed = true }
+    let failed = false;
+    for (const item of items.filter((i) => i.checked)) {
+      try {
+        await tripActions.deletePackingItem(tripId, item.id);
+      } catch {
+        failed = true;
+      }
     }
-    if (failed) toast.error(t('packing.toast.deleteError'))
-  }
+    if (failed) toast.error(t('packing.toast.deleteError'));
+  };
 
   const createBag = async (name: string): Promise<PackingBag | undefined> => {
     try {
-      const data = await packingApi.createBag(tripId, { name, color: BAG_COLORS[bags.length % BAG_COLORS.length] })
-      setBags(prev => [...prev, data.bag])
-      return data.bag
+      const data = await packingApi.createBag(tripId, { name, color: BAG_COLORS[bags.length % BAG_COLORS.length] });
+      setBags((prev) => [...prev, data.bag]);
+      return data.bag;
     } catch {
-      toast.error(t('packing.toast.saveError'))
-      return undefined
+      toast.error(t('packing.toast.saveError'));
+      return undefined;
     }
-  }
+  };
   const updateBag = async (bagId: number, data: PackingUpdateBagRequest) => {
     try {
-      const result = await packingApi.updateBag(tripId, bagId, data)
-      setBags(prev => prev.map(b => (b.id === bagId ? { ...b, ...result.bag } : b)))
+      const result = await packingApi.updateBag(tripId, bagId, data);
+      setBags((prev) => prev.map((b) => (b.id === bagId ? { ...b, ...result.bag } : b)));
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     }
-  }
+  };
   const deleteBag = async (bagId: number) => {
     try {
-      await packingApi.deleteBag(tripId, bagId)
-      setBags(prev => prev.filter(b => b.id !== bagId))
+      await packingApi.deleteBag(tripId, bagId);
+      setBags((prev) => prev.filter((b) => b.id !== bagId));
     } catch {
-      toast.error(t('packing.toast.deleteError'))
+      toast.error(t('packing.toast.deleteError'));
     }
-  }
+  };
   const setBagMembers = async (bagId: number, userIds: number[]) => {
     try {
-      const result = await packingApi.setBagMembers(tripId, bagId, userIds)
-      setBags(prev => prev.map(b => (b.id === bagId ? { ...b, members: result.members } : b)))
+      const result = await packingApi.setBagMembers(tripId, bagId, userIds);
+      setBags((prev) => prev.map((b) => (b.id === bagId ? { ...b, members: result.members } : b)));
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     }
-  }
+  };
 
   const setCategoryAssigneesFor = async (category: string, userIds: number[]) => {
     try {
-      const data = await packingApi.setCategoryAssignees(tripId, category, userIds)
-      setCategoryAssignees(prev => ({ ...prev, [category]: data.assignees || [] }))
+      const data = await packingApi.setCategoryAssignees(tripId, category, userIds);
+      setCategoryAssignees((prev) => ({ ...prev, [category]: data.assignees || [] }));
     } catch {
-      toast.error(t('packing.toast.saveError'))
+      toast.error(t('packing.toast.saveError'));
     }
-  }
+  };
 
   const applyTemplate = async (templateId: number) => {
     try {
       // Land the items in the list the user is looking at — without the
       // visibility the API defaults to 'common' and they vanish from My list.
-      const data = await packingApi.applyTemplate(tripId, templateId, view)
-      useTripStore.setState(s => ({ packingItems: [...s.packingItems, ...(data.items || [])] }))
-      toast.success(t('packing.templateApplied', { count: data.count }))
-      setActionsOpen(false)
-      setActionView('menu')
+      const data = await packingApi.applyTemplate(tripId, templateId, view);
+      useTripStore.setState((s) => ({ packingItems: [...s.packingItems, ...(data.items || [])] }));
+      toast.success(t('packing.templateApplied', { count: data.count }));
+      setActionsOpen(false);
+      setActionView('menu');
     } catch {
-      toast.error(t('packing.templateError'))
+      toast.error(t('packing.templateError'));
     }
-  }
+  };
 
   const saveAsTemplate = async () => {
-    if (!saveTemplateName.trim()) return
+    if (!saveTemplateName.trim()) return;
     try {
-      await packingApi.saveAsTemplate(tripId, saveTemplateName.trim())
-      toast.success(t('packing.templateSaved'))
-      setSaveTemplateName('')
-      setActionsOpen(false)
-      setActionView('menu')
-      packingApi.listTemplates(tripId).then(r => setTemplates(r.templates || [])).catch(() => {})
+      await packingApi.saveAsTemplate(tripId, saveTemplateName.trim());
+      toast.success(t('packing.templateSaved'));
+      setSaveTemplateName('');
+      setActionsOpen(false);
+      setActionView('menu');
+      packingApi
+        .listTemplates(tripId)
+        .then((r) => setTemplates(r.templates || []))
+        .catch(() => {});
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     }
-  }
+  };
 
   const filterPillCls = (active: boolean) =>
     `flex-1 whitespace-nowrap rounded-full px-2 py-[6px] text-center text-[0.71875rem] font-semibold ${
       active ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'
-    }`
+    }`;
 
-  const trueEmpty = items.length === 0
-  const viewEmpty = viewItems.length === 0
+  const trueEmpty = items.length === 0;
+  const viewEmpty = viewItems.length === 0;
 
   return (
     <TabScroller>
       {/* ── Progress card (spec §4.1) ── */}
       <div className="rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop px-[14px] py-[13px]">
         <div className="flex items-baseline gap-[7px]">
-          <span className="font-geist text-[1rem] font-extrabold tabular-nums text-m-ink">{progress.checked}/{progress.total}</span>
+          <span className="font-geist text-[1rem] font-extrabold tabular-nums text-m-ink">
+            {progress.checked}/{progress.total}
+          </span>
           <span className="font-geist text-[0.625rem] font-bold text-m-faint">{progress.pct}%</span>
           <div className="ml-auto flex items-center gap-[6px]">
             {bagTrackingEnabled && (
@@ -303,7 +365,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
             {canEdit && (
               <button
                 type="button"
-                onClick={() => setEditMode(v => !v)}
+                onClick={() => setEditMode((v) => !v)}
                 aria-pressed={editMode}
                 className={`flex items-center gap-[5px] rounded-full px-[11px] py-[6px] text-[0.71875rem] font-semibold ${
                   editMode ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-muted'
@@ -316,7 +378,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
             {hasActions && (
               <button
                 type="button"
-                onClick={() => setActionsOpen(v => !v)}
+                onClick={() => setActionsOpen((v) => !v)}
                 aria-label={t('packing.actions')}
                 aria-expanded={actionsOpen}
                 className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
@@ -341,30 +403,65 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
                   icon={Trash2}
                   label={t('packing.clearChecked', { count: checkedCount })}
                   danger
-                  onClick={() => { setActionsOpen(false); setConfirmClear(true) }}
+                  onClick={() => {
+                    setActionsOpen(false);
+                    setConfirmClear(true);
+                  }}
                 />
               )}
               {canEdit && templates.length > 0 && (
-                <ActionRow icon={LayoutTemplate} label={t('packing.applyTemplate')} onClick={() => setActionView('apply')} />
+                <ActionRow
+                  icon={LayoutTemplate}
+                  label={t('packing.applyTemplate')}
+                  onClick={() => setActionView('apply')}
+                />
               )}
               {canEdit && isAdmin && items.length > 0 && (
                 <ActionRow icon={SaveIcon} label={t('packing.saveAsTemplate')} onClick={() => setActionView('save')} />
               )}
               {canEdit && (
-                <ActionRow icon={Download} label={t('packing.import')} onClick={() => { setActionsOpen(false); setShowImportSheet(true) }} />
+                <ActionRow
+                  icon={Download}
+                  label={t('packing.import')}
+                  onClick={() => {
+                    setActionsOpen(false);
+                    setShowImportSheet(true);
+                  }}
+                />
               )}
               {packingExport.hasItems && (
                 <>
-                  <ActionRow icon={Printer} label={t('packing.exportPrint')} onClick={() => { setActionsOpen(false); void packingExport.openPrint() }} />
-                  <ActionRow icon={FileText} label={t('packing.exportMarkdown')} onClick={() => { setActionsOpen(false); packingExport.exportMarkdown() }} />
-                  <ActionRow icon={FileSpreadsheet} label={t('packing.exportCsv')} onClick={() => { setActionsOpen(false); void packingExport.exportCsv() }} />
+                  <ActionRow
+                    icon={Printer}
+                    label={t('packing.exportPrint')}
+                    onClick={() => {
+                      setActionsOpen(false);
+                      void packingExport.openPrint();
+                    }}
+                  />
+                  <ActionRow
+                    icon={FileText}
+                    label={t('packing.exportMarkdown')}
+                    onClick={() => {
+                      setActionsOpen(false);
+                      packingExport.exportMarkdown();
+                    }}
+                  />
+                  <ActionRow
+                    icon={FileSpreadsheet}
+                    label={t('packing.exportCsv')}
+                    onClick={() => {
+                      setActionsOpen(false);
+                      void packingExport.exportCsv();
+                    }}
+                  />
                 </>
               )}
             </>
           )}
           {actionView === 'apply' && (
             <div className="p-[6px]">
-              {templates.map(tmpl => (
+              {templates.map((tmpl) => (
                 <button
                   key={tmpl.id}
                   type="button"
@@ -374,7 +471,9 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
                   <Package size={14} strokeWidth={2} className="flex-none text-m-muted" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[0.78125rem] font-semibold text-m-ink">{tmpl.name}</span>
-                    <span className="block font-geist text-[0.625rem] text-m-faint">{tmpl.item_count} {t('admin.packingTemplates.items')}</span>
+                    <span className="block font-geist text-[0.625rem] text-m-faint">
+                      {tmpl.item_count} {t('admin.packingTemplates.items')}
+                    </span>
                   </span>
                 </button>
               ))}
@@ -386,8 +485,10 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
                 type="text"
                 autoFocus
                 value={saveTemplateName}
-                onChange={e => setSaveTemplateName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') void saveAsTemplate() }}
+                onChange={(e) => setSaveTemplateName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void saveAsTemplate();
+                }}
                 placeholder={t('packing.templateName')}
                 className={`${FIELD_CLS} flex-1`}
               />
@@ -408,17 +509,21 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
       {/* ── Add list — sits directly under the progress card (instead of at the
            very bottom) so it's reachable without scrolling past every category.
            Same dashed-pill style as before, just relocated. ── */}
-      {canEdit && (editMode || trueEmpty) && (
-        addingCategory ? (
+      {canEdit &&
+        (editMode || trueEmpty) &&
+        (addingCategory ? (
           <div className="mt-[10px] flex gap-2">
             <input
               type="text"
               autoFocus
               value={newCategoryName}
-              onChange={e => setNewCategoryName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') void addNewCategory()
-                if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName('') }
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void addNewCategory();
+                if (e.key === 'Escape') {
+                  setAddingCategory(false);
+                  setNewCategoryName('');
+                }
               }}
               placeholder={t('packing.newCategoryPlaceholder')}
               className={`${FIELD_CLS} flex-1`}
@@ -442,18 +547,39 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
             <Plus size={12} strokeWidth={2.2} />
             {t('packing.addCategory')}
           </button>
-        )
-      )}
+        ))}
 
       {/* ── Filters (spec §4.3) ── */}
       {!trueEmpty && (
         <div className="mt-[10px] flex items-center gap-[6px]">
-          <button type="button" onClick={() => setView('common')} className={filterPillCls(view === 'common')}>{t('packing.viewCommon')}</button>
-          <button type="button" onClick={() => setView('personal')} className={filterPillCls(view === 'personal')}>{t('packing.viewPersonal')}</button>
+          <button type="button" onClick={() => setView('common')} className={filterPillCls(view === 'common')}>
+            {t('packing.viewCommon')}
+          </button>
+          <button type="button" onClick={() => setView('personal')} className={filterPillCls(view === 'personal')}>
+            {t('packing.viewPersonal')}
+          </button>
           <span className="h-4 w-px flex-none bg-[color:var(--m-rowbr)]" />
-          <button type="button" onClick={() => setStatusFilter('all')} className={filterPillCls(statusFilter === 'all')}>{t('packing.filterAll')}</button>
-          <button type="button" onClick={() => setStatusFilter('open')} className={filterPillCls(statusFilter === 'open')}>{t('packing.filterOpen')}</button>
-          <button type="button" onClick={() => setStatusFilter('done')} className={filterPillCls(statusFilter === 'done')}>{t('packing.filterDone')}</button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={filterPillCls(statusFilter === 'all')}
+          >
+            {t('packing.filterAll')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('open')}
+            className={filterPillCls(statusFilter === 'open')}
+          >
+            {t('packing.filterOpen')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('done')}
+            className={filterPillCls(statusFilter === 'done')}
+          >
+            {t('packing.filterDone')}
+          </button>
         </div>
       )}
 
@@ -472,7 +598,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
           {t('packing.emptyFiltered')}
         </div>
       ) : (
-        groups.map(group => (
+        groups.map((group) => (
           <PackingCategoryCard
             key={group.category}
             group={group}
@@ -485,13 +611,18 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
             currentUserId={currentUserId}
             assignees={categoryAssignees[group.category] || []}
             tripMembers={tripMembers}
-            onSetAssignees={userIds => setCategoryAssigneesFor(group.category, userIds)}
-            onRename={newName => renameCategory(group.category, newName)}
+            onSetAssignees={(userIds) => setCategoryAssigneesFor(group.category, userIds)}
+            onRename={(newName) => renameCategory(group.category, newName)}
             onCheckAll={() => checkAllInCategory(group.items)}
             onUncheckAll={() => uncheckAllInCategory(group.items)}
-            onDeleteCategory={() => setDeleteCategoryTarget({ name: group.category, items: items.filter(i => (i.category || defaultCategory) === group.category) })}
-            onAddItem={name => addItemToCategory(group.category, name)}
-            onEditItem={id => setEditingItemId(id)}
+            onDeleteCategory={() =>
+              setDeleteCategoryTarget({
+                name: group.category,
+                items: items.filter((i) => (i.category || defaultCategory) === group.category),
+              })
+            }
+            onAddItem={(name) => addItemToCategory(group.category, name)}
+            onEditItem={(id) => setEditingItemId(id)}
             onDeleteItem={deleteItem}
             bagTrackingEnabled={bagTrackingEnabled}
             bags={bags}
@@ -528,7 +659,11 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
       />
 
       <MPackingImportSheet planner={planner} open={showImportSheet} onClose={() => setShowImportSheet(false)} />
-      <PackingPrintPreview html={packingExport.printHtml} title={packingExport.printTitle} onClose={packingExport.closePrint} />
+      <PackingPrintPreview
+        html={packingExport.printHtml}
+        title={packingExport.printTitle}
+        onClose={packingExport.closePrint}
+      />
 
       <MConfirmSheet
         open={confirmClear}
@@ -538,34 +673,47 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         confirmLabel={t('common.delete')}
         cancelLabel={t('common.cancel')}
         danger
-        onConfirm={() => { setConfirmClear(false); void clearChecked() }}
+        onConfirm={() => {
+          setConfirmClear(false);
+          void clearChecked();
+        }}
       />
 
       <MConfirmSheet
         open={deleteCategoryTarget != null}
         onClose={() => setDeleteCategoryTarget(null)}
         title={t('packing.menuDeleteCat')}
-        message={deleteCategoryTarget
-          ? t('packing.confirm.deleteCat', { name: deleteCategoryTarget.name, count: deleteCategoryTarget.items.length })
-          : ''}
+        message={
+          deleteCategoryTarget
+            ? t('packing.confirm.deleteCat', {
+                name: deleteCategoryTarget.name,
+                count: deleteCategoryTarget.items.length,
+              })
+            : ''
+        }
         confirmLabel={t('common.delete')}
         cancelLabel={t('common.cancel')}
         danger
         onConfirm={() => {
-          const target = deleteCategoryTarget
-          setDeleteCategoryTarget(null)
-          if (target) void deleteCategoryItems(target.items)
+          const target = deleteCategoryTarget;
+          setDeleteCategoryTarget(null);
+          if (target) void deleteCategoryItems(target.items);
         }}
       />
     </TabScroller>
-  )
+  );
 }
 
-function ActionRow({ icon: Icon, label, onClick, danger = false }: {
-  icon: LucideIcon
-  label: string
-  onClick: () => void
-  danger?: boolean
+function ActionRow({
+  icon: Icon,
+  label,
+  onClick,
+  danger = false,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
 }) {
   return (
     <button
@@ -578,62 +726,80 @@ function ActionRow({ icon: Icon, label, onClick, danger = false }: {
       <Icon size={14} strokeWidth={2} />
       {label}
     </button>
-  )
+  );
 }
 
 // ── Category card ───────────────────────────────────────────────────────
 
 function PackingCategoryCard({
-  group, categoryOrder, open, onToggle, editMode, canEdit, planner, currentUserId, assignees, tripMembers,
-  onSetAssignees, onRename, onCheckAll, onUncheckAll, onDeleteCategory, onAddItem, onEditItem, onDeleteItem,
-  bagTrackingEnabled, bags, onCreateBag,
+  group,
+  categoryOrder,
+  open,
+  onToggle,
+  editMode,
+  canEdit,
+  planner,
+  currentUserId,
+  assignees,
+  tripMembers,
+  onSetAssignees,
+  onRename,
+  onCheckAll,
+  onUncheckAll,
+  onDeleteCategory,
+  onAddItem,
+  onEditItem,
+  onDeleteItem,
+  bagTrackingEnabled,
+  bags,
+  onCreateBag,
 }: {
-  group: PackingCategoryGroup
-  categoryOrder: string[]
-  open: boolean
-  onToggle: () => void
-  editMode: boolean
-  canEdit: boolean
-  planner: TripPlanner
-  currentUserId: number | null
-  assignees: CategoryAssignee[]
-  tripMembers: TripMember[]
-  onSetAssignees: (userIds: number[]) => void
-  onRename: (newName: string) => void
-  onCheckAll: () => void
-  onUncheckAll: () => void
-  onDeleteCategory: () => void
-  onAddItem: (name: string) => void
-  onEditItem: (itemId: number) => void
-  onDeleteItem: (item: PackingItem) => Promise<void>
-  bagTrackingEnabled: boolean
-  bags: PackingBag[]
-  onCreateBag: (name: string) => Promise<PackingBag | undefined>
+  group: PackingCategoryGroup;
+  categoryOrder: string[];
+  open: boolean;
+  onToggle: () => void;
+  editMode: boolean;
+  canEdit: boolean;
+  planner: TripPlanner;
+  currentUserId: number | null;
+  assignees: CategoryAssignee[];
+  tripMembers: TripMember[];
+  onSetAssignees: (userIds: number[]) => void;
+  onRename: (newName: string) => void;
+  onCheckAll: () => void;
+  onUncheckAll: () => void;
+  onDeleteCategory: () => void;
+  onAddItem: (name: string) => void;
+  onEditItem: (itemId: number) => void;
+  onDeleteItem: (item: PackingItem) => Promise<void>;
+  bagTrackingEnabled: boolean;
+  bags: PackingBag[];
+  onCreateBag: (name: string) => Promise<PackingBag | undefined>;
 }) {
-  const { t } = planner
-  const [renaming, setRenaming] = useState(false)
-  const [renameDraft, setRenameDraft] = useState(group.category)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [assignOpen, setAssignOpen] = useState(false)
-  const [addingItem, setAddingItem] = useState(false)
-  const [newItemName, setNewItemName] = useState('')
+  const { t } = planner;
+  const [renaming, setRenaming] = useState(false);
+  const [renameDraft, setRenameDraft] = useState(group.category);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [addingItem, setAddingItem] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
 
-  const dot = katColor(group.category, categoryOrder)
-  const checkedCount = group.items.filter(i => i.checked).length
+  const dot = katColor(group.category, categoryOrder);
+  const checkedCount = group.items.filter((i) => i.checked).length;
 
   const commitRename = () => {
-    const trimmed = renameDraft.trim()
-    if (trimmed && trimmed !== group.category) onRename(trimmed)
-    else setRenameDraft(group.category)
-    setRenaming(false)
-  }
+    const trimmed = renameDraft.trim();
+    if (trimmed && trimmed !== group.category) onRename(trimmed);
+    else setRenameDraft(group.category);
+    setRenaming(false);
+  };
 
   const submitAddItem = () => {
-    const trimmed = newItemName.trim()
-    if (!trimmed) return
-    onAddItem(trimmed)
-    setNewItemName('')
-  }
+    const trimmed = newItemName.trim();
+    if (!trimmed) return;
+    onAddItem(trimmed);
+    setNewItemName('');
+  };
 
   return (
     <div className="mt-[10px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop">
@@ -644,7 +810,12 @@ function PackingCategoryCard({
         role="button"
         tabIndex={0}
         onClick={onToggle}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
         aria-expanded={open}
         className="flex w-full items-center gap-[8px] bg-[color:var(--m-ic)] px-[13px] py-[9px] text-left"
       >
@@ -654,13 +825,16 @@ function PackingCategoryCard({
             type="text"
             autoFocus
             value={renameDraft}
-            onClick={e => e.stopPropagation()}
-            onChange={e => setRenameDraft(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => setRenameDraft(e.target.value)}
             onBlur={commitRename}
-            onKeyDown={e => {
-              e.stopPropagation()
-              if (e.key === 'Enter') commitRename()
-              if (e.key === 'Escape') { setRenaming(false); setRenameDraft(group.category) }
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter') commitRename();
+              if (e.key === 'Escape') {
+                setRenaming(false);
+                setRenameDraft(group.category);
+              }
             }}
             className="min-w-0 flex-1 border-b border-[color:var(--m-rowbr)] bg-transparent text-[0.875rem] font-bold text-m-ink outline-none"
           />
@@ -670,7 +844,10 @@ function PackingCategoryCard({
         {editMode && (
           <button
             type="button"
-            onClick={e => { e.stopPropagation(); setAssignOpen(v => !v) }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setAssignOpen((v) => !v);
+            }}
             aria-label={t('packing.assignMembers')}
             className="flex-none text-m-faint"
           >
@@ -683,30 +860,45 @@ function PackingCategoryCard({
         {editMode && (
           <button
             type="button"
-            onClick={e => { e.stopPropagation(); setMenuOpen(v => !v) }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen((v) => !v);
+            }}
             aria-label={t('packing.categoryOptions')}
             className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
           >
             <MoreHorizontal size={12} strokeWidth={2} />
           </button>
         )}
-        {open ? <ChevronUp size={13} strokeWidth={2} className="flex-none text-m-faint" /> : <ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />}
+        {open ? (
+          <ChevronUp size={13} strokeWidth={2} className="flex-none text-m-faint" />
+        ) : (
+          <ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />
+        )}
       </div>
 
       {assignOpen && editMode && (
         <div className="border-b border-[color:var(--m-rowbr)] bg-m-sheetop px-[13px] py-[10px]">
-          <div className="mb-[6px] font-geist text-[0.625rem] font-bold uppercase tracking-[.06em] text-m-faint">{t('packing.assignMembers')}</div>
+          <div className="mb-[6px] font-geist text-[0.625rem] font-bold uppercase tracking-[.06em] text-m-faint">
+            {t('packing.assignMembers')}
+          </div>
           {tripMembers.length === 0 ? (
             <div className="font-geist text-[0.6875rem] text-m-faint">{t('packing.noMembers')}</div>
           ) : (
             <div className="flex flex-wrap gap-[6px]">
-              {tripMembers.map(m => {
-                const assigned = assignees.some(a => a.user_id === m.id)
+              {tripMembers.map((m) => {
+                const assigned = assignees.some((a) => a.user_id === m.id);
                 return (
                   <button
                     key={m.id}
                     type="button"
-                    onClick={() => onSetAssignees(assigned ? assignees.filter(a => a.user_id !== m.id).map(a => a.user_id) : [...assignees.map(a => a.user_id), m.id])}
+                    onClick={() =>
+                      onSetAssignees(
+                        assigned
+                          ? assignees.filter((a) => a.user_id !== m.id).map((a) => a.user_id)
+                          : [...assignees.map((a) => a.user_id), m.id]
+                      )
+                    }
                     className={`flex items-center gap-[5px] rounded-full px-[10px] py-[5px] text-[0.71875rem] font-semibold ${
                       assigned ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-muted'
                     }`}
@@ -714,7 +906,7 @@ function PackingCategoryCard({
                     {m.username}
                     {assigned && <Check size={11} strokeWidth={2.4} />}
                   </button>
-                )
+                );
               })}
             </div>
           )}
@@ -723,16 +915,45 @@ function PackingCategoryCard({
 
       {menuOpen && editMode && (
         <div className="border-b border-[color:var(--m-rowbr)]">
-          <ActionRow icon={Pencil} label={t('packing.menuRename')} onClick={() => { setMenuOpen(false); setRenaming(true) }} />
-          <ActionRow icon={CheckCheck} label={t('packing.menuCheckAll')} onClick={() => { setMenuOpen(false); onCheckAll() }} />
-          <ActionRow icon={RotateCcw} label={t('packing.menuUncheckAll')} onClick={() => { setMenuOpen(false); onUncheckAll() }} />
-          <ActionRow icon={Trash2} label={t('packing.menuDeleteCat')} danger onClick={() => { setMenuOpen(false); onDeleteCategory() }} />
+          <ActionRow
+            icon={Pencil}
+            label={t('packing.menuRename')}
+            onClick={() => {
+              setMenuOpen(false);
+              setRenaming(true);
+            }}
+          />
+          <ActionRow
+            icon={CheckCheck}
+            label={t('packing.menuCheckAll')}
+            onClick={() => {
+              setMenuOpen(false);
+              onCheckAll();
+            }}
+          />
+          <ActionRow
+            icon={RotateCcw}
+            label={t('packing.menuUncheckAll')}
+            onClick={() => {
+              setMenuOpen(false);
+              onUncheckAll();
+            }}
+          />
+          <ActionRow
+            icon={Trash2}
+            label={t('packing.menuDeleteCat')}
+            danger
+            onClick={() => {
+              setMenuOpen(false);
+              onDeleteCategory();
+            }}
+          />
         </div>
       )}
 
       {open && (
         <div className="px-[13px] pb-[8px]">
-          {group.items.map(item => (
+          {group.items.map((item) => (
             <PackingItemRow
               key={item.id}
               item={item}
@@ -748,17 +969,21 @@ function PackingCategoryCard({
             />
           ))}
 
-          {editMode && canEdit && (
-            addingItem ? (
+          {editMode &&
+            canEdit &&
+            (addingItem ? (
               <div className="flex items-center gap-[6px] py-[8px]">
                 <input
                   type="text"
                   autoFocus
                   value={newItemName}
-                  onChange={e => setNewItemName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') submitAddItem()
-                    if (e.key === 'Escape') { setAddingItem(false); setNewItemName('') }
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') submitAddItem();
+                    if (e.key === 'Escape') {
+                      setAddingItem(false);
+                      setNewItemName('');
+                    }
                   }}
                   placeholder={t('packing.addItemPlaceholder')}
                   className={`${FIELD_CLS} flex-1 py-[7px]`}
@@ -782,69 +1007,83 @@ function PackingCategoryCard({
                 <Plus size={12} strokeWidth={2.2} />
                 {t('packing.addItem')}
               </button>
-            )
-          )}
+            ))}
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ── Item row ────────────────────────────────────────────────────────────
 
-function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTrackingEnabled, bags, onCreateBag, onEdit, onDelete }: {
-  item: PackingItem
-  planner: TripPlanner
-  currentUserId: number | null
-  editMode: boolean
-  canEdit: boolean
-  bagTrackingEnabled: boolean
-  bags: PackingBag[]
-  onCreateBag: (name: string) => Promise<PackingBag | undefined>
-  onEdit: () => void
-  onDelete: () => void
+function PackingItemRow({
+  item,
+  planner,
+  currentUserId,
+  editMode,
+  canEdit,
+  bagTrackingEnabled,
+  bags,
+  onCreateBag,
+  onEdit,
+  onDelete,
+}: {
+  item: PackingItem;
+  planner: TripPlanner;
+  currentUserId: number | null;
+  editMode: boolean;
+  canEdit: boolean;
+  bagTrackingEnabled: boolean;
+  bags: PackingBag[];
+  onCreateBag: (name: string) => Promise<PackingBag | undefined>;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
-  const { t, tripId, tripActions } = planner
-  const [bagPickerOpen, setBagPickerOpen] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [creatingBag, setCreatingBag] = useState(false)
-  const [newBagName, setNewBagName] = useState('')
+  const { t, tripId, tripActions } = planner;
+  const [bagPickerOpen, setBagPickerOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [creatingBag, setCreatingBag] = useState(false);
+  const [newBagName, setNewBagName] = useState('');
 
-  const isPlaceholder = isPackingPlaceholder(item)
-  const bag = item.bag_id != null ? bags.find(b => b.id === item.bag_id) : undefined
+  const isPlaceholder = isPackingPlaceholder(item);
+  const bag = item.bag_id != null ? bags.find((b) => b.id === item.bag_id) : undefined;
 
   // Sharing badges (#858) mirror ArtikelZeile: is_private + ownership split the
   // three states, so exactly one (or none) ever applies.
-  const recipients = item.recipients || []
-  const contributors = item.contributors || []
-  const badgeSharedToMe = !!item.is_private && item.owner_id != null && item.owner_id !== currentUserId
-  const badgeSharedByMe = !!item.is_private && item.owner_id === currentUserId && recipients.length > 0
-  const badgeBroughtBy = !item.is_private && item.owner_username ? item.owner_username : null
+  const recipients = item.recipients || [];
+  const contributors = item.contributors || [];
+  const badgeSharedToMe = !!item.is_private && item.owner_id != null && item.owner_id !== currentUserId;
+  const badgeSharedByMe = !!item.is_private && item.owner_id === currentUserId && recipients.length > 0;
+  const badgeBroughtBy = !item.is_private && item.owner_username ? item.owner_username : null;
   // Owner is shown as a compact avatar instead of the full username (saves space
   // on the row). Resolve the picture from the trip members, falling back to the
   // signed-in user for their own items, then to initials.
-  const me = useAuthStore(s => s.user)
-  const ownerMember = planner.tripMembers.find(m => m.id === item.owner_id)
-  const ownerAvatarUrl = ownerMember?.avatar_url ?? (item.owner_id === me?.id ? me?.avatar_url ?? null : null)
+  const me = useAuthStore((s) => s.user);
+  const ownerMember = planner.tripMembers.find((m) => m.id === item.owner_id);
+  const ownerAvatarUrl = ownerMember?.avatar_url ?? (item.owner_id === me?.id ? (me?.avatar_url ?? null) : null);
 
-  const toggle = () => tripActions.togglePackingItem(tripId, item.id, !item.checked)
+  const toggle = () => tripActions.togglePackingItem(tripId, item.id, !item.checked);
   // Multi-piece items count their pieces into the bag (#2296).
-  const quantity = item.quantity || 1
-  const packed = packedOf(item)
-  const partlyPacked = !item.checked && packed > 0
+  const quantity = item.quantity || 1;
+  const packed = packedOf(item);
+  const partlyPacked = !item.checked && packed > 0;
 
   const assignBag = async (bagId: number | null) => {
-    setBagPickerOpen(false)
-    try { await tripActions.updatePackingItem(tripId, item.id, { bag_id: bagId }) } catch { planner.toast.error(t('packing.toast.saveError')) }
-  }
+    setBagPickerOpen(false);
+    try {
+      await tripActions.updatePackingItem(tripId, item.id, { bag_id: bagId });
+    } catch {
+      planner.toast.error(t('packing.toast.saveError'));
+    }
+  };
 
   const submitNewBag = async () => {
-    if (!newBagName.trim()) return
-    const created = await onCreateBag(newBagName.trim())
-    if (created) await assignBag(created.id)
-    setNewBagName('')
-    setCreatingBag(false)
-  }
+    if (!newBagName.trim()) return;
+    const created = await onCreateBag(newBagName.trim());
+    if (created) await assignBag(created.id);
+    setNewBagName('');
+    setCreatingBag(false);
+  };
 
   return (
     <>
@@ -855,13 +1094,19 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           aria-label={item.name}
           aria-pressed={!!item.checked}
           className={`flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] border-[1.5px] ${
-            item.checked ? 'border-m-act bg-m-act text-m-actfg' : partlyPacked ? 'border-m-act text-transparent' : 'border-[color:var(--m-rowbr)] text-transparent'
+            item.checked
+              ? 'border-m-act bg-m-act text-m-actfg'
+              : partlyPacked
+                ? 'border-m-act text-transparent'
+                : 'border-[color:var(--m-rowbr)] text-transparent'
           }`}
         >
           <Check size={12} strokeWidth={3} />
         </button>
 
-        <span className={`min-w-0 flex-1 truncate text-[0.8125rem] font-medium ${item.checked ? 'text-m-faint line-through opacity-45' : 'text-m-ink'}`}>
+        <span
+          className={`min-w-0 flex-1 truncate text-[0.8125rem] font-medium ${item.checked ? 'text-m-faint line-through opacity-45' : 'text-m-ink'}`}
+        >
           {isPlaceholder ? t('packing.addItemPlaceholder') : item.name}
         </span>
 
@@ -889,36 +1134,57 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
         )}
         {!badgeSharedToMe && !badgeSharedByMe && badgeBroughtBy && (
           <span className="flex flex-none items-center gap-[3px]" title={item.owner_username || undefined}>
-            {ownerAvatarUrl
-              ? <img src={ownerAvatarUrl} alt={item.owner_username || ''} className="h-5 w-5 flex-none rounded-full object-cover" />
-              : <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] font-geist text-[0.5625rem] font-bold text-m-muted">{(item.owner_username || '?')[0]?.toUpperCase()}</span>}
+            {ownerAvatarUrl ? (
+              <img
+                src={ownerAvatarUrl}
+                alt={item.owner_username || ''}
+                className="h-5 w-5 flex-none rounded-full object-cover"
+              />
+            ) : (
+              <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] font-geist text-[0.5625rem] font-bold text-m-muted">
+                {(item.owner_username || '?')[0]?.toUpperCase()}
+              </span>
+            )}
             {contributors.length > 0 && (
               <span className="font-geist text-[0.59375rem] font-bold text-m-faint">+{contributors.length}</span>
             )}
           </span>
         )}
 
-        {quantity > 1 && (canEdit && !isPlaceholder ? (
-          <span
-            role="group"
-            aria-label={t('packing.packedCount', { packed, total: quantity })}
-            className={`flex flex-none items-center rounded-full font-geist text-[0.625rem] font-bold tabular-nums ${partlyPacked ? 'bg-[color:color-mix(in_srgb,var(--m-act)_14%,transparent)] text-m-ink' : 'bg-[color:var(--m-ic)] text-m-muted'}`}
-          >
-            <button type="button" aria-label={t('packing.packedLess')} disabled={packed <= 0} onClick={() => tripActions.setPackedCount(tripId, item.id, packed - 1)}
-              className="flex h-[22px] w-[22px] items-center justify-center disabled:opacity-30">
-              <Minus size={11} strokeWidth={2.6} />
-            </button>
-            <span className="min-w-[26px] text-center">{packed}/{quantity}</span>
-            <button type="button" aria-label={t('packing.packedMore')} disabled={packed >= quantity} onClick={() => tripActions.setPackedCount(tripId, item.id, packed + 1)}
-              className="flex h-[22px] w-[22px] items-center justify-center disabled:opacity-30">
-              <Plus size={11} strokeWidth={2.6} />
-            </button>
-          </span>
-        ) : (
-          <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.625rem] font-bold tabular-nums text-m-muted">
-            {partlyPacked ? `${packed}/${quantity}` : `${quantity}×`}
-          </span>
-        ))}
+        {quantity > 1 &&
+          (canEdit && !isPlaceholder ? (
+            <span
+              role="group"
+              aria-label={t('packing.packedCount', { packed, total: quantity })}
+              className={`flex flex-none items-center rounded-full font-geist text-[0.625rem] font-bold tabular-nums ${partlyPacked ? 'bg-[color:color-mix(in_srgb,var(--m-act)_14%,transparent)] text-m-ink' : 'bg-[color:var(--m-ic)] text-m-muted'}`}
+            >
+              <button
+                type="button"
+                aria-label={t('packing.packedLess')}
+                disabled={packed <= 0}
+                onClick={() => tripActions.setPackedCount(tripId, item.id, packed - 1)}
+                className="flex h-[22px] w-[22px] items-center justify-center disabled:opacity-30"
+              >
+                <Minus size={11} strokeWidth={2.6} />
+              </button>
+              <span className="min-w-[26px] text-center">
+                {packed}/{quantity}
+              </span>
+              <button
+                type="button"
+                aria-label={t('packing.packedMore')}
+                disabled={packed >= quantity}
+                onClick={() => tripActions.setPackedCount(tripId, item.id, packed + 1)}
+                className="flex h-[22px] w-[22px] items-center justify-center disabled:opacity-30"
+              >
+                <Plus size={11} strokeWidth={2.6} />
+              </button>
+            </span>
+          ) : (
+            <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.625rem] font-bold tabular-nums text-m-muted">
+              {partlyPacked ? `${packed}/${quantity}` : `${quantity}×`}
+            </span>
+          ))}
 
         {/* A weight nobody entered is not worth a column: "— g" on every row
             cost as much width as a real value (#1525). */}
@@ -931,12 +1197,17 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
         {bagTrackingEnabled && (
           <button
             type="button"
-            onClick={() => { setMenuOpen(false); setBagPickerOpen(v => !v) }}
+            onClick={() => {
+              setMenuOpen(false);
+              setBagPickerOpen((v) => !v);
+            }}
             aria-label={t('packing.bags')}
             className="h-[18px] w-[18px] flex-none rounded-full"
-            style={bag
-              ? { border: `2.5px solid ${bag.color}`, background: 'transparent' }
-              : { border: '2px dashed var(--m-faint)', opacity: 0.55 }}
+            style={
+              bag
+                ? { border: `2.5px solid ${bag.color}`, background: 'transparent' }
+                : { border: '2px dashed var(--m-faint)', opacity: 0.55 }
+            }
           />
         )}
 
@@ -946,7 +1217,10 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
         {editMode && canEdit && (
           <button
             type="button"
-            onClick={() => { setBagPickerOpen(false); setMenuOpen(v => !v) }}
+            onClick={() => {
+              setBagPickerOpen(false);
+              setMenuOpen((v) => !v);
+            }}
             aria-label={t('mobileTrip.more')}
             aria-expanded={menuOpen}
             className={`flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] ${menuOpen ? 'text-m-ink' : 'text-m-muted'}`}
@@ -960,7 +1234,10 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
         <div className="mb-[6px] ml-[28px] overflow-hidden rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
           <button
             type="button"
-            onClick={() => { setMenuOpen(false); onEdit() }}
+            onClick={() => {
+              setMenuOpen(false);
+              onEdit();
+            }}
             className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-left text-[0.75rem] font-medium text-m-ink"
           >
             <Pencil size={12} strokeWidth={2} />
@@ -968,7 +1245,10 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           </button>
           <button
             type="button"
-            onClick={() => { setMenuOpen(false); onDelete() }}
+            onClick={() => {
+              setMenuOpen(false);
+              onDelete();
+            }}
             className="flex w-full items-center gap-[9px] px-3 py-2 text-left text-[0.75rem] font-medium text-[color:var(--m-st-danger)]"
           >
             <Trash2 size={12} strokeWidth={2} />
@@ -979,12 +1259,21 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
 
       {bagPickerOpen && bagTrackingEnabled && (
         <div className="mb-[6px] ml-[28px] overflow-hidden rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
-          <button type="button" onClick={() => assignBag(null)} className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-left text-[0.75rem] font-medium text-m-muted">
+          <button
+            type="button"
+            onClick={() => assignBag(null)}
+            className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-left text-[0.75rem] font-medium text-m-muted"
+          >
             <span className="h-[9px] w-[9px] flex-none rounded-full border border-dashed border-[color:var(--m-faint)]" />
             {t('packing.noBag')}
           </button>
-          {bags.map(b => (
-            <button key={b.id} type="button" onClick={() => assignBag(b.id)} className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-left text-[0.75rem] font-medium text-m-ink">
+          {bags.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => assignBag(b.id)}
+              className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-left text-[0.75rem] font-medium text-m-ink"
+            >
               <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: b.color }} />
               {b.name}
             </button>
@@ -995,17 +1284,33 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
                 type="text"
                 autoFocus
                 value={newBagName}
-                onChange={e => setNewBagName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') void submitNewBag(); if (e.key === 'Escape') { setCreatingBag(false); setNewBagName('') } }}
+                onChange={(e) => setNewBagName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void submitNewBag();
+                  if (e.key === 'Escape') {
+                    setCreatingBag(false);
+                    setNewBagName('');
+                  }
+                }}
                 placeholder={t('packing.bagName')}
                 className={`${FIELD_CLS} flex-1 py-[6px] text-[0.75rem]`}
               />
-              <button type="button" onClick={submitNewBag} disabled={!newBagName.trim()} aria-label={t('common.add')} className="flex h-7 w-7 flex-none items-center justify-center rounded-[9px] bg-m-act text-m-actfg disabled:opacity-40">
+              <button
+                type="button"
+                onClick={submitNewBag}
+                disabled={!newBagName.trim()}
+                aria-label={t('common.add')}
+                className="flex h-7 w-7 flex-none items-center justify-center rounded-[9px] bg-m-act text-m-actfg disabled:opacity-40"
+              >
                 <Plus size={12} strokeWidth={2.4} />
               </button>
             </div>
           ) : (
-            <button type="button" onClick={() => setCreatingBag(true)} className="flex w-full items-center gap-[7px] px-3 py-2 text-left font-geist text-[0.6875rem] font-semibold text-m-muted">
+            <button
+              type="button"
+              onClick={() => setCreatingBag(true)}
+              className="flex w-full items-center gap-[7px] px-3 py-2 text-left font-geist text-[0.6875rem] font-semibold text-m-muted"
+            >
               <Plus size={11} strokeWidth={2.2} />
               {t('packing.addBag')}
             </button>
@@ -1013,5 +1318,5 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
         </div>
       )}
     </>
-  )
+  );
 }

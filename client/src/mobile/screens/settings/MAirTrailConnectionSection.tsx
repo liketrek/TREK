@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react'
-import { Plane, Save, RefreshCw } from 'lucide-react'
-import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
-import { airtrailApi } from '../../../api/client'
-import { MSetCard, MSetEyebrow, MSetRow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
-import MToggle from '../../components/MToggle'
+import { Plane, RefreshCw, Save } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { airtrailApi } from '../../../api/client';
+import { useToast } from '../../../components/shared/Toast';
+import { useTranslation } from '../../../i18n';
+import MToggle from '../../components/MToggle';
+import { MSetButton, MSetCard, MSetEyebrow, MSetHint, MSetInput, MSetRow } from './MSettingsUi';
 
 /**
  * Mobile-native twin of components/Settings/AirTrailConnectionSection. Same
@@ -13,69 +13,69 @@ import MToggle from '../../components/MToggle'
  * MSet* card system with MToggle switches. Presentation only.
  */
 export default function MAirTrailConnectionSection(): React.ReactElement {
-  const { t } = useTranslation()
-  const toast = useToast()
+  const { t } = useTranslation();
+  const toast = useToast();
 
-  const [url, setUrl] = useState('')
-  const [apiKey, setApiKey] = useState('')
-  const [allowInsecureTls, setAllowInsecureTls] = useState(false)
-  const [writeEnabled, setWriteEnabled] = useState(false)
-  const [connected, setConnected] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [testing, setTesting] = useState(false)
+  const [url, setUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [allowInsecureTls, setAllowInsecureTls] = useState(false);
+  const [writeEnabled, setWriteEnabled] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     airtrailApi
       .getSettings()
-      .then(d => {
-        setUrl(d.url || '')
-        setAllowInsecureTls(!!d.allowInsecureTls)
-        setWriteEnabled(!!d.writeEnabled)
-        setConnected(!!d.connected)
+      .then((d) => {
+        setUrl(d.url || '');
+        setAllowInsecureTls(!!d.allowInsecureTls);
+        setWriteEnabled(!!d.writeEnabled);
+        setConnected(!!d.connected);
       })
       .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
   // Send the key only when the user typed a new one — never prefilled, so a blank
   // field means "keep the stored key".
   const keyPayload = (): { apiKey?: string } => {
-    const k = apiKey.trim()
-    return k ? { apiKey: k } : {}
-  }
+    const k = apiKey.trim();
+    return k ? { apiKey: k } : {};
+  };
 
   const handleSave = async () => {
-    setSaving(true)
+    setSaving(true);
     try {
-      const d = await airtrailApi.saveSettings({ url: url.trim(), allowInsecureTls, writeEnabled, ...keyPayload() })
-      const status = await airtrailApi.status().catch(() => ({ connected: false }))
-      setConnected(!!status.connected)
-      setApiKey('')
-      if (d?.warning) toast.warning(d.warning)
-      else toast.success(t('settings.airtrail.toast.saved'))
+      const d = await airtrailApi.saveSettings({ url: url.trim(), allowInsecureTls, writeEnabled, ...keyPayload() });
+      const status = await airtrailApi.status().catch(() => ({ connected: false }));
+      setConnected(!!status.connected);
+      setApiKey('');
+      if (d?.warning) toast.warning(d.warning);
+      else toast.success(t('settings.airtrail.toast.saved'));
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || t('settings.airtrail.toast.saveError'))
+      toast.error(err?.response?.data?.error || t('settings.airtrail.toast.saveError'));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleTest = async () => {
-    setTesting(true)
+    setTesting(true);
     try {
-      const d = await airtrailApi.test({ url: url.trim(), allowInsecureTls, ...keyPayload() })
-      setConnected(!!d.connected)
-      if (d.connected) toast.success(t('settings.airtrail.test.success', { count: d.flightCount ?? 0 }))
-      else toast.error(d.error || t('settings.airtrail.test.failed'))
+      const d = await airtrailApi.test({ url: url.trim(), allowInsecureTls, ...keyPayload() });
+      setConnected(!!d.connected);
+      if (d.connected) toast.success(t('settings.airtrail.test.success', { count: d.flightCount ?? 0 }));
+      else toast.error(d.error || t('settings.airtrail.test.failed'));
     } catch {
-      toast.error(t('settings.airtrail.test.failed'))
+      toast.error(t('settings.airtrail.test.failed'));
     } finally {
-      setTesting(false)
+      setTesting(false);
     }
-  }
+  };
 
-  const canSave = !!url.trim() && (connected || !!apiKey.trim())
+  const canSave = !!url.trim() && (connected || !!apiKey.trim());
 
   return (
     <MSetCard title={t('settings.airtrail.title')} icon={Plane} className="mt-3">
@@ -83,7 +83,7 @@ export default function MAirTrailConnectionSection(): React.ReactElement {
       <MSetInput
         type="url"
         value={url}
-        onChange={e => setUrl(e.target.value)}
+        onChange={(e) => setUrl(e.target.value)}
         placeholder="https://airtrail.example.com"
       />
 
@@ -91,7 +91,7 @@ export default function MAirTrailConnectionSection(): React.ReactElement {
       <MSetInput
         type="password"
         value={apiKey}
-        onChange={e => setApiKey(e.target.value)}
+        onChange={(e) => setApiKey(e.target.value)}
         autoComplete="off"
         placeholder={connected && !apiKey ? '••••••••' : t('settings.airtrail.apiKeyPlaceholder')}
       />
@@ -104,7 +104,7 @@ export default function MAirTrailConnectionSection(): React.ReactElement {
           trailing={
             <MToggle
               checked={allowInsecureTls}
-              onChange={() => setAllowInsecureTls(v => !v)}
+              onChange={() => setAllowInsecureTls((v) => !v)}
               ariaLabel={t('settings.airtrail.allowInsecureTls')}
             />
           }
@@ -115,7 +115,7 @@ export default function MAirTrailConnectionSection(): React.ReactElement {
           trailing={
             <MToggle
               checked={writeEnabled}
-              onChange={() => setWriteEnabled(v => !v)}
+              onChange={() => setWriteEnabled((v) => !v)}
               ariaLabel={t('settings.airtrail.writeBack')}
             />
           }
@@ -145,5 +145,5 @@ export default function MAirTrailConnectionSection(): React.ReactElement {
 
       <MSetHint>{t('settings.airtrail.hint')}</MSetHint>
     </MSetCard>
-  )
+  );
 }

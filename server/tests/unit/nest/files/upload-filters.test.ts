@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import type { Request } from 'express';
+import type { AllowedFileTypesService } from '../../../../src/nest/files/allowed-file-types.service';
 import { filesUploadFileFilter } from '../../../../src/nest/files/files.controller';
 import { journeyImageFileFilter } from '../../../../src/nest/journey/journey.controller';
-import type { AllowedFileTypesService } from '../../../../src/nest/files/allowed-file-types.service';
+
+import type { Request } from 'express';
+import { describe, it, expect, vi } from 'vitest';
 
 /**
  * Unit coverage for the two upload fileFilters that read the operator's
@@ -84,7 +85,9 @@ describe('filesUploadFileFilter', () => {
   it('UPLOAD-FILTER-007: an error escaping the detached IIFE (outside the allow-list try/catch) still answers cb, not an unhandled rejection', async () => {
     const allowedTypes = allowedTypesStub('jpg,png');
     const filter = filesUploadFileFilter(allowedTypes)!;
-    const cb = vi.fn().mockImplementationOnce(() => { throw new Error('cb blew up'); });
+    const cb = vi.fn().mockImplementationOnce(() => {
+      throw new Error('cb blew up');
+    });
     filter(req, fakeFile({ originalname: 'photo.jpg', mimetype: 'image/jpeg' }), cb);
     await flush();
     // First call is the filter's own cb(null, true), which throws; the outer
@@ -137,7 +140,9 @@ describe('journeyImageFileFilter', () => {
   it('UPLOAD-FILTER-007: an error escaping the detached IIFE (outside the allow-list try/catch) still answers cb, not an unhandled rejection', async () => {
     const allowedTypes = allowedTypesStub('jpg,png');
     const filter = journeyImageFileFilter(allowedTypes)!;
-    const cb = vi.fn().mockImplementationOnce(() => { throw new Error('cb blew up'); });
+    const cb = vi.fn().mockImplementationOnce(() => {
+      throw new Error('cb blew up');
+    });
     filter(req, fakeFile({ originalname: 'photo.jpg', mimetype: 'image/jpeg' }), cb);
     await flush();
     expect(cb).toHaveBeenCalledTimes(2);

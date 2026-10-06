@@ -8,6 +8,12 @@
  * switches on it and the search log writes it into the corpus a future index
  * gets scored against.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockSearch, mockNominatim } = vi.hoisted(() => ({
@@ -30,12 +36,6 @@ vi.mock('../../../src/nest/geo/nominatim.client', async (importOriginal) => ({
 
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
 
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { noGoogleQuota } from '../../helpers/google-quota';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-
 // keyedProvider/resolveMapsKey (maps.service.ts) go through instance-api-keys.ts
 // on every call now. No per-user key is configured anywhere here; the instance
 // rows a case needs come from make()'s `rows`, read through AppSettingsRepository.
@@ -55,7 +55,6 @@ vi.mock('../../../src/app-config', async (importOriginal) => {
     },
   };
 });
-
 
 /** An index row, far enough from the OSM one below not to be deduped. */
 const indexHit = (name: string, lat = 35.31, lng = 139.53) => ({
@@ -98,7 +97,14 @@ function make(enabled = true, rows: Record<string, string> = {}) {
 const googleAnswer = (name: string) => ({
   ok: true,
   json: async () => ({
-    places: [{ id: 'g1', displayName: { text: name }, formattedAddress: 'Tokyo', location: { latitude: 35.68, longitude: 139.77 } }],
+    places: [
+      {
+        id: 'g1',
+        displayName: { text: name },
+        formattedAddress: 'Tokyo',
+        location: { latitude: 35.68, longitude: 139.77 },
+      },
+    ],
   }),
 });
 
@@ -199,9 +205,7 @@ describe('MapsService.searchPlaces — the merged path', () => {
   });
 
   it('MAPS-SEARCH-006: ten results at most, alternating so neither source is buried', async () => {
-    mockSearch.mockResolvedValue(
-      Array.from({ length: 12 }, (_, i) => indexHit(`Index ${i}`, 35.31 + i / 100)),
-    );
+    mockSearch.mockResolvedValue(Array.from({ length: 12 }, (_, i) => indexHit(`Index ${i}`, 35.31 + i / 100)));
     mockNominatim.mockResolvedValue(
       osmAnswer(Array.from({ length: 12 }, (_, i) => osmRow(`Osm ${i}`, 36.5 + i / 100))),
     );
@@ -241,8 +245,11 @@ describe('MapsService.searchPlaces — the merged path', () => {
     // A key, but the admin picked OpenStreetMap as the provider: Google holds
     // no slot, so there is nothing for the switch to hand the search to.
     mockSearch.mockClear();
-    const osmOnly = await make(true, { maps_api_key: 'key', places_google_only: 'true', places_provider: 'openstreetmap' })
-      .searchPlaces(1, "L'Osteria");
+    const osmOnly = await make(true, {
+      maps_api_key: 'key',
+      places_google_only: 'true',
+      places_provider: 'openstreetmap',
+    }).searchPlaces(1, "L'Osteria");
     expect(mockSearch).toHaveBeenCalled();
     expect(osmOnly.source).toBe('trek-places+openstreetmap');
 
@@ -258,7 +265,9 @@ describe('MapsService.searchPlaces — the merged path', () => {
     mockNominatim.mockResolvedValue(osmAnswer([osmRow('Some station')]));
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(googleAnswer('Tokyo Station')));
 
-    const asked = await make(true, { maps_api_key: 'key' }).searchPlaces(1, 'Tokyo Station', undefined, undefined, { googleOnly: true });
+    const asked = await make(true, { maps_api_key: 'key' }).searchPlaces(1, 'Tokyo Station', undefined, undefined, {
+      googleOnly: true,
+    });
     expect(mockSearch).not.toHaveBeenCalled();
     expect(asked.source).toBe('google');
 

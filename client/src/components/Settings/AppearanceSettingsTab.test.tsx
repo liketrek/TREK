@@ -1,13 +1,13 @@
 // FE-COMP-APPEARANCE-001+ — color mode moved here from DisplaySettingsTab,
 // plus the new scheme / readability / dashboard-widget controls.
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { buildSettings, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildSettings } from '../../../tests/helpers/factories';
 import { ToastContainer } from '../shared/Toast';
 import AppearanceSettingsTab from './AppearanceSettingsTab';
 
@@ -80,7 +80,7 @@ describe('AppearanceSettingsTab', () => {
     await user.click(screen.getByText('Indigo'));
     await waitFor(
       () => expect(updateSetting).toHaveBeenCalledWith('appearance', expect.objectContaining({ schemeId: 'indigo' })),
-      { timeout: 1500 },
+      { timeout: 1500 }
     );
   });
 
@@ -92,7 +92,7 @@ describe('AppearanceSettingsTab', () => {
     await user.click(screen.getByRole('button', { name: 'Transparency' }));
     await waitFor(
       () => expect(updateSetting).toHaveBeenCalledWith('appearance', expect.objectContaining({ transparency: false })),
-      { timeout: 1500 },
+      { timeout: 1500 }
     );
   });
 });
@@ -108,7 +108,7 @@ function seedAppearance(updateSetting = vi.fn().mockResolvedValue(undefined)) {
 
 /** The last `appearance` payload the debounced persist wrote. */
 function lastAppearance(updateSetting: ReturnType<typeof vi.fn>): Record<string, unknown> {
-  const calls = updateSetting.mock.calls.filter(c => c[0] === 'appearance');
+  const calls = updateSetting.mock.calls.filter((c) => c[0] === 'appearance');
   return calls[calls.length - 1][1] as Record<string, unknown>;
 }
 
@@ -116,7 +116,12 @@ describe('AppearanceSettingsTab – custom accent and sliders', () => {
   it('FE-COMP-APPEARANCE-010: a failing persist surfaces the error toast', async () => {
     const user = userEvent.setup();
     seedAppearance(vi.fn().mockRejectedValue(new Error('Appearance rejected')));
-    render(<><ToastContainer /><AppearanceSettingsTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AppearanceSettingsTab />
+      </>
+    );
 
     await user.click(screen.getByText('Teal'));
 
@@ -126,7 +131,12 @@ describe('AppearanceSettingsTab – custom accent and sliders', () => {
   it('FE-COMP-APPEARANCE-011: a failing colour-mode change surfaces the error toast', async () => {
     const user = userEvent.setup();
     seedAppearance(vi.fn().mockRejectedValue(new Error('Mode rejected')));
-    render(<><ToastContainer /><AppearanceSettingsTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AppearanceSettingsTab />
+      </>
+    );
 
     await user.click(screen.getByText('Dark'));
 
@@ -144,7 +154,7 @@ describe('AppearanceSettingsTab – custom accent and sliders', () => {
     expect(screen.getByText('Custom accent')).toBeInTheDocument();
     await waitFor(
       () => expect(updateSetting).toHaveBeenCalledWith('appearance', expect.objectContaining({ schemeId: 'custom' })),
-      PERSIST,
+      PERSIST
     );
   });
 
@@ -158,7 +168,7 @@ describe('AppearanceSettingsTab – custom accent and sliders', () => {
 
     await waitFor(
       () => expect(lastAppearance(updateSetting).accent).toEqual({ light: '#0d9488', dark: '#0d9488' }),
-      PERSIST,
+      PERSIST
     );
   });
 
@@ -174,7 +184,10 @@ describe('AppearanceSettingsTab – custom accent and sliders', () => {
     await waitFor(() => expect(lastAppearance(updateSetting).accent).toMatchObject({ light: '#112233' }), PERSIST);
 
     fireEvent.change(dark, { target: { value: '#445566' } });
-    await waitFor(() => expect(lastAppearance(updateSetting).accent).toEqual({ light: '#112233', dark: '#445566' }), PERSIST);
+    await waitFor(
+      () => expect(lastAppearance(updateSetting).accent).toEqual({ light: '#112233', dark: '#445566' }),
+      PERSIST
+    );
   });
 
   it('FE-COMP-APPEARANCE-015: the contrast hint follows the picked accent', async () => {
@@ -199,7 +212,7 @@ describe('AppearanceSettingsTab – custom accent and sliders', () => {
 
     await waitFor(
       () => expect(updateSetting).toHaveBeenCalledWith('appearance', expect.objectContaining({ reduceMotion: true })),
-      PERSIST,
+      PERSIST
     );
   });
 
@@ -224,13 +237,14 @@ describe('AppearanceSettingsTab – custom accent and sliders', () => {
     fireEvent.change(sliders[4], { target: { value: '0.85' } });
 
     await waitFor(
-      () => expect(lastAppearance(updateSetting).typeScale).toMatchObject({
-        title: 1.15,
-        subtitle: 1.1,
-        body: 0.9,
-        caption: 0.85,
-      }),
-      PERSIST,
+      () =>
+        expect(lastAppearance(updateSetting).typeScale).toMatchObject({
+          title: 1.15,
+          subtitle: 1.1,
+          body: 0.9,
+          caption: 0.85,
+        }),
+      PERSIST
     );
   });
 });
@@ -245,7 +259,7 @@ describe('AppearanceSettingsTab – dashboard widgets', () => {
 
     await waitFor(
       () => expect(lastAppearance(updateSetting).dashboard).toMatchObject({ desktop: { atlas: false } }),
-      PERSIST,
+      PERSIST
     );
   });
 
@@ -260,7 +274,7 @@ describe('AppearanceSettingsTab – dashboard widgets', () => {
 
     await waitFor(
       () => expect(lastAppearance(updateSetting).dashboard).toMatchObject({ desktop: { sidebar: false } }),
-      PERSIST,
+      PERSIST
     );
     expect(screen.getByRole('button', { name: 'Right sidebar' })).toHaveAttribute('aria-pressed', 'false');
   });
@@ -275,11 +289,12 @@ describe('AppearanceSettingsTab – dashboard widgets', () => {
     await user.click(currencyToggles[1]);
 
     await waitFor(
-      () => expect(lastAppearance(updateSetting).dashboard).toMatchObject({
-        desktop: { currency: true },
-        mobile: { currency: false },
-      }),
-      PERSIST,
+      () =>
+        expect(lastAppearance(updateSetting).dashboard).toMatchObject({
+          desktop: { currency: true },
+          mobile: { currency: false },
+        }),
+      PERSIST
     );
   });
 
@@ -289,13 +304,16 @@ describe('AppearanceSettingsTab – dashboard widgets', () => {
     render(<AppearanceSettingsTab />);
 
     await user.click(screen.getByRole('button', { name: 'Atlas / countries' }));
-    await waitFor(() => expect(lastAppearance(updateSetting).dashboard).toMatchObject({ desktop: { atlas: false } }), PERSIST);
+    await waitFor(
+      () => expect(lastAppearance(updateSetting).dashboard).toMatchObject({ desktop: { atlas: false } }),
+      PERSIST
+    );
 
     await user.click(screen.getByRole('button', { name: /Reset to defaults/ }));
 
     await waitFor(
       () => expect(lastAppearance(updateSetting).dashboard).toMatchObject({ desktop: { atlas: true } }),
-      PERSIST,
+      PERSIST
     );
   });
 
@@ -309,13 +327,13 @@ describe('AppearanceSettingsTab – dashboard widgets', () => {
     await user.click(screen.getByText('Indigo'));
     unmount();
 
-    const calls = updateSetting.mock.calls.filter(c => c[0] === 'appearance');
+    const calls = updateSetting.mock.calls.filter((c) => c[0] === 'appearance');
     expect(calls).toHaveLength(1);
     expect(calls[0][1]).toMatchObject({ schemeId: 'indigo' });
 
     // The timer is cancelled, so nothing lands a second time.
-    await new Promise(resolve => setTimeout(resolve, 500));
-    expect(updateSetting.mock.calls.filter(c => c[0] === 'appearance')).toHaveLength(1);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(updateSetting.mock.calls.filter((c) => c[0] === 'appearance')).toHaveLength(1);
   });
 
   it('FE-COMP-APPEARANCE-024: a debounce that already fired is not written again on unmount', async () => {
@@ -324,9 +342,9 @@ describe('AppearanceSettingsTab – dashboard widgets', () => {
     const { unmount } = render(<AppearanceSettingsTab />);
 
     await user.click(screen.getByText('Teal'));
-    await waitFor(() => expect(updateSetting.mock.calls.filter(c => c[0] === 'appearance')).toHaveLength(1), PERSIST);
+    await waitFor(() => expect(updateSetting.mock.calls.filter((c) => c[0] === 'appearance')).toHaveLength(1), PERSIST);
 
     unmount();
-    expect(updateSetting.mock.calls.filter(c => c[0] === 'appearance')).toHaveLength(1);
+    expect(updateSetting.mock.calls.filter((c) => c[0] === 'appearance')).toHaveLength(1);
   });
 });

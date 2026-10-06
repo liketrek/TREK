@@ -1,16 +1,16 @@
-import { budgetCreateItemRequestSchema, budgetUpdateItemRequestSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { PluginGuards } from '../plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, schemaMessage } from '../plugins/host/rpc-params';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { RealtimeService } from '../realtime/realtime.service';
+import { ADDON_IDS } from '../../addons';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { PluginGuards } from '../plugins/host/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { num, schemaMessage } from '../plugins/host/rpc-params';
+import { RealtimeService } from '../realtime/realtime.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import { ADDON_IDS } from '../../addons';
 import { BudgetService } from './budget.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { budgetCreateItemRequestSchema, budgetUpdateItemRequestSchema } from '@trek/shared';
 
 /** Costs are budget items, and the app edits them under 'budget_edit'. */
 const BUDGET_EDIT_ACTION = 'budget_edit';
@@ -104,7 +104,10 @@ export class CostsRpc {
   }
 
   /** A booking or place the cost links to has to be on the same trip, as over REST and MCP. */
-  private async refuseForeignLinks(tripId: number, data: { reservation_id?: number | null; place_id?: number | null }): Promise<void> {
+  private async refuseForeignLinks(
+    tripId: number,
+    data: { reservation_id?: number | null; place_id?: number | null },
+  ): Promise<void> {
     const refusal = await this.budget.linkRefusal(tripId, data);
     if (refusal) throw new ForbiddenResource(refusal);
   }

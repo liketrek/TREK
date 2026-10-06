@@ -1,22 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { randomBytes, createHash } from 'crypto';
-import {
-  PUBLIC_API_SCOPES,
-  type PublicApiGrant,
-  type PublicApiScope,
-} from '@trek/shared';
 import { McpTokens } from '../../db/entities/McpTokens.entity';
-import type { McpTokensRepository, McpTokenBasicRow } from '../../db/repositories/McpTokens.repository';
 import { Users } from '../../db/entities/Users.entity';
+import type { McpTokensRepository, McpTokenBasicRow } from '../../db/repositories/McpTokens.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { EphemeralTokenService } from '../auth/ephemeral-token.service';
-import { toRowId } from '../common/row-id';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
 // every consumer of this module — a nest→mcp→nest module cycle.
 import { revokeUserSessions } from '../../mcp/sessionManager';
 import { User } from '../../types';
+import { EphemeralTokenService } from '../auth/ephemeral-token.service';
+import { toRowId } from '../common/row-id';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { PUBLIC_API_SCOPES, type PublicApiGrant, type PublicApiScope } from '@trek/shared';
+
+import { randomBytes, createHash } from 'crypto';
 
 /**
  * What a token is allowed to drive. Stored on the row so each surface can accept
@@ -107,7 +104,12 @@ export class TokenService {
     return await this.createToken(userId, rawName, 'api', scopes);
   }
 
-  private async createToken(userId: number, rawName: unknown, kind: TokenKind, scopes?: readonly string[]): Promise<{ error?: string; status?: number; token?: Record<string, unknown> }> {
+  private async createToken(
+    userId: number,
+    rawName: unknown,
+    kind: TokenKind,
+    scopes?: readonly string[],
+  ): Promise<{ error?: string; status?: number; token?: Record<string, unknown> }> {
     const name = rawName as string | undefined;
     if (!name?.trim()) return { error: 'Token name is required', status: 400 };
     if (name.trim().length > 100) return { error: 'Token name must be 100 characters or less', status: 400 };
@@ -142,9 +144,8 @@ export class TokenService {
     const basic = (await this.tokens.findBasic(inserted.id)) as McpTokenBasicRow;
     const { user_id: _userId, ...token } = basic;
 
-    const grant = kind === 'api'
-      ? { scope_mode: narrowed ? 'limited' : 'all', scopes: narrowed ?? [...PUBLIC_API_SCOPES] }
-      : {};
+    const grant =
+      kind === 'api' ? { scope_mode: narrowed ? 'limited' : 'all', scopes: narrowed ?? [...PUBLIC_API_SCOPES] } : {};
     return { token: { ...token, ...grant, raw_token: rawToken } };
   }
 
@@ -161,7 +162,11 @@ export class TokenService {
    * happily delete a token the MCP panel manages, and the user would find a key
    * missing from a screen they never opened.
    */
-  private async deleteToken(userId: number, tokenId: string, kind: TokenKind): Promise<{ error?: string; status?: number; success?: boolean }> {
+  private async deleteToken(
+    userId: number,
+    tokenId: string,
+    kind: TokenKind,
+  ): Promise<{ error?: string; status?: number; success?: boolean }> {
     // Convert, VALIDATE, and answer the legacy not-found before any
     // repository call (program rule 15): the legacy statement bound
     // `tokenId` straight into `WHERE id = ?` and let SQLite's affinity rules
@@ -175,7 +180,11 @@ export class TokenService {
     await this.tokens.deleteById(id);
     // Best-effort, like the changePassword/resetPassword revocations: a session
     // sweep failure must not turn a successful token delete into a 500.
-    try { revokeUserSessions?.(userId); } catch { /* best-effort */ }
+    try {
+      revokeUserSessions?.(userId);
+    } catch {
+      /* best-effort */
+    }
     return { success: true };
   }
 

@@ -1,29 +1,40 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { RoadtripVia, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import { PermissionsService } from '../permissions/permissions.service';
+import { BudgetItems } from '../../db/entities/BudgetItems.entity';
+import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
+import type {
+  DayAccommodationsRepository,
+  DayAccommodationRow,
+} from '../../db/repositories/DayAccommodations.repository';
+import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
+import type { DaysRepository } from '../../db/repositories/Days.repository';
+import type { PlacesRepository, PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
+import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
+import type { TripsRepository, TripAccess } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
 import { AssignmentsService } from '../assignments/assignments.service';
 import { toRowId, legacyBoundIntegerText } from '../common/row-id';
-import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
-import type { DayAccommodationsRepository, DayAccommodationRow } from '../../db/repositories/DayAccommodations.repository';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
-import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository, PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
-import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository } from '../../db/repositories/Days.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository, TripAccess } from '../../db/repositories/Trips.repository';
-import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
-import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import { BudgetItems } from '../../db/entities/BudgetItems.entity';
-import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
-import { carryViasWith, locatedStopIdsWith, reseatOwnStopWith, seatHolds, seatIndexAmong, seatIndexWith, type Night } from './night-seat';
-import type { User } from '../../types';
+import { UnitOfWork } from '../database/unit-of-work';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import {
+  carryViasWith,
+  locatedStopIdsWith,
+  reseatOwnStopWith,
+  seatHolds,
+  seatIndexAmong,
+  seatIndexWith,
+  type Night,
+} from './night-seat';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { RoadtripVia, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 
 type Trip = TripAccess;
 
@@ -54,7 +65,13 @@ export interface AccommodationMirror {
 
 /** A write that left the day plan alone. Exported for the surfaces that write a
  *  stay row themselves and have to answer with a mirror either way. */
-export const noStayMirror = (): AccommodationMirror => ({ created: null, moved: null, updated: [], removed: [], stamped: null });
+export const noStayMirror = (): AccommodationMirror => ({
+  created: null,
+  moved: null,
+  updated: [],
+  removed: [],
+  stamped: null,
+});
 
 const noMirror = noStayMirror;
 
@@ -135,7 +152,12 @@ export class AccommodationsService {
     return this.permissions.checkPermission('day_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -159,7 +181,11 @@ export class AccommodationsService {
     return this.createAccommodation(tripId, data);
   }
 
-  update(id: string | number, existing: DayAccommodation, fields: Parameters<AccommodationsService['updateAccommodation']>[2]) {
+  update(
+    id: string | number,
+    existing: DayAccommodation,
+    fields: Parameters<AccommodationsService['updateAccommodation']>[2],
+  ) {
     return this.updateAccommodation(id, existing, fields);
   }
 
@@ -184,7 +210,12 @@ export class AccommodationsService {
   // -------------------------------------------------------------------------
 
   /** Put a freshly written stay on the map. */
-  async attachStayStop(accommodationId: number, placeId: number | null, dayId: number, checkIn?: string | null): Promise<AccommodationMirror> {
+  async attachStayStop(
+    accommodationId: number,
+    placeId: number | null,
+    dayId: number,
+    checkIn?: string | null,
+  ): Promise<AccommodationMirror> {
     return this.mirrorStay(accommodationId, placeId, dayId, checkIn);
   }
 
@@ -215,7 +246,7 @@ export class AccommodationsService {
    */
   async listStayIdsForPlace(tripId: number, placeId: number): Promise<number[]> {
     const stays = await this.dayAccommodationsRepo.listForPlace(tripId, placeId);
-    return stays.map(s => s.id);
+    return stays.map((s) => s.id);
   }
 
   /**
@@ -228,7 +259,12 @@ export class AccommodationsService {
    * sent the request. The day order and the vias sent here are news to that
    * session too, and they only make sense arriving behind the stop they concern.
    */
-  async announceMirror(tripId: string | number, mirror: AccommodationMirror, send: MirrorSender, socketId?: string): Promise<void> {
+  async announceMirror(
+    tripId: string | number,
+    mirror: AccommodationMirror,
+    send: MirrorSender,
+    socketId?: string,
+  ): Promise<void> {
     for (const stop of mirror.removed) send('assignment:deleted', { assignmentId: stop.id, dayId: stop.dayId });
     if (mirror.created) send('assignment:created', { assignment: mirror.created });
     if (mirror.moved) {
@@ -260,7 +296,10 @@ export class AccommodationsService {
   private async touchedDays(mirror: AccommodationMirror): Promise<number[]> {
     const days = new Set<number>();
     if (mirror.created) days.add(mirror.created.day_id);
-    if (mirror.moved) { days.add(mirror.moved.assignment.day_id); days.add(mirror.moved.oldDayId); }
+    if (mirror.moved) {
+      days.add(mirror.moved.assignment.day_id);
+      days.add(mirror.moved.oldDayId);
+    }
     for (const stop of mirror.removed) days.add(stop.dayId);
     return [...days];
   }
@@ -268,7 +307,6 @@ export class AccommodationsService {
   // -------------------------------------------------------------------------
   // Accommodation CRUD
   // -------------------------------------------------------------------------
-
 
   private async getAccommodationWithPlace(id: number) {
     // AC2
@@ -362,7 +400,7 @@ export class AccommodationsService {
   /** One entry per day: a write that takes a stop off a day and puts one back on
    *  the same day reports the state it left behind, not both steps. */
   private noteVias(mirror: AccommodationMirror, day: DayVias): void {
-    mirror.vias = [...(mirror.vias ?? []).filter(known => known.dayId !== day.dayId), day];
+    mirror.vias = [...(mirror.vias ?? []).filter((known) => known.dayId !== day.dayId), day];
   }
 
   /**
@@ -406,7 +444,12 @@ export class AccommodationsService {
    *
    * Runs inside the caller's transaction.
    */
-  private async mirrorStay(accommodationId: number, placeId: number | null, dayId: number, checkIn?: string | null): Promise<AccommodationMirror> {
+  private async mirrorStay(
+    accommodationId: number,
+    placeId: number | null,
+    dayId: number,
+    checkIn?: string | null,
+  ): Promise<AccommodationMirror> {
     const mirror = noMirror();
     // A stay can outlive its place (place_id is ON DELETE SET NULL) and the booking
     // form writes stays that never had one. Nothing to put on the map then.
@@ -462,7 +505,7 @@ export class AccommodationsService {
   private async releaseStops(accommodationId: number, opts: { keepStop?: boolean }): Promise<AccommodationMirror> {
     const mirror = noMirror();
     const own = await this.ownStops(accommodationId);
-    const before = await this.stopOrders(own.map(stop => stop.day_id));
+    const before = await this.stopOrders(own.map((stop) => stop.day_id));
     for (const stop of own) {
       if (opts.keepStop) {
         // AC26
@@ -514,8 +557,9 @@ export class AccommodationsService {
       // change of notes.
       // AC7 (one read, both checks)
       const rows = await this.dayAssignmentsRepo.listSeatRows(dayId);
-      const settled = seatIndexAmong(rows, night, own[0].id) === own[0].order_index
-        || (!opts.checkInChanged && seatHolds(rows, own[0].id, checkIn));
+      const settled =
+        seatIndexAmong(rows, night, own[0].id) === own[0].order_index ||
+        (!opts.checkInChanged && seatHolds(rows, own[0].id, checkIn));
       if (settled) return noMirror();
     }
 
@@ -536,7 +580,7 @@ export class AccommodationsService {
       }
     }
 
-    const beforeRebuild = await this.stopOrders(own.map(stop => stop.day_id));
+    const beforeRebuild = await this.stopOrders(own.map((stop) => stop.day_id));
     for (const stop of own) {
       // AC28
       await this.dayAssignmentsRepo.deleteById(stop.id);
@@ -606,10 +650,20 @@ export class AccommodationsService {
     return await this.dayAccommodationsRepo.findInTrip(idNum, tripIdNum);
   }
 
-  async updateAccommodation(id: string | number, existing: DayAccommodation, fields: {
-    place_id?: number; start_day_id?: number; end_day_id?: number;
-    check_in?: string; check_in_end?: string; check_out?: string; confirmation?: string; notes?: string;
-  }) {
+  async updateAccommodation(
+    id: string | number,
+    existing: DayAccommodation,
+    fields: {
+      place_id?: number;
+      start_day_id?: number;
+      end_day_id?: number;
+      check_in?: string;
+      check_in_end?: string;
+      check_out?: string;
+      confirmation?: string;
+      notes?: string;
+    },
+  ) {
     const newPlaceId = fields.place_id !== undefined ? fields.place_id : existing.place_id;
     const newStartDayId = fields.start_day_id !== undefined ? fields.start_day_id : existing.start_day_id;
     const newEndDayId = fields.end_day_id !== undefined ? fields.end_day_id : existing.end_day_id;
@@ -669,7 +723,10 @@ export class AccommodationsService {
    * that no longer exists. `linkedReservationId` / `deletedBudgetItemId` stay on the
    * result as the first of each, because the RPC, MCP and REST callers read them.
    */
-  async deleteAccommodation(id: string | number, opts: { keepStop?: boolean } = {}): Promise<{
+  async deleteAccommodation(
+    id: string | number,
+    opts: { keepStop?: boolean } = {},
+  ): Promise<{
     linkedReservationId: number | null;
     deletedBudgetItemId: number | null;
     linkedReservationIds: number[];
@@ -700,7 +757,7 @@ export class AccommodationsService {
       // AC44 — no trip scoping (the legacy statement has none either; the
       // caller already scoped `id` via AC34's guard).
       await this.dayAccommodationsRepo.deleteById(idNum);
-      const linkedReservationIds = linkedRes.map(r => r.id);
+      const linkedReservationIds = linkedRes.map((r) => r.id);
       return {
         linkedReservationId: linkedReservationIds[0] ?? null,
         deletedBudgetItemId: deletedBudgetItemIds[0] ?? null,

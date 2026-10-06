@@ -16,12 +16,46 @@
  * production declaration order (runtime provider first, registry scan later) and
  * asserts the plugin still comes up clean.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { db as testDb } from '../../../src/db/database';
+import { Addons } from '../../../src/db/entities/Addons.entity';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
+import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
+import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
+import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
+import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
+import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
+import { PluginEntityMetadata } from '../../../src/db/entities/PluginEntityMetadata.entity';
+import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
+import { PluginMetaMigrations } from '../../../src/db/entities/PluginMetaMigrations.entity';
+import { PluginOauthState } from '../../../src/db/entities/PluginOauthState.entity';
+import { PluginOauthTokens } from '../../../src/db/entities/PluginOauthTokens.entity';
+import { PluginScheduledTasks } from '../../../src/db/entities/PluginScheduledTasks.entity';
+import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
+import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
+import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import { Settings } from '../../../src/db/entities/Settings.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import { PluginRpcHostFactory } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
+import { PluginRpcRegistry } from '../../../src/nest/plugins/host/rpc-kit/registry';
+import type { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
+import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
+import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { Test } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { Test } from '@nestjs/testing';
-import type { TestingModule } from '@nestjs/testing';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
@@ -29,40 +63,6 @@ vi.mock('../../../src/db/database', async () => {
   return { db, canAccessTrip: () => undefined };
 });
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { db as testDb } from '../../../src/db/database';
-import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { AddonsService } from '../../../src/nest/addons/addons.service';
-import { Addons } from '../../../src/db/entities/Addons.entity';
-import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
-import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
-import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
-import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
-import { PluginRpcHostFactory } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
-import { PluginRpcRegistry } from '../../../src/nest/plugins/host/rpc-kit/registry';
-import type { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
-import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { Plugins } from '../../../src/db/entities/Plugins.entity';
-import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
-import { PluginScheduledTasks } from '../../../src/db/entities/PluginScheduledTasks.entity';
-import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
-import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
-import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
-import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
-import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
-import { PluginEntityMetadata } from '../../../src/db/entities/PluginEntityMetadata.entity';
-import { PluginOauthTokens } from '../../../src/db/entities/PluginOauthTokens.entity';
-import { PluginOauthState } from '../../../src/db/entities/PluginOauthState.entity';
-import { PluginMetaMigrations } from '../../../src/db/entities/PluginMetaMigrations.entity';
-import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
-import { Settings } from '../../../src/db/entities/Settings.entity';
-import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
 
 let codeRoot: string;
 let dataRoot: string;
@@ -88,7 +88,9 @@ beforeAll(() => {
   // db:own. Seeded 'inactive' (not the 'active' a real shutdown leaves) so the
   // poll below only terminates on a status the THIS-boot supervisor wrote.
   testDb
-    .prepare("INSERT INTO plugins (id, name, status, enabled, permissions, granted_permissions, config, trek_range) VALUES ('migrator','migrator','inactive',1,'[\"db:own\"]','[\"db:own\"]','{}','>=3.0.0')")
+    .prepare(
+      "INSERT INTO plugins (id, name, status, enabled, permissions, granted_permissions, config, trek_range) VALUES ('migrator','migrator','inactive',1,'[\"db:own\"]','[\"db:own\"]','{}','>=3.0.0')",
+    )
     .run();
 });
 
@@ -103,15 +105,21 @@ afterAll(async () => {
 });
 
 describe('plugin boot vs registry scan ordering', () => {
-  it('BOOT-REG-001 a plugin enabled before a restart activates cleanly even though the registry scan runs in a LATER provider\'s onModuleInit', async () => {
+  it("BOOT-REG-001 a plugin enabled before a restart activates cleanly even though the registry scan runs in a LATER provider's onModuleInit", async () => {
     // Empty at construction — exactly what PluginRpcRegistryService is before its
     // own onModuleInit scan has run.
     const registry = new PluginRpcRegistry();
     t = await createTestOrm(testDb);
     // Plan 3j Task 3: `PluginRpcHostFactory`'s `audit` callback now takes
     // `PluginCapabilityAuditRepository`, not `DatabaseService`.
-    const hostFactory = new PluginRpcHostFactory(t.repo(PluginCapabilityAudit), registry as unknown as PluginRpcRegistryService);
-    const userSettings = new PluginUserSettingsService((t as TestOrm).repo(PluginSettingsFields), (t as TestOrm).repo(PluginUserConfig));
+    const hostFactory = new PluginRpcHostFactory(
+      t.repo(PluginCapabilityAudit),
+      registry as unknown as PluginRpcRegistryService,
+    );
+    const userSettings = new PluginUserSettingsService(
+      (t as TestOrm).repo(PluginSettingsFields),
+      (t as TestOrm).repo(PluginUserConfig),
+    );
     const auditLogRepo = t.repo(AuditLog);
     const usersRepo = t.repo(Users);
     const addonsService = await createTestAddonsService(testDb);
@@ -223,7 +231,10 @@ describe('plugin boot vs registry scan ordering', () => {
       // Registry already scanned — this test is about the addon check, not the
       // registry-ordering bug BOOT-REG-001 pins.
       registry2.register(new DbRpc(userSettings2));
-      const hostFactory2 = new PluginRpcHostFactory(t2.repo(PluginCapabilityAudit), registry2 as unknown as PluginRpcRegistryService);
+      const hostFactory2 = new PluginRpcHostFactory(
+        t2.repo(PluginCapabilityAudit),
+        registry2 as unknown as PluginRpcRegistryService,
+      );
       // Built directly on t2 (not createTestAddonsService's sharedTestOrm) so
       // its repositories share t2's allowGlobalContext: false ORM.
       const addonsService2 = new AddonsService(

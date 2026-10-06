@@ -3,13 +3,21 @@
  * through the real JwtAuthGuard, the Zod pipe and the real providers on a temp
  * SQLite db. Only the outbound POST (safeFetchFollow) is replaced.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
 import { createECDH } from 'node:crypto';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 // The migrated snapshot (users for the guard, app_settings and the
 // push_subscriptions table from legacy step 245), opened inside the factory;
@@ -25,14 +33,6 @@ vi.mock('../../src/utils/ssrfGuard', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/utils/ssrfGuard')>()),
   safeFetchFollow,
 }));
-
-import { db } from '../../src/db/database';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
 
 const ENDPOINT = 'https://fcm.googleapis.com/fcm/send/e2e-device';
 
@@ -63,7 +63,12 @@ describe('Web Push e2e (real auth guard + temp SQLite)', () => {
 
   async function build() {
     const moduleRef = await Test.createTestingModule({
-      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, NotificationsModule],
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        NotificationsModule,
+      ],
     }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());

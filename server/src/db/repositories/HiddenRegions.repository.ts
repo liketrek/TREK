@@ -19,7 +19,11 @@ export class HiddenRegionsRepository extends TrekRepository<HiddenRegions> {
 
   /** AT22 (`getHiddenRegions`) — `SELECT region_code FROM hidden_regions WHERE user_id = ?`. */
   async listForUser(userId: number): Promise<string[]> {
-    const rows = await this.db().selectFrom('hidden_regions').select('region_code').where('user_id', '=', userId).execute();
+    const rows = await this.db()
+      .selectFrom('hidden_regions')
+      .select('region_code')
+      .where('user_id', '=', userId)
+      .execute();
     return rows.map((r) => r.region_code);
   }
 
@@ -34,6 +38,10 @@ export class HiddenRegionsRepository extends TrekRepository<HiddenRegions> {
 
   /** AT18 (`markRegion`, inside its transaction) — `DELETE FROM hidden_regions WHERE user_id = ? AND region_code = ?`. */
   async unhide(userId: number, regionCode: string): Promise<void> {
-    await this.db().deleteFrom('hidden_regions').where('user_id', '=', userId).where('region_code', '=', regionCode).execute();
+    await this.db()
+      .deleteFrom('hidden_regions')
+      .where('user_id', '=', userId)
+      .where('region_code', '=', regionCode)
+      .execute();
   }
 }

@@ -282,7 +282,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.summary.partial': 'Решта маршруту ще обчислюється',
   'roadtrip.stay.releaseTitle': 'Прибрати ночівлю?',
   'roadtrip.stay.releaseBody': 'Ночівлю в «{name}» буде вилучено. Зупинка залишиться на маршруті як пауза.',
-  'roadtrip.stay.releaseBookedBody': 'Ночівлю в «{name}» буде вилучено разом із бронюванням «{booking}» і пов’язаними витратами. Зупинка залишиться на маршруті як пауза.',
+  'roadtrip.stay.releaseBookedBody':
+    'Ночівлю в «{name}» буде вилучено разом із бронюванням «{booking}» і пов’язаними витратами. Зупинка залишиться на маршруті як пауза.',
   'roadtrip.stay.releaseAction': 'Зробити паузою',
   'roadtrip.ride.departure': 'Відправлення {time}',
   'roadtrip.ride.arrival': 'Прибуття {time}',

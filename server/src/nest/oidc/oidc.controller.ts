@@ -1,18 +1,19 @@
-import { Body, Controller, Get, HttpException, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { oidcLoginQuerySchema } from '@trek/shared';
 import { readEnv } from '../../app-config';
-import { OidcService, OIDC_STATE_TTL_MS, OIDC_AUTH_CODE_TTL_MS } from './oidc.service';
-import { cookieOptions } from '../common/cookie';
-import { AdminGuard } from '../auth/admin.guard';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
 import type { User } from '../../types';
+import { AdminOidcUpdateDto } from '../admin/admin.dto';
 import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
-import { AdminOidcUpdateDto } from '../admin/admin.dto';
+import { AdminGuard } from '../auth/admin.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Public } from '../auth/public.decorator';
+import { cookieOptions } from '../common/cookie';
 import { ManagedForbidden } from '../common/managed';
+import { OidcService, OIDC_STATE_TTL_MS, OIDC_AUTH_CODE_TTL_MS } from './oidc.service';
+import { Body, Controller, Get, HttpException, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { oidcLoginQuerySchema } from '@trek/shared';
+
+import type { Request, Response } from 'express';
 
 const OIDC_STATE_COOKIE = 'trek_oidc_state';
 const OIDC_EXCHANGE_COOKIE = 'trek_oidc_exchange';
@@ -128,7 +129,14 @@ export class OidcController {
 
     try {
       const doc = await this.oidc.discover(config.issuer, config.discoveryUrl);
-      const tokenData = await this.oidc.exchangeCodeForToken(doc, code, pending.redirectUri, config.clientId, config.clientSecret, pending.codeVerifier);
+      const tokenData = await this.oidc.exchangeCodeForToken(
+        doc,
+        code,
+        pending.redirectUri,
+        config.clientId,
+        config.clientSecret,
+        pending.codeVerifier,
+      );
       if (!tokenData._ok || !tokenData.access_token) {
         console.error('[OIDC] Token exchange failed: status', tokenData._status);
         return f('/login?oidc_error=token_failed');
@@ -198,7 +206,12 @@ export class OidcController {
       // /exchange, because this is where the provider has vouched for the user
       // and where the client IP is, the same place the role change is recorded;
       // `method` names the way in, as the passkey login does.
-      await this.audit.writeAudit({ userId: result.user.id, action: 'user.login', ip: getClientIp(req), details: { method: 'oidc' } });
+      await this.audit.writeAudit({
+        userId: result.user.id,
+        action: 'user.login',
+        ip: getClientIp(req),
+        details: { method: 'oidc' },
+      });
       // Pass the flag through untouched: `undefined` must reach the token as
       // "absent", not `false`, or the sliding renewal would later downgrade the
       // default persistent cookie to a browser-session one (remember-me, #1927).

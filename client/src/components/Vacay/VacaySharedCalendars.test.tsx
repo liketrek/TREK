@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { render } from '../../../tests/helpers/render'
-import { resetAllStores, seedStore } from '../../../tests/helpers/store'
-import { useVacayStore } from '../../store/vacayStore'
-import { server } from '../../../tests/helpers/msw/server'
-import { http, HttpResponse } from 'msw'
-import VacaySharedCalendars from './VacaySharedCalendars'
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { server } from '../../../tests/helpers/msw/server';
+import { render } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { useVacayStore } from '../../store/vacayStore';
+import VacaySharedCalendars from './VacaySharedCalendars';
 
 // ── MSW handler helpers ───────────────────────────────────────────────────────
 
@@ -15,7 +15,7 @@ function withShareUsers() {
     http.get('/api/addons/vacay/shares/available-users', () =>
       HttpResponse.json({ users: [{ id: 2, username: 'Bob' }] })
     )
-  )
+  );
 }
 
 // ── Store seed helpers ────────────────────────────────────────────────────────
@@ -25,131 +25,129 @@ function seedShares(overrides: Record<string, unknown> = {}) {
     outgoingShares: [],
     incomingShares: [],
     ...overrides,
-  })
+  });
 }
 
-const incoming = { id: 7, owner_id: 3, username: 'Carol', color: '#ec4899', hidden: false }
+const incoming = { id: 7, owner_id: 3, username: 'Carol', color: '#ec4899', hidden: false };
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
-  resetAllStores()
-})
+  resetAllStores();
+});
 
 describe('VacaySharedCalendars', () => {
   it('FE-COMP-VACAYSHARED-001: Renders empty hint when nothing is shared', () => {
-    seedShares()
+    seedShares();
 
-    render(<VacaySharedCalendars />)
+    render(<VacaySharedCalendars />);
 
-    expect(document.body).toHaveTextContent('Show each other your calendars without merging them.')
-  })
+    expect(document.body).toHaveTextContent('Show each other your calendars without merging them.');
+  });
 
   it('FE-COMP-VACAYSHARED-002: Renders incoming share with view-only badge', () => {
-    seedShares({ incomingShares: [incoming] })
+    seedShares({ incomingShares: [incoming] });
 
-    render(<VacaySharedCalendars />)
+    render(<VacaySharedCalendars />);
 
-    expect(document.body).toHaveTextContent('Carol')
-    expect(document.body).toHaveTextContent('view only')
-  })
+    expect(document.body).toHaveTextContent('Carol');
+    expect(document.body).toHaveTextContent('view only');
+  });
 
   it('FE-COMP-VACAYSHARED-003: Row click hides a visible share via setShareHidden', async () => {
-    const setShareHiddenMock = vi.fn().mockResolvedValue(undefined)
-    const user = userEvent.setup()
+    const setShareHiddenMock = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
 
-    seedShares({ incomingShares: [incoming], setShareHidden: setShareHiddenMock })
+    seedShares({ incomingShares: [incoming], setShareHidden: setShareHiddenMock });
 
-    render(<VacaySharedCalendars />)
+    render(<VacaySharedCalendars />);
 
     // Clicking the username bubbles up to the row's onClick toggle
-    await user.click(screen.getByText('Carol'))
+    await user.click(screen.getByText('Carol'));
 
-    expect(setShareHiddenMock).toHaveBeenCalledWith(7, true)
-  })
+    expect(setShareHiddenMock).toHaveBeenCalledWith(7, true);
+  });
 
   it('FE-COMP-VACAYSHARED-004: Hidden share row toggles back to visible', async () => {
-    const setShareHiddenMock = vi.fn().mockResolvedValue(undefined)
-    const user = userEvent.setup()
+    const setShareHiddenMock = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
 
-    seedShares({ incomingShares: [{ ...incoming, hidden: true }], setShareHidden: setShareHiddenMock })
+    seedShares({ incomingShares: [{ ...incoming, hidden: true }], setShareHidden: setShareHiddenMock });
 
-    render(<VacaySharedCalendars />)
+    render(<VacaySharedCalendars />);
 
-    await user.click(screen.getByTitle('Show in calendar'))
+    await user.click(screen.getByTitle('Show in calendar'));
 
-    expect(setShareHiddenMock).toHaveBeenCalledWith(7, false)
-  })
+    expect(setShareHiddenMock).toHaveBeenCalledWith(7, false);
+  });
 
   it('FE-COMP-VACAYSHARED-005: Remove button on incoming row calls removeShare', async () => {
-    const removeShareMock = vi.fn().mockResolvedValue(undefined)
-    const user = userEvent.setup()
+    const removeShareMock = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
 
-    seedShares({ incomingShares: [incoming], removeShare: removeShareMock })
+    seedShares({ incomingShares: [incoming], removeShare: removeShareMock });
 
-    render(<VacaySharedCalendars />)
+    render(<VacaySharedCalendars />);
 
-    await user.click(screen.getByRole('button', { name: 'Remove' }))
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
 
-    expect(removeShareMock).toHaveBeenCalledWith(7)
-  })
+    expect(removeShareMock).toHaveBeenCalledWith(7);
+  });
 
   it('FE-COMP-VACAYSHARED-006: Outgoing section lists recipients with stop sharing', async () => {
-    const removeShareMock = vi.fn().mockResolvedValue(undefined)
-    const user = userEvent.setup()
+    const removeShareMock = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
 
     seedShares({
       outgoingShares: [{ id: 9, user_id: 2, username: 'Bob' }],
       removeShare: removeShareMock,
-    })
+    });
 
-    render(<VacaySharedCalendars />)
+    render(<VacaySharedCalendars />);
 
-    expect(document.body).toHaveTextContent('You share with')
-    expect(document.body).toHaveTextContent('Bob')
+    expect(document.body).toHaveTextContent('You share with');
+    expect(document.body).toHaveTextContent('Bob');
 
-    await user.click(screen.getByRole('button', { name: /stop sharing/i }))
+    await user.click(screen.getByRole('button', { name: /stop sharing/i }));
 
-    expect(removeShareMock).toHaveBeenCalledWith(9)
-  })
+    expect(removeShareMock).toHaveBeenCalledWith(9);
+  });
 
   it('FE-COMP-VACAYSHARED-007: Share modal fetches users and shares with the selected one', async () => {
-    withShareUsers()
-    const shareWithMock = vi.fn().mockResolvedValue(undefined)
-    const user = userEvent.setup()
+    withShareUsers();
+    const shareWithMock = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
 
-    seedShares({ shareWith: shareWithMock })
+    seedShares({ shareWith: shareWithMock });
 
-    render(<VacaySharedCalendars />)
+    render(<VacaySharedCalendars />);
 
     // Open the share modal via the header button
-    await user.click(screen.getByTitle('Share calendar'))
+    await user.click(screen.getByTitle('Share calendar'));
 
-    expect(screen.getByRole('heading', { name: 'Share calendar' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Share calendar' })).toBeInTheDocument();
 
     // Wait for MSW to respond and the CustomSelect trigger to appear
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: /select user/i })).toBeInTheDocument()
-    )
+    await waitFor(() => expect(screen.getByRole('button', { name: /select user/i })).toBeInTheDocument());
 
     // Open dropdown and select Bob
-    await user.click(screen.getByRole('button', { name: /select user/i }))
-    await waitFor(() => expect(screen.getByText('Bob')).toBeInTheDocument())
-    await user.click(screen.getByText('Bob'))
+    await user.click(screen.getByRole('button', { name: /select user/i }));
+    await waitFor(() => expect(screen.getByText('Bob')).toBeInTheDocument());
+    await user.click(screen.getByText('Bob'));
 
-    await user.click(screen.getByRole('button', { name: /^share$/i }))
+    await user.click(screen.getByRole('button', { name: /^share$/i }));
 
-    expect(shareWithMock).toHaveBeenCalledWith(2)
-  })
+    expect(shareWithMock).toHaveBeenCalledWith(2);
+  });
 
   it('FE-COMP-VACAYSHARED-008: Incoming row opts out of the global press-scale (#2158)', () => {
     // jsdom cannot replay the browser mechanics behind #2158: the :active scale on
     // the row shifted the remove X out from under the pointer, so the click retargeted
     // onto the row and only toggled visibility. The data-no-press attribute is the pin.
-    seedShares({ incomingShares: [incoming] })
+    seedShares({ incomingShares: [incoming] });
 
-    render(<VacaySharedCalendars />)
+    render(<VacaySharedCalendars />);
 
-    expect(screen.getByText('Carol').closest('[role="button"]')).toHaveAttribute('data-no-press')
-  })
-})
+    expect(screen.getByText('Carol').closest('[role="button"]')).toHaveAttribute('data-no-press');
+  });
+});

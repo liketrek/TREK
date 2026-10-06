@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'テンプレートを選択…',
   'settings.mapDefaultHint': '空欄の場合は OpenStreetMap（既定）を使用',
   'settings.routingBase': '自前のルーティングサーバー',
-  'settings.routingBaseHint': '自前の OSRM インスタンス。空欄なら公開サーバーを使いますが、毎秒 1 リクエスト程度の制限があり、1 日分には足りてもロードトリップには足りません。サーバー再起動後に反映されます。',
+  'settings.routingBaseHint':
+    '自前の OSRM インスタンス。空欄なら公開サーバーを使いますが、毎秒 1 リクエスト程度の制限があり、1 日分には足りてもロードトリップには足りません。サーバー再起動後に反映されます。',
   'settings.valhallaBase': '自前の Valhalla インスタンス',
   'settings.valhallaBaseHint':
     'TREKは、有料道路、高速道路、フェリーを避けるために、標準でFOSSGISの公開Valhallaを使用します。独自のValhallaを代わりに使う場合は、ここにURLを入力してください。独自のルーティングサーバーのみが設定されている場合、公開Valhallaは使用されません。独自のURLを入力した後は、サーバーを再起動し、ページを再読み込みしてください。',
@@ -79,7 +80,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'すべての日付選択で週の最初の曜日になります。Vacay には専用の設定があります。',
   'settings.preferredNavApp': '場所を開くアプリ',
   'settings.preferredNavAppAsk': '毎回確認する',
-  'settings.preferredNavAppHint': 'アプリを選ぶと、ナビボタンはすべての地図アプリを表示せず、すぐにそのアプリを開きます。',
+  'settings.preferredNavAppHint':
+    'アプリを選ぶと、ナビボタンはすべての地図アプリを表示せず、すぐにそのアプリを開きます。',
   'settings.bookingLabels': '予約ルートのラベル',
   'settings.bookingLabelsHint': '地図に駅・空港名を表示。オフ時はアイコンのみ。',
   'settings.blurBookingCodes': '予約コードをぼかす',
@@ -327,7 +329,8 @@ const settings: TranslationStrings = {
   'settings.currencyTrip': '旅行の通貨',
   'settings.placeLanguage': '場所の名前',
   'settings.placeLanguageApp': 'アプリと同じ',
-  'settings.placeLanguageHint': '場所の検索、候補、住所に使う言語です。その言語の名前がない場所では、現地の名前が表示されます。',
+  'settings.placeLanguageHint':
+    '場所の検索、候補、住所に使う言語です。その言語の名前がない場所では、現地の名前が表示されます。',
   'settings.passkey.title': 'パスキー',
   'settings.passkey.description':
     '指紋、顔認証、PIN、またはハードウェアキーを使うパスキーで、より速く、フィッシングに強いサインインができます。パスワードはバックアップとして残ります。',
@@ -474,8 +477,10 @@ const settings: TranslationStrings = {
   'settings.general.startup': '起動',
   'settings.dayDateFirst': '日の見出しで日付を先に表示',
   'settings.compactUnplanned': '未計画の場所を小さなマーカーで表示',
-  'settings.compactUnplannedHint': 'どの日にも計画されていない場所は写真なしの小さなマーカーで表示され、計画済みの立ち寄り先が目立ちます。',
-  'settings.dayDateFirstHint': '各日の先頭にカレンダーの日付を表示し、その横に「1日目」またはその日のタイトルを表示します。',
+  'settings.compactUnplannedHint':
+    'どの日にも計画されていない場所は写真なしの小さなマーカーで表示され、計画済みの立ち寄り先が目立ちます。',
+  'settings.dayDateFirstHint':
+    '各日の先頭にカレンダーの日付を表示し、その横に「1日目」またはその日のタイトルを表示します。',
   'settings.startPage': '起動時の画面',
   'settings.startPageDashboard': 'ダッシュボード',
   'settings.startPageActiveTrip': '進行中の旅行',
@@ -516,7 +521,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': '接続されていません。オフライン用に保存するには接続してください。',
   'settings.offline.notice.signedOut': 'セッションが終了しました。同期するには再度ログインしてください。',
   'settings.offline.notice.failed': 'ダウンロードを完了できませんでした。接続を確認してもう一度お試しください。',
-  'settings.offline.notice.loadFailed': 'この端末のオフラインストレージを読み取れませんでした。キャッシュを削除すると解決することが多いです。',
+  'settings.offline.notice.loadFailed':
+    'この端末のオフラインストレージを読み取れませんでした。キャッシュを削除すると解決することが多いです。',
   'settings.offline.clear': 'キャッシュを消去',
   'settings.offline.clearConfirm': 'すべてのオフライン旅行データを消去しますか？オンライン時にいつでも再同期できます。',
   'settings.offline.stats.trips': 'キャッシュ済みの旅行',
@@ -574,7 +580,8 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'ウィッシュリスト',
   'settings.apiScopes.stats': '合計',
   'settings.apiKeys.title': 'API キー',
-  'settings.apiKeys.description': '公開 API 用のキーです。ほかのソフトウェアが旅程を読み取れるようになります。読み取り専用で、変更や削除はできません。',
+  'settings.apiKeys.description':
+    '公開 API 用のキーです。ほかのソフトウェアが旅程を読み取れるようになります。読み取り専用で、変更や削除はできません。',
   'settings.apiKeys.create': 'キーを作成',
   'settings.apiKeys.empty': 'キーはまだありません。ほかのソフトウェアと連携するには作成してください。',
   'settings.apiKeys.createdAt': '作成日',
@@ -585,11 +592,13 @@ const settings: TranslationStrings = {
   'settings.apiKeys.deleteFailed': 'キーを削除できませんでした',
   'settings.apiKeys.createFailed': 'キーを作成できませんでした',
   'settings.apiKeys.copy': 'コピー',
-  'settings.apiKeys.docsHint': 'キーは "Authorization: Bearer ..." または "X-API-Key: ..." として /api/v1 に送信してください。',
+  'settings.apiKeys.docsHint':
+    'キーは "Authorization: Bearer ..." または "X-API-Key: ..." として /api/v1 に送信してください。',
   'settings.apiKeys.endpoint': 'エンドポイント',
   'settings.apiKeys.neverUsed': '未使用',
   'settings.apiKeys.loadFailed': 'キーを読み込めませんでした。ページを再読み込みしてもう一度お試しください。',
-  'settings.apiKeys.limitReached': 'キーは {max} 個あり、1 アカウントの上限に達しています。新しく作成するには、使わなくなったキーを削除してください。',
+  'settings.apiKeys.limitReached':
+    'キーは {max} 個あり、1 アカウントの上限に達しています。新しく作成するには、使わなくなったキーを削除してください。',
   'settings.apiKeys.copyFailed': 'コピーできませんでした。テキストを選択して手動でコピーしてください。',
   'settings.apiKeys.modal.createTitle': 'API キーを作成',
   'settings.apiKeys.modal.name': '名前',
@@ -598,7 +607,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': '作成中...',
   'settings.apiKeys.modal.create': '作成',
   'settings.apiKeys.modal.createdTitle': 'API キーを作成しました',
-  'settings.apiKeys.modal.createdWarning': '今すぐキーをコピーしてください。表示は一度きりで、あとから取得はできません。',
+  'settings.apiKeys.modal.createdWarning':
+    '今すぐキーをコピーしてください。表示は一度きりで、あとから取得はできません。',
   'settings.apiKeys.modal.done': '完了',
 };
 

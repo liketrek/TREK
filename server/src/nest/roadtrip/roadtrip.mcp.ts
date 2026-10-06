@@ -1,16 +1,24 @@
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_NON_IDEMPOTENT, ok, type McpContext } from '../../nest-mcp';
-import { z } from 'zod';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { RoadtripService } from './roadtrip.service';
+import { ADDON_IDS } from '../../addons';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { demoDenied, noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { AuthService } from '../auth/auth.service';
-import { ADDON_IDS } from '../../addons';
+import {
+  McpController,
+  Tool,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  ok,
+  type McpContext,
+} from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { AuthService } from '../auth/auth.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { RoadtripService } from './roadtrip.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { roadtripViaUpdateRequestSchema, type RoadtripViaUpdateRequest } from '@trek/shared';
+
+import { z } from 'zod';
 
 /**
  * The whole surface rides the road trip addon, the same way the controller does
@@ -49,7 +57,8 @@ export class RoadtripMcp {
 
   @Tool({
     name: 'list_route_vias',
-    description: 'List the points a day\'s drive is routed through without stopping at them. These bend the route (a scenic road, a pass, avoiding a motorway) and are not stops on the itinerary.',
+    description:
+      "List the points a day's drive is routed through without stopping at them. These bend the route (a scenic road, a pass, avoiding a motorway) and are not stops on the itinerary.",
     inputSchema: {
       tripId: z.number().int().positive(),
       dayId: z.number().int().positive().optional().describe('Omit to list the vias of every day of the trip'),
@@ -82,7 +91,13 @@ export class RoadtripMcp {
     when: roadtripAddonOn,
   })
   async addVia(
-    { tripId, dayId, after_order_index, lat, lng }: { tripId: number; dayId: number; after_order_index: number; lat: number; lng: number },
+    {
+      tripId,
+      dayId,
+      after_order_index,
+      lat,
+      lng,
+    }: { tripId: number; dayId: number; after_order_index: number; lat: number; lng: number },
     ctx: McpContext,
   ) {
     if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
@@ -100,27 +115,60 @@ export class RoadtripMcp {
     inputSchema: {
       tripId: z.number().int().positive(),
       dayId: z.number().int().positive(),
-      vias: z.array(z.strictObject({
-        after_order_index: z.number().int().min(0).describe('Which stop of the day this via follows, counting from 0'),
-        lat: z.number().min(-90).max(90),
-        lng: z.number().min(-180).max(180),
-      })).max(100).describe('In the order the drive passes through them'),
-      replace_legs: z.array(z.number().int().min(0)).max(100).optional()
+      vias: z
+        .array(
+          z.strictObject({
+            after_order_index: z
+              .number()
+              .int()
+              .min(0)
+              .describe('Which stop of the day this via follows, counting from 0'),
+            lat: z.number().min(-90).max(90),
+            lng: z.number().min(-180).max(180),
+          }),
+        )
+        .max(100)
+        .describe('In the order the drive passes through them'),
+      replace_legs: z
+        .array(z.number().int().min(0))
+        .max(100)
+        .optional()
         .describe('Legs to clear before inserting, by the index of the stop they follow'),
-      track: z.strictObject({
-        place_id: z.number().int().positive().describe('The imported track this chain was fitted to, as its place id'),
-        stray_km: z.number().min(0).max(40_000).nullable().optional()
-          .describe('How far the fitted route still runs from the track at its worst point'),
-      }).nullable().optional()
-        .describe('Records which imported track the day now follows. Leave it out to keep whatever it followed before; pass null to say it follows nothing.'),
+      track: z
+        .strictObject({
+          place_id: z
+            .number()
+            .int()
+            .positive()
+            .describe('The imported track this chain was fitted to, as its place id'),
+          stray_km: z
+            .number()
+            .min(0)
+            .max(40_000)
+            .nullable()
+            .optional()
+            .describe('How far the fitted route still runs from the track at its worst point'),
+        })
+        .nullable()
+        .optional()
+        .describe(
+          'Records which imported track the day now follows. Leave it out to keep whatever it followed before; pass null to say it follows nothing.',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
     when: roadtripAddonOn,
   })
   async addVias(
-    { tripId, dayId, vias, replace_legs, track }: {
-      tripId: number; dayId: number;
+    {
+      tripId,
+      dayId,
+      vias,
+      replace_legs,
+      track,
+    }: {
+      tripId: number;
+      dayId: number;
       vias: { after_order_index: number; lat: number; lng: number }[];
       replace_legs?: number[];
       track?: { place_id: number; stray_km?: number | null } | null;
@@ -138,32 +186,56 @@ export class RoadtripMcp {
     const made = await this.roadtrip.createMany(dayId, { vias, replace_legs, track });
     await this.announce(tripId, dayId);
     const tracks = await this.roadtrip.tracksForTrip(String(tripId));
-    this.roadtrip.broadcast(String(tripId), 'roadtripTrack:changed', {
-      dayId,
-      track: tracks.find(t => String(t.day_id) === String(dayId)) ?? null,
-    }, undefined);
+    this.roadtrip.broadcast(
+      String(tripId),
+      'roadtripTrack:changed',
+      {
+        dayId,
+        track: tracks.find((t) => String(t.day_id) === String(dayId)) ?? null,
+      },
+      undefined,
+    );
     return ok({ vias: made });
   }
 
   @Tool({
     name: 'reanchor_route_vias',
-    description: 'Re-pin a day\'s via points after its stops changed. A via records which stop it follows by position, so adding, removing or reordering a stop leaves every later via pointing at the wrong leg and the drive silently reverts to the road it was steered away from. Send the corrected positions for the whole day at once; ids left out keep the position they have.',
+    description:
+      "Re-pin a day's via points after its stops changed. A via records which stop it follows by position, so adding, removing or reordering a stop leaves every later via pointing at the wrong leg and the drive silently reverts to the road it was steered away from. Send the corrected positions for the whole day at once; ids left out keep the position they have.",
     inputSchema: {
       tripId: z.number().int().positive(),
       dayId: z.number().int().positive(),
-      vias: z.array(z.strictObject({
-        id: z.number().int().positive(),
-        after_order_index: z.number().int().min(0).describe('Which stop of the day the via now follows, counting from 0'),
-      })).max(500),
-      remove: z.array(z.number().int().positive()).max(500).optional()
-        .describe('Vias whose leg no longer exists at all — deleting the last stop of a day leaves the leg into it with nothing to sit on'),
+      vias: z
+        .array(
+          z.strictObject({
+            id: z.number().int().positive(),
+            after_order_index: z
+              .number()
+              .int()
+              .min(0)
+              .describe('Which stop of the day the via now follows, counting from 0'),
+          }),
+        )
+        .max(500),
+      remove: z
+        .array(z.number().int().positive())
+        .max(500)
+        .optional()
+        .describe(
+          'Vias whose leg no longer exists at all — deleting the last stop of a day leaves the leg into it with nothing to sit on',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
     when: roadtripAddonOn,
   })
   async reanchorVias(
-    { tripId, dayId, vias, remove }: { tripId: number; dayId: number; vias: { id: number; after_order_index: number }[]; remove?: number[] },
+    {
+      tripId,
+      dayId,
+      vias,
+      remove,
+    }: { tripId: number; dayId: number; vias: { id: number; after_order_index: number }[]; remove?: number[] },
     ctx: McpContext,
   ) {
     if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
@@ -199,9 +271,17 @@ export class RoadtripMcp {
 
   @Tool({
     name: 'update_route_via',
-    description: 'Move an existing via point and optionally attach it to another outgoing leg of the same day. This is the same change as dragging a route handle. A via bends the route and does not add a stop or stay.',
-    inputSchema: { tripId: z.number().int().positive(), dayId: z.number().int().positive(), viaId: z.number().int().positive(), ...roadtripViaUpdateRequestSchema.shape },
-    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT, access: { group: 'trips', mode: 'write' }, when: roadtripAddonOn,
+    description:
+      'Move an existing via point and optionally attach it to another outgoing leg of the same day. This is the same change as dragging a route handle. A via bends the route and does not add a stop or stay.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      dayId: z.number().int().positive(),
+      viaId: z.number().int().positive(),
+      ...roadtripViaUpdateRequestSchema.shape,
+    },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    access: { group: 'trips', mode: 'write' },
+    when: roadtripAddonOn,
   })
   async updateVia(input: RoadtripViaUpdateRequest & { tripId: number; dayId: number; viaId: number }, ctx: McpContext) {
     if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
@@ -223,9 +303,14 @@ export class RoadtripMcp {
    * client that asked for it hears about it like everyone else.
    */
   private async announce(tripId: number, dayId: number): Promise<void> {
-    this.roadtrip.broadcast(String(tripId), 'roadtripVia:changed', {
-      dayId,
-      vias: await this.roadtrip.listForDay(String(dayId)),
-    }, undefined);
+    this.roadtrip.broadcast(
+      String(tripId),
+      'roadtripVia:changed',
+      {
+        dayId,
+        vias: await this.roadtrip.listForDay(String(dayId)),
+      },
+      undefined,
+    );
   }
 }

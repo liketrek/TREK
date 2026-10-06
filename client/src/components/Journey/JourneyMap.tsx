@@ -1,66 +1,65 @@
-import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'react'
-import { clusterPhotos, photoMarkerHtml, type MapPhoto } from './journeyPhotoLayer'
-import L from 'leaflet'
-import { useSettingsStore } from '../../store/settingsStore'
-import { useCartoApiKey } from '../../hooks/useTileUrl'
-import { isGcj02Basemap, isVectorStyle, resolveTileUrl } from '../../utils/tileUrl'
-import { OFM_DARK, OFM_POSITRON, attributionForTile } from '../../constants/mapDefaults'
-import { attachVectorBasemap, detachBasemapLayer, restyleBasemap, type BasemapLayer } from '../Map/VectorBasemap'
-import { crsForBasemap } from '../Map/gcj02Crs'
-import { escapeHtml, type JourneyTrack } from '@trek/shared'
-import { ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
+import { escapeHtml, type JourneyTrack } from '@trek/shared';
+import L from 'leaflet';
+import { useCallback, useEffect, useImperativeHandle, useRef, type Ref } from 'react';
+import { OFM_DARK, OFM_POSITRON, attributionForTile } from '../../constants/mapDefaults';
+import { useCartoApiKey } from '../../hooks/useTileUrl';
+import { useSettingsStore } from '../../store/settingsStore';
+import { isGcj02Basemap, isVectorStyle, resolveTileUrl } from '../../utils/tileUrl';
+import { attachVectorBasemap, detachBasemapLayer, restyleBasemap, type BasemapLayer } from '../Map/VectorBasemap';
+import { crsForBasemap } from '../Map/gcj02Crs';
+import { ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup';
+import { clusterPhotos, photoMarkerHtml, type MapPhoto } from './journeyPhotoLayer';
 
 export interface MapMarkerItem {
-  id: string
-  lat: number
-  lng: number
-  label: string
-  locationName: string
-  mood?: string | null
-  time: string
-  dayColor: string
-  dayLabel: number
-  photoUrls: string[]
+  id: string;
+  lat: number;
+  lng: number;
+  label: string;
+  locationName: string;
+  mood?: string | null;
+  time: string;
+  dayColor: string;
+  dayLabel: number;
+  photoUrls: string[];
 }
-
 
 export interface JourneyMapHandle {
-  highlightMarker: (id: string | null) => void
-  focusMarker: (id: string) => void
-  invalidateSize: () => void
+  highlightMarker: (id: string | null) => void;
+  focusMarker: (id: string) => void;
+  invalidateSize: () => void;
 }
 
-export type { MapPhoto } from './journeyPhotoLayer'
+export type { MapPhoto } from './journeyPhotoLayer';
 
 interface MapEntry {
-  id: string
-  lat: number
-  lng: number
-  title?: string | null
-  location_name?: string | null
-  mood?: string | null
-  entry_date: string
-  dayColor?: string
-  dayLabel?: number
+  id: string;
+  lat: number;
+  lng: number;
+  title?: string | null;
+  location_name?: string | null;
+  mood?: string | null;
+  entry_date: string;
+  dayColor?: string;
+  dayLabel?: number;
   /** Thumbnails for the marker card, already resolved by the caller (the share view signs its own). */
-  photoUrls?: string[]
+  photoUrls?: string[];
 }
 
 interface Props {
-  ref?: Ref<JourneyMapHandle>
-  checkins: any[]
-  entries: MapEntry[]
+  ref?: Ref<JourneyMapHandle>;
+  checkins: any[];
+  entries: MapEntry[];
   /** Photos placed by their own capture coordinates, clustered by proximity. */
-  photos?: MapPhoto[]
-  onPhotoClick?: (photoIds: string[]) => void
-  trail?: { lat: number; lng: number }[]
+  photos?: MapPhoto[];
+  onPhotoClick?: (photoIds: string[]) => void;
+  trail?: { lat: number; lng: number }[];
   /** Routed GPX geometries from the journey's trips (#1260). */
-  tracks?: JourneyTrack[]
-  height?: number
-  dark?: boolean
-  activeMarkerId?: string | null
-  onMarkerClick?: (id: string, type?: string) => void
-  fullScreen?: boolean
+  tracks?: JourneyTrack[];
+  height?: number;
+  dark?: boolean;
+  activeMarkerId?: string | null;
+  onMarkerClick?: (id: string, type?: string) => void;
+  fullScreen?: boolean;
   /**
    * Leave the marker labels off.
    *
@@ -70,14 +69,14 @@ interface Props {
    * (discussion #2299). On desktop the label is the only name a marker has, so
    * this stays off there.
    */
-  hideMarkerTooltip?: boolean
-  paddingBottom?: number
+  hideMarkerTooltip?: boolean;
+  paddingBottom?: number;
   /** CARTO key from the share payload: the public journey has no settings store to read. */
-  cartoApiKey?: string
+  cartoApiKey?: string;
 }
 
 function buildMarkerItems(entries: MapEntry[]): MapMarkerItem[] {
-  const items: MapMarkerItem[] = []
+  const items: MapMarkerItem[] = [];
   for (const e of entries) {
     if (e.lat && e.lng) {
       items.push({
@@ -91,23 +90,23 @@ function buildMarkerItems(entries: MapEntry[]): MapMarkerItem[] {
         dayColor: e.dayColor || '#52525B',
         dayLabel: e.dayLabel ?? 1,
         photoUrls: e.photoUrls ?? [],
-      })
+      });
     }
   }
-  items.sort((a, b) => a.time.localeCompare(b.time))
-  return items
+  items.sort((a, b) => a.time.localeCompare(b.time));
+  return items;
 }
 
-const MARKER_W = 28
-const MARKER_H = 36
+const MARKER_W = 28;
+const MARKER_H = 36;
 
 function markerSvg(dayColor: string, dayLabel: number, highlighted: boolean): string {
-  const stroke = highlighted ? '#fff' : 'rgba(255,255,255,0.5)'
+  const stroke = highlighted ? '#fff' : 'rgba(255,255,255,0.5)';
   const shadow = highlighted
     ? 'filter:drop-shadow(0 0 10px rgba(0,0,0,0.4)) drop-shadow(0 2px 6px rgba(0,0,0,0.4))'
-    : 'filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))'
-  const label = String(dayLabel)
-  const scale = highlighted ? 1.2 : 1
+    : 'filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))';
+  const label = String(dayLabel);
+  const scale = highlighted ? 1.2 : 1;
 
   return `<div style="transform:scale(${scale});transition:transform 0.2s ease;${shadow};transform-origin:bottom center">
     <svg width="${MARKER_W}" height="${MARKER_H}" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -115,7 +114,7 @@ function markerSvg(dayColor: string, dayLabel: number, highlighted: boolean): st
       <circle cx="14" cy="13" r="8" fill="${dayColor}"/>
       <text x="14" y="13" text-anchor="middle" dominant-baseline="central" fill="#fff" font-family="'Poppins',system-ui,sans-serif" font-size="11" font-weight="700">${label}</text>
     </svg>
-  </div>`
+  </div>`;
 }
 
 /**
@@ -135,89 +134,106 @@ function markerSvg(dayColor: string, dayLabel: number, highlighted: boolean): st
  */
 function panToMarker(map: L.Map, marker: L.Marker): void {
   map.whenReady(() => {
-    map.panTo(marker.getLatLng(), { animate: true, duration: 0.5 })
-  })
+    map.panTo(marker.getLatLng(), { animate: true, duration: 0.5 });
+  });
 }
 
-const EMPTY_TRAIL: { lat: number; lng: number }[] = []
-const EMPTY_TRACKS: JourneyTrack[] = []
+const EMPTY_TRAIL: { lat: number; lng: number }[] = [];
+const EMPTY_TRACKS: JourneyTrack[] = [];
 /** Fallback when a track carries no colour of its own, matching the planner's default. */
-const TRACK_FALLBACK_COLOR = '#4f46e5'
+const TRACK_FALLBACK_COLOR = '#4f46e5';
 
-function JourneyMap(
-  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, cartoApiKey, hideMarkerTooltip, ref }: Props,
-) {
+function JourneyMap({
+  entries,
+  photos,
+  onPhotoClick,
+  trail,
+  tracks,
+  height = 220,
+  dark,
+  activeMarkerId,
+  onMarkerClick,
+  fullScreen,
+  paddingBottom,
+  cartoApiKey,
+  hideMarkerTooltip,
+  ref,
+}: Props) {
   // Read through a ref: the flag is fixed per surface, and putting it in the
   // marker effect's deps would rebuild every marker for nothing.
-  const hideMarkerTooltipRef = useRef(hideMarkerTooltip)
-  hideMarkerTooltipRef.current = hideMarkerTooltip
-  const stableTrail = trail || EMPTY_TRAIL
-  const stableTracks = tracks || EMPTY_TRACKS
-  const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url)
-  const storedCartoKey = useCartoApiKey()
-  const cartoKey = cartoApiKey || storedCartoKey
-  const tileUrl = resolveTileUrl(mapTileUrl, dark ? OFM_DARK : OFM_POSITRON, cartoKey)
+  const hideMarkerTooltipRef = useRef(hideMarkerTooltip);
+  hideMarkerTooltipRef.current = hideMarkerTooltip;
+  const stableTrail = trail || EMPTY_TRAIL;
+  const stableTracks = tracks || EMPTY_TRACKS;
+  const mapTileUrl = useSettingsStore((s) => s.settings.map_tile_url);
+  const storedCartoKey = useCartoApiKey();
+  const cartoKey = cartoApiKey || storedCartoKey;
+  const tileUrl = resolveTileUrl(mapTileUrl, dark ? OFM_DARK : OFM_POSITRON, cartoKey);
   // Amap's tiles are GCJ-02 (see gcj02Crs.ts), the same shift the planner map
   // applies. Leaflet fixes a map's CRS at construction, so this one value is
   // allowed to rebuild the map where a template change only retiles it.
-  const isGcjBasemap = !isVectorStyle(tileUrl) && isGcj02Basemap(tileUrl)
+  const isGcjBasemap = !isVectorStyle(tileUrl) && isGcj02Basemap(tileUrl);
   // Read through a ref by the map effect, retiled in place by its own effect below:
   // the CARTO key reaches the store after the first render, and rebuilding the map
   // for that raced with the markers and layers already on it (#2097).
-  const tileUrlRef = useRef(tileUrl)
-  tileUrlRef.current = tileUrl
-  const tileLayerRef = useRef<L.TileLayer | null>(null)
+  const tileUrlRef = useRef(tileUrl);
+  tileUrlRef.current = tileUrl;
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   // GL layer or the raster stand-in a browser without WebGL gets instead (#2288).
-  const glLayerRef = useRef<BasemapLayer | null>(null)
+  const glLayerRef = useRef<BasemapLayer | null>(null);
   // The vector basemap loads async; a map torn down before it lands must not get one.
-  const cancelledRef = useRef(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<L.Map | null>(null)
-  const markersRef = useRef<Map<string, L.Marker>>(new Map())
-  const itemsRef = useRef<MapMarkerItem[]>([])
-  const highlightedRef = useRef<string | null>(null)
-  const onMarkerClickRef = useRef(onMarkerClick)
-  onMarkerClickRef.current = onMarkerClick
-  const photoLayerRef = useRef<L.LayerGroup | null>(null)
-  const onPhotoClickRef = useRef(onPhotoClick)
-  onPhotoClickRef.current = onPhotoClick
+  const cancelledRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const itemsRef = useRef<MapMarkerItem[]>([]);
+  const highlightedRef = useRef<string | null>(null);
+  const onMarkerClickRef = useRef(onMarkerClick);
+  onMarkerClickRef.current = onMarkerClick;
+  const photoLayerRef = useRef<L.LayerGroup | null>(null);
+  const onPhotoClickRef = useRef(onPhotoClick);
+  onPhotoClickRef.current = onPhotoClick;
 
-  const darkRef = useRef(dark)
-  darkRef.current = dark
+  const darkRef = useRef(dark);
+  darkRef.current = dark;
 
   const highlightMarker = useCallback((id: string | null) => {
-    const prev = highlightedRef.current
-    highlightedRef.current = id
-    const isDark = !!darkRef.current
+    const prev = highlightedRef.current;
+    highlightedRef.current = id;
+    const isDark = !!darkRef.current;
 
     if (prev && prev !== id) {
-      const marker = markersRef.current.get(prev)
-      const item = itemsRef.current.find(i => i.id === prev)
+      const marker = markersRef.current.get(prev);
+      const item = itemsRef.current.find((i) => i.id === prev);
       if (marker && item) {
-        marker.setIcon(L.divIcon({
-          className: '',
-          iconSize: [MARKER_W, MARKER_H],
-          iconAnchor: [MARKER_W / 2, MARKER_H],
-          html: markerSvg(item.dayColor, item.dayLabel, false),
-        }))
-        marker.setZIndexOffset(0)
+        marker.setIcon(
+          L.divIcon({
+            className: '',
+            iconSize: [MARKER_W, MARKER_H],
+            iconAnchor: [MARKER_W / 2, MARKER_H],
+            html: markerSvg(item.dayColor, item.dayLabel, false),
+          })
+        );
+        marker.setZIndexOffset(0);
       }
     }
 
     if (id) {
-      const marker = markersRef.current.get(id)
-      const item = itemsRef.current.find(i => i.id === id)
+      const marker = markersRef.current.get(id);
+      const item = itemsRef.current.find((i) => i.id === id);
       if (marker && item) {
-        marker.setIcon(L.divIcon({
-          className: '',
-          iconSize: [MARKER_W, MARKER_H],
-          iconAnchor: [MARKER_W / 2, MARKER_H],
-          html: markerSvg(item.dayColor, item.dayLabel, true),
-        }))
-        marker.setZIndexOffset(1000)
+        marker.setIcon(
+          L.divIcon({
+            className: '',
+            iconSize: [MARKER_W, MARKER_H],
+            iconAnchor: [MARKER_W / 2, MARKER_H],
+            html: markerSvg(item.dayColor, item.dayLabel, true),
+          })
+        );
+        marker.setZIndexOffset(1000);
       }
     }
-  }, [])
+  }, []);
 
   /**
    * Bring an entry's marker under the reader without changing how far out they are.
@@ -230,23 +246,27 @@ function JourneyMap(
    * fitBounds is what decides how close the journey starts out.
    */
   const focusMarker = useCallback((id: string) => {
-    highlightMarker(id)
-    const marker = markersRef.current.get(id)
-    if (marker && mapRef.current) panToMarker(mapRef.current, marker)
-  }, [])
+    highlightMarker(id);
+    const marker = markersRef.current.get(id);
+    if (marker && mapRef.current) panToMarker(mapRef.current, marker);
+  }, []);
 
   const invalidateSize = useCallback(() => {
-    try { mapRef.current?.invalidateSize() } catch { /* map not yet initialized */ }
-  }, [])
+    try {
+      mapRef.current?.invalidateSize();
+    } catch {
+      /* map not yet initialized */
+    }
+  }, []);
 
-  useImperativeHandle(ref, () => ({ highlightMarker, focusMarker, invalidateSize }), [])
+  useImperativeHandle(ref, () => ({ highlightMarker, focusMarker, invalidateSize }), []);
 
   useEffect(() => {
-    if (!containerRef.current) return
+    if (!containerRef.current) return;
 
-    markersRef.current.clear()
+    markersRef.current.clear();
 
-    const crs = crsForBasemap(isGcjBasemap)
+    const crs = crsForBasemap(isGcjBasemap);
     const map = L.map(containerRef.current, {
       ...(crs ? { crs } : {}),
       zoomControl: false,
@@ -256,15 +276,15 @@ function JourneyMap(
       scrollWheelZoom: fullScreen ? true : false,
       dragging: true,
       touchZoom: true,
-    })
-    L.control.attribution({ position: 'bottomright', prefix: false }).addTo(map)
-    mapRef.current = map
-    cancelledRef.current = false
+    });
+    L.control.attribution({ position: 'bottomright', prefix: false }).addTo(map);
+    mapRef.current = map;
+    cancelledRef.current = false;
 
     // The basemap is a vector style unless the user brought their own raster
     // template, so which layer draws it is decided per template rather than once.
     if (isVectorStyle(tileUrlRef.current)) {
-      void attachVectorBasemap(map, tileUrlRef.current, glLayerRef, () => cancelledRef.current)
+      void attachVectorBasemap(map, tileUrlRef.current, glLayerRef, () => cancelledRef.current);
     } else {
       const tiles = L.tileLayer(tileUrlRef.current, {
         maxZoom: 18,
@@ -276,15 +296,15 @@ function JourneyMap(
         // updates and keep a larger ring of off-screen tiles ready.
         updateWhenIdle: false,
         keepBuffer: 4,
-      } as any)
-      tiles.addTo(map)
-      tileLayerRef.current = tiles
+      } as any);
+      tiles.addTo(map);
+      tileLayerRef.current = tiles;
     }
 
-    const items = buildMarkerItems(entries)
-    itemsRef.current = items
+    const items = buildMarkerItems(entries);
+    itemsRef.current = items;
 
-    const allCoords: L.LatLngTuple[] = []
+    const allCoords: L.LatLngTuple[] = [];
     /**
      * Track geometry is kept OUT of the fit set (#2194) and used only when there
      * is nothing else to frame.
@@ -301,67 +321,74 @@ function JourneyMap(
      * only thing on the map is the better of the two, and converging the GL side
      * is a change to a renderer this issue is not about.
      */
-    const trackCoords: L.LatLngTuple[] = []
+    const trackCoords: L.LatLngTuple[] = [];
 
     if (stableTrail.length > 1) {
-      const coords = stableTrail.map(p => [p.lat, p.lng] as L.LatLngTuple)
+      const coords = stableTrail.map((p) => [p.lat, p.lng] as L.LatLngTuple);
       L.polyline(coords, {
-        color: '#6366f1', weight: 3, opacity: 0.4,
-        dashArray: '6 4', lineCap: 'round',
-      }).addTo(map)
-      coords.forEach(c => allCoords.push(c))
+        color: '#6366f1',
+        weight: 3,
+        opacity: 0.4,
+        dashArray: '6 4',
+        lineCap: 'round',
+      }).addTo(map);
+      coords.forEach((c) => allCoords.push(c));
     }
 
     // GPX tracks — drawn solid and in their own colour, so they read as a recorded
     // route rather than as the dashed line that merely connects entries in time order.
     // A white casing keeps them legible on satellite tiles, same as the planner map.
     for (const track of stableTracks) {
-      if (track.points.length < 2) continue
-      const coords = track.points.map(([lat, lng]) => [lat, lng] as L.LatLngTuple)
-      const color = track.color || TRACK_FALLBACK_COLOR
-      L.polyline(coords, { color: '#ffffff', weight: 6, opacity: 0.75, lineCap: 'round', lineJoin: 'round' }).addTo(map)
-      const line = L.polyline(coords, { color, weight: 3.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
+      if (track.points.length < 2) continue;
+      const coords = track.points.map(([lat, lng]) => [lat, lng] as L.LatLngTuple);
+      const color = track.color || TRACK_FALLBACK_COLOR;
+      L.polyline(coords, { color: '#ffffff', weight: 6, opacity: 0.75, lineCap: 'round', lineJoin: 'round' }).addTo(
+        map
+      );
+      const line = L.polyline(coords, { color, weight: 3.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' });
       // Same tooltip the markers on this map use, rather than Leaflet's default box:
       // it follows the appearance tokens, so it lands right in dark mode and with
       // transparency switched off. Escaped because a string handed to bindTooltip
       // becomes innerHTML, and a track name is a place name off a shared trip.
-      if (track.name) line.bindTooltip(escapeHtml(track.name), { sticky: true, direction: 'top', className: 'map-tooltip' })
-      line.addTo(map)
-      coords.forEach(c => trackCoords.push(c))
+      if (track.name)
+        line.bindTooltip(escapeHtml(track.name), { sticky: true, direction: 'top', className: 'map-tooltip' });
+      line.addTo(map);
+      coords.forEach((c) => trackCoords.push(c));
     }
 
     // route polyline — only in non-fullscreen (sidebar map) mode
     if (!fullScreen && items.length > 1) {
-      const routeCoords = items.map(i => [i.lat, i.lng] as L.LatLngTuple)
+      const routeCoords = items.map((i) => [i.lat, i.lng] as L.LatLngTuple);
       L.polyline(routeCoords, {
         color: dark ? '#71717A' : '#A1A1AA',
         weight: 1.5,
         opacity: 0.5,
         dashArray: '4 6',
-        lineCap: 'round', lineJoin: 'round',
-      }).addTo(map)
+        lineCap: 'round',
+        lineJoin: 'round',
+      }).addTo(map);
     }
 
     // place markers
     items.forEach((item, i) => {
-      const pos: L.LatLngTuple = [item.lat, item.lng]
-      allCoords.push(pos)
+      const pos: L.LatLngTuple = [item.lat, item.lng];
+      allCoords.push(pos);
 
       const icon = L.divIcon({
         className: '',
         iconSize: [MARKER_W, MARKER_H],
         iconAnchor: [MARKER_W / 2, MARKER_H],
         html: markerSvg(item.dayColor, item.dayLabel, false),
-      })
+      });
 
-      const marker = L.marker(pos, { icon }).addTo(map)
+      const marker = L.marker(pos, { icon }).addTo(map);
       // The same card the GL renderer shows, from the same builder: which map
       // engine a reader happens to have selected should not change what a marker
       // tells them (discussion #2299). The builder escapes everything that came
       // from a person, which matters most here — this map is what the public
       // journey page renders.
       if (!hideMarkerTooltipRef.current) {
-        ensureJourneyPopupStyle()
+        ensureJourneyPopupStyle();
         marker.bindTooltip(
           journeyPopupHtml({
             title: item.label || item.locationName || 'Entry',
@@ -373,80 +400,84 @@ function JourneyMap(
             direction: 'top',
             offset: [0, -MARKER_H],
             className: 'map-tooltip trek-journey-tooltip',
-          },
-        )
+          }
+        );
       }
 
       marker.on('click', () => {
-        onMarkerClickRef.current?.(item.id)
-      })
+        onMarkerClickRef.current?.(item.id);
+      });
 
-      markersRef.current.set(item.id, marker)
-    })
+      markersRef.current.set(item.id, marker);
+    });
 
     // fit bounds
     requestAnimationFrame(() => {
-      if (!mapRef.current) return
+      if (!mapRef.current) return;
       try {
-        map.invalidateSize()
+        map.invalidateSize();
         // Tracks only get a say when the journey has nothing located of its own —
         // a world view would be worse than framing the one thing on the map.
-        const fitCoords = allCoords.length > 0 ? allCoords : trackCoords
+        const fitCoords = allCoords.length > 0 ? allCoords : trackCoords;
         if (fitCoords.length > 0) {
-          const pb = paddingBottom || 50
-          map.fitBounds(L.latLngBounds(fitCoords), { paddingTopLeft: [50, 50], paddingBottomRight: [50, pb], maxZoom: 16 })
+          const pb = paddingBottom || 50;
+          map.fitBounds(L.latLngBounds(fitCoords), {
+            paddingTopLeft: [50, 50],
+            paddingBottomRight: [50, pb],
+            maxZoom: 16,
+          });
         } else {
-          map.setView([30, 0], 2)
+          map.setView([30, 0], 2);
         }
       } catch {}
-    })
+    });
 
     setTimeout(() => {
-      if (mapRef.current) map.invalidateSize()
-    }, 200)
+      if (mapRef.current) map.invalidateSize();
+    }, 200);
 
     return () => {
-      cancelledRef.current = true
-      map.remove()
-      mapRef.current = null
-      tileLayerRef.current = null
-      detachBasemapLayer(glLayerRef.current)
-      glLayerRef.current = null
-      markersRef.current.clear()
-    }
-  }, [entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom, isGcjBasemap])
+      cancelledRef.current = true;
+      map.remove();
+      mapRef.current = null;
+      tileLayerRef.current = null;
+      detachBasemapLayer(glLayerRef.current);
+      glLayerRef.current = null;
+      markersRef.current.clear();
+    };
+  }, [entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom, isGcjBasemap]);
 
   // Retile in place rather than through the effect above, which would drop every
   // marker and track it just drew. A vector basemap restyles instead, which also
   // avoids spending a WebGL context on every theme toggle.
   useEffect(() => {
-    if (isVectorStyle(tileUrl)) restyleBasemap(glLayerRef.current, tileUrl)
-    else tileLayerRef.current?.setUrl(tileUrl)
-  }, [tileUrl])
+    if (isVectorStyle(tileUrl)) restyleBasemap(glLayerRef.current, tileUrl);
+    else tileLayerRef.current?.setUrl(tileUrl);
+  }, [tileUrl]);
 
   // Photo layer (#1614). Its own effect on purpose: photos arriving must not tear
   // down and rebuild the map the way the entry effect does. Redrawn on zoom and
   // pan because the clustering is done in screen space.
   useEffect(() => {
-    const map = mapRef.current
-    if (!map) return
+    const map = mapRef.current;
+    if (!map) return;
 
     const draw = () => {
-      photoLayerRef.current?.remove()
-      photoLayerRef.current = null
-      if (!photos?.length) return
+      photoLayerRef.current?.remove();
+      photoLayerRef.current = null;
+      if (!photos?.length) return;
 
       // The initial view (setView/fitBounds) is set on a deferred rAF in the
       // map-build effect above, so this can run before the map has a center/zoom
       // — latLngToContainerPoint throws in that window. Skip; the moveend/zoomend
       // listener below redraws once the deferred view lands.
       try {
-        map.getCenter()
+        map.getCenter();
       } catch {
-        return
+        return;
       }
 
-      const group = L.layerGroup()
+      const group = L.layerGroup();
       for (const cluster of clusterPhotos(photos, (lat, lng) => map.latLngToContainerPoint([lat, lng]))) {
         const marker = L.marker([cluster.lat, cluster.lng], {
           icon: L.divIcon({
@@ -458,75 +489,110 @@ function JourneyMap(
           // Below the entry pins: the itinerary is the point of the map, the photos
           // are context.
           zIndexOffset: -500,
-        })
-        marker.on('click', () => onPhotoClickRef.current?.(cluster.members.map(m => m.id)))
-        group.addLayer(marker)
+        });
+        marker.on('click', () => onPhotoClickRef.current?.(cluster.members.map((m) => m.id)));
+        group.addLayer(marker);
       }
-      group.addTo(map)
-      photoLayerRef.current = group
-    }
+      group.addTo(map);
+      photoLayerRef.current = group;
+    };
 
-    draw()
-    map.on('zoomend', draw)
-    map.on('moveend', draw)
+    draw();
+    map.on('zoomend', draw);
+    map.on('moveend', draw);
     return () => {
-      map.off('zoomend', draw)
-      map.off('moveend', draw)
-      photoLayerRef.current?.remove()
-      photoLayerRef.current = null
-    }
-  }, [photos, entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom])
+      map.off('zoomend', draw);
+      map.off('moveend', draw);
+      photoLayerRef.current?.remove();
+      photoLayerRef.current = null;
+    };
+  }, [photos, entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom]);
 
   // react to activeMarkerId prop changes — runs after map is built
   useEffect(() => {
-    if (!activeMarkerId || !mapRef.current) return
+    if (!activeMarkerId || !mapRef.current) return;
     // small delay to ensure markers are rendered after map build
     const timer = setTimeout(() => {
-      highlightMarker(activeMarkerId)
-      const marker = markersRef.current.get(activeMarkerId)
-      if (!marker || !mapRef.current) return
-      panToMarker(mapRef.current, marker)
-    }, 50)
-    return () => clearTimeout(timer)
-  }, [activeMarkerId])
+      highlightMarker(activeMarkerId);
+      const marker = markersRef.current.get(activeMarkerId);
+      if (!marker || !mapRef.current) return;
+      panToMarker(mapRef.current, marker);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [activeMarkerId]);
 
-  const zoomIn = () => mapRef.current?.zoomIn()
-  const zoomOut = () => mapRef.current?.zoomOut()
+  const zoomIn = () => mapRef.current?.zoomIn();
+  const zoomOut = () => mapRef.current?.zoomOut();
 
   return (
-    <div style={{ position: 'relative', height: height === 9999 ? '100%' : height, width: '100%', borderRadius: 'inherit', overflow: 'hidden' }}>
+    <div
+      style={{
+        position: 'relative',
+        height: height === 9999 ? '100%' : height,
+        width: '100%',
+        borderRadius: 'inherit',
+        overflow: 'hidden',
+      }}
+    >
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       <div
-        ref={containerRef}
-        style={{ width: '100%', height: '100%' }}
-      />
-      <div style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 400, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <button type="button"
+        style={{
+          position: 'absolute',
+          bottom: 12,
+          right: 12,
+          zIndex: 400,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+        }}
+      >
+        <button
+          type="button"
           onClick={zoomIn}
           style={{
-            width: 32, height: 32, borderRadius: 8,
+            width: 32,
+            height: 32,
+            borderRadius: 8,
             background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.9)',
             backdropFilter: 'blur(8px)',
             border: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
             color: dark ? '#fff' : '#18181B',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700, lineHeight: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))',
+            fontWeight: 700,
+            lineHeight: 1,
           }}
-        >+</button>
-        <button type="button"
+        >
+          +
+        </button>
+        <button
+          type="button"
           onClick={zoomOut}
           style={{
-            width: 32, height: 32, borderRadius: 8,
+            width: 32,
+            height: 32,
+            borderRadius: 8,
             background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.9)',
             backdropFilter: 'blur(8px)',
             border: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
             color: dark ? '#fff' : '#18181B',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))', fontWeight: 700, lineHeight: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontSize: 'calc(16px * var(--fs-scale-subtitle, 1))',
+            fontWeight: 700,
+            lineHeight: 1,
           }}
-        >−</button>
+        >
+          −
+        </button>
       </div>
     </div>
-  )
+  );
 }
 
-export default JourneyMap
+export default JourneyMap;

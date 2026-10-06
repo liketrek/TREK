@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { UnitOfWork } from '../database/unit-of-work';
-import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { MASKED_SETTING_VALUE, WEEK_START_VALUES, normalizeAppearance } from '@trek/shared';
 import { readEnv } from '../../app-config';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { Settings } from '../../db/entities/Settings.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { SettingsRepository } from '../../db/repositories/Settings.repository';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { UnitOfWork } from '../database/unit-of-work';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { MASKED_SETTING_VALUE, WEEK_START_VALUES, normalizeAppearance } from '@trek/shared';
 
 /**
  * Exported so a caller that hands settings to somebody else can assert its own
@@ -82,7 +82,7 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   'llm_api_key',
 ] as const;
 
-type DefaultableKey = typeof DEFAULTABLE_USER_SETTING_KEYS[number];
+type DefaultableKey = (typeof DEFAULTABLE_USER_SETTING_KEYS)[number];
 
 const DEFAULTABLE_USER_SETTING_KEY_SET = new Set<string>(DEFAULTABLE_USER_SETTING_KEYS);
 
@@ -96,7 +96,12 @@ const VALID_VALUES: Partial<Record<DefaultableKey, unknown[]>> = {
   llm_provider: ['local', 'openai', 'anthropic'],
 };
 
-const BOOLEAN_KEYS = new Set<DefaultableKey>(['blur_booking_codes', 'mapbox_3d_enabled', 'mapbox_quality_mode', 'llm_multimodal']);
+const BOOLEAN_KEYS = new Set<DefaultableKey>([
+  'blur_booking_codes',
+  'mapbox_3d_enabled',
+  'mapbox_quality_mode',
+  'llm_multimodal',
+]);
 
 /**
  * Per-user settings that name an address, which a non-admin must not write.
@@ -128,7 +133,11 @@ export function isAdminOnlyEndpointSetting(key: string, value: unknown): boolean
 }
 
 function parseValue(raw: string): unknown {
-  try { return JSON.parse(raw); } catch { return raw; }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
 }
 
 function serializeValue(key: string, value: unknown): string {
@@ -139,8 +148,8 @@ function serializeValue(key: string, value: unknown): string {
   // null and undefined both mean "cleared" and store '' — the legacy code stored
   // the string "null" for null, which leaked back out of getDecryptedUserSetting
   // as a literal four-character "null" (e.g. as an LLM API key).
-  const raw = value === null || value === undefined ? ''
-    : typeof value === 'object' ? JSON.stringify(value) : String(value);
+  const raw =
+    value === null || value === undefined ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
   if (ENCRYPTED_SETTING_KEYS.has(key)) return maybe_encrypt_api_key(raw) ?? raw;
   return raw;
 }

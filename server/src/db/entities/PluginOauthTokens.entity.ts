@@ -1,5 +1,5 @@
-import { EntityRepositoryType, type Opt, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
 import { PluginOauthTokensRepository } from '../repositories/PluginOauthTokens.repository';
+import { EntityRepositoryType, type Opt, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
 
 export class PluginOauthTokens {
   [EntityRepositoryType]?: PluginOauthTokensRepository;

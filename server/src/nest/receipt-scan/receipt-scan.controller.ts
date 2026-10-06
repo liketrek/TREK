@@ -1,19 +1,20 @@
-import { Controller, HttpException, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { memoryStorage } from 'multer';
-import type { ReceiptScanStartResponse } from '@trek/shared';
-import type { User } from '../../types';
 import { ADDON_IDS } from '../../addons';
-import { AddonsService } from '../addons/addons.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { PermissionsService } from '../permissions/permissions.service';
+import type { User } from '../../types';
+import { AddonsService } from '../addons/addons.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ImportJobsService } from '../booking-import/import-jobs.service';
-import { LlmParseService } from '../llm-parse/llm-parse.service';
 import { imageMimeType } from '../llm-parse/image-input';
+import { LlmParseService } from '../llm-parse/llm-parse.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Controller, HttpException, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { ReceiptScanStartResponse } from '@trek/shared';
+
+import { memoryStorage } from 'multer';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -46,7 +47,13 @@ export class ReceiptScanController {
   ) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_FILE_BYTES, files: 1 }, defParamCharset: 'utf8' }))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_FILE_BYTES, files: 1 },
+      defParamCharset: 'utf8',
+    }),
+  )
   async scan(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -54,8 +61,17 @@ export class ReceiptScanController {
   ): Promise<ReceiptScanStartResponse> {
     const trip = await this.trips.findAccessible(tripId, user.id);
     if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);
-    if (!(await this.addons.isAddonEnabled(ADDON_IDS.BUDGET))) throw new HttpException({ error: 'Costs addon is not enabled' }, 404);
-    if (!(await this.permissions.checkPermission('budget_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id))) {
+    if (!(await this.addons.isAddonEnabled(ADDON_IDS.BUDGET)))
+      throw new HttpException({ error: 'Costs addon is not enabled' }, 404);
+    if (
+      !(await this.permissions.checkPermission(
+        'budget_edit',
+        user.role,
+        trip.user_id,
+        user.id,
+        trip.user_id !== user.id,
+      ))
+    ) {
       throw new HttpException({ error: 'No permission' }, 403);
     }
     if (!file) throw new HttpException({ error: 'No file uploaded' }, 400);

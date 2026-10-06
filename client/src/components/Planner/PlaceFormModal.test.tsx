@@ -1,35 +1,40 @@
 // FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-036, FE-PLANNER-PLACEFORM-016 to FE-PLANNER-PLACEFORM-067, plus FE-PLANNER-PLACEFORM-068 to -124
-import { render, screen, waitFor, fireEvent, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { buildAssignment, buildCategory, buildPlace, buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
+import { act, fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { collectionsApi } from '../../api/collections';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
 import { useAddonStore } from '../../store/addonStore';
+import { useAuthStore } from '../../store/authStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
 import { usePluginStore } from '../../store/pluginStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip, buildPlace, buildCategory, buildAssignment } from '../../../tests/helpers/factories';
+import { useTripStore } from '../../store/tripStore';
 import PlaceFormModal from './PlaceFormModal';
 
 // Mock CustomTimePicker so we get a simple text input instead of the portal-heavy UI.
 // The aria props land on the input, as the real picker spreads them onto its own.
 vi.mock('../shared/CustomTimePicker', () => ({
-  default: ({ value, onChange, placeholder, ...aria }: {
-    value: string
-    onChange: (v: string) => void
-    placeholder?: string
-    'aria-label'?: string
-    'aria-describedby'?: string
-    'aria-invalid'?: boolean
+  default: ({
+    value,
+    onChange,
+    placeholder,
+    ...aria
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+    'aria-label'?: string;
+    'aria-describedby'?: string;
+    'aria-invalid'?: boolean;
   }) => (
     <input
       {...aria}
       data-testid="time-picker"
       type="text"
       value={value}
-      onChange={e => onChange(e.target.value)}
+      onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder ?? '00:00'}
     />
   ),
@@ -173,7 +178,7 @@ describe('PlaceFormModal', () => {
         {...defaultProps}
         place={null}
         prefillCoords={{ lat: 48.8566, lng: 2.3522, name: 'Paris', address: 'Paris, France' }}
-      />,
+      />
     );
     expect(screen.getByDisplayValue('48.8566')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Paris')).toBeInTheDocument();
@@ -185,7 +190,7 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/enrichment', async ({ request }) => {
         asked.push(await request.json());
         return HttpResponse.json({ photos: [], description: null, facts: [], rating: null, hours: null });
-      }),
+      })
     );
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(undefined);
@@ -194,10 +199,14 @@ describe('PlaceFormModal', () => {
         {...defaultProps}
         onSave={onSave}
         prefillCoords={{
-          lat: 47.1, lng: 11.2, name: 'Trailhead', address: 'Hut 1',
-          website: 'https://trails.example/th-092', osm_id: 'plugin:trail-finder:th-092',
+          lat: 47.1,
+          lng: 11.2,
+          name: 'Trailhead',
+          address: 'Hut 1',
+          website: 'https://trails.example/th-092',
+          osm_id: 'plugin:trail-finder:th-092',
         }}
-      />,
+      />
     );
     expect(screen.getByDisplayValue('Trailhead')).toBeInTheDocument();
     expect(screen.getByDisplayValue('https://trails.example/th-092')).toBeInTheDocument();
@@ -206,7 +215,9 @@ describe('PlaceFormModal', () => {
 
     await user.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ name: 'Trailhead', osm_id: 'plugin:trail-finder:th-092' }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Trailhead', osm_id: 'plugin:trail-finder:th-092' })
+    );
     expect(onSave).not.toHaveBeenCalledWith(expect.objectContaining({ google_place_id: expect.anything() }));
   });
 
@@ -235,8 +246,11 @@ describe('PlaceFormModal', () => {
     seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true, hasMapsKey: true });
     server.use(
       http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }], source: 'trek-places+openstreetmap' }),
-      ),
+        HttpResponse.json({
+          places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }],
+          source: 'trek-places+openstreetmap',
+        })
+      )
     );
     const { rerender } = render(<PlaceFormModal {...defaultProps} isOpen />);
     const searchInput = screen.getByPlaceholderText('Search places...');
@@ -259,9 +273,14 @@ describe('PlaceFormModal', () => {
     server.use(
       http.post('/api/maps/autocomplete', async () => {
         gate.started = true;
-        await new Promise<void>(res => { gate.release = res; });
-        return HttpResponse.json({ suggestions: [{ placeId: 'late-1', mainText: 'Late Suggestion', secondaryText: 'Nowhere' }], source: 'trek-places' });
-      }),
+        await new Promise<void>((res) => {
+          gate.release = res;
+        });
+        return HttpResponse.json({
+          suggestions: [{ placeId: 'late-1', mainText: 'Late Suggestion', secondaryText: 'Nowhere' }],
+          source: 'trek-places',
+        });
+      })
     );
     const { rerender } = render(<PlaceFormModal {...defaultProps} isOpen />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Late');
@@ -269,7 +288,9 @@ describe('PlaceFormModal', () => {
 
     rerender(<PlaceFormModal {...defaultProps} isOpen={false} />);
     gate.release?.();
-    await act(async () => { await new Promise(res => setTimeout(res, 100)); });
+    await act(async () => {
+      await new Promise((res) => setTimeout(res, 100));
+    });
     rerender(<PlaceFormModal {...defaultProps} isOpen />);
 
     expect(screen.queryByText('Late Suggestion')).toBeNull();
@@ -281,9 +302,11 @@ describe('PlaceFormModal', () => {
     server.use(
       http.post('/api/maps/search', async () => {
         gate.started = true;
-        await new Promise<void>(res => { gate.release = res; });
+        await new Promise<void>((res) => {
+          gate.release = res;
+        });
         return HttpResponse.json({ places: [{ name: 'Late Result', address: 'Nowhere', lat: '1', lng: '2' }] });
-      }),
+      })
     );
     const { rerender } = render(<PlaceFormModal {...defaultProps} isOpen />);
     const searchInput = screen.getByPlaceholderText('Search places...');
@@ -293,12 +316,16 @@ describe('PlaceFormModal', () => {
 
     rerender(<PlaceFormModal {...defaultProps} isOpen={false} />);
     gate.release?.();
-    await act(async () => { await new Promise(res => setTimeout(res, 100)); });
+    await act(async () => {
+      await new Promise((res) => setTimeout(res, 100));
+    });
     rerender(<PlaceFormModal {...defaultProps} isOpen />);
 
     expect(screen.queryByText('Late Result')).toBeNull();
     // The button is back to its icon rather than the "..." of a search in flight.
-    expect(within(screen.getByPlaceholderText('Search places...').closest('.flex') as HTMLElement).getByRole('button')).not.toHaveTextContent('...');
+    expect(
+      within(screen.getByPlaceholderText('Search places...').closest('.flex') as HTMLElement).getByRole('button')
+    ).not.toHaveTextContent('...');
   });
 
   // ── Maps search ──────────────────────────────────────────────────────────────
@@ -309,8 +336,8 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/search', () =>
         HttpResponse.json({
           places: [{ name: 'Eiffel Tower', address: 'Paris', lat: '48.8584', lng: '2.2945' }],
-        }),
-      ),
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -336,7 +363,7 @@ describe('PlaceFormModal', () => {
           places: [{ name: 'Café am Tor', address: 'Pariser Platz 1', lat: 52.5163, lng: 13.378, distance_m: 40 }],
           source: 'trek-places',
         });
-      }),
+      })
     );
 
     render(<PlaceFormModal {...defaultProps} prefillCoords={{ lat: 52.5163, lng: 13.3777 }} />);
@@ -366,9 +393,15 @@ describe('PlaceFormModal', () => {
         const body = (await request.json()) as Record<string, unknown>;
         bodies.push(body);
         return body.provider === 'google'
-          ? HttpResponse.json({ places: [{ name: 'Tokyo Station', address: 'Chiyoda', lat: '35.68', lng: '139.77' }], source: 'google' })
-          : HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }], source: 'trek-places+openstreetmap' });
-      }),
+          ? HttpResponse.json({
+              places: [{ name: 'Tokyo Station', address: 'Chiyoda', lat: '35.68', lng: '139.77' }],
+              source: 'google',
+            })
+          : HttpResponse.json({
+              places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }],
+              source: 'trek-places+openstreetmap',
+            });
+      })
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -393,8 +426,11 @@ describe('PlaceFormModal', () => {
     const user = userEvent.setup();
     server.use(
       http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }], source: 'trek-places+openstreetmap' }),
-      ),
+        HttpResponse.json({
+          places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }],
+          source: 'trek-places+openstreetmap',
+        })
+      )
     );
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
@@ -408,11 +444,19 @@ describe('PlaceFormModal', () => {
     // The server only honours the request while Google holds the keyed slot;
     // under another provider the link would re-run the same search and stay.
     const user = userEvent.setup();
-    seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true, hasMapsKey: true, placesProvider: 'openstreetmap' });
+    seedStore(useAuthStore, {
+      user: buildUser(),
+      isAuthenticated: true,
+      hasMapsKey: true,
+      placesProvider: 'openstreetmap',
+    });
     server.use(
       http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }], source: 'trek-places+openstreetmap' }),
-      ),
+        HttpResponse.json({
+          places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }],
+          source: 'trek-places+openstreetmap',
+        })
+      )
     );
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
@@ -432,9 +476,15 @@ describe('PlaceFormModal', () => {
         const body = (await request.json()) as Record<string, unknown>;
         bodies.push(body);
         return body.provider === 'google'
-          ? HttpResponse.json({ places: [{ name: 'Tokyo Station', address: 'Chiyoda', lat: '35.68', lng: '139.77' }], source: 'google' })
-          : HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }], source: 'trek-places+openstreetmap' });
-      }),
+          ? HttpResponse.json({
+              places: [{ name: 'Tokyo Station', address: 'Chiyoda', lat: '35.68', lng: '139.77' }],
+              source: 'google',
+            })
+          : HttpResponse.json({
+              places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }],
+              source: 'trek-places+openstreetmap',
+            });
+      })
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -461,9 +511,15 @@ describe('PlaceFormModal', () => {
         const body = (await request.json()) as Record<string, unknown>;
         bodies.push(body);
         return body.provider === 'google'
-          ? HttpResponse.json({ places: [{ name: 'Tokyo Station', address: 'Chiyoda', lat: '35.68', lng: '139.77' }], source: 'google' })
-          : HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }], source: 'trek-places+openstreetmap' });
-      }),
+          ? HttpResponse.json({
+              places: [{ name: 'Tokyo Station', address: 'Chiyoda', lat: '35.68', lng: '139.77' }],
+              source: 'google',
+            })
+          : HttpResponse.json({
+              places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }],
+              source: 'trek-places+openstreetmap',
+            });
+      })
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -485,8 +541,8 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/search', () =>
         HttpResponse.json({
           places: [{ name: 'Eiffel Tower', address: 'Paris', lat: '48.8584', lng: '2.2945' }],
-        }),
-      ),
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -503,8 +559,8 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/search', () =>
         HttpResponse.json({
           places: [{ name: 'Eiffel Tower', address: 'Paris', lat: '48.8584', lng: '2.2945' }],
-        }),
-      ),
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -528,7 +584,11 @@ describe('PlaceFormModal', () => {
     // the modal must show it instead of a generic "search failed" so the cause is visible.
     server.use(
       http.post('/api/maps/search', () =>
-        HttpResponse.json({ error: 'Places API (New) has not been used in project 123 or it is disabled' }, { status: 403 })),
+        HttpResponse.json(
+          { error: 'Places API (New) has not been used in project 123 or it is disabled' },
+          { status: 403 }
+        )
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -540,7 +600,7 @@ describe('PlaceFormModal', () => {
       expect(addToast).toHaveBeenCalledWith(
         expect.stringMatching(/Places API \(New\) has not been used/i),
         'error',
-        undefined,
+        undefined
       );
     });
 
@@ -569,7 +629,7 @@ describe('PlaceFormModal', () => {
         HttpResponse.json({
           suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
           source: 'nominatim',
-        }),
+        })
       ),
       // details rejects (e.g. proxy 504 from a hung Overpass mirror)
       http.get('/api/maps/details/:placeId', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
@@ -577,8 +637,8 @@ describe('PlaceFormModal', () => {
         HttpResponse.json({
           places: [{ name: 'Eiffel Tower', address: 'Paris, France', lat: '48.8584', lng: '2.2945' }],
           source: 'openstreetmap',
-        }),
-      ),
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -602,22 +662,27 @@ describe('PlaceFormModal', () => {
     server.use(
       http.post('/api/maps/autocomplete', () =>
         HttpResponse.json({
-          suggestions: [{
-            placeId: 'node:9712313',
-            mainText: 'Tokio Hauptbahnhof',
-            secondaryText: '東京駅丸の内駅舎',
-            source: 'openstreetmap',
-            lat: 35.6811816,
-            lng: 139.76598265,
-          }],
+          suggestions: [
+            {
+              placeId: 'node:9712313',
+              mainText: 'Tokio Hauptbahnhof',
+              secondaryText: '東京駅丸の内駅舎',
+              source: 'openstreetmap',
+              lat: 35.6811816,
+              lng: 139.76598265,
+            },
+          ],
           source: 'trek-places',
-        }),
+        })
       ),
       http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
       http.post('/api/maps/search', () => {
         searched += 1;
-        return HttpResponse.json({ places: [{ name: 'Etwas ganz anderes', lat: '1', lng: '1' }], source: 'trek-places' });
-      }),
+        return HttpResponse.json({
+          places: [{ name: 'Etwas ganz anderes', lat: '1', lng: '1' }],
+          source: 'trek-places',
+        });
+      })
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -636,15 +701,15 @@ describe('PlaceFormModal', () => {
         HttpResponse.json({
           suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
           source: 'nominatim',
-        }),
+        })
       ),
       http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
       http.post('/api/maps/search', () =>
         HttpResponse.json({
           places: [{ name: 'Eiffel Tower', address: 'Paris, France', lat: '48.8584', lng: '2.2945' }],
           source: 'openstreetmap',
-        }),
-      ),
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -663,10 +728,10 @@ describe('PlaceFormModal', () => {
         HttpResponse.json({
           suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
           source: 'nominatim',
-        }),
+        })
       ),
       http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
-      http.post('/api/maps/search', () => HttpResponse.json({ places: [], source: 'openstreetmap' })),
+      http.post('/api/maps/search', () => HttpResponse.json({ places: [], source: 'openstreetmap' }))
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -695,8 +760,8 @@ describe('PlaceFormModal', () => {
         HttpResponse.json({
           suggestions: [{ placeId: 'gers:abc', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
           source: 'trek-places',
-        }),
-      ),
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -715,12 +780,22 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/autocomplete', () =>
         HttpResponse.json({
           suggestions: [
-            { placeId: 'gers:abc', mainText: 'Tokyo Station Beer Stand', secondaryText: 'Chiyoda', source: 'trek-places' },
-            { placeId: 'node:9712313', mainText: 'Tokio Hauptbahnhof', secondaryText: '東京駅', source: 'openstreetmap' },
+            {
+              placeId: 'gers:abc',
+              mainText: 'Tokyo Station Beer Stand',
+              secondaryText: 'Chiyoda',
+              source: 'trek-places',
+            },
+            {
+              placeId: 'node:9712313',
+              mainText: 'Tokio Hauptbahnhof',
+              secondaryText: '東京駅',
+              source: 'openstreetmap',
+            },
           ],
           source: 'trek-places',
-        }),
-      ),
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -743,8 +818,8 @@ describe('PlaceFormModal', () => {
             { name: 'Champ de Mars', address: 'Paris', lat: '48.85', lng: '2.29' },
           ],
           source: 'trek-places+openstreetmap',
-        }),
-      ),
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -766,11 +841,18 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/search', () =>
         HttpResponse.json({
           places: [
-            { name: '天安门', address: '北京市东城区', lat: '39.9087', lng: '116.3975', amap_poi_id: 'amap:B000A7BD6C', source: 'amap' },
+            {
+              name: '天安门',
+              address: '北京市东城区',
+              lat: '39.9087',
+              lng: '116.3975',
+              amap_poi_id: 'amap:B000A7BD6C',
+              source: 'amap',
+            },
           ],
           source: 'amap',
-        }),
-      ),
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
@@ -881,7 +963,9 @@ describe('PlaceFormModal', () => {
   it('FE-PLANNER-PLACEFORM-086: on a road trip the End says the drive leaves at it', () => {
     const place = buildPlace({ name: 'Test', place_time: '09:00', end_time: '14:00' });
     const assignment = buildAssignment({ id: 10, day_id: 5, place });
-    render(<PlaceFormModal {...defaultProps} place={place} assignmentId={10} dayAssignments={[assignment]} roadtripActive />);
+    render(
+      <PlaceFormModal {...defaultProps} place={place} assignmentId={10} dayAssignments={[assignment]} roadtripActive />
+    );
     expect(screen.getByText('On the road trip, the drive leaves at this time.')).toBeInTheDocument();
   });
 
@@ -917,7 +1001,7 @@ describe('PlaceFormModal', () => {
         place={currentPlace}
         assignmentId={10}
         dayAssignments={[currentAssignment, otherAssignment]}
-      />,
+      />
     );
 
     // English translation: 'places.timeCollision' = 'Time overlap with:'
@@ -1131,7 +1215,7 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/autocomplete', async ({ request }) => {
         bodies.push((await request.json()) as Record<string, unknown>);
         return HttpResponse.json({ suggestions: [] });
-      }),
+      })
     );
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1 }),
@@ -1160,7 +1244,7 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/autocomplete', async ({ request }) => {
         bodies.push((await request.json()) as Record<string, unknown>);
         return HttpResponse.json({ suggestions: [] });
-      }),
+      })
     );
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1 }),
@@ -1181,7 +1265,7 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/autocomplete', async ({ request }) => {
         bodies.push((await request.json()) as Record<string, unknown>);
         return HttpResponse.json({ suggestions: [] });
-      }),
+      })
     );
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1 }),
@@ -1202,7 +1286,7 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/autocomplete', () => {
         calls += 1;
         return HttpResponse.json({ suggestions: [] });
-      }),
+      })
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -1238,7 +1322,7 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/autocomplete', () => {
         calls += 1;
         return HttpResponse.json({ suggestions: [] });
-      }),
+      })
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -1259,7 +1343,7 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/search', () => {
         calls += 1;
         return HttpResponse.json({ places: [] });
-      }),
+      })
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -1276,8 +1360,14 @@ describe('PlaceFormModal', () => {
     const user = userEvent.setup();
     server.use(
       http.post('/api/maps/resolve-url', () =>
-        HttpResponse.json({ name: 'Notre-Dame', address: 'Parvis Notre-Dame, Paris', lat: 48.8530, lng: 2.3499, google_ftid: 'ftid-1' }),
-      ),
+        HttpResponse.json({
+          name: 'Notre-Dame',
+          address: 'Parvis Notre-Dame, Paris',
+          lat: 48.853,
+          lng: 2.3499,
+          google_ftid: 'ftid-1',
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -1299,8 +1389,8 @@ describe('PlaceFormModal', () => {
     server.use(
       http.post('/api/maps/resolve-url', () => HttpResponse.json({ name: 'Notre-Dame', lat: null, lng: null })),
       http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Notre-Dame de Paris', address: 'Paris', lat: '48.853', lng: '2.3499' }] }),
-      ),
+        HttpResponse.json({ places: [{ name: 'Notre-Dame de Paris', address: 'Paris', lat: '48.853', lng: '2.3499' }] })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -1319,7 +1409,7 @@ describe('PlaceFormModal', () => {
           { placeId: 'node:1', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' },
           { placeId: 'node:2', mainText: 'Eiffel Museum', secondaryText: 'Berlin, Germany' },
         ],
-      }),
+      })
     );
 
   it('FE-PLANNER-PLACEFORM-049: ArrowDown/ArrowUp move the highlight and Enter picks the highlighted suggestion', async () => {
@@ -1327,8 +1417,8 @@ describe('PlaceFormModal', () => {
     server.use(
       twoSuggestions(),
       http.get('/api/maps/details/:placeId', () =>
-        HttpResponse.json({ place: { name: 'Eiffel Museum', address: 'Berlin', lat: 52.52, lng: 13.405 } }),
-      ),
+        HttpResponse.json({ place: { name: 'Eiffel Museum', address: 'Berlin', lat: 52.52, lng: 13.405 } })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -1357,7 +1447,7 @@ describe('PlaceFormModal', () => {
       http.post('/api/maps/search', () => {
         searches += 1;
         return HttpResponse.json({ places: [] });
-      }),
+      })
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -1374,8 +1464,10 @@ describe('PlaceFormModal', () => {
     server.use(
       twoSuggestions(),
       http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Eiffel Tower', address: 'Champ de Mars', lat: '48.8584', lng: '2.2945' }] }),
-      ),
+        HttpResponse.json({
+          places: [{ name: 'Eiffel Tower', address: 'Champ de Mars', lat: '48.8584', lng: '2.2945' }],
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -1394,7 +1486,7 @@ describe('PlaceFormModal', () => {
     server.use(
       twoSuggestions(),
       http.get('/api/maps/details/:placeId', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-      http.post('/api/maps/search', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+      http.post('/api/maps/search', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -1402,7 +1494,7 @@ describe('PlaceFormModal', () => {
     await user.click(await screen.findByText('Paris, France'));
 
     await waitFor(() =>
-      expect(addToast).toHaveBeenCalledWith(expect.stringMatching(/Place search failed|nope/i), 'error', undefined),
+      expect(addToast).toHaveBeenCalledWith(expect.stringMatching(/Place search failed|nope/i), 'error', undefined)
     );
     // The typed query comes back so the user can retry instead of starting over.
     await waitFor(() => expect(screen.getByPlaceholderText('Search places...')).toHaveValue('Eiffel'));
@@ -1422,8 +1514,10 @@ describe('PlaceFormModal', () => {
     });
     server.use(
       http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Same Spot', address: 'Somewhere', lat: '10', lng: '10', google_place_id: 'gp-1' }] }),
-      ),
+        HttpResponse.json({
+          places: [{ name: 'Same Spot', address: 'Somewhere', lat: '10', lng: '10', google_place_id: 'gp-1' }],
+        })
+      )
     );
 
     render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
@@ -1443,7 +1537,7 @@ describe('PlaceFormModal', () => {
   function pasteItems(target: Element, items: { type: string; file: File | null }[]) {
     fireEvent.paste(target, {
       clipboardData: {
-        items: items.map(i => ({ type: i.type, getAsFile: () => i.file })),
+        items: items.map((i) => ({ type: i.type, getAsFile: () => i.file })),
       },
     });
   }
@@ -1462,12 +1556,18 @@ describe('PlaceFormModal', () => {
     // A POI tapped on the map opens the dialog through prefillCoords, never
     // through the search handler — the column used to keep the last place.
     const { rerender } = render(
-      <PlaceFormModal {...defaultProps} prefillCoords={{ lat: 53.55, lng: 9.99, name: 'Helgas Kitchen', osm_id: 'node:1' }} />,
+      <PlaceFormModal
+        {...defaultProps}
+        prefillCoords={{ lat: 53.55, lng: 9.99, name: 'Helgas Kitchen', osm_id: 'node:1' }}
+      />
     );
     expect(screen.getByDisplayValue('Helgas Kitchen')).toBeInTheDocument();
 
     rerender(
-      <PlaceFormModal {...defaultProps} prefillCoords={{ lat: 50.9, lng: 6.96, name: 'Museum Ludwig', osm_id: 'node:2' }} />,
+      <PlaceFormModal
+        {...defaultProps}
+        prefillCoords={{ lat: 50.9, lng: 6.96, name: 'Museum Ludwig', osm_id: 'node:2' }}
+      />
     );
     expect(screen.getByDisplayValue('Museum Ludwig')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Helgas Kitchen')).not.toBeInTheDocument();
@@ -1534,7 +1634,7 @@ describe('PlaceFormModal', () => {
         lng: 2.3376,
         website: 'https://louvre.fr',
         category_id: String(cat.id),
-      }),
+      })
     );
   });
 
@@ -1559,7 +1659,9 @@ describe('PlaceFormModal', () => {
     const place = buildPlace({ name: 'Museum' });
     const assignment = buildAssignment({ id: 12, day_id: 4, place });
 
-    render(<PlaceFormModal {...defaultProps} place={place} assignmentId={12} dayAssignments={[assignment]} onSave={onSave} />);
+    render(
+      <PlaceFormModal {...defaultProps} place={place} assignmentId={12} dayAssignments={[assignment]} onSave={onSave} />
+    );
     const [start, end] = screen.getAllByTestId('time-picker');
     fireEvent.change(start, { target: { value: '09:00' } });
     fireEvent.change(end, { target: { value: '10:30' } });
@@ -1593,7 +1695,7 @@ describe('PlaceFormModal', () => {
           buildAssignment({ id: 30, day_id: 5, place: timeless }),
           buildAssignment({ id: 40, day_id: 5, place: overlapping }),
         ]}
-      />,
+      />
     );
 
     const warning = screen.getByText(/Time overlap with:/i).closest('div') as HTMLElement;
@@ -1608,8 +1710,15 @@ describe('PlaceFormModal', () => {
 describe('PlaceFormModal remaining branches', () => {
   it('FE-W5PFM-001: an existing place with empty fields opens on the defaults', () => {
     const place = buildPlace({
-      name: null, description: null, address: null, lat: null, lng: null,
-      category_id: null, notes: null, transport_mode: null, website: null,
+      name: null,
+      description: null,
+      address: null,
+      lat: null,
+      lng: null,
+      category_id: null,
+      notes: null,
+      transport_mode: null,
+      website: null,
     });
     render(<PlaceFormModal {...defaultProps} place={place} />);
 
@@ -1647,11 +1756,14 @@ describe('PlaceFormModal remaining branches', () => {
     server.use(
       http.post('/api/maps/autocomplete', async () => {
         seen += 1;
-        if (seen === 1) await new Promise<void>(res => { gate.release = res; });
+        if (seen === 1)
+          await new Promise<void>((res) => {
+            gate.release = res;
+          });
         return HttpResponse.json({
           suggestions: [{ placeId: 'node:1', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
         });
-      }),
+      })
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -1671,9 +1783,7 @@ describe('PlaceFormModal remaining branches', () => {
 
   it('FE-W5PFM-005: a resolved URL without a name or address keeps the form values', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/resolve-url', () => HttpResponse.json({ lat: 48.853, lng: 2.3499 })),
-    );
+    server.use(http.post('/api/maps/resolve-url', () => HttpResponse.json({ lat: 48.853, lng: 2.3499 })));
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Kept Name');
@@ -1698,9 +1808,7 @@ describe('PlaceFormModal remaining branches', () => {
 
   it('FE-W5PFM-007: picking a bare search result leaves the typed fields alone', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/search', () => HttpResponse.json({ places: [{ name: 'Bare Result' }] })),
-    );
+    server.use(http.post('/api/maps/search', () => HttpResponse.json({ places: [{ name: 'Bare Result' }] })));
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText(/Street, City, Country/i), 'Rue de Rivoli');
@@ -1718,7 +1826,10 @@ describe('PlaceFormModal remaining branches', () => {
     window.__addToast = addToast;
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(undefined);
-    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), places: [buildPlace({ name: 'Louvre', lat: null, lng: null })] });
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      places: [buildPlace({ name: 'Louvre', lat: null, lng: null })],
+    });
 
     render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
     await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'louvre');
@@ -1739,7 +1850,10 @@ describe('PlaceFormModal remaining branches', () => {
     window.__addToast = addToast;
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(undefined);
-    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), places: [buildPlace({ name: null, lat: 48.8584, lng: 2.2945 })] });
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1 }),
+      places: [buildPlace({ name: null, lat: 48.8584, lng: 2.2945 })],
+    });
 
     render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
     await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Tour Eiffel');
@@ -1809,7 +1923,7 @@ describe('PlaceFormModal remaining branches', () => {
           buildAssignment({ id: 20, day_id: 5, place: spanning }),
           buildAssignment({ id: 30, day_id: 5, place: earlier }),
         ]}
-      />,
+      />
     );
 
     const warning = screen.getByText(/Time overlap with:/i).closest('div') as HTMLElement;
@@ -1903,7 +2017,7 @@ describe('PlaceFormModal remaining branches', () => {
         <PlaceFormModal
           {...defaultProps}
           place={{ id: 7, name: 'Old', website: 'https://stored.example', lat: 1, lng: 2 } as never}
-        />,
+        />
       );
       expect(websiteInput().value).toBe('https://stored.example');
 
@@ -1915,10 +2029,11 @@ describe('PlaceFormModal remaining branches', () => {
   // ── Linked expense (#1298) — the same block bookings have ──────────────────
 
   describe('Costs section', () => {
-    const withBudget = () => seedStore(useAddonStore, {
-      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
-      loaded: true,
-    });
+    const withBudget = () =>
+      seedStore(useAddonStore, {
+        addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
+        loaded: true,
+      });
 
     it('FE-PLANNER-PLACEFORM-068: the block only appears while the Budget addon is on', () => {
       const { unmount } = render(<PlaceFormModal {...defaultProps} />);
@@ -1981,7 +2096,9 @@ describe('PlaceFormModal remaining branches', () => {
       withBudget();
       seedStore(useTripStore, {
         trip: buildTrip({ id: 1 }),
-        budgetItems: [{ id: 8, trip_id: 1, name: 'Louvre tickets', total_price: 34, category: 'activities', place_id: 7 }],
+        budgetItems: [
+          { id: 8, trip_id: 1, name: 'Louvre tickets', total_price: 34, category: 'activities', place_id: 7 },
+        ],
       });
       render(<PlaceFormModal {...defaultProps} place={{ id: 7, name: 'Louvre' } as never} />);
 
@@ -1997,7 +2114,9 @@ describe('PlaceFormModal remaining branches', () => {
       withBudget();
       seedStore(useTripStore, {
         trip: buildTrip({ id: 1 }),
-        budgetItems: [{ id: 8, trip_id: 1, name: 'Orsay tickets', total_price: 16, category: 'activities', place_id: 99 }],
+        budgetItems: [
+          { id: 8, trip_id: 1, name: 'Orsay tickets', total_price: 16, category: 'activities', place_id: 99 },
+        ],
       });
       render(<PlaceFormModal {...defaultProps} place={{ id: 7, name: 'Louvre' } as never} />);
 
@@ -2036,10 +2155,11 @@ describe('PlaceFormModal as a road trip service stop', () => {
     ...over,
   });
 
-  const withBudgetAddon = () => seedStore(useAddonStore, {
-    addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
-    loaded: true,
-  });
+  const withBudgetAddon = () =>
+    seedStore(useAddonStore, {
+      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
+      loaded: true,
+    });
 
   const typeCoords = (lat: string, lng: string) => {
     fireEvent.change(screen.getByPlaceholderText(/Latitude/i), { target: { value: lat } });
@@ -2103,11 +2223,13 @@ describe('PlaceFormModal as a road trip service stop', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      stop_type: 'charging',
-      duration_minutes: 30,
-      category_id: null,
-    }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stop_type: 'charging',
+        duration_minutes: 30,
+        category_id: null,
+      })
+    );
   });
 
   it('FE-PLANNER-PLACEFORM-077: where it goes is worked out from the coordinates that are saved', async () => {
@@ -2121,9 +2243,11 @@ describe('PlaceFormModal as a road trip service stop', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      _serviceStop: { dayId: 6, position: 1, offRouteKm: 0.4 },
-    }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _serviceStop: { dayId: 6, position: 1, offRouteKm: 0.4 },
+      })
+    );
   });
 
   it('FE-PLANNER-PLACEFORM-078: the leg the traveller overrules is the one that lands', async () => {
@@ -2137,11 +2261,13 @@ describe('PlaceFormModal as a road trip service stop', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      // Overruled onto another stretch, so the projection's distance does not come
-      // along: it was measured against the leg the drive guessed, not this one.
-      _serviceStop: { dayId: 5, position: 2, offRouteKm: null },
-    }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // Overruled onto another stretch, so the projection's distance does not come
+        // along: it was measured against the leg the drive guessed, not this one.
+        _serviceStop: { dayId: 5, position: 2, offRouteKm: null },
+      })
+    );
   });
 
   it('FE-PLANNER-PLACEFORM-079: a place far off the drawn line is noted, never refused', async () => {
@@ -2155,9 +2281,11 @@ describe('PlaceFormModal as a road trip service stop', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      _serviceStop: { dayId: 5, position: 2, offRouteKm: 18.3 },
-    }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _serviceStop: { dayId: 5, position: 2, offRouteKm: 18.3 },
+      })
+    );
   });
 
   it('FE-PLANNER-PLACEFORM-081: a stop with no coordinates is not filed onto a leg by guesswork', async () => {
@@ -2218,9 +2346,7 @@ describe('PlaceFormModal as a road trip service stop', () => {
     withBudgetAddon();
     const refused = vi.fn().mockRejectedValue(new Error('Server error'));
     const onOpenExpense = vi.fn();
-    const { rerender } = render(
-      <PlaceFormModal {...defaultProps} onSave={refused} onOpenExpense={onOpenExpense} />,
-    );
+    const { rerender } = render(<PlaceFormModal {...defaultProps} onSave={refused} onOpenExpense={onOpenExpense} />);
 
     // An ordinary add place, asked for an expense, that the server refuses.
     named('Louvre');
@@ -2231,12 +2357,7 @@ describe('PlaceFormModal as a road trip service stop', () => {
     const saved = vi.fn().mockResolvedValue({ id: 9 });
     rerender(<PlaceFormModal {...defaultProps} isOpen={false} onSave={saved} onOpenExpense={onOpenExpense} />);
     rerender(
-      <PlaceFormModal
-        {...defaultProps}
-        onSave={saved}
-        onOpenExpense={onOpenExpense}
-        serviceStop={serviceStop()}
-      />,
+      <PlaceFormModal {...defaultProps} onSave={saved} onOpenExpense={onOpenExpense} serviceStop={serviceStop()} />
     );
 
     named('Supercharger');
@@ -2260,18 +2381,29 @@ describe('PlaceFormModal as a road trip service stop', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      _serviceStop: { dayId: 5, position: 2, offRouteKm: 0 },
-    }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _serviceStop: { dayId: 5, position: 2, offRouteKm: 0 },
+      })
+    );
   });
 });
 
 describe('PlaceFormModal plugin search (#2221)', () => {
   const ATP = { id: 'all-the-places', name: 'All the Places', type: 'integration' as const, icon: null };
   const hit = {
-    osm_id: 'plugin:all-the-places:ichiran-ueno', name: 'Ichiran Ueno', address: 'Ueno 6-11-12, Taito',
-    lat: 35.7101, lng: 139.7745, rating: 4.3, website: 'https://ichiran.com/shop/ueno', phone: '+81 3 5818 3531',
-    category: 'restaurant', description: null, source: 'plugin:all-the-places', pluginId: 'all-the-places',
+    osm_id: 'plugin:all-the-places:ichiran-ueno',
+    name: 'Ichiran Ueno',
+    address: 'Ueno 6-11-12, Taito',
+    lat: 35.7101,
+    lng: 139.7745,
+    rating: 4.3,
+    website: 'https://ichiran.com/shop/ueno',
+    phone: '+81 3 5818 3531',
+    category: 'restaurant',
+    description: null,
+    source: 'plugin:all-the-places',
+    pluginId: 'all-the-places',
   };
 
   afterEach(() => {
@@ -2283,8 +2415,14 @@ describe('PlaceFormModal plugin search (#2221)', () => {
     const user = userEvent.setup();
     server.use(
       http.post('/api/maps/autocomplete', () =>
-        HttpResponse.json({ suggestions: [{ placeId: 'gers:1', mainText: 'Ichiran Shibuya', secondaryText: 'Jinnan', source: 'trek-places' }], source: 'trek-places' })),
-      http.get('/api/plugin-search/suggest', () => HttpResponse.json({ places: [hit] })),
+        HttpResponse.json({
+          suggestions: [
+            { placeId: 'gers:1', mainText: 'Ichiran Shibuya', secondaryText: 'Jinnan', source: 'trek-places' },
+          ],
+          source: 'trek-places',
+        })
+      ),
+      http.get('/api/plugin-search/suggest', () => HttpResponse.json({ places: [hit] }))
     );
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Ichiran');
@@ -2305,8 +2443,14 @@ describe('PlaceFormModal plugin search (#2221)', () => {
     server.use(
       http.post('/api/maps/autocomplete', () => HttpResponse.json({ suggestions: [], source: 'trek-places' })),
       http.get('/api/plugin-search/suggest', () => HttpResponse.json({ places: [hit] })),
-      http.get('/api/maps/details/:placeId', () => { detour(); return HttpResponse.json({ place: null }); }),
-      http.post('/api/maps/search', () => { detour(); return HttpResponse.json({ places: [], source: 'trek-places' }); }),
+      http.get('/api/maps/details/:placeId', () => {
+        detour();
+        return HttpResponse.json({ place: null });
+      }),
+      http.post('/api/maps/search', () => {
+        detour();
+        return HttpResponse.json({ places: [], source: 'trek-places' });
+      })
     );
     render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Ichiran');
@@ -2319,9 +2463,13 @@ describe('PlaceFormModal plugin search (#2221)', () => {
 
     await user.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'Ichiran Ueno', address: 'Ueno 6-11-12, Taito', osm_id: 'plugin:all-the-places:ichiran-ueno',
-    }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Ichiran Ueno',
+        address: 'Ueno 6-11-12, Taito',
+        osm_id: 'plugin:all-the-places:ichiran-ueno',
+      })
+    );
   });
 
   it('FE-PLANNER-PLACEFORM-095: without a search plugin nothing is asked per keystroke, and a searched plugin row still names its plugin', async () => {
@@ -2330,10 +2478,17 @@ describe('PlaceFormModal plugin search (#2221)', () => {
     const perKeystroke = vi.fn();
     server.use(
       http.post('/api/maps/autocomplete', () => HttpResponse.json({ suggestions: [], source: 'trek-places' })),
-      http.get('/api/plugin-search/suggest', () => { perKeystroke(); return HttpResponse.json({ places: [] }); }),
+      http.get('/api/plugin-search/suggest', () => {
+        perKeystroke();
+        return HttpResponse.json({ places: [] });
+      }),
       http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Ichiran Shibuya', address: 'Jinnan', lat: 35.66, lng: 139.7, source: 'trek-places' }], source: 'trek-places' })),
-      http.get('/api/plugin-search', () => HttpResponse.json({ places: [hit] })),
+        HttpResponse.json({
+          places: [{ name: 'Ichiran Shibuya', address: 'Jinnan', lat: 35.66, lng: 139.7, source: 'trek-places' }],
+          source: 'trek-places',
+        })
+      ),
+      http.get('/api/plugin-search', () => HttpResponse.json({ places: [hit] }))
     );
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Ichiran{Enter}');
@@ -2376,8 +2531,10 @@ describe('PlaceFormModal on the dialog frame', () => {
     const onClose = vi.fn();
     server.use(
       http.post('/api/maps/autocomplete', () =>
-        HttpResponse.json({ suggestions: [{ placeId: 'node:1', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }] }),
-      ),
+        HttpResponse.json({
+          suggestions: [{ placeId: 'node:1', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+        })
+      )
     );
     render(<PlaceFormModal {...defaultProps} onClose={onClose} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
@@ -2442,7 +2599,9 @@ describe('PlaceFormModal on the dialog frame', () => {
   it('FE-PLANNER-PLACEFORM-102: an image pasted anywhere in the dialog, head band included, is attached', () => {
     render(<PlaceFormModal {...defaultProps} />);
     fireEvent.paste(screen.getByText('Add Place/Activity'), {
-      clipboardData: { items: [{ type: 'image/png', getAsFile: () => new File(['x'], 'from-header.png', { type: 'image/png' }) }] },
+      clipboardData: {
+        items: [{ type: 'image/png', getAsFile: () => new File(['x'], 'from-header.png', { type: 'image/png' }) }],
+      },
     });
     expect(within(screen.getByTestId('pending-files')).getByText('from-header.png')).toBeInTheDocument();
   });
@@ -2464,7 +2623,11 @@ describe('PlaceFormModal on the dialog frame', () => {
 
     expect(screen.getByRole('textbox', { name: 'Search' })).toBe(screen.getByPlaceholderText('Search places...'));
     // The icon button beside it carries the same name.
-    expect(within(screen.getByPlaceholderText('Search places...').closest('.flex') as HTMLElement).getByRole('button', { name: 'Search' })).toBeInTheDocument();
+    expect(
+      within(screen.getByPlaceholderText('Search places...').closest('.flex') as HTMLElement).getByRole('button', {
+        name: 'Search',
+      })
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Name *')).toHaveValue('Louvre');
     expect(screen.getByLabelText('Description')).toBe(screen.getByPlaceholderText(/Short description/i));
     expect(screen.getByLabelText('Notes')).toBe(screen.getByPlaceholderText(/Personal notes/i));
@@ -2566,8 +2729,11 @@ describe('PlaceFormModal in the look of the booking editors', () => {
     const user = userEvent.setup();
     server.use(
       http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Louvre', address: 'Paris', lat: '48.86', lng: '2.33' }], source: 'openstreetmap' }),
-      ),
+        HttpResponse.json({
+          places: [{ name: 'Louvre', address: 'Paris', lat: '48.86', lng: '2.33' }],
+          source: 'openstreetmap',
+        })
+      )
     );
     const { rerender } = render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Louvre{Enter}');
@@ -2584,11 +2750,14 @@ describe('PlaceFormModal in the look of the booking editors', () => {
     const user = userEvent.setup();
     server.use(
       http.post('/api/maps/autocomplete', () =>
-        HttpResponse.json({ suggestions: [{ placeId: 'gers:abc', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }], source: 'trek-places' }),
+        HttpResponse.json({
+          suggestions: [{ placeId: 'gers:abc', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+          source: 'trek-places',
+        })
       ),
       http.get('/api/maps/details/:placeId', () =>
-        HttpResponse.json({ place: { name: 'Eiffel Tower', address: 'Paris', lat: 48.858, lng: 2.294 } }),
-      ),
+        HttpResponse.json({ place: { name: 'Eiffel Tower', address: 'Paris', lat: 48.858, lng: 2.294 } })
+      )
     );
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
@@ -2603,9 +2772,11 @@ describe('PlaceFormModal in the look of the booking editors', () => {
     let answer: () => void = () => {};
     server.use(
       http.post('/api/maps/search', async () => {
-        await new Promise<void>(resolve => { answer = resolve; });
+        await new Promise<void>((resolve) => {
+          answer = resolve;
+        });
         return HttpResponse.json({ places: [], source: 'openstreetmap' });
-      }),
+      })
     );
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Louvre{Enter}');
@@ -2613,7 +2784,9 @@ describe('PlaceFormModal in the look of the booking editors', () => {
     const busy = await screen.findByRole('status', { name: 'Loading place details…' });
     expect(header()).toContainElement(busy);
     answer();
-    await waitFor(() => expect(screen.queryByRole('status', { name: 'Loading place details…' })).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('status', { name: 'Loading place details…' })).not.toBeInTheDocument()
+    );
   });
 
   it('FE-PLANNER-PLACEFORM-113: each coordinate has its own label, and the pair stays one group', () => {
@@ -2629,7 +2802,10 @@ describe('PlaceFormModal in the look of the booking editors', () => {
       loaded: true,
     });
     render(<PlaceFormModal {...defaultProps} />);
-    for (const button of [screen.getByRole('button', { name: /Attach/i }), screen.getByRole('button', { name: /Create expense/i })]) {
+    for (const button of [
+      screen.getByRole('button', { name: /Attach/i }),
+      screen.getByRole('button', { name: /Create expense/i }),
+    ]) {
       expect(button).toHaveClass('bg-surface-card');
       expect(button).not.toHaveClass('bg-surface-secondary');
     }
@@ -2648,7 +2824,7 @@ describe('PlaceFormModal in the look of the booking editors', () => {
           appendDay: { dayId: 5, dayNumber: 1, position: 2 },
           targetFor: () => ({ dayId: 5, position: 1, offRouteKm: 0.2 }),
         }}
-      />,
+      />
     );
     expect(within(header()).getByText('Fuel')).toBeInTheDocument();
     expect(within(header()).queryByRole('button', { name: /^Category:/ })).not.toBeInTheDocument();
@@ -2738,17 +2914,40 @@ describe('PlaceFormModal and the columns beside it', () => {
     seedStore(useAuthStore, { placesEnrichEnabled: true });
     const photoUrl = '/api/maps/place-photo/way%3A122~p0/bytes';
     server.use(
-      http.post('/api/maps/enrichment', () => HttpResponse.json({
-        photos: [{ key: 'way:122~p0', url: photoUrl, attribution: 'Alice', license: 'CC BY 4.0', licenseUrl: null, sourceUrl: null, source: 'wikimedia' }],
-        facts: [],
-        description: { text: 'A museum by the river.', source: 'wikipedia', sourceUrl: null, license: 'CC BY-SA 4.0' },
-        rating: null,
-        hours: null,
-      })),
+      http.post('/api/maps/enrichment', () =>
+        HttpResponse.json({
+          photos: [
+            {
+              key: 'way:122~p0',
+              url: photoUrl,
+              attribution: 'Alice',
+              license: 'CC BY 4.0',
+              licenseUrl: null,
+              sourceUrl: null,
+              source: 'wikimedia',
+            },
+          ],
+          facts: [],
+          description: {
+            text: 'A museum by the river.',
+            source: 'wikipedia',
+            sourceUrl: null,
+            license: 'CC BY-SA 4.0',
+          },
+          rating: null,
+          hours: null,
+        })
+      )
     );
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(undefined);
-    render(<PlaceFormModal {...defaultProps} onSave={onSave} prefillCoords={{ lat: 50.9, lng: 6.96, name: 'Museum 122', osm_id: 'way:122' }} />);
+    render(
+      <PlaceFormModal
+        {...defaultProps}
+        onSave={onSave}
+        prefillCoords={{ lat: 50.9, lng: 6.96, name: 'Museum 122', osm_id: 'way:122' }}
+      />
+    );
 
     await user.click(await screen.findByRole('button', { name: 'Use this text' }));
     expect(screen.getByLabelText('Description')).toHaveValue('A museum by the river.');
@@ -2764,7 +2963,9 @@ describe('PlaceFormModal and the columns beside it', () => {
 
     await user.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ image_url: photoUrl, description: 'A museum by the river.' }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ image_url: photoUrl, description: 'A museum by the river.' })
+    );
   });
 
   it('FE-PLANNER-PLACEFORM-123: the notes for this day are saved when they changed', async () => {
@@ -2772,7 +2973,15 @@ describe('PlaceFormModal and the columns beside it', () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     const place = buildPlace({ name: 'Cafe 123' });
     const assignment = buildAssignment({ id: 123, day_id: 5, place, notes: 'Old note' });
-    render(<PlaceFormModal {...defaultProps} onSave={onSave} place={place} assignmentId={123} dayAssignments={[assignment]} />);
+    render(
+      <PlaceFormModal
+        {...defaultProps}
+        onSave={onSave}
+        place={place}
+        assignmentId={123}
+        dayAssignments={[assignment]}
+      />
+    );
 
     const notes = screen.getByRole('textbox', { name: 'Notes for this day' });
     expect(notes).toHaveValue('Old note');
@@ -2788,7 +2997,15 @@ describe('PlaceFormModal and the columns beside it', () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     const place = buildPlace({ name: 'Cafe 124' });
     const assignment = buildAssignment({ id: 124, day_id: 5, place, notes: 'Keep me' });
-    render(<PlaceFormModal {...defaultProps} onSave={onSave} place={place} assignmentId={124} dayAssignments={[assignment]} />);
+    render(
+      <PlaceFormModal
+        {...defaultProps}
+        onSave={onSave}
+        place={place}
+        assignmentId={124}
+        dayAssignments={[assignment]}
+      />
+    );
     await user.click(screen.getByRole('button', { name: /^Update$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave.mock.calls[0][0]).not.toHaveProperty('assignment_notes');

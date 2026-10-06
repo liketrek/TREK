@@ -1,6 +1,5 @@
-import React from 'react';
-import { render, screen } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import { render, screen } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import ToggleSwitch from './ToggleSwitch';
 

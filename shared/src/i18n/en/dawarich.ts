@@ -57,7 +57,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'The Dawarich addon is switched off for this instance.',
   'dawarich.error.offline': 'This needs a connection — TREK is offline right now.',
   'dawarich.error.invalid_url': 'TREK cannot use that address.',
-  'dawarich.warning.private_ip': 'That address resolves to a private IP ({ip}). Make sure that is what you meant — the server may need ALLOW_INTERNAL_NETWORK=true to reach it.',
+  'dawarich.warning.private_ip':
+    'That address resolves to a private IP ({ip}). Make sure that is what you meant — the server may need ALLOW_INTERNAL_NETWORK=true to reach it.',
   'dawarich.error.unknown': 'Something went wrong talking to Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -97,8 +98,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.bucket_list': 'Wish ticked off',
   'dawarich.suggestions.sourceChanged':
     'This stay has changed in Dawarich since you used it. What you wrote in TREK is untouched.',
-  'dawarich.suggestions.sourceMissing':
-    'This stay no longer exists in Dawarich. What you wrote in TREK is untouched.',
+  'dawarich.suggestions.sourceMissing': 'This stay no longer exists in Dawarich. What you wrote in TREK is untouched.',
   'dawarich.sourceStatus.suggested': 'Detected, unconfirmed',
   'dawarich.confidence.high': 'Confident detection',
   'dawarich.confidence.medium': 'Fairly confident detection',

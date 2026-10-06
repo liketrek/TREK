@@ -9,13 +9,12 @@
  *   const result = await harness.client.callTool({ name: 'create_trip', arguments: { title: 'Test' } });
  *   await harness.cleanup();
  */
-
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-import { Client } from '@modelcontextprotocol/sdk/client/index';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
 import { registerTools } from '../../src/mcp/tools';
 import type { McpAttachOptions } from '../../src/nest-mcp';
 import { createMcpTestRegistry } from './mcp-test-controllers';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
 export interface McpHarness {
   client: Client;
@@ -50,7 +49,14 @@ export interface McpHarnessOptions {
 }
 
 export async function createMcpHarness(options: McpHarnessOptions): Promise<McpHarness> {
-  const { userId, withTools = true, scopes = null, isStaticToken = false, getDeprecationNotice, dynamicTools } = options;
+  const {
+    userId,
+    withTools = true,
+    scopes = null,
+    isStaticToken = false,
+    getDeprecationNotice,
+    dynamicTools,
+  } = options;
 
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
 
@@ -59,7 +65,16 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
     // McpRegistryService to registerTools; the harness has no Nest app, so it
     // builds the same registry by hand (see mcp-test-controllers.ts).
     // registerTools' own ctx construction stays exercised.
-    await registerTools(await createMcpTestRegistry(), server, userId, scopes ?? null, isStaticToken, getDeprecationNotice, undefined, dynamicTools);
+    await registerTools(
+      await createMcpTestRegistry(),
+      server,
+      userId,
+      scopes ?? null,
+      isStaticToken,
+      getDeprecationNotice,
+      undefined,
+      dynamicTools,
+    );
   }
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -70,8 +85,16 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
   await client.connect(clientTransport);
 
   const cleanup = async () => {
-    try { await client.close(); } catch { /* ignore */ }
-    try { await server.close(); } catch { /* ignore */ }
+    try {
+      await client.close();
+    } catch {
+      /* ignore */
+    }
+    try {
+      await server.close();
+    } catch {
+      /* ignore */
+    }
   };
 
   return { client, server, cleanup };

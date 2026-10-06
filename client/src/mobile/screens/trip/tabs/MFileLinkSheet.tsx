@@ -1,23 +1,23 @@
-import { useRef, useState } from 'react'
-import { Check, Link2, Loader2, MapPin, Ticket, TrainFront } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import { filesApi } from '../../../../api/client'
-import type { TripFile } from '../../../../types'
-import type { TripPlanner } from '../MTripShell'
-import { Eyebrow, TileHeader } from '../sheets/MTripSheetUi'
+import type { LucideIcon } from 'lucide-react';
+import { Check, Link2, Loader2, MapPin, Ticket, TrainFront } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { filesApi } from '../../../../api/client';
+import type { TripFile } from '../../../../types';
+import MSheet from '../../../components/MSheet';
+import type { TripPlanner } from '../MTripShell';
+import { Eyebrow, TileHeader } from '../sheets/MTripSheetUi';
 
 interface MFileLinkSheetProps {
-  planner: TripPlanner
+  planner: TripPlanner;
   /** null closes the sheet; kept mounted through the exit animation via heldRef. */
-  file: TripFile | null
-  onClose: () => void
+  file: TripFile | null;
+  onClose: () => void;
 }
 
 interface FileLinkRecord {
-  id: number
-  place_id?: number | string | null
-  reservation_id?: number | string | null
+  id: number;
+  place_id?: number | string | null;
+  reservation_id?: number | string | null;
 }
 
 /**
@@ -28,82 +28,82 @@ interface FileLinkRecord {
  * places by day (v1 simplification, see report).
  */
 export default function MFileLinkSheet({ planner, file, onClose }: MFileLinkSheetProps) {
-  const { t, tripId, places, reservations, TRANSPORT_TYPES, tripActions, toast } = planner
-  const open = file != null
+  const { t, tripId, places, reservations, TRANSPORT_TYPES, tripActions, toast } = planner;
+  const open = file != null;
 
-  const heldRef = useRef<TripFile | null>(file)
-  if (file) heldRef.current = file
-  const shown = file ?? heldRef.current
+  const heldRef = useRef<TripFile | null>(file);
+  if (file) heldRef.current = file;
+  const shown = file ?? heldRef.current;
 
-  const [busyKey, setBusyKey] = useState<string | null>(null)
+  const [busyKey, setBusyKey] = useState<string | null>(null);
 
-  if (!shown) return <MSheet open={false} onClose={onClose} variant="card" material="glass" />
+  if (!shown) return <MSheet open={false} onClose={onClose} variant="card" material="glass" />;
 
-  const placeIds = new Set<number>()
-  if (shown.place_id != null) placeIds.add(shown.place_id)
-  for (const id of shown.linked_place_ids || []) if (id != null) placeIds.add(id)
+  const placeIds = new Set<number>();
+  if (shown.place_id != null) placeIds.add(shown.place_id);
+  for (const id of shown.linked_place_ids || []) if (id != null) placeIds.add(id);
 
-  const resIds = new Set<number>()
-  if (shown.reservation_id != null) resIds.add(shown.reservation_id)
-  for (const id of shown.linked_reservation_ids || []) if (id != null) resIds.add(id)
+  const resIds = new Set<number>();
+  if (shown.reservation_id != null) resIds.add(shown.reservation_id);
+  for (const id of shown.linked_reservation_ids || []) if (id != null) resIds.add(id);
 
-  const refresh = () => tripActions.loadFiles(tripId)
+  const refresh = () => tripActions.loadFiles(tripId);
 
   const togglePlace = async (placeId: number) => {
-    if (busyKey) return
-    const key = `p${placeId}`
-    setBusyKey(key)
+    if (busyKey) return;
+    const key = `p${placeId}`;
+    setBusyKey(key);
     try {
       if (placeIds.has(placeId)) {
         if (shown.place_id === placeId) {
-          await filesApi.update(tripId, shown.id, { place_id: null })
+          await filesApi.update(tripId, shown.id, { place_id: null });
         } else {
-          const linksRes = (await filesApi.getLinks(tripId, shown.id)) as { links: FileLinkRecord[] }
-          const link = (linksRes.links || []).find(l => Number(l.place_id) === placeId)
-          if (link) await filesApi.removeLink(tripId, shown.id, link.id)
+          const linksRes = (await filesApi.getLinks(tripId, shown.id)) as { links: FileLinkRecord[] };
+          const link = (linksRes.links || []).find((l) => Number(l.place_id) === placeId);
+          if (link) await filesApi.removeLink(tripId, shown.id, link.id);
         }
       } else if (shown.place_id == null) {
-        await filesApi.update(tripId, shown.id, { place_id: placeId })
+        await filesApi.update(tripId, shown.id, { place_id: placeId });
       } else {
-        await filesApi.addLink(tripId, shown.id, { place_id: placeId })
+        await filesApi.addLink(tripId, shown.id, { place_id: placeId });
       }
-      refresh()
+      refresh();
     } catch {
-      toast.error(t('files.toast.assignError'))
+      toast.error(t('files.toast.assignError'));
     } finally {
-      setBusyKey(null)
+      setBusyKey(null);
     }
-  }
+  };
 
   const toggleReservation = async (resId: number) => {
-    if (busyKey) return
-    const key = `r${resId}`
-    setBusyKey(key)
+    if (busyKey) return;
+    const key = `r${resId}`;
+    setBusyKey(key);
     try {
       if (resIds.has(resId)) {
         if (shown.reservation_id === resId) {
-          await filesApi.update(tripId, shown.id, { reservation_id: null })
+          await filesApi.update(tripId, shown.id, { reservation_id: null });
         } else {
-          const linksRes = (await filesApi.getLinks(tripId, shown.id)) as { links: FileLinkRecord[] }
-          const link = (linksRes.links || []).find(l => Number(l.reservation_id) === resId)
-          if (link) await filesApi.removeLink(tripId, shown.id, link.id)
+          const linksRes = (await filesApi.getLinks(tripId, shown.id)) as { links: FileLinkRecord[] };
+          const link = (linksRes.links || []).find((l) => Number(l.reservation_id) === resId);
+          if (link) await filesApi.removeLink(tripId, shown.id, link.id);
         }
       } else if (shown.reservation_id == null) {
-        await filesApi.update(tripId, shown.id, { reservation_id: resId })
+        await filesApi.update(tripId, shown.id, { reservation_id: resId });
       } else {
-        await filesApi.addLink(tripId, shown.id, { reservation_id: resId })
+        await filesApi.addLink(tripId, shown.id, { reservation_id: resId });
       }
-      refresh()
+      refresh();
     } catch {
-      toast.error(t('files.toast.assignError'))
+      toast.error(t('files.toast.assignError'));
     } finally {
-      setBusyKey(null)
+      setBusyKey(null);
     }
-  }
+  };
 
-  const bookingReservations = reservations.filter(r => !TRANSPORT_TYPES.has(r.type))
-  const transportReservations = reservations.filter(r => TRANSPORT_TYPES.has(r.type))
-  const isEmpty = places.length === 0 && reservations.length === 0
+  const bookingReservations = reservations.filter((r) => !TRANSPORT_TYPES.has(r.type));
+  const transportReservations = reservations.filter((r) => TRANSPORT_TYPES.has(r.type));
+  const isEmpty = places.length === 0 && reservations.length === 0;
 
   return (
     <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={t('files.linkTitle')}>
@@ -126,8 +126,15 @@ export default function MFileLinkSheet({ planner, file, onClose }: MFileLinkShee
           <>
             <Eyebrow className="mb-[6px] mt-3">{t('files.assignPlace')}</Eyebrow>
             <div className="flex flex-col gap-1">
-              {places.map(p => (
-                <LinkRow key={`p${p.id}`} icon={MapPin} label={p.name} active={placeIds.has(p.id)} busy={busyKey === `p${p.id}`} onClick={() => togglePlace(p.id)} />
+              {places.map((p) => (
+                <LinkRow
+                  key={`p${p.id}`}
+                  icon={MapPin}
+                  label={p.name}
+                  active={placeIds.has(p.id)}
+                  busy={busyKey === `p${p.id}`}
+                  onClick={() => togglePlace(p.id)}
+                />
               ))}
             </div>
           </>
@@ -137,8 +144,15 @@ export default function MFileLinkSheet({ planner, file, onClose }: MFileLinkShee
           <>
             <Eyebrow className="mb-[6px] mt-3">{t('files.assignBooking')}</Eyebrow>
             <div className="flex flex-col gap-1">
-              {bookingReservations.map(r => (
-                <LinkRow key={`r${r.id}`} icon={Ticket} label={r.title} active={resIds.has(r.id)} busy={busyKey === `r${r.id}`} onClick={() => toggleReservation(r.id)} />
+              {bookingReservations.map((r) => (
+                <LinkRow
+                  key={`r${r.id}`}
+                  icon={Ticket}
+                  label={r.title}
+                  active={resIds.has(r.id)}
+                  busy={busyKey === `r${r.id}`}
+                  onClick={() => toggleReservation(r.id)}
+                />
               ))}
             </div>
           </>
@@ -148,23 +162,36 @@ export default function MFileLinkSheet({ planner, file, onClose }: MFileLinkShee
           <>
             <Eyebrow className="mb-[6px] mt-3">{t('files.assignTransport')}</Eyebrow>
             <div className="flex flex-col gap-1">
-              {transportReservations.map(r => (
-                <LinkRow key={`r${r.id}`} icon={TrainFront} label={r.title} active={resIds.has(r.id)} busy={busyKey === `r${r.id}`} onClick={() => toggleReservation(r.id)} />
+              {transportReservations.map((r) => (
+                <LinkRow
+                  key={`r${r.id}`}
+                  icon={TrainFront}
+                  label={r.title}
+                  active={resIds.has(r.id)}
+                  busy={busyKey === `r${r.id}`}
+                  onClick={() => toggleReservation(r.id)}
+                />
               ))}
             </div>
           </>
         )}
       </div>
     </MSheet>
-  )
+  );
 }
 
-function LinkRow({ icon: Icon, label, active, busy, onClick }: {
-  icon: LucideIcon
-  label: string
-  active: boolean
-  busy: boolean
-  onClick: () => void
+function LinkRow({
+  icon: Icon,
+  label,
+  active,
+  busy,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+  busy: boolean;
+  onClick: () => void;
 }) {
   return (
     <button
@@ -183,5 +210,5 @@ function LinkRow({ icon: Icon, label, active, busy, onClick }: {
         <Check size={15} strokeWidth={2.5} className="flex-none text-m-act" />
       ) : null}
     </button>
-  )
+  );
 }

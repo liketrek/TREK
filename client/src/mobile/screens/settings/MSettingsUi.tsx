@@ -1,5 +1,5 @@
-import React, { ReactNode } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react';
+import React, { ReactNode } from 'react';
 
 /**
  * Shared building blocks of the mobile settings screen, all straight from the
@@ -8,17 +8,19 @@ import type { LucideIcon } from 'lucide-react'
  */
 
 interface MSetCardProps {
-  title: string
-  icon: LucideIcon
-  badge?: ReactNode
-  className?: string
-  children: ReactNode
+  title: string;
+  icon: LucideIcon;
+  badge?: ReactNode;
+  className?: string;
+  children: ReactNode;
 }
 
 /** Opaque settings card: r18 on --m-sheetop with a bold 14px title row. */
 export function MSetCard({ title, icon: Icon, badge, className = '', children }: MSetCardProps) {
   return (
-    <section className={`rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[14px] ${className}`}>
+    <section
+      className={`rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[14px] ${className}`}
+    >
       <div className="mb-3 flex items-center gap-2 text-[0.875rem] font-extrabold text-m-ink">
         <Icon size={16} strokeWidth={2.2} className="flex-none" />
         <span className="min-w-0 flex-1 truncate">{title}</span>
@@ -26,7 +28,7 @@ export function MSetCard({ title, icon: Icon, badge, className = '', children }:
       </div>
       {children}
     </section>
-  )
+  );
 }
 
 /** Geist 10px uppercase eyebrow above a control ("CURRENCY", "LANGUAGE", …). */
@@ -35,14 +37,14 @@ export function MSetEyebrow({ className = '', children }: { className?: string; 
     <div className={`font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint ${className}`}>
       {children}
     </div>
-  )
+  );
 }
 
 interface MSetSelectRowProps {
-  label: ReactNode
-  trailing?: ReactNode
-  onClick?: () => void
-  className?: string
+  label: ReactNode;
+  trailing?: ReactNode;
+  onClick?: () => void;
+  className?: string;
 }
 
 /** Tappable select row (11/13px padding, r12 on the --m-sheet surface). */
@@ -56,27 +58,32 @@ export function MSetSelectRow({ label, trailing, onClick, className = '' }: MSet
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {trailing}
     </button>
-  )
+  );
 }
 
 export interface MSetSegmentOption<T extends string = string> {
-  value: T
-  label: ReactNode
+  value: T;
+  label: ReactNode;
 }
 
 interface MSetSegmentsProps<T extends string = string> {
-  options: MSetSegmentOption<T>[]
-  value: T
-  onChange: (value: T) => void
-  className?: string
+  options: MSetSegmentOption<T>[];
+  value: T;
+  onChange: (value: T) => void;
+  className?: string;
 }
 
 /** Wide segment pair/triple of the General card: r12 blocks, active on --m-act. */
-export function MSetSegments<T extends string = string>({ options, value, onChange, className = '' }: MSetSegmentsProps<T>) {
+export function MSetSegments<T extends string = string>({
+  options,
+  value,
+  onChange,
+  className = '',
+}: MSetSegmentsProps<T>) {
   return (
     <div className={`flex gap-[6px] ${className}`}>
       {options.map((opt) => {
-        const active = opt.value === value
+        const active = opt.value === value;
         return (
           <button
             key={opt.value}
@@ -89,28 +96,26 @@ export function MSetSegments<T extends string = string>({ options, value, onChan
           >
             {opt.label}
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 interface MSetOnOffProps {
-  on: boolean
-  onChange: (on: boolean) => void
-  onLabel: string
-  offLabel: string
-  ariaLabel?: string
+  on: boolean;
+  onChange: (on: boolean) => void;
+  onLabel: string;
+  offLabel: string;
+  ariaLabel?: string;
 }
 
 /** Small On/Off pill of the Travel & map rows (3px track, 11px bold segments). */
 export function MSetOnOff({ on, onChange, onLabel, offLabel, ariaLabel }: MSetOnOffProps) {
   const seg = (active: boolean) =>
     `rounded-full px-3 py-[5px] text-[0.6875rem] font-bold ${
-      active
-        ? 'bg-m-act text-m-actfg'
-        : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
-    }`
+      active ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
+    }`;
   return (
     <span role="group" aria-label={ariaLabel} className="flex flex-none rounded-full bg-[color:var(--m-ic)] p-[3px]">
       <button type="button" aria-pressed={on} onClick={() => onChange(true)} className={seg(on)}>
@@ -120,14 +125,14 @@ export function MSetOnOff({ on, onChange, onLabel, offLabel, ariaLabel }: MSetOn
         {offLabel}
       </button>
     </span>
-  )
+  );
 }
 
 interface MSetRowProps {
-  label: ReactNode
-  sub?: ReactNode
-  trailing?: ReactNode
-  first?: boolean
+  label: ReactNode;
+  sub?: ReactNode;
+  trailing?: ReactNode;
+  first?: boolean;
 }
 
 /** Setting row with label + Geist sub line and a trailing control. */
@@ -140,10 +145,10 @@ export function MSetRow({ label, sub, trailing, first = false }: MSetRowProps) {
       </div>
       {trailing}
     </div>
-  )
+  );
 }
 
-type MSetInputProps = React.InputHTMLAttributes<HTMLInputElement> & { mono?: boolean }
+type MSetInputProps = React.InputHTMLAttributes<HTMLInputElement> & { mono?: boolean };
 
 /** Text input on the --m-sheet surface, matching the select rows. */
 export function MSetInput({ mono = false, className = '', ...rest }: MSetInputProps) {
@@ -154,7 +159,7 @@ export function MSetInput({ mono = false, className = '', ...rest }: MSetInputPr
         mono ? 'font-mono' : ''
       } ${className}`}
     />
-  )
+  );
 }
 
 /** Textarea sibling of MSetInput. */
@@ -164,25 +169,31 @@ export function MSetTextarea({ className = '', ...rest }: React.TextareaHTMLAttr
       {...rest}
       className={`w-full resize-none rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[11px] text-[0.8125rem] font-semibold text-m-ink outline-none placeholder:font-medium placeholder:text-m-faint ${className}`}
     />
-  )
+  );
 }
 
 interface MSetButtonProps {
-  onClick?: () => void
-  disabled?: boolean
-  variant?: 'primary' | 'ghost' | 'danger'
-  className?: string
-  children: ReactNode
+  onClick?: () => void;
+  disabled?: boolean;
+  variant?: 'primary' | 'ghost' | 'danger';
+  className?: string;
+  children: ReactNode;
 }
 
 /** Pill button: act-filled primary, neutral ghost, outlined danger. */
-export function MSetButton({ onClick, disabled = false, variant = 'primary', className = '', children }: MSetButtonProps) {
+export function MSetButton({
+  onClick,
+  disabled = false,
+  variant = 'primary',
+  className = '',
+  children,
+}: MSetButtonProps) {
   const look =
     variant === 'primary'
       ? 'bg-m-act text-m-actfg'
       : variant === 'danger'
         ? 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-[color:var(--m-st-danger)]'
-        : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
+        : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink';
   return (
     <button
       type="button"
@@ -192,10 +203,10 @@ export function MSetButton({ onClick, disabled = false, variant = 'primary', cla
     >
       {children}
     </button>
-  )
+  );
 }
 
 /** Faint hint line under a control. */
 export function MSetHint({ className = '', children }: { className?: string; children: ReactNode }) {
-  return <p className={`mt-[6px] font-geist text-[0.625rem] leading-relaxed text-m-muted ${className}`}>{children}</p>
+  return <p className={`mt-[6px] font-geist text-[0.625rem] leading-relaxed text-m-muted ${className}`}>{children}</p>;
 }

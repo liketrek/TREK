@@ -10,6 +10,16 @@
  * Only `safeFetch` is mocked. `cappedFetch` runs for real, so releasing an
  * oversized body is the release that ships.
  */
+import {
+  classifyTransportFailure,
+  declaredLength,
+  guardDownload,
+  isUnresolvedHost,
+  providerFetch,
+  statusErrorCode,
+  type TransportFailure,
+} from '../../../../src/nest/doc-sync/providers/provider-http';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { safeFetchMock, SsrfBlockedErrorMock } = vi.hoisted(() => {
@@ -25,16 +35,6 @@ vi.mock('../../../../src/utils/ssrfGuard', () => ({
   safeFetch: safeFetchMock,
   SsrfBlockedError: SsrfBlockedErrorMock,
 }));
-
-import {
-  classifyTransportFailure,
-  declaredLength,
-  guardDownload,
-  isUnresolvedHost,
-  providerFetch,
-  statusErrorCode,
-  type TransportFailure,
-} from '../../../../src/nest/doc-sync/providers/provider-http';
 
 /** `TypeError: fetch failed` with the real reason underneath, the way undici reports it. */
 function wrapped(cause: Error): Error {
@@ -118,7 +118,7 @@ describe('classifyTransportFailure', () => {
   it.each([
     ['TimeoutError, as AbortSignal.timeout rejects', named('The operation was aborted due to timeout', 'TimeoutError')],
     ['AbortError', named('This operation was aborted', 'AbortError')],
-    ['TimeoutError under undici\'s wrapper', wrapped(named('aborted', 'TimeoutError'))],
+    ["TimeoutError under undici's wrapper", wrapped(named('aborted', 'TimeoutError'))],
     ['UND_ERR_HEADERS_TIMEOUT', wrapped(coded('Headers Timeout Error', 'UND_ERR_HEADERS_TIMEOUT'))],
     ['UND_ERR_BODY_TIMEOUT', wrapped(coded('Body Timeout Error', 'UND_ERR_BODY_TIMEOUT'))],
     ['ABORT_ERR', wrapped(coded('The operation was aborted', 'ABORT_ERR'))],
@@ -170,7 +170,10 @@ describe('classifyTransportFailure', () => {
     // undici gives up on the handshake after ten seconds, before the request's
     // own timeout does: a NAS that is switched off, or a firewall that drops the SYN.
     const error = wrapped(
-      Object.assign(new Error('Connect Timeout Error'), { name: 'ConnectTimeoutError', code: 'UND_ERR_CONNECT_TIMEOUT' }),
+      Object.assign(new Error('Connect Timeout Error'), {
+        name: 'ConnectTimeoutError',
+        code: 'UND_ERR_CONNECT_TIMEOUT',
+      }),
     );
     expect(classifyTransportFailure(error).code).toBe('unreachable');
   });
@@ -228,7 +231,7 @@ describe('providerFetch', () => {
     await expect(pending).rejects.toMatchObject({ failure: { code: 'timeout' } });
   });
 
-  it('PROVIDER-HTTP-013: a refusal becomes the client\'s own error, built from the classified failure', async () => {
+  it("PROVIDER-HTTP-013: a refusal becomes the client's own error, built from the classified failure", async () => {
     safeFetchMock.mockRejectedValue(new SsrfBlockedErrorMock('Requests to link-local addresses are not allowed'));
     const onTransportFailure = vi.fn((failure: TransportFailure) => new TransportError(failure));
 
@@ -258,7 +261,7 @@ describe('statusErrorCode', () => {
     for (const [status, code] of expected) expect(statusErrorCode(status), `http ${status}`).toBe(code);
   });
 
-  it('PROVIDER-HTTP-021: a client\'s own reading of a status wins, and its fallback answers the rest', () => {
+  it("PROVIDER-HTTP-021: a client's own reading of a status wins, and its fallback answers the rest", () => {
     expect(statusErrorCode(412, { 412: 'conflict' })).toBe('conflict');
     expect(statusErrorCode(404, { 404: 'scope_missing' })).toBe('scope_missing');
     expect(statusErrorCode(418, {}, 'unknown')).toBe('unknown');
@@ -324,7 +327,7 @@ describe('guardDownload', () => {
     await vi.waitFor(() => expect(cancelled()).toBe(true));
   });
 
-  it('PROVIDER-HTTP-045: an answer without a body is the client\'s own error', () => {
+  it("PROVIDER-HTTP-045: an answer without a body is the client's own error", () => {
     expect(() => guardDownload(download(null, { 'content-length': '10' }), GUARD)).toThrow('no body');
   });
 });

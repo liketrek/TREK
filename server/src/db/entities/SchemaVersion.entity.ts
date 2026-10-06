@@ -1,5 +1,5 @@
-import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 import { SchemaVersionRepository } from '../repositories/SchemaVersion.repository';
+import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 
 export class SchemaVersion {
   [EntityRepositoryType]?: SchemaVersionRepository;

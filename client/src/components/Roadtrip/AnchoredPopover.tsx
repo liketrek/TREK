@@ -1,5 +1,5 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * A small panel hung under something in the rail.
@@ -14,60 +14,64 @@ import { createPortal } from 'react-dom'
  * Deliberately not the `CustomSelect` machinery: that one is a select, with a value, a
  * search and a keyboard model. This is a surface.
  */
-export default function AnchoredPopover({ anchor, label, children, onClose }: {
+export default function AnchoredPopover({
+  anchor,
+  label,
+  children,
+  onClose,
+}: {
   /** The element the panel hangs under. Null renders nothing, which is how it stays closed. */
-  anchor: HTMLElement | null
+  anchor: HTMLElement | null;
   /** What the dialog is called, for anyone who cannot see where it is hanging. */
-  label: string
-  children: React.ReactNode
-  onClose: () => void
+  label: string;
+  children: React.ReactNode;
+  onClose: () => void;
 }): React.ReactElement | null {
-  const ref = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
   // Measured after paint, before the browser shows it: reading the size first and then
   // placing it is what stops the panel appearing at 0,0 for one frame.
   useLayoutEffect(() => {
-    if (!anchor || !ref.current) return
-    const a = anchor.getBoundingClientRect()
-    const p = ref.current.getBoundingClientRect()
-    const gap = 8
-    let top = a.bottom + gap
+    if (!anchor || !ref.current) return;
+    const a = anchor.getBoundingClientRect();
+    const p = ref.current.getBoundingClientRect();
+    const gap = 8;
+    let top = a.bottom + gap;
     // Flips above when there is no room below, which is most of the rail on a short
     // window: a panel clipped by the viewport is one that cannot be used at all.
-    if (top + p.height > window.innerHeight - 8) top = Math.max(8, a.top - p.height - gap)
+    if (top + p.height > window.innerHeight - 8) top = Math.max(8, a.top - p.height - gap);
     // Centred on the column, not on the anchor. A badge sits hard against one edge of the
     // rail, so a panel centred on it hangs half off the sidebar and points at the map.
     // Vertically it still follows the row it belongs to.
-    const column = anchor.closest('section')?.getBoundingClientRect() ?? a
-    const left = Math.min(
-      Math.max(8, column.left + column.width / 2 - p.width / 2),
-      window.innerWidth - p.width - 8,
-    )
-    setPos({ top, left })
-  }, [anchor])
+    const column = anchor.closest('section')?.getBoundingClientRect() ?? a;
+    const left = Math.min(Math.max(8, column.left + column.width / 2 - p.width / 2), window.innerWidth - p.width - 8);
+    setPos({ top, left });
+  }, [anchor]);
 
   useEffect(() => {
-    if (!anchor) return
+    if (!anchor) return;
     const onDown = (e: MouseEvent) => {
-      if (ref.current?.contains(e.target as Node)) return
-      if (anchor.contains(e.target as Node)) return
-      onClose()
-    }
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
+      if (ref.current?.contains(e.target as Node)) return;
+      if (anchor.contains(e.target as Node)) return;
+      onClose();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
     // Any scroll moves the anchor out from under the panel, and following it would mean
     // measuring on every frame for a menu that is open for two seconds.
-    window.addEventListener('scroll', onClose, true)
+    window.addEventListener('scroll', onClose, true);
     return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-      window.removeEventListener('scroll', onClose, true)
-    }
-  }, [anchor, onClose])
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onClose, true);
+    };
+  }, [anchor, onClose]);
 
-  if (!anchor) return null
+  if (!anchor) return null;
 
   return createPortal(
     <div
@@ -79,6 +83,6 @@ export default function AnchoredPopover({ anchor, label, children, onClose }: {
     >
       {children}
     </div>,
-    document.body,
-  )
+    document.body
+  );
 }

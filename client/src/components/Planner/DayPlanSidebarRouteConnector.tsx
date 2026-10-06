@@ -1,25 +1,28 @@
-import { Hotel } from 'lucide-react'
-import type { RouteSegment } from '../../types'
-import { fs } from '../shared/DialogShell'
-import { routeModeIcon } from './routeModes'
+import { Hotel } from 'lucide-react';
+import type { RouteSegment } from '../../types';
+import { fs } from '../shared/DialogShell';
+import { routeModeIcon } from './routeModes';
 
 /** The leg's figures as one quiet pill: mode, time, distance and a router note, side by side. */
 function LegPill({ seg, profile }: { seg: RouteSegment; profile: string }) {
   // The leg's own mode (#1281) wins over the day-wide fallback for icon + text.
-  const effProfile = seg.mode ?? profile
-  const driving = effProfile !== 'walking'
-  const Icon = routeModeIcon(effProfile)
+  const effProfile = seg.mode ?? profile;
+  const driving = effProfile !== 'walking';
+  const Icon = routeModeIcon(effProfile);
   return (
-    <span className="inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-secondary px-2 py-[2px] font-geist font-semibold tabular-nums text-content-muted" style={fs(10)}>
+    <span
+      className="inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-secondary px-2 py-[2px] font-geist font-semibold tabular-nums text-content-muted"
+      style={fs(10)}
+    >
       <Icon size={11} strokeWidth={2} className="flex-none" />
       <span>{seg.durationText ?? (driving ? seg.drivingText : seg.walkingText)}</span>
       <span className="text-content-faint">{seg.distanceText}</span>
       {seg.noteText && <span className="text-content-secondary">{seg.noteText}</span>}
     </span>
-  )
+  );
 }
 
-const LINE = 'h-px min-w-3 flex-1 bg-edge-faint'
+const LINE = 'h-px min-w-3 flex-1 bg-edge-faint';
 
 /** Slim travel-time connector shown between two consecutive located stops in a day. */
 export function RouteConnector({ seg, profile }: { seg: RouteSegment; profile: string }) {
@@ -29,7 +32,7 @@ export function RouteConnector({ seg, profile }: { seg: RouteSegment; profile: s
       <LegPill seg={seg} profile={profile} />
       <span className={LINE} />
     </div>
-  )
+  );
 }
 
 /**
@@ -44,10 +47,10 @@ export function HotelRouteConnector({
   name,
   placement,
 }: {
-  seg: RouteSegment
-  profile: string
-  name: string
-  placement: 'top' | 'bottom'
+  seg: RouteSegment;
+  profile: string;
+  name: string;
+  placement: 'top' | 'bottom';
 }) {
   const hotelRow = (
     <div className="flex min-w-0 items-center justify-center gap-1.5 px-3">
@@ -56,14 +59,14 @@ export function HotelRouteConnector({
         {name}
       </span>
     </div>
-  )
+  );
   const travelRow = (
     <div className="flex items-center gap-2 px-3 py-[3px]">
       <span className={LINE} />
       <LegPill seg={seg} profile={profile} />
       <span className={LINE} />
     </div>
-  )
+  );
   return (
     <div className={`flex flex-col gap-[3px] ${placement === 'top' ? 'pb-1.5 pt-0.5' : 'pb-0.5 pt-1.5'}`}>
       {placement === 'top' ? (
@@ -78,5 +81,5 @@ export function HotelRouteConnector({
         </>
       )}
     </div>
-  )
+  );
 }

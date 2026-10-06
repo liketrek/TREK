@@ -89,7 +89,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Prvý deň týždňa vo všetkých výberoch dátumu. Vacay má vlastné nastavenie.',
   'settings.preferredNavApp': 'Otvárať miesta v',
   'settings.preferredNavAppAsk': 'Zakaždým sa opýtať',
-  'settings.preferredNavAppHint': 'Keď je vybraná aplikácia, tlačidlo navigácie ju rovno otvorí namiesto ponuky všetkých mapových aplikácií.',
+  'settings.preferredNavAppHint':
+    'Keď je vybraná aplikácia, tlačidlo navigácie ju rovno otvorí namiesto ponuky všetkých mapových aplikácií.',
   'settings.bookingLabels': 'Popisky trás rezervácií',
   'settings.bookingLabelsHint': 'Zobrazuje názvy staníc / letísk na mape. Ak je vypnuté, zobrazí sa iba ikona.',
   'settings.mapPoiPill': 'Objavovať miesta na mape',

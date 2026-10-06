@@ -9,11 +9,11 @@
  */
 export default function MRouteFallback() {
   return (
-    <div className="m-root flex h-dvh flex-col gap-3 px-4 pt-14 bg-[color:var(--m-bg)]">
+    <div className="m-root flex h-dvh flex-col gap-3 bg-[color:var(--m-bg)] px-4 pt-14">
       <div className="h-7 w-40 animate-pulse rounded-lg bg-m-card" />
       <div className="h-28 animate-pulse rounded-xl bg-m-card" />
       <div className="h-28 animate-pulse rounded-xl bg-m-card" />
       <div className="h-28 animate-pulse rounded-xl bg-m-card" />
     </div>
-  )
+  );
 }

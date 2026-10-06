@@ -1,7 +1,8 @@
-import { extname } from 'node:path';
-import { Jimp } from 'jimp';
-import { PDFParse } from 'pdf-parse';
 import { LLM_PHOTO_EXTENSIONS } from '@trek/shared';
+
+import { Jimp } from 'jimp';
+import { extname } from 'node:path';
+import { PDFParse } from 'pdf-parse';
 
 /** A photographed document on its way to a vision model, by the extensions shared/ lists. */
 const IMAGE_MIME_BY_EXT: Record<(typeof LLM_PHOTO_EXTENSIONS)[number], string> = {
@@ -114,7 +115,11 @@ export function readImageHeader(data: Buffer): ImageHeader | null {
   } else if (data.length >= 4 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) {
     const size = jpegSize(data);
     found = size && { mimeType: 'image/jpeg', ...size };
-  } else if (data.length >= 16 && data.toString('latin1', 0, 4) === 'RIFF' && data.toString('latin1', 8, 12) === 'WEBP') {
+  } else if (
+    data.length >= 16 &&
+    data.toString('latin1', 0, 4) === 'RIFF' &&
+    data.toString('latin1', 8, 12) === 'WEBP'
+  ) {
     const size = webpSize(data);
     found = size && { mimeType: 'image/webp', ...size };
   }

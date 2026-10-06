@@ -6,12 +6,20 @@
  * audit log are mocked. Focuses on auth (401), trip-access 404, the
  * share_manage 403, the login-required join, and invalid-token 404s (#1143).
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { TripInviteModule } from '../../src/nest/trip-invite/trip-invite.module';
+import { TripMembershipService } from '../../src/nest/trip-membership/trip-membership.service';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -43,10 +51,12 @@ const { db } = vi.hoisted(() => {
 
 const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
 vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
+  db,
+  canAccessTrip,
+  getPlaceWithTags: vi.fn(),
+  closeDb: () => {},
+  reinitialize: () => {},
 }));
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
@@ -58,22 +68,24 @@ const joinTripAsMember = vi.fn();
 
 // The audit domain is DI-native now: writeAudit runs for real against the temp
 // db's audit_log table; only the file logger is silenced.
-vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
-
-import { TripInviteModule } from '../../src/nest/trip-invite/trip-invite.module';
-import { TripMembershipService } from '../../src/nest/trip-membership/trip-membership.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+}));
 
 describe('Trip invite-link e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), TripInviteModule] })
-      .overrideProvider(TripMembershipService).useValue({ joinTripAsMember })
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), TripInviteModule],
+    })
+      .overrideProvider(TripMembershipService)
+      .useValue({ joinTripAsMember })
       .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -87,8 +99,11 @@ describe('Trip invite-link e2e (real auth guard + temp SQLite)', () => {
     db.prepare('INSERT INTO trips (id, title, user_id) VALUES (?, ?, ?)').run(id, title, ownerId);
   }
   function seedToken(tripId: number, token: string, expiresAt: string | null = null) {
-    db.prepare('INSERT INTO trip_invite_tokens (trip_id, token, created_by, expires_at) VALUES (?, ?, 1, ?)')
-      .run(tripId, token, expiresAt);
+    db.prepare('INSERT INTO trip_invite_tokens (trip_id, token, created_by, expires_at) VALUES (?, ?, 1, ?)').run(
+      tripId,
+      token,
+      expiresAt,
+    );
   }
 
   beforeAll(async () => {
@@ -108,7 +123,9 @@ describe('Trip invite-link e2e (real auth guard + temp SQLite)', () => {
     joinTripAsMember.mockReset();
   });
 
-  afterAll(async () => { await app.close(); });
+  afterAll(async () => {
+    await app.close();
+  });
 
   // ── manage ──
   it('401 without a session cookie', async () => {
@@ -145,7 +162,9 @@ describe('Trip invite-link e2e (real auth guard + temp SQLite)', () => {
 
   it('POST with expires_in_days bounds the link life', async () => {
     seedTrip(5, 'Lisbon');
-    const res = await request(server).post('/api/trips/5/invite-link').set('Cookie', sessionCookie(1))
+    const res = await request(server)
+      .post('/api/trips/5/invite-link')
+      .set('Cookie', sessionCookie(1))
       .send({ expires_in_days: 7 });
     expect([200, 201]).toContain(res.status);
     const expires = new Date(res.body.expires_at).getTime();
@@ -155,7 +174,9 @@ describe('Trip invite-link e2e (real auth guard + temp SQLite)', () => {
 
   it('POST 400 for a non-numeric expires_in_days string', async () => {
     seedTrip(5, 'Lisbon');
-    const res = await request(server).post('/api/trips/5/invite-link').set('Cookie', sessionCookie(1))
+    const res = await request(server)
+      .post('/api/trips/5/invite-link')
+      .set('Cookie', sessionCookie(1))
       .send({ expires_in_days: '7abc' });
     expect(res.status).toBe(400);
     expect(db.prepare('SELECT COUNT(*) AS n FROM trip_invite_tokens').get()).toEqual({ n: 0 });

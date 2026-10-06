@@ -1,45 +1,56 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
 import {
-  X, Image, Plus, Trash2, UserPlus, Link as LinkIcon,
-  List, Grid3x3, MapPin, Route, Archive, ArchiveRestore, Undo2,
-} from 'lucide-react'
-import MSheet from '../../components/MSheet'
-import MIconBtn from '../../components/MIconBtn'
-import MToggle from '../../components/MToggle'
-import ConfirmDialog from '../../../components/shared/ConfirmDialog'
-import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
-import { journeyApi } from '../../../api/client'
-import { useJourneyStore } from '../../../store/journeyStore'
-import type { JourneyDetail } from '../../../store/journeyStore'
-import { normalizeImageFile } from '../../../utils/convertHeic'
-import { copyText } from '../../../utils/clipboard'
-import { pickGradient } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
-import { journeyCoverSrc } from './mobileJourneyMeta'
+  Archive,
+  ArchiveRestore,
+  Grid3x3,
+  Image,
+  Link as LinkIcon,
+  List,
+  MapPin,
+  Plus,
+  Route,
+  Trash2,
+  Undo2,
+  UserPlus,
+  X,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { journeyApi } from '../../../api/client';
+import ConfirmDialog from '../../../components/shared/ConfirmDialog';
+import { useToast } from '../../../components/shared/Toast';
+import { useTranslation } from '../../../i18n';
+import { pickGradient } from '../../../pages/journeyDetail/JourneyDetailPage.helpers';
+import type { JourneyDetail } from '../../../store/journeyStore';
+import { useJourneyStore } from '../../../store/journeyStore';
+import { copyText } from '../../../utils/clipboard';
+import { normalizeImageFile } from '../../../utils/convertHeic';
+import MIconBtn from '../../components/MIconBtn';
+import MSheet from '../../components/MSheet';
+import MToggle from '../../components/MToggle';
+import { journeyCoverSrc } from './mobileJourneyMeta';
 
 interface ShareLink {
-  token: string
-  share_timeline: boolean
-  share_gallery: boolean
-  share_map: boolean
+  token: string;
+  share_timeline: boolean;
+  share_gallery: boolean;
+  share_map: boolean;
 }
 
 interface AvailableTrip {
-  id: number
-  title: string
-  destination?: string
-  start_date?: string
+  id: number;
+  title: string;
+  destination?: string;
+  start_date?: string;
 }
 
 interface MJourneySettingsSheetProps {
-  journey: JourneyDetail
-  onClose: () => void
-  onSaved: () => void
-  onOpenInvite: () => void
-  onRefresh: () => void
+  journey: JourneyDetail;
+  onClose: () => void;
+  onSaved: () => void;
+  onOpenInvite: () => void;
+  onRefresh: () => void;
   /** Bring back every suggestion waved away card by card. Absent for a viewer. */
-  onRestoreSuggestions?: () => Promise<void> | void
+  onRestoreSuggestions?: () => Promise<void> | void;
 }
 
 /**
@@ -47,75 +58,83 @@ interface MJourneySettingsSheetProps {
  * with per-section toggles (timeline / gallery / map), archive and delete.
  */
 export default function MJourneySettingsSheet({
-  journey, onClose, onSaved, onOpenInvite, onRefresh, onRestoreSuggestions,
+  journey,
+  onClose,
+  onSaved,
+  onOpenInvite,
+  onRefresh,
+  onRestoreSuggestions,
 }: MJourneySettingsSheetProps) {
-  const { t } = useTranslation()
-  const toast = useToast()
-  const navigate = useNavigate()
-  const { updateJourney, deleteJourney } = useJourneyStore()
+  const { t } = useTranslation();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const { updateJourney, deleteJourney } = useJourneyStore();
 
-  const [title, setTitle] = useState(journey.title)
-  const [subtitle, setSubtitle] = useState(journey.subtitle || '')
-  const [saving, setSaving] = useState(false)
-  const [archiving, setArchiving] = useState(false)
-  const [unlinkTarget, setUnlinkTarget] = useState<{ trip_id: number; title: string } | null>(null)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [addTripOpen, setAddTripOpen] = useState(false)
-  const [availableTrips, setAvailableTrips] = useState<AvailableTrip[]>([])
-  const [linkingTripId, setLinkingTripId] = useState<number | null>(null)
-  const [shareLink, setShareLink] = useState<ShareLink | null>(null)
-  const [savingTracks, setSavingTracks] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const coverRef = useRef<HTMLInputElement>(null)
+  const [title, setTitle] = useState(journey.title);
+  const [subtitle, setSubtitle] = useState(journey.subtitle || '');
+  const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [unlinkTarget, setUnlinkTarget] = useState<{ trip_id: number; title: string } | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [addTripOpen, setAddTripOpen] = useState(false);
+  const [availableTrips, setAvailableTrips] = useState<AvailableTrip[]>([]);
+  const [linkingTripId, setLinkingTripId] = useState<number | null>(null);
+  const [shareLink, setShareLink] = useState<ShareLink | null>(null);
+  const [savingTracks, setSavingTracks] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const coverRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    journeyApi.getShareLink(journey.id).then(d => setShareLink(d.link || null)).catch(() => {})
-  }, [journey.id])
+    journeyApi
+      .getShareLink(journey.id)
+      .then((d) => setShareLink(d.link || null))
+      .catch(() => {});
+  }, [journey.id]);
 
-  const coverSrc = journeyCoverSrc(journey.cover_image)
-  const shareUrl = shareLink ? `${window.location.origin}/public/journey/${shareLink.token}` : ''
+  const coverSrc = journeyCoverSrc(journey.cover_image);
+  const shareUrl = shareLink ? `${window.location.origin}/public/journey/${shareLink.token}` : '';
 
   const handleSave = async () => {
-    setSaving(true)
+    setSaving(true);
     try {
-      await updateJourney(journey.id, { title, subtitle: subtitle || null })
-      onSaved()
+      await updateJourney(journey.id, { title, subtitle: subtitle || null });
+      onSaved();
     } catch {
-      toast.error(t('journey.settings.saveFailed'))
+      toast.error(t('journey.settings.saveFailed'));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const formData = new FormData()
-    formData.append('cover', await normalizeImageFile(file))
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('cover', await normalizeImageFile(file));
     try {
-      await journeyApi.uploadCover(journey.id, formData)
-      toast.success(t('journey.settings.coverUpdated'))
-      onRefresh()
+      await journeyApi.uploadCover(journey.id, formData);
+      toast.success(t('journey.settings.coverUpdated'));
+      onRefresh();
     } catch {
-      toast.error(t('journey.settings.coverFailed'))
+      toast.error(t('journey.settings.coverFailed'));
     }
-  }
+  };
 
   // Written on the spot rather than on Save, like the archive button: it is a view
   // setting and the point of it is watching the map change (#2194). onRefresh, not
   // onSaved, because onSaved closes the sheet the instant the switch is flipped and
   // would drop a title the owner has typed but not saved yet.
   const handleTracksToggle = async (next: boolean) => {
-    setSavingTracks(true)
+    setSavingTracks(true);
     try {
-      await updateJourney(journey.id, { show_trip_tracks: next })
-      onRefresh()
+      await updateJourney(journey.id, { show_trip_tracks: next });
+      onRefresh();
     } catch {
-      toast.error(t('journey.settings.saveFailed'))
+      toast.error(t('journey.settings.saveFailed'));
     } finally {
-      setSavingTracks(false)
+      setSavingTracks(false);
     }
-  }
+  };
 
   /**
    * Turn one of the optional entry fields off for this journey (discussion #2299).
@@ -124,116 +143,125 @@ export default function MJourneySettingsSheet({
    * switch above is. Nothing stored is erased: the form stops asking, the values
    * stay, and switching back on brings them into view.
    */
-  const [savingField, setSavingField] = useState<string | null>(null)
+  const [savingField, setSavingField] = useState<string | null>(null);
   const handleFieldToggle = async (field: 'show_verdict' | 'show_mood' | 'show_weather', next: boolean) => {
-    setSavingField(field)
+    setSavingField(field);
     try {
-      await updateJourney(journey.id, { [field]: next })
-      onRefresh()
+      await updateJourney(journey.id, { [field]: next });
+      onRefresh();
     } catch {
-      toast.error(t('journey.settings.saveFailed'))
+      toast.error(t('journey.settings.saveFailed'));
     } finally {
-      setSavingField(null)
+      setSavingField(null);
     }
-  }
+  };
 
   const openAddTrip = async () => {
-    setAddTripOpen(v => !v)
+    setAddTripOpen((v) => !v);
     if (availableTrips.length === 0) {
       try {
-        const data = await journeyApi.availableTrips()
-        setAvailableTrips(data.trips || [])
-      } catch { /* row stays empty */ }
+        const data = await journeyApi.availableTrips();
+        setAvailableTrips(data.trips || []);
+      } catch {
+        /* row stays empty */
+      }
     }
-  }
+  };
 
   const linkTrip = async (tripId: number) => {
-    setLinkingTripId(tripId)
+    setLinkingTripId(tripId);
     try {
-      await journeyApi.addTrip(journey.id, tripId)
-      toast.success(t('journey.trips.tripLinked'))
-      setAddTripOpen(false)
-      onRefresh()
+      await journeyApi.addTrip(journey.id, tripId);
+      toast.success(t('journey.trips.tripLinked'));
+      setAddTripOpen(false);
+      onRefresh();
     } catch {
-      toast.error(t('journey.trips.linkFailed'))
+      toast.error(t('journey.trips.linkFailed'));
     } finally {
-      setLinkingTripId(null)
+      setLinkingTripId(null);
     }
-  }
+  };
 
   const createShareLink = async () => {
     try {
-      const res = await journeyApi.createShareLink(journey.id, { share_timeline: true, share_gallery: true, share_map: true })
-      setShareLink({ token: res.token, share_timeline: true, share_gallery: true, share_map: true })
-      toast.success(t('journey.share.linkCreated'))
+      const res = await journeyApi.createShareLink(journey.id, {
+        share_timeline: true,
+        share_gallery: true,
+        share_map: true,
+      });
+      setShareLink({ token: res.token, share_timeline: true, share_gallery: true, share_map: true });
+      toast.success(t('journey.share.linkCreated'));
     } catch {
-      toast.error(t('journey.share.createFailed'))
+      toast.error(t('journey.share.createFailed'));
     }
-  }
+  };
 
   const copyShareUrl = async () => {
-    if (!(await copyText(shareUrl))) return
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    if (!(await copyText(shareUrl))) return;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const toggleSharePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map') => {
-    if (!shareLink) return
-    const previous = shareLink
-    const updated = { ...previous, [key]: !previous[key] }
-    setShareLink(updated)
+    if (!shareLink) return;
+    const previous = shareLink;
+    const updated = { ...previous, [key]: !previous[key] };
+    setShareLink(updated);
     try {
       await journeyApi.createShareLink(journey.id, {
         share_timeline: updated.share_timeline,
         share_gallery: updated.share_gallery,
         share_map: updated.share_map,
-      })
+      });
     } catch {
-      setShareLink(previous)
-      toast.error(t('journey.share.updateFailed'))
+      setShareLink(previous);
+      toast.error(t('journey.share.updateFailed'));
     }
-  }
+  };
 
   const deleteShareLink = async () => {
     try {
-      await journeyApi.deleteShareLink(journey.id)
-      setShareLink(null)
-      toast.success(t('journey.share.linkDeleted'))
+      await journeyApi.deleteShareLink(journey.id);
+      setShareLink(null);
+      toast.success(t('journey.share.linkDeleted'));
     } catch {
-      toast.error(t('journey.share.deleteFailed'))
+      toast.error(t('journey.share.deleteFailed'));
     }
-  }
+  };
 
   const handleArchiveToggle = async () => {
-    setArchiving(true)
+    setArchiving(true);
     try {
-      const newStatus = journey.status === 'archived' ? 'active' : 'archived'
-      await updateJourney(journey.id, { status: newStatus })
-      toast.success(newStatus === 'archived' ? t('journey.settings.archived') : t('journey.settings.reopened'))
-      onSaved()
+      const newStatus = journey.status === 'archived' ? 'active' : 'archived';
+      await updateJourney(journey.id, { status: newStatus });
+      toast.success(newStatus === 'archived' ? t('journey.settings.archived') : t('journey.settings.reopened'));
+      onSaved();
     } catch {
-      toast.error(t('journey.settings.saveFailed'))
+      toast.error(t('journey.settings.saveFailed'));
     } finally {
-      setArchiving(false)
+      setArchiving(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
     try {
-      await deleteJourney(journey.id)
-      navigate('/journey')
+      await deleteJourney(journey.id);
+      navigate('/journey');
     } catch {
-      toast.error(t('journey.settings.failedToDelete'))
+      toast.error(t('journey.settings.failedToDelete'));
     }
-  }
+  };
 
-  const eyebrow = 'font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint'
-  const inputShell = 'w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[11px] text-m-ink outline-none placeholder:text-m-faint'
-  const dashedBtn = 'flex w-full items-center justify-center gap-[6px] rounded-xl border border-dashed border-[color:var(--m-rowbr)] p-[11px] text-[0.75rem] font-semibold text-m-muted'
-  const solidBtn = 'flex w-full items-center justify-center gap-[6px] rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[11px] text-[0.75rem] font-semibold'
+  const eyebrow = 'font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint';
+  const inputShell =
+    'w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[11px] text-m-ink outline-none placeholder:text-m-faint';
+  const dashedBtn =
+    'flex w-full items-center justify-center gap-[6px] rounded-xl border border-dashed border-[color:var(--m-rowbr)] p-[11px] text-[0.75rem] font-semibold text-m-muted';
+  const solidBtn =
+    'flex w-full items-center justify-center gap-[6px] rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[11px] text-[0.75rem] font-semibold';
 
-  const linkedTripIds = journey.trips.map(tr => tr.trip_id)
-  const unlinkedTrips = availableTrips.filter(tr => !linkedTripIds.includes(tr.id))
+  const linkedTripIds = journey.trips.map((tr) => tr.trip_id);
+  const unlinkedTrips = availableTrips.filter((tr) => !linkedTripIds.includes(tr.id));
 
   return (
     <MSheet open onClose={onClose} variant="card" material="opaque" ariaLabel={t('journey.settings.title')}>
@@ -266,11 +294,15 @@ export default function MJourneySettingsSheet({
 
         {/* Name + subtitle */}
         <div className={`${eyebrow} mb-[5px] mt-[14px]`}>{t('journey.settings.name')}</div>
-        <input value={title} onChange={e => setTitle(e.target.value)} className={`${inputShell} text-[0.84375rem] font-semibold`} />
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className={`${inputShell} text-[0.84375rem] font-semibold`}
+        />
         <div className={`${eyebrow} mb-[5px] mt-3`}>{t('journey.settings.subtitle')}</div>
         <input
           value={subtitle}
-          onChange={e => setSubtitle(e.target.value)}
+          onChange={(e) => setSubtitle(e.target.value)}
           placeholder={t('journey.settings.subtitlePlaceholder')}
           className={`${inputShell} text-[0.8125rem] font-medium`}
         />
@@ -293,17 +325,24 @@ export default function MJourneySettingsSheet({
 
         {/* The three fields a journey may put away (discussion #2299) */}
         <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.settings.entryFields')}</div>
-        <div className="mb-[6px] font-geist text-[0.625rem] leading-[1.45] text-m-muted">{t('journey.settings.entryFieldsHint')}</div>
-        {([
-          ['show_verdict', t('journey.settings.showVerdict')],
-          ['show_mood', t('journey.settings.showMood')],
-          ['show_weather', t('journey.settings.showWeather')],
-        ] as const).map(([field, label]) => (
-          <div key={field} className="mb-[6px] flex items-center gap-[11px] rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px]">
+        <div className="mb-[6px] font-geist text-[0.625rem] leading-[1.45] text-m-muted">
+          {t('journey.settings.entryFieldsHint')}
+        </div>
+        {(
+          [
+            ['show_verdict', t('journey.settings.showVerdict')],
+            ['show_mood', t('journey.settings.showMood')],
+            ['show_weather', t('journey.settings.showWeather')],
+          ] as const
+        ).map(([field, label]) => (
+          <div
+            key={field}
+            className="mb-[6px] flex items-center gap-[11px] rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px]"
+          >
             <div className="min-w-0 flex-1 text-[0.8125rem] font-bold">{label}</div>
             <MToggle
               checked={journey[field] !== 0}
-              onChange={next => handleFieldToggle(field, next)}
+              onChange={(next) => handleFieldToggle(field, next)}
               disabled={savingField !== null}
               ariaLabel={label}
             />
@@ -314,7 +353,9 @@ export default function MJourneySettingsSheet({
         {onRestoreSuggestions && (journey.dismissed_count ?? 0) > 0 && (
           <button
             type="button"
-            onClick={() => { void onRestoreSuggestions() }}
+            onClick={() => {
+              void onRestoreSuggestions();
+            }}
             className="mb-[6px] flex w-full items-center gap-[11px] rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px] text-left"
           >
             <Undo2 size={16} strokeWidth={2} className="flex-none text-m-muted" />
@@ -329,8 +370,11 @@ export default function MJourneySettingsSheet({
 
         {/* Synced trips */}
         <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.detail.syncedTrips')}</div>
-        {journey.trips.map(trip => (
-          <div key={trip.trip_id} className="mb-[6px] flex items-center gap-[11px] rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px]">
+        {journey.trips.map((trip) => (
+          <div
+            key={trip.trip_id}
+            className="mb-[6px] flex items-center gap-[11px] rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px]"
+          >
             <span className="h-9 w-9 flex-none rounded-[10px]" style={{ background: pickGradient(trip.trip_id) }} />
             <div className="min-w-0 flex-1">
               <div className="truncate text-[0.8125rem] font-bold">{trip.title}</div>
@@ -349,7 +393,9 @@ export default function MJourneySettingsSheet({
           </div>
         ))}
         {journey.trips.length === 0 && (
-          <p className="mb-[6px] font-geist text-[0.6875rem] text-m-faint">{t('journey.trips.noTripsLinkedSettings')}</p>
+          <p className="mb-[6px] font-geist text-[0.6875rem] text-m-faint">
+            {t('journey.trips.noTripsLinkedSettings')}
+          </p>
         )}
         <button type="button" onClick={openAddTrip} className={`${dashedBtn} mt-2`}>
           <Plus size={13} strokeWidth={2.2} />
@@ -358,9 +404,11 @@ export default function MJourneySettingsSheet({
         {addTripOpen && (
           <div className="mt-2 max-h-[180px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-2">
             {unlinkedTrips.length === 0 && (
-              <p className="py-2 text-center font-geist text-[0.6875rem] text-m-faint">{t('journey.trips.noTripsAvailable')}</p>
+              <p className="py-2 text-center font-geist text-[0.6875rem] text-m-faint">
+                {t('journey.trips.noTripsAvailable')}
+              </p>
             )}
-            {unlinkedTrips.map(trip => (
+            {unlinkedTrips.map((trip) => (
               <div key={trip.id} className="flex items-center gap-[10px] rounded-[10px] px-2 py-[7px]">
                 <span className="h-7 w-7 flex-none rounded-lg" style={{ background: pickGradient(trip.id) }} />
                 <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold">{trip.title}</span>
@@ -379,7 +427,7 @@ export default function MJourneySettingsSheet({
 
         {/* Contributors */}
         <div className={`${eyebrow} mb-[6px] mt-[14px]`}>{t('journey.detail.contributors')}</div>
-        {journey.contributors.map(c => (
+        {journey.contributors.map((c) => (
           <div key={c.user_id} className="flex items-center gap-[10px] px-[2px] py-1">
             <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-m-act text-[0.75rem] font-extrabold text-m-actfg">
               {(c.username || '?')[0].toUpperCase()}
@@ -396,13 +444,13 @@ export default function MJourneySettingsSheet({
               <button
                 type="button"
                 onClick={async () => {
-                  if (!window.confirm(t('journey.contributors.removeConfirm', { username: c.username }))) return
+                  if (!window.confirm(t('journey.contributors.removeConfirm', { username: c.username }))) return;
                   try {
-                    await journeyApi.removeContributor(journey.id, c.user_id)
-                    toast.success(t('journey.contributors.removed'))
-                    onRefresh()
+                    await journeyApi.removeContributor(journey.id, c.user_id);
+                    toast.success(t('journey.contributors.removed'));
+                    onRefresh();
                   } catch {
-                    toast.error(t('journey.contributors.removeFailed'))
+                    toast.error(t('journey.contributors.removeFailed'));
                   }
                 }}
                 aria-label={t('journey.contributors.remove')}
@@ -438,11 +486,11 @@ export default function MJourneySettingsSheet({
                 {copied ? t('journey.share.copied') : t('journey.share.copy')}
               </button>
             </div>
-            {([
+            {[
               { key: 'share_timeline' as const, label: t('journey.share.timeline'), icon: List },
               { key: 'share_gallery' as const, label: t('journey.share.gallery'), icon: Grid3x3 },
               { key: 'share_map' as const, label: t('journey.share.map'), icon: MapPin },
-            ]).map(({ key, label, icon: Icon }) => (
+            ].map(({ key, label, icon: Icon }) => (
               <div key={key} className="flex items-center gap-[11px] px-[2px] py-[10px]">
                 <Icon size={16} strokeWidth={2} className="flex-none text-m-muted" />
                 <span className="min-w-0 flex-1 text-[0.84375rem] font-bold">{label}</span>
@@ -460,8 +508,17 @@ export default function MJourneySettingsSheet({
         )}
 
         {/* Archive */}
-        <button type="button" onClick={handleArchiveToggle} disabled={archiving} className={`${solidBtn} mt-[14px] disabled:opacity-40`}>
-          {journey.status === 'archived' ? <ArchiveRestore size={13} strokeWidth={2.2} /> : <Archive size={13} strokeWidth={2.2} />}
+        <button
+          type="button"
+          onClick={handleArchiveToggle}
+          disabled={archiving}
+          className={`${solidBtn} mt-[14px] disabled:opacity-40`}
+        >
+          {journey.status === 'archived' ? (
+            <ArchiveRestore size={13} strokeWidth={2.2} />
+          ) : (
+            <Archive size={13} strokeWidth={2.2} />
+          )}
           {journey.status === 'archived' ? t('journey.settings.reopenJourney') : t('journey.settings.endJourney')}
         </button>
       </div>
@@ -496,14 +553,14 @@ export default function MJourneySettingsSheet({
         isOpen={!!unlinkTarget}
         onClose={() => setUnlinkTarget(null)}
         onConfirm={async () => {
-          if (!unlinkTarget) return
+          if (!unlinkTarget) return;
           try {
-            await journeyApi.removeTrip(journey.id, unlinkTarget.trip_id)
-            toast.success(t('journey.trips.tripUnlinked'))
-            setUnlinkTarget(null)
-            onRefresh()
+            await journeyApi.removeTrip(journey.id, unlinkTarget.trip_id);
+            toast.success(t('journey.trips.tripUnlinked'));
+            setUnlinkTarget(null);
+            onRefresh();
           } catch {
-            toast.error(t('journey.trips.unlinkFailed'))
+            toast.error(t('journey.trips.unlinkFailed'));
           }
         }}
         title={t('journey.trips.unlinkTrip')}
@@ -522,5 +579,5 @@ export default function MJourneySettingsSheet({
         danger
       />
     </MSheet>
-  )
+  );
 }

@@ -1,8 +1,8 @@
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { JourneyPhotosRepository } from '../repositories/JourneyPhotos.repository';
 import { JourneyEntryPhotos } from './JourneyEntryPhotos.entity';
 import { Journeys } from './Journeys.entity';
 import { TrekPhotos } from './TrekPhotos.entity';
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class JourneyPhotos {
   [EntityRepositoryType]?: JourneyPhotosRepository;

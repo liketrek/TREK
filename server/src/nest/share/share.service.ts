@@ -1,35 +1,36 @@
-import { Injectable } from '@nestjs/common';
-import crypto from 'crypto';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { PermissionsService } from '../permissions/permissions.service';
-import { QueryHelpersService } from '../query-helpers/query-helpers.service';
-import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
-import { SettingsService } from '../settings/settings.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import type { User } from '../../types';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import { ShareTokens } from '../../db/entities/ShareTokens.entity';
-import type { ShareTokensRepository } from '../../db/repositories/ShareTokens.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository, TripAccess } from '../../db/repositories/Trips.repository';
-import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository } from '../../db/repositories/Days.repository';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
-import { DayNotes } from '../../db/entities/DayNotes.entity';
-import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
-import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository } from '../../db/repositories/Places.repository';
-import { PackingItems } from '../../db/entities/PackingItems.entity';
-import type { PackingItemsRepository } from '../../db/repositories/PackingItems.repository';
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
-import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
 import { Categories } from '../../db/entities/Categories.entity';
-import type { CategoriesRepository } from '../../db/repositories/Categories.repository';
 import { CollabMessages } from '../../db/entities/CollabMessages.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { DayNotes } from '../../db/entities/DayNotes.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { PackingItems } from '../../db/entities/PackingItems.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { ShareTokens } from '../../db/entities/ShareTokens.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
+import type { CategoriesRepository } from '../../db/repositories/Categories.repository';
 import type { CollabMessagesRepository } from '../../db/repositories/CollabMessages.repository';
+import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
+import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
+import type { DaysRepository } from '../../db/repositories/Days.repository';
+import type { PackingItemsRepository } from '../../db/repositories/PackingItems.repository';
+import type { PlacesRepository } from '../../db/repositories/Places.repository';
+import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import type { ShareTokensRepository } from '../../db/repositories/ShareTokens.repository';
+import type { TripsRepository, TripAccess } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
+import { UnitOfWork } from '../database/unit-of-work';
+import { PermissionsService } from '../permissions/permissions.service';
+import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+import { QueryHelpersService } from '../query-helpers/query-helpers.service';
+import { SettingsService } from '../settings/settings.service';
 import { travelOnly, withoutImages } from './share-view.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+import crypto from 'crypto';
 
 type Trip = TripAccess;
 
@@ -108,14 +109,35 @@ export interface ShareTokenInfo {
  * appearing.
  */
 const PUBLIC_METADATA_KEYS = new Set([
-  'airline', 'flight_number', 'departure_airport', 'arrival_airport',
-  'train_number', 'platform', 'operator', 'from', 'to',
-  'check_in_time', 'check_in_end_time', 'check_out_time', 'hotel',
-  'pickup_location', 'dropoff_location', 'vehicle',
+  'airline',
+  'flight_number',
+  'departure_airport',
+  'arrival_airport',
+  'train_number',
+  'platform',
+  'operator',
+  'from',
+  'to',
+  'check_in_time',
+  'check_in_end_time',
+  'check_out_time',
+  'hotel',
+  'pickup_location',
+  'dropoff_location',
+  'vehicle',
 ]);
 const PUBLIC_LEG_KEYS = new Set([
-  'from', 'to', 'airline', 'flight_number', 'train_number', 'platform', 'operator',
-  'dep_day_id', 'dep_time', 'arr_day_id', 'arr_time',
+  'from',
+  'to',
+  'airline',
+  'flight_number',
+  'train_number',
+  'platform',
+  'operator',
+  'dep_day_id',
+  'dep_time',
+  'arr_day_id',
+  'arr_time',
 ]);
 
 function pickKeys(source: Record<string, unknown>, keys: Set<string>): Record<string, unknown> {
@@ -143,7 +165,7 @@ export function publicReservationMetadata(raw: unknown): string | null {
   if (Array.isArray(source.legs)) {
     out.legs = source.legs
       .filter((leg): leg is Record<string, unknown> => !!leg && typeof leg === 'object' && !Array.isArray(leg))
-      .map(leg => pickKeys(leg, PUBLIC_LEG_KEYS));
+      .map((leg) => pickKeys(leg, PUBLIC_LEG_KEYS));
   }
   return JSON.stringify(out);
 }
@@ -205,7 +227,11 @@ export class ShareService {
    * before the expires_at migration keep NULL until touched and remain valid
    * indefinitely; an explicit update moves them onto the TTL.
    */
-  async createOrUpdate(tripId: string, userId: number, permissions: SharePermissions): Promise<{ token: string; created: boolean }> {
+  async createOrUpdate(
+    tripId: string,
+    userId: number,
+    permissions: SharePermissions,
+  ): Promise<{ token: string; created: boolean }> {
     const {
       share_map = true,
       share_bookings = true,
@@ -330,7 +356,7 @@ export class ShareService {
     let places: any[] = [];
     if (permissions.share_map) {
       days = await this.days.listByTrip(tripId);
-      const dayIds = days.map(d => d.id);
+      const dayIds = days.map((d) => d.id);
 
       if (dayIds.length > 0) {
         const allAssignments = await this.dayAssignments.listPublicForShare(dayIds);
@@ -342,20 +368,35 @@ export class ShareService {
         for (const a of allAssignments) {
           if (!byDay[a.day_id]) byDay[a.day_id] = [];
           byDay[a.day_id].push({
-            id: a.id, day_id: a.day_id, order_index: a.order_index, notes: a.notes,
+            id: a.id,
+            day_id: a.day_id,
+            order_index: a.order_index,
+            notes: a.notes,
             // The shared page shows the booking as its own chip on the day, so it needs
             // to know which stop is that booking and leave it out of the list.
             accommodation_id: a.accommodation_id ?? null,
             place: {
-              id: a.place_id, name: a.place_name, description: a.place_description,
-              lat: a.lat, lng: a.lng, address: a.address, category_id: a.category_id,
-              price: a.price, place_time: a.place_time, end_time: a.end_time,
-              duration_minutes: a.duration_minutes, notes: a.place_notes,
-              website: publicHttpUrl(a.website), phone: a.phone,
-              image_url: rewritePlacePhotoUrl(a.image_url, token), transport_mode: a.transport_mode,
-              category: a.category_id ? { id: a.category_id, name: a.category_name, color: a.category_color, icon: a.category_icon } : null,
+              id: a.place_id,
+              name: a.place_name,
+              description: a.place_description,
+              lat: a.lat,
+              lng: a.lng,
+              address: a.address,
+              category_id: a.category_id,
+              price: a.price,
+              place_time: a.place_time,
+              end_time: a.end_time,
+              duration_minutes: a.duration_minutes,
+              notes: a.place_notes,
+              website: publicHttpUrl(a.website),
+              phone: a.phone,
+              image_url: rewritePlacePhotoUrl(a.image_url, token),
+              transport_mode: a.transport_mode,
+              category: a.category_id
+                ? { id: a.category_id, name: a.category_name, color: a.category_color, icon: a.category_icon }
+                : null,
               tags: tagsByPlace[a.place_id] ?? [],
-            }
+            },
           });
         }
         assignments = byDay;
@@ -399,37 +440,30 @@ export class ShareService {
       // link shows what the booking is, not what it would take to change it
       // (#2320). The endpoints ride along, since the map draws from them.
       const endpoints = await this.publicEndpointsByReservation(tripId);
-      reservations = (await this.reservationsRepo.listPublicForShare(tripId))
-        .map((r) => ({
-          ...r,
-          url: publicHttpUrl(r.url),
-          metadata: publicReservationMetadata(r.metadata),
-          endpoints: endpoints.get(r.id) ?? [],
-          day_positions: posMap.get(r.id) ?? null,
-        }));
+      reservations = (await this.reservationsRepo.listPublicForShare(tripId)).map((r) => ({
+        ...r,
+        url: publicHttpUrl(r.url),
+        metadata: publicReservationMetadata(r.metadata),
+        endpoints: endpoints.get(r.id) ?? [],
+        day_positions: posMap.get(r.id) ?? null,
+      }));
 
       accommodations = await this.reservationsRepo.listPublicAccommodationsForShare(tripId);
     }
 
     // Packing — a public viewer is neither owner nor recipient, so only Common items
     // may surface; never a co-member's private/personal packing items (#858).
-    const packing = permissions.share_packing
-      ? await this.packingItems.listPublicForShare(tripId)
-      : [];
+    const packing = permissions.share_packing ? await this.packingItems.listPublicForShare(tripId) : [];
 
     // Budget
-    const budget = permissions.share_budget
-      ? await this.budgetItems.listPublicForShare(tripId)
-      : [];
+    const budget = permissions.share_budget ? await this.budgetItems.listPublicForShare(tripId) : [];
 
     // Categories are a shared global pool (the authed /api/categories list is
     // equally unscoped), so the public payload returns them all too.
     const categories = await this.categories.listAllUnordered();
 
     // Collab messages (only if owner chose to share)
-    const collabMessages = permissions.share_collab
-      ? await this.collabMessages.listPublicForShare(tripId)
-      : [];
+    const collabMessages = permissions.share_collab ? await this.collabMessages.listPublicForShare(tripId) : [];
 
     // Display currency the share owner sees in their Costs view. A public viewer has
     // no logged-in user, so the owner's per-user `default_currency` (with the admin
@@ -440,9 +474,8 @@ export class ShareService {
     // honours per-user → admin-default; we then fall back to trip currency → EUR
     // (`||` on purpose: an empty-string trip currency also falls back).
     let baseCurrency = (trip as { currency?: string }).currency || 'EUR';
-    const ownerSettings: Record<string, unknown> = shareRow.created_by != null
-      ? await this.settings.getUserSettings(shareRow.created_by)
-      : {};
+    const ownerSettings: Record<string, unknown> =
+      shareRow.created_by != null ? await this.settings.getUserSettings(shareRow.created_by) : {};
     const ownerDefault = ownerSettings['default_currency'];
     if (typeof ownerDefault === 'string' && ownerDefault.trim()) {
       baseCurrency = ownerDefault.trim();
@@ -469,9 +502,16 @@ export class ShareService {
     if (permissions.share_hide_images) view = withoutImages(view);
 
     return {
-      trip, baseCurrency, cartoApiKey, categories, permissions,
-      days, ...view, accommodations,
-      packing, budget,
+      trip,
+      baseCurrency,
+      cartoApiKey,
+      categories,
+      permissions,
+      days,
+      ...view,
+      accommodations,
+      packing,
+      budget,
       collab: collabMessages,
     };
   }

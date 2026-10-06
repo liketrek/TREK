@@ -1,11 +1,11 @@
 // FE-COMP-PASSKEYS-001 to FE-COMP-PASSKEYS-022
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../../tests/helpers/msw/server';
-import { ToastContainer } from '../shared/Toast';
+import { render, screen, waitFor, within } from '../../../tests/helpers/render';
 import type { PasskeyCredential } from '../../api/client';
+import { ToastContainer } from '../shared/Toast';
 import PasskeysSection from './PasskeysSection';
 
 // The WebAuthn ceremony is the one thing jsdom cannot do. @simplewebauthn/browser
@@ -26,22 +26,25 @@ const cred = (over: Partial<PasskeyCredential> = {}): PasskeyCredential => ({
   ...over,
 });
 
-function serve(opts: {
-  credentials?: PasskeyCredential[]
-  passkeyLogin?: boolean
-  passkeyConfigured?: boolean
-} = {}): void {
+function serve(
+  opts: {
+    credentials?: PasskeyCredential[];
+    passkeyLogin?: boolean;
+    passkeyConfigured?: boolean;
+  } = {}
+): void {
   server.use(
-    http.get('/api/auth/app-config', () => HttpResponse.json({
-      has_users: true,
-      allow_registration: true,
-      demo_mode: false,
-      password_login: true,
-      passkey_login: opts.passkeyLogin ?? true,
-      passkey_configured: opts.passkeyConfigured ?? true,
-    })),
-    http.get('/api/auth/passkey/credentials', () =>
-      HttpResponse.json({ credentials: opts.credentials ?? [] })),
+    http.get('/api/auth/app-config', () =>
+      HttpResponse.json({
+        has_users: true,
+        allow_registration: true,
+        demo_mode: false,
+        password_login: true,
+        passkey_login: opts.passkeyLogin ?? true,
+        passkey_configured: opts.passkeyConfigured ?? true,
+      })
+    ),
+    http.get('/api/auth/passkey/credentials', () => HttpResponse.json({ credentials: opts.credentials ?? [] }))
   );
 }
 
@@ -125,8 +128,7 @@ describe('PasskeysSection', () => {
   });
 
   it('FE-COMP-PASSKEYS-009: a failing credential list still renders the section', async () => {
-    server.use(http.get('/api/auth/passkey/credentials', () =>
-      HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    server.use(http.get('/api/auth/passkey/credentials', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
     render(<PasskeysSection />);
 
     expect(await screen.findByRole('button', { name: 'Add a passkey' })).toBeInTheDocument();
@@ -136,7 +138,7 @@ describe('PasskeysSection', () => {
   it('FE-COMP-PASSKEYS-010: a failing app-config leaves the feature off', async () => {
     server.use(
       http.get('/api/auth/app-config', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
-      http.get('/api/auth/passkey/credentials', () => HttpResponse.json({ credentials: [cred()] })),
+      http.get('/api/auth/passkey/credentials', () => HttpResponse.json({ credentials: [cred()] }))
     );
     render(<PasskeysSection />);
 
@@ -171,11 +173,16 @@ describe('PasskeysSection', () => {
       }),
       http.post('/api/auth/passkey/register/options', () => HttpResponse.json({ challenge: 'abc' })),
       http.post('/api/auth/passkey/register/verify', async ({ request }) => {
-        sent.body = await request.json() as { attestationResponse?: { id?: string }; name?: string };
+        sent.body = (await request.json()) as { attestationResponse?: { id?: string }; name?: string };
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><ToastContainer /><PasskeysSection /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PasskeysSection />
+      </>
+    );
 
     await user.click(await screen.findByRole('button', { name: 'Add a passkey' }));
     await user.type(screen.getByPlaceholderText('Current password'), 'hunter2');
@@ -197,11 +204,16 @@ describe('PasskeysSection', () => {
     server.use(
       http.post('/api/auth/passkey/register/options', () => HttpResponse.json({ challenge: 'abc' })),
       http.post('/api/auth/passkey/register/verify', async ({ request }) => {
-        sent.body = await request.json() as Record<string, unknown>;
+        sent.body = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><ToastContainer /><PasskeysSection /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PasskeysSection />
+      </>
+    );
 
     await user.click(await screen.findByRole('button', { name: 'Add a passkey' }));
     await user.type(screen.getByPlaceholderText('Current password'), 'hunter2');
@@ -218,7 +230,12 @@ describe('PasskeysSection', () => {
     const abort = new Error('user aborted');
     abort.name = 'NotAllowedError';
     startRegistration.mockRejectedValue(abort);
-    render(<><ToastContainer /><PasskeysSection /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PasskeysSection />
+      </>
+    );
 
     await user.click(await screen.findByRole('button', { name: 'Add a passkey' }));
     await user.type(screen.getByPlaceholderText('Current password'), 'hunter2');
@@ -231,9 +248,17 @@ describe('PasskeysSection', () => {
 
   it('FE-COMP-PASSKEYS-015: a rejected password surfaces the server message', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/auth/passkey/register/options', () =>
-      HttpResponse.json({ error: 'Wrong password' }, { status: 401 })));
-    render(<><ToastContainer /><PasskeysSection /></>);
+    server.use(
+      http.post('/api/auth/passkey/register/options', () =>
+        HttpResponse.json({ error: 'Wrong password' }, { status: 401 })
+      )
+    );
+    render(
+      <>
+        <ToastContainer />
+        <PasskeysSection />
+      </>
+    );
 
     await user.click(await screen.findByRole('button', { name: 'Add a passkey' }));
     await user.type(screen.getByPlaceholderText('Current password'), 'nope');
@@ -253,11 +278,16 @@ describe('PasskeysSection', () => {
         return HttpResponse.json({ credentials: [cred({ name: listCalls === 1 ? 'MacBook' : 'Work laptop' })] });
       }),
       http.patch('/api/auth/passkey/credentials/1', async ({ request }) => {
-        sent.body = await request.json() as { name?: string };
+        sent.body = (await request.json()) as { name?: string };
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><ToastContainer /><PasskeysSection /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PasskeysSection />
+      </>
+    );
 
     await screen.findByText('MacBook');
     await user.click(within(item('MacBook')).getByRole('button', { name: 'Rename' }));
@@ -277,10 +307,15 @@ describe('PasskeysSection', () => {
       http.patch('/api/auth/passkey/credentials/1', () => {
         patchCalls += 1;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     serve({ credentials: [cred()] });
-    render(<><ToastContainer /><PasskeysSection /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PasskeysSection />
+      </>
+    );
 
     await screen.findByText('MacBook');
     await user.click(within(item('MacBook')).getByRole('button', { name: 'Rename' }));
@@ -296,12 +331,19 @@ describe('PasskeysSection', () => {
   it('FE-COMP-PASSKEYS-018: clearing the name cancels the rename without calling the API', async () => {
     const user = userEvent.setup();
     let patchCalls = 0;
-    server.use(http.patch('/api/auth/passkey/credentials/1', () => {
-      patchCalls += 1;
-      return HttpResponse.json({ success: true });
-    }));
+    server.use(
+      http.patch('/api/auth/passkey/credentials/1', () => {
+        patchCalls += 1;
+        return HttpResponse.json({ success: true });
+      })
+    );
     serve({ credentials: [cred()] });
-    render(<><ToastContainer /><PasskeysSection /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PasskeysSection />
+      </>
+    );
 
     await screen.findByText('MacBook');
     await user.click(within(item('MacBook')).getByRole('button', { name: 'Rename' }));
@@ -315,12 +357,19 @@ describe('PasskeysSection', () => {
   it('FE-COMP-PASSKEYS-022: the rename X button drops the edit and restores the row', async () => {
     const user = userEvent.setup();
     let patchCalls = 0;
-    server.use(http.patch('/api/auth/passkey/credentials/1', () => {
-      patchCalls += 1;
-      return HttpResponse.json({ success: true });
-    }));
+    server.use(
+      http.patch('/api/auth/passkey/credentials/1', () => {
+        patchCalls += 1;
+        return HttpResponse.json({ success: true });
+      })
+    );
     serve({ credentials: [cred()] });
-    render(<><ToastContainer /><PasskeysSection /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PasskeysSection />
+      </>
+    );
 
     await screen.findByText('MacBook');
     await user.click(within(item('MacBook')).getByRole('button', { name: 'Rename' }));
@@ -334,10 +383,16 @@ describe('PasskeysSection', () => {
 
   it('FE-COMP-PASSKEYS-019: a failing rename surfaces the server message', async () => {
     const user = userEvent.setup();
-    server.use(http.patch('/api/auth/passkey/credentials/1', () =>
-      HttpResponse.json({ error: 'Name taken' }, { status: 409 })));
+    server.use(
+      http.patch('/api/auth/passkey/credentials/1', () => HttpResponse.json({ error: 'Name taken' }, { status: 409 }))
+    );
     serve({ credentials: [cred()] });
-    render(<><ToastContainer /><PasskeysSection /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PasskeysSection />
+      </>
+    );
 
     await screen.findByText('MacBook');
     await user.click(within(item('MacBook')).getByRole('button', { name: 'Rename' }));
@@ -357,11 +412,16 @@ describe('PasskeysSection', () => {
         return HttpResponse.json({ credentials: listCalls === 1 ? [cred()] : [] });
       }),
       http.delete('/api/auth/passkey/credentials/1', async ({ request }) => {
-        sent.body = await request.json() as { password?: string };
+        sent.body = (await request.json()) as { password?: string };
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><ToastContainer /><PasskeysSection /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PasskeysSection />
+      </>
+    );
 
     await screen.findByText('MacBook');
     await user.click(within(item('MacBook')).getByRole('button', { name: 'Delete' }));
@@ -369,7 +429,9 @@ describe('PasskeysSection', () => {
     expect(within(panel).getByRole('button', { name: 'Delete' })).toBeDisabled();
 
     await user.click(within(panel).getByRole('button', { name: 'Cancel' }));
-    await waitFor(() => expect(screen.queryByText('Remove this passkey? Confirm with your password.')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText('Remove this passkey? Confirm with your password.')).not.toBeInTheDocument()
+    );
 
     await user.click(within(item('MacBook')).getByRole('button', { name: 'Delete' }));
     const panel2 = screen.getByText('Remove this passkey? Confirm with your password.').parentElement as HTMLElement;
@@ -383,10 +445,18 @@ describe('PasskeysSection', () => {
 
   it('FE-COMP-PASSKEYS-021: a failing delete surfaces the server message and keeps the panel open', async () => {
     const user = userEvent.setup();
-    server.use(http.delete('/api/auth/passkey/credentials/1', () =>
-      HttpResponse.json({ error: 'Wrong password' }, { status: 401 })));
+    server.use(
+      http.delete('/api/auth/passkey/credentials/1', () =>
+        HttpResponse.json({ error: 'Wrong password' }, { status: 401 })
+      )
+    );
     serve({ credentials: [cred()] });
-    render(<><ToastContainer /><PasskeysSection /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PasskeysSection />
+      </>
+    );
 
     await screen.findByText('MacBook');
     await user.click(within(item('MacBook')).getByRole('button', { name: 'Delete' }));

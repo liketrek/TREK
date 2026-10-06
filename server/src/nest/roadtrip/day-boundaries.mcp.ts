@@ -1,18 +1,26 @@
-import { z } from 'zod';
-import { MAX_TRIP_DAYS, roadtripDayBoundarySchema, type RoadtripDayBoundary } from '@trek/shared';
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, ok, type McpContext } from '../../nest-mcp';
-import { demoDenied, noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { InjectRepository } from '@mikro-orm/nestjs';
+import { ADDON_IDS } from '../../addons';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { demoDenied, noAccess, permissionDenied } from '../../mcp/tools/_shared';
+import {
+  McpController,
+  Tool,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  ok,
+  type McpContext,
+} from '../../nest-mcp';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
 import { AuthService } from '../auth/auth.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { RealtimeService } from '../realtime/realtime.service';
-import { AddonsService } from '../addons/addons.service';
-import { addonGate } from '../addons/addon-gate';
-import { ADDON_IDS } from '../../addons';
 import { DayBoundariesService } from './day-boundaries.service';
 import { answeringRefusals } from './roadtrip-mcp.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { MAX_TRIP_DAYS, roadtripDayBoundarySchema, type RoadtripDayBoundary } from '@trek/shared';
+
+import { z } from 'zod';
 
 const when = addonGate(ADDON_IDS.ROADTRIP);
 
@@ -28,9 +36,12 @@ export class DayBoundariesMcp {
   ) {}
 
   @Tool({
-    name: 'list_day_boundaries', description: 'List manual road trip day endings. They apply only with daily travel times enabled.',
+    name: 'list_day_boundaries',
+    description: 'List manual road trip day endings. They apply only with daily travel times enabled.',
     inputSchema: { tripId: z.number().int().positive() },
-    annotations: TOOL_ANNOTATIONS_READONLY, access: { group: 'trips', mode: 'read' }, when,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'trips', mode: 'read' },
+    when,
   })
   async list({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
@@ -39,11 +50,21 @@ export class DayBoundariesMcp {
 
   @Tool({
     name: 'set_day_boundary',
-    description: 'Override a road trip day ending at a visit or a fraction along the driving leg between consecutive visits. Daily travel times must be enabled in the planner. Fixed visit times stay protected and conflicts are shown. With roadtrip_hotel_bookends on, a boundary between two stops a booked night separates is ignored: the night ends the day. Pass null to restore the automatic day ending.',
-    inputSchema: { tripId: z.number().int().positive(), dayNumber: z.number().int().min(1).max(MAX_TRIP_DAYS), boundary: roadtripDayBoundarySchema.nullable() },
-    annotations: TOOL_ANNOTATIONS_WRITE, access: { group: 'trips', mode: 'write' }, when,
+    description:
+      'Override a road trip day ending at a visit or a fraction along the driving leg between consecutive visits. Daily travel times must be enabled in the planner. Fixed visit times stay protected and conflicts are shown. With roadtrip_hotel_bookends on, a boundary between two stops a booked night separates is ignored: the night ends the day. Pass null to restore the automatic day ending.',
+    inputSchema: {
+      tripId: z.number().int().positive(),
+      dayNumber: z.number().int().min(1).max(MAX_TRIP_DAYS),
+      boundary: roadtripDayBoundarySchema.nullable(),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'trips', mode: 'write' },
+    when,
   })
-  async save({ tripId, dayNumber, boundary }: { tripId: number; dayNumber: number; boundary: RoadtripDayBoundary | null }, ctx: McpContext) {
+  async save(
+    { tripId, dayNumber, boundary }: { tripId: number; dayNumber: number; boundary: RoadtripDayBoundary | null },
+    ctx: McpContext,
+  ) {
     if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();

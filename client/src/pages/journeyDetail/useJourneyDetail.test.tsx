@@ -1,13 +1,13 @@
 // FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-031
-import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
-import { useLocation } from 'react-router';
-import { delay, http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
-import { act, render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
-import { addListener, removeListener } from '../../api/websocket';
-import { useJourneyStore } from '../../store/journeyStore';
-import type { JourneyDetail, JourneyEntry } from '../../store/journeyStore';
 import type { JourneyTrack } from '@trek/shared';
+import { delay, http, HttpResponse } from 'msw';
+import { useLocation } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { server } from '../../../tests/helpers/msw/server';
+import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
+import { addListener, removeListener } from '../../api/websocket';
+import type { JourneyDetail, JourneyEntry } from '../../store/journeyStore';
+import { useJourneyStore } from '../../store/journeyStore';
 import { useJourneyDetail } from './useJourneyDetail';
 
 let routeParams: { id?: string } = { id: '7' };
@@ -30,21 +30,45 @@ const journeyStoreInitial = useJourneyStore.getState();
 
 function buildEntry(over: Partial<JourneyEntry> = {}): JourneyEntry {
   return {
-    id: 1, journey_id: 7, author_id: 1, type: 'entry', title: 'Arrival', story: null,
-    entry_date: '2026-05-01', entry_time: null, location_name: 'Tokyo',
-    location_lat: 35.6, location_lng: 139.7, mood: 'good', weather: null,
-    tags: [], pros_cons: null, visibility: 'private', sort_order: 0, photos: [],
-    created_at: 0, updated_at: 0,
+    id: 1,
+    journey_id: 7,
+    author_id: 1,
+    type: 'entry',
+    title: 'Arrival',
+    story: null,
+    entry_date: '2026-05-01',
+    entry_time: null,
+    location_name: 'Tokyo',
+    location_lat: 35.6,
+    location_lng: 139.7,
+    mood: 'good',
+    weather: null,
+    tags: [],
+    pros_cons: null,
+    visibility: 'private',
+    sort_order: 0,
+    photos: [],
+    created_at: 0,
+    updated_at: 0,
     ...over,
   };
 }
 
 function buildDetail(over: Partial<JourneyDetail> = {}): JourneyDetail {
   return {
-    id: 7, user_id: 1, title: 'Japan 2026', subtitle: null, cover_gradient: null,
-    cover_image: null, status: 'active', created_at: 0, updated_at: 0,
+    id: 7,
+    user_id: 1,
+    title: 'Japan 2026',
+    subtitle: null,
+    cover_gradient: null,
+    cover_image: null,
+    status: 'active',
+    created_at: 0,
+    updated_at: 0,
     entries: [buildEntry(), buildEntry({ id: 2, title: 'Kyoto', entry_date: '2026-05-02' })],
-    gallery: [], trips: [], contributors: [],
+    gallery: [],
+    trips: [],
+    contributors: [],
     stats: { entries: 2, photos: 0, places: 0 },
     ...over,
   };
@@ -55,16 +79,28 @@ function serveJourney(detail: JourneyDetail | Record<string, unknown>): void {
 }
 
 function buildTrack(over: Partial<JourneyTrack> = {}): JourneyTrack {
-  return { place_id: 4, trip_id: 2, name: 'Ridge walk', color: '#ff0000', points: [[47.1, 11.2], [47.2, 11.3]], ...over };
+  return {
+    place_id: 4,
+    trip_id: 2,
+    name: 'Ridge walk',
+    color: '#ff0000',
+    points: [
+      [47.1, 11.2],
+      [47.2, 11.3],
+    ],
+    ...over,
+  };
 }
 
 /** Counts what the map's geometry endpoint is actually asked for. */
 function serveTracks(journeyId: number, tracks: JourneyTrack[] = []) {
   const asked = vi.fn();
-  server.use(http.get(`/api/journeys/${journeyId}/tracks`, () => {
-    asked();
-    return HttpResponse.json({ tracks });
-  }));
+  server.use(
+    http.get(`/api/journeys/${journeyId}/tracks`, () => {
+      asked();
+      return HttpResponse.json({ tracks });
+    })
+  );
   return asked;
 }
 
@@ -81,9 +117,12 @@ function Harness({ renderEntries = true }: { renderEntries?: boolean }) {
     <div>
       <span data-testid="search">{location.search}</span>
       <div ref={state.feedRef} data-testid="feed">
-        {renderEntries && (state.current?.entries ?? []).map(e => (
-          <div key={e.id} data-entry-id={String(e.id)} data-testid={`entry-${e.id}`}>{e.title}</div>
-        ))}
+        {renderEntries &&
+          (state.current?.entries ?? []).map((e) => (
+            <div key={e.id} data-entry-id={String(e.id)} data-testid={`entry-${e.id}`}>
+              {e.title}
+            </div>
+          ))}
         {renderEntries && <div data-entry-id="" data-testid="entry-blank" />}
       </div>
     </div>
@@ -112,7 +151,10 @@ beforeEach(() => {
   addToast = vi.fn<AddToast>(() => 0);
   window.__addToast = addToast;
   useJourneyStore.setState(journeyStoreInitial, true);
-  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { cb(0); return 1; });
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+    cb(0);
+    return 1;
+  });
   vi.stubGlobal('cancelAnimationFrame', vi.fn());
   serveJourney(buildDetail());
 });
@@ -225,7 +267,7 @@ describe('useJourneyDetail', () => {
     handler({ type: 'trip:updated', journeyId: 7 });
     handler({ type: 'journey:entry_created', journeyId: 99 });
     handler({ journeyId: 7 });
-    await new Promise(r => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 20));
     expect(latest.current?.title).toBe('Japan 2026');
   });
 
@@ -258,7 +300,7 @@ describe('useJourneyDetail', () => {
     setup({ renderEntries: false });
     await waitFor(() => expect(latest.current).not.toBeNull());
     fireEvent.scroll(screen.getByTestId('feed'));
-    await new Promise(r => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 20));
     expect(latest.activeEntryId).toBeNull();
   });
 
@@ -308,58 +350,86 @@ describe('useJourneyDetail', () => {
   });
 
   it('FE-JRN-DETHOOK-017: only located, non-skeleton entries reach the map', async () => {
-    serveJourney(buildDetail({
-      entries: [
-        buildEntry({ id: 1 }),
-        buildEntry({ id: 2, title: 'Gallery' }),
-        buildEntry({ id: 3, title: '[Trip Photos]' }),
-        buildEntry({ id: 4, type: 'skeleton', title: 'Suggested' }),
-        buildEntry({ id: 5, title: 'No GPS', location_lat: null, location_lng: null }),
-        buildEntry({ id: 6, title: 'Later', entry_date: '2026-05-02' }),
-      ],
-    }));
+    serveJourney(
+      buildDetail({
+        entries: [
+          buildEntry({ id: 1 }),
+          buildEntry({ id: 2, title: 'Gallery' }),
+          buildEntry({ id: 3, title: '[Trip Photos]' }),
+          buildEntry({ id: 4, type: 'skeleton', title: 'Suggested' }),
+          buildEntry({ id: 5, title: 'No GPS', location_lat: null, location_lng: null }),
+          buildEntry({ id: 6, title: 'Later', entry_date: '2026-05-02' }),
+        ],
+      })
+    );
     setup();
     await waitFor(() => expect(latest.mapEntries).toHaveLength(2));
-    expect(latest.mapEntries.map(e => e.id)).toEqual([1, 6]);
-    expect(latest.sidebarMapItems.map(m => m.id)).toEqual(['1', '6']);
+    expect(latest.mapEntries.map((e) => e.id)).toEqual([1, 6]);
+    expect(latest.sidebarMapItems.map((m) => m.id)).toEqual(['1', '6']);
     expect(latest.sidebarMapItems[0].dayLabel).toBe(1);
     expect(latest.sidebarMapItems[0].dayColor).not.toBe(latest.sidebarMapItems[1].dayColor);
   });
 
   it('FE-JRN-DETHOOK-018: two entries on one day get consecutive day labels and one colour', async () => {
-    serveJourney(buildDetail({
-      entries: [buildEntry({ id: 1 }), buildEntry({ id: 2, title: 'Second stop' })],
-    }));
+    serveJourney(
+      buildDetail({
+        entries: [buildEntry({ id: 1 }), buildEntry({ id: 2, title: 'Second stop' })],
+      })
+    );
     setup();
     await waitFor(() => expect(latest.sidebarMapItems).toHaveLength(2));
-    expect(latest.sidebarMapItems.map(m => m.dayLabel)).toEqual([1, 2]);
+    expect(latest.sidebarMapItems.map((m) => m.dayLabel)).toEqual([1, 2]);
     expect(latest.sidebarMapItems[0].dayColor).toBe(latest.sidebarMapItems[1].dayColor);
   });
 
   it('FE-JRN-DETHOOK-2453: geotagged gallery photos become the map layer, and a tap opens them', async () => {
-    serveJourney(buildDetail({
-      gallery: [
-        { id: 3, photo_id: 30, lat: 48.1, lng: 11.5, caption: 'Marienplatz' },
-        { id: 4, photo_id: 40, lat: null, lng: null },
-      ] as never,
-    }));
+    serveJourney(
+      buildDetail({
+        gallery: [
+          { id: 3, photo_id: 30, lat: 48.1, lng: 11.5, caption: 'Marienplatz' },
+          { id: 4, photo_id: 40, lat: null, lng: null },
+        ] as never,
+      })
+    );
     setup();
     await waitFor(() => expect(latest.mapPhotos).toHaveLength(1));
     expect(latest.mapPhotos[0]).toEqual({ id: '3', lat: 48.1, lng: 11.5, thumbUrl: '/api/photos/30/thumbnail' });
     act(() => latest.openMapPhotos(['3']));
-    expect(latest.lightbox?.photos).toEqual([expect.objectContaining({ id: 3, src: '/api/photos/30/original', caption: 'Marienplatz' })]);
+    expect(latest.lightbox?.photos).toEqual([
+      expect.objectContaining({ id: 3, src: '/api/photos/30/original', caption: 'Marienplatz' }),
+    ]);
     act(() => latest.setLightbox(null));
     act(() => latest.openMapPhotos(['999']));
     expect(latest.lightbox).toBeNull();
   });
 
   it('FE-JRN-DETHOOK-019: tripDates expands linked trips and skips half-dated ones', async () => {
-    serveJourney(buildDetail({
-      trips: [
-        { trip_id: 1, added_at: 0, title: 'Tokyo', start_date: '2026-05-01', end_date: '2026-05-03', cover_image: null, currency: 'EUR', place_count: 0 },
-        { trip_id: 2, added_at: 0, title: 'Open ended', start_date: '2026-06-01', end_date: null, cover_image: null, currency: 'EUR', place_count: 0 },
-      ],
-    }));
+    serveJourney(
+      buildDetail({
+        trips: [
+          {
+            trip_id: 1,
+            added_at: 0,
+            title: 'Tokyo',
+            start_date: '2026-05-01',
+            end_date: '2026-05-03',
+            cover_image: null,
+            currency: 'EUR',
+            place_count: 0,
+          },
+          {
+            trip_id: 2,
+            added_at: 0,
+            title: 'Open ended',
+            start_date: '2026-06-01',
+            end_date: null,
+            cover_image: null,
+            currency: 'EUR',
+            place_count: 0,
+          },
+        ],
+      })
+    );
     setup();
     // Three days for the closed trip, nothing for the open-ended one. The keys are local
     // dates, so they match the trip's own start/end regardless of the runner's timezone.
@@ -452,7 +522,7 @@ describe('useJourneyDetail', () => {
     const asked = serveTracks(7, [buildTrack()]);
     setup();
     await waitFor(() => expect(latest.current).not.toBeNull());
-    await new Promise(r => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 20));
 
     expect(asked).not.toHaveBeenCalled();
     expect(latest.tracks).toEqual([]);
@@ -475,10 +545,12 @@ describe('useJourneyDetail', () => {
     routeParams = { id: '8' };
     useJourneyStore.setState({ current: buildDetail({ show_trip_tracks: 1 }) });
     const asked = serveTracks(8, [buildTrack()]);
-    server.use(http.get('/api/journeys/8', async () => {
-      await delay(20);
-      return HttpResponse.json(buildDetail({ id: 8, title: 'Norway 2027' }));
-    }));
+    server.use(
+      http.get('/api/journeys/8', async () => {
+        await delay(20);
+        return HttpResponse.json(buildDetail({ id: 8, title: 'Norway 2027' }));
+      })
+    );
     setup();
 
     await waitFor(() => expect(latest.current?.id).toBe(8));
@@ -492,7 +564,7 @@ describe('useJourneyDetail', () => {
     setup();
 
     await waitFor(() => expect(latest.current?.title).toBe('Japan 2026'));
-    await new Promise(r => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 20));
     expect(latest.tracks).toEqual([]);
     expect(addToast).not.toHaveBeenCalled();
   });

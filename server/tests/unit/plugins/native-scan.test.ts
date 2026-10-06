@@ -2,15 +2,20 @@
  * Native-binary scan (#plugins, M4): .node / binding.gyp / prebuilds are
  * forbidden; symlinks are never followed.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { scanForNativeBinaries } from '../../../src/nest/plugins/install/native-scan';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { scanForNativeBinaries } from '../../../src/nest/plugins/install/native-scan';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 let dir: string;
-beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nscan-')); });
-afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+beforeEach(() => {
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nscan-'));
+});
+afterEach(() => {
+  fs.rmSync(dir, { recursive: true, force: true });
+});
 
 describe('scanForNativeBinaries', () => {
   it('is clean for a plain JS plugin', () => {

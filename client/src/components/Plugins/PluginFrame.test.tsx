@@ -1,7 +1,7 @@
 // FE-PLUGINS-FRAME-001 to 061
-import { render, cleanup, waitFor, fireEvent, screen, act } from '@testing-library/react';
-import PluginFrame from './PluginFrame';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { usePluginStore } from '../../store/pluginStore';
+import PluginFrame from './PluginFrame';
 
 const navigate = vi.fn();
 const toast = { info: vi.fn(), success: vi.fn(), warning: vi.fn(), error: vi.fn() };
@@ -11,10 +11,22 @@ const wsListeners = new Set<(ev: Record<string, unknown>) => void>();
 // Host state the frame mirrors into its context. Mutable so a single test can
 // change one input (no user, another currency) without a second mock factory.
 const DEFAULT_USER = { id: 7, username: 'ada', avatar_url: null, role: 'admin' };
-const DEFAULT_SETTINGS = { default_currency: 'EUR', time_format: '24h', distance_unit: 'metric', temperature_unit: 'celsius', blur_booking_codes: true };
+const DEFAULT_SETTINGS = {
+  default_currency: 'EUR',
+  time_format: '24h',
+  distance_unit: 'metric',
+  temperature_unit: 'celsius',
+  blur_booking_codes: true,
+};
 const host = vi.hoisted(() => ({
   user: { id: 7, username: 'ada', avatar_url: null, role: 'admin' } as Record<string, unknown> | null,
-  settings: { default_currency: 'EUR', time_format: '24h', distance_unit: 'metric', temperature_unit: 'celsius', blur_booking_codes: true } as Record<string, unknown>,
+  settings: {
+    default_currency: 'EUR',
+    time_format: '24h',
+    distance_unit: 'metric',
+    temperature_unit: 'celsius',
+    blur_booking_codes: true,
+  } as Record<string, unknown>,
   trip: null as Record<string, unknown> | null,
 }));
 
@@ -22,9 +34,13 @@ vi.mock('react-router', () => ({ useNavigate: () => navigate }));
 vi.mock('../shared/Toast', () => ({ useToast: () => toast }));
 vi.mock('../../i18n', () => ({ useTranslation: () => ({ locale: 'en', t: (k: string) => k }) }));
 vi.mock('../../store/authStore', () => ({ useAuthStore: (sel: (s: unknown) => unknown) => sel({ user: host.user }) }));
-vi.mock('../../store/settingsStore', () => ({ useSettingsStore: (sel: (s: unknown) => unknown) => sel({ settings: host.settings }) }));
+vi.mock('../../store/settingsStore', () => ({
+  useSettingsStore: (sel: (s: unknown) => unknown) => sel({ settings: host.settings }),
+}));
 vi.mock('../../store/tripStore', () => ({ useTripStore: (sel: (s: unknown) => unknown) => sel({ trip: host.trip }) }));
-vi.mock('../../api/client', () => ({ pluginsApi: { invoke: (id: string, sub: string, init?: unknown) => invoke(id, sub, init) } }));
+vi.mock('../../api/client', () => ({
+  pluginsApi: { invoke: (id: string, sub: string, init?: unknown) => invoke(id, sub, init) },
+}));
 vi.mock('../../api/websocket', () => ({
   addListener: (fn: (ev: Record<string, unknown>) => void) => wsListeners.add(fn),
   removeListener: (fn: (ev: Record<string, unknown>) => void) => wsListeners.delete(fn),
@@ -81,7 +97,9 @@ describe('PluginFrame', () => {
     const { container } = render(<PluginFrame pluginId="demo" />);
     const iframe = container.querySelector('iframe')!;
     // message NOT from our iframe -> ignored
-    window.dispatchEvent(new MessageEvent('message', { source: window, data: { type: 'trek:navigate', to: '/admin' } }));
+    window.dispatchEvent(
+      new MessageEvent('message', { source: window, data: { type: 'trek:navigate', to: '/admin' } })
+    );
     expect(navigate).not.toHaveBeenCalled();
     // message from our iframe -> handled
     fromFrame(iframe, { type: 'trek:navigate', to: '/dashboard' });
@@ -102,7 +120,8 @@ describe('PluginFrame', () => {
     const iframe = container.querySelector('iframe')!;
     const posted: unknown[] = [];
     // capture host->frame messages
-    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m);
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m);
 
     fromFrame(iframe, { type: 'trek:invoke', requestId: 'r1', sub: '/status', method: 'GET' });
     await waitFor(() => expect(invoke).toHaveBeenCalledWith('demo', '/status', { method: 'GET', body: undefined }));
@@ -116,7 +135,8 @@ describe('PluginFrame', () => {
     const { container } = render(<PluginFrame pluginId="demo" surface="trip-tab" fill />);
     const iframe = container.querySelector('iframe')!;
     const posted: Array<Record<string, unknown>> = [];
-    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m as Record<string, unknown>);
 
     fromFrame(iframe, { type: 'trek:context:request' });
 
@@ -129,7 +149,8 @@ describe('PluginFrame', () => {
     const { container } = render(<PluginFrame pluginId="demo" surface="dashboard-widget" />);
     const iframe = container.querySelector('iframe')!;
     const posted: Array<Record<string, unknown>> = [];
-    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m as Record<string, unknown>);
 
     fromFrame(iframe, { type: 'trek:context:request' });
 
@@ -150,7 +171,8 @@ describe('PluginFrame', () => {
       const { container } = render(<PluginFrame pluginId="demo" surface="trip-tab" fill />);
       const iframe = container.querySelector('iframe')!;
       const posted: Array<Record<string, unknown>> = [];
-      (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+      (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+        posted.push(m as Record<string, unknown>);
 
       fromFrame(iframe, { type: 'trek:context:request' });
 
@@ -165,7 +187,8 @@ describe('PluginFrame', () => {
     const { container } = render(<PluginFrame pluginId="demo" />);
     const iframe = container.querySelector('iframe')!;
     const posted: Array<Record<string, unknown>> = [];
-    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m as Record<string, unknown>);
 
     fromFrame(iframe, { type: 'trek:context:request' });
 
@@ -188,7 +211,8 @@ describe('PluginFrame', () => {
     const { container } = render(<PluginFrame pluginId="demo" tripId="1" dayId="12" />);
     const iframe = container.querySelector('iframe')!;
     const posted: Array<Record<string, unknown>> = [];
-    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m as Record<string, unknown>);
 
     fromFrame(iframe, { type: 'trek:context:request' });
 
@@ -203,7 +227,8 @@ describe('PluginFrame', () => {
     const { container } = render(<PluginFrame pluginId="demo" tripId="1" reservationId="88" />);
     const iframe = container.querySelector('iframe')!;
     const posted: Array<Record<string, unknown>> = [];
-    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m as Record<string, unknown>);
 
     fromFrame(iframe, { type: 'trek:context:request' });
 
@@ -219,7 +244,8 @@ describe('PluginFrame', () => {
     const { container } = render(<PluginFrame pluginId="demo" />);
     const iframe = container.querySelector('iframe')!;
     const posted: Array<Record<string, unknown>> = [];
-    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m as Record<string, unknown>);
 
     fromFrame(iframe, { type: 'trek:context:request' });
 
@@ -237,14 +263,18 @@ describe('PluginFrame', () => {
   it('FE-PLUGINS-FRAME-007: fill mode pins the frame to 100% height and ignores trek:resize', () => {
     const { container } = render(<PluginFrame pluginId="demo" fill />);
     const iframe = container.querySelector('iframe')!;
-    act(() => { fromFrame(iframe, { type: 'trek:resize', height: 480 }); });
+    act(() => {
+      fromFrame(iframe, { type: 'trek:resize', height: 480 });
+    });
     expect(iframe.style.height).toBe('100%');
   });
 
   it('FE-PLUGINS-FRAME-008: without fill, trek:resize drives the frame height (widget self-sizing)', () => {
     const { container } = render(<PluginFrame pluginId="demo" />);
     const iframe = container.querySelector('iframe')!;
-    act(() => { fromFrame(iframe, { type: 'trek:resize', height: 480 }); });
+    act(() => {
+      fromFrame(iframe, { type: 'trek:resize', height: 480 });
+    });
     expect(iframe.style.height).toBe('480px');
   });
 
@@ -252,9 +282,15 @@ describe('PluginFrame', () => {
     const { container } = render(<PluginFrame pluginId="demo" />);
     const iframe = container.querySelector('iframe')!;
     const posted: Array<Record<string, unknown>> = [];
-    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m as Record<string, unknown>);
 
-    fromFrame(iframe, { type: 'trek:confirm', requestId: 'c1', message: 'Delete everything?', confirmLabel: 'Yes, wipe it' });
+    fromFrame(iframe, {
+      type: 'trek:confirm',
+      requestId: 'c1',
+      message: 'Delete everything?',
+      confirmLabel: 'Yes, wipe it',
+    });
     const confirmBtn = await screen.findByText('Yes, wipe it');
     fireEvent.click(confirmBtn);
 
@@ -280,7 +316,8 @@ describe('PluginFrame', () => {
     const { container } = render(<PluginFrame pluginId="demo" tripId="42" />);
     const iframe = container.querySelector('iframe')!;
     const posted: Array<Record<string, unknown>> = [];
-    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m as Record<string, unknown>);
     // The bridge only forwards to the original document (first load).
     fireEvent.load(iframe);
 
@@ -312,7 +349,9 @@ describe('PluginFrame', () => {
     rerender(<PluginFrame pluginId="beta" />);
     const next = container.querySelector('iframe')!; // keyed by pluginId -> fresh element
     expect(next.getAttribute('src')).toBe('/plugin-frame/beta/index.html');
-    act(() => { fireEvent.load(next); });
+    act(() => {
+      fireEvent.load(next);
+    });
 
     // Without the per-plugin reset this would be refused as a "navigated" frame.
     fromFrame(next, { type: 'trek:navigate', to: '/dashboard' });
@@ -336,7 +375,9 @@ describe('PluginFrame', () => {
       geo.watchPosition.mockClear();
       geo.clearWatch.mockClear();
     });
-    afterEach(() => { grant(false); });
+    afterEach(() => {
+      grant(false);
+    });
 
     function mount(granted: boolean) {
       grant(granted);
@@ -351,13 +392,17 @@ describe('PluginFrame', () => {
     it('FE-PLUGINS-FRAME-015: refuses an ungranted plugin without touching the browser API', () => {
       const { iframe, posted } = mount(false);
       fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g1' });
-      expect(posted.find((m) => m.type === 'trek:geolocation:result')).toMatchObject({ requestId: 'g1', error: 'forbidden' });
+      expect(posted.find((m) => m.type === 'trek:geolocation:result')).toMatchObject({
+        requestId: 'g1',
+        error: 'forbidden',
+      });
       expect(geo.getCurrentPosition).not.toHaveBeenCalled();
     });
 
     it('FE-PLUGINS-FRAME-016: a granted get posts plain position data into the frame', () => {
       geo.getCurrentPosition.mockImplementation((ok: (p: unknown) => void) =>
-        ok({ coords: { latitude: 52.5, longitude: 13.4, accuracy: 9, heading: null, speed: null }, timestamp: 1234 }));
+        ok({ coords: { latitude: 52.5, longitude: 13.4, accuracy: 9, heading: null, speed: null }, timestamp: 1234 })
+      );
       const { iframe, posted } = mount(true);
       fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g2' });
       expect(posted.find((m) => m.type === 'trek:geolocation:result')).toMatchObject({
@@ -368,12 +413,20 @@ describe('PluginFrame', () => {
 
     it('FE-PLUGINS-FRAME-017: watch streams updates and the GPS watch dies with the frame', () => {
       let tick: ((p: unknown) => void) | null = null;
-      geo.watchPosition.mockImplementation((ok: (p: unknown) => void) => { tick = ok; return 7; });
+      geo.watchPosition.mockImplementation((ok: (p: unknown) => void) => {
+        tick = ok;
+        return 7;
+      });
       const { iframe, posted, unmount } = mount(true);
 
       fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g3', action: 'watch' });
-      expect(posted.find((m) => m.type === 'trek:geolocation:result')).toMatchObject({ requestId: 'g3', watching: true });
-      act(() => tick!({ coords: { latitude: 1, longitude: 2, accuracy: 5, heading: null, speed: null }, timestamp: 1 }));
+      expect(posted.find((m) => m.type === 'trek:geolocation:result')).toMatchObject({
+        requestId: 'g3',
+        watching: true,
+      });
+      act(() =>
+        tick!({ coords: { latitude: 1, longitude: 2, accuracy: 5, heading: null, speed: null }, timestamp: 1 })
+      );
       expect(posted.find((m) => m.type === 'trek:geolocation:update')).toMatchObject({ position: { lat: 1, lng: 2 } });
 
       // Unmounting must never leave a live GPS watch behind.
@@ -383,27 +436,42 @@ describe('PluginFrame', () => {
 
     it('FE-PLUGINS-FRAME-060: a host settings change re-bridges without dropping the watch', () => {
       let tick: ((p: unknown) => void) | null = null;
-      geo.watchPosition.mockImplementation((ok: (p: unknown) => void) => { tick = ok; return 7; });
+      geo.watchPosition.mockImplementation((ok: (p: unknown) => void) => {
+        tick = ok;
+        return 7;
+      });
       const { iframe, posted, rerender } = mount(true);
-      act(() => { fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g20', action: 'watch' }); });
+      act(() => {
+        fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g20', action: 'watch' });
+      });
 
       // Any settings write re-runs the bridge effect; the watch must survive it.
       host.settings = { ...DEFAULT_SETTINGS, distance_unit: 'imperial' };
-      act(() => { rerender(<PluginFrame pluginId="demo" />); });
+      act(() => {
+        rerender(<PluginFrame pluginId="demo" />);
+      });
 
       expect(geo.clearWatch).not.toHaveBeenCalled();
       const before = posted.length;
-      act(() => tick!({ coords: { latitude: 5, longitude: 6, accuracy: 5, heading: null, speed: null }, timestamp: 3 }));
+      act(() =>
+        tick!({ coords: { latitude: 5, longitude: 6, accuracy: 5, heading: null, speed: null }, timestamp: 3 })
+      );
       expect(posted.length).toBe(before + 1);
     });
 
     it('FE-PLUGINS-FRAME-061: a frame that navigates itself has its watch released', () => {
       const { iframe } = mount(true);
-      act(() => { fireEvent.load(iframe); });
-      act(() => { fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g21', action: 'watch' }); });
+      act(() => {
+        fireEvent.load(iframe);
+      });
+      act(() => {
+        fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g21', action: 'watch' });
+      });
 
       // Second load = the frame navigated away, so nothing receives the stream any more.
-      act(() => { fireEvent.load(iframe); });
+      act(() => {
+        fireEvent.load(iframe);
+      });
 
       expect(geo.clearWatch).toHaveBeenCalledWith(7);
     });
@@ -413,12 +481,17 @@ describe('PluginFrame', () => {
       fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g4', action: 'watch' });
       fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g5', action: 'clear' });
       expect(geo.clearWatch).toHaveBeenCalledWith(7);
-      expect(posted.find((m) => m.type === 'trek:geolocation:result' && m.requestId === 'g5')).toMatchObject({ cleared: true });
+      expect(posted.find((m) => m.type === 'trek:geolocation:result' && m.requestId === 'g5')).toMatchObject({
+        cleared: true,
+      });
     });
 
     it('FE-PLUGINS-FRAME-019: a running watch stops streaming the moment the grant is revoked', () => {
       let tick: ((p: unknown) => void) | null = null;
-      geo.watchPosition.mockImplementation((ok: (p: unknown) => void) => { tick = ok; return 7; });
+      geo.watchPosition.mockImplementation((ok: (p: unknown) => void) => {
+        tick = ok;
+        return 7;
+      });
       const { iframe, posted } = mount(true);
       fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g6', action: 'watch' });
 
@@ -426,7 +499,9 @@ describe('PluginFrame', () => {
       // updates the ref the watch callback reads).
       act(() => grant(false));
       const before = posted.length;
-      act(() => tick!({ coords: { latitude: 3, longitude: 4, accuracy: 5, heading: null, speed: null }, timestamp: 2 }));
+      act(() =>
+        tick!({ coords: { latitude: 3, longitude: 4, accuracy: 5, heading: null, speed: null }, timestamp: 2 })
+      );
       // No further position leaks, and the OS watch is released.
       expect(posted.length).toBe(before);
       expect(geo.clearWatch).toHaveBeenCalledWith(7);
@@ -453,10 +528,15 @@ describe('PluginFrame', () => {
     });
 
     it('FE-PLUGINS-FRAME-025: maps the browser error codes onto the bridge vocabulary', () => {
-      const codes: Array<[number, string]> = [[1, 'denied'], [3, 'timeout'], [2, 'unavailable']];
+      const codes: Array<[number, string]> = [
+        [1, 'denied'],
+        [3, 'timeout'],
+        [2, 'unavailable'],
+      ];
       for (const [code, expected] of codes) {
         geo.getCurrentPosition.mockImplementation((_ok: unknown, fail: (e: unknown) => void) =>
-          fail({ code, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 }));
+          fail({ code, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 })
+        );
         const { iframe, posted, unmount } = mount(true);
         fromFrame(iframe, { type: 'trek:geolocation', requestId: `e${code}` });
         expect(answerFor(posted, `e${code}`)).toMatchObject({ error: expected });
@@ -466,7 +546,10 @@ describe('PluginFrame', () => {
 
     it('FE-PLUGINS-FRAME-026: a watch error is streamed as an update, not a result', () => {
       let boom: ((e: unknown) => void) | null = null;
-      geo.watchPosition.mockImplementation((_ok: unknown, fail: (e: unknown) => void) => { boom = fail; return 7; });
+      geo.watchPosition.mockImplementation((_ok: unknown, fail: (e: unknown) => void) => {
+        boom = fail;
+        return 7;
+      });
       const { iframe, posted } = mount(true);
 
       fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g8', action: 'watch' });
@@ -496,7 +579,9 @@ describe('PluginFrame', () => {
       let tick: ((p: unknown) => void) | null = null;
       let boom: ((e: unknown) => void) | null = null;
       geo.watchPosition.mockImplementation((ok: (p: unknown) => void, fail: (e: unknown) => void) => {
-        tick = ok; boom = fail; return 7;
+        tick = ok;
+        boom = fail;
+        return 7;
       });
       const { iframe, posted } = mount(true);
 
@@ -508,7 +593,9 @@ describe('PluginFrame', () => {
 
       // Stale callbacks from the released watch: nothing is posted, and the
       // already-cleared watch id is not cleared a second time.
-      act(() => tick!({ coords: { latitude: 1, longitude: 2, accuracy: 5, heading: null, speed: null }, timestamp: 1 }));
+      act(() =>
+        tick!({ coords: { latitude: 1, longitude: 2, accuracy: 5, heading: null, speed: null }, timestamp: 1 })
+      );
       act(() => boom!({ code: 1, PERMISSION_DENIED: 1, TIMEOUT: 3 }));
 
       expect(posted.length).toBe(before);
@@ -518,12 +605,19 @@ describe('PluginFrame', () => {
     it('FE-PLUGINS-FRAME-057: a position resolved after the frame navigated is never delivered', () => {
       let ok: ((p: unknown) => void) | null = null;
       let fail: ((e: unknown) => void) | null = null;
-      geo.getCurrentPosition.mockImplementation((o: (p: unknown) => void, f: (e: unknown) => void) => { ok = o; fail = f; });
+      geo.getCurrentPosition.mockImplementation((o: (p: unknown) => void, f: (e: unknown) => void) => {
+        ok = o;
+        fail = f;
+      });
       const { iframe, posted } = mount(true);
 
       fromFrame(iframe, { type: 'trek:geolocation', requestId: 'g14' });
-      act(() => { fireEvent.load(iframe); });
-      act(() => { fireEvent.load(iframe); }); // self-navigation while the fix was pending
+      act(() => {
+        fireEvent.load(iframe);
+      });
+      act(() => {
+        fireEvent.load(iframe);
+      }); // self-navigation while the fix was pending
 
       act(() => ok!({ coords: { latitude: 1, longitude: 2, accuracy: 5, heading: null, speed: null }, timestamp: 1 }));
       act(() => fail!({ code: 1, PERMISSION_DENIED: 1, TIMEOUT: 3 }));
@@ -536,7 +630,8 @@ describe('PluginFrame', () => {
     const { container } = render(<PluginFrame pluginId="demo" />);
     const iframe = container.querySelector('iframe')!;
     const posted: Array<Record<string, unknown>> = [];
-    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m as Record<string, unknown>);
 
     fromFrame(iframe, { type: 'trek:session:set', requestId: 's1', key: 'dismissed', value: { version: 1 } });
     fromFrame(iframe, { type: 'trek:session:get', requestId: 's2', key: 'dismissed' });
@@ -553,16 +648,21 @@ describe('PluginFrame', () => {
     const noTrip = render(<PluginFrame pluginId="demo" />);
     const noTripFrame = noTrip.container.querySelector('iframe')!;
     const noTripPosted: Array<Record<string, unknown>> = [];
-    (noTripFrame.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => noTripPosted.push(m as Record<string, unknown>);
+    (noTripFrame.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      noTripPosted.push(m as Record<string, unknown>);
 
     fromFrame(noTripFrame, { type: 'trek:session:get', requestId: 's1', key: 'filters', scope: 'trip' });
-    expect(noTripPosted.find((m) => m.requestId === 's1')).toMatchObject({ type: 'trek:error', code: 'NO_TRIP_CONTEXT' });
+    expect(noTripPosted.find((m) => m.requestId === 's1')).toMatchObject({
+      type: 'trek:error',
+      code: 'NO_TRIP_CONTEXT',
+    });
 
     noTrip.unmount();
     const { container } = render(<PluginFrame pluginId="demo" tripId="42" />);
     const iframe = container.querySelector('iframe')!;
     const posted: Array<Record<string, unknown>> = [];
-    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) => posted.push(m as Record<string, unknown>);
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m: unknown) =>
+      posted.push(m as Record<string, unknown>);
 
     fromFrame(iframe, { type: 'trek:session:set', requestId: 's2', key: 'filters', value: ['flight'], scope: 'trip' });
     fromFrame(iframe, { type: 'trek:session:get', requestId: 's3', key: 'filters' });
@@ -635,7 +735,9 @@ describe('PluginFrame', () => {
   });
 
   it('FE-PLUGINS-FRAME-033: a non-Error storage failure still yields a message', () => {
-    const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw 'nope'; });
+    const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw 'nope';
+    });
     try {
       const { iframe, posted } = mountFrame();
       fromFrame(iframe, { type: 'trek:session:remove', requestId: 's1', key: 'k' });
@@ -692,7 +794,9 @@ describe('PluginFrame', () => {
     });
 
     it('FE-PLUGINS-FRAME-058: a non-Error storage failure falls back to a generic message', () => {
-      const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw 'nope'; });
+      const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+        throw 'nope';
+      });
       try {
         sessionStorage.setItem('trek:plugin-session:7:demo:plugin:x', '1');
         const { iframe, posted } = mountFrame();
@@ -719,8 +823,12 @@ describe('PluginFrame', () => {
 
     it('FE-PLUGINS-FRAME-038: a frame that navigated itself loses the bridge', () => {
       const { iframe, posted } = mountFrame();
-      act(() => { fireEvent.load(iframe); });
-      act(() => { fireEvent.load(iframe); }); // self-navigation: second document
+      act(() => {
+        fireEvent.load(iframe);
+      });
+      act(() => {
+        fireEvent.load(iframe);
+      }); // self-navigation: second document
 
       fromFrame(iframe, { type: 'trek:navigate', to: '/dashboard' });
       fromFrame(iframe, { type: 'trek:context:request' });
@@ -764,13 +872,17 @@ describe('PluginFrame', () => {
 
     it('FE-PLUGINS-FRAME-043: the dialog title leads with the host-controlled plugin name', async () => {
       const { iframe } = mountFrame({ title: 'Trip To-Dos' });
-      act(() => { fromFrame(iframe, { type: 'trek:confirm', requestId: 'c1', title: 'Really?', message: 'Wipe list' }); });
+      act(() => {
+        fromFrame(iframe, { type: 'trek:confirm', requestId: 'c1', title: 'Really?', message: 'Wipe list' });
+      });
       expect(await screen.findByText('Trip To-Dos — Really?')).toBeInTheDocument();
     });
 
     it('FE-PLUGINS-FRAME-044: a second confirm is refused while one is open, and cancel answers false', async () => {
       const { iframe, posted } = mountFrame();
-      act(() => { fromFrame(iframe, { type: 'trek:confirm', requestId: 'c1', message: 'First', cancelLabel: 'No thanks' }); });
+      act(() => {
+        fromFrame(iframe, { type: 'trek:confirm', requestId: 'c1', message: 'First', cancelLabel: 'No thanks' });
+      });
       await screen.findByText('No thanks');
 
       fromFrame(iframe, { type: 'trek:confirm', requestId: 'c2', message: 'Second' });
@@ -784,7 +896,14 @@ describe('PluginFrame', () => {
     it('FE-PLUGINS-FRAME-045: non-string labels are dropped and danger defaults to true', async () => {
       const { iframe } = mountFrame();
       act(() => {
-        fromFrame(iframe, { type: 'trek:confirm', requestId: 'c1', title: 1, message: 2, confirmLabel: 3, cancelLabel: 4 });
+        fromFrame(iframe, {
+          type: 'trek:confirm',
+          requestId: 'c1',
+          title: 1,
+          message: 2,
+          confirmLabel: 3,
+          cancelLabel: 4,
+        });
       });
       // Falls back to the ConfirmDialog defaults, and the title is the plugin id.
       expect(await screen.findByText('demo')).toBeInTheDocument();
@@ -864,13 +983,17 @@ describe('PluginFrame', () => {
       host.trip = { currency: 'jpy' };
       const withTrip = mountFrame();
       fromFrame(withTrip.iframe, { type: 'trek:context:request' });
-      expect((withTrip.posted.find((m) => m.type === 'trek:context')!.formats as Record<string, unknown>).currency).toBe('JPY');
+      expect(
+        (withTrip.posted.find((m) => m.type === 'trek:context')!.formats as Record<string, unknown>).currency
+      ).toBe('JPY');
       withTrip.unmount();
 
       host.trip = null;
       const bare = mountFrame();
       fromFrame(bare.iframe, { type: 'trek:context:request' });
-      expect((bare.posted.find((m) => m.type === 'trek:context')!.formats as Record<string, unknown>).currency).toBe('EUR');
+      expect((bare.posted.find((m) => m.type === 'trek:context')!.formats as Record<string, unknown>).currency).toBe(
+        'EUR'
+      );
     });
   });
 
@@ -879,10 +1002,14 @@ describe('PluginFrame', () => {
 
     it('FE-PLUGINS-FRAME-051: a theme change re-posts the context', async () => {
       const { iframe, posted } = mountFrame();
-      act(() => { fireEvent.load(iframe); });
+      act(() => {
+        fireEvent.load(iframe);
+      });
       expect(contexts(posted)).toHaveLength(1);
 
-      act(() => { document.documentElement.classList.add('dark'); });
+      act(() => {
+        document.documentElement.classList.add('dark');
+      });
 
       await waitFor(() => expect(contexts(posted).length).toBe(2));
       expect(contexts(posted)[1].theme).toBe('dark');
@@ -891,25 +1018,37 @@ describe('PluginFrame', () => {
     it('FE-PLUGINS-FRAME-052: a mutation that does not change the look is not re-posted', async () => {
       const html = document.documentElement;
       const { iframe, posted } = mountFrame();
-      act(() => { fireEvent.load(iframe); });
+      act(() => {
+        fireEvent.load(iframe);
+      });
 
-      act(() => { html.dataset.density = 'compact'; });
+      act(() => {
+        html.dataset.density = 'compact';
+      });
       await waitFor(() => expect(contexts(posted).length).toBe(2));
 
       // Re-writing the same value still fires a mutation record, but the
       // appearance signature is unchanged — no second delivery.
-      act(() => { html.setAttribute('data-density', 'compact'); });
+      act(() => {
+        html.setAttribute('data-density', 'compact');
+      });
       await new Promise((r) => setTimeout(r, 0));
       expect(contexts(posted)).toHaveLength(2);
     });
 
     it('FE-PLUGINS-FRAME-053: a navigated frame is not re-styled', async () => {
       const { iframe, posted } = mountFrame();
-      act(() => { fireEvent.load(iframe); });
-      act(() => { fireEvent.load(iframe); });
+      act(() => {
+        fireEvent.load(iframe);
+      });
+      act(() => {
+        fireEvent.load(iframe);
+      });
       const before = contexts(posted).length;
 
-      act(() => { document.documentElement.classList.add('dark'); });
+      act(() => {
+        document.documentElement.classList.add('dark');
+      });
       await new Promise((r) => setTimeout(r, 0));
 
       expect(contexts(posted)).toHaveLength(before);
@@ -917,9 +1056,11 @@ describe('PluginFrame', () => {
   });
 
   describe('websocket forwarding', () => {
-    it('FE-PLUGINS-FRAME-054: the plugin\'s own broadcasts pass, other plugins\' do not', () => {
+    it("FE-PLUGINS-FRAME-054: the plugin's own broadcasts pass, other plugins' do not", () => {
       const { iframe, posted } = mountFrame({ tripId: '42' });
-      act(() => { fireEvent.load(iframe); });
+      act(() => {
+        fireEvent.load(iframe);
+      });
       const emit = [...wsListeners][0];
 
       emit({ type: 'plugin:other:ping', tripId: 42 });

@@ -16,9 +16,10 @@
  * (recovery): migrate to the step immediately before each, seed rows with raw
  * SQL, apply just that one migration, assert.
  */
-import { describe, it, expect } from 'vitest';
-import type { MikroORM } from '@mikro-orm/sqlite';
 import { createMigrationOrm, migrateTo, pendingNames, rawExec, rawQuery } from '../../helpers/migration-step';
+import type { MikroORM } from '@mikro-orm/sqlite';
+
+import { describe, it, expect } from 'vitest';
 
 const FORWARD = 'Migration20200101030600_free_the_note_column_on_budget_items';
 const RECOVERY = 'Migration20200101031700_give_back_the_notes_the_ticketjson_step';
@@ -33,7 +34,11 @@ async function ormBefore(target: string): Promise<{ orm: MikroORM; names: string
 }
 
 const readRow = (orm: MikroORM, id: number) =>
-  rawQuery<{ note: string | null; ticket_json: string | null }>(orm, 'SELECT note, ticket_json FROM budget_items WHERE id = ?', [id]).then((r) => r[0]);
+  rawQuery<{ note: string | null; ticket_json: string | null }>(
+    orm,
+    'SELECT note, ticket_json FROM budget_items WHERE id = ?',
+    [id],
+  ).then((r) => r[0]);
 
 describe('budget_items ticket_json migration', () => {
   async function ormWithNotes(): Promise<MikroORM> {
@@ -41,11 +46,12 @@ describe('budget_items ticket_json migration', () => {
     // Minimal FK chain: user -> trip -> budget_items rows.
     await rawExec(orm, "INSERT INTO users (id, username, email, password_hash) VALUES (1, 'u', 'u@example.test', 'x')");
     await rawExec(orm, "INSERT INTO trips (id, user_id, title) VALUES (1, 1, 'T')");
-    await rawExec(
-      orm,
-      'INSERT INTO budget_items (id, trip_id, name, note) VALUES (1, 1, ?, ?), (2, 1, ?, ?)',
-      ['Dinner', 'TICKETJSON:{"items":[]}', 'Museum', 'ticketjson: buy at the door'],
-    );
+    await rawExec(orm, 'INSERT INTO budget_items (id, trip_id, name, note) VALUES (1, 1, ?, ?), (2, 1, ?, ?)', [
+      'Dinner',
+      'TICKETJSON:{"items":[]}',
+      'Museum',
+      'ticketjson: buy at the door',
+    ]);
     return orm;
   }
 
@@ -85,13 +91,25 @@ describe('recovering what the case-insensitive match destroyed', () => {
     // Row 2: an actual receipt. Row 3: a receipt on a row whose owner has since
     // written a note.
     await rawExec(orm, 'INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)', [
-      1, 1, 'Museum', null, ' buy at the door',
+      1,
+      1,
+      'Museum',
+      null,
+      ' buy at the door',
     ]);
     await rawExec(orm, 'INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)', [
-      2, 1, 'Dinner', null, '{"items":[{"name":"Beer","price":"4.50","parts":[1]}]}',
+      2,
+      1,
+      'Dinner',
+      null,
+      '{"items":[{"name":"Beer","price":"4.50","parts":[1]}]}',
     ]);
     await rawExec(orm, 'INSERT INTO budget_items (id, trip_id, name, note, ticket_json) VALUES (?, ?, ?, ?, ?)', [
-      3, 1, 'Taxi', 'split at the hotel', '{"items":[]}',
+      3,
+      1,
+      'Taxi',
+      'split at the hotel',
+      '{"items":[]}',
     ]);
     return orm;
   }

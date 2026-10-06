@@ -1,20 +1,20 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { RealtimeModule } from '../realtime/realtime.module';
-import { TrekPhotosModule } from '../photos/trek-photos.module';
-import { JourneyDomainService } from './journey-domain.service';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
-import { JourneyShareService } from './journey-share.service';
-import { SettingsModule } from '../settings/settings.module';
-import { Journeys } from '../../db/entities/Journeys.entity';
 import { JourneyContributors } from '../../db/entities/JourneyContributors.entity';
-import { JourneyTrips } from '../../db/entities/JourneyTrips.entity';
 import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
-import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
 import { JourneyEntryPhotos } from '../../db/entities/JourneyEntryPhotos.entity';
+import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
 import { JourneyShareTokens } from '../../db/entities/JourneyShareTokens.entity';
-import { Trips } from '../../db/entities/Trips.entity';
+import { JourneyTrips } from '../../db/entities/JourneyTrips.entity';
+import { Journeys } from '../../db/entities/Journeys.entity';
 import { Places } from '../../db/entities/Places.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { TrekPhotosModule } from '../photos/trek-photos.module';
+import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { RealtimeModule } from '../realtime/realtime.module';
+import { SettingsModule } from '../settings/settings.module';
+import { JourneyDomainService } from './journey-domain.service';
+import { JourneyShareService } from './journey-share.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Leaf module holding the journey domain itself, without the controllers.
@@ -68,7 +68,17 @@ import { Places } from '../../db/entities/Places.entity';
     TrekPhotosModule,
     PluginGuardsModule,
     SettingsModule,
-    MikroOrmModule.forFeature([Journeys, JourneyContributors, JourneyTrips, JourneyEntries, Trips, JourneyPhotos, JourneyEntryPhotos, Places, JourneyShareTokens]),
+    MikroOrmModule.forFeature([
+      Journeys,
+      JourneyContributors,
+      JourneyTrips,
+      JourneyEntries,
+      Trips,
+      JourneyPhotos,
+      JourneyEntryPhotos,
+      Places,
+      JourneyShareTokens,
+    ]),
   ],
   providers: [JourneyDomainService, JourneyShareService],
   exports: [JourneyDomainService, JourneyShareService],

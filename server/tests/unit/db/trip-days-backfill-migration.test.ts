@@ -16,11 +16,18 @@
  * (step 241, rebuild). Migrate to the step immediately before each, seed rows
  * with raw SQL, apply just that one migration, assert.
  */
-import { createMigrationOrm, migrateTo, pendingNames, rawExec, rawQuery, runMigrationDirect } from '../../helpers/migration-step';
+import { Migration20200101040000_trips_longer_than_a_year_lost_every as BackfillMigration } from '../../../src/db/migrations/Migration20200101040000_trips_longer_than_a_year_lost_every';
+import {
+  createMigrationOrm,
+  migrateTo,
+  pendingNames,
+  rawExec,
+  rawQuery,
+  runMigrationDirect,
+} from '../../helpers/migration-step';
 import type { MikroORM } from '@mikro-orm/sqlite';
 
 import { describe, it, expect } from 'vitest';
-import { Migration20200101040000_trips_longer_than_a_year_lost_every as BackfillMigration } from '../../../src/db/migrations/Migration20200101040000_trips_longer_than_a_year_lost_every';
 
 const BACKFILL = 'Migration20200101040000_trips_longer_than_a_year_lost_every';
 const REBUILD = 'Migration20200101040100_the_road_trip_day_boundaries_carried_the';
@@ -40,7 +47,12 @@ async function ormBefore(target: string): Promise<MikroORM> {
 
 /** A trip the old code produced: `dated` day rows from start_date, whatever the end date says. */
 async function seedClippedTrip(orm: MikroORM, id: number, start: string, end: string, dated: number): Promise<void> {
-  await rawExec(orm, 'INSERT INTO trips (id, user_id, title, start_date, end_date) VALUES (?, 1, ?, ?, ?)', [id, `T${id}`, start, end]);
+  await rawExec(orm, 'INSERT INTO trips (id, user_id, title, start_date, end_date) VALUES (?, 1, ?, ?, ?)', [
+    id,
+    `T${id}`,
+    start,
+    end,
+  ]);
   const rows: string[] = [];
   const params: unknown[] = [];
   for (let i = 0; i < dated; i++) {
@@ -52,7 +64,9 @@ async function seedClippedTrip(orm: MikroORM, id: number, start: string, end: st
 
 async function days(orm: MikroORM, tripId: number) {
   return rawQuery<{ id: number; day_number: number; date: string | null }>(
-    orm, 'SELECT id, day_number, date FROM days WHERE trip_id = ? ORDER BY day_number', [tripId],
+    orm,
+    'SELECT id, day_number, date FROM days WHERE trip_id = ? ORDER BY day_number',
+    [tripId],
   );
 }
 
@@ -156,7 +170,11 @@ describe('road-trip day boundary rebuild (#2403)', () => {
       await rawExec(orm, 'INSERT INTO places (trip_id, name) VALUES (1, ?), (1, ?)', ['A', 'B']);
       await rawExec(orm, 'INSERT INTO day_assignments (day_id, place_id) VALUES (1, 1), (2, 2)');
       const insertBoundary = (dayNumber: number) =>
-        rawExec(orm, 'INSERT INTO roadtrip_day_boundaries (trip_id, day_number, from_assignment_id, to_assignment_id, fraction) VALUES (1, ?, 1, 2, 0.5)', [dayNumber]);
+        rawExec(
+          orm,
+          'INSERT INTO roadtrip_day_boundaries (trip_id, day_number, from_assignment_id, to_assignment_id, fraction) VALUES (1, ?, 1, 2, 0.5)',
+          [dayNumber],
+        );
       await insertBoundary(2);
       await expect(insertBoundary(400)).rejects.toThrow(/CHECK/);
 

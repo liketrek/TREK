@@ -1,7 +1,7 @@
 // FE-COMP-COLEXPORT-001 to FE-COMP-COLEXPORT-008
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { render, screen, waitFor } from '../../../tests/helpers/render';
-import userEvent from '@testing-library/user-event';
 import { useTranslation } from '../../i18n/TranslationContext';
 import CollectionExportMenu from './CollectionExportMenu';
 
@@ -41,7 +41,7 @@ describe('CollectionExportMenu (#2301)', () => {
     const menu = screen.getByRole('menu', { name: 'Download this list as a file' });
     expect(trigger()).toHaveAttribute('aria-expanded', 'true');
     expect(trigger()).toHaveAttribute('aria-controls', menu.id);
-    expect(items().map(item => item.textContent)).toEqual([
+    expect(items().map((item) => item.textContent)).toEqual([
       'TREK list.trekcollection.jsonFor another TREK, with labels and status',
       'GPX.gpxWaypoints for OsmAnd, Organic Maps, Garmin and other map apps',
     ]);

@@ -10,16 +10,16 @@ vi.mock('../../api/websocket', () => ({
   removeListener: vi.fn(),
 }));
 
-import { render, screen, waitFor, fireEvent, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse, delay } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
+import { buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
+import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { addListener } from '../../api/websocket';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip } from '../../../tests/helpers/factories';
 import CollabPolls from './CollabPolls';
-import { addListener } from '../../api/websocket';
 
 const currentUser = buildUser({ id: 1, username: 'testuser' });
 
@@ -43,11 +43,7 @@ const defaultProps = { tripId: 1, currentUser };
 beforeEach(() => {
   resetAllStores();
   vi.clearAllMocks();
-  server.use(
-    http.get('/api/trips/1/collab/polls', () =>
-      HttpResponse.json({ polls: [] }),
-    ),
-  );
+  server.use(http.get('/api/trips/1/collab/polls', () => HttpResponse.json({ polls: [] })));
   seedStore(useAuthStore, { user: currentUser, isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: 1 }) });
 });
@@ -63,31 +59,21 @@ describe('CollabPolls', () => {
       http.get('/api/trips/1/collab/polls', async () => {
         await new Promise((r) => setTimeout(r, 200));
         return HttpResponse.json({ polls: [] });
-      }),
+      })
     );
     render(<CollabPolls {...defaultProps} />);
     // The spinner is a div with animation style
-    expect(
-      document.querySelector('[style*="animation"]'),
-    ).toBeInTheDocument();
+    expect(document.querySelector('[style*="animation"]')).toBeInTheDocument();
   });
 
   it('FE-COMP-POLLS-003: renders poll question from API', async () => {
-    server.use(
-      http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll()] }),
-      ),
-    );
+    server.use(http.get('/api/trips/1/collab/polls', () => HttpResponse.json({ polls: [buildPoll()] })));
     render(<CollabPolls {...defaultProps} />);
     expect(await screen.findByText('Best destination?')).toBeInTheDocument();
   });
 
   it('FE-COMP-POLLS-004: renders poll options', async () => {
-    server.use(
-      http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll()] }),
-      ),
-    );
+    server.use(http.get('/api/trips/1/collab/polls', () => HttpResponse.json({ polls: [buildPoll()] })));
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Paris');
     expect(screen.getByText('Rome')).toBeInTheDocument();
@@ -97,9 +83,7 @@ describe('CollabPolls', () => {
     render(<CollabPolls {...defaultProps} />);
     // Wait for loading to finish
     await screen.findByText(/no polls yet|collab\.polls\.empty/i);
-    expect(
-      screen.getByRole('button', { name: /new/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /new/i })).toBeInTheDocument();
   });
 
   it('FE-COMP-POLLS-006: clicking New Poll button opens the create modal', async () => {
@@ -140,8 +124,8 @@ describe('CollabPolls', () => {
     const user = userEvent.setup();
     server.use(
       http.post('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ poll: buildPoll({ id: 99, question: 'Where to eat?' }) }),
-      ),
+        HttpResponse.json({ poll: buildPoll({ id: 99, question: 'Where to eat?' }) })
+      )
     );
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText(/no polls yet|collab\.polls\.empty/i);
@@ -159,20 +143,23 @@ describe('CollabPolls', () => {
   it('FE-COMP-POLLS-009: voting on an option calls POST vote API', async () => {
     let voteCalled = false;
     server.use(
-      http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll()] }),
-      ),
+      http.get('/api/trips/1/collab/polls', () => HttpResponse.json({ polls: [buildPoll()] })),
       http.post('/api/trips/1/collab/polls/1/vote', () => {
         voteCalled = true;
         return HttpResponse.json({
           poll: buildPoll({
             options: [
-              { id: 1, text: 'Paris', label: 'Paris', voters: [{ user_id: 1, username: 'testuser', avatar_url: null }] },
+              {
+                id: 1,
+                text: 'Paris',
+                label: 'Paris',
+                voters: [{ user_id: 1, username: 'testuser', avatar_url: null }],
+              },
               { id: 2, text: 'Rome', label: 'Rome', voters: [] },
             ],
           }),
         });
-      }),
+      })
     );
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
@@ -183,9 +170,7 @@ describe('CollabPolls', () => {
 
   it('FE-COMP-POLLS-010: closed poll shows "Closed" badge', async () => {
     server.use(
-      http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll({ is_closed: true })] }),
-      ),
+      http.get('/api/trips/1/collab/polls', () => HttpResponse.json({ polls: [buildPoll({ is_closed: true })] }))
     );
     render(<CollabPolls {...defaultProps} />);
     expect(await screen.findByText(/closed/i)).toBeInTheDocument();
@@ -193,9 +178,7 @@ describe('CollabPolls', () => {
 
   it('FE-COMP-POLLS-011: closed poll options are disabled (cannot vote)', async () => {
     server.use(
-      http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll({ is_closed: true })] }),
-      ),
+      http.get('/api/trips/1/collab/polls', () => HttpResponse.json({ polls: [buildPoll({ is_closed: true })] }))
     );
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Paris');
@@ -206,13 +189,11 @@ describe('CollabPolls', () => {
   it('FE-COMP-POLLS-012: delete button calls DELETE API and removes poll', async () => {
     let deleteCalled = false;
     server.use(
-      http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll({ id: 5 })] }),
-      ),
+      http.get('/api/trips/1/collab/polls', () => HttpResponse.json({ polls: [buildPoll({ id: 5 })] })),
       http.delete('/api/trips/1/collab/polls/5', () => {
         deleteCalled = true;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
@@ -223,9 +204,7 @@ describe('CollabPolls', () => {
     await user.click(deleteBtn);
 
     await waitFor(() => expect(deleteCalled).toBe(true));
-    await waitFor(() =>
-      expect(screen.queryByText('Best destination?')).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText('Best destination?')).not.toBeInTheDocument());
   });
 
   it('FE-COMP-POLLS-013: WebSocket collab:poll:created event adds poll', async () => {
@@ -240,20 +219,14 @@ describe('CollabPolls', () => {
   });
 
   it('FE-COMP-POLLS-014: WebSocket collab:poll:deleted event removes poll', async () => {
-    server.use(
-      http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll({ id: 3 })] }),
-      ),
-    );
+    server.use(http.get('/api/trips/1/collab/polls', () => HttpResponse.json({ polls: [buildPoll({ id: 3 })] })));
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Best destination?');
 
     const listener = (addListener as ReturnType<typeof vi.fn>).mock.calls[0][0];
     listener({ tripId: 1, type: 'collab:poll:deleted', pollId: 3 });
 
-    await waitFor(() =>
-      expect(screen.queryByText('Best destination?')).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText('Best destination?')).not.toBeInTheDocument());
   });
 
   it('FE-COMP-POLLS-015: adding a third option in create modal', async () => {
@@ -363,13 +336,15 @@ describe('CollabPolls details', () => {
 
   it('FE-W5CPL-009: a multiple-choice poll shows the multi badge and a single vote label', async () => {
     servePolls({
-      polls: [buildPoll({
-        multiple_choice: true,
-        options: [
-          { id: 1, text: 'Paris', voters: [{ user_id: 9, username: 'bob', avatar_url: null }] },
-          { id: 2, text: 'Rome', voters: [] },
-        ],
-      })],
+      polls: [
+        buildPoll({
+          multiple_choice: true,
+          options: [
+            { id: 1, text: 'Paris', voters: [{ user_id: 9, username: 'bob', avatar_url: null }] },
+            { id: 2, text: 'Rome', voters: [] },
+          ],
+        }),
+      ],
     });
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Best destination?');
@@ -379,18 +354,21 @@ describe('CollabPolls details', () => {
 
   it('FE-W5CPL-010: once the user voted the results, avatars and tooltip appear', async () => {
     servePolls({
-      polls: [buildPoll({
-        options: [
-          {
-            id: 1, text: 'Paris',
-            voters: [
-              { user_id: 1, username: 'testuser', avatar_url: null },
-              { user_id: 2, username: 'alice', avatar_url: '/uploads/avatars/alice.png' },
-            ],
-          },
-          { id: 2, text: 'Rome', voters: [] },
-        ],
-      })],
+      polls: [
+        buildPoll({
+          options: [
+            {
+              id: 1,
+              text: 'Paris',
+              voters: [
+                { user_id: 1, username: 'testuser', avatar_url: null },
+                { user_id: 2, username: 'alice', avatar_url: '/uploads/avatars/alice.png' },
+              ],
+            },
+            { id: 2, text: 'Rome', voters: [] },
+          ],
+        }),
+      ],
     });
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Paris');
@@ -407,13 +385,15 @@ describe('CollabPolls details', () => {
 
   it('FE-W5CPL-011: a voter without a username falls back to a question mark', async () => {
     servePolls({
-      polls: [buildPoll({
-        is_closed: true,
-        options: [
-          { id: 1, text: 'Paris', voters: [{ user_id: null, username: '', avatar_url: null }] },
-          { id: 2, text: 'Rome', voters: [] },
-        ],
-      })],
+      polls: [
+        buildPoll({
+          is_closed: true,
+          options: [
+            { id: 1, text: 'Paris', voters: [{ user_id: null, username: '', avatar_url: null }] },
+            { id: 2, text: 'Rome', voters: [] },
+          ],
+        }),
+      ],
     });
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Paris');
@@ -424,7 +404,7 @@ describe('CollabPolls details', () => {
     servePolls({ polls: [buildPoll({ id: 1 }), buildPoll({ id: 2, question: 'Done?', is_closed: true })] });
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Done?');
-    const [openOption, closedOption] = screen.getAllByText('Paris').map(el => el.closest('button')!);
+    const [openOption, closedOption] = screen.getAllByText('Paris').map((el) => el.closest('button')!);
     expect(openOption).toBeEnabled();
     expect(closedOption).toBeDisabled();
   });
@@ -450,7 +430,7 @@ describe('CollabPolls details', () => {
       http.put('/api/trips/1/collab/polls/5/close', () => {
         closeCalled = true;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
@@ -468,9 +448,7 @@ describe('CollabPolls details', () => {
   });
 
   it('FE-W5CPL-027: a failing poll request falls back to the empty state', async () => {
-    server.use(
-      http.get('/api/trips/1/collab/polls', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.get('/api/trips/1/collab/polls', () => new HttpResponse(null, { status: 500 })));
     render(<CollabPolls {...defaultProps} />);
     expect(await screen.findByText(/no polls yet|collab\.polls\.empty/i)).toBeInTheDocument();
   });
@@ -483,9 +461,7 @@ describe('CollabPolls details', () => {
 
   it('FE-W5CPL-015: a failing close shows an error and leaves the poll open', async () => {
     servePolls({ polls: [buildPoll({ id: 5 })] });
-    server.use(
-      http.put('/api/trips/1/collab/polls/5/close', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.put('/api/trips/1/collab/polls/5/close', () => new HttpResponse(null, { status: 500 })));
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Best destination?');
@@ -496,9 +472,7 @@ describe('CollabPolls details', () => {
 
   it('FE-W5CPL-016: a failing delete shows an error and keeps the poll', async () => {
     servePolls({ polls: [buildPoll({ id: 6 })] });
-    server.use(
-      http.delete('/api/trips/1/collab/polls/6', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.delete('/api/trips/1/collab/polls/6', () => new HttpResponse(null, { status: 500 })));
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Best destination?');
@@ -509,9 +483,7 @@ describe('CollabPolls details', () => {
 
   it('FE-W5CPL-017: a failing vote shows an error and leaves the tally alone', async () => {
     servePolls({ polls: [buildPoll({ id: 7 })] });
-    server.use(
-      http.post('/api/trips/1/collab/polls/7/vote', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.post('/api/trips/1/collab/polls/7/vote', () => new HttpResponse(null, { status: 500 })));
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText('Paris');
@@ -524,15 +496,17 @@ describe('CollabPolls details', () => {
     servePolls({ polls: [buildPoll({ id: 7 }), buildPoll({ id: 8, question: 'Untouched?' })] });
     server.use(
       http.post('/api/trips/1/collab/polls/7/vote', () =>
-        HttpResponse.json(buildPoll({
-          id: 7,
-          question: 'Voted!',
-          options: [
-            { id: 1, text: 'Paris', voters: [{ user_id: 1, username: 'testuser', avatar_url: null }] },
-            { id: 2, text: 'Rome', voters: [] },
-          ],
-        })),
-      ),
+        HttpResponse.json(
+          buildPoll({
+            id: 7,
+            question: 'Voted!',
+            options: [
+              { id: 1, text: 'Paris', voters: [{ user_id: 1, username: 'testuser', avatar_url: null }] },
+              { id: 2, text: 'Rome', voters: [] },
+            ],
+          })
+        )
+      )
     );
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
@@ -543,9 +517,7 @@ describe('CollabPolls details', () => {
   });
 
   it('FE-W5CPL-019: a failing create shows an error and keeps the modal open', async () => {
-    server.use(
-      http.post('/api/trips/1/collab/polls', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.post('/api/trips/1/collab/polls', () => new HttpResponse(null, { status: 500 })));
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText(/no polls yet|collab\.polls\.empty/i);
@@ -562,9 +534,7 @@ describe('CollabPolls details', () => {
   it('FE-W5CPL-020: creating a poll that is already in the list does not duplicate it', async () => {
     servePolls({ polls: [buildPoll({ id: 12, question: 'Same poll' })] });
     server.use(
-      http.post('/api/trips/1/collab/polls', () =>
-        HttpResponse.json(buildPoll({ id: 12, question: 'Same poll' })),
-      ),
+      http.post('/api/trips/1/collab/polls', () => HttpResponse.json(buildPoll({ id: 12, question: 'Same poll' })))
     );
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
@@ -575,9 +545,7 @@ describe('CollabPolls details', () => {
     await user.type(optionInputs[0], 'A');
     await user.type(optionInputs[1], 'B');
     await user.click(screen.getByRole('button', { name: /create|collab\.polls\.create/i }));
-    await waitFor(() =>
-      expect(screen.queryByPlaceholderText(/what should we do/i)).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByPlaceholderText(/what should we do/i)).not.toBeInTheDocument());
     expect(screen.getAllByText('Same poll')).toHaveLength(1);
   });
 
@@ -587,7 +555,7 @@ describe('CollabPolls details', () => {
       http.post('/api/trips/1/collab/polls', () => {
         postCalled = true;
         return HttpResponse.json({ poll: buildPoll() });
-      }),
+      })
     );
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
@@ -618,7 +586,7 @@ describe('CollabPolls details', () => {
       http.post('/api/trips/1/collab/polls', async ({ request }) => {
         body = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ poll: buildPoll({ id: 30, question: 'Multi?' }) });
-      }),
+      })
     );
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
@@ -693,14 +661,16 @@ describe('CollabPolls details', () => {
         return HttpResponse.json({ polls: [buildPoll({ id: 1, question: 'Trip one poll?' })] });
       }),
       http.get('/api/trips/2/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll({ id: 2, question: 'Trip two poll?' })] }),
-      ),
+        HttpResponse.json({ polls: [buildPoll({ id: 2, question: 'Trip two poll?' })] })
+      )
     );
     const { rerender } = render(<CollabPolls {...defaultProps} />);
     rerender(<CollabPolls tripId={2} currentUser={currentUser} />);
 
     await screen.findByText('Trip two poll?');
-    await act(async () => { await delay(150); });
+    await act(async () => {
+      await delay(150);
+    });
     expect(screen.queryByText('Trip one poll?')).not.toBeInTheDocument();
     expect(screen.getByText('Trip two poll?')).toBeInTheDocument();
   });
@@ -711,7 +681,9 @@ describe('CollabPolls details', () => {
       servePolls({ polls: [buildPoll({ deadline: inFuture(90 * MINUTE) })] });
       const { unmount } = render(<CollabPolls {...defaultProps} />);
       await screen.findByText('1h 30m');
-      await act(async () => { await vi.advanceTimersByTimeAsync(31_000); });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(31_000);
+      });
       expect(screen.getByText('1h 29m')).toBeInTheDocument();
       unmount();
       expect(vi.getTimerCount()).toBe(0);
@@ -728,8 +700,8 @@ describe('CollabPolls markdown & multiline', () => {
   it('FE-COMP-POLLS-016: a markdown question renders headings and bold text', async () => {
     server.use(
       http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll({ question: '## Day trip\n\n**Vote** carefully' })] }),
-      ),
+        HttpResponse.json({ polls: [buildPoll({ question: '## Day trip\n\n**Vote** carefully' })] })
+      )
     );
     render(<CollabPolls {...defaultProps} />);
     const heading = await screen.findByText('Day trip');
@@ -742,8 +714,8 @@ describe('CollabPolls markdown & multiline', () => {
       http.get('/api/trips/1/collab/polls', () =>
         HttpResponse.json({
           polls: [buildPoll({ question: 'Safe title <script>alert("xss")</script> <img src=x onerror=alert(1)>' })],
-        }),
-      ),
+        })
+      )
     );
     render(<CollabPolls {...defaultProps} />);
     await screen.findByText(/Safe title/);
@@ -755,8 +727,8 @@ describe('CollabPolls markdown & multiline', () => {
   it('FE-COMP-POLLS-018: blank lines split the question into separate paragraphs', async () => {
     server.use(
       http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll({ question: 'First paragraph\n\nSecond paragraph' })] }),
-      ),
+        HttpResponse.json({ polls: [buildPoll({ question: 'First paragraph\n\nSecond paragraph' })] })
+      )
     );
     render(<CollabPolls {...defaultProps} />);
     const first = await screen.findByText('First paragraph');
@@ -769,8 +741,8 @@ describe('CollabPolls markdown & multiline', () => {
   it('FE-COMP-POLLS-019: a plain-text question renders identically, without formatting nodes', async () => {
     server.use(
       http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll({ question: 'Best destination?' })] }),
-      ),
+        HttpResponse.json({ polls: [buildPoll({ question: 'Best destination?' })] })
+      )
     );
     render(<CollabPolls {...defaultProps} />);
     const question = await screen.findByText('Best destination?');
@@ -785,7 +757,7 @@ describe('CollabPolls markdown & multiline', () => {
       http.post('/api/trips/1/collab/polls', async ({ request }) => {
         body = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ poll: buildPoll({ id: 60, question: 'Line one\nLine two' }) });
-      }),
+      })
     );
     const user = userEvent.setup();
     render(<CollabPolls {...defaultProps} />);
@@ -810,8 +782,8 @@ describe('CollabPolls markdown & multiline', () => {
   it('FE-COMP-POLLS-021: a link in the question opens in a new tab with rel protection', async () => {
     server.use(
       http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll({ question: 'Where? [Our hotel](https://example.com)' })] }),
-      ),
+        HttpResponse.json({ polls: [buildPoll({ question: 'Where? [Our hotel](https://example.com)' })] })
+      )
     );
     render(<CollabPolls {...defaultProps} />);
     const link = await screen.findByRole('link', { name: 'Our hotel' });
@@ -824,14 +796,16 @@ describe('CollabPolls markdown & multiline', () => {
     server.use(
       http.get('/api/trips/1/collab/polls', () =>
         HttpResponse.json({
-          polls: [buildPoll({
-            options: [
-              { id: 1, text: 'Stay at the beach house\nwith the long unpronounceable name', voters: [] },
-              { id: 2, text: 'Rome', voters: [] },
-            ],
-          })],
-        }),
-      ),
+          polls: [
+            buildPoll({
+              options: [
+                { id: 1, text: 'Stay at the beach house\nwith the long unpronounceable name', voters: [] },
+                { id: 2, text: 'Rome', voters: [] },
+              ],
+            }),
+          ],
+        })
+      )
     );
     render(<CollabPolls {...defaultProps} />);
     const label = (await screen.findByText(/Stay at the beach house/)).closest('span')!;
@@ -843,8 +817,8 @@ describe('CollabPolls markdown & multiline', () => {
   it('FE-COMP-POLLS-023: a placeholder in angle brackets survives sanitizing', async () => {
     server.use(
       http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll({ question: 'Treffpunkt <noch offen> oder Hotel?' })] }),
-      ),
+        HttpResponse.json({ polls: [buildPoll({ question: 'Treffpunkt <noch offen> oder Hotel?' })] })
+      )
     );
     render(<CollabPolls {...defaultProps} />);
     // Questions written before markdown rendering existed must keep reading the
@@ -855,8 +829,8 @@ describe('CollabPolls markdown & multiline', () => {
   it('FE-COMP-POLLS-024: a script tag is shown as text, never as an element', async () => {
     server.use(
       http.get('/api/trips/1/collab/polls', () =>
-        HttpResponse.json({ polls: [buildPoll({ question: 'Plan <script>alert("xss")</script>' })] }),
-      ),
+        HttpResponse.json({ polls: [buildPoll({ question: 'Plan <script>alert("xss")</script>' })] })
+      )
     );
     render(<CollabPolls {...defaultProps} />);
     expect(await screen.findByText('Plan <script>alert("xss")</script>')).toBeInTheDocument();

@@ -1,7 +1,7 @@
-import type { Components, Options } from 'react-markdown'
-import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
+import type { Components, Options } from 'react-markdown';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 
-type HastNode = { type: string; children?: HastNode[] }
+type HastNode = { type: string; children?: HastNode[] };
 
 /**
  * react-markdown never builds an element out of raw HTML, it shows the markup
@@ -14,22 +14,22 @@ type HastNode = { type: string; children?: HastNode[] }
 function rehypeRawAsText() {
   return (tree: HastNode) => {
     const walk = (node: HastNode) => {
-      if (node.type === 'raw') node.type = 'text'
-      for (const child of node.children || []) walk(child)
-    }
-    walk(tree)
-  }
+      if (node.type === 'raw') node.type = 'text';
+      for (const child of node.children || []) walk(child);
+    };
+    walk(tree);
+  };
 }
 
 // remark-gfm already writes footnote ids with the `user-content-` prefix, and
 // the hrefs pointing at them carry it too. Clobbering them a second time only
 // makes target and reference disagree.
-const schema = { ...defaultSchema, clobberPrefix: '' }
+const schema = { ...defaultSchema, clobberPrefix: '' };
 
 export const sanitizedMarkdownPlugins: NonNullable<Options['rehypePlugins']> = [
   rehypeRawAsText,
   [rehypeSanitize, schema],
-]
+];
 
 /**
  * Links as in markdownLinkComponents (#1629): own tab plus `rel` protection.
@@ -48,4 +48,4 @@ export const sanitizedMarkdownComponents: Components = {
         {children}
       </a>
     ),
-}
+};

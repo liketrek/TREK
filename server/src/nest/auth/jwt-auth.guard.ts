@@ -1,8 +1,9 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/core';
-import type { Request } from 'express';
 import { Users } from '../../db/entities/Users.entity';
 import { extractToken, verifyJwtAndLoadUser } from './jwt-verify';
+import { EntityManager } from '@mikro-orm/core';
+import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * Validates TREK's existing JWT session — the same httpOnly `trek_session`

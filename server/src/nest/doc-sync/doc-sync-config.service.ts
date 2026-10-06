@@ -1,27 +1,41 @@
-import { HttpException, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import crypto from 'crypto';
-import { DOCSYNC_SECRET_MASK, type DocsyncConnectionInput, type DocsyncLinkInput } from '@trek/shared';
-import type { User } from '../../types';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { DocumentProviders } from '../../db/entities/DocumentProviders.entity';
-import type { DocumentProviderCatalogRow, DocumentProvidersRepository } from '../../db/repositories/DocumentProviders.repository';
-import { DocumentProviderFields } from '../../db/entities/DocumentProviderFields.entity';
-import type { DocumentProviderFieldRow, DocumentProviderFieldsRepository } from '../../db/repositories/DocumentProviderFields.repository';
 import { DocumentConnections } from '../../db/entities/DocumentConnections.entity';
-import type { DocumentConnectionRow, DocumentConnectionsRepository } from '../../db/repositories/DocumentConnections.repository';
-import { TripDocumentLinks } from '../../db/entities/TripDocumentLinks.entity';
-import type { TripDocumentLinkPatch, TripDocumentLinkRow, TripDocumentLinksRepository } from '../../db/repositories/TripDocumentLinks.repository';
+import { DocumentProviderFields } from '../../db/entities/DocumentProviderFields.entity';
+import { DocumentProviders } from '../../db/entities/DocumentProviders.entity';
 import { DocumentSyncItems } from '../../db/entities/DocumentSyncItems.entity';
+import { TripDocumentLinks } from '../../db/entities/TripDocumentLinks.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type {
+  DocumentConnectionRow,
+  DocumentConnectionsRepository,
+} from '../../db/repositories/DocumentConnections.repository';
+import type {
+  DocumentProviderFieldRow,
+  DocumentProviderFieldsRepository,
+} from '../../db/repositories/DocumentProviderFields.repository';
+import type {
+  DocumentProviderCatalogRow,
+  DocumentProvidersRepository,
+} from '../../db/repositories/DocumentProviders.repository';
 import type { DocumentSyncItemsRepository } from '../../db/repositories/DocumentSyncItems.repository';
-import { UnitOfWork } from '../database/unit-of-work';
+import type {
+  TripDocumentLinkPatch,
+  TripDocumentLinkRow,
+  TripDocumentLinksRepository,
+} from '../../db/repositories/TripDocumentLinks.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
 import { checkSsrf } from '../../utils/ssrfGuard';
-import { DocumentProviderRegistry } from './document-provider.registry';
+import { UnitOfWork } from '../database/unit-of-work';
+import { decryptSecrets, encryptSecrets, maskSecrets, mergeSecrets } from './doc-sync-secrets';
+import { sameOrigin } from './doc-sync.helpers';
 import type { DocumentConnectionRef, DocumentScopeRef, DocResult } from './document-provider';
 import { docFailed } from './document-provider';
-import { sameOrigin } from './doc-sync.helpers';
-import { decryptSecrets, encryptSecrets, maskSecrets, mergeSecrets } from './doc-sync-secrets';
+import { DocumentProviderRegistry } from './document-provider.registry';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { HttpException, Injectable } from '@nestjs/common';
+import { DOCSYNC_SECRET_MASK, type DocsyncConnectionInput, type DocsyncLinkInput } from '@trek/shared';
+
+import crypto from 'crypto';
 
 /**
  * Connections and trip bindings: everything a human configures, as opposed to
@@ -121,13 +135,24 @@ export class DocSyncConfigService {
    * its own method, R2's own instruction not to unify near-duplicate reads
    * with different shapes.
    */
-  async providersCatalog(): Promise<Array<DocumentProviderCatalogRow & { available: boolean; fields: Array<Omit<ProviderFieldRow, 'secret' | 'required'> & { secret: boolean; required: boolean }> }>> {
+  async providersCatalog(): Promise<
+    Array<
+      DocumentProviderCatalogRow & {
+        available: boolean;
+        fields: Array<Omit<ProviderFieldRow, 'secret' | 'required'> & { secret: boolean; required: boolean }>;
+      }
+    >
+  > {
     const rows = await this.providers.listEnabledCatalog();
     return await Promise.all(
       rows.map(async (p) => ({
         ...p,
         available: !!this.registry.get(p.id),
-        fields: (await this.providerFields(p.id)).map((f) => ({ ...f, secret: f.secret === 1, required: f.required === 1 })),
+        fields: (await this.providerFields(p.id)).map((f) => ({
+          ...f,
+          secret: f.secret === 1,
+          required: f.required === 1,
+        })),
       })),
     );
   }
@@ -306,7 +331,8 @@ export class DocSyncConfigService {
 
     for (const f of fields) {
       if (f.required !== 1) continue;
-      const present = f.secret === 1 ? !!nextSecrets[f.field_key] : !!settings[f.field_key] || f.field_key === 'base_url';
+      const present =
+        f.secret === 1 ? !!nextSecrets[f.field_key] : !!settings[f.field_key] || f.field_key === 'base_url';
       if (!present) {
         return { success: false, error: { code: 'unauthorized', detail: `missing required field ${f.field_key}` } };
       }
@@ -342,7 +368,12 @@ export class DocSyncConfigService {
     return { success: true, data: row };
   }
 
-  async recordProbe(connectionId: number, state: 'ok' | 'failed', error: string | null, capabilities: unknown): Promise<void> {
+  async recordProbe(
+    connectionId: number,
+    state: 'ok' | 'failed',
+    error: string | null,
+    capabilities: unknown,
+  ): Promise<void> {
     await this.connections.recordProbe(connectionId, state, error, capabilities ? JSON.stringify(capabilities) : null);
   }
 
@@ -492,9 +523,10 @@ export class DocSyncConfigService {
       // subscribe on its own (Papra, and Nextcloud without admin rights). Not
       // for a provider that takes no webhook at all: an address with nowhere
       // to paste it only promises what the timer delivers anyway.
-      webhookUrl: webhookBaseUrl && link.webhook_token && (await this.takesWebhook(link))
-        ? `${webhookBaseUrl}/api/docsync/webhook/${link.webhook_token}`
-        : null,
+      webhookUrl:
+        webhookBaseUrl && link.webhook_token && (await this.takesWebhook(link))
+          ? `${webhookBaseUrl}/api/docsync/webhook/${link.webhook_token}`
+          : null,
       webhookSecret: link.webhook_secret ? DOCSYNC_SECRET_MASK : null,
     };
   }

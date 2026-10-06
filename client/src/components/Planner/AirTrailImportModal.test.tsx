@@ -1,22 +1,34 @@
 // FE-PLANNER-AIRTRAIL-001 to FE-PLANNER-AIRTRAIL-020
-import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import type { AirtrailFlight } from '@trek/shared';
 import { http, HttpResponse } from 'msw';
+import { buildReservation, buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip, buildReservation } from '../../../tests/helpers/factories';
-import type { AirtrailFlight } from '@trek/shared';
 import AirTrailImportModal, { detectConnections } from './AirTrailImportModal';
 
 const toasts: Array<[string, string]> = [];
 vi.mock('../shared/Toast', () => ({
   useToast: () => ({
-    success: (m: string) => { toasts.push(['success', m]); return 0; },
-    warning: (m: string) => { toasts.push(['warning', m]); return 0; },
-    error: (m: string) => { toasts.push(['error', m]); return 0; },
-    info: (m: string) => { toasts.push(['info', m]); return 0; },
+    success: (m: string) => {
+      toasts.push(['success', m]);
+      return 0;
+    },
+    warning: (m: string) => {
+      toasts.push(['warning', m]);
+      return 0;
+    },
+    error: (m: string) => {
+      toasts.push(['error', m]);
+      return 0;
+    },
+    info: (m: string) => {
+      toasts.push(['info', m]);
+      return 0;
+    },
   }),
 }));
 
@@ -65,11 +77,16 @@ describe('detectConnections (#1535)', () => {
   it('FE-PLANNER-AIRTRAIL-001: chains flights that connect at the same airport within 24h', () => {
     const chains = detectConnections([legHelJfk(), flight(), unrelatedFlight()]);
     expect(chains).toHaveLength(1);
-    expect(chains[0].map(f => f.id)).toEqual(['101', '102']);
+    expect(chains[0].map((f) => f.id)).toEqual(['101', '102']);
   });
 
   it('FE-PLANNER-AIRTRAIL-002: does not chain when the layover exceeds 24h', () => {
-    const late = { ...legHelJfk(), date: '2026-08-03', departure: '2026-08-03T11:00:00.000+00:00', arrival: '2026-08-03T19:00:00.000+00:00' };
+    const late = {
+      ...legHelJfk(),
+      date: '2026-08-03',
+      departure: '2026-08-03T11:00:00.000+00:00',
+      arrival: '2026-08-03T19:00:00.000+00:00',
+    };
     expect(detectConnections([flight(), late])).toHaveLength(0);
   });
 
@@ -105,9 +122,9 @@ describe('AirTrailImportModal', () => {
     });
     server.use(
       http.get('/api/integrations/airtrail/flights', () =>
-        HttpResponse.json({ flights: [flight(), legHelJfk(), unrelatedFlight()] }),
+        HttpResponse.json({ flights: [flight(), legHelJfk(), unrelatedFlight()] })
       ),
-      http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [] })),
+      http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [] }))
     );
   });
 
@@ -135,7 +152,7 @@ describe('AirTrailImportModal', () => {
       http.post('/api/trips/1/reservations/import/airtrail', async ({ request }) => {
         body = await request.json();
         return HttpResponse.json({ imported: body.flightIds, skipped: [] });
-      }),
+      })
     );
     render(<AirTrailImportModal {...defaultProps} />);
     await screen.findByText(/one flight with a layover in HEL/i);
@@ -152,7 +169,7 @@ describe('AirTrailImportModal', () => {
       http.post('/api/trips/1/reservations/import/airtrail', async ({ request }) => {
         body = await request.json();
         return HttpResponse.json({ imported: body.flightIds, skipped: [] });
-      }),
+      })
     );
     render(<AirTrailImportModal {...defaultProps} />);
     await user.click(await screen.findByText(/one flight with a layover in HEL/i));
@@ -185,14 +202,12 @@ describe('AirTrailImportModal', () => {
     });
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1, start_date: '2026-08-01', end_date: '2026-08-10' }),
-      reservations: [
-        buildReservation({ type: 'flight', external_source: 'airtrail', external_id: '106' }) as any,
-      ],
+      reservations: [buildReservation({ type: 'flight', external_source: 'airtrail', external_id: '106' }) as any],
     });
     server.use(
       http.get('/api/integrations/airtrail/flights', () =>
-        HttpResponse.json({ flights: [flight(), legHelJfk(), legJfkLax] }),
-      ),
+        HttpResponse.json({ flights: [flight(), legHelJfk(), legJfkLax] })
+      )
     );
     render(<AirTrailImportModal {...defaultProps} />);
     // BRU→HEL→JFK still connects even though JFK→LAX is gone from the pool.
@@ -223,7 +238,8 @@ describe('AirTrailImportModal', () => {
   it('FE-PLANNER-AIRTRAIL-012: a failing flight list shows the server error and no rows', async () => {
     server.use(
       http.get('/api/integrations/airtrail/flights', () =>
-        HttpResponse.json({ error: 'AirTrail token expired' }, { status: 401 })),
+        HttpResponse.json({ error: 'AirTrail token expired' }, { status: 401 })
+      )
     );
     render(<AirTrailImportModal {...defaultProps} />);
     expect(await screen.findByText('AirTrail token expired')).toBeInTheDocument();
@@ -245,10 +261,14 @@ describe('AirTrailImportModal', () => {
 
   it('FE-PLANNER-AIRTRAIL-015: flights outside the trip range land in "Other flights" and start unselected', async () => {
     const user = userEvent.setup();
-    const later = flight({ id: '110', date: '2026-09-20', departure: '2026-09-20T06:00:00.000+00:00', arrival: '2026-09-20T09:30:00.000+00:00', flightNumber: 'AY900' });
-    server.use(
-      http.get('/api/integrations/airtrail/flights', () => HttpResponse.json({ flights: [flight(), later] })),
-    );
+    const later = flight({
+      id: '110',
+      date: '2026-09-20',
+      departure: '2026-09-20T06:00:00.000+00:00',
+      arrival: '2026-09-20T09:30:00.000+00:00',
+      flightNumber: 'AY900',
+    });
+    server.use(http.get('/api/integrations/airtrail/flights', () => HttpResponse.json({ flights: [flight(), later] })));
     render(<AirTrailImportModal {...defaultProps} />);
     expect(await screen.findByText('During this trip')).toBeInTheDocument();
     expect(screen.getByText('Other flights')).toBeInTheDocument();
@@ -262,7 +282,12 @@ describe('AirTrailImportModal', () => {
   it('FE-PLANNER-AIRTRAIL-016: a flight without a date shows its route as the label and no date suffix', async () => {
     server.use(
       http.get('/api/integrations/airtrail/flights', () =>
-        HttpResponse.json({ flights: [flight({ id: '201', flightNumber: null, airline: null, date: null, departure: null, arrival: null })] })),
+        HttpResponse.json({
+          flights: [
+            flight({ id: '201', flightNumber: null, airline: null, date: null, departure: null, arrival: null }),
+          ],
+        })
+      )
     );
     render(<AirTrailImportModal {...defaultProps} />);
     // Label falls back to the route, and the sub-line carries no ` · <date>` suffix.
@@ -278,11 +303,19 @@ describe('AirTrailImportModal', () => {
     server.use(
       http.get('/api/integrations/airtrail/flights', () => HttpResponse.json({ flights: [flight()] })),
       http.post('/api/trips/1/reservations/import/airtrail', () =>
-        HttpResponse.json({ imported: ['101'], skipped: [{ id: '999', reason: 'already-in-trip' }] })),
-      http.get('/api/trips/1/reservations', () => HttpResponse.json({
-        reservations: [buildReservation({ id: 55, type: 'flight', external_source: 'airtrail', external_id: '101' } as any)],
-      })),
-      http.delete('/api/trips/1/reservations/55', () => { deleted.push(55); return HttpResponse.json({ success: true }); }),
+        HttpResponse.json({ imported: ['101'], skipped: [{ id: '999', reason: 'already-in-trip' }] })
+      ),
+      http.get('/api/trips/1/reservations', () =>
+        HttpResponse.json({
+          reservations: [
+            buildReservation({ id: 55, type: 'flight', external_source: 'airtrail', external_id: '101' } as any),
+          ],
+        })
+      ),
+      http.delete('/api/trips/1/reservations/55', () => {
+        deleted.push(55);
+        return HttpResponse.json({ success: true });
+      })
     );
     render(<AirTrailImportModal {...defaultProps} pushUndo={pushUndo} />);
     await user.click(await screen.findByRole('button', { name: /Import 1/i }));
@@ -300,7 +333,7 @@ describe('AirTrailImportModal', () => {
     const user = userEvent.setup();
     server.use(
       http.get('/api/integrations/airtrail/flights', () => HttpResponse.json({ flights: [flight()] })),
-      http.post('/api/trips/1/reservations/import/airtrail', () => HttpResponse.json({ imported: [], skipped: [] })),
+      http.post('/api/trips/1/reservations/import/airtrail', () => HttpResponse.json({ imported: [], skipped: [] }))
     );
     render(<AirTrailImportModal {...defaultProps} />);
     await user.click(await screen.findByRole('button', { name: /Import 1/i }));
@@ -313,7 +346,8 @@ describe('AirTrailImportModal', () => {
     server.use(
       http.get('/api/integrations/airtrail/flights', () => HttpResponse.json({ flights: [flight()] })),
       http.post('/api/trips/1/reservations/import/airtrail', () =>
-        HttpResponse.json({ error: 'AirTrail unreachable' }, { status: 502 })),
+        HttpResponse.json({ error: 'AirTrail unreachable' }, { status: 502 })
+      )
     );
     render(<AirTrailImportModal {...defaultProps} onClose={onClose} />);
     await user.click(await screen.findByRole('button', { name: /Import 1/i }));

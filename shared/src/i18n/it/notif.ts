@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} è ora disponibile',
   'notif.replica_failure.title': "Errore di replica dell'archiviazione",
   'notif.replica_failure.text': "Scrittura sulla replica non riuscita su '{backend}': {op} di {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Scrittura sulla replica non riuscita su '{backend}': {op} di {key} — {error}. Altri {suppressed} errori sono stati soppressi dall'ultima notifica.",
+  'notif.replica_failure.textSuppressed':
+    "Scrittura sulla replica non riuscita su '{backend}': {op} di {key} — {error}. Altri {suppressed} errori sono stati soppressi dall'ultima notifica.",
   'notif.action.view_trip': 'Vedi viaggio',
   'notif.action.view_collab': 'Vedi messaggi',
   'notif.action.view_packing': 'Vedi bagagli',

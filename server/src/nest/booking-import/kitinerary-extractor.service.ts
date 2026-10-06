@@ -1,14 +1,15 @@
+import { readEnv } from '../../app-config';
+import { logDebug } from '../audit/audit-log.logger';
+import type { KiReservation } from './kitinerary.types';
 import { Injectable, OnModuleInit } from '@nestjs/common';
+
 import { execFile } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { existsSync, readdirSync, writeFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, extname } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { readEnv } from '../../app-config';
-import { logDebug } from '../audit/audit-log.logger';
-import { execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { KiReservation } from './kitinerary.types';
 
 const execFileAsync = promisify(execFile);
 
@@ -90,7 +91,7 @@ export class KitineraryExtractorService implements OnModuleInit {
       });
 
       if (stderr?.trim()) {
-        const lines = stderr.split('\n').filter(l => l.trim());
+        const lines = stderr.split('\n').filter((l) => l.trim());
 
         // LOG_LEVEL=debug passes the raw stderr through. The lines the filter
         // below drops are the only signal that a vendor extractor script is
@@ -104,8 +105,9 @@ export class KitineraryExtractorService implements OnModuleInit {
         // At the default level, filter expected noise: currency-symbol ambiguity
         // warnings and vendor extractor script errors are normal (every matching
         // script is tried; most won't match the current document).
-        const unexpected = lines
-          .filter(l => !l.includes('Ambig') && !l.includes('JS ERROR') && !l.includes('Invalid result type from script'));
+        const unexpected = lines.filter(
+          (l) => !l.includes('Ambig') && !l.includes('JS ERROR') && !l.includes('Invalid result type from script'),
+        );
         if (unexpected.length) {
           console.warn(`[KItinerary] stderr for "${fileName}":`, unexpected.join('\n'));
         }
@@ -126,7 +128,9 @@ export class KitineraryExtractorService implements OnModuleInit {
       if (typeof parsed === 'object' && parsed !== null) return [parsed as KiReservation];
       return [];
     } finally {
-      try { unlinkSync(tmpFile); } catch {}
+      try {
+        unlinkSync(tmpFile);
+      } catch {}
     }
   }
 
@@ -144,7 +148,9 @@ export class KitineraryExtractorService implements OnModuleInit {
         const candidate = join('/usr/lib', dir, 'libexec', 'kf6', BINARY_NAME);
         if (existsSync(candidate)) return candidate;
       }
-    } catch { /* not a Debian system */ }
+    } catch {
+      /* not a Debian system */
+    }
 
     // Fallback: binary on the search path — resolved to an absolute path here,
     // not left as a bare name. Storing 'kitinerary-extractor' meant every later
@@ -159,7 +165,9 @@ export class KitineraryExtractorService implements OnModuleInit {
       try {
         execFileSync(candidate, ['--version'], { stdio: 'pipe', timeout: 3000 });
         return candidate;
-      } catch { /* present but not runnable — keep looking */ }
+      } catch {
+        /* present but not runnable — keep looking */
+      }
     }
 
     return null;

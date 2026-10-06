@@ -1,11 +1,7 @@
-import { useMemo } from 'react'
-import { Polyline } from 'react-leaflet'
-import type { DawarichTrack } from '@trek/shared'
-import {
-  DAWARICH_TRAIL_CASING,
-  trailSegments,
-  type DawarichTrailSegment,
-} from './dawarichTrail'
+import type { DawarichTrack } from '@trek/shared';
+import { useMemo } from 'react';
+import { Polyline } from 'react-leaflet';
+import { DAWARICH_TRAIL_CASING, trailSegments, type DawarichTrailSegment } from './dawarichTrail';
 
 /**
  * The recorded route on the Leaflet renderer.
@@ -29,16 +25,16 @@ export default function DawarichTrailLayer({
   hiddenDates,
   casingPane,
 }: {
-  track: DawarichTrack | null
+  track: DawarichTrack | null;
   /** When set, only that local day is drawn. */
-  selectedDate?: string | null
+  selectedDate?: string | null;
   /** Local dates whose day is folded away in the day plan. */
-  hiddenDates?: ReadonlySet<string> | null
+  hiddenDates?: ReadonlySet<string> | null;
   /** The `trek-track-casing` pane, when the renderer supports panes. */
-  casingPane?: string
+  casingPane?: string;
 }) {
-  const segments = useMemo(() => trailSegments(track, selectedDate, hiddenDates), [track, selectedDate, hiddenDates])
-  if (segments.length === 0) return null
+  const segments = useMemo(() => trailSegments(track, selectedDate, hiddenDates), [track, selectedDate, hiddenDates]);
+  if (segments.length === 0) return null;
 
   return (
     <>
@@ -77,5 +73,5 @@ export default function DawarichTrailLayer({
         />
       ))}
     </>
-  )
+  );
 }

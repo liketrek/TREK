@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { startRegistration } from '@simplewebauthn/browser';
+import { escapeHtml } from '@trek/shared';
 import {
   AlertTriangle,
   Camera,
@@ -15,42 +16,41 @@ import {
   Trash2,
   User,
   X,
-} from 'lucide-react'
-import { useNavigate, useSearchParams } from 'react-router'
-import { startRegistration } from '@simplewebauthn/browser'
-import { escapeHtml } from '@trek/shared'
-import { useTranslation } from '../../../i18n'
-import { useAuthStore } from '../../../store/authStore'
-import { useToast } from '../../../components/shared/Toast'
-import { authApi, adminApi, type PasskeyCredential } from '../../../api/client'
-import { getApiErrorMessage } from '../../../types'
-import type { UserWithOidc } from '../../../types'
-import { MSetCard, MSetEyebrow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
-import MConfirmSheet from './MConfirmSheet'
-import PasswordChecklist from '../../../components/shared/PasswordChecklist'
-import { passwordErrorKey } from '../../../utils/passwordError'
+} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
+import { adminApi, authApi, type PasskeyCredential } from '../../../api/client';
+import PasswordChecklist from '../../../components/shared/PasswordChecklist';
+import { useToast } from '../../../components/shared/Toast';
+import { useTranslation } from '../../../i18n';
+import { useAuthStore } from '../../../store/authStore';
+import type { UserWithOidc } from '../../../types';
+import { getApiErrorMessage } from '../../../types';
+import { passwordErrorKey } from '../../../utils/passwordError';
+import MConfirmSheet from './MConfirmSheet';
+import { MSetButton, MSetCard, MSetEyebrow, MSetHint, MSetInput } from './MSettingsUi';
 
-const MFA_BACKUP_SESSION_KEY = 'trek_mfa_backup_codes_pending'
+const MFA_BACKUP_SESSION_KEY = 'trek_mfa_backup_codes_pending';
 
 /** Parse a SQLite UTC timestamp ("YYYY-MM-DD HH:MM:SS") into a local date string. */
 function fmtDate(ts: string | null): string | null {
-  if (!ts) return null
-  const iso = ts.includes('T') ? ts : ts.replace(' ', 'T')
-  const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString()
+  if (!ts) return null;
+  const iso = ts.includes('T') ? ts : ts.replace(' ', 'T');
+  const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString();
 }
 
 /** True when the browser cancellation / no-matching-credential DOMExceptions fire. */
 function isWebauthnAbort(err: unknown): boolean {
-  const name = (err as { name?: string })?.name
-  return name === 'NotAllowedError' || name === 'AbortError'
+  const name = (err as { name?: string })?.name;
+  return name === 'NotAllowedError' || name === 'AbortError';
 }
 
 /** Drop trailing slashes for display, as a scan: without it /\/+$/ backtracks quadratically. */
 function trimTrailingSlashes(value: string): string {
-  let end = value.length
-  while (end > 0 && value[end - 1] === '/') end--
-  return value.slice(0, end)
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') end--;
+  return value.slice(0, end);
 }
 
 /**
@@ -58,235 +58,242 @@ function trimTrailingSlashes(value: string): string {
  * TOTP 2FA (setup, backup codes, disable), passkeys and account deletion.
  */
 export default function MSettingsAccount() {
-  const { user, updateProfile, uploadAvatar, deleteAvatar, logout, loadUser, demoMode, appRequireMfa } = useAuthStore()
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const { t } = useTranslation()
-  const toast = useToast()
-  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const { user, updateProfile, uploadAvatar, deleteAvatar, logout, loadUser, demoMode, appRequireMfa } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const toast = useToast();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  const [saving, setSaving] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean | 'blocked'>(false)
+  const [saving, setSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean | 'blocked'>(false);
 
   // Profile
-  const [username, setUsername] = useState<string>(user?.username || '')
-  const [email, setEmail] = useState<string>(user?.email || '')
+  const [username, setUsername] = useState<string>(user?.username || '');
+  const [email, setEmail] = useState<string>(user?.email || '');
 
   useEffect(() => {
-    setUsername(user?.username || '')
-    setEmail(user?.email || '')
-  }, [user])
+    setUsername(user?.username || '');
+    setEmail(user?.email || '');
+  }, [user]);
 
   // Password
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [oidcOnlyMode, setOidcOnlyMode] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [oidcOnlyMode, setOidcOnlyMode] = useState(false);
 
   useEffect(() => {
-    authApi.getAppConfig?.().then((config) => {
-      if (config?.oidc_only_mode) setOidcOnlyMode(true)
-    }).catch(() => {})
-  }, [])
+    authApi
+      .getAppConfig?.()
+      .then((config) => {
+        if (config?.oidc_only_mode) setOidcOnlyMode(true);
+      })
+      .catch(() => {});
+  }, []);
 
   // MFA
-  const [mfaQr, setMfaQr] = useState<string | null>(null)
-  const [mfaSecret, setMfaSecret] = useState<string | null>(null)
-  const [mfaSetupCode, setMfaSetupCode] = useState('')
-  const [mfaDisablePwd, setMfaDisablePwd] = useState('')
-  const [mfaDisableCode, setMfaDisableCode] = useState('')
-  const [mfaLoading, setMfaLoading] = useState(false)
-  const [backupCodes, setBackupCodes] = useState<string[] | null>(null)
+  const [mfaQr, setMfaQr] = useState<string | null>(null);
+  const [mfaSecret, setMfaSecret] = useState<string | null>(null);
+  const [mfaSetupCode, setMfaSetupCode] = useState('');
+  const [mfaDisablePwd, setMfaDisablePwd] = useState('');
+  const [mfaDisableCode, setMfaDisableCode] = useState('');
+  const [mfaLoading, setMfaLoading] = useState(false);
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
 
   const mfaRequiredByPolicy =
-    !demoMode && !user?.mfa_enabled && (searchParams.get('mfa') === 'required' || appRequireMfa)
+    !demoMode && !user?.mfa_enabled && (searchParams.get('mfa') === 'required' || appRequireMfa);
 
-  const backupCodesText = backupCodes?.join('\n') || ''
+  const backupCodesText = backupCodes?.join('\n') || '';
 
   useEffect(() => {
-    if (!user?.mfa_enabled || backupCodes) return
+    if (!user?.mfa_enabled || backupCodes) return;
     try {
-      const raw = sessionStorage.getItem(MFA_BACKUP_SESSION_KEY)
-      if (!raw) return
-      const parsed = JSON.parse(raw) as unknown
+      const raw = sessionStorage.getItem(MFA_BACKUP_SESSION_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as unknown;
       if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((x) => typeof x === 'string')) {
-        setBackupCodes(parsed)
+        setBackupCodes(parsed);
       }
     } catch {
-      sessionStorage.removeItem(MFA_BACKUP_SESSION_KEY)
+      sessionStorage.removeItem(MFA_BACKUP_SESSION_KEY);
     }
-  }, [user?.mfa_enabled, backupCodes])
+  }, [user?.mfa_enabled, backupCodes]);
 
   const dismissBackupCodes = () => {
-    sessionStorage.removeItem(MFA_BACKUP_SESSION_KEY)
-    setBackupCodes(null)
-  }
+    sessionStorage.removeItem(MFA_BACKUP_SESSION_KEY);
+    setBackupCodes(null);
+  };
 
   const copyBackupCodes = async () => {
     try {
-      await navigator.clipboard.writeText(backupCodesText)
-      toast.success(t('settings.mfa.backupCopied'))
+      await navigator.clipboard.writeText(backupCodesText);
+      toast.success(t('settings.mfa.backupCopied'));
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     }
-  }
+  };
 
   const downloadBackupCodes = () => {
-    const blob = new Blob([backupCodesText + '\n'], { type: 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'trek-mfa-backup-codes.txt'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-  }
+    const blob = new Blob([backupCodesText + '\n'], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'trek-mfa-backup-codes.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const printBackupCodes = () => {
     const html = `<!doctype html><html><head><meta charset="utf-8"/><title>TREK MFA Backup Codes</title>
       <style>body{font-family:Arial,sans-serif;padding:32px}h1{font-size:20px}pre{font-size:16px;line-height:1.6}</style>
-      </head><body><h1>TREK MFA Backup Codes</h1><p>${escapeHtml(new Date().toLocaleString())}</p><pre>${escapeHtml(backupCodesText)}</pre></body></html>`
-    const w = window.open('', '_blank', 'width=900,height=700')
-    if (!w) return
-    w.document.open()
-    w.document.write(html)
-    w.document.close()
-    w.focus()
-    w.print()
-  }
+      </head><body><h1>TREK MFA Backup Codes</h1><p>${escapeHtml(new Date().toLocaleString())}</p><pre>${escapeHtml(backupCodesText)}</pre></body></html>`;
+    const w = window.open('', '_blank', 'width=900,height=700');
+    if (!w) return;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
+  };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
     try {
-      await uploadAvatar(file)
-      toast.success(t('settings.avatarUploaded'))
+      await uploadAvatar(file);
+      toast.success(t('settings.avatarUploaded'));
     } catch {
-      toast.error(t('settings.avatarError'))
+      toast.error(t('settings.avatarError'));
     }
-    if (avatarInputRef.current) avatarInputRef.current.value = ''
-  }
+    if (avatarInputRef.current) avatarInputRef.current.value = '';
+  };
 
   const handleAvatarRemove = async () => {
     try {
-      await deleteAvatar()
-      toast.success(t('settings.avatarRemoved'))
+      await deleteAvatar();
+      toast.success(t('settings.avatarRemoved'));
     } catch {
-      toast.error(t('settings.avatarRemoveError'))
+      toast.error(t('settings.avatarRemoveError'));
     }
-  }
+  };
 
   const saveProfile = async () => {
-    setSaving(true)
+    setSaving(true);
     try {
-      await updateProfile({ username, email })
-      toast.success(t('settings.toast.profileSaved'))
+      await updateProfile({ username, email });
+      toast.success(t('settings.toast.profileSaved'));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t('common.error'))
+      toast.error(err instanceof Error ? err.message : t('common.error'));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const changePassword = async () => {
-    if (!currentPassword) return toast.error(t('settings.currentPasswordRequired'))
-    if (!newPassword) return toast.error(t('settings.passwordRequired'))
-    const weak = passwordErrorKey(newPassword)
-    if (weak) return toast.error(t(weak))
-    if (newPassword !== confirmPassword) return toast.error(t('settings.passwordMismatch'))
+    if (!currentPassword) return toast.error(t('settings.currentPasswordRequired'));
+    if (!newPassword) return toast.error(t('settings.passwordRequired'));
+    const weak = passwordErrorKey(newPassword);
+    if (weak) return toast.error(t(weak));
+    if (newPassword !== confirmPassword) return toast.error(t('settings.passwordMismatch'));
     try {
-      await authApi.changePassword({ current_password: currentPassword, new_password: newPassword })
-      toast.success(t('settings.passwordChanged'))
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
-      await loadUser({ silent: true })
+      await authApi.changePassword({ current_password: currentPassword, new_password: newPassword });
+      toast.success(t('settings.passwordChanged'));
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      await loadUser({ silent: true });
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     }
-  }
+  };
 
   const startMfaSetup = async () => {
-    setMfaLoading(true)
+    setMfaLoading(true);
     try {
-      const data = (await authApi.mfaSetup()) as { qr_svg: string; secret: string }
-      setMfaQr(data.qr_svg)
-      setMfaSecret(data.secret)
-      setMfaSetupCode('')
+      const data = (await authApi.mfaSetup()) as { qr_svg: string; secret: string };
+      setMfaQr(data.qr_svg);
+      setMfaSecret(data.secret);
+      setMfaSetupCode('');
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setMfaLoading(false)
+      setMfaLoading(false);
     }
-  }
+  };
 
   const enableMfa = async () => {
-    setMfaLoading(true)
+    setMfaLoading(true);
     try {
-      const resp = (await authApi.mfaEnable({ code: mfaSetupCode })) as { backup_codes?: string[] }
-      toast.success(t('settings.mfa.toastEnabled'))
-      setMfaQr(null)
-      setMfaSecret(null)
-      setMfaSetupCode('')
-      const codes = resp.backup_codes || null
+      const resp = (await authApi.mfaEnable({ code: mfaSetupCode })) as { backup_codes?: string[] };
+      toast.success(t('settings.mfa.toastEnabled'));
+      setMfaQr(null);
+      setMfaSecret(null);
+      setMfaSetupCode('');
+      const codes = resp.backup_codes || null;
       if (codes?.length) {
         try {
-          sessionStorage.setItem(MFA_BACKUP_SESSION_KEY, JSON.stringify(codes))
-        } catch { /* ignore */ }
+          sessionStorage.setItem(MFA_BACKUP_SESSION_KEY, JSON.stringify(codes));
+        } catch {
+          /* ignore */
+        }
       }
-      setBackupCodes(codes)
-      await loadUser({ silent: true })
+      setBackupCodes(codes);
+      await loadUser({ silent: true });
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setMfaLoading(false)
+      setMfaLoading(false);
     }
-  }
+  };
 
   const disableMfa = async () => {
-    setMfaLoading(true)
+    setMfaLoading(true);
     try {
-      await authApi.mfaDisable({ password: mfaDisablePwd, code: mfaDisableCode })
-      toast.success(t('settings.mfa.toastDisabled'))
-      setMfaDisablePwd('')
-      setMfaDisableCode('')
-      sessionStorage.removeItem(MFA_BACKUP_SESSION_KEY)
-      setBackupCodes(null)
-      await loadUser({ silent: true })
+      await authApi.mfaDisable({ password: mfaDisablePwd, code: mfaDisableCode });
+      toast.success(t('settings.mfa.toastDisabled'));
+      setMfaDisablePwd('');
+      setMfaDisableCode('');
+      sessionStorage.removeItem(MFA_BACKUP_SESSION_KEY);
+      setBackupCodes(null);
+      await loadUser({ silent: true });
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setMfaLoading(false)
+      setMfaLoading(false);
     }
-  }
+  };
 
   const requestDelete = async () => {
     if (user?.role === 'admin') {
       try {
-        await adminApi.stats()
-        const adminUsers = (await adminApi.users()).users.filter((u: { role: string }) => u.role === 'admin')
+        await adminApi.stats();
+        const adminUsers = (await adminApi.users()).users.filter((u: { role: string }) => u.role === 'admin');
         if (adminUsers.length <= 1) {
-          setShowDeleteConfirm('blocked')
-          return
+          setShowDeleteConfirm('blocked');
+          return;
         }
-      } catch { /* fall through to the normal confirm */ }
+      } catch {
+        /* fall through to the normal confirm */
+      }
     }
-    setShowDeleteConfirm(true)
-  }
+    setShowDeleteConfirm(true);
+  };
 
   const deleteAccount = async () => {
     try {
-      await authApi.deleteOwnAccount()
-      logout()
-      navigate('/login', { state: { noRedirect: true } })
+      await authApi.deleteOwnAccount();
+      logout();
+      navigate('/login', { state: { noRedirect: true } });
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
-      setShowDeleteConfirm(false)
+      toast.error(getApiErrorMessage(err, t('common.error')));
+      setShowDeleteConfirm(false);
     }
-  }
+  };
 
-  const oidcIssuer = (user as UserWithOidc)?.oidc_issuer
+  const oidcIssuer = (user as UserWithOidc)?.oidc_issuer;
 
   return (
     <>
@@ -398,7 +405,9 @@ export default function MSettingsAccount() {
         <p className="text-[0.75rem] leading-relaxed text-m-muted">{t('settings.mfa.description')}</p>
 
         {demoMode ? (
-          <p className="mt-2 text-[0.75rem] font-semibold text-[color:var(--m-st-pending)]">{t('settings.mfa.demoBlocked')}</p>
+          <p className="mt-2 text-[0.75rem] font-semibold text-[color:var(--m-st-pending)]">
+            {t('settings.mfa.demoBlocked')}
+          </p>
         ) : (
           <>
             <p className="mt-2 text-[0.78125rem] font-bold text-m-ink">
@@ -437,9 +446,9 @@ export default function MSettingsAccount() {
                   <MSetButton
                     variant="ghost"
                     onClick={() => {
-                      setMfaQr(null)
-                      setMfaSecret(null)
-                      setMfaSetupCode('')
+                      setMfaQr(null);
+                      setMfaSecret(null);
+                      setMfaSetupCode('');
                     }}
                   >
                     {t('settings.mfa.cancelSetup')}
@@ -527,7 +536,7 @@ export default function MSettingsAccount() {
         onConfirm={deleteAccount}
       />
     </>
-  )
+  );
 }
 
 /**
@@ -535,109 +544,116 @@ export default function MSettingsAccount() {
  * password step-up + WebAuthn ceremony / rename / delete (password step-up).
  */
 function MPasskeysCard({ demoMode }: { demoMode?: boolean }): React.ReactElement | null {
-  const { t } = useTranslation()
-  const toast = useToast()
+  const { t } = useTranslation();
+  const toast = useToast();
 
-  const [enabled, setEnabled] = useState(false)
-  const [configured, setConfigured] = useState(false)
-  const [creds, setCreds] = useState<PasskeyCredential[]>([])
-  const [loading, setLoading] = useState(true)
-  const [busy, setBusy] = useState(false)
+  const [enabled, setEnabled] = useState(false);
+  const [configured, setConfigured] = useState(false);
+  const [creds, setCreds] = useState<PasskeyCredential[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
 
-  const [addOpen, setAddOpen] = useState(false)
-  const [addPwd, setAddPwd] = useState('')
-  const [addName, setAddName] = useState('')
+  const [addOpen, setAddOpen] = useState(false);
+  const [addPwd, setAddPwd] = useState('');
+  const [addName, setAddName] = useState('');
 
-  const [renamingId, setRenamingId] = useState<number | null>(null)
-  const [renameVal, setRenameVal] = useState('')
+  const [renamingId, setRenamingId] = useState<number | null>(null);
+  const [renameVal, setRenameVal] = useState('');
 
-  const [deletingId, setDeletingId] = useState<number | null>(null)
-  const [deletePwd, setDeletePwd] = useState('')
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletePwd, setDeletePwd] = useState('');
 
   const refresh = () => {
-    authApi.passkey.list()
+    authApi.passkey
+      .list()
       .then((r) => setCreds(r.credentials))
       .catch(() => {})
-      .finally(() => setLoading(false))
-  }
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    authApi.getAppConfig?.()
+    authApi
+      .getAppConfig?.()
       .then((c) => {
-        setEnabled(!!c?.passkey_login)
-        setConfigured(!!c?.passkey_configured)
+        setEnabled(!!c?.passkey_login);
+        setConfigured(!!c?.passkey_configured);
       })
-      .catch(() => {})
-    refresh()
-  }, [])
+      .catch(() => {});
+    refresh();
+  }, []);
 
-  const canAdd = enabled && configured
+  const canAdd = enabled && configured;
 
   const handleAdd = async () => {
-    setBusy(true)
+    setBusy(true);
     try {
-      const options = await authApi.passkey.registerOptions(addPwd)
-      const attResp = await startRegistration({ optionsJSON: options })
-      await authApi.passkey.registerVerify(attResp, addName.trim() || undefined)
-      toast.success(t('settings.passkey.addedToast'))
-      setAddOpen(false)
-      setAddPwd('')
-      setAddName('')
-      refresh()
+      const options = await authApi.passkey.registerOptions(addPwd);
+      const attResp = await startRegistration({ optionsJSON: options });
+      await authApi.passkey.registerVerify(attResp, addName.trim() || undefined);
+      toast.success(t('settings.passkey.addedToast'));
+      setAddOpen(false);
+      setAddPwd('');
+      setAddName('');
+      refresh();
     } catch (err: unknown) {
-      if (isWebauthnAbort(err)) toast.error(t('settings.passkey.cancelled'))
-      else toast.error(getApiErrorMessage(err, t('settings.passkey.addError')))
+      if (isWebauthnAbort(err)) toast.error(t('settings.passkey.cancelled'));
+      else toast.error(getApiErrorMessage(err, t('settings.passkey.addError')));
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
   const handleRename = async (id: number) => {
-    const name = renameVal.trim()
+    const name = renameVal.trim();
     if (!name) {
-      setRenamingId(null)
-      return
+      setRenamingId(null);
+      return;
     }
     try {
-      await authApi.passkey.rename(id, name)
-      setRenamingId(null)
-      refresh()
+      await authApi.passkey.rename(id, name);
+      setRenamingId(null);
+      refresh();
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     }
-  }
+  };
 
   const handleDelete = async (id: number) => {
-    setBusy(true)
+    setBusy(true);
     try {
-      await authApi.passkey.delete(id, deletePwd)
-      toast.success(t('settings.passkey.deleted'))
-      setDeletingId(null)
-      setDeletePwd('')
-      refresh()
+      await authApi.passkey.delete(id, deletePwd);
+      toast.success(t('settings.passkey.deleted'));
+      setDeletingId(null);
+      setDeletePwd('');
+      refresh();
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
-  if (demoMode) return null
+  if (demoMode) return null;
   // Nothing to show: feature off and no credentials left to manage.
-  if (!loading && !enabled && creds.length === 0) return null
+  if (!loading && !enabled && creds.length === 0) return null;
 
   return (
     <MSetCard title={t('settings.passkey.title')} icon={Fingerprint} className="mt-3">
       <p className="text-[0.75rem] leading-relaxed text-m-muted">{t('settings.passkey.description')}</p>
 
       {enabled && !configured && (
-        <p className="mt-2 text-[0.75rem] font-semibold text-[color:var(--m-st-pending)]">{t('settings.passkey.notConfigured')}</p>
+        <p className="mt-2 text-[0.75rem] font-semibold text-[color:var(--m-st-pending)]">
+          {t('settings.passkey.notConfigured')}
+        </p>
       )}
 
       {creds.length > 0 && (
         <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0">
           {creds.map((c) => (
-            <li key={c.id} className="flex items-center gap-[10px] rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3">
+            <li
+              key={c.id}
+              className="flex items-center gap-[10px] rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] p-3"
+            >
               <Fingerprint size={15} className="flex-none text-m-muted" />
               <div className="min-w-0 flex-1">
                 {renamingId === c.id ? (
@@ -647,14 +663,24 @@ function MPasskeysCard({ demoMode }: { demoMode?: boolean }): React.ReactElement
                       value={renameVal}
                       onChange={(e) => setRenameVal(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') void handleRename(c.id)
-                        if (e.key === 'Escape') setRenamingId(null)
+                        if (e.key === 'Enter') void handleRename(c.id);
+                        if (e.key === 'Escape') setRenamingId(null);
                       }}
                     />
-                    <button type="button" onClick={() => handleRename(c.id)} className="p-1 text-[color:var(--m-st-confirmed)]" aria-label={t('common.save')}>
+                    <button
+                      type="button"
+                      onClick={() => handleRename(c.id)}
+                      className="p-1 text-[color:var(--m-st-confirmed)]"
+                      aria-label={t('common.save')}
+                    >
                       <Check size={16} />
                     </button>
-                    <button type="button" onClick={() => setRenamingId(null)} className="p-1 text-m-muted" aria-label={t('common.cancel')}>
+                    <button
+                      type="button"
+                      onClick={() => setRenamingId(null)}
+                      className="p-1 text-m-muted"
+                      aria-label={t('common.cancel')}
+                    >
                       <X size={16} />
                     </button>
                   </div>
@@ -683,8 +709,8 @@ function MPasskeysCard({ demoMode }: { demoMode?: boolean }): React.ReactElement
                   <button
                     type="button"
                     onClick={() => {
-                      setRenamingId(c.id)
-                      setRenameVal(c.name || '')
+                      setRenamingId(c.id);
+                      setRenameVal(c.name || '');
                     }}
                     className="rounded p-[6px] text-m-muted"
                     aria-label={t('settings.passkey.rename')}
@@ -694,8 +720,8 @@ function MPasskeysCard({ demoMode }: { demoMode?: boolean }): React.ReactElement
                   <button
                     type="button"
                     onClick={() => {
-                      setDeletingId(c.id)
-                      setDeletePwd('')
+                      setDeletingId(c.id);
+                      setDeletePwd('');
                     }}
                     className="rounded p-[6px] text-[color:var(--m-st-danger)]"
                     aria-label={t('common.delete')}
@@ -727,8 +753,8 @@ function MPasskeysCard({ demoMode }: { demoMode?: boolean }): React.ReactElement
             <MSetButton
               variant="ghost"
               onClick={() => {
-                setDeletingId(null)
-                setDeletePwd('')
+                setDeletingId(null);
+                setDeletePwd('');
               }}
             >
               {t('common.cancel')}
@@ -763,9 +789,9 @@ function MPasskeysCard({ demoMode }: { demoMode?: boolean }): React.ReactElement
               <MSetButton
                 variant="ghost"
                 onClick={() => {
-                  setAddOpen(false)
-                  setAddPwd('')
-                  setAddName('')
+                  setAddOpen(false);
+                  setAddPwd('');
+                  setAddName('');
                 }}
               >
                 {t('common.cancel')}
@@ -779,5 +805,5 @@ function MPasskeysCard({ demoMode }: { demoMode?: boolean }): React.ReactElement
           </MSetButton>
         ))}
     </MSetCard>
-  )
+  );
 }

@@ -1,7 +1,7 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { BudgetItemMembersRepository } from '../repositories/BudgetItemMembers.repository';
 import { BudgetItems } from './BudgetItems.entity';
 import { Users } from './Users.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class BudgetItemMembers {
   [EntityRepositoryType]?: BudgetItemMembersRepository;
@@ -20,7 +20,8 @@ export const BudgetItemMembersSchema = defineEntity({
   uniques: [{ properties: ['budgetItem', 'user'] }],
   properties: {
     id: p.integer().primary(),
-    budgetItem: () => p.manyToOne(BudgetItems).ref().deleteRule('cascade').hidden().index('idx_budget_item_members_item'),
+    budgetItem: () =>
+      p.manyToOne(BudgetItems).ref().deleteRule('cascade').hidden().index('idx_budget_item_members_item'),
     budget_item_id: p.integer().persist(false).index('idx_budget_item_members_item'),
     user: () => p.manyToOne(Users).ref().deleteRule('cascade').hidden().index('idx_budget_item_members_user'),
     user_id: p.integer().persist(false).index('idx_budget_item_members_user'),

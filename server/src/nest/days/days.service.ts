@@ -1,34 +1,34 @@
-import { HttpException, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { addIsoDays, MAX_TRIP_DAYS, planDatedAppend } from '@trek/shared';
-import type { RoadtripDayBoundary, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
+import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { DayNotes } from '../../db/entities/DayNotes.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
+import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { DayAccommodationsRepository } from '../../db/repositories/DayAccommodations.repository';
+import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
+import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
+import type { DaysRepository, DayOrderRow, DayRow } from '../../db/repositories/Days.repository';
+import type { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
+import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import type { RoadtripDayBoundariesRepository } from '../../db/repositories/RoadtripDayBoundaries.repository';
+import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
+import { carryViasWith, locatedStopIdsWith, reseatOwnStopWith } from '../accommodations/night-seat';
+import { toRowId } from '../common/row-id';
+import { formatAssignmentWithPlace } from '../common/rowShape';
+import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
-import { carryViasWith, locatedStopIdsWith, reseatOwnStopWith } from '../accommodations/night-seat';
-import { formatAssignmentWithPlace } from '../common/rowShape';
-import type { User } from '../../types';
-import { UnitOfWork } from '../database/unit-of-work';
-import { toRowId } from '../common/row-id';
-import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository, DayOrderRow, DayRow } from '../../db/repositories/Days.repository';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
-import { DayNotes } from '../../db/entities/DayNotes.entity';
-import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
-import type { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
-import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
-import type { DayAccommodationsRepository } from '../../db/repositories/DayAccommodations.repository';
-import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
-import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
-import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
-import type { RoadtripDayBoundariesRepository } from '../../db/repositories/RoadtripDayBoundaries.repository';
+import { RealtimeService } from '../realtime/realtime.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { HttpException, Injectable } from '@nestjs/common';
+import { addIsoDays, MAX_TRIP_DAYS, planDatedAppend } from '@trek/shared';
+import type { RoadtripDayBoundary, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 
 type Trip = TripAccess;
 
@@ -152,7 +152,8 @@ export class DaysService {
     // (carryStayStop), and a dated append moves the road trip day boundaries
     // back with their days (shiftBoundariesBack).
     @InjectRepository(RoadtripVias) private readonly roadtripViasRepo: RoadtripViasRepository,
-    @InjectRepository(RoadtripDayBoundaries) private readonly roadtripDayBoundariesRepo: RoadtripDayBoundariesRepository,
+    @InjectRepository(RoadtripDayBoundaries)
+    private readonly roadtripDayBoundariesRepo: RoadtripDayBoundariesRepository,
   ) {}
 
   async verifyTripAccess(tripId: string | number, userId: number) {
@@ -166,7 +167,12 @@ export class DaysService {
     return this.permissions.checkPermission('day_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -181,9 +187,9 @@ export class DaysService {
     // One batched tag load instead of the legacy per-assignment query; the
     // non-compact loader returns the same full tag rows (t.* minus the join
     // key), so the output shape is unchanged.
-    const tagsByPlaceId = await this.queryHelpers.loadTagsByPlaceIds([...new Set(assignments.map(a => a.place_id))]);
+    const tagsByPlaceId = await this.queryHelpers.loadTagsByPlaceIds([...new Set(assignments.map((a) => a.place_id))]);
 
-    return assignments.map(a => {
+    return assignments.map((a) => {
       const tags = tagsByPlaceId[a.place_id] || [];
 
       return {
@@ -223,14 +229,16 @@ export class DaysService {
           // place column has to be repeated twice — which is how the road-trip kind went
           // missing and made a petrol station render as an ordinary numbered stop.
           stop_type: a.stop_type ?? null,
-          category: a.category_id ? {
-            id: a.category_id,
-            name: a.category_name,
-            color: a.category_color,
-            icon: a.category_icon,
-          } : null,
+          category: a.category_id
+            ? {
+                id: a.category_id,
+                name: a.category_name,
+                color: a.category_color,
+                icon: a.category_icon,
+              }
+            : null,
           tags,
-        }
+        },
       };
     });
   }
@@ -252,14 +260,14 @@ export class DaysService {
       return { days: [] };
     }
 
-    const dayIds = days.map(d => d.id);
+    const dayIds = days.map((d) => d.id);
 
     const allAssignments = await this.dayAssignmentsRepo.listWithPlaceAndCategory(dayIds);
 
-    const placeIds = [...new Set(allAssignments.map(a => a.place_id))];
+    const placeIds = [...new Set(allAssignments.map((a) => a.place_id))];
     const tagsByPlaceId = await this.queryHelpers.loadTagsByPlaceIds(placeIds, { compact: true });
 
-    const allAssignmentIds = allAssignments.map(a => a.id);
+    const allAssignmentIds = allAssignments.map((a) => a.id);
     const participantsByAssignment = await this.queryHelpers.loadParticipantsByAssignmentIds(allAssignmentIds);
 
     const assignmentsByDayId: Record<number, ReturnType<typeof formatAssignmentWithPlace>[]> = {};
@@ -270,17 +278,19 @@ export class DaysService {
       // 16's honestly-nullable columns), so no cast is needed here — the
       // `as unknown as AssignmentRow` this line used to carry moved to
       // `rowShape.ts`'s parameter type instead, once, for every call site.
-      assignmentsByDayId[a.day_id].push(formatAssignmentWithPlace(a, tagsByPlaceId[a.place_id] || [], participantsByAssignment[a.id] || []));
+      assignmentsByDayId[a.day_id].push(
+        formatAssignmentWithPlace(a, tagsByPlaceId[a.place_id] || [], participantsByAssignment[a.id] || []),
+      );
     }
 
     const allNotes = await this.dayNotesRepo.listByDayIds(dayIds);
-    const notesByDayId: Record<number, typeof allNotes[number][]> = {};
+    const notesByDayId: Record<number, (typeof allNotes)[number][]> = {};
     for (const note of allNotes) {
       if (!notesByDayId[note.day_id]) notesByDayId[note.day_id] = [];
       notesByDayId[note.day_id].push(note);
     }
 
-    const daysWithAssignments = days.map(day => ({
+    const daysWithAssignments = days.map((day) => ({
       ...day,
       assignments: assignmentsByDayId[day.id] || [],
       notes_items: notesByDayId[day.id] || [],
@@ -327,7 +337,11 @@ export class DaysService {
     return await this.daysRepo.findInTrip(dayId, tid);
   }
 
-  async update(id: string | number, current: { notes?: string | null; title?: string | null }, fields: { notes?: string; title?: string | null }) {
+  async update(
+    id: string | number,
+    current: { notes?: string | null; title?: string | null },
+    fields: { notes?: string; title?: string | null },
+  ) {
     const dayId = toRowId(id)!;
     // Both columns use the presence sentinel: an absent key preserves the
     // current value (the legacy version always wrote notes, so setting a title
@@ -335,7 +349,7 @@ export class DaysService {
     // separate requests). Note the asymmetry: `notes` falls back through `||`
     // (an empty string clears too), `title` through `??` (only null/undefined
     // clear) — both byte-identical to the legacy statement's own coercions.
-    const notes = 'notes' in fields ? (fields.notes || null) : (current.notes ?? null);
+    const notes = 'notes' in fields ? fields.notes || null : (current.notes ?? null);
     const title = 'title' in fields ? (fields.title ?? null) : (current.title ?? null);
     await this.daysRepo.updateNotesAndTitle(dayId, notes, title);
     const updatedDay = (await this.daysRepo.findById(dayId))!;
@@ -479,10 +493,7 @@ export class DaysService {
    * route string — the same affinity-seam mismatch documented on
    * `restampReservationDates`).
    */
-  async resyncAccommodationDays(
-    tripId: number,
-    prevDateByDayId: Map<number, string | null>,
-  ): Promise<void> {
+  async resyncAccommodationDays(tripId: number, prevDateByDayId: Map<number, string | null>): Promise<void> {
     // DY20
     const stays = await this.dayAccommodationsRepo.listForResync(tripId);
     if (stays.length === 0) return;
@@ -494,8 +505,12 @@ export class DaysService {
         // DY21
         const newStart = await this.daysRepo.findByTripAndDate(tripId, oldStartDate);
         const newEnd = await this.daysRepo.findByTripAndDate(tripId, oldEndDate);
-        if (newStart && newEnd && newStart.day_number <= newEnd.day_number
-          && (newStart.id !== stay.start_day_id || newEnd.id !== stay.end_day_id)) {
+        if (
+          newStart &&
+          newEnd &&
+          newStart.day_number <= newEnd.day_number &&
+          (newStart.id !== stay.start_day_id || newEnd.id !== stay.end_day_id)
+        ) {
           // DY22
           await this.dayAccommodationsRepo.setDayRange(stay.id, newStart.id, newEnd.id);
           if (newStart.id !== stay.start_day_id) await this.carryStayStop(stay, newStart.id);
@@ -530,7 +545,7 @@ export class DaysService {
    */
   private async carryStayStop(stay: { id: number; check_in: string | null }, dayId: number): Promise<void> {
     // DY39
-    const own = (await this.dayAssignmentsRepo.listOwnedByStay(stay.id)).filter(stop => stop.day_id !== dayId);
+    const own = (await this.dayAssignmentsRepo.listOwnedByStay(stay.id)).filter((stop) => stop.day_id !== dayId);
     for (const stop of own) {
       const before: [number, number[]][] = [];
       for (const id of [stop.day_id, dayId]) before.push([id, await locatedStopIdsWith(this.dayAssignmentsRepo, id)]);
@@ -540,10 +555,18 @@ export class DaysService {
         // `order_index > NULL` matches no row, so a stop without a position closes no gap.
         if (stop.order_index !== null) await this.dayAssignmentsRepo.closeGap(stop.day_id, stop.order_index);
       } else {
-        await reseatOwnStopWith(this.dayAssignmentsRepo, stop, stop.place_id, dayId, { id: stay.id, check_in: stay.check_in });
+        await reseatOwnStopWith(this.dayAssignmentsRepo, stop, stop.place_id, dayId, {
+          id: stay.id,
+          check_in: stay.check_in,
+        });
       }
       for (const [id, previousIds] of before) {
-        await carryViasWith(this.roadtripViasRepo, id, previousIds, await locatedStopIdsWith(this.dayAssignmentsRepo, id));
+        await carryViasWith(
+          this.roadtripViasRepo,
+          id,
+          previousIds,
+          await locatedStopIdsWith(this.dayAssignmentsRepo, id),
+        );
       }
     }
   }
@@ -563,14 +586,17 @@ export class DaysService {
     if (tripIdNum === null) throw new DayReorderError('orderedIds must be a permutation of the trip day ids.');
     const rows: DayOrderRow[] = await this.daysRepo.listOrderedForReorder(tripIdNum);
 
-    const existingIds = new Set(rows.map(r => r.id));
-    if (orderedIds.length !== rows.length || !orderedIds.every(id => existingIds.has(id))) {
+    const existingIds = new Set(rows.map((r) => r.id));
+    if (orderedIds.length !== rows.length || !orderedIds.every((id) => existingIds.has(id))) {
       throw new DayReorderError('orderedIds must be a permutation of the trip day ids.');
     }
 
-    const oldDateById = new Map(rows.map(r => [r.id, r.date]));
+    const oldDateById = new Map(rows.map((r) => [r.id, r.date]));
     // Dates stay pinned to slots: position i keeps the i-th date (ascending).
-    const sortedDates = rows.map(r => r.date).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    const sortedDates = rows
+      .map((r) => r.date)
+      .filter((d): d is string => !!d)
+      .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     const isDated = sortedDates.length > 0;
 
     await this.uow.transactional(async () => {
@@ -614,12 +640,12 @@ export class DaysService {
     const rows: DayOrderRow[] = await this.daysRepo.listOrderedForReorder(tripIdNum);
     const n = rows.length;
     const pos = Math.min(Math.max(position ?? n + 1, 1), n + 1);
-    const datedRows = rows.filter(r => r.date) as { id: number; day_number: number; date: string }[];
+    const datedRows = rows.filter((r) => r.date) as { id: number; day_number: number; date: string }[];
     const isDated = datedRows.length > 0;
 
     if (!isDated) {
       const newId = await this.uow.transactional(async () => {
-        const toShift = rows.filter(r => r.day_number >= pos);
+        const toShift = rows.filter((r) => r.day_number >= pos);
         for (const r of toShift) await this.daysRepo.setDayNumber(r.id, -r.day_number);
         const insertedId = await this.daysRepo.insertDay({ trip_id: tripIdNum, day_number: pos, date: null });
         for (const r of toShift) await this.daysRepo.setDayNumber(r.id, r.day_number + 1);
@@ -630,15 +656,15 @@ export class DaysService {
     }
 
     // Dated trip: rebuild N+1 contiguous dates from the earliest date.
-    const start = datedRows.map(r => r.date).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))[0];
+    const start = datedRows.map((r) => r.date).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))[0];
     const dates = Array.from({ length: n + 1 }, (_, i) => addDays(start, i));
-    const oldDateById = new Map(rows.map(r => [r.id, r.date]));
+    const oldDateById = new Map(rows.map((r) => [r.id, r.date]));
 
     const newId = await this.uow.transactional(async () => {
       for (const [i, r] of rows.entries()) await this.daysRepo.setDayNumber(r.id, -(i + 1));
       const insertedId = await this.daysRepo.insertDay({ trip_id: tripIdNum, day_number: pos, date: dates[pos - 1] });
 
-      const orderedIds = rows.map(r => r.id);
+      const orderedIds = rows.map((r) => r.id);
       orderedIds.splice(pos - 1, 0, insertedId);
       const newDateById = new Map<number, string | null>();
       for (const [i, id] of orderedIds.entries()) {
@@ -681,17 +707,25 @@ export class DaysService {
     const appended = await this.uow.transactional(async () => {
       const range = await this.tripsRepo.findDatesById(trip);
       const rows: DayOrderRow[] = await this.daysRepo.listOrderedForReorder(trip);
-      const plan = planDatedAppend(range ?? {}, rows.map(r => r.date));
+      const plan = planDatedAppend(
+        range ?? {},
+        rows.map((r) => r.date),
+      );
       if (!plan) throw new DayAppendError(NO_DATES_MESSAGE);
       if (!plan.fits) throw new DayAppendError(`A trip can span at most ${MAX_TRIP_DAYS} days`);
 
       // The dates are a prefix of the day order on any trip the planner wrote;
       // the highest dated number keeps that true even on one that drifted.
       const position = rows.reduce((last, r) => (r.date ? Math.max(last, r.day_number) : last), 0) + 1;
-      const later = rows.filter(r => r.day_number >= position);
+      const later = rows.filter((r) => r.day_number >= position);
       // Two phases, to get past UNIQUE(trip_id, day_number) on the way.
       for (const r of later) await this.daysRepo.setDayNumber(r.id, -r.day_number);
-      const day = await this.daysRepo.createDay({ trip_id: trip, day_number: position, date: plan.date, notes: notes || null });
+      const day = await this.daysRepo.createDay({
+        trip_id: trip,
+        day_number: position,
+        date: plan.date,
+        notes: notes || null,
+      });
       for (const r of later) await this.daysRepo.setDayNumber(r.id, r.day_number + 1);
 
       const boundaries = await this.shiftBoundariesBack(trip, position);

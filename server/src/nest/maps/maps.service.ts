@@ -1,52 +1,27 @@
-import { Injectable } from '@nestjs/common';
-import { isOutsideChina, normalizePlaceWebsite } from '@trek/shared';
-import type {
-  MapsSearchResult,
-  MapsAutocompleteResult,
-  MapsPlaceDetailsResult,
-  MapsPlacePhotoResult,
-  MapsReverseResult,
-  MapsResolveUrlResult,
-} from '@trek/shared';
-import { Jimp } from 'jimp';
 import { readEnv, getAppUrl } from '../../app-config';
-import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
-import { discardBody, exceedsDeclaredLength, readCapped, readCappedText } from '../../utils/cappedFetch';
-import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { PlaceDetailsCache } from '../../db/entities/PlaceDetailsCache.entity';
-import type { PlaceDetailsCacheRepository } from '../../db/repositories/PlaceDetailsCache.repository';
 import { Places } from '../../db/entities/Places.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { PlaceDetailsCacheRepository } from '../../db/repositories/PlaceDetailsCache.repository';
 import type { PlacesRepository } from '../../db/repositories/Places.repository';
-import { isPlacesProviderChoice, type PlacesProviderChoice } from './providers/places-provider';
-import {
-  AMAP_SHORT_HOSTS,
-  AmapPlacesProvider,
-  AmapTipStash,
-  isAmapHost,
-  isAmapPlaceId,
-  parseAmapUrl,
-} from './providers/amap.provider';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { discardBody, exceedsDeclaredLength, readCapped, readCappedText } from '../../utils/cappedFetch';
+import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
+import { nominatimFetch, type GeoLane } from '../geo/nominatim.client';
+import { GoogleQuotaService } from '../google-quota/google-quota.service';
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
-import { GoogleQuotaService } from '../google-quota/google-quota.service';
-import { nominatimFetch, type GeoLane } from '../geo/nominatim.client';
+import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
 import {
-  trekPlacesSearch,
-  indexHitsOnly,
-  isOsmHit,
-  osmPlaceId,
-  trekPlacesById,
-  trekPlacesArea,
-  trekPlacesNearby,
-  toPlaceRecord,
-  POI_CATEGORY_TO_TREK,
-  type TrekPlace,
-} from './trek-places.client';
+  NEARBY_DEFAULT_LIMIT,
+  NEARBY_DEFAULT_RADIUS_M,
+  nearbyCacheKey,
+  nearbyOverpassQuery,
+  nearestFirst,
+  overpassNearbyRecords,
+} from './maps-nearby.helpers';
 import {
   UA,
   SEARCH_TEXT_FIELD_MASK,
@@ -74,13 +49,39 @@ import {
   type OverpassPoi,
 } from './maps.helpers';
 import {
-  NEARBY_DEFAULT_LIMIT,
-  NEARBY_DEFAULT_RADIUS_M,
-  nearbyCacheKey,
-  nearbyOverpassQuery,
-  nearestFirst,
-  overpassNearbyRecords,
-} from './maps-nearby.helpers';
+  AMAP_SHORT_HOSTS,
+  AmapPlacesProvider,
+  AmapTipStash,
+  isAmapHost,
+  isAmapPlaceId,
+  parseAmapUrl,
+} from './providers/amap.provider';
+import { isPlacesProviderChoice, type PlacesProviderChoice } from './providers/places-provider';
+import {
+  trekPlacesSearch,
+  indexHitsOnly,
+  isOsmHit,
+  osmPlaceId,
+  trekPlacesById,
+  trekPlacesArea,
+  trekPlacesNearby,
+  toPlaceRecord,
+  POI_CATEGORY_TO_TREK,
+  type TrekPlace,
+} from './trek-places.client';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { isOutsideChina, normalizePlaceWebsite } from '@trek/shared';
+import type {
+  MapsSearchResult,
+  MapsAutocompleteResult,
+  MapsPlaceDetailsResult,
+  MapsPlacePhotoResult,
+  MapsReverseResult,
+  MapsResolveUrlResult,
+} from '@trek/shared';
+
+import { Jimp } from 'jimp';
 
 // ── Google API call counter ───────────────────────────────────────────────────
 
@@ -245,7 +246,11 @@ function wikidataImageClaims(claims: WikidataClaims, limit: number): string[] {
 
 /** `File:` prefix off, underscores and case normalised — Commons treats these as one title. */
 function normalizeFileTitle(title: string): string {
-  return title.replace(/^File:/i, '').replaceAll('_', ' ').trim().toLowerCase();
+  return title
+    .replace(/^File:/i, '')
+    .replaceAll('_', ' ')
+    .trim()
+    .toLowerCase();
 }
 
 /**
@@ -437,8 +442,7 @@ export const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
  * `google.evil.com` is not a Google host.
  */
 export function isGoogleMapsHost(hostname: string): boolean {
-  return GOOGLE_SHORT_HOSTS.includes(hostname)
-    || /^(www\.|maps\.)?google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(hostname);
+  return GOOGLE_SHORT_HOSTS.includes(hostname) || /^(www\.|maps\.)?google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(hostname);
 }
 
 const WIKI_TIMEOUT_MS = 6000;
@@ -736,8 +740,7 @@ function cachedDetails(payload: string): Record<string, unknown> | null {
  * credential, an Amap provider, or nobody (the OpenStreetMap stack alone).
  */
 type KeyedProvider =
-  | { id: 'google'; key: string; source: ApiKeySource | null }
-  | { id: 'amap'; provider: AmapPlacesProvider };
+  { id: 'google'; key: string; source: ApiKeySource | null } | { id: 'amap'; provider: AmapPlacesProvider };
 
 /**
  * /api/maps domain service — geocoding, the provider fan-out
@@ -853,10 +856,18 @@ export class MapsService {
     locationBias?: { lat: number; lng: number; radius?: number },
     provider?: 'google',
   ): Promise<MapsSearchResult> {
-    return this.searchPlaces(userId, query, lang, locationBias, { googleOnly: provider === 'google' }) as Promise<MapsSearchResult>;
+    return this.searchPlaces(userId, query, lang, locationBias, {
+      googleOnly: provider === 'google',
+    }) as Promise<MapsSearchResult>;
   }
 
-  autocomplete(userId: number, input: string, lang?: string, locationBias?: LocationBias, sessionToken?: string): Promise<MapsAutocompleteResult> {
+  autocomplete(
+    userId: number,
+    input: string,
+    lang?: string,
+    locationBias?: LocationBias,
+    sessionToken?: string,
+  ): Promise<MapsAutocompleteResult> {
     return this.autocompletePlaces(userId, input, lang, locationBias, sessionToken) as Promise<MapsAutocompleteResult>;
   }
 
@@ -864,7 +875,12 @@ export class MapsService {
     return this.getPlaceDetails(userId, placeId, lang, sessionToken) as Promise<MapsPlaceDetailsResult>;
   }
 
-  detailsExpanded(userId: number, placeId: string, lang: string | undefined, refresh: boolean): Promise<MapsPlaceDetailsResult> {
+  detailsExpanded(
+    userId: number,
+    placeId: string,
+    lang: string | undefined,
+    refresh: boolean,
+  ): Promise<MapsPlaceDetailsResult> {
     return this.getPlaceDetailsExpanded(userId, placeId, lang, refresh) as Promise<MapsPlaceDetailsResult>;
   }
 
@@ -932,7 +948,11 @@ export class MapsService {
       // The same six seconds the Wikidata hop above allows. Without a deadline
       // this waited on undici's five-minute default, holding a request context
       // and a socket per stalled logo while the pin sat on its fallback icon.
-      const imgRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) }, { bypassInternalIpAllowed: true });
+      const imgRes = await safeFetchFollow(
+        url,
+        { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) },
+        { bypassInternalIpAllowed: true },
+      );
       if (!imgRes.ok) return remember(null);
 
       if (exceedsDeclaredLength(imgRes, BRAND_LOGO_MAX_BYTES)) {
@@ -980,7 +1000,7 @@ export class MapsService {
     }
     // All or nothing: a category the index has no terms for has to be answered
     // by Overpass, and a mixed answer would silently drop it.
-    const indexKnowsAll = wanted.length > 0 && wanted.every(key => POI_CATEGORY_TO_TREK[key]?.length);
+    const indexKnowsAll = wanted.length > 0 && wanted.every((key) => POI_CATEGORY_TO_TREK[key]?.length);
     const terms = [...categoryOfTerm.keys()];
     // The index matches a term as a SUBSTRING of `category` and `category_path`
     // (see POI_CATEGORY_TO_TREK), so an exact lookup misses every leaf that is
@@ -1035,7 +1055,7 @@ export class MapsService {
           // the Japanese primary names here. Named rather than hidden: whoever
           // adds localisation upstream should find this comment.
           return {
-            pois: found.map(p => ({
+            pois: found.map((p) => ({
               osm_id: `gers:${p.gers}`,
               name: p.name,
               lat: p.lat,
@@ -1148,7 +1168,8 @@ export class MapsService {
       const google = await this.resolveMapsKey(userId);
       // Past the daily ceiling (#1582) the key is spent for today: answer as if
       // there were none, so `auto` moves on and OpenStreetMap fills in.
-      if (google.key && !(await this.googleQuota.exhausted())) return { id: 'google', key: google.key, source: google.source };
+      if (google.key && !(await this.googleQuota.exhausted()))
+        return { id: 'google', key: google.key, source: google.source };
       // An explicit 'google' choice with no key is not a reason to query Amap
       // instead: this install is on Google and is misconfigured. OSM answers,
       // the way a keyless install has always been answered.
@@ -1392,9 +1413,7 @@ export class MapsService {
         .sort((a, b) => {
           const byImportance = (b.item.importance ?? 0) - (a.item.importance ?? 0);
           if (byImportance !== 0) return byImportance;
-          return (
-            haversineMetres(lat, lng, a.lat, a.lng) - haversineMetres(lat, lng, b.lat, b.lng)
-          );
+          return haversineMetres(lat, lng, a.lat, a.lng) - haversineMetres(lat, lng, b.lat, b.lng);
         })[0];
 
       if (!best) return null;
@@ -1542,8 +1561,7 @@ export class MapsService {
       // `operator` comes last but matters for the road categories: petrol stations,
       // charging points and service areas are routinely mapped with an operator and no
       // name, and dropping those would empty the road trip corridor over long stretches.
-      const name =
-        tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || tags.operator || null;
+      const name = tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || tags.operator || null;
       if (!name) continue; // unnamed POIs aren't useful to add to a plan
       // A shut-down place is not somewhere to plan a visit (#1341). OSM usually
       // re-tags one with a `disused:`/`abandoned:` prefix, and those never match
@@ -1615,9 +1633,13 @@ export class MapsService {
           pilimit: '1',
           redirects: '1',
         });
-        const res = await fetch(`https://en.wikipedia.org/w/api.php?${searchParams}`, { headers: { 'User-Agent': UA } });
+        const res = await fetch(`https://en.wikipedia.org/w/api.php?${searchParams}`, {
+          headers: { 'User-Agent': UA },
+        });
         if (res.ok) {
-          const data = (await res.json()) as { query?: { pages?: Record<string, { thumbnail?: { source?: string } }> } };
+          const data = (await res.json()) as {
+            query?: { pages?: Record<string, { thumbnail?: { source?: string } }> };
+          };
           const pages = data.query?.pages;
           if (pages) {
             for (const page of Object.values(pages)) {
@@ -1694,10 +1716,7 @@ export class MapsService {
   }
 
   /** Shared shaping for every Commons query (coordinate, category, Wikidata, batch). */
-  private toCommonsCandidates(
-    pages: Record<string, WikiCommonsPage> | undefined,
-    limit: number,
-  ): CommonsCandidate[] {
+  private toCommonsCandidates(pages: Record<string, WikiCommonsPage> | undefined, limit: number): CommonsCandidate[] {
     if (!pages) return [];
     const out: CommonsCandidate[] = [];
     // entries(), not values(): the map key is the page id, and for the queries
@@ -1721,13 +1740,14 @@ export class MapsService {
         title: page.title ?? null,
         width: info.width ?? null,
         height: info.height ?? null,
-        descriptors: [
-          stripWikiMarkup(meta?.ObjectName?.value),
-          stripWikiMarkup(meta?.ImageDescription?.value),
-          stripWikiMarkup(meta?.Categories?.value),
-        ]
-          .filter(Boolean)
-          .join(' | ') || null,
+        descriptors:
+          [
+            stripWikiMarkup(meta?.ObjectName?.value),
+            stripWikiMarkup(meta?.ImageDescription?.value),
+            stripWikiMarkup(meta?.Categories?.value),
+          ]
+            .filter(Boolean)
+            .join(' | ') || null,
       });
       if (out.length >= limit) break;
     }
@@ -1899,7 +1919,9 @@ export class MapsService {
 
       const byTitle = await this.fetchCommonsFilesByName(fileNames);
       // Back into the order Wikidata implied, which the batch response loses.
-      const candidates = fileNames.map((name) => byTitle.get(normalizeFileTitle(name))).filter((c): c is CommonsCandidate => !!c);
+      const candidates = fileNames
+        .map((name) => byTitle.get(normalizeFileTitle(name)))
+        .filter((c): c is CommonsCandidate => !!c);
       return { candidates, commonsCategory };
     } catch {
       return empty;
@@ -2187,7 +2209,11 @@ export class MapsService {
     // A search sent to Google on purpose, or the admin's "Google only" switch,
     // skips the pair the same way: the search then reads exactly as it did
     // before 4.3.0 on an install with a key.
-    if (this.trekPlacesEnabled() && !(opts.googleIdentityOnly && apiKey) && !(await this.googleOnly(keyed, opts.googleOnly))) {
+    if (
+      this.trekPlacesEnabled() &&
+      !(opts.googleIdentityOnly && apiKey) &&
+      !(await this.googleOnly(keyed, opts.googleOnly))
+    ) {
       // Both at once. The index is a dataset of businesses and is very good
       // at those; OpenStreetMap is where the temples, bridges, riverside
       // walks and viewpoints are, and a travel search asks for those
@@ -2207,10 +2233,12 @@ export class MapsService {
           lat: locationBias?.lat,
           lng: locationBias?.lng,
           limit: 10,
-        }).then(indexHitsOnly).catch((err: unknown) => {
-          console.warn('TREK Places search failed, falling back:', (err as Error).message);
-          return [] as TrekPlace[];
-        }),
+        })
+          .then(indexHitsOnly)
+          .catch((err: unknown) => {
+            console.warn('TREK Places search failed, falling back:', (err as Error).message);
+            return [] as TrekPlace[];
+          }),
         this.searchNominatim(query, lang, 'interactive', locationBias).catch((err: unknown) => {
           console.warn('OpenStreetMap search failed, index only:', (err as Error).message);
           return [] as Record<string, unknown>[];
@@ -2225,9 +2253,8 @@ export class MapsService {
         // the search log writes this into the corpus a candidate index is later
         // scored against, so a list that is entirely OpenStreetMap must not be
         // recorded as though the index had a hand in it.
-        const source = found.length > 0
-          ? (osm.length > 0 ? 'trek-places+openstreetmap' : 'trek-places')
-          : 'openstreetmap';
+        const source =
+          found.length > 0 ? (osm.length > 0 ? 'trek-places+openstreetmap' : 'trek-places') : 'openstreetmap';
         return { places, source };
       }
     }
@@ -2339,13 +2366,18 @@ export class MapsService {
         console.warn('TREK Places nearby failed, falling back:', (err as Error).message);
         return [];
       });
-      if (found.length > 0) return { places: nearestFirst(found.map(toPlaceRecord), origin, limit), source: 'trek-places' };
+      if (found.length > 0)
+        return { places: nearestFirst(found.map(toPlaceRecord), origin, limit), source: 'trek-places' };
     }
 
     if (keyed?.id === 'google') {
       const response = await this.google('https://places.googleapis.com/v1/places:searchNearby', 'searchNearby', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': keyed.key, 'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': keyed.key,
+          'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK,
+        },
         body: JSON.stringify({
           maxResultCount: limit,
           rankPreference: 'DISTANCE',
@@ -2390,7 +2422,10 @@ export class MapsService {
     // Amap first inside China when the admin picked it, as in the search (#1636).
     let amapTips: MapsAutocompleteResult['suggestions'] | null = null;
     const boxCentre = locationBias
-      ? { lat: (locationBias.low.lat + locationBias.high.lat) / 2, lng: (locationBias.low.lng + locationBias.high.lng) / 2 }
+      ? {
+          lat: (locationBias.low.lat + locationBias.high.lat) / 2,
+          lng: (locationBias.low.lng + locationBias.high.lng) / 2,
+        }
       : undefined;
     if (keyed?.id === 'amap' && (await this.amapAnswersFirst(boxCentre))) {
       amapTips = await keyed.provider.autocomplete(input, lang, locationBias).catch((err: unknown) => {
@@ -2427,7 +2462,7 @@ export class MapsService {
         });
         if (found.length > 0) {
           return {
-            suggestions: found.map(p =>
+            suggestions: found.map((p) =>
               isOsmHit(p)
                 ? {
                     // The service's own id form, translated into the one this
@@ -2528,10 +2563,7 @@ export class MapsService {
     return { suggestions, source: 'google' };
   }
 
-  private async autocompleteNominatim(
-    input: string,
-    lang?: string,
-  ): Promise<MapsAutocompleteResult> {
+  private async autocompleteNominatim(input: string, lang?: string): Promise<MapsAutocompleteResult> {
     try {
       const places = await this.searchNominatim(input, lang);
       const suggestions = places
@@ -2656,11 +2688,7 @@ export class MapsService {
       // Nominatim's extratags carry the wikidata/wikipedia/commons tags too, so
       // a place keeps its pictures and its description when Overpass times out
       // instead of falling back to "photographed within 300m".
-      const details = buildOsmDetails(
-        { ...(nominatim?.extratags ?? {}), ...(element?.tags ?? {}) },
-        osmType,
-        osmId,
-      );
+      const details = buildOsmDetails({ ...(nominatim?.extratags ?? {}), ...(element?.tags ?? {}) }, osmType, osmId);
 
       return {
         place: {
@@ -2746,7 +2774,13 @@ export class MapsService {
     };
 
     try {
-      await this.placeDetailsCache.upsertEntry({ place_id: placeId, lang: langKey, expanded: 0, payload_json: JSON.stringify(place), fetched_at: Date.now() });
+      await this.placeDetailsCache.upsertEntry({
+        place_id: placeId,
+        lang: langKey,
+        expanded: 0,
+        payload_json: JSON.stringify(place),
+        fetched_at: Date.now(),
+      });
     } catch (dbErr) {
       console.error('Failed to cache place details:', dbErr);
     }
@@ -2780,7 +2814,13 @@ export class MapsService {
     if (!place) return { place: null };
 
     try {
-      await this.placeDetailsCache.upsertEntry({ place_id: placeId, lang: langKey, expanded: 0, payload_json: JSON.stringify(place), fetched_at: Date.now() });
+      await this.placeDetailsCache.upsertEntry({
+        place_id: placeId,
+        lang: langKey,
+        expanded: 0,
+        payload_json: JSON.stringify(place),
+        fetched_at: Date.now(),
+      });
     } catch (dbErr) {
       console.error('Failed to cache place details:', dbErr);
     }
@@ -2874,7 +2914,13 @@ export class MapsService {
     };
 
     try {
-      await this.placeDetailsCache.upsertEntry({ place_id: placeId, lang: langKey, expanded: 1, payload_json: JSON.stringify(place), fetched_at: Date.now() });
+      await this.placeDetailsCache.upsertEntry({
+        place_id: placeId,
+        lang: langKey,
+        expanded: 1,
+        payload_json: JSON.stringify(place),
+        fetched_at: Date.now(),
+      });
     } catch (dbErr) {
       console.error('Failed to cache expanded place details:', dbErr);
     }
@@ -2910,7 +2956,10 @@ export class MapsService {
     if (existing !== undefined) {
       const result = await existing;
       if (!result) return noPhoto;
-      return { photoUrl: `/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`, attribution: result.attribution };
+      return {
+        photoUrl: `/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`,
+        attribution: result.attribution,
+      };
     }
 
     // Tells the two empty outcomes apart for the negative cache below: a place that
@@ -2935,7 +2984,9 @@ export class MapsService {
             // Follow redirects manually so each hop (the image URL can 3xx to a CDN
             // host) is re-validated against the SSRF guard, not just the first URL.
             const imgRes = await safeFetchFollow(
-              wiki.photoUrl, { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) }, { bypassInternalIpAllowed: true },
+              wiki.photoUrl,
+              { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) },
+              { bypassInternalIpAllowed: true },
             );
             if (!imgRes.ok) {
               providerFailed = true;
@@ -3146,7 +3197,11 @@ export class MapsService {
     }
 
     let resolvedHost = '';
-    try { resolvedHost = new URL(resolvedUrl).hostname; } catch { /* keep the empty host, both host branches are skipped */ }
+    try {
+      resolvedHost = new URL(resolvedUrl).hostname;
+    } catch {
+      /* keep the empty host, both host branches are skipped */
+    }
 
     // Amap links first, and on their own: they spell the coordinate `lng,lat`
     // in GCJ-02, which the Google patterns below would read as a WGS-84
@@ -3161,7 +3216,13 @@ export class MapsService {
         throw Object.assign(new Error('Could not extract coordinates from URL'), { status: 400 });
       }
       const reverse = await this.reverseGeocode(String(amap.lat), String(amap.lng), undefined, { timeoutMs: 8000 });
-      return { lat: amap.lat, lng: amap.lng, name: amap.name || reverse.name, address: reverse.address, google_ftid: null };
+      return {
+        lat: amap.lat,
+        lng: amap.lng,
+        name: amap.name || reverse.name,
+        address: reverse.address,
+        google_ftid: null,
+      };
     }
 
     let coords = extractCoords(resolvedUrl);

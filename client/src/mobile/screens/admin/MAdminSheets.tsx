@@ -1,15 +1,15 @@
-import { useState } from 'react'
-import { AlertTriangle, CheckCircle, ExternalLink, Fingerprint, Trash2 } from 'lucide-react'
-import { adminApi } from '../../../api/client'
-import type { TranslationFn } from '../../../types'
-import type { useAdmin } from '../../../pages/admin/useAdmin'
-import MSheet from '../../components/MSheet'
-import MSegmented from '../../components/MSegmented'
-import { MAdminButton, MAdminField, MAdminInput, MAdminSecretInput, MAdminSheetFrame } from './MAdminUi'
+import { AlertTriangle, CheckCircle, ExternalLink, Fingerprint, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { adminApi } from '../../../api/client';
+import type { useAdmin } from '../../../pages/admin/useAdmin';
+import type { TranslationFn } from '../../../types';
+import MSegmented from '../../components/MSegmented';
+import MSheet from '../../components/MSheet';
+import { MAdminButton, MAdminField, MAdminInput, MAdminSecretInput, MAdminSheetFrame } from './MAdminUi';
 
 interface MAdminSheetsProps {
-  admin: ReturnType<typeof useAdmin>
-  t: TranslationFn
+  admin: ReturnType<typeof useAdmin>;
+  t: TranslationFn;
 }
 
 const DOCKER_UPDATE_COMMANDS = `docker pull mauriceboe/trek:latest
@@ -19,54 +19,70 @@ docker run -d --name trek \\
   -v /opt/trek/data:/app/data \\
   -v /opt/trek/uploads:/app/uploads \\
   --restart unless-stopped \\
-  mauriceboe/trek:latest`
+  mauriceboe/trek:latest`;
 
 // The admin screen's sheet layer: create user, edit user (incl. passkey reset
 // and delete), the "how to update" instructions and the rotate-JWT confirm.
 export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
   const {
-    logout, navigate, toast, currentUser,
-    editingUser, setEditingUser, editForm, setEditForm,
-    showCreateUser, setShowCreateUser, createForm, setCreateForm,
-    updateInfo, showUpdateModal, setShowUpdateModal,
-    showRotateJwtModal, setShowRotateJwtModal, rotatingJwt, setRotatingJwt,
-    handleCreateUser, handleSaveUser, handleDeleteUser,
-  } = admin
+    logout,
+    navigate,
+    toast,
+    currentUser,
+    editingUser,
+    setEditingUser,
+    editForm,
+    setEditForm,
+    showCreateUser,
+    setShowCreateUser,
+    createForm,
+    setCreateForm,
+    updateInfo,
+    showUpdateModal,
+    setShowUpdateModal,
+    showRotateJwtModal,
+    setShowRotateJwtModal,
+    rotatingJwt,
+    setRotatingJwt,
+    handleCreateUser,
+    handleSaveUser,
+    handleDeleteUser,
+  } = admin;
 
   const roleOptions = [
     { value: 'user', label: t('settings.roleUser') },
     { value: 'admin', label: t('settings.roleAdmin') },
-  ]
+  ];
 
-  const [showResetPasskeys, setShowResetPasskeys] = useState(false)
-  const [resettingPk, setResettingPk] = useState(false)
+  const [showResetPasskeys, setShowResetPasskeys] = useState(false);
+  const [resettingPk, setResettingPk] = useState(false);
 
   const resetPasskeys = async () => {
-    if (!editingUser) return
-    setResettingPk(true)
+    if (!editingUser) return;
+    setResettingPk(true);
     try {
-      const r = await adminApi.resetUserPasskeys(editingUser.id)
-      toast.success(t('admin.passkey.resetDone', { count: r.deleted ?? 0 }))
-      setShowResetPasskeys(false)
+      const r = await adminApi.resetUserPasskeys(editingUser.id);
+      toast.success(t('admin.passkey.resetDone', { count: r.deleted ?? 0 }));
+      setShowResetPasskeys(false);
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     } finally {
-      setResettingPk(false)
+      setResettingPk(false);
     }
-  }
+  };
 
   const rotateJwt = async () => {
-    setRotatingJwt(true)
+    setRotatingJwt(true);
     try {
-      await adminApi.rotateJwtSecret()
-      setShowRotateJwtModal(false)
-      logout()
-      navigate('/login', { state: { noRedirect: true } })
+      await adminApi.rotateJwtSecret();
+      setShowRotateJwtModal(false);
+      logout();
+      navigate('/login', { state: { noRedirect: true } });
     } catch {
-      toast.error(t('common.error'))
-      setRotatingJwt(false)
+      toast.error(t('common.error'));
+      setRotatingJwt(false);
     }
-  }
+  };
 
   return (
     <>
@@ -168,7 +184,11 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                   {t('admin.passkey.resetHint')}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <MAdminButton variant="ghost" className="text-[color:var(--m-st-danger)]" onClick={() => setShowResetPasskeys(true)}>
+                  <MAdminButton
+                    variant="ghost"
+                    className="text-[color:var(--m-st-danger)]"
+                    onClick={() => setShowResetPasskeys(true)}
+                  >
                     <Fingerprint size={12} strokeWidth={2.2} />
                     {t('admin.passkey.reset')}
                   </MAdminButton>
@@ -176,9 +196,9 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                     variant="danger"
                     disabled={editingUser.id === currentUser?.id}
                     onClick={() => {
-                      const user = editingUser
-                      setEditingUser(null)
-                      void handleDeleteUser(user)
+                      const user = editingUser;
+                      setEditingUser(null);
+                      void handleDeleteUser(user);
                     }}
                   >
                     <Trash2 size={12} strokeWidth={2.2} />
@@ -203,10 +223,10 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
               v{updateInfo?.current} → v{updateInfo?.latest}
             </p>
             <p className="text-[0.8125rem] leading-relaxed text-m-ink">
-              {(updateInfo?.is_docker === false ? t('admin.update.nonDockerText') : t('admin.update.dockerText')).replace(
-                '{version}',
-                `v${updateInfo?.latest ?? ''}`,
-              )}
+              {(updateInfo?.is_docker === false
+                ? t('admin.update.nonDockerText')
+                : t('admin.update.dockerText')
+              ).replace('{version}', `v${updateInfo?.latest ?? ''}`)}
             </p>
             {updateInfo?.is_docker === false ? (
               <a
@@ -307,5 +327,5 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
         </MAdminSheetFrame>
       </MSheet>
     </>
-  )
+  );
 }

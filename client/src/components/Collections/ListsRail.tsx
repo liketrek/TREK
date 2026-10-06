@@ -1,34 +1,42 @@
-import React from 'react'
-import { Plus, Layers, Users, Upload } from 'lucide-react'
-import type { Collection } from '@trek/shared'
-import type { TranslationFn } from '../../types'
-import { ALL_SAVED } from '../../store/collectionStore'
-import type { ActiveCollectionId, IncomingCollectionInvite } from '../../store/collectionStore'
+import type { Collection } from '@trek/shared';
+import { Layers, Plus, Upload, Users } from 'lucide-react';
+import React from 'react';
+import type { ActiveCollectionId, IncomingCollectionInvite } from '../../store/collectionStore';
+import { ALL_SAVED } from '../../store/collectionStore';
+import type { TranslationFn } from '../../types';
 
 interface ListsRailProps {
-  ownedLists: Collection[]
-  sharedLists: Collection[]
-  activeId: ActiveCollectionId
-  incomingInvites: IncomingCollectionInvite[]
-  onSelect: (id: ActiveCollectionId) => void
-  onNewList: () => void
+  ownedLists: Collection[];
+  sharedLists: Collection[];
+  activeId: ActiveCollectionId;
+  incomingInvites: IncomingCollectionInvite[];
+  onSelect: (id: ActiveCollectionId) => void;
+  onNewList: () => void;
   /** Read a list file as a new list (#2198). */
-  onImportList: () => void
-  onAcceptInvite: (id: number) => void
-  onDeclineInvite: (id: number) => void
-  t: TranslationFn
+  onImportList: () => void;
+  onAcceptInvite: (id: number) => void;
+  onDeclineInvite: (id: number) => void;
+  t: TranslationFn;
 }
 
-function ListRow({ list, active, onSelect }: { list: Collection; active: boolean; onSelect: (id: number) => void }): React.ReactElement {
+function ListRow({
+  list,
+  active,
+  onSelect,
+}: {
+  list: Collection;
+  active: boolean;
+  onSelect: (id: number) => void;
+}): React.ReactElement {
   return (
     <div className="col-row">
-      <button type="button" onClick={() => onSelect(list.id)} className={`col-row-btn${active ? ' on' : ''}`}>
+      <button type="button" onClick={() => onSelect(list.id)} className={`col-row-btn${active ? 'on' : ''}`}>
         <span className="dot" style={{ background: list.color || '#6366f1' }} />
         <span className="nm">{list.name}</span>
         <span className="ct">{list.place_count ?? 0}</span>
       </button>
     </div>
-  )
+  );
 }
 
 /**
@@ -39,9 +47,17 @@ function ListRow({ list, active, onSelect }: { list: Collection; active: boolean
  */
 export default function ListsRail(props: ListsRailProps): React.ReactElement {
   const {
-    ownedLists, sharedLists, activeId, incomingInvites,
-    onSelect, onNewList, onImportList, onAcceptInvite, onDeclineInvite, t,
-  } = props
+    ownedLists,
+    sharedLists,
+    activeId,
+    incomingInvites,
+    onSelect,
+    onNewList,
+    onImportList,
+    onAcceptInvite,
+    onDeclineInvite,
+    t,
+  } = props;
 
   return (
     <>
@@ -63,21 +79,29 @@ export default function ListsRail(props: ListsRailProps): React.ReactElement {
       </div>
 
       <div className="col-row">
-        <button type="button" onClick={() => onSelect(ALL_SAVED)} className={`col-row-btn${activeId === ALL_SAVED ? ' on' : ''}`}>
-          <span className="ico"><Layers size={16} /></span>
+        <button
+          type="button"
+          onClick={() => onSelect(ALL_SAVED)}
+          className={`col-row-btn${activeId === ALL_SAVED ? 'on' : ''}`}
+        >
+          <span className="ico">
+            <Layers size={16} />
+          </span>
           <span className="nm">{t('collections.allSaved')}</span>
         </button>
       </div>
 
       {ownedLists.length > 0 && <div className="col-rail-sep" />}
-      {ownedLists.map(list => (
+      {ownedLists.map((list) => (
         <ListRow key={list.id} list={list} active={activeId === list.id} onSelect={onSelect} />
       ))}
 
       {sharedLists.length > 0 && (
         <>
-          <div className="col-rail-label"><Users size={12} /> {t('collections.shared')}</div>
-          {sharedLists.map(list => (
+          <div className="col-rail-label">
+            <Users size={12} /> {t('collections.shared')}
+          </div>
+          {sharedLists.map((list) => (
             <ListRow key={list.id} list={list} active={activeId === list.id} onSelect={onSelect} />
           ))}
         </>
@@ -89,10 +113,12 @@ export default function ListsRail(props: ListsRailProps): React.ReactElement {
             {t('collections.invites.title')}
             <span className="badge">{incomingInvites.length}</span>
           </div>
-          {incomingInvites.map(inv => (
+          {incomingInvites.map((inv) => (
             <div key={inv.collection_id} className="col-invite">
               <div className="t">{inv.name}</div>
-              <div className="s">{t('collections.invites.from')} {inv.from.username}</div>
+              <div className="s">
+                {t('collections.invites.from')} {inv.from.username}
+              </div>
               <div className="col-invite-actions">
                 <button type="button" onClick={() => onAcceptInvite(inv.collection_id)} className="col-invite-accept">
                   {t('collections.invites.accept')}
@@ -106,5 +132,5 @@ export default function ListsRail(props: ListsRailProps): React.ReactElement {
         </>
       )}
     </>
-  )
+  );
 }

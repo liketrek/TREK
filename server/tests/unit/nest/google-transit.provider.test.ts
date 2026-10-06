@@ -12,13 +12,14 @@
  * The response cache is module-scoped, so each case uses its own coordinates
  * and clearGoogleTransitCache() runs between tests.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import { GoogleTransitProvider, clearGoogleTransitCache } from '../../../src/nest/transit/google-transit.provider';
 import { decodePolyline, encodePolyline } from '../../../src/nest/transit/transit.helpers';
 import { TransitService } from '../../../src/nest/transit/transit.service';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import { noGoogleQuota } from '../../helpers/google-quota';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/app-config')>();
@@ -138,9 +139,15 @@ function subwayRoute(): FixtureRoutes {
                 polyline: { encodedPolyline: 'railpoly' },
                 transitDetails: {
                   stopDetails: {
-                    departureStop: { name: 'Nakanoshima', location: { latLng: { latitude: 34.6939, longitude: 135.4915 } } },
+                    departureStop: {
+                      name: 'Nakanoshima',
+                      location: { latLng: { latitude: 34.6939, longitude: 135.4915 } },
+                    },
                     departureTime: '2026-09-10T09:00:00Z',
-                    arrivalStop: { name: 'Temmabashi', location: { latLng: { latitude: 34.6871, longitude: 135.5142 } } },
+                    arrivalStop: {
+                      name: 'Temmabashi',
+                      location: { latLng: { latitude: 34.6871, longitude: 135.5142 } },
+                    },
                     arrivalTime: '2026-09-10T09:08:00Z',
                   },
                   headsign: 'Kadoma-shi',
@@ -293,7 +300,9 @@ describe('request shape', () => {
   it('GTRANSIT-011: arriveBy anchors the time at the destination', async () => {
     fetchMock.mockResolvedValue(okJson(subwayRoute()));
     await makeProvider(GOOGLE_SETTINGS).plan(
-      { from: FROM, to: TO, time: '2026-09-10T09:00:00Z', arriveBy: true }, 'en', 1,
+      { from: FROM, to: TO, time: '2026-09-10T09:00:00Z', arriveBy: true },
+      'en',
+      1,
     );
     expect(lastBody().arrivalTime).toBe('2026-09-10T09:00:00.000Z');
     expect(lastBody().departureTime).toBeUndefined();
@@ -353,7 +362,7 @@ describe('request shape', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('GTRANSIT-016: a provider error surfaces with Google\'s own message', async () => {
+  it("GTRANSIT-016: a provider error surfaces with Google's own message", async () => {
     fetchMock.mockResolvedValue({
       ok: false,
       status: 403,
@@ -367,9 +376,9 @@ describe('request shape', () => {
 
   it('GTRANSIT-017: upstream rate limiting stays a 429', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 429, headers: { get: () => null }, json: async () => ({}) });
-    await expect(
-      makeProvider(GOOGLE_SETTINGS).plan({ from: FROM, to: TO }, 'en', 1),
-    ).rejects.toMatchObject({ status: 429 });
+    await expect(makeProvider(GOOGLE_SETTINGS).plan({ from: FROM, to: TO }, 'en', 1)).rejects.toMatchObject({
+      status: 429,
+    });
   });
 });
 
@@ -455,7 +464,13 @@ describe('geocode', () => {
     const { results } = await makeProvider(GOOGLE_SETTINGS).geocode('Nakanoshima', 'en', undefined, 1);
 
     expect(results).toEqual([
-      { name: 'Nakanoshima Station', lat: 34.6939, lng: 135.4915, type: 'STOP', area: '2 Chome Nakanoshima, Kita Ward, Osaka' },
+      {
+        name: 'Nakanoshima Station',
+        lat: 34.6939,
+        lng: 135.4915,
+        type: 'STOP',
+        area: '2 Chome Nakanoshima, Kita Ward, Osaka',
+      },
       { name: 'Nakanoshima Park', lat: 34.6921, lng: 135.5069, type: 'PLACE', area: '1 Nakanoshima, Kita Ward, Osaka' },
     ]);
   });
@@ -467,7 +482,9 @@ describe('geocode', () => {
     const body = lastBody();
     expect(body.languageCode).toBe('ja');
     expect(body.pageSize).toBe(8);
-    expect(body.locationBias).toEqual({ circle: { center: { latitude: 34.6875, longitude: 135.5155 }, radius: 50000 } });
+    expect(body.locationBias).toEqual({
+      circle: { center: { latitude: 34.6875, longitude: 135.5155 }, radius: 50000 },
+    });
 
     // Rating/website/phone would bill Text Search at Enterprise, and a station
     // picker shows none of them.
@@ -667,7 +684,8 @@ describe('walk coalescing', () => {
     const many = subwayRoute();
     const rail = many.routes[0].legs[0].steps[1];
     const crumbs = Array.from({ length: 15 }, (_, i) =>
-      walkStep(20, 25, [34.6937 + i * 0.0001, 135.49], [34.6937 + (i + 1) * 0.0001, 135.49]));
+      walkStep(20, 25, [34.6937 + i * 0.0001, 135.49], [34.6937 + (i + 1) * 0.0001, 135.49]),
+    );
     many.routes[0].legs[0].steps = [...crumbs, rail, ...crumbs];
     fetchMock.mockResolvedValue(okJson(many));
 
@@ -716,7 +734,11 @@ describe('provider reporting', () => {
 
 describe('polyline codec', () => {
   it('GTRANSIT-034: round-trips coordinates at the precision it was given', () => {
-    const path: [number, number][] = [[34.6937, 135.49], [34.69385, 135.4915], [-34.6, -135.5155]];
+    const path: [number, number][] = [
+      [34.6937, 135.49],
+      [34.69385, 135.4915],
+      [-34.6, -135.5155],
+    ];
     const back = decodePolyline(encodePolyline(path, 5), 5);
     expect(back).toHaveLength(3);
     for (const [i, [lat, lng]] of path.entries()) {
@@ -726,7 +748,13 @@ describe('polyline codec', () => {
   });
 
   it('GTRANSIT-035: a truncated polyline decodes to what it can, without hanging', () => {
-    const encoded = encodePolyline([[34.6937, 135.49], [34.7, 135.5]], 5);
+    const encoded = encodePolyline(
+      [
+        [34.6937, 135.49],
+        [34.7, 135.5],
+      ],
+      5,
+    );
     expect(decodePolyline(encoded.slice(0, 3), 5).length).toBeLessThanOrEqual(1);
     expect(decodePolyline('', 5)).toEqual([]);
   });

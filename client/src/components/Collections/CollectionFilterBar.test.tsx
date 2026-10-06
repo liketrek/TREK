@@ -1,7 +1,7 @@
 // FE-COMP-COLFILTERBAR-001 to FE-COMP-COLFILTERBAR-008
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { render, screen, within } from '../../../tests/helpers/render';
-import userEvent from '@testing-library/user-event';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { useTranslation } from '../../i18n/TranslationContext';
 import type { CategoryOption } from '../../pages/collections/collectionsModel';
@@ -17,9 +17,7 @@ function Harness(props: HarnessProps): React.ReactElement {
   return <CollectionFilterBar {...props} t={t} />;
 }
 
-const CATEGORY_OPTIONS: CategoryOption[] = [
-  { id: 1, name: 'Food', color: '#f00', icon: null, count: 2 },
-];
+const CATEGORY_OPTIONS: CategoryOption[] = [{ id: 1, name: 'Food', color: '#f00', icon: null, count: 2 }];
 
 function makeProps(overrides: Partial<HarnessProps> = {}): HarnessProps {
   return {

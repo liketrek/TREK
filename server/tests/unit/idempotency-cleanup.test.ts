@@ -6,14 +6,15 @@
  * offline window — otherwise a key GC'd before the device returns lets the
  * replay create a duplicate. The TTL was raised from 24h to 30d (overridable).
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
-import { createSnapshotTestDb } from '../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { purgeExpiredIdempotencyKeys } from '../../src/nest/common/idempotency-cleanup';
-import { IdempotencyCleanupJob } from '../../src/nest/common/idempotency-cleanup.job';
 import { IdempotencyKeys } from '../../src/db/entities/IdempotencyKeys.entity';
 import type { IdempotencyKeysRepository } from '../../src/db/repositories/IdempotencyKeys.repository';
+import { purgeExpiredIdempotencyKeys } from '../../src/nest/common/idempotency-cleanup';
+import { IdempotencyCleanupJob } from '../../src/nest/common/idempotency-cleanup.job';
 import type { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
+import { createSnapshotTestDb } from '../helpers/db-mock';
+import { createTestOrm, type TestOrm } from '../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 const DAY = 24 * 60 * 60;
 const NOW = 2_000_000_000_000; // fixed ms so the test is deterministic
@@ -27,13 +28,18 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   idempotencyKeys = t.repo(IdempotencyKeys);
 });
-afterAll(async () => { await t.close(); testDb.close(); });
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function insertKey(key: string, ageSeconds: number, nowSec = NOW_SEC): void {
-  testDb.prepare(
-    `INSERT INTO idempotency_keys (key, user_id, method, path, status_code, response_body, created_at)
+  testDb
+    .prepare(
+      `INSERT INTO idempotency_keys (key, user_id, method, path, status_code, response_body, created_at)
      VALUES (?, 1, 'POST', '/x', 200, '{}', ?)`,
-  ).run(key, nowSec - ageSeconds);
+    )
+    .run(key, nowSec - ageSeconds);
 }
 
 beforeEach(() => {
@@ -56,7 +62,10 @@ describe('purgeExpiredIdempotencyKeys', () => {
     const removed = await purgeExpiredIdempotencyKeys(NOW, undefined, idempotencyKeys);
 
     expect(removed).toBe(1);
-    const keys = testDb.prepare('SELECT key FROM idempotency_keys').all().map((r: { key: string }) => r.key);
+    const keys = testDb
+      .prepare('SELECT key FROM idempotency_keys')
+      .all()
+      .map((r: { key: string }) => r.key);
     expect(keys).toEqual(['fresh']);
   });
 
@@ -111,17 +120,28 @@ describe('IdempotencyCleanupJob', () => {
 
     const { job } = makeJob();
     await job.tick();
-    const keys = testDb.prepare('SELECT key FROM idempotency_keys').all().map((r: { key: string }) => r.key);
+    const keys = testDb
+      .prepare('SELECT key FROM idempotency_keys')
+      .all()
+      .map((r: { key: string }) => r.key);
     expect(keys).toEqual(['fresh']);
   });
 
   it('a failing purge is contained to the Idempotency cleanup log line', async () => {
-    const broken = { deleteExpired: () => { throw new Error('db gone'); } } as unknown as IdempotencyKeysRepository;
+    const broken = {
+      deleteExpired: () => {
+        throw new Error('db gone');
+      },
+    } as unknown as IdempotencyKeysRepository;
     const job = new IdempotencyCleanupJob(broken, { isEnabled: () => true } as unknown as CronRegistrarService);
     await expect(job.tick()).resolves.toBeUndefined();
 
     // Non-Error throws are stringified rather than crashing the catch itself.
-    const brokenString = { deleteExpired: () => { throw 'db string'; } } as unknown as IdempotencyKeysRepository;
+    const brokenString = {
+      deleteExpired: () => {
+        throw 'db string';
+      },
+    } as unknown as IdempotencyKeysRepository;
     const job2 = new IdempotencyCleanupJob(brokenString, { isEnabled: () => true } as unknown as CronRegistrarService);
     await expect(job2.tick()).resolves.toBeUndefined();
   });

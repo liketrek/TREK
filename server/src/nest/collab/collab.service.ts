@@ -1,33 +1,34 @@
-import path from 'path';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { TripAccess } from '../../db/repositories/Trips.repository';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import { avatarUrl } from '../common/avatarUrl';
-import { checkSsrf, createOutboundDispatcher } from '../../utils/ssrfGuard';
-import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
-import type { User } from '../../types';
-import { NotificationsService } from '../notifications/notifications.service';
-import { StorageService } from '../storage/storage.service';
-import { RateLimitService } from '../common/rate-limit.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import { toRowId } from '../common/row-id';
-import { CollabNotes } from '../../db/entities/CollabNotes.entity';
-import type { CollabNotesRepository, CollabNoteJoinRow } from '../../db/repositories/CollabNotes.repository';
-import { CollabMessageReactions } from '../../db/entities/CollabMessageReactions.entity';
-import type { CollabMessageReactionsRepository } from '../../db/repositories/CollabMessageReactions.repository';
-import { CollabPolls } from '../../db/entities/CollabPolls.entity';
-import type { CollabPollsRepository } from '../../db/repositories/CollabPolls.repository';
-import { CollabPollVotes } from '../../db/entities/CollabPollVotes.entity';
-import type { CollabPollVotesRepository } from '../../db/repositories/CollabPollVotes.repository';
 import { CollabLinks } from '../../db/entities/CollabLinks.entity';
-import type { CollabLinksRepository } from '../../db/repositories/CollabLinks.repository';
+import { CollabMessageReactions } from '../../db/entities/CollabMessageReactions.entity';
 import { CollabMessages } from '../../db/entities/CollabMessages.entity';
-import type { CollabMessagesRepository, CollabMessageJoinRow } from '../../db/repositories/CollabMessages.repository';
+import { CollabNotes } from '../../db/entities/CollabNotes.entity';
+import { CollabPollVotes } from '../../db/entities/CollabPollVotes.entity';
+import { CollabPolls } from '../../db/entities/CollabPolls.entity';
 import { Trips } from '../../db/entities/Trips.entity';
+import type { CollabLinksRepository } from '../../db/repositories/CollabLinks.repository';
+import type { CollabMessageReactionsRepository } from '../../db/repositories/CollabMessageReactions.repository';
+import type { CollabMessagesRepository, CollabMessageJoinRow } from '../../db/repositories/CollabMessages.repository';
+import type { CollabNotesRepository, CollabNoteJoinRow } from '../../db/repositories/CollabNotes.repository';
+import type { CollabPollVotesRepository } from '../../db/repositories/CollabPollVotes.repository';
+import type { CollabPollsRepository } from '../../db/repositories/CollabPolls.repository';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
+import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
+import { checkSsrf, createOutboundDispatcher } from '../../utils/ssrfGuard';
+import { avatarUrl } from '../common/avatarUrl';
+import { RateLimitService } from '../common/rate-limit.service';
+import { toRowId } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { StorageService } from '../storage/storage.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+
+import path from 'path';
 
 type Trip = TripAccess;
 
@@ -93,13 +94,15 @@ const PREVIEW_CACHE_MAX = 500;
  */
 function scrapeOpenGraph(html: string): Omit<LinkPreviewResult, 'url'> {
   const og = (prop: string) => {
-    const m = html.match(new RegExp(`<meta[^>]{0,512}property=["']og:${prop}["'][^>]{0,512}content=["']([^"']*)["']`, 'i'))
-      || html.match(new RegExp(`<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}property=["']og:${prop}["']`, 'i'));
+    const m =
+      html.match(new RegExp(`<meta[^>]{0,512}property=["']og:${prop}["'][^>]{0,512}content=["']([^"']*)["']`, 'i')) ||
+      html.match(new RegExp(`<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}property=["']og:${prop}["']`, 'i'));
     return m ? m[1] : null;
   };
   const titleTag = html.match(/<title[^>]{0,512}>([^<]*)<\/title>/i);
-  const descMeta = html.match(/<meta[^>]{0,512}name=["']description["'][^>]{0,512}content=["']([^"']*)["']/i)
-    || html.match(/<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}name=["']description["']/i);
+  const descMeta =
+    html.match(/<meta[^>]{0,512}name=["']description["'][^>]{0,512}content=["']([^"']*)["']/i) ||
+    html.match(/<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}name=["']description["']/i);
   const image = og('image');
 
   return {
@@ -190,7 +193,12 @@ export class CollabService {
     return this.permissions.checkPermission('file_upload', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -211,7 +219,12 @@ export class CollabService {
     return Object.entries(map).map(([emoji, users]) => ({ emoji, users, count: users.length }));
   }
 
-  async reactMessage(messageId: number | string, tripId: number | string, userId: number, emoji: string): Promise<{ found: boolean; reactions: GroupedReaction[] }> {
+  async reactMessage(
+    messageId: number | string,
+    tripId: number | string,
+    userId: number,
+    emoji: string,
+  ): Promise<{ found: boolean; reactions: GroupedReaction[] }> {
     const idNum = toRowId(messageId);
     const tripIdNum = toRowId(tripId);
     if (idNum === null || tripIdNum === null) return { found: false, reactions: [] };
@@ -237,16 +250,27 @@ export class CollabService {
     return {
       ...note,
       avatar_url: avatarUrl(note),
-      attachments: attachments.map(a => ({ ...a, url: `/api/trips/${note.trip_id}/files/${a.id}/download` })),
+      attachments: attachments.map((a) => ({ ...a, url: `/api/trips/${note.trip_id}/files/${a.id}/download` })),
     };
   }
 
   async listNotes(tripId: string | number) {
     const notes = await this.notesRepo.listForTrip(toRowId(tripId) ?? -1);
-    return Promise.all(notes.map(note => this.formatNote(note)));
+    return Promise.all(notes.map((note) => this.formatNote(note)));
   }
 
-  async createNote(tripId: string | number, userId: number, data: { title: string; content?: string | null; category?: string | null; color?: string | null; website?: string | null; pinned?: boolean }) {
+  async createNote(
+    tripId: string | number,
+    userId: number,
+    data: {
+      title: string;
+      content?: string | null;
+      category?: string | null;
+      color?: string | null;
+      website?: string | null;
+      pinned?: boolean;
+    },
+  ) {
     const pinned = data.pinned ? 1 : 0;
     const id = await this.notesRepo.insertNote({
       trip_id: tripId,
@@ -263,7 +287,18 @@ export class CollabService {
     return this.formatNote(note);
   }
 
-  async updateNote(tripId: string | number, noteId: string | number, data: { title?: string; content?: string | null; category?: string | null; color?: string | null; pinned?: number | boolean; website?: string | null }): Promise<Awaited<ReturnType<CollabService['formatNote']>> | null> {
+  async updateNote(
+    tripId: string | number,
+    noteId: string | number,
+    data: {
+      title?: string;
+      content?: string | null;
+      category?: string | null;
+      color?: string | null;
+      pinned?: number | boolean;
+      website?: string | null;
+    },
+  ): Promise<Awaited<ReturnType<CollabService['formatNote']>> | null> {
     const idNum = toRowId(noteId);
     const tripIdNum = toRowId(tripId);
     if (idNum === null || tripIdNum === null) return null;
@@ -296,7 +331,9 @@ export class CollabService {
     // seen.
     const noteFiles = await this.notesRepo.listFilenamesForNote(existing.id);
     for (const f of noteFiles) {
-      await this.storage.delete('files', path.basename(f.filename)).catch(() => { /* ignore */ });
+      await this.storage.delete('files', path.basename(f.filename)).catch(() => {
+        /* ignore */
+      });
     }
     await this.uow.transactional(async () => {
       await this.notesRepo.deleteAttachmentsForNote(existing.id);
@@ -309,7 +346,11 @@ export class CollabService {
   /*  Note files                                                         */
   /* ------------------------------------------------------------------ */
 
-  async addNoteFile(tripId: string | number, noteId: string | number, file: { filename: string; originalname: string; size: number; mimetype: string }) {
+  async addNoteFile(
+    tripId: string | number,
+    noteId: string | number,
+    file: { filename: string; originalname: string; size: number; mimetype: string },
+  ) {
     const idNum = toRowId(noteId);
     const tripIdNum = toRowId(tripId);
     if (idNum === null || tripIdNum === null) return null;
@@ -352,7 +393,9 @@ export class CollabService {
     const file = await this.notesRepo.findScopedForNote(fileIdNum, noteIdNum, tripIdNum);
     if (!file) return false;
 
-    await this.storage.delete('files', path.basename(file.filename)).catch(() => { /* ignore */ });
+    await this.storage.delete('files', path.basename(file.filename)).catch(() => {
+      /* ignore */
+    });
 
     await this.notesRepo.deleteAttachmentById(file.id);
     return true;
@@ -377,8 +420,14 @@ export class CollabService {
         text,
         label: text,
         voters: votes
-          .filter(v => v.option_index === idx)
-          .map(v => ({ id: v.user_id, user_id: v.user_id, username: v.username, avatar: v.avatar, avatar_url: avatarUrl(v) })),
+          .filter((v) => v.option_index === idx)
+          .map((v) => ({
+            id: v.user_id,
+            user_id: v.user_id,
+            username: v.username,
+            avatar: v.avatar,
+            avatar_url: avatarUrl(v),
+          })),
       };
     });
 
@@ -393,10 +442,14 @@ export class CollabService {
 
   async listPolls(tripId: string | number) {
     const ids = await this.pollsRepo.listIdsForTrip(toRowId(tripId) ?? -1);
-    return (await Promise.all(ids.map(id => this.getPollWithVotes(id)))).filter(Boolean);
+    return (await Promise.all(ids.map((id) => this.getPollWithVotes(id)))).filter(Boolean);
   }
 
-  async createPoll(tripId: string | number, userId: number, data: { question: string; options: unknown[]; multiple?: boolean; multiple_choice?: boolean; deadline?: string }) {
+  async createPoll(
+    tripId: string | number,
+    userId: number,
+    data: { question: string; options: unknown[]; multiple?: boolean; multiple_choice?: boolean; deadline?: string },
+  ) {
     const isMultiple = data.multiple || data.multiple_choice;
 
     const id = await this.pollsRepo.insertPoll({
@@ -411,7 +464,12 @@ export class CollabService {
     return this.getPollWithVotes(id);
   }
 
-  async votePoll(tripId: string | number, pollId: string | number, userId: number, optionIndex: number): Promise<{ error?: string; poll?: Awaited<ReturnType<CollabService['getPollWithVotes']>> }> {
+  async votePoll(
+    tripId: string | number,
+    pollId: string | number,
+    userId: number,
+    optionIndex: number,
+  ): Promise<{ error?: string; poll?: Awaited<ReturnType<CollabService['getPollWithVotes']>> }> {
     const idNum = toRowId(pollId);
     const tripIdNum = toRowId(tripId);
     if (idNum === null || tripIdNum === null) return { error: 'not_found' };
@@ -440,7 +498,10 @@ export class CollabService {
     return { poll: await this.getPollWithVotes(poll.id) };
   }
 
-  async closePoll(tripId: string | number, pollId: string | number): Promise<Awaited<ReturnType<CollabService['getPollWithVotes']>> | null> {
+  async closePoll(
+    tripId: string | number,
+    pollId: string | number,
+  ): Promise<Awaited<ReturnType<CollabService['getPollWithVotes']>> | null> {
     const idNum = toRowId(pollId);
     const tripIdNum = toRowId(tripId);
     if (idNum === null || tripIdNum === null) return null;
@@ -471,11 +532,21 @@ export class CollabService {
   }
 
   async createLink(tripId: string | number, userId: number, data: { title: string; url: string; pinned?: boolean }) {
-    const id = await this.linksRepo.insertLink({ trip_id: tripId, user_id: userId, title: data.title.trim(), url: data.url.trim(), pinned: data.pinned ? 1 : 0 });
+    const id = await this.linksRepo.insertLink({
+      trip_id: tripId,
+      user_id: userId,
+      title: data.title.trim(),
+      url: data.url.trim(),
+      pinned: data.pinned ? 1 : 0,
+    });
     return this.linksRepo.findWithUser(id);
   }
 
-  async updateLink(tripId: string | number, linkId: string | number, data: { title?: string; url?: string; pinned?: boolean | number }) {
+  async updateLink(
+    tripId: string | number,
+    linkId: string | number,
+    data: { title?: string; url?: string; pinned?: boolean | number },
+  ) {
     const idNum = toRowId(linkId);
     const tripIdNum = toRowId(tripId);
     if (idNum === null || tripIdNum === null) return null;
@@ -487,7 +558,7 @@ export class CollabService {
       // `existing.pinned` is `number | null` on the column, but every write
       // this repository makes sets it to 0/1 (never null) — the `?? 0`
       // fallback only guards a value that should never actually be null.
-      pinned: data.pinned === undefined ? (existing.pinned ?? 0) : (data.pinned ? 1 : 0),
+      pinned: data.pinned === undefined ? (existing.pinned ?? 0) : data.pinned ? 1 : 0,
     });
     return this.linksRepo.findWithUser(existing.id);
   }
@@ -504,13 +575,14 @@ export class CollabService {
   /* ------------------------------------------------------------------ */
 
   private async formatMessage(msg: CollabMessageJoinRow, reactions?: GroupedReaction[]) {
-    const attachments = msg.id && msg.trip_id ? await this.messagesRepo.listAttachmentsForMessage(msg.id, msg.trip_id) : [];
+    const attachments =
+      msg.id && msg.trip_id ? await this.messagesRepo.listAttachmentsForMessage(msg.id, msg.trip_id) : [];
     return {
       ...msg,
       user_avatar: avatarUrl(msg),
       avatar_url: avatarUrl(msg),
       reactions: reactions || [],
-      attachments: attachments.map(a => ({
+      attachments: attachments.map((a) => ({
         id: a.id,
         filename: a.filename,
         original_name: a.original_name,
@@ -548,7 +620,7 @@ export class CollabService {
     // three.
     for (const m of messages) if (m.deleted) m.text = '';
 
-    const msgIds = messages.map(m => m.id);
+    const msgIds = messages.map((m) => m.id);
     const allReactions = await this.messageReactionsRepo.listForMessages(msgIds);
     const reactionsByMsg: Record<number, ReactionRow[]> = {};
     for (const r of allReactions) {
@@ -556,7 +628,7 @@ export class CollabService {
       reactionsByMsg[r.message_id].push(r);
     }
 
-    return Promise.all(messages.map(m => this.formatMessage(m, this.groupReactions(reactionsByMsg[m.id] || []))));
+    return Promise.all(messages.map((m) => this.formatMessage(m, this.groupReactions(reactionsByMsg[m.id] || []))));
   }
 
   async createMessage(
@@ -599,7 +671,11 @@ export class CollabService {
     return { message: await this.formatMessage(message) };
   }
 
-  async deleteMessage(tripId: string | number, messageId: string | number, userId: number): Promise<{ error?: string; username?: string }> {
+  async deleteMessage(
+    tripId: string | number,
+    messageId: string | number,
+    userId: number,
+  ): Promise<{ error?: string; username?: string }> {
     const idNum = toRowId(messageId);
     const tripIdNum = toRowId(tripId);
     if (idNum === null || tripIdNum === null) return { error: 'not_found' };
@@ -616,7 +692,9 @@ export class CollabService {
     // live message pointing at attachments whose bytes no longer existed
     // whenever the second statement failed.
     for (const file of attachments) {
-      void this.storage.delete('files', path.basename(file.filename)).catch(() => { /* best effort */ });
+      void this.storage.delete('files', path.basename(file.filename)).catch(() => {
+        /* best effort */
+      });
     }
     // `message.username` — see the class docstring's "pre-existing `username`
     // gap" note: `findInTrip` never joins `users`, so this has always been
@@ -633,7 +711,11 @@ export class CollabService {
 
     // A malformed URL returns the fallback directly (the legacy code let
     // `new URL` throw and relied on the controller's catch for the same 200).
-    try { new URL(url); } catch { return fallback; }
+    try {
+      new URL(url);
+    } catch {
+      return fallback;
+    }
 
     // Served before the budget is charged: opening a chat re-requests every
     // preview it renders, so a reload must not cost the caller its allowance.
@@ -651,7 +733,10 @@ export class CollabService {
     // Charged per outbound fetch rather than per request, which is what the
     // budget is actually protecting. Without a user there is no one to charge —
     // no caller passes that today, and the fetch stays behind the SSRF guard.
-    if (userId !== undefined && !this.rateLimit.check('collab_link_preview', String(userId), PREVIEW_FETCHES_PER_MINUTE, 60_000, Date.now())) {
+    if (
+      userId !== undefined &&
+      !this.rateLimit.check('collab_link_preview', String(userId), PREVIEW_FETCHES_PER_MINUTE, 60_000, Date.now())
+    ) {
       return { ...fallback, rateLimited: true };
     }
 
@@ -689,7 +774,10 @@ export class CollabService {
         dispatcher,
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NOMAD/1.0; +https://github.com/mauriceboe/NOMAD)' },
       } as any);
-      if (!r.ok) { discardBody(r); return this.cachePreview(url, fallback); }
+      if (!r.ok) {
+        discardBody(r);
+        return this.cachePreview(url, fallback);
+      }
       // Only markup is worth scraping. A declared type that is not HTML means the
       // regexes below would comb a video or an archive for og: tags and find nothing.
       const type = r.headers?.get('content-type') ?? '';
@@ -699,7 +787,10 @@ export class CollabService {
       }
       // An unread body keeps its socket reserved until the garbage collector runs,
       // which is the one thing a size cap is there to prevent.
-      if (exceedsDeclaredLength(r, MAX_PREVIEW_BYTES)) { discardBody(r); return this.cachePreview(url, fallback); }
+      if (exceedsDeclaredLength(r, MAX_PREVIEW_BYTES)) {
+        discardBody(r);
+        return this.cachePreview(url, fallback);
+      }
 
       // A truncated head still carries the tags we scrape, so a page over the
       // budget degrades to fewer fields rather than to an error.
@@ -747,6 +838,8 @@ export class CollabService {
     const title = await this.tripsRepo.getTitle(tripId);
     const params: Record<string, string> = { trip: title || 'Untitled', actor: actor.email, tripId: String(tripId) };
     if (preview !== undefined) params.preview = preview;
-    this.notifications.send({ event: 'collab_message', actorId: actor.id, scope: 'trip', targetId: Number(tripId), params }).catch(() => {});
+    this.notifications
+      .send({ event: 'collab_message', actorId: actor.id, scope: 'trip', targetId: Number(tripId), params })
+      .catch(() => {});
   }
 }

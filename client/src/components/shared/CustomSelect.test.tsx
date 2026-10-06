@@ -1,5 +1,5 @@
-import { render, screen, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import { render, screen, within } from '../../../tests/helpers/render';
 import CustomSelect from './CustomSelect';
 
 const OPTIONS = [
@@ -50,7 +50,7 @@ describe('CustomSelect', () => {
     // Options in dropdown are also buttons
     const optionBtns = screen.getAllByRole('button');
     // Find the Cherry option button (not the trigger which shows placeholder)
-    const cherryBtn = optionBtns.find(b => b.textContent?.includes('Cherry'));
+    const cherryBtn = optionBtns.find((b) => b.textContent?.includes('Cherry'));
     await user.click(cherryBtn!);
     expect(onChange).toHaveBeenCalledWith('cherry');
   });
@@ -60,7 +60,7 @@ describe('CustomSelect', () => {
     render(<CustomSelect value="" onChange={onChange} options={OPTIONS} />);
     await user.click(screen.getByRole('button')); // open
     const optionBtns = screen.getAllByRole('button');
-    const appleBtn = optionBtns.find(b => b.textContent?.includes('Apple'));
+    const appleBtn = optionBtns.find((b) => b.textContent?.includes('Apple'));
     await user.click(appleBtn!);
     // After selection, only the trigger button remains in DOM
     expect(screen.getAllByRole('button')).toHaveLength(1);
@@ -133,11 +133,12 @@ describe('CustomSelect', () => {
     render(
       <div data-testid="panel">
         <CustomSelect value="" onChange={onChange} options={OPTIONS} menuFit="content" />
-      </div>,
+      </div>
     );
     // jsdom measures everything as zero, so the panel says how wide it is.
     const panel = screen.getByTestId('panel');
-    panel.getBoundingClientRect = () => ({ left: 0, right: 180, width: 180, top: 0, bottom: 32, height: 32, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+    panel.getBoundingClientRect = () =>
+      ({ left: 0, right: 180, width: 180, top: 0, bottom: 32, height: 32, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
 
     await user.click(screen.getByRole('button'));
 
@@ -168,12 +169,29 @@ describe('CustomSelect', () => {
   });
 
   it('FE-COMP-SELECT-015: a numeric value finds the option keyed by the same text', () => {
-    render(<CustomSelect value={3} onChange={onChange} options={[{ value: '3', label: 'March' }, { value: '4', label: 'April' }]} placeholder="Month" />);
+    render(
+      <CustomSelect
+        value={3}
+        onChange={onChange}
+        options={[
+          { value: '3', label: 'March' },
+          { value: '4', label: 'April' },
+        ]}
+        placeholder="Month"
+      />
+    );
     expect(screen.getByRole('button')).toHaveTextContent('March');
   });
 
   it('FE-COMP-SELECT-016: a caller holding nothing still sees the placeholder', () => {
-    render(<CustomSelect value={null} onChange={onChange} options={[{ value: '', label: 'Nobody' }, ...USERS]} placeholder="Pick a user" />);
+    render(
+      <CustomSelect
+        value={null}
+        onChange={onChange}
+        options={[{ value: '', label: 'Nobody' }, ...USERS]}
+        placeholder="Pick a user"
+      />
+    );
     expect(screen.getByRole('button')).toHaveTextContent('Pick a user');
   });
 

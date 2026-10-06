@@ -1,15 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
+import { GooglePlacePhotoMeta } from '../../db/entities/GooglePlacePhotoMeta.entity';
+import { Places } from '../../db/entities/Places.entity';
+import type { CollectionPlacesRepository } from '../../db/repositories/CollectionPlaces.repository';
+import type { GooglePlacePhotoMetaRepository } from '../../db/repositories/GooglePlacePhotoMeta.repository';
+import type { PlacesRepository } from '../../db/repositories/Places.repository';
+import { StorageService } from '../storage/storage.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
 import { Jimp, JimpMime } from 'jimp';
 import crypto from 'node:crypto';
 import { Readable } from 'node:stream';
-import { StorageService } from '../storage/storage.service';
-import { GooglePlacePhotoMeta } from '../../db/entities/GooglePlacePhotoMeta.entity';
-import type { GooglePlacePhotoMetaRepository } from '../../db/repositories/GooglePlacePhotoMeta.repository';
-import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository } from '../../db/repositories/Places.repository';
-import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
-import type { CollectionPlacesRepository } from '../../db/repositories/CollectionPlaces.repository';
 
 // How long a "no photo for this place" answer stays remembered. Nothing about it
 // changes until a photo appears upstream, so it is worth keeping: without it every

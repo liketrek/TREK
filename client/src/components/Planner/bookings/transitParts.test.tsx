@@ -1,5 +1,5 @@
 // FE-PLANNER-BKTRANSIT-001 to FE-PLANNER-BKTRANSIT-008
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '../../../../tests/helpers/render';
 import type { TransitLegDisplay } from '../transitDisplay';
 import { TransitLegs, transitSummary } from './transitParts';
@@ -35,7 +35,11 @@ describe('transitSummary', () => {
   });
 
   it('FE-PLANNER-BKTRANSIT-004: a zero duration or a walk-only journey', () => {
-    expect(transitSummary({ transit: { legs: [walk], duration: 0 } })).toMatchObject({ duration: null, transfers: 0, walk: 240 });
+    expect(transitSummary({ transit: { legs: [walk], duration: 0 } })).toMatchObject({
+      duration: null,
+      transfers: 0,
+      walk: 240,
+    });
   });
 });
 
@@ -69,7 +73,13 @@ describe('TransitLegs', () => {
   });
 
   it('FE-PLANNER-BKTRANSIT-008: a coloured line without a text colour is written in white', () => {
-    render(<TransitLegs legs={[{ mode: 'TRAM', line: 'M10', line_color: '#16a34a', from: { name: 'A', time: '09:00' }, to: { name: 'B' } }]} />);
+    render(
+      <TransitLegs
+        legs={[
+          { mode: 'TRAM', line: 'M10', line_color: '#16a34a', from: { name: 'A', time: '09:00' }, to: { name: 'B' } },
+        ]}
+      />
+    );
     expect(screen.getByText('M10')).toHaveStyle({ color: '#fff' });
     expect(screen.getByText('09:00')).toBeInTheDocument();
   });

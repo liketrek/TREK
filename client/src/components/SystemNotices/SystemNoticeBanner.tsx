@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { AlertOctagon, AlertTriangle, Info, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Info, AlertTriangle, AlertOctagon, X } from 'lucide-react';
-import { useSystemNoticeStore } from '../../store/systemNoticeStore.js';
-import type { SystemNoticeDTO } from '../../store/systemNoticeStore.js';
 import { useTranslation } from '../../i18n/index.js';
+import type { SystemNoticeDTO } from '../../store/systemNoticeStore.js';
+import { useSystemNoticeStore } from '../../store/systemNoticeStore.js';
 import { runNoticeAction } from './noticeActions.js';
 
 const SEVERITY_ICONS: Record<string, React.ElementType> = {
@@ -14,28 +14,28 @@ const SEVERITY_ICONS: Record<string, React.ElementType> = {
 
 const SEVERITY = {
   info: {
-    bg:       'bg-white dark:bg-slate-900',
-    border:   'border-blue-500 dark:border-blue-400',
-    text:     'text-slate-900 dark:text-slate-100',
-    icon:     'text-blue-500 dark:text-blue-400',
+    bg: 'bg-white dark:bg-slate-900',
+    border: 'border-blue-500 dark:border-blue-400',
+    text: 'text-slate-900 dark:text-slate-100',
+    icon: 'text-blue-500 dark:text-blue-400',
     ariaLive: 'polite' as const,
-    role:     'status' as const,
+    role: 'status' as const,
   },
   warn: {
-    bg:       'bg-amber-50 dark:bg-amber-950',
-    border:   'border-amber-500 dark:border-amber-400',
-    text:     'text-amber-900 dark:text-amber-100',
-    icon:     'text-amber-500 dark:text-amber-400',
+    bg: 'bg-amber-50 dark:bg-amber-950',
+    border: 'border-amber-500 dark:border-amber-400',
+    text: 'text-amber-900 dark:text-amber-100',
+    icon: 'text-amber-500 dark:text-amber-400',
     ariaLive: 'polite' as const,
-    role:     'status' as const,
+    role: 'status' as const,
   },
   critical: {
-    bg:       'bg-rose-50 dark:bg-rose-950',
-    border:   'border-rose-600 dark:border-rose-400',
-    text:     'text-rose-900 dark:text-rose-100',
-    icon:     'text-rose-600 dark:text-rose-400',
+    bg: 'bg-rose-50 dark:bg-rose-950',
+    border: 'border-rose-600 dark:border-rose-400',
+    text: 'text-rose-900 dark:text-rose-100',
+    icon: 'text-rose-600 dark:text-rose-400',
     ariaLive: 'assertive' as const,
-    role:     'alert' as const,
+    role: 'alert' as const,
   },
 } as const;
 
@@ -73,8 +73,11 @@ function CTALink({
     return (
       <a
         href={cta.href}
-        onClick={e => { e.preventDefault(); handleClick(); }}
-        className="underline hover:no-underline font-medium ml-3 shrink-0"
+        onClick={(e) => {
+          e.preventDefault();
+          handleClick();
+        }}
+        className="ml-3 shrink-0 font-medium underline hover:no-underline"
       >
         {label}
       </a>
@@ -82,10 +85,7 @@ function CTALink({
   }
 
   return (
-    <button type="button"
-      onClick={handleClick}
-      className="underline hover:no-underline font-medium ml-3 shrink-0"
-    >
+    <button type="button" onClick={handleClick} className="ml-3 shrink-0 font-medium underline hover:no-underline">
       {label}
     </button>
   );
@@ -106,25 +106,22 @@ function BannerItem({ notice, onDismiss }: BannerItemProps) {
       role={s.role}
       aria-live={s.ariaLive}
       aria-atomic="true"
-      className={`flex items-start gap-x-3 py-3 px-4 ${accentBorder} ${s.bg} ${s.border} ${s.text}`}
+      className={`flex items-start gap-x-3 px-4 py-3 ${accentBorder} ${s.bg} ${s.border} ${s.text}`}
     >
-      {React.createElement(
-        (SEVERITY_ICONS[notice.severity] ?? Info) as React.ElementType,
-        { size: 20, className: `shrink-0 mt-0.5 ${s.icon}` },
-      )}
-      <div className="flex-1 min-w-0">
+      {React.createElement((SEVERITY_ICONS[notice.severity] ?? Info) as React.ElementType, {
+        size: 20,
+        className: `shrink-0 mt-0.5 ${s.icon}`,
+      })}
+      <div className="min-w-0 flex-1">
         <span className="font-semibold">{title}</span>
-        {body !== title && (
-          <span className="ml-2 opacity-80">{body}</span>
-        )}
-        {ctaLabel && notice.cta && (
-          <CTALink notice={notice} cta={notice.cta} label={ctaLabel} onDismiss={onDismiss} />
-        )}
+        {body !== title && <span className="ml-2 opacity-80">{body}</span>}
+        {ctaLabel && notice.cta && <CTALink notice={notice} cta={notice.cta} label={ctaLabel} onDismiss={onDismiss} />}
       </div>
       {notice.dismissible && (
-        <button type="button"
+        <button
+          type="button"
           onClick={onDismiss}
-          className="shrink-0 p-2 -mr-2 rounded hover:bg-black/5 dark:hover:bg-white/10 transition"
+          className="-mr-2 shrink-0 rounded p-2 transition hover:bg-black/5 dark:hover:bg-white/10"
           aria-label={`Dismiss: ${title}`}
         >
           <X size={20} />
@@ -142,8 +139,7 @@ interface AnimatedBannerItemProps {
 function AnimatedBannerItem({ notice, onDismiss }: AnimatedBannerItemProps) {
   const [mounted, setMounted] = useState(false);
   const prefersReducedMotion =
-    typeof window !== 'undefined' &&
-    (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false);
+    typeof window !== 'undefined' && (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false);
 
   useEffect(() => {
     if (typeof requestAnimationFrame !== 'undefined') {
@@ -193,18 +189,11 @@ export function BannerRenderer({ notices }: BannerRendererProps) {
   if (visible.length === 0) return null;
 
   return (
-    <div
-      ref={containerRef}
-      className="fixed left-0 right-0 z-40"
-      style={{ top: 'var(--nav-h, 0px)' }}
-    >
+    <div ref={containerRef} className="fixed left-0 right-0 z-40" style={{ top: 'var(--nav-h, 0px)' }}>
       {visible.map((notice, i) => (
         <React.Fragment key={notice.id}>
           {i > 0 && <div className="border-t border-black/10 dark:border-white/10" />}
-          <AnimatedBannerItem
-            notice={notice}
-            onDismiss={() => dismiss(notice.id)}
-          />
+          <AnimatedBannerItem notice={notice} onDismiss={() => dismiss(notice.id)} />
         </React.Fragment>
       ))}
     </div>
@@ -228,8 +217,7 @@ export function ToastRenderer({ notices }: ToastRendererProps) {
       // Critical should not be a toast — log and skip
       if (notice.severity === 'critical') {
         console.warn(
-          `[systemNotices] notice "${notice.id}" is critical but display=toast. ` +
-          'Should be banner or modal.'
+          `[systemNotices] notice "${notice.id}" is critical but display=toast. ` + 'Should be banner or modal.'
         );
         dismiss(notice.id);
         continue;

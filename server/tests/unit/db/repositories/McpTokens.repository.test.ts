@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createHash } from 'crypto';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createMcpToken, createUser } from '../../../helpers/factories';
 import { McpTokens } from '../../../../src/db/entities/McpTokens.entity';
 import type { McpTokensRepository } from '../../../../src/db/repositories/McpTokens.repository';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createMcpToken, createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { createHash } from 'crypto';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -486,7 +487,9 @@ describe('McpTokensRepository', () => {
       });
 
       expect((rawToken(untouched.id) as { name: string }).name).toBe('do-not-flush-me');
-      expect(testDb.prepare('SELECT id FROM mcp_tokens WHERE token_hash = ?').get('insert-no-side-effect-hash')).toBeDefined();
+      expect(
+        testDb.prepare('SELECT id FROM mcp_tokens WHERE token_hash = ?').get('insert-no-side-effect-hash'),
+      ).toBeDefined();
     });
 
     /**

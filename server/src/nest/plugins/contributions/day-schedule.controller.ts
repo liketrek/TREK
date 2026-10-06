@@ -1,14 +1,15 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../../db/repositories/Trips.repository';
 import { Days } from '../../../db/entities/Days.entity';
+import { Trips } from '../../../db/entities/Trips.entity';
 import type { DaysRepository } from '../../../db/repositories/Days.repository';
+import type { TripsRepository } from '../../../db/repositories/Trips.repository';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/day-schedule/:tripId — bounded time contributions plugins attach to the
@@ -62,7 +63,8 @@ function normalize(pluginId: string, tripDayIds: ReadonlySet<number>, raw: unkno
     const assignmentId = Number.isInteger(it.assignmentId) ? (it.assignmentId as number) : undefined;
     const reservationId = Number.isInteger(it.reservationId) ? (it.reservationId as number) : undefined;
     const minutesRaw = Number(it.minutes);
-    const minutes = Number.isFinite(minutesRaw) && minutesRaw > 0 ? Math.min(Math.round(minutesRaw), MAX_MINUTES) : undefined;
+    const minutes =
+      Number.isFinite(minutesRaw) && minutesRaw > 0 ? Math.min(Math.round(minutesRaw), MAX_MINUTES) : undefined;
     out.push({
       pluginId,
       id,
@@ -97,7 +99,8 @@ export class DayScheduleController {
     if (!pluginsEnabled()) return { items: [] };
     const tripId = Number(tripIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(tripId) || userId == null || !(await this.trips.findAccessible(tripId, userId))) return { items: [] };
+    if (!Number.isFinite(tripId) || userId == null || !(await this.trips.findAccessible(tripId, userId)))
+      return { items: [] };
 
     const ids = this.hooks.providersOf('dayScheduleProvider');
     if (ids.length === 0) return { items: [] };

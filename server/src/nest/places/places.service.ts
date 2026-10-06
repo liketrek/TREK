@@ -1,21 +1,45 @@
-import path from 'node:path';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { resolveCountryCodeSync } from '../atlas/atlas-geo';
-import { XMLValidator } from 'fast-xml-parser';
-import { TRACK_COLORS, placeMatchStrategies, type PlaceMatchCandidate } from '@trek/shared';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
+import { BudgetItems } from '../../db/entities/BudgetItems.entity';
+import { Categories } from '../../db/entities/Categories.entity';
+import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { PlaceRatings } from '../../db/entities/PlaceRatings.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Tags } from '../../db/entities/Tags.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
+import type { CategoriesRepository } from '../../db/repositories/Categories.repository';
+import type { CollectionPlacesRepository } from '../../db/repositories/CollectionPlaces.repository';
+import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
+import type { PlaceRatingsRepository } from '../../db/repositories/PlaceRatings.repository';
+import type {
+  PlacesRepository,
+  PlaceListRow,
+  PlaceWithTagsRow as PlaceWithTags,
+} from '../../db/repositories/Places.repository';
+import type { TagsRepository } from '../../db/repositories/Tags.repository';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
-import { UnitOfWork } from '../database/unit-of-work';
-import { PermissionsService } from '../permissions/permissions.service';
-import { MapsService, GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from '../maps/maps.service';
-import { isDirectionsUrl, parseDirectionsUrl } from './maps-dir.helpers';
-import { toRowId } from '../common/row-id';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
-import { QueryHelpersService } from '../query-helpers/query-helpers.service';
-import { ratingAggregate } from '../common/rowShape';
 import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
+import { AccommodationsService } from '../accommodations/accommodations.service';
+import { resolveCountryCodeSync } from '../atlas/atlas-geo';
+import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
+import { MAX_PLACE_IMAGE_SIZE, PLACE_IMAGE_EXTENSIONS } from '../common/place-image-upload';
+import { toRowId } from '../common/row-id';
+import { ratingAggregate } from '../common/rowShape';
+import { UnitOfWork } from '../database/unit-of-work';
+import { JourneyDomainService } from '../journey/journey-domain.service';
+import { MapsService, GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from '../maps/maps.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+import { QueryHelpersService } from '../query-helpers/query-helpers.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { StorageService } from '../storage/storage.service';
+import { UnsplashService } from '../unsplash/unsplash.service';
+import { buildGpx, gpxFilename } from './gpx-export.helpers';
+import type { GpxExportDay, GpxExportOptions, GpxExportPlace } from './gpx-export.helpers';
 import {
   buildCategoryNameLookup,
   createKmlImportSummary,
@@ -24,43 +48,8 @@ import {
   parsePlacemarkNode,
   resolveCategoryIdForFolder,
 } from './kml-import.helpers';
-import { buildGpx, gpxFilename } from './gpx-export.helpers';
-import type { GpxExportDay, GpxExportOptions, GpxExportPlace } from './gpx-export.helpers';
-import { UnsplashService } from '../unsplash/unsplash.service';
-import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
-import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
+import { isDirectionsUrl, parseDirectionsUrl } from './maps-dir.helpers';
 import { isUploadedPlaceImage, placeImageUrl } from './place-image';
-import { MAX_PLACE_IMAGE_SIZE, PLACE_IMAGE_EXTENSIONS } from '../common/place-image-upload';
-import { randomUUID } from 'node:crypto';
-import { JourneyDomainService } from '../journey/journey-domain.service';
-import { StorageService } from '../storage/storage.service';
-import { AccommodationsService } from '../accommodations/accommodations.service';
-import { Places } from '../../db/entities/Places.entity';
-import { Tags } from '../../db/entities/Tags.entity';
-import { PlaceRatings } from '../../db/entities/PlaceRatings.entity';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import { Categories } from '../../db/entities/Categories.entity';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { PlacesRepository, PlaceListRow, PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
-import type { TagsRepository } from '../../db/repositories/Tags.repository';
-import type { PlaceRatingsRepository } from '../../db/repositories/PlaceRatings.repository';
-import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
-import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
-import type { CategoriesRepository } from '../../db/repositories/Categories.repository';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { BudgetItems } from '../../db/entities/BudgetItems.entity';
-import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
-import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
-import type { CollectionPlacesRepository } from '../../db/repositories/CollectionPlaces.repository';
-
-/** Rows a place delete took down with the nights booked there, for the caller to announce. */
-export interface CancelledStays {
-  reservationIds: number[];
-  budgetItemIds: number[];
-}
-
-const noCancelledStays = (): CancelledStays => ({ reservationIds: [], budgetItemIds: [] });
 import {
   ENRICH_CONCURRENCY,
   ADDRESS_BACKFILL_MAX_PLACES,
@@ -88,6 +77,22 @@ import {
   type ListImportResult,
   type PlaceImportResult,
 } from './places.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { TRACK_COLORS, placeMatchStrategies, type PlaceMatchCandidate } from '@trek/shared';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+
+import { XMLValidator } from 'fast-xml-parser';
+import { randomUUID } from 'node:crypto';
+import path from 'node:path';
+
+/** Rows a place delete took down with the nights booked there, for the caller to announce. */
+export interface CancelledStays {
+  reservationIds: number[];
+  budgetItemIds: number[];
+}
+
+const noCancelledStays = (): CancelledStays => ({ reservationIds: [], budgetItemIds: [] });
 
 type Trip = TripAccess;
 
@@ -95,32 +100,67 @@ type ImportedPlace = { id: number; route_geometry?: string | null; route_color?:
 
 /** Fields accepted when creating a place. */
 export interface PlaceCreateInput {
-  name: string; description?: string; lat?: number; lng?: number; address?: string;
-  category_id?: number; price?: number; currency?: string;
-  place_time?: string; end_time?: string;
-  duration_minutes?: number; notes?: string; image_url?: string;
-  google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string; website?: string; phone?: string;
-  email?: string | null; opening_hours?: string | null;
+  name: string;
+  description?: string;
+  lat?: number;
+  lng?: number;
+  address?: string;
+  category_id?: number;
+  price?: number;
+  currency?: string;
+  place_time?: string;
+  end_time?: string;
+  duration_minutes?: number;
+  notes?: string;
+  image_url?: string;
+  google_place_id?: string;
+  google_ftid?: string;
+  osm_id?: string;
+  amap_poi_id?: string;
+  website?: string;
+  phone?: string;
+  email?: string | null;
+  opening_hours?: string | null;
   /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
   stop_type?: string | null;
   /** How full THIS stop fills the tank, 1-100; null to follow the traveller's own setting. */
   fill_percent?: number | null;
-  transport_mode?: string; route_geometry?: string; route_color?: string; tags?: number[];
+  transport_mode?: string;
+  route_geometry?: string;
+  route_color?: string;
+  tags?: number[];
 }
 
 /** Fields accepted when patching a place. */
 export interface PlaceUpdateInput {
-  name?: string; description?: string; lat?: number; lng?: number; address?: string;
-  category_id?: number; price?: number; currency?: string;
-  place_time?: string; end_time?: string;
-  duration_minutes?: number; notes?: string; image_url?: string;
-  google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string; website?: string; phone?: string;
-  email?: string | null; opening_hours?: string | null;
+  name?: string;
+  description?: string;
+  lat?: number;
+  lng?: number;
+  address?: string;
+  category_id?: number;
+  price?: number;
+  currency?: string;
+  place_time?: string;
+  end_time?: string;
+  duration_minutes?: number;
+  notes?: string;
+  image_url?: string;
+  google_place_id?: string;
+  google_ftid?: string;
+  osm_id?: string;
+  amap_poi_id?: string;
+  website?: string;
+  phone?: string;
+  email?: string | null;
+  opening_hours?: string | null;
   /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
   stop_type?: string | null;
   /** How full THIS stop fills the tank, 1-100; null to follow the traveller's own setting. */
   fill_percent?: number | null;
-  transport_mode?: string; route_color?: string | null; tags?: number[];
+  transport_mode?: string;
+  route_color?: string | null;
+  tags?: number[];
 }
 
 /**
@@ -246,10 +286,15 @@ export class PlacesService {
     const roster = await this.tripMembersRepo.rosterUserIds(tripId);
     // PL2 — `SELECT id, user_id FROM tags WHERE id IN (${…})`.
     const owned = await this.tagsRepo.findByIds(unique);
-    return owned.filter(t => roster.has(t.user_id)).map(t => t.id);
+    return owned.filter((t) => roster.has(t.user_id)).map((t) => t.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -304,21 +349,23 @@ export class PlacesService {
       assignment: filters.assignment,
     });
 
-    const placeIds = places.map(p => p.id);
+    const placeIds = places.map((p) => p.id);
     const tagsByPlaceId = await this.queryHelpers.loadTagsByPlaceIds(placeIds);
     const ratingsByPlaceId = await this.queryHelpers.loadRatingsByPlaceIds(placeIds);
 
-    return places.map(p => ({
+    return places.map((p) => ({
       ...p,
       // The cached region row when the atlas resolved one, else the country the bundled
       // borders place it in, which needs no network (#2537).
       country_code: p.country_code ?? resolveCountryCodeSync(p),
-      category: p.category_id ? {
-        id: p.category_id,
-        name: p.category_name,
-        color: p.category_color,
-        icon: p.category_icon,
-      } : null,
+      category: p.category_id
+        ? {
+            id: p.category_id,
+            name: p.category_name,
+            color: p.category_color,
+            icon: p.category_icon,
+          }
+        : null,
       tags: tagsByPlaceId[p.id] || [],
       ratings: ratingsByPlaceId[p.id] || [],
       ...ratingAggregate(ratingsByPlaceId[p.id]),
@@ -331,7 +378,11 @@ export class PlacesService {
    * and the update path reclaims the copy like any other uploaded image. Returns a reason
    * string when the file cannot serve, the updated place otherwise.
    */
-  async setImageFromFile(tripId: string, placeId: string, fileId: number): Promise<'not_found' | 'not_image' | 'too_large' | Awaited<ReturnType<PlacesService['update']>>> {
+  async setImageFromFile(
+    tripId: string,
+    placeId: string,
+    fileId: number,
+  ): Promise<'not_found' | 'not_image' | 'too_large' | Awaited<ReturnType<PlacesService['update']>>> {
     const tid = toRowId(tripId);
     // PL53 — the trip's own, not-trashed attachment.
     const file = tid === null ? undefined : await this.placesRepo.findActiveTripFile(fileId, tid);
@@ -354,11 +405,33 @@ export class PlacesService {
 
   async create(tripId: string, body: PlaceCreateInput) {
     const {
-      name, description, lat, lng, address, category_id, price, currency,
-      place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, amap_poi_id, website, phone,
-      email, opening_hours,
-      transport_mode, route_geometry, route_color, stop_type, fill_percent, tags = [],
+      name,
+      description,
+      lat,
+      lng,
+      address,
+      category_id,
+      price,
+      currency,
+      place_time,
+      end_time,
+      duration_minutes,
+      notes,
+      image_url,
+      google_place_id,
+      google_ftid,
+      osm_id,
+      amap_poi_id,
+      website,
+      phone,
+      email,
+      opening_hours,
+      transport_mode,
+      route_geometry,
+      route_color,
+      stop_type,
+      fill_percent,
+      tags = [],
     } = body;
 
     // Rule 21 / M1 (Task 9 fix wave): `verifyTripAccess` now parses `tripId`
@@ -505,11 +578,32 @@ export class PlacesService {
     }
 
     const {
-      name, description, lat, lng, address, category_id, price, currency,
-      place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, amap_poi_id, website, phone,
-      email, opening_hours,
-      transport_mode, route_color, stop_type, fill_percent, tags,
+      name,
+      description,
+      lat,
+      lng,
+      address,
+      category_id,
+      price,
+      currency,
+      place_time,
+      end_time,
+      duration_minutes,
+      notes,
+      image_url,
+      google_place_id,
+      google_ftid,
+      osm_id,
+      amap_poi_id,
+      website,
+      phone,
+      email,
+      opening_hours,
+      transport_mode,
+      route_color,
+      stop_type,
+      fill_percent,
+      tags,
     } = body;
 
     // PL11 — ONE `nativeUpdate` with a typed full partial (the ruling): the
@@ -548,8 +642,8 @@ export class PlacesService {
       website: website !== undefined ? website : existingPlace.website,
       phone: phone !== undefined ? phone : existingPlace.phone,
       // Empty clears, like null: the form sends what its field holds (#2472).
-      email: email !== undefined ? (email?.trim() || null) : existingPlace.email,
-      opening_hours: opening_hours !== undefined ? (opening_hours || null) : existingPlace.opening_hours,
+      email: email !== undefined ? email?.trim() || null : existingPlace.email,
+      opening_hours: opening_hours !== undefined ? opening_hours || null : existingPlace.opening_hours,
       // COALESCE(?, transport_mode) — same fold as `name`/`currency` above.
       transport_mode: (transport_mode || null) ?? existingPlace.transport_mode,
       // Deliberately not COALESCE: an explicit null is how the picker resets a
@@ -573,9 +667,8 @@ export class PlacesService {
     // A custom uploaded thumbnail (#1136) that was just replaced or cleared leaves
     // an orphan file behind — reclaim it (in the caller, once any enclosing
     // transaction committed) if nothing references it any more.
-    const reclaim = image_url !== undefined && image_url !== existingPlace.image_url
-      ? existingPlace.image_url
-      : undefined;
+    const reclaim =
+      image_url !== undefined && image_url !== existingPlace.image_url ? existingPlace.image_url : undefined;
 
     // PL14 — `findWithTagsAndRatings` replaces the `getPlaceWithTags` delegation.
     return { result: await this.placesRepo.findWithTagsAndRatings(id), reclaim };
@@ -602,7 +695,6 @@ export class PlacesService {
     // PL15 — Plan 3e Task 2, converted: `BudgetItemsRepository.listIdsForPlaces`.
     return await this.budgetItemsRepo.listIdsForPlaces(tid, placeIds);
   }
-
 
   /**
    * The nights booked at a place, cancelled because the place is going.
@@ -876,7 +968,7 @@ export class PlacesService {
     if (title === null) return null;
 
     // PL29 — the waypoint projection.
-    const places = await this.placesRepo.listForGpx(tripId) as GpxExportPlace[];
+    const places = (await this.placesRepo.listForGpx(tripId)) as GpxExportPlace[];
 
     // One row per stop, ordered the way the day plan draws it, then folded
     // into days. PL30 — `DayAssignmentsRepository.listItineraryForGpx`.
@@ -896,7 +988,11 @@ export class PlacesService {
     return gpx ? { gpx, filename: gpxFilename(title) } : null;
   }
 
-  private async importGpxRows(tripId: string, fileBuffer: Buffer, opts: GpxImportOptions = {}): Promise<GpxImportResult | null> {
+  private async importGpxRows(
+    tripId: string,
+    fileBuffer: Buffer,
+    opts: GpxImportOptions = {},
+  ): Promise<GpxImportResult | null> {
     const { importWaypoints = true, importRoutes = true, importTracks = true, defaultName } = opts;
 
     const parsed = gpxParser.parse(fileBuffer.toString('utf-8'));
@@ -904,7 +1000,10 @@ export class PlacesService {
     if (!gpx) return null;
 
     const str = (v: unknown) => (v != null ? String(v).trim() : null);
-    const num = (v: unknown) => { const n = Number.parseFloat(String(v)); return Number.isNaN(n) ? null : n; };
+    const num = (v: unknown) => {
+      const n = Number.parseFloat(String(v));
+      return Number.isNaN(n) ? null : n;
+    };
 
     // Routes and tracks rarely carry their own <name>. Without one they all fall back to the
     // same generic label, so name-based dedup drops every import after the first. Derive a
@@ -929,7 +1028,12 @@ export class PlacesService {
         const lat = num(wpt['@_lat']);
         const lng = num(wpt['@_lon']);
         if (lat === null || lng === null) continue;
-        waypoints.push({ lat, lng, name: str(wpt.name) || `Waypoint ${waypoints.length + 1}`, description: str(wpt.desc) });
+        waypoints.push({
+          lat,
+          lng,
+          name: str(wpt.name) || `Waypoint ${waypoints.length + 1}`,
+          description: str(wpt.desc),
+        });
       }
     }
 
@@ -938,11 +1042,19 @@ export class PlacesService {
       for (const rte of gpx.rte ?? []) {
         const pts = (rte.rtept ?? [])
           .map((pt: Record<string, unknown>) => ({ lat: num(pt['@_lat']), lng: num(pt['@_lon']), ele: num(pt['ele']) }))
-          .filter((p: { lat: number | null; lng: number | null; ele: number | null }) => p.lat !== null && p.lng !== null) as Array<{ lat: number; lng: number; ele: number | null }>;
+          .filter(
+            (p: { lat: number | null; lng: number | null; ele: number | null }) => p.lat !== null && p.lng !== null,
+          ) as Array<{ lat: number; lng: number; ele: number | null }>;
         if (pts.length === 0) continue;
-        const hasAllEle = pts.every(p => p.ele !== null);
-        const routeGeometry = pts.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-        waypoints.push({ lat: pts[0].lat, lng: pts[0].lng, name: geoName(str(rte.name), 'GPX Route'), description: str(rte.desc), routeGeometry: JSON.stringify(routeGeometry) });
+        const hasAllEle = pts.every((p) => p.ele !== null);
+        const routeGeometry = pts.map((p) => (hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]));
+        waypoints.push({
+          lat: pts[0].lat,
+          lng: pts[0].lng,
+          name: geoName(str(rte.name), 'GPX Route'),
+          description: str(rte.desc),
+          routeGeometry: JSON.stringify(routeGeometry),
+        });
       }
     }
 
@@ -960,9 +1072,15 @@ export class PlacesService {
         }
         if (trackPoints.length === 0) continue;
         const start = trackPoints[0];
-        const hasAllEle = trackPoints.every(p => p.ele !== null);
-        const routeGeometry = trackPoints.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-        waypoints.push({ lat: start.lat, lng: start.lng, name: geoName(str(trk.name), 'GPX Track'), description: str(trk.desc), routeGeometry: JSON.stringify(routeGeometry) });
+        const hasAllEle = trackPoints.every((p) => p.ele !== null);
+        const routeGeometry = trackPoints.map((p) => (hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]));
+        waypoints.push({
+          lat: start.lat,
+          lng: start.lng,
+          name: geoName(str(trk.name), 'GPX Track'),
+          description: str(trk.desc),
+          routeGeometry: JSON.stringify(routeGeometry),
+        });
       }
     }
 
@@ -1035,13 +1153,23 @@ export class PlacesService {
   // Import KML / KMZ
   // -------------------------------------------------------------------------
 
-  async importMapFile(tripId: string, fileBuffer: Buffer, filename: string, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
+  async importMapFile(
+    tripId: string,
+    fileBuffer: Buffer,
+    filename: string,
+    opts: KmlImportOptions = {},
+  ): Promise<PlaceImportResult> {
     const result = await this.importMapFileRows(tripId, fileBuffer, filename, opts);
     await this.colorizeImportedTracks(tripId, result);
     return result;
   }
 
-  private async importMapFileRows(tripId: string, fileBuffer: Buffer, filename: string, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
+  private async importMapFileRows(
+    tripId: string,
+    fileBuffer: Buffer,
+    filename: string,
+    opts: KmlImportOptions = {},
+  ): Promise<PlaceImportResult> {
     const ext = filename.toLowerCase().split('.').pop();
     if (ext === 'kmz') return this.importKmzPlaces(tripId, fileBuffer, opts);
     if (ext === 'kml') return this.importKmlPlaces(tripId, fileBuffer, opts);
@@ -1222,7 +1350,11 @@ export class PlacesService {
   // Import Google Maps list
   // -------------------------------------------------------------------------
 
-  async importGoogleList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
+  async importGoogleList(
+    tripId: string,
+    url: string,
+    opts?: ListImportOptions,
+  ): Promise<ListImportResult | ListImportError> {
     let listId: string | null = null;
     let resolvedUrl = url;
 
@@ -1270,7 +1402,11 @@ export class PlacesService {
       // A single-place share link (…/maps/place/…) carries no list id — point the user at
       // the place search box instead of a cryptic "could not extract list ID" (#1304).
       if (resolvedUrl.includes('/maps/place/')) {
-        return { error: 'That link points to a single place, not a list. To add it, paste the link into the place search box instead of using the list import.', status: 400 };
+        return {
+          error:
+            'That link points to a single place, not a list. To add it, paste the link into the place search box instead of using the list import.',
+          status: 400,
+        };
       }
       return { error: 'Could not extract list ID from URL. Please use a shared Google Maps list link.', status: 400 };
     }
@@ -1278,7 +1414,10 @@ export class PlacesService {
     // Fetch list data from Google Maps internal API
     const apiUrl = `https://www.google.com/maps/preview/entitylist/getlist?authuser=0&hl=en&gl=us&pb=!1m1!1s${encodeURIComponent(listId)}!2e2!3e2!4i500!16b1`;
     const apiRes = await fetch(apiUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
       signal: AbortSignal.timeout(15000),
     });
 
@@ -1446,12 +1585,20 @@ export class PlacesService {
    * failing the import, because a route of six stops with five findable is five stops
    * more than the traveller had.
    */
-  async importGoogleDirections(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
+  async importGoogleDirections(
+    tripId: string,
+    url: string,
+    opts?: ListImportOptions,
+  ): Promise<ListImportResult | ListImportError> {
     const ssrf = await checkSsrf(url);
     if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
 
     let parsed: URL;
-    try { parsed = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
+    try {
+      parsed = new URL(url);
+    } catch {
+      return { error: 'Invalid URL', status: 400 };
+    }
 
     // Short links are resolved hop by hop through the guard, exactly as the list import
     // does it: a maps.app.goo.gl that 302s to an internal address is still blocked.
@@ -1469,14 +1616,22 @@ export class PlacesService {
     // Checked after resolving, not before: the host that counts is the one the link lands
     // on, and `/maps/dir/` is a path anybody could serve.
     let host = '';
-    try { host = new URL(resolvedUrl).hostname; } catch { /* an unparseable hop fails the check below */ }
+    try {
+      host = new URL(resolvedUrl).hostname;
+    } catch {
+      /* an unparseable hop fails the check below */
+    }
     if (!isGoogleMapsHost(host)) {
       return { error: 'That link is not a Google Maps link.', status: 400 };
     }
 
     const waypoints = parseDirectionsUrl(resolvedUrl);
     if (waypoints.length < 2) {
-      return { error: 'Could not read any stops from that directions link. Open the route in Google Maps and use its Share button.', status: 400 };
+      return {
+        error:
+          'Could not read any stops from that directions link. Open the route in Google Maps and use its Share button.',
+        status: 400,
+      };
     }
 
     const places: { name: string; lat: number; lng: number; notes: string | null; googleFtid: string | null }[] = [];
@@ -1534,7 +1689,11 @@ export class PlacesService {
   // Import Naver Maps list
   // -------------------------------------------------------------------------
 
-  async importNaverList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
+  async importNaverList(
+    tripId: string,
+    url: string,
+    opts?: ListImportOptions,
+  ): Promise<ListImportResult | ListImportError> {
     let resolvedUrl = url;
     const limit = 20;
 
@@ -1546,7 +1705,11 @@ export class PlacesService {
     // Redirects are followed manually so each hop is re-validated against the
     // SSRF guard (a short link could otherwise 302 to an internal address).
     let parsedUrl: URL;
-    try { parsedUrl = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      return { error: 'Invalid URL', status: 400 };
+    }
     if (parsedUrl.hostname === 'naver.me') {
       try {
         const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
@@ -1568,7 +1731,8 @@ export class PlacesService {
       const apiRes = await fetch(apiUrl, {
         headers: {
           Accept: 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
         signal: AbortSignal.timeout(15000),
       });
@@ -1608,9 +1772,10 @@ export class PlacesService {
     }
 
     const listName = firstPage.data.folder?.name || 'Naver Maps List';
-    const totalCount = typeof firstPage.data.folder?.bookmarkCount === 'number'
-      ? firstPage.data.folder.bookmarkCount
-      : (firstPage.data.bookmarkList?.length || 0);
+    const totalCount =
+      typeof firstPage.data.folder?.bookmarkCount === 'number'
+        ? firstPage.data.folder.bookmarkCount
+        : firstPage.data.bookmarkList?.length || 0;
 
     const allItems: Record<string, unknown>[] = [...(firstPage.data.bookmarkList || [])];
     for (let start = limit; start < totalCount; start += limit) {
@@ -1631,9 +1796,12 @@ export class PlacesService {
     for (const item of allItems) {
       const lat = Number(item?.py);
       const lng = Number(item?.px);
-      const name = typeof item?.name === 'string' && item.name.trim()
-        ? item.name.trim()
-        : (typeof item?.displayName === 'string' ? item.displayName.trim() : '');
+      const name =
+        typeof item?.name === 'string' && item.name.trim()
+          ? item.name.trim()
+          : typeof item?.displayName === 'string'
+            ? item.displayName.trim()
+            : '';
       const note = typeof item?.memo === 'string' && item.memo.trim() ? item.memo.trim() : null;
       const address = typeof item?.address === 'string' && item.address.trim() ? item.address.trim() : null;
 
@@ -1816,7 +1984,7 @@ export class PlacesService {
    * Detached like the list imports, and just as quietly a no-op without a key.
    */
   enrichImportedFilePlaces(tripId: string, userId: number, places: ImportedPlace[]): void {
-    const points = (places as (ImportedPlace & EnrichablePlace)[]).filter(p => !p.route_geometry);
+    const points = (places as (ImportedPlace & EnrichablePlace)[]).filter((p) => !p.route_geometry);
     void this.enrichImportedPlaces(tripId, userId, points);
   }
 
@@ -1847,10 +2015,12 @@ export class PlacesService {
    */
   async backfillMissingAddresses(tripId: string, places: EnrichablePlace[], lang?: string): Promise<void> {
     try {
-      const pending = places.filter(p => !p.address && p.lat != null && p.lng != null);
+      const pending = places.filter((p) => !p.address && p.lat != null && p.lng != null);
       if (!pending.length) return;
       if (pending.length > ADDRESS_BACKFILL_MAX_PLACES) {
-        console.warn(`[Places] address backfill skipped for trip ${tripId}: ${pending.length} places exceeds the ${ADDRESS_BACKFILL_MAX_PLACES} cap`);
+        console.warn(
+          `[Places] address backfill skipped for trip ${tripId}: ${pending.length} places exceeds the ${ADDRESS_BACKFILL_MAX_PLACES} cap`,
+        );
         return;
       }
       // Rule 21 / M1 (Task 9 fix wave) — same ruling as `enrichOne`.
@@ -1871,7 +2041,10 @@ export class PlacesService {
           const updated = await this.placesRepo.findWithTagsAndRatings(place.id);
           if (updated) this.realtime.broadcast(tripId, 'place:updated', { place: updated }, undefined);
         } catch (err) {
-          console.error(`[Places] address backfill failed for place ${place.id}:`, err instanceof Error ? err.message : err);
+          console.error(
+            `[Places] address backfill failed for place ${place.id}:`,
+            err instanceof Error ? err.message : err,
+          );
         }
       }
     } catch (err) {
@@ -1898,7 +2071,11 @@ export class PlacesService {
     const place = await this.placesRepo.findInTrip(id, tid);
     if (!place) return { error: 'Place not found', status: 404 };
 
-    return this.unsplash.searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5, await this.unsplash.getUnsplashKey(userId));
+    return this.unsplash.searchUnsplashPhotos(
+      place.name + (place.address ? ' ' + place.address : ''),
+      5,
+      await this.unsplash.getUnsplashKey(userId),
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -1941,16 +2118,22 @@ export class PlacesService {
   async onCreated(tripId: string, placeId: number): Promise<void> {
     try {
       await this.journey.onPlaceCreated(Number(tripId), placeId);
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }
   async onUpdated(placeId: number): Promise<void> {
     try {
       await this.journey.onPlaceUpdated(placeId);
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }
   async onDeleted(placeId: number): Promise<void> {
     try {
       await this.journey.onPlaceDeleted(placeId);
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }
 }

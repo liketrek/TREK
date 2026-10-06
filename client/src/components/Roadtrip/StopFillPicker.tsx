@@ -1,13 +1,13 @@
-import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
-import React from 'react'
-import { RotateCcw } from 'lucide-react'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { useSettingsStore } from '../../store/settingsStore'
-import { formatDistance } from '../../utils/units'
-import AnchoredPopover from './AnchoredPopover'
-import { useVehicleRange } from './useVehicleRange'
-import { FS } from './typeScale'
-import type { DistanceUnit } from '../../types'
+import { RotateCcw } from 'lucide-react';
+import React from 'react';
+import { useRoadtripSettings } from '../../hooks/useRoadtripSettings';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { useSettingsStore } from '../../store/settingsStore';
+import type { DistanceUnit } from '../../types';
+import { formatDistance } from '../../utils/units';
+import AnchoredPopover from './AnchoredPopover';
+import { FS } from './typeScale';
+import { useVehicleRange } from './useVehicleRange';
 
 /**
  * How full THIS stop fills up.
@@ -28,26 +28,31 @@ import type { DistanceUnit } from '../../types'
  */
 
 /** The answers people actually give. Below half a tank nobody stops on purpose. */
-const PRESETS = [50, 60, 70, 80, 90, 100] as const
+const PRESETS = [50, 60, 70, 80, 90, 100] as const;
 
-export default function StopFillPicker({ anchor, current, onPick, onClose }: {
+export default function StopFillPicker({
+  anchor,
+  current,
+  onPick,
+  onClose,
+}: {
   /** The element the popover hangs under: the stop's own fill badge. */
-  anchor: HTMLElement | null
+  anchor: HTMLElement | null;
   /** What this stop says, or null when it follows the traveller's own setting. */
-  current: number | null
+  current: number | null;
   /** A percentage for this stop, or null to hand it back to the setting. */
-  onPick: (percent: number | null) => void
-  onClose: () => void
+  onPick: (percent: number | null) => void;
+  onClose: () => void;
 }): React.ReactElement | null {
-  const { t } = useTranslation()
-  const unit: DistanceUnit = useSettingsStore(s => s.settings.distance_unit) === 'imperial' ? 'imperial' : 'metric'
-  const fallback = useRoadtripSettings(s => s.roadtrip_fill_percent)
-  const { rangeKm } = useVehicleRange()
+  const { t } = useTranslation();
+  const unit: DistanceUnit = useSettingsStore((s) => s.settings.distance_unit) === 'imperial' ? 'imperial' : 'metric';
+  const fallback = useRoadtripSettings((s) => s.roadtrip_fill_percent);
+  const { rangeKm } = useVehicleRange();
 
   // Zero, absent and 100 all mean the same thing in the settings, so they read as full
   // here too rather than as three different defaults.
-  const settingPercent = fallback && fallback > 0 && fallback < 100 ? fallback : 100
-  const shown = current ?? settingPercent
+  const settingPercent = fallback && fallback > 0 && fallback < 100 ? fallback : 100;
+  const shown = current ?? settingPercent;
 
   return (
     <AnchoredPopover anchor={anchor} label={t('roadtrip.stop.fillTitle')} onClose={onClose}>
@@ -60,10 +65,10 @@ export default function StopFillPicker({ anchor, current, onPick, onClose }: {
         </p>
 
         <div className="flex gap-1">
-          {PRESETS.map(percent => {
+          {PRESETS.map((percent) => {
             // Pressed against what the stop will actually use, inherited or not, so the
             // panel opens showing where the stop stands rather than showing nothing.
-            const on = shown === percent
+            const on = shown === percent;
             return (
               <button
                 key={percent}
@@ -80,7 +85,7 @@ export default function StopFillPicker({ anchor, current, onPick, onClose }: {
               >
                 {percent}
               </button>
-            )
+            );
           })}
         </div>
 
@@ -108,5 +113,5 @@ export default function StopFillPicker({ anchor, current, onPick, onClose }: {
         ) : null}
       </div>
     </AnchoredPopover>
-  )
+  );
 }

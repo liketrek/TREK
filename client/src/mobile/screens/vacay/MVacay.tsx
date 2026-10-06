@@ -1,21 +1,52 @@
-import { Building2, ChevronLeft, ChevronRight, Eye, Minus, PenLine, Pencil, Plus, Settings2, Share2, ShieldCheck, Trash2, Unlink, UserPlus } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import MSheet from '../../components/MSheet'
-import MIconBtn from '../../components/MIconBtn'
-import MProgress from '../../components/MProgress'
-import { useTranslation } from '../../../i18n'
-import { useMVacay } from './useMVacay'
-import MVacayMonth from './MVacayMonth'
-import MVacayInviteSheet from './MVacayInviteSheet'
-import MVacaySettingsSheet from './MVacaySettingsSheet'
-import MVacayShareSheet from './MVacayShareSheet'
-import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
+import type { LucideIcon } from 'lucide-react';
+import {
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Minus,
+  PenLine,
+  Pencil,
+  Plus,
+  Settings2,
+  Share2,
+  ShieldCheck,
+  Trash2,
+  Unlink,
+  UserPlus,
+} from 'lucide-react';
+import { useTranslation } from '../../../i18n';
+import MIconBtn from '../../components/MIconBtn';
+import MProgress from '../../components/MProgress';
+import MSheet from '../../components/MSheet';
+import MVacayInviteSheet from './MVacayInviteSheet';
+import MVacayMonth from './MVacayMonth';
+import MVacaySettingsSheet from './MVacaySettingsSheet';
+import MVacayShareSheet from './MVacayShareSheet';
+import { useMVacay } from './useMVacay';
+import { FALLBACK_PERSON_COLOR } from './vacayDayModel';
 
 /** Half days (#552) make the balance fractional; one decimal is exact and never drifts. */
-const fmtDays = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
+const fmtDays = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
-const WEEKDAY_KEYS_MONDAY = ['vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat', 'vacay.sun'] as const
-const WEEKDAY_KEYS_SUNDAY = ['vacay.sun', 'vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat'] as const
+const WEEKDAY_KEYS_MONDAY = [
+  'vacay.mon',
+  'vacay.tue',
+  'vacay.wed',
+  'vacay.thu',
+  'vacay.fri',
+  'vacay.sat',
+  'vacay.sun',
+] as const;
+const WEEKDAY_KEYS_SUNDAY = [
+  'vacay.sun',
+  'vacay.mon',
+  'vacay.tue',
+  'vacay.wed',
+  'vacay.thu',
+  'vacay.fri',
+  'vacay.sat',
+] as const;
 
 /**
  * Mobile Vacay screen: year pill header, person card with inline entitlement
@@ -25,30 +56,29 @@ const WEEKDAY_KEYS_SUNDAY = ['vacay.sun', 'vacay.mon', 'vacay.tue', 'vacay.wed',
  * the editor logs; the screen's own FAB in the dock centre flips back.
  */
 export default function MVacay() {
-  const { t } = useTranslation()
-  const v = useMVacay()
+  const { t } = useTranslation();
+  const v = useMVacay();
 
   if (v.loading) {
     return (
       <div className="flex h-dvh items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-[color:var(--m-ink)]" />
       </div>
-    )
+    );
   }
 
-  const edit = v.view === 'edit'
-  const stat = v.selectedStat
-  const pct = stat && stat.total_available > 0 ? Math.round((stat.used / stat.total_available) * 100) : 0
-  const leftColor = stat && stat.remaining <= 0
-    ? (stat.remaining < 0 ? 'var(--m-st-danger)' : 'var(--m-st-pending)')
-    : v.selectedColor
-  const weekdayKeys = v.weekStart === 0 ? WEEKDAY_KEYS_SUNDAY : WEEKDAY_KEYS_MONDAY
+  const edit = v.view === 'edit';
+  const stat = v.selectedStat;
+  const pct = stat && stat.total_available > 0 ? Math.round((stat.used / stat.total_available) * 100) : 0;
+  const leftColor =
+    stat && stat.remaining <= 0 ? (stat.remaining < 0 ? 'var(--m-st-danger)' : 'var(--m-st-pending)') : v.selectedColor;
+  const weekdayKeys = v.weekStart === 0 ? WEEKDAY_KEYS_SUNDAY : WEEKDAY_KEYS_MONDAY;
 
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809).
     <div className="relative h-dvh">
       {/* Header */}
-      <div className="absolute left-4 right-4 z-[5] flex items-center gap-2 top-[var(--m-safe-top,12px)]">
+      <div className="absolute left-4 right-4 top-[var(--m-safe-top,12px)] z-[5] flex items-center gap-2">
         <MIconBtn onClick={() => v.setSheet('invite')} ariaLabel={t('vacay.inviteUser')}>
           <UserPlus size={16} strokeWidth={2} className="text-m-muted" />
         </MIconBtn>
@@ -56,11 +86,21 @@ export default function MVacay() {
           <Share2 size={16} strokeWidth={2} className="text-m-muted" />
         </MIconBtn>
         <span className="flex flex-1 items-center justify-between rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] p-1 shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]">
-          <button type="button" onClick={v.prevYear} aria-label={t('mobileVacay.prevYear')} className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full">
+          <button
+            type="button"
+            onClick={v.prevYear}
+            aria-label={t('mobileVacay.prevYear')}
+            className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full"
+          >
             <ChevronLeft size={17} strokeWidth={2.2} />
           </button>
           <span className="text-[1rem] font-extrabold tabular-nums">{v.selectedYear}</span>
-          <button type="button" onClick={v.nextYear} aria-label={t('mobileVacay.nextYear')} className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full">
+          <button
+            type="button"
+            onClick={v.nextYear}
+            aria-label={t('mobileVacay.nextYear')}
+            className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full"
+          >
             <ChevronRight size={17} strokeWidth={2.2} />
           </button>
         </span>
@@ -70,7 +110,7 @@ export default function MVacay() {
       </div>
 
       {/* Scroll container */}
-      <div className="absolute inset-0 overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+44px)] pb-[calc(var(--bottom-nav-h,84px)+12px)]">
+      <div className="absolute inset-0 overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+12px)] pt-[calc(var(--m-safe-top,12px)+44px)]">
         {/* Selected person card */}
         {v.selectedUser && stat && (
           <div className="mt-2 flex items-center gap-3 rounded-[18px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-[14px] py-[9px]">
@@ -106,7 +146,7 @@ export default function MVacay() {
                 <Minus size={15} strokeWidth={2.4} />
               </button>
               <div className="min-w-[40px] text-center">
-                <div className="text-[1.1875rem] font-extrabold leading-none tabular-nums">{stat.vacation_days}</div>
+                <div className="text-[1.1875rem] font-extrabold tabular-nums leading-none">{stat.vacation_days}</div>
                 <div className="font-geist text-[0.5rem] font-bold uppercase tracking-[.06em] text-m-faint">
                   {t('vacay.entitlementDays')}
                 </div>
@@ -125,46 +165,54 @@ export default function MVacay() {
 
         {/* Person + legend chips */}
         <div className="mx-[2px] mb-2 mt-[9px] flex flex-wrap items-center gap-[6px]">
-          {v.users.map(u => {
-            const color = u.color || FALLBACK_PERSON_COLOR
-            const active = u.id === v.selectedUserId
+          {v.users.map((u) => {
+            const color = u.color || FALLBACK_PERSON_COLOR;
+            const active = u.id === v.selectedUserId;
             return (
               <button
                 key={u.id}
                 type="button"
                 onClick={() => v.selectPerson(u.id)}
                 className="box-border inline-flex min-w-0 flex-[1_1_calc(25%-6px)] items-center justify-center gap-1 rounded-full px-1 py-1 font-geist text-[0.625rem] font-bold"
-                style={active
-                  ? { background: `${color}1f`, border: `1px solid ${color}`, color: 'var(--m-ink)' }
-                  : { background: 'var(--m-sheetop)', border: '1px solid var(--m-rowbr)', color: 'var(--m-muted)' }}
+                style={
+                  active
+                    ? { background: `${color}1f`, border: `1px solid ${color}`, color: 'var(--m-ink)' }
+                    : { background: 'var(--m-sheetop)', border: '1px solid var(--m-rowbr)', color: 'var(--m-muted)' }
+                }
               >
                 <span className="h-[9px] w-[9px] flex-none rounded-[3px]" style={{ background: color }} />
                 <span className="truncate">{u.username}</span>
               </button>
-            )
+            );
           })}
           {/* Shared read-only calendars: tap toggles that person's ring overlay. */}
-          {v.incomingShares.map(s => (
+          {v.incomingShares.map((s) => (
             <button
               key={`share-${s.id}`}
               type="button"
               onClick={() => v.toggleShareHidden(s.id, !s.hidden)}
               aria-pressed={!s.hidden}
               className="box-border inline-flex min-w-0 flex-[1_1_calc(25%-6px)] items-center justify-center gap-1 rounded-full px-1 py-1 font-geist text-[0.625rem] font-bold"
-              style={s.hidden
-                ? { background: 'var(--m-sheetop)', border: '1px solid var(--m-rowbr)', color: 'var(--m-faint)', opacity: 0.7 }
-                : { background: `${s.color}1f`, border: `1px solid ${s.color}`, color: 'var(--m-ink)' }}
+              style={
+                s.hidden
+                  ? {
+                      background: 'var(--m-sheetop)',
+                      border: '1px solid var(--m-rowbr)',
+                      color: 'var(--m-faint)',
+                      opacity: 0.7,
+                    }
+                  : { background: `${s.color}1f`, border: `1px solid ${s.color}`, color: 'var(--m-ink)' }
+              }
             >
               <span className="h-[9px] w-[9px] flex-none rounded-[3px]" style={{ border: `2px solid ${s.color}` }} />
               <span className="truncate">{s.username}</span>
             </button>
           ))}
-          {v.companyHolidaysEnabled && (
-            <LegendChip color="#F5D9A6" label={t('mobileVacay.companyLegend')} />
-          )}
-          {v.holidaysEnabled && (v.plan?.holiday_calendars ?? []).map(cal => (
-            <LegendChip key={cal.id} color={cal.color} label={cal.label || cal.region} />
-          ))}
+          {v.companyHolidaysEnabled && <LegendChip color="#F5D9A6" label={t('mobileVacay.companyLegend')} />}
+          {v.holidaysEnabled &&
+            (v.plan?.holiday_calendars ?? []).map((cal) => (
+              <LegendChip key={cal.id} color={cal.color} label={cal.label || cal.region} />
+            ))}
         </div>
 
         {/* Year grid */}
@@ -173,7 +221,10 @@ export default function MVacay() {
             {/* Twelve months from the window start (#737) — Jan–Dec on a calendar
                 year, Jul–Jun once the leave year is shifted. */}
             {v.months.map(({ year, month }, slot) => (
-              <div key={`${year}-${month}`} className="rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-2">
+              <div
+                key={`${year}-${month}`}
+                className="rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-2"
+              >
                 {/* The month name is the comfortable way into the editor: the mini
                     cells below it are ~21px on a phone, precise enough to navigate
                     with but not to aim at (#1811). Same chip as the edit view's
@@ -223,17 +274,29 @@ export default function MVacay() {
             </div>
             <div className="rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[11px]">
               <div className="mb-[7px] flex items-center gap-2">
-                <button type="button" onClick={v.prevMonth} aria-label={t('mobileVacay.prevMonth')} className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[color:var(--m-ic)]">
+                <button
+                  type="button"
+                  onClick={v.prevMonth}
+                  aria-label={t('mobileVacay.prevMonth')}
+                  className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[color:var(--m-ic)]"
+                >
                   <ChevronLeft size={16} strokeWidth={2.2} />
                 </button>
                 <span className="flex-1 text-center text-[1rem] font-extrabold capitalize">{v.monthNameLong}</span>
-                <button type="button" onClick={v.nextMonth} aria-label={t('mobileVacay.nextMonth')} className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[color:var(--m-ic)]">
+                <button
+                  type="button"
+                  onClick={v.nextMonth}
+                  aria-label={t('mobileVacay.nextMonth')}
+                  className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[color:var(--m-ic)]"
+                >
                   <ChevronRight size={16} strokeWidth={2.2} />
                 </button>
               </div>
               <div className="mb-[5px] grid grid-cols-7 gap-[2px]">
-                {weekdayKeys.map(key => (
-                  <span key={key} className="text-center font-geist text-[0.53125rem] font-bold text-m-faint">{t(key)}</span>
+                {weekdayKeys.map((key) => (
+                  <span key={key} className="text-center font-geist text-[0.53125rem] font-bold text-m-faint">
+                    {t(key)}
+                  </span>
                 ))}
               </div>
               <MVacayMonth
@@ -253,7 +316,7 @@ export default function MVacay() {
 
       {/* Mode switch (edit only) */}
       {edit && v.selectedUser && (
-        <div className="fixed inset-x-0 z-[30] flex justify-center bottom-[calc(var(--bottom-nav-h,84px)+2px)]">
+        <div className="fixed inset-x-0 bottom-[calc(var(--bottom-nav-h,84px)+2px)] z-[30] flex justify-center">
           <div className="flex items-center gap-[5px] rounded-full border border-[color:var(--m-shbr)] bg-[color:var(--m-sheet)] p-[5px] shadow-[0_12px_30px_-12px_rgba(0,0,0,.4)]">
             <button
               type="button"
@@ -281,7 +344,7 @@ export default function MVacay() {
             <span className="mx-[1px] h-5 w-px self-center bg-[color:var(--m-shbr)]" aria-hidden />
             <button
               type="button"
-              onClick={() => v.setCompDay(c => !c)}
+              onClick={() => v.setCompDay((c) => !c)}
               aria-pressed={v.compDay}
               aria-label={t('vacay.modeComp')}
               title={t('vacay.modeCompHint')}
@@ -294,7 +357,8 @@ export default function MVacay() {
               <span
                 className="rounded-full"
                 style={{
-                  width: 15, height: 15,
+                  width: 15,
+                  height: 15,
                   background: `repeating-linear-gradient(45deg, ${v.selectedColor} 0 2px, transparent 2px 4px)`,
                   boxShadow: `inset 0 0 0 1.5px ${v.selectedColor}`,
                 }}
@@ -302,7 +366,7 @@ export default function MVacay() {
             </button>
             <button
               type="button"
-              onClick={() => v.setHalfDay(h => !h)}
+              onClick={() => v.setHalfDay((h) => !h)}
               aria-pressed={v.halfDay}
               aria-label={t('vacay.modeHalf')}
               title={t('vacay.modeHalfHint')}
@@ -323,16 +387,16 @@ export default function MVacay() {
         type="button"
         onClick={v.toggleView}
         aria-label={edit ? t('mobileVacay.viewYear') : t('mobileVacay.editCalendar')}
-        className={`fixed left-1/2 z-50 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full transition-[background,color] duration-300 ease-in-out bottom-[calc(env(safe-area-inset-bottom,0px)+15px)] ${
+        className={`fixed bottom-[calc(env(safe-area-inset-bottom,0px)+15px)] left-1/2 z-50 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full transition-[background,color] duration-300 ease-in-out ${
           edit
             ? 'border-2 border-[color:var(--m-act)] bg-[color:var(--m-sheetop)] text-m-ink'
             : 'bg-m-act text-m-actfg shadow-[0_8px_20px_-6px_rgba(0,0,0,.4)]'
         }`}
       >
-        <span className={`flex transition-transform duration-[380ms] ease-[cubic-bezier(.34,1.56,.64,1)] ${edit ? 'rotate-180' : 'rotate-0'}`}>
-          {edit
-            ? <Eye size={24} strokeWidth={2.3} />
-            : <PenLine size={24} strokeWidth={2.3} />}
+        <span
+          className={`flex transition-transform duration-[380ms] ease-[cubic-bezier(.34,1.56,.64,1)] ${edit ? 'rotate-180' : 'rotate-0'}`}
+        >
+          {edit ? <Eye size={24} strokeWidth={2.3} /> : <PenLine size={24} strokeWidth={2.3} />}
         </span>
       </button>
 
@@ -340,13 +404,9 @@ export default function MVacay() {
       <MVacayInviteSheet open={v.sheet === 'invite'} onClose={() => v.setSheet(null)} />
       <MVacaySettingsSheet open={v.sheet === 'settings'} onClose={() => v.setSheet(null)} />
       <MVacayShareSheet open={v.sheet === 'share'} onClose={() => v.setSheet(null)} />
-      <MVacayIncomingInvite
-        invites={v.incomingInvites}
-        onAccept={v.acceptInvite}
-        onDecline={v.declineInvite}
-      />
+      <MVacayIncomingInvite invites={v.incomingInvites} onAccept={v.acceptInvite} onDecline={v.declineInvite} />
     </div>
-  )
+  );
 }
 
 function LegendChip({ color, label }: { color: string; label: string }) {
@@ -355,17 +415,21 @@ function LegendChip({ color, label }: { color: string; label: string }) {
       <span className="h-[9px] w-[9px] flex-none rounded-[3px]" style={{ background: color }} />
       <span className="truncate">{label}</span>
     </span>
-  )
+  );
 }
 
 /** Forced Fusion-request card — stays open until accepted or declined. */
-function MVacayIncomingInvite({ invites, onAccept, onDecline }: {
-  invites: { plan_id: number; owner_username: string }[]
-  onAccept: (planId: number) => void
-  onDecline: (planId: number) => void
+function MVacayIncomingInvite({
+  invites,
+  onAccept,
+  onDecline,
+}: {
+  invites: { plan_id: number; owner_username: string }[];
+  onAccept: (planId: number) => void;
+  onDecline: (planId: number) => void;
 }) {
-  const { t } = useTranslation()
-  const inv = invites[0]
+  const { t } = useTranslation();
+  const inv = invites[0];
 
   return (
     <MSheet open={Boolean(inv)} onClose={() => {}} variant="card" material="glass" ariaLabel={t('vacay.inviteTitle')}>
@@ -404,7 +468,7 @@ function MVacayIncomingInvite({ invites, onAccept, onDecline }: {
         </div>
       )}
     </MSheet>
-  )
+  );
 }
 
 function FuseInfo({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
@@ -413,5 +477,5 @@ function FuseInfo({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
       <Icon size={14} strokeWidth={2} className="mt-[1px] flex-none text-m-muted" />
       <span className="font-geist text-[0.6875rem] leading-snug">{text}</span>
     </div>
-  )
+  );
 }

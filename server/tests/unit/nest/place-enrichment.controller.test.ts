@@ -3,13 +3,14 @@
  * Service and rate limiter are stubbed; this covers the rate-limit gate, the
  * pass-through and the deliberate swallowing of provider failures.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { Request } from 'express';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { PlaceEnrichmentController } from '../../../src/nest/place-enrichment/place-enrichment.controller';
 import type { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
-import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+
+import type { Request } from 'express';
+import { describe, it, expect, vi } from 'vitest';
 
 const USER = { id: 7 } as User;
 const REQ = {} as Request;
@@ -59,7 +60,11 @@ describe('PlaceEnrichmentController', () => {
   it('ENRICH-044: turns a provider failure into an empty result, not a 500', async () => {
     // The column is an aid, not a step — adding a place must not break because
     // Wikimedia is down.
-    const { controller } = make({ enrich: vi.fn(async () => { throw new Error('commons down'); }) });
+    const { controller } = make({
+      enrich: vi.fn(async () => {
+        throw new Error('commons down');
+      }),
+    });
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(controller.enrich(USER, REQ, BODY)).resolves.toEqual({ photos: [], description: null, facts: [] });

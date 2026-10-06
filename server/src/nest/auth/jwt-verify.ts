@@ -1,8 +1,9 @@
+import { JWT_SECRET } from '../../config';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
+import type { User } from '../../types';
+
 import type { Request } from 'express';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '../../config';
-import type { User } from '../../types';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
 
 /**
  * The canonical JWT session check. Every auth surface goes through here — the
@@ -66,7 +67,11 @@ export function decodeSessionClaims(token: string | undefined): SessionClaims | 
 
 export async function verifyJwtAndLoadUser(token: string, users: UsersRepository): Promise<User | null> {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as { id: number; pv?: number; purpose?: string };
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as {
+      id: number;
+      pv?: number;
+      purpose?: string;
+    };
     // Purpose-scoped tokens (e.g. the short-lived mfa_login token) share this
     // secret but are not full session tokens — only their dedicated endpoint
     // may accept them, so reject any token carrying a purpose claim here.

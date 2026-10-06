@@ -9,19 +9,23 @@
  * reads since the admin-1 extraction). Asserts the byte-identical body the legacy
  * inline handler produced.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { AddonsModule } from '../../src/nest/addons/addons.module';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db } from '../../src/db/database';
 
 // The snapshot ships the real seeded catalogue (production default addons +
 // photo providers) — this suite wants a known, empty set of each so every
@@ -37,17 +41,14 @@ const { getPhotoProviderConfig } = vi.hoisted(() => ({
 }));
 vi.mock('../../src/nest/memories/memories.helpers', () => ({ getPhotoProviderConfig }));
 
-import { AddonsModule } from '../../src/nest/addons/addons.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
-
 describe('GET /api/addons e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), AddonsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), AddonsModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -65,13 +66,23 @@ describe('GET /api/addons e2e (real auth guard + temp SQLite)', () => {
     ).run();
     // bag tracking is opt-in (=== 'true'); collab flags default ON with no rows
     db.prepare("INSERT INTO app_settings (key, value) VALUES ('bag_tracking_enabled', 'true')").run();
-    db.prepare("INSERT INTO addons (id, name, type, icon, enabled, sort_order) VALUES ('packing','Packing','trip','Backpack',1,1)").run();
-    db.prepare("INSERT INTO addons (id, name, type, icon, enabled, sort_order) VALUES ('disabled','Disabled','trip','X',0,2)").run();
+    db.prepare(
+      "INSERT INTO addons (id, name, type, icon, enabled, sort_order) VALUES ('packing','Packing','trip','Backpack',1,1)",
+    ).run();
+    db.prepare(
+      "INSERT INTO addons (id, name, type, icon, enabled, sort_order) VALUES ('disabled','Disabled','trip','X',0,2)",
+    ).run();
     // The providers ride the journey addon — without this row they are dropped from the listing.
-    db.prepare("INSERT INTO addons (id, name, type, icon, enabled, sort_order) VALUES ('journey','Journey','global','Compass',1,3)").run();
-    db.prepare("INSERT INTO photo_providers (id, name, icon, enabled, sort_order) VALUES ('immich','Immich','Image',1,1)").run();
-    db.prepare(`INSERT INTO photo_provider_fields (provider_id, field_key, label, input_type, placeholder, hint, required, secret, settings_key, payload_key, sort_order)
-      VALUES ('immich','base_url','Base URL','text','https://...',NULL,1,0,'immich_url',NULL,1)`).run();
+    db.prepare(
+      "INSERT INTO addons (id, name, type, icon, enabled, sort_order) VALUES ('journey','Journey','global','Compass',1,3)",
+    ).run();
+    db.prepare(
+      "INSERT INTO photo_providers (id, name, icon, enabled, sort_order) VALUES ('immich','Immich','Image',1,1)",
+    ).run();
+    db.prepare(
+      `INSERT INTO photo_provider_fields (provider_id, field_key, label, input_type, placeholder, hint, required, secret, settings_key, payload_key, sort_order)
+      VALUES ('immich','base_url','Base URL','text','https://...',NULL,1,0,'immich_url',NULL,1)`,
+    ).run();
     app = await build();
     server = app.getHttpServer();
   });

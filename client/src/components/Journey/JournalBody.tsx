@@ -1,20 +1,23 @@
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
+import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 
 interface Props {
-  text: string
-  dark?: boolean
+  text: string;
+  dark?: boolean;
 }
 
 export default function JournalBody({ text, dark }: Props) {
   return (
-    <div className="journal-body" style={{
-      fontFamily: 'inherit',
-      fontSize: 'inherit',
-      lineHeight: 1.6,
-      color: 'inherit',
-    }}>
+    <div
+      className="journal-body"
+      style={{
+        fontFamily: 'inherit',
+        fontSize: 'inherit',
+        lineHeight: 1.6,
+        color: 'inherit',
+      }}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         components={{
@@ -23,15 +26,25 @@ export default function JournalBody({ text, dark }: Props) {
           h3: ({ children }) => <p style={{ margin: '0 0 6px' }}>{children}</p>,
           p: ({ children }) => <p style={{ margin: '0 0 6px' }}>{children}</p>,
           blockquote: ({ children }) => (
-            <blockquote style={{
-              borderLeft: `3px solid var(--journal-accent)`,
-              paddingLeft: 16, margin: '12px 0',
-              fontStyle: 'italic', color: 'var(--journal-muted)',
-            }}>{children}</blockquote>
+            <blockquote
+              style={{
+                borderLeft: `3px solid var(--journal-accent)`,
+                paddingLeft: 16,
+                margin: '12px 0',
+                fontStyle: 'italic',
+                color: 'var(--journal-muted)',
+              }}
+            >
+              {children}
+            </blockquote>
           ),
           a: ({ href, children }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer"
-              style={{ color: 'var(--journal-accent)', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--journal-accent)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+            >
               {children}
             </a>
           ),
@@ -44,26 +57,41 @@ export default function JournalBody({ text, dark }: Props) {
           // react-markdown already wraps fenced code in a <pre>, so the block
           // styling belongs here — the code renderer only handles inline code.
           pre: ({ children }) => (
-            <pre style={{
-              background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-              borderRadius: 8, padding: 14, overflowX: 'auto',
-              fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'monospace', margin: '12px 0',
-            }}>{children}</pre>
+            <pre
+              style={{
+                background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                borderRadius: 8,
+                padding: 14,
+                overflowX: 'auto',
+                fontSize: 'calc(13px * var(--fs-scale-body, 1))',
+                fontFamily: 'monospace',
+                margin: '12px 0',
+              }}
+            >
+              {children}
+            </pre>
           ),
           code: ({ children, className }) => {
-            const isBlock = className?.includes('language-')
-            if (isBlock) return <code>{children}</code>
+            const isBlock = className?.includes('language-');
+            if (isBlock) return <code>{children}</code>;
             return (
-              <code style={{
-                background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                borderRadius: 4, padding: '2px 5px', fontSize: '0.9em', fontFamily: 'monospace',
-              }}>{children}</code>
-            )
+              <code
+                style={{
+                  background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                  borderRadius: 4,
+                  padding: '2px 5px',
+                  fontSize: '0.9em',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {children}
+              </code>
+            );
           },
         }}
       >
         {text.replace(/^(.+)\n([-=]{3,})$/gm, '$1\n\n$2')}
       </ReactMarkdown>
     </div>
-  )
+  );
 }

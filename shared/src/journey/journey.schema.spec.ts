@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import {
   journeyCreateRequestSchema,
   journeyAddTripRequestSchema,
@@ -10,6 +9,8 @@ import {
   journeyPreferencesRequestSchema,
   journeyLinkPhotoRequestSchema,
 } from './journey.schema';
+
+import { describe, it, expect } from 'vitest';
 
 /**
  * These schemas describe the journey bodies rather than tighten them, and the
@@ -69,7 +70,10 @@ describe('journeyContributorRequestSchema', () => {
 describe('journeyProviderPhotosRequestSchema', () => {
   it('accepts single and batch, and leaves the incomplete pair to the handler', () => {
     expect(journeyProviderPhotosRequestSchema.safeParse({ provider: 'immich', asset_id: 'a1' }).success).toBe(true);
-    expect(journeyProviderPhotosRequestSchema.safeParse({ provider: 'immich', asset_ids: ['a1', 2], media_types: ['video'] }).success).toBe(true);
+    expect(
+      journeyProviderPhotosRequestSchema.safeParse({ provider: 'immich', asset_ids: ['a1', 2], media_types: ['video'] })
+        .success,
+    ).toBe(true);
     // The handler answers 'provider and asset_id required'.
     expect(journeyProviderPhotosRequestSchema.safeParse({ asset_id: 'a1' }).success).toBe(true);
     expect(journeyProviderPhotosRequestSchema.safeParse({}).success).toBe(true);
@@ -89,8 +93,17 @@ describe('the free-form bodies keep their unknown keys', () => {
   it('does not strip what the services are handed whole', () => {
     // The whole reason these are loose objects: a strict object drops unknown
     // keys, and update/preferences/link are forwarded to the service as sent.
-    expect(journeyUpdateRequestSchema.parse({ title: 'X', cover_photo_id: 9 })).toEqual({ title: 'X', cover_photo_id: 9 });
-    expect(journeyPreferencesRequestSchema.parse({ layout: 'grid', density: 2 })).toEqual({ layout: 'grid', density: 2 });
-    expect(journeyLinkPhotoRequestSchema.parse({ journey_photo_id: 4, extra: true })).toEqual({ journey_photo_id: 4, extra: true });
+    expect(journeyUpdateRequestSchema.parse({ title: 'X', cover_photo_id: 9 })).toEqual({
+      title: 'X',
+      cover_photo_id: 9,
+    });
+    expect(journeyPreferencesRequestSchema.parse({ layout: 'grid', density: 2 })).toEqual({
+      layout: 'grid',
+      density: 2,
+    });
+    expect(journeyLinkPhotoRequestSchema.parse({ journey_photo_id: 4, extra: true })).toEqual({
+      journey_photo_id: 4,
+      extra: true,
+    });
   });
 });

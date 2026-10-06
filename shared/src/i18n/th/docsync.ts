@@ -22,7 +22,8 @@ const docsync: TranslationStrings = {
   'docsync.onConflict.manual': 'ถามฉัน',
   'docsync.onConflict.trek_wins': 'เก็บสำเนาของ TREK',
   'docsync.onConflict.provider_wins': 'เก็บสำเนาของที่จัดเก็บ',
-  'docsync.webhookHint': 'วาง URL นี้ในผู้ให้บริการของคุณเพื่อให้การเปลี่ยนแปลงมาถึงทันที หากไม่มี TREK จะตรวจสอบตามรอบเวลา',
+  'docsync.webhookHint':
+    'วาง URL นี้ในผู้ให้บริการของคุณเพื่อให้การเปลี่ยนแปลงมาถึงทันที หากไม่มี TREK จะตรวจสอบตามรอบเวลา',
 
   // Connection form fields. The keys mirror the `label` column in
   // document_provider_fields, which stores a key suffix rather than text.
@@ -91,7 +92,8 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_error': 'ผู้ให้บริการรายงานข้อผิดพลาด',
   'docsync.error.timeout': 'ผู้ให้บริการใช้เวลาตอบนานเกินไป',
   'docsync.error.ssrf_blocked': 'ไม่อนุญาตที่อยู่นี้',
-  'docsync.error.mass_delete_guard': 'เอกสารส่วนใหญ่หายไปพร้อมกัน จึงไม่มีการเปลี่ยนแปลงใดๆ โปรดตรวจสอบว่าโฟลเดอร์ยังเมานต์อยู่',
+  'docsync.error.mass_delete_guard':
+    'เอกสารส่วนใหญ่หายไปพร้อมกัน จึงไม่มีการเปลี่ยนแปลงใดๆ โปรดตรวจสอบว่าโฟลเดอร์ยังเมานต์อยู่',
   'docsync.error.unknown': 'มีบางอย่างผิดพลาด',
 
   // ── The dialog ─────────────────────────────────────────────────────────────
@@ -101,7 +103,8 @@ const docsync: TranslationStrings = {
   'docsync.card.pickFolder': 'เชื่อมต่อแล้ว โปรดเลือกโฟลเดอร์',
 
   'docsync.empty.title': 'ยังไม่ได้เชื่อมต่อ',
-  'docsync.empty.hintOwner': 'เลือกที่จัดเก็บทางซ้าย TREK เก็บสำเนาของทุกอย่างไว้เอง จึงไม่มีอะไรสูญหายหากที่จัดเก็บนั้นหายไป',
+  'docsync.empty.hintOwner':
+    'เลือกที่จัดเก็บทางซ้าย TREK เก็บสำเนาของทุกอย่างไว้เอง จึงไม่มีอะไรสูญหายหากที่จัดเก็บนั้นหายไป',
   'docsync.empty.hintMember': 'เจ้าของการเดินทางเป็นผู้ตั้งค่านี้ ไม่ว่าอย่างไรเอกสารก็ยังคงอยู่ใน TREK',
 
   // How each product files things. Shown before anyone connects, because it is
@@ -144,7 +147,8 @@ const docsync: TranslationStrings = {
   'docsync.connect.insecureHint': 'สำหรับอินสแตนซ์บนเครือข่ายของคุณเองที่ใช้ใบรับรองที่ลงนามด้วยตนเอง',
   'docsync.connect.about.paperless': 'TREK จัดเก็บการเดินทางนี้ภายใต้แท็กของตัวเอง และไม่แตะส่วนอื่นในคลังเอกสารของคุณ',
   'docsync.connect.about.papra': 'เลือกองค์กรที่การเดินทางนี้สังกัด TREK จะจัดเก็บไว้ภายใต้แท็กของตัวเองในองค์กรนั้น',
-  'docsync.connect.about.nextcloud': 'ใช้รหัสผ่านแอป ไม่ใช่รหัสผ่านบัญชี: ใช้งานได้แม้เปิดการยืนยันสองขั้นตอน และเพิกถอนแยกได้',
+  'docsync.connect.about.nextcloud':
+    'ใช้รหัสผ่านแอป ไม่ใช่รหัสผ่านบัญชี: ใช้งานได้แม้เปิดการยืนยันสองขั้นตอน และเพิกถอนแยกได้',
   'docsync.connect.about.opencloud': 'TREK จะได้สเปซของตัวเองสำหรับการเดินทางนี้ แยกจากทุกอย่าง',
   'docsync.connect.about.synologydrive': 'ควรใช้บัญชี DSM ที่เข้าถึงได้เพียงโฟลเดอร์แชร์ที่การเดินทางนี้ใช้',
 
@@ -166,7 +170,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'การถ่ายโอนไม่สำเร็จ',
 
   'docsync.error.unknown_provider': 'ผู้ให้บริการนี้ไม่พร้อมใช้งานในอินสแตนซ์นี้',
-  'docsync.error.provider_disabled': 'หยุดชั่วคราว: ผู้ดูแลระบบปิดผู้ให้บริการนี้ การซิงค์จะกลับมาทำงานเมื่อเปิดอีกครั้ง',
+  'docsync.error.provider_disabled':
+    'หยุดชั่วคราว: ผู้ดูแลระบบปิดผู้ให้บริการนี้ การซิงค์จะกลับมาทำงานเมื่อเปิดอีกครั้ง',
   'docsync.binding.reconnect': 'เชื่อมต่อใหม่',
 };
 

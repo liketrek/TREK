@@ -1,7 +1,7 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { VacayEntriesRepository } from '../repositories/VacayEntries.repository';
 import { Users } from './Users.entity';
 import { VacayPlans } from './VacayPlans.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class VacayEntries {
   [EntityRepositoryType]?: VacayEntriesRepository;

@@ -1,10 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import { MulterError } from 'multer';
 import { TrekExceptionFilter } from '../../../src/nest/common/trek-exception.filter';
+import { HttpException } from '@nestjs/common';
+
+import { MulterError } from 'multer';
+import { describe, it, expect, vi } from 'vitest';
 
 function mockHost(extra: Record<string, unknown> = {}) {
-  const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis(), destroy: vi.fn(), headersSent: false, ...extra };
+  const res = {
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+    destroy: vi.fn(),
+    headersSent: false,
+    ...extra,
+  };
   const host = { switchToHttp: () => ({ getResponse: () => res }) } as never;
   return { res, host };
 }

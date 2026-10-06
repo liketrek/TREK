@@ -23,11 +23,11 @@
  * legacy `createTestDb()` that built one by hand via `db/schema.ts` +
  * `db/migrations.ts` is gone along with those two files (Plan 4 Task 6).
  */
-
-import type Database from 'better-sqlite3';
-import type { INestApplication } from '@nestjs/common';
 import { AuthPublicController } from '../../src/nest/auth/auth-public.controller';
 import type { RateLimitService } from '../../src/nest/common/rate-limit.service';
+import type { INestApplication } from '@nestjs/common';
+
+import type Database from 'better-sqlite3';
 
 // createSnapshotTestDb / buildDbMock / CAN_ACCESS_TRIP_SQL live in db-mock.ts, a
 // leaf module with no src/nest imports — see its header comment for why. This
@@ -72,19 +72,83 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_ADDONS = [
-  { id: 'packing',   name: 'Packing List',    description: 'Pack your bags',            type: 'trip',        icon: 'ListChecks',  enabled: 1, sort_order: 0  },
-  { id: 'budget',    name: 'Costs',           description: 'Track and split trip expenses', type: 'trip',     icon: 'Wallet',      enabled: 1, sort_order: 1  },
-  { id: 'documents', name: 'Documents',       description: 'Manage travel documents',    type: 'trip',        icon: 'FileText',    enabled: 1, sort_order: 2  },
-  { id: 'vacay',     name: 'Vacay',           description: 'Vacation day planner',       type: 'global',      icon: 'CalendarDays',enabled: 1, sort_order: 10 },
-  { id: 'atlas',     name: 'Atlas',           description: 'Visited countries map',      type: 'global',      icon: 'Globe',       enabled: 1, sort_order: 11 },
-  { id: 'mcp',       name: 'MCP',             description: 'AI assistant integration',   type: 'integration', icon: 'Terminal',    enabled: 0, sort_order: 12 },
-  { id: 'naver_list_import', name: 'Naver List Import', description: 'Import places from shared Naver Maps lists', type: 'trip', icon: 'Link2', enabled: 0, sort_order: 13 },
-  { id: 'collab',    name: 'Collab',          description: 'Notes, polls, live chat',    type: 'trip',        icon: 'Users',       enabled: 1, sort_order: 6  },
+  {
+    id: 'packing',
+    name: 'Packing List',
+    description: 'Pack your bags',
+    type: 'trip',
+    icon: 'ListChecks',
+    enabled: 1,
+    sort_order: 0,
+  },
+  {
+    id: 'budget',
+    name: 'Costs',
+    description: 'Track and split trip expenses',
+    type: 'trip',
+    icon: 'Wallet',
+    enabled: 1,
+    sort_order: 1,
+  },
+  {
+    id: 'documents',
+    name: 'Documents',
+    description: 'Manage travel documents',
+    type: 'trip',
+    icon: 'FileText',
+    enabled: 1,
+    sort_order: 2,
+  },
+  {
+    id: 'vacay',
+    name: 'Vacay',
+    description: 'Vacation day planner',
+    type: 'global',
+    icon: 'CalendarDays',
+    enabled: 1,
+    sort_order: 10,
+  },
+  {
+    id: 'atlas',
+    name: 'Atlas',
+    description: 'Visited countries map',
+    type: 'global',
+    icon: 'Globe',
+    enabled: 1,
+    sort_order: 11,
+  },
+  {
+    id: 'mcp',
+    name: 'MCP',
+    description: 'AI assistant integration',
+    type: 'integration',
+    icon: 'Terminal',
+    enabled: 0,
+    sort_order: 12,
+  },
+  {
+    id: 'naver_list_import',
+    name: 'Naver List Import',
+    description: 'Import places from shared Naver Maps lists',
+    type: 'trip',
+    icon: 'Link2',
+    enabled: 0,
+    sort_order: 13,
+  },
+  {
+    id: 'collab',
+    name: 'Collab',
+    description: 'Notes, polls, live chat',
+    type: 'trip',
+    icon: 'Users',
+    enabled: 1,
+    sort_order: 6,
+  },
 ];
 
 const DEFAULT_PHOTO_PROVIDERS = [
-  { id: 'immich',         name: 'Immich',          enabled: 1 },
-  { id: 'synologyphotos', name: 'Synology Photos',  enabled: 1 },
+  { id: 'immich', name: 'Immich', enabled: 1 },
+  { id: 'synologyphotos', name: 'Synology Photos', enabled: 1 },
 ];
 
 /**
@@ -113,7 +177,7 @@ export function setCollabFeature(
   feature: 'chat' | 'notes' | 'polls' | 'whatsnext',
   enabled: boolean,
 ): void {
-  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)").run(
+  db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(
     `collab_${feature}_enabled`,
     enabled ? 'true' : 'false',
   );
@@ -129,13 +193,19 @@ function seedDefaults(db: Database.Database): void {
   );
   for (const cat of DEFAULT_CATEGORIES) insertCat.run(cat.name, cat.color, cat.icon, cat.name);
 
-  const insertAddon = db.prepare('INSERT OR IGNORE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  const insertAddon = db.prepare(
+    'INSERT OR IGNORE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  );
   for (const a of DEFAULT_ADDONS) insertAddon.run(a.id, a.name, a.description, a.type, a.icon, a.enabled, a.sort_order);
 
   try {
-    const insertProvider = db.prepare('INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
+    const insertProvider = db.prepare(
+      'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+    );
     for (const p of DEFAULT_PHOTO_PROVIDERS) insertProvider.run(p.id, p.name, p.id, 'Image', p.enabled, 0);
-  } catch { /* table may not exist in very old schemas */ }
+  } catch {
+    /* table may not exist in very old schemas */
+  }
 }
 
 /**
@@ -151,9 +221,9 @@ export function resetTestDb(db: Database.Database): void {
   // its rows from one test into the next. Deletion order does not matter:
   // foreign_keys is OFF for the duration.
   const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[])
-    .map(r => r.name)
+    .map((r) => r.name)
     // sqlite_* are SQLite's own (sqlite_sequence, sqlite_stat1) — never ours.
-    .filter(name => !name.startsWith('sqlite_') && !KEEP_TABLES.has(name));
+    .filter((name) => !name.startsWith('sqlite_') && !KEEP_TABLES.has(name));
   for (const table of tables) {
     db.exec(`DELETE FROM "${table}"`);
   }

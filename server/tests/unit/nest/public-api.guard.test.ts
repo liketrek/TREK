@@ -5,13 +5,14 @@
  * through is easy; one that also lets a session JWT, an OAuth bearer or a random
  * string through is a credential-confusion bug, and those are the tests below.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { ExecutionContext } from '@nestjs/common';
-import { PUBLIC_API_SCOPES } from '@trek/shared';
 import { ApiTokenGuard } from '../../../src/nest/public-api/api-token.guard';
 import type { TokenService } from '../../../src/nest/tokens/token.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+import type { ExecutionContext } from '@nestjs/common';
+import { PUBLIC_API_SCOPES } from '@trek/shared';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const USER: User = { id: 7, username: 'ada', email: 'ada@example.com', role: 'user' } as User;
 

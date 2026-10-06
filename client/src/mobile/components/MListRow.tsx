@@ -1,13 +1,13 @@
-import { ReactNode } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react';
+import { ReactNode } from 'react';
 
 interface MListRowProps {
-  label: ReactNode
-  icon?: LucideIcon
-  trailing?: ReactNode
-  danger?: boolean
-  onClick?: () => void
-  className?: string
+  label: ReactNode;
+  icon?: LucideIcon;
+  trailing?: ReactNode;
+  danger?: boolean;
+  onClick?: () => void;
+  className?: string;
 }
 
 /** Menu/list row (user menu style): icon 16 in --m-muted, 13.5px semibold label. */
@@ -31,5 +31,5 @@ export default function MListRow({
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {trailing}
     </button>
-  )
+  );
 }

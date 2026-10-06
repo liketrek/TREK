@@ -1,8 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { getAppUrl, readEnv } from '../../app-config';
 import { buildUserAgent } from '../maps/maps.helpers';
 import { GoogleTransitProvider } from './google-transit.provider';
-import type { TransitProvider } from '@trek/shared';
 import {
   deriveTransitStats,
   SCHEDULED_TRANSIT_MODES,
@@ -12,6 +10,8 @@ import {
   type TransitLegStop,
   type TransitPlace,
 } from './transit.helpers';
+import { Injectable } from '@nestjs/common';
+import type { TransitProvider } from '@trek/shared';
 
 /**
  * Public transit routing (#1065) backed by Transitous (api.transitous.org), the
@@ -181,7 +181,10 @@ export class TransitService {
     }
 
     if (provider === 'google') {
-      return { ...(await this.google.geocode(text, language, near && isCoord(near) ? near : undefined, userId)), provider };
+      return {
+        ...(await this.google.geocode(text, language, near && isCoord(near) ? near : undefined, userId)),
+        provider,
+      };
     }
 
     const params = new URLSearchParams({ text });
@@ -253,7 +256,7 @@ export class TransitService {
 
     // After validation on purpose: whichever backend answers, the caller is held
     // to the same coordinate/mode/transfer contract and gets the same 400s.
-    if ((await this.google.isActive(userId))) {
+    if (await this.google.isActive(userId)) {
       return { ...(await this.google.plan(q, language, userId)), provider: 'google' };
     }
 

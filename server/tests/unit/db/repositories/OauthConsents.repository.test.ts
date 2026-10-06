@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
 import { OauthConsents } from '../../../../src/db/entities/OauthConsents.entity';
 import type { OauthConsentsRepository } from '../../../../src/db/repositories/OauthConsents.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -18,13 +19,23 @@ beforeAll(async () => {
   consents = t.repo(OauthConsents);
   uow = new UnitOfWork(t.em);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); testDb.exec('DELETE FROM oauth_consents'); testDb.exec('DELETE FROM oauth_clients'); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+  testDb.exec('DELETE FROM oauth_consents');
+  testDb.exec('DELETE FROM oauth_clients');
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function seedClient(userId: number, clientId: string): void {
-  testDb.prepare(
-    `INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash, redirect_uris, allowed_scopes) VALUES (?, ?, ?, ?, ?, '[]', '[]')`,
-  ).run(`row-${clientId}`, userId, 'C', clientId, 'hash');
+  testDb
+    .prepare(
+      `INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash, redirect_uris, allowed_scopes) VALUES (?, ?, ?, ?, ?, '[]', '[]')`,
+    )
+    .run(`row-${clientId}`, userId, 'C', clientId, 'hash');
 }
 
 describe('OauthConsentsRepository', () => {
@@ -38,7 +49,9 @@ describe('OauthConsentsRepository', () => {
     it('OAUTHCONSENTREPO-002: returns the stored scopes JSON text', async () => {
       const { user } = createUser(testDb);
       seedClient(user.id, 'proto-2');
-      testDb.prepare(`INSERT INTO oauth_consents (client_id, user_id, scopes) VALUES (?, ?, ?)`).run('proto-2', user.id, '["trips:read"]');
+      testDb
+        .prepare(`INSERT INTO oauth_consents (client_id, user_id, scopes) VALUES (?, ?, ?)`)
+        .run('proto-2', user.id, '["trips:read"]');
       expect(await consents.findScopes('proto-2', user.id)).toEqual({ scopes: '["trips:read"]' });
     });
   });
@@ -48,7 +61,9 @@ describe('OauthConsentsRepository', () => {
       const { user } = createUser(testDb);
       seedClient(user.id, 'proto-3');
       await consents.upsertGrant('proto-3', user.id, '["a"]');
-      const row = testDb.prepare('SELECT client_id, user_id, scopes FROM oauth_consents WHERE client_id = ? AND user_id = ?').get('proto-3', user.id);
+      const row = testDb
+        .prepare('SELECT client_id, user_id, scopes FROM oauth_consents WHERE client_id = ? AND user_id = ?')
+        .get('proto-3', user.id);
       expect(row).toEqual({ client_id: 'proto-3', user_id: user.id, scopes: '["a"]' });
     });
 
@@ -57,7 +72,9 @@ describe('OauthConsentsRepository', () => {
       seedClient(user.id, 'proto-4');
       await consents.upsertGrant('proto-4', user.id, '["a"]');
       await consents.upsertGrant('proto-4', user.id, '["a","b"]');
-      const rows = testDb.prepare('SELECT scopes FROM oauth_consents WHERE client_id = ? AND user_id = ?').all('proto-4', user.id);
+      const rows = testDb
+        .prepare('SELECT scopes FROM oauth_consents WHERE client_id = ? AND user_id = ?')
+        .all('proto-4', user.id);
       expect(rows).toHaveLength(1);
       expect((rows[0] as { scopes: string }).scopes).toBe('["a","b"]');
     });
@@ -66,10 +83,14 @@ describe('OauthConsentsRepository', () => {
       const { user } = createUser(testDb);
       seedClient(user.id, 'proto-5');
       await consents.upsertGrant('proto-5', user.id, '["a"]');
-      const first = testDb.prepare('SELECT updated_at FROM oauth_consents WHERE client_id = ? AND user_id = ?').get('proto-5', user.id) as { updated_at: string };
+      const first = testDb
+        .prepare('SELECT updated_at FROM oauth_consents WHERE client_id = ? AND user_id = ?')
+        .get('proto-5', user.id) as { updated_at: string };
       testDb.exec(`UPDATE oauth_consents SET updated_at = '2000-01-01 00:00:00' WHERE client_id = 'proto-5'`);
       await consents.upsertGrant('proto-5', user.id, '["a","b"]');
-      const second = testDb.prepare('SELECT updated_at FROM oauth_consents WHERE client_id = ? AND user_id = ?').get('proto-5', user.id) as { updated_at: string };
+      const second = testDb
+        .prepare('SELECT updated_at FROM oauth_consents WHERE client_id = ? AND user_id = ?')
+        .get('proto-5', user.id) as { updated_at: string };
       expect(second.updated_at).not.toBe('2000-01-01 00:00:00');
       expect(first.updated_at).toBeTruthy();
     });
@@ -97,10 +118,12 @@ describe('OauthConsentsRepository', () => {
   // diff), and a raw write to the same row on the transaction's own
   // connection, made afterward, is never fought by the closing flush.
   describe('findScopes does not dirty the entity it reads', () => {
-    it('OAUTHCONSENTREPO-007: findScopes then a raw write on the same transaction connection — the raw write survives the transaction\'s closing flush', async () => {
+    it("OAUTHCONSENTREPO-007: findScopes then a raw write on the same transaction connection — the raw write survives the transaction's closing flush", async () => {
       const { user } = createUser(testDb);
       seedClient(user.id, 'proto-7');
-      testDb.prepare(`INSERT INTO oauth_consents (client_id, user_id, scopes) VALUES (?, ?, ?)`).run('proto-7', user.id, '["a"]');
+      testDb
+        .prepare(`INSERT INTO oauth_consents (client_id, user_id, scopes) VALUES (?, ?, ?)`)
+        .run('proto-7', user.id, '["a"]');
 
       await withRequestContext(t.orm, async () => {
         await uow.transactional(async () => {
@@ -112,11 +135,15 @@ describe('OauthConsentsRepository', () => {
           // A write bypassing the ORM entirely, on the SAME single SQLite
           // connection the open transaction holds (D3/D6) — the shape any
           // nativeUpdate write from elsewhere in the same request takes.
-          testDb.prepare('UPDATE oauth_consents SET scopes = ? WHERE client_id = ? AND user_id = ?').run('["a","b"]', 'proto-7', user.id);
+          testDb
+            .prepare('UPDATE oauth_consents SET scopes = ? WHERE client_id = ? AND user_id = ?')
+            .run('["a","b"]', 'proto-7', user.id);
         });
       });
 
-      const row = testDb.prepare('SELECT scopes FROM oauth_consents WHERE client_id = ? AND user_id = ?').get('proto-7', user.id) as { scopes: string };
+      const row = testDb
+        .prepare('SELECT scopes FROM oauth_consents WHERE client_id = ? AND user_id = ?')
+        .get('proto-7', user.id) as { scopes: string };
       expect(row.scopes).toBe('["a","b"]');
     });
   });

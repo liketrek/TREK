@@ -1,3 +1,13 @@
+import {
+  checkSsrf,
+  SsrfBlockedError,
+  safeFetch,
+  safeFetchLlm,
+  safeFetchFollow,
+  createPinnedDispatcher,
+} from '../../../src/utils/ssrfGuard';
+
+import dns from 'dns/promises';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Capture Agent constructor options so we can test the lookup callback
@@ -19,9 +29,6 @@ vi.mock('undici', () => ({
     }
   },
 }));
-
-import dns from 'dns/promises';
-import { checkSsrf, SsrfBlockedError, safeFetch, safeFetchLlm, safeFetchFollow, createPinnedDispatcher } from '../../../src/utils/ssrfGuard';
 
 const mockLookup = vi.mocked(dns.lookup);
 
@@ -249,13 +256,18 @@ describe('checkSsrf', () => {
     ])('SEC-013: always blocks %s (%s)', async (_label, ip) => {
       mockIp(ip);
       const result = await checkSsrf('http://attacker.example');
-      expect(result).toMatchObject({ allowed: false, error: 'Requests to loopback and link-local addresses are not allowed' });
+      expect(result).toMatchObject({
+        allowed: false,
+        error: 'Requests to loopback and link-local addresses are not allowed',
+      });
     });
 
     it('SEC-013: treats a compatible RFC-1918 address as private and a compatible public one as public', async () => {
       mockIp('::10.0.0.1');
       expect(await checkSsrf('http://attacker.example')).toMatchObject({
-        allowed: false, isPrivate: true, error: expect.stringContaining('ALLOW_INTERNAL_NETWORK'),
+        allowed: false,
+        isPrivate: true,
+        error: expect.stringContaining('ALLOW_INTERNAL_NETWORK'),
       });
       mockIp('::8.8.8.8');
       expect(await checkSsrf('http://cdn.example')).toMatchObject({ allowed: true, isPrivate: false });
@@ -264,14 +276,11 @@ describe('checkSsrf', () => {
 
   // SEC-014 — fe80::/10 is ten bits, not the four characters 'fe80'
   describe('the whole IPv6 link-local range', () => {
-    it.each([['fe80::1'], ['fe90::1'], ['fea0::1'], ['febf::1']])(
-      'SEC-014: blocks %s',
-      async (ip) => {
-        mockIp(ip);
-        const result = await checkSsrf('http://attacker.example', true);
-        expect(result.allowed).toBe(false);
-      },
-    );
+    it.each([['fe80::1'], ['fe90::1'], ['fea0::1'], ['febf::1']])('SEC-014: blocks %s', async (ip) => {
+      mockIp(ip);
+      const result = await checkSsrf('http://attacker.example', true);
+      expect(result.allowed).toBe(false);
+    });
 
     // The bounds, so widening fe80: to the full /10 cannot creep further: fe7f
     // sits just below the range and fec0 just above it, and neither is link-local.
@@ -303,7 +312,6 @@ describe('checkSsrf', () => {
       expect(result.error).toContain('Could not resolve hostname');
     });
   });
-
 });
 
 describe('SsrfBlockedError', () => {
@@ -365,7 +373,7 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
       status: opts.status,
       ok: opts.ok ?? (opts.status >= 200 && opts.status < 300),
       url: opts.url,
-      headers: { get: (h: string) => (h.toLowerCase() === 'location' ? opts.location ?? null : null) },
+      headers: { get: (h: string) => (h.toLowerCase() === 'location' ? (opts.location ?? null) : null) },
       body: { cancel: () => Promise.resolve() },
     };
   }
@@ -373,8 +381,11 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
   it('follows a legitimate cross-host redirect (goo.gl -> maps.google.com) to the final response', async () => {
     // Both hops resolve to public IPs.
     mockLookup.mockResolvedValue({ address: '142.250.0.0', family: 4 });
-    const mockFetch = vi.fn()
-      .mockResolvedValueOnce(fakeResponse({ status: 302, location: 'https://maps.google.com/maps/place/Foo', url: 'https://goo.gl/abc' }))
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        fakeResponse({ status: 302, location: 'https://maps.google.com/maps/place/Foo', url: 'https://goo.gl/abc' }),
+      )
       .mockResolvedValueOnce(fakeResponse({ status: 200, url: 'https://maps.google.com/maps/place/Foo' }));
     vi.stubGlobal('fetch', mockFetch);
 
@@ -390,8 +401,11 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
     mockLookup
       .mockResolvedValueOnce({ address: '142.250.0.0', family: 4 }) // goo.gl
       .mockResolvedValue({ address: '169.254.169.254', family: 4 }); // redirect → metadata
-    const mockFetch = vi.fn()
-      .mockResolvedValueOnce(fakeResponse({ status: 302, location: 'http://169.254.169.254/latest/meta-data/', url: 'https://goo.gl/evil' }));
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        fakeResponse({ status: 302, location: 'http://169.254.169.254/latest/meta-data/', url: 'https://goo.gl/evil' }),
+      );
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(safeFetchFollow('https://goo.gl/evil')).rejects.toThrow(SsrfBlockedError);
@@ -404,13 +418,18 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
   // (Fetch, "HTTP-redirect fetch" step 13) — without this, converting a caller
   // that sends a bearer token to safeFetchFollow would have been a regression.
   describe('credentials and body across a hop', () => {
-    const authInit = { method: 'POST', headers: { Authorization: 'Bearer secret', 'X-Api-Key': 'k', 'User-Agent': 'TREK' }, body: 'payload' };
+    const authInit = {
+      method: 'POST',
+      headers: { Authorization: 'Bearer secret', 'X-Api-Key': 'k', 'User-Agent': 'TREK' },
+      body: 'payload',
+    };
     const headerOf = (call: unknown[], name: string) =>
       new Headers((call[1] as { headers?: ConstructorParameters<typeof Headers>[0] }).headers).get(name);
 
     function twoHops(location: string, status = 307) {
       mockLookup.mockResolvedValue({ address: '142.250.0.0', family: 4 });
-      const mockFetch = vi.fn()
+      const mockFetch = vi
+        .fn()
         .mockResolvedValueOnce(fakeResponse({ status, location, url: 'https://start.example/a' }))
         .mockResolvedValueOnce(fakeResponse({ status: 200, url: location }));
       vi.stubGlobal('fetch', mockFetch);
@@ -485,7 +504,8 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
 
     it('a relative redirect stays on the origin and keeps them', async () => {
       mockLookup.mockResolvedValue({ address: '142.250.0.0', family: 4 });
-      const mockFetch = vi.fn()
+      const mockFetch = vi
+        .fn()
         .mockResolvedValueOnce(fakeResponse({ status: 307, location: '/moved', url: 'https://start.example/a' }))
         .mockResolvedValueOnce(fakeResponse({ status: 200, url: 'https://start.example/moved' }));
       vi.stubGlobal('fetch', mockFetch);
@@ -499,12 +519,14 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
     mockLookup
       .mockResolvedValueOnce({ address: '142.250.0.0', family: 4 })
       .mockResolvedValue({ address: '127.0.0.1', family: 4 });
-    const mockFetch = vi.fn()
+    const mockFetch = vi
+      .fn()
       .mockResolvedValueOnce(fakeResponse({ status: 301, location: 'http://internal/', url: 'https://goo.gl/x' }));
     vi.stubGlobal('fetch', mockFetch);
 
-    await expect(safeFetchFollow('https://goo.gl/x', undefined, { bypassInternalIpAllowed: true }))
-      .rejects.toThrow(SsrfBlockedError);
+    await expect(safeFetchFollow('https://goo.gl/x', undefined, { bypassInternalIpAllowed: true })).rejects.toThrow(
+      SsrfBlockedError,
+    );
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
@@ -537,20 +559,28 @@ describe('safeFetchFollow (manual per-hop redirect SSRF)', () => {
     mockLookup.mockResolvedValue({ address: '8.8.8.8', family: 4 });
     // Always 302 to a new public host → loops until the hop cap.
     let n = 0;
-    const mockFetch = vi.fn().mockImplementation(() =>
-      Promise.resolve(fakeResponse({ status: 302, location: `https://h${++n}.example.com/`, url: `https://h${n}.example.com/` })),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(
+          fakeResponse({ status: 302, location: `https://h${++n}.example.com/`, url: `https://h${n}.example.com/` }),
+        ),
+      );
     vi.stubGlobal('fetch', mockFetch);
-    await expect(safeFetchFollow('https://start.example.com', undefined, { maxRedirects: 2 }))
-      .rejects.toThrow(SsrfBlockedError);
+    await expect(safeFetchFollow('https://start.example.com', undefined, { maxRedirects: 2 })).rejects.toThrow(
+      SsrfBlockedError,
+    );
     // initial + 2 allowed redirects = 3 fetches, then the 4th hop is rejected before fetch
     expect(mockFetch).toHaveBeenCalledTimes(3);
   });
 
   it('resolves relative redirect Location against the current URL', async () => {
     mockLookup.mockResolvedValue({ address: '8.8.8.8', family: 4 });
-    const mockFetch = vi.fn()
-      .mockResolvedValueOnce(fakeResponse({ status: 302, location: '/resolved/path', url: 'https://example.com/start' }))
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        fakeResponse({ status: 302, location: '/resolved/path', url: 'https://example.com/start' }),
+      )
       .mockResolvedValueOnce(fakeResponse({ status: 200, url: 'https://example.com/resolved/path' }));
     vi.stubGlobal('fetch', mockFetch);
     await safeFetchFollow('https://example.com/start');
@@ -695,13 +725,13 @@ describe('safeFetchLlm', () => {
     mockLookup
       .mockResolvedValueOnce({ address: '203.0.113.10', family: 4 }) // configured endpoint (public)
       .mockResolvedValue({ address: '169.254.169.254', family: 4 }); // redirect target → metadata
-    const mockFetch = vi.fn().mockResolvedValueOnce(
-      llmResponse({ status: 302, location: 'http://169.254.169.254/latest/meta-data/' }),
-    );
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(llmResponse({ status: 302, location: 'http://169.254.169.254/latest/meta-data/' }));
     vi.stubGlobal('fetch', mockFetch);
-    await expect(
-      safeFetchLlm('https://api.provider.example/v1/chat/completions', { method: 'POST' }),
-    ).rejects.toThrow(SsrfBlockedError);
+    await expect(safeFetchLlm('https://api.provider.example/v1/chat/completions', { method: 'POST' })).rejects.toThrow(
+      SsrfBlockedError,
+    );
     // The metadata hop is refused BEFORE its fetch — only the initial hop ran.
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
@@ -772,9 +802,9 @@ describe('safeFetchLlm', () => {
       .fn()
       .mockResolvedValue(llmResponse({ status: 302, location: 'https://api.provider.example/next' }));
     vi.stubGlobal('fetch', mockFetch);
-    await expect(
-      safeFetchLlm('https://api.provider.example/v1/chat/completions', undefined, 2),
-    ).rejects.toThrow(/Too many redirects/i);
+    await expect(safeFetchLlm('https://api.provider.example/v1/chat/completions', undefined, 2)).rejects.toThrow(
+      /Too many redirects/i,
+    );
     // initial + 2 allowed hops = 3 fetches, then the 4th is refused before fetch.
     expect(mockFetch).toHaveBeenCalledTimes(3);
   });
@@ -870,11 +900,13 @@ describe('dual-stack names: every address is checked and every address is pinned
     agentCapture.options = null;
   });
 
-  const resolveAll = (entries: { address: string; family: number }[]) =>
-    mockLookup.mockResolvedValue(entries as never);
+  const resolveAll = (entries: { address: string; family: number }[]) => mockLookup.mockResolvedValue(entries as never);
 
   it('SEC-DUAL-001: asks the resolver for all addresses and lists IPv4 ahead of IPv6', async () => {
-    resolveAll([{ address: '2001:db8::10', family: 6 }, { address: '203.0.113.10', family: 4 }]);
+    resolveAll([
+      { address: '2001:db8::10', family: 6 },
+      { address: '203.0.113.10', family: 4 },
+    ]);
 
     const result = await checkSsrf('https://idp.example');
 
@@ -885,7 +917,10 @@ describe('dual-stack names: every address is checked and every address is pinned
   });
 
   it('SEC-DUAL-002: a name with one private address among public ones stays blocked', async () => {
-    resolveAll([{ address: '203.0.113.10', family: 4 }, { address: '10.0.0.5', family: 4 }]);
+    resolveAll([
+      { address: '203.0.113.10', family: 4 },
+      { address: '10.0.0.5', family: 4 },
+    ]);
 
     const result = await checkSsrf('https://split.example');
 
@@ -895,18 +930,29 @@ describe('dual-stack names: every address is checked and every address is pinned
   });
 
   it('SEC-DUAL-003: a loopback address behind a public one is never handed to the socket', async () => {
-    resolveAll([{ address: '203.0.113.10', family: 4 }, { address: '::1', family: 6 }]);
+    resolveAll([
+      { address: '203.0.113.10', family: 4 },
+      { address: '::1', family: 6 },
+    ]);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, ok: true, headers: { get: () => null } }));
 
     const result = await checkSsrf('https://rebind.example');
     await safeFetchFollow('https://rebind.example/');
 
-    expect(result).toMatchObject({ allowed: true, isPrivate: false, resolvedIp: '203.0.113.10', resolvedIps: ['203.0.113.10'] });
+    expect(result).toMatchObject({
+      allowed: true,
+      isPrivate: false,
+      resolvedIp: '203.0.113.10',
+      resolvedIps: ['203.0.113.10'],
+    });
     expect(pinnedList()).toEqual([{ address: '203.0.113.10', family: 4 }]);
   });
 
   it('SEC-DUAL-004: the pinned dispatcher hands the socket the whole checked list, IPv4 first', async () => {
-    resolveAll([{ address: '2001:db8::10', family: 6 }, { address: '203.0.113.10', family: 4 }]);
+    resolveAll([
+      { address: '2001:db8::10', family: 6 },
+      { address: '203.0.113.10', family: 4 },
+    ]);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, ok: true, headers: { get: () => null } }));
 
     await safeFetchFollow('https://idp.example/');
@@ -914,10 +960,13 @@ describe('dual-stack names: every address is checked and every address is pinned
     const lookup = agentCapture.options.connect.lookup as (h: string, o: object, cb: (...a: unknown[]) => void) => void;
     const seen: unknown[] = [];
     lookup('somebody-else.example', { all: true }, (...args: unknown[]) => seen.push(...args));
-    expect(seen).toEqual([null, [
-      { address: '203.0.113.10', family: 4 },
-      { address: '2001:db8::10', family: 6 },
-    ]]);
+    expect(seen).toEqual([
+      null,
+      [
+        { address: '203.0.113.10', family: 4 },
+        { address: '2001:db8::10', family: 6 },
+      ],
+    ]);
     // Asked for one address, the socket gets the first of the same list; the
     // name it asks for never matters, that is the whole point of the pin.
     const single: unknown[] = [];
@@ -926,7 +975,10 @@ describe('dual-stack names: every address is checked and every address is pinned
   });
 
   it('SEC-DUAL-005: the admin lane never hands a metadata address in the answer to the socket', async () => {
-    resolveAll([{ address: '169.254.169.254', family: 4 }, { address: '203.0.113.10', family: 4 }]);
+    resolveAll([
+      { address: '169.254.169.254', family: 4 },
+      { address: '203.0.113.10', family: 4 },
+    ]);
     const fetchSpy = vi.fn().mockResolvedValue({ status: 200, ok: true, headers: { get: () => null } });
     vi.stubGlobal('fetch', fetchSpy);
 
@@ -938,24 +990,47 @@ describe('dual-stack names: every address is checked and every address is pinned
 
   it('SEC-DUAL-006: a redirect hop resolves and pins its own full list again', async () => {
     mockLookup
-      .mockResolvedValueOnce([{ address: '2001:db8::1', family: 6 }, { address: '203.0.113.1', family: 4 }] as never)
-      .mockResolvedValueOnce([{ address: '2001:db8::2', family: 6 }, { address: '203.0.113.2', family: 4 }] as never);
+      .mockResolvedValueOnce([
+        { address: '2001:db8::1', family: 6 },
+        { address: '203.0.113.1', family: 4 },
+      ] as never)
+      .mockResolvedValueOnce([
+        { address: '2001:db8::2', family: 6 },
+        { address: '203.0.113.2', family: 4 },
+      ] as never);
     const pins: unknown[][] = [];
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => {
-      const lookup = agentCapture.options.connect.lookup as (h: string, o: object, cb: (...a: unknown[]) => void) => void;
-      const seen: unknown[] = [];
-      lookup('x', { all: true }, (...args: unknown[]) => seen.push(...args));
-      pins.push(seen);
-      return pins.length === 1
-        ? { status: 302, ok: false, headers: { get: (h: string) => (h.toLowerCase() === 'location' ? 'https://second.example/' : null) } }
-        : { status: 200, ok: true, headers: { get: () => null } };
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => {
+        const lookup = agentCapture.options.connect.lookup as (
+          h: string,
+          o: object,
+          cb: (...a: unknown[]) => void,
+        ) => void;
+        const seen: unknown[] = [];
+        lookup('x', { all: true }, (...args: unknown[]) => seen.push(...args));
+        pins.push(seen);
+        return pins.length === 1
+          ? {
+              status: 302,
+              ok: false,
+              headers: { get: (h: string) => (h.toLowerCase() === 'location' ? 'https://second.example/' : null) },
+            }
+          : { status: 200, ok: true, headers: { get: () => null } };
+      }),
+    );
 
     const response = await safeFetchLlm('https://first.example/');
 
     expect(response.status).toBe(200);
-    expect(pins[0][1]).toEqual([{ address: '203.0.113.1', family: 4 }, { address: '2001:db8::1', family: 6 }]);
-    expect(pins[1][1]).toEqual([{ address: '203.0.113.2', family: 4 }, { address: '2001:db8::2', family: 6 }]);
+    expect(pins[0][1]).toEqual([
+      { address: '203.0.113.1', family: 4 },
+      { address: '2001:db8::1', family: 6 },
+    ]);
+    expect(pins[1][1]).toEqual([
+      { address: '203.0.113.2', family: 4 },
+      { address: '2001:db8::2', family: 6 },
+    ]);
   });
 
   it('SEC-DUAL-007: a single record answered the old way is still one pinned address', async () => {
@@ -1013,11 +1088,26 @@ describe('a name with a link-local record next to a usable one (#2506)', () => {
   // IPv4-compatible ones come as ::169.254.169.254 from a real resolver, which
   // prints ::/96 in dotted form; the hex spelling is what an IP literal keeps.
   const METADATA_AND_LINK_LOCAL = [
-    v4('169.254.169.254'), v4('169.254.0.1'), v4('100.100.100.200'), v4('100.100.100.100'),
-    v6('fe80::1'), v6('fe80::1%eth0'), v6('febf::1'), v6('fd00:ec2::254'), v6('fd00:0ec2::254'),
-    v6('::ffff:169.254.169.254'), v6('::ffff:a9fe:a9fe'), v6('::a9fe:a9fe'), v6('::169.254.169.254'),
-    v6('::ffff:100.100.100.200'), v6('::ffff:6464:6464'), v6('::100.100.100.200'),
-    v6('64:ff9b::a9fe:a9fe'), v6('2002:a9fe:a9fe::'), v6('2001::5601:5601'), v6('64:ff9b::6464:64c8'),
+    v4('169.254.169.254'),
+    v4('169.254.0.1'),
+    v4('100.100.100.200'),
+    v4('100.100.100.100'),
+    v6('fe80::1'),
+    v6('fe80::1%eth0'),
+    v6('febf::1'),
+    v6('fd00:ec2::254'),
+    v6('fd00:0ec2::254'),
+    v6('::ffff:169.254.169.254'),
+    v6('::ffff:a9fe:a9fe'),
+    v6('::a9fe:a9fe'),
+    v6('::169.254.169.254'),
+    v6('::ffff:100.100.100.200'),
+    v6('::ffff:6464:6464'),
+    v6('::100.100.100.200'),
+    v6('64:ff9b::a9fe:a9fe'),
+    v6('2002:a9fe:a9fe::'),
+    v6('2001::5601:5601'),
+    v6('64:ff9b::6464:64c8'),
   ];
 
   describe('the admin lane (OIDC, plugin OAuth, model endpoints, own routing engine)', () => {
@@ -1045,10 +1135,11 @@ describe('a name with a link-local record next to a usable one (#2506)', () => {
 
     it('SEC-2506-003: no link-local or metadata spelling reaches the socket, whatever ALLOW_INTERNAL_NETWORK says', async () => {
       for (const flag of ['true', 'false']) {
-        const { guard } = await guardWith(
-          { ALLOW_INTERNAL_NETWORK: flag },
-          [...METADATA_AND_LINK_LOCAL, v4('10.0.40.239'), v6('fd12:3456::1')],
-        );
+        const { guard } = await guardWith({ ALLOW_INTERNAL_NETWORK: flag }, [
+          ...METADATA_AND_LINK_LOCAL,
+          v4('10.0.40.239'),
+          v6('fd12:3456::1'),
+        ]);
 
         await guard.safeFetchAdminConfigured('https://auth.home.example/');
 
@@ -1066,10 +1157,12 @@ describe('a name with a link-local record next to a usable one (#2506)', () => {
     });
 
     it('SEC-2506-005: an address listed in ALLOW_LINK_LOCAL_IPS stays usable, the rest of 169.254 does not', async () => {
-      const { guard } = await guardWith(
-        { ALLOW_LINK_LOCAL_IPS: '169.254.1.2' },
-        [v4('169.254.169.254'), v4('169.254.1.2'), v4('169.254.1.3'), v6('fe80::1')],
-      );
+      const { guard } = await guardWith({ ALLOW_LINK_LOCAL_IPS: '169.254.1.2' }, [
+        v4('169.254.169.254'),
+        v4('169.254.1.2'),
+        v4('169.254.1.3'),
+        v6('fe80::1'),
+      ]);
 
       await guard.safeFetchAdminConfigured('https://keycloak.example.com/');
 
@@ -1095,10 +1188,14 @@ describe('a name with a link-local record next to a usable one (#2506)', () => {
 
     it('SEC-2506-007: a redirect to a name with only link-local records is refused before its fetch', async () => {
       const { guard, lookup, fetchSpy } = await guardWith({}, REPORTED);
-      lookup.mockResolvedValueOnce(REPORTED as never).mockResolvedValue([v4('169.254.169.254'), v6('fe80::1')] as never);
+      lookup
+        .mockResolvedValueOnce(REPORTED as never)
+        .mockResolvedValue([v4('169.254.169.254'), v6('fe80::1')] as never);
       fetchSpy.mockResolvedValueOnce(redirectTo('http://metadata.example/latest/meta-data/'));
 
-      await expect(guard.safeFetchAdminConfigured('https://auth.home.example/')).rejects.toThrow(guard.SsrfBlockedError);
+      await expect(guard.safeFetchAdminConfigured('https://auth.home.example/')).rejects.toThrow(
+        guard.SsrfBlockedError,
+      );
       expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
   });
@@ -1108,7 +1205,10 @@ describe('a name with a link-local record next to a usable one (#2506)', () => {
       const { guard, fetchSpy } = await guardWith({ ALLOW_INTERNAL_NETWORK: 'true' }, REPORTED);
 
       expect(await guard.checkSsrf('https://immich.home.example')).toMatchObject({
-        allowed: true, isPrivate: true, resolvedIp: '10.0.40.239', resolvedIps: ['10.0.40.239'],
+        allowed: true,
+        isPrivate: true,
+        resolvedIp: '10.0.40.239',
+        resolvedIps: ['10.0.40.239'],
       });
       await guard.safeFetch('https://immich.home.example/api/users/me');
 
@@ -1120,19 +1220,36 @@ describe('a name with a link-local record next to a usable one (#2506)', () => {
       const { guard } = await guardWith({ ALLOW_INTERNAL_NETWORK: 'false' }, REPORTED);
 
       expect(await guard.checkSsrf('https://immich.home.example')).toMatchObject({
-        allowed: false, isPrivate: true, resolvedIp: '10.0.40.239', error: expect.stringContaining('ALLOW_INTERNAL_NETWORK'),
+        allowed: false,
+        isPrivate: true,
+        resolvedIp: '10.0.40.239',
+        error: expect.stringContaining('ALLOW_INTERNAL_NETWORK'),
       });
     });
 
     it('SEC-2506-012: loopback, link-local, metadata and the unspecified address never reach the socket', async () => {
       const { guard } = await guardWith({ ALLOW_INTERNAL_NETWORK: 'false' }, [
-        v4('127.0.0.1'), v6('::1'), v6('::'), v4('0.0.0.0'), v4('169.254.169.254'), v6('fe80::1'), v6('febf::1'),
-        v6('::ffff:127.0.0.1'), v6('::ffff:7f00:1'), v6('::ffff:169.254.169.254'), v6('::ffff:a9fe:a9fe'),
-        v6('64:ff9b::a9fe:a9fe'), v4('203.0.113.10'), v6('2001:db8::10'),
+        v4('127.0.0.1'),
+        v6('::1'),
+        v6('::'),
+        v4('0.0.0.0'),
+        v4('169.254.169.254'),
+        v6('fe80::1'),
+        v6('febf::1'),
+        v6('::ffff:127.0.0.1'),
+        v6('::ffff:7f00:1'),
+        v6('::ffff:169.254.169.254'),
+        v6('::ffff:a9fe:a9fe'),
+        v6('64:ff9b::a9fe:a9fe'),
+        v4('203.0.113.10'),
+        v6('2001:db8::10'),
       ]);
 
       expect(await guard.checkSsrf('https://photos.example')).toMatchObject({
-        allowed: true, isPrivate: false, resolvedIp: '203.0.113.10', resolvedIps: ['203.0.113.10', '2001:db8::10'],
+        allowed: true,
+        isPrivate: false,
+        resolvedIp: '203.0.113.10',
+        resolvedIps: ['203.0.113.10', '2001:db8::10'],
       });
       await guard.safeFetchFollow('https://photos.example/');
 
@@ -1140,10 +1257,12 @@ describe('a name with a link-local record next to a usable one (#2506)', () => {
     });
 
     it('SEC-2506-013: a name whose every record is always blocked is refused as before', async () => {
-      const { guard, fetchSpy } = await guardWith(
-        { ALLOW_INTERNAL_NETWORK: 'true' },
-        [v6('fe80::1'), v4('169.254.169.254'), v4('127.0.0.1'), v6('::1')],
-      );
+      const { guard, fetchSpy } = await guardWith({ ALLOW_INTERNAL_NETWORK: 'true' }, [
+        v6('fe80::1'),
+        v4('169.254.169.254'),
+        v4('127.0.0.1'),
+        v6('::1'),
+      ]);
 
       expect(await guard.checkSsrf('https://photos.example')).toMatchObject({
         allowed: false,
@@ -1159,32 +1278,42 @@ describe('a name with a link-local record next to a usable one (#2506)', () => {
       const { guard, fetchSpy } = await guardWith({ ALLOW_INTERNAL_NETWORK: 'true' }, REPORTED);
 
       expect(await guard.checkSsrf('https://x.home.example', true)).toMatchObject({
-        allowed: false, isPrivate: true, error: expect.stringContaining('ALLOW_INTERNAL_NETWORK'),
+        allowed: false,
+        isPrivate: true,
+        error: expect.stringContaining('ALLOW_INTERNAL_NETWORK'),
       });
-      await expect(guard.safeFetchFollow('https://x.home.example/', undefined, { bypassInternalIpAllowed: true }))
-        .rejects.toThrow(guard.SsrfBlockedError);
+      await expect(
+        guard.safeFetchFollow('https://x.home.example/', undefined, { bypassInternalIpAllowed: true }),
+      ).rejects.toThrow(guard.SsrfBlockedError);
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
     it('SEC-2506-015: a private address beside a public one still decides for the whole name', async () => {
-      const { guard } = await guardWith(
-        { ALLOW_INTERNAL_NETWORK: 'false' },
-        [v6('fe80::1'), v4('203.0.113.10'), v4('10.0.0.5')],
-      );
+      const { guard } = await guardWith({ ALLOW_INTERNAL_NETWORK: 'false' }, [
+        v6('fe80::1'),
+        v4('203.0.113.10'),
+        v4('10.0.0.5'),
+      ]);
 
       expect(await guard.checkSsrf('https://split.example')).toMatchObject({
-        allowed: false, isPrivate: true, resolvedIp: '10.0.0.5', error: expect.stringContaining('ALLOW_INTERNAL_NETWORK'),
+        allowed: false,
+        isPrivate: true,
+        resolvedIp: '10.0.0.5',
+        error: expect.stringContaining('ALLOW_INTERNAL_NETWORK'),
       });
     });
 
     it('SEC-2506-016: an address listed in ALLOW_LINK_LOCAL_IPS is internal next to an fe80:: record too', async () => {
-      const { guard } = await guardWith(
-        { ALLOW_LINK_LOCAL_IPS: '169.254.1.2', ALLOW_INTERNAL_NETWORK: 'true' },
-        [v6('fe80::1'), v4('169.254.169.254'), v4('169.254.1.2')],
-      );
+      const { guard } = await guardWith({ ALLOW_LINK_LOCAL_IPS: '169.254.1.2', ALLOW_INTERNAL_NETWORK: 'true' }, [
+        v6('fe80::1'),
+        v4('169.254.169.254'),
+        v4('169.254.1.2'),
+      ]);
 
       expect(await guard.checkSsrf('https://immich.example')).toMatchObject({
-        allowed: true, isPrivate: true, resolvedIps: ['169.254.1.2'],
+        allowed: true,
+        isPrivate: true,
+        resolvedIps: ['169.254.1.2'],
       });
       await guard.safeFetch('https://immich.example/');
       expect(pinnedList()).toEqual([v4('169.254.1.2')]);
@@ -1194,22 +1323,29 @@ describe('a name with a link-local record next to a usable one (#2506)', () => {
     // Alibaba metadata addresses sit in exactly those ranges. A URL a user typed
     // must not reach what an admin-configured endpoint cannot.
     it('SEC-2506-017: no link-local or metadata spelling reaches the socket, whatever ALLOW_INTERNAL_NETWORK says', async () => {
-      const lan = await guardWith(
-        { ALLOW_INTERNAL_NETWORK: 'true' },
-        [...METADATA_AND_LINK_LOCAL, v4('10.0.40.239'), v6('fd12:3456::1')],
-      );
+      const lan = await guardWith({ ALLOW_INTERNAL_NETWORK: 'true' }, [
+        ...METADATA_AND_LINK_LOCAL,
+        v4('10.0.40.239'),
+        v6('fd12:3456::1'),
+      ]);
       expect(await lan.guard.checkSsrf('https://immich.home.example')).toMatchObject({
-        allowed: true, isPrivate: true, resolvedIp: '10.0.40.239', resolvedIps: ['10.0.40.239', 'fd12:3456::1'],
+        allowed: true,
+        isPrivate: true,
+        resolvedIp: '10.0.40.239',
+        resolvedIps: ['10.0.40.239', 'fd12:3456::1'],
       });
       await lan.guard.safeFetchFollow('https://immich.home.example/');
       expect(pinnedList()).toEqual([v4('10.0.40.239'), v6('fd12:3456::1')]);
 
-      const pub = await guardWith(
-        { ALLOW_INTERNAL_NETWORK: 'false' },
-        [...METADATA_AND_LINK_LOCAL, v4('203.0.113.10'), v6('2001:db8::10')],
-      );
+      const pub = await guardWith({ ALLOW_INTERNAL_NETWORK: 'false' }, [
+        ...METADATA_AND_LINK_LOCAL,
+        v4('203.0.113.10'),
+        v6('2001:db8::10'),
+      ]);
       expect(await pub.guard.checkSsrf('https://photos.example')).toMatchObject({
-        allowed: true, isPrivate: false, resolvedIps: ['203.0.113.10', '2001:db8::10'],
+        allowed: true,
+        isPrivate: false,
+        resolvedIps: ['203.0.113.10', '2001:db8::10'],
       });
       await pub.guard.safeFetchFollow('https://photos.example/');
       expect(pinnedList()).toEqual([v4('203.0.113.10'), v6('2001:db8::10')]);
@@ -1221,25 +1357,34 @@ describe('a name with a link-local record next to a usable one (#2506)', () => {
       ['Alibaba DNS', '100.100.100.100'],
       ['Alibaba metadata, IPv4-mapped', '::ffff:100.100.100.200'],
       ['metadata, IPv4-compatible', '::169.254.169.254'],
-    ])('SEC-2506-018: %s (%s) is refused beside an fe80:: record even with ALLOW_INTERNAL_NETWORK on', async (_label, ip) => {
-      const record = ip.includes(':') ? v6(ip) : v4(ip);
-      for (const answer of [[v6('fe80::1'), record], [record]]) {
-        const { guard, fetchSpy } = await guardWith({ ALLOW_INTERNAL_NETWORK: 'true' }, answer);
+    ])(
+      'SEC-2506-018: %s (%s) is refused beside an fe80:: record even with ALLOW_INTERNAL_NETWORK on',
+      async (_label, ip) => {
+        const record = ip.includes(':') ? v6(ip) : v4(ip);
+        for (const answer of [[v6('fe80::1'), record], [record]]) {
+          const { guard, fetchSpy } = await guardWith({ ALLOW_INTERNAL_NETWORK: 'true' }, answer);
 
-        expect(await guard.checkSsrf('https://photos.example')).toMatchObject({
-          allowed: false, error: 'Requests to loopback and link-local addresses are not allowed',
-        });
-        await expect(guard.safeFetchFollow('https://photos.example/')).rejects.toThrow(guard.SsrfBlockedError);
-        await expect(guard.safeFetchAdminConfigured('https://photos.example/')).rejects.toThrow(guard.SsrfBlockedError);
-        expect(fetchSpy).not.toHaveBeenCalled();
-      }
-    });
+          expect(await guard.checkSsrf('https://photos.example')).toMatchObject({
+            allowed: false,
+            error: 'Requests to loopback and link-local addresses are not allowed',
+          });
+          await expect(guard.safeFetchFollow('https://photos.example/')).rejects.toThrow(guard.SsrfBlockedError);
+          await expect(guard.safeFetchAdminConfigured('https://photos.example/')).rejects.toThrow(
+            guard.SsrfBlockedError,
+          );
+          expect(fetchSpy).not.toHaveBeenCalled();
+        }
+      },
+    );
 
     it('SEC-2506-019: a metadata record beside a LAN address is left out and the LAN address pinned', async () => {
       const { guard } = await guardWith({ ALLOW_INTERNAL_NETWORK: 'true' }, [v6('fd00:ec2::254'), v4('10.0.0.5')]);
 
       expect(await guard.checkSsrf('https://nas.home.example')).toMatchObject({
-        allowed: true, isPrivate: true, resolvedIp: '10.0.0.5', resolvedIps: ['10.0.0.5'],
+        allowed: true,
+        isPrivate: true,
+        resolvedIp: '10.0.0.5',
+        resolvedIps: ['10.0.0.5'],
       });
       await guard.safeFetch('https://nas.home.example/');
       expect(pinnedList()).toEqual([v4('10.0.0.5')]);

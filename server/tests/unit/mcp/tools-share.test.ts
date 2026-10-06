@@ -4,9 +4,12 @@
  * legacy src/mcp/tools/trips.ts registrar with the trip DI port. All three
  * ride the canShareTrips predicate (no declarative trips:share mode exists).
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { createUser, createTrip } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
 
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -19,10 +22,6 @@ vi.mock('../../../src/config', () => ({
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-
 beforeEach(() => {
   resetTestDb(testDb);
   delete process.env.DEMO_MODE;
@@ -34,7 +33,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 describe('Tool: get_share_link', () => {
@@ -42,10 +45,16 @@ describe('Tool: get_share_link', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const empty = parseToolResult(await h.client.callTool({ name: 'get_share_link', arguments: { tripId: trip.id } })) as any;
+      const empty = parseToolResult(
+        await h.client.callTool({ name: 'get_share_link', arguments: { tripId: trip.id } }),
+      ) as any;
       expect(empty.link).toBeNull();
-      const created = parseToolResult(await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id } })) as any;
-      const link = parseToolResult(await h.client.callTool({ name: 'get_share_link', arguments: { tripId: trip.id } })) as any;
+      const created = parseToolResult(
+        await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id } }),
+      ) as any;
+      const link = parseToolResult(
+        await h.client.callTool({ name: 'get_share_link', arguments: { tripId: trip.id } }),
+      ) as any;
       expect(link.link.token).toBe(created.token);
     });
   });
@@ -54,8 +63,13 @@ describe('Tool: get_share_link', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id, share_travel_only: true, share_hide_images: true } });
-      const link = parseToolResult(await h.client.callTool({ name: 'get_share_link', arguments: { tripId: trip.id } })) as any;
+      await h.client.callTool({
+        name: 'create_share_link',
+        arguments: { tripId: trip.id, share_travel_only: true, share_hide_images: true },
+      });
+      const link = parseToolResult(
+        await h.client.callTool({ name: 'get_share_link', arguments: { tripId: trip.id } }),
+      ) as any;
       expect(link.link).toMatchObject({ share_travel_only: true, share_hide_images: true });
     });
   });
@@ -76,11 +90,19 @@ describe('Tool: create_share_link', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const first = parseToolResult(await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id } })) as any;
+      const first = parseToolResult(
+        await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id } }),
+      ) as any;
       expect(first.created).toBe(true);
-      const row = testDb.prepare('SELECT share_map, share_bookings, share_packing, share_budget, share_collab FROM share_tokens WHERE trip_id = ?').get(trip.id) as any;
+      const row = testDb
+        .prepare(
+          'SELECT share_map, share_bookings, share_packing, share_budget, share_collab FROM share_tokens WHERE trip_id = ?',
+        )
+        .get(trip.id) as any;
       expect(row).toEqual({ share_map: 1, share_bookings: 1, share_packing: 0, share_budget: 0, share_collab: 0 });
-      const second = parseToolResult(await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id, share_budget: true } })) as any;
+      const second = parseToolResult(
+        await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id, share_budget: true } }),
+      ) as any;
       expect(second.created).toBe(false);
       expect(second.token).toBe(first.token);
     });
@@ -91,13 +113,17 @@ describe('Tool: create_share_link', () => {
     const { user: other } = createUser(testDb);
     const foreign = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      expect((await h.client.callTool({ name: 'create_share_link', arguments: { tripId: foreign.id } })).isError).toBe(true);
+      expect((await h.client.callTool({ name: 'create_share_link', arguments: { tripId: foreign.id } })).isError).toBe(
+        true,
+      );
     });
     process.env.DEMO_MODE = 'true';
     const { user: demo } = createUser(testDb, { email: 'demo@nomad.app' });
     const trip = createTrip(testDb, demo.id);
     await withHarness(demo.id, async (h) => {
-      expect((await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id } })).isError).toBe(true);
+      expect((await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id } })).isError).toBe(
+        true,
+      );
     });
   });
 });
@@ -108,13 +134,17 @@ describe('Tool: delete_share_link', () => {
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id } });
-      const result = parseToolResult(await h.client.callTool({ name: 'delete_share_link', arguments: { tripId: trip.id } })) as any;
+      const result = parseToolResult(
+        await h.client.callTool({ name: 'delete_share_link', arguments: { tripId: trip.id } }),
+      ) as any;
       expect(result.success).toBe(true);
       expect(testDb.prepare('SELECT id FROM share_tokens WHERE trip_id = ?').get(trip.id)).toBeUndefined();
     });
     const { user: stranger } = createUser(testDb);
     await withHarness(stranger.id, async (h) => {
-      expect((await h.client.callTool({ name: 'delete_share_link', arguments: { tripId: trip.id } })).isError).toBe(true);
+      expect((await h.client.callTool({ name: 'delete_share_link', arguments: { tripId: trip.id } })).isError).toBe(
+        true,
+      );
     });
   });
 });

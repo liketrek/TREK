@@ -1,35 +1,35 @@
-import path from 'path';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { PermissionsService } from '../permissions/permissions.service';
-import { RealtimeService } from '../realtime/realtime.service';
-import { isUploadedPlaceImage } from '../places/place-image';
-import { StorageService } from '../storage/storage.service';
-import { Collections } from '../../db/entities/Collections.entity';
-import { CollectionsRepository, type CollectionPlaceRow } from '../../db/repositories/Collections.repository';
-import { CollectionMembers } from '../../db/entities/CollectionMembers.entity';
-import { CollectionMembersRepository } from '../../db/repositories/CollectionMembers.repository';
-import { CollectionLabels } from '../../db/entities/CollectionLabels.entity';
-import { CollectionLabelsRepository } from '../../db/repositories/CollectionLabels.repository';
 import { Categories } from '../../db/entities/Categories.entity';
-import type { CategoriesRepository } from '../../db/repositories/Categories.repository';
-import { resolveCollectionRole, type CollectionRole } from '../../db/repositories/_shared/collection-role';
-import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
-import { CollectionPlacesRepository, type CollectionPlaceCopyRow } from '../../db/repositories/CollectionPlaces.repository';
+import { CollectionLabels } from '../../db/entities/CollectionLabels.entity';
+import { CollectionMembers } from '../../db/entities/CollectionMembers.entity';
 import { CollectionPlaceRatings } from '../../db/entities/CollectionPlaceRatings.entity';
-import { CollectionPlaceRatingsRepository } from '../../db/repositories/CollectionPlaceRatings.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
-import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository } from '../../db/repositories/Places.repository';
+import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
+import { Collections } from '../../db/entities/Collections.entity';
 import { PlaceRatings } from '../../db/entities/PlaceRatings.entity';
-import type { PlaceRatingsRepository } from '../../db/repositories/PlaceRatings.repository';
+import { Places } from '../../db/entities/Places.entity';
 import { Tags } from '../../db/entities/Tags.entity';
-import type { TagsRepository } from '../../db/repositories/Tags.repository';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
 import { Users } from '../../db/entities/Users.entity';
+import type { CategoriesRepository } from '../../db/repositories/Categories.repository';
+import { CollectionLabelsRepository } from '../../db/repositories/CollectionLabels.repository';
+import { CollectionMembersRepository } from '../../db/repositories/CollectionMembers.repository';
+import { CollectionPlaceRatingsRepository } from '../../db/repositories/CollectionPlaceRatings.repository';
+import {
+  CollectionPlacesRepository,
+  type CollectionPlaceCopyRow,
+} from '../../db/repositories/CollectionPlaces.repository';
+import { CollectionsRepository, type CollectionPlaceRow } from '../../db/repositories/Collections.repository';
+import type { PlaceRatingsRepository } from '../../db/repositories/PlaceRatings.repository';
+import type { PlacesRepository } from '../../db/repositories/Places.repository';
+import type { TagsRepository } from '../../db/repositories/Tags.repository';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { resolveCollectionRole, type CollectionRole } from '../../db/repositories/_shared/collection-role';
+import { UnitOfWork } from '../database/unit-of-work';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { isUploadedPlaceImage } from '../places/place-image';
 import {
   COORD_DEDUP_TOLERANCE,
   externalIdsOf,
@@ -37,6 +37,11 @@ import {
   trackInsertedInDedupSet,
   type DedupSet,
 } from '../places/places.helpers';
+import { RealtimeService } from '../realtime/realtime.service';
+import { StorageService } from '../storage/storage.service';
+import { collectionFileToGpx, gpxToCollectionFile, type ExportedCollectionFile } from './collection-gpx.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import {
   placeMatchStrategies,
   collectionFilePlaceSchema,
@@ -72,9 +77,8 @@ import type {
   CollectionLabel,
   CollectionImportablesResponse,
 } from '@trek/shared';
-import { NotificationsService } from '../notifications/notifications.service';
-import { collectionFileToGpx, gpxToCollectionFile, type ExportedCollectionFile } from './collection-gpx.helpers';
-import { UnitOfWork } from '../database/unit-of-work';
+
+import path from 'path';
 
 /** Links are stored as a JSON TEXT column; parse on read, stringify on write. */
 function parseLinks(raw: unknown): CollectionLink[] | undefined {
@@ -90,7 +94,6 @@ function parseLinks(raw: unknown): CollectionLink[] | undefined {
 function serializeLinks(links: CollectionLink[] | undefined): string | null {
   return links && links.length ? JSON.stringify(links) : null;
 }
-
 
 // ---------------------------------------------------------------------------
 // Errors — thrown as plain Errors carrying a status; TrekExceptionFilter maps
@@ -216,7 +219,9 @@ export class CollectionsService {
   // Hydration helpers
   // -------------------------------------------------------------------------
 
-  private async loadTagsByCollectionPlaceIds(placeIds: number[]): Promise<Record<number, { id: number; name: string; color: string }[]>> {
+  private async loadTagsByCollectionPlaceIds(
+    placeIds: number[],
+  ): Promise<Record<number, { id: number; name: string; color: string }[]>> {
     const out: Record<number, { id: number; name: string; color: string }[]> = {};
     const rows = await this.collectionsRepo.loadTagsByPlaceIds(placeIds);
     for (const r of rows) {
@@ -243,7 +248,9 @@ export class CollectionsService {
   }
 
   /** Per-voter rating rows (#1435), batched (mirrors loadTagsByCollectionPlaceIds). */
-  private async loadRatingsByCollectionPlaceIds(placeIds: number[]): Promise<Record<number, { user_id: number; username: string; avatar: string | null; rating: number }[]>> {
+  private async loadRatingsByCollectionPlaceIds(
+    placeIds: number[],
+  ): Promise<Record<number, { user_id: number; username: string; avatar: string | null; rating: number }[]>> {
     const out: Record<number, { user_id: number; username: string; avatar: string | null; rating: number }[]> = {};
     const rows = await this.collectionsRepo.loadRatingsByPlaceIds(placeIds);
     for (const { pid, ...rest } of rows) {
@@ -254,11 +261,11 @@ export class CollectionsService {
   }
 
   private async hydratePlaces(rows: PlaceRow[]): Promise<CollectionPlace[]> {
-    const ids = rows.map(r => r.id);
+    const ids = rows.map((r) => r.id);
     const tagsByPlace = await this.loadTagsByCollectionPlaceIds(ids);
     const labelsByPlace = await this.loadLabelIdsByPlaceIds(ids);
     const ratingsByPlace = await this.loadRatingsByCollectionPlaceIds(ids);
-    return rows.map(r => {
+    return rows.map((r) => {
       const { category_name, category_color, category_icon, ...rest } = r;
       const ratings = ratingsByPlace[r.id] || [];
       return {
@@ -301,7 +308,12 @@ export class CollectionsService {
     const col = await this.collectionsRepo.findRow(id);
     if (!col) httpError(404, 'Collection not found');
     const placeCount = await this.collectionsRepo.placeCount(id);
-    return { ...col, links: parseLinks(col.links), place_count: placeCount, members: await this.buildMembers(id) } as Collection;
+    return {
+      ...col,
+      links: parseLinks(col.links),
+      place_count: placeCount,
+      members: await this.buildMembers(id),
+    } as Collection;
   }
 
   // -------------------------------------------------------------------------
@@ -310,15 +322,20 @@ export class CollectionsService {
 
   async listCollections(userId: number): Promise<CollectionListResponse> {
     const ids = await this.accessibleCollectionIds(userId);
-    const collections: Collection[] = (await Promise.all(ids
-      .map(async id => {
-        const col = await this.getCollectionRow(id);
-        return { ...col, is_owner: col.owner_id === userId };
-      })))
-      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id);
+    const collections: Collection[] = (
+      await Promise.all(
+        ids.map(async (id) => {
+          const col = await this.getCollectionRow(id);
+          return { ...col, is_owner: col.owner_id === userId };
+        }),
+      )
+    ).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id);
 
-    const incomingInvites = (await this.members.pendingInvitesForUser(userId))
-      .map(r => ({ collection_id: r.collection_id, name: r.name, from: { id: r.from_id, username: r.from_username } }));
+    const incomingInvites = (await this.members.pendingInvitesForUser(userId)).map((r) => ({
+      collection_id: r.collection_id,
+      name: r.name,
+      from: { id: r.from_id, username: r.from_username },
+    }));
 
     return { collections, incomingInvites };
   }
@@ -328,7 +345,11 @@ export class CollectionsService {
     const collection = await this.getCollectionRow(id);
     const rows = await this.collectionsRepo.listPlaceRows(id);
     return {
-      collection: { ...collection, is_owner: collection.owner_id === userId, labels: await this.loadLabelsByCollection(id) },
+      collection: {
+        ...collection,
+        is_owner: collection.owner_id === userId,
+        labels: await this.loadLabelsByCollection(id),
+      },
       places: await this.hydratePlaces(rows),
     };
   }
@@ -354,12 +375,12 @@ export class CollectionsService {
     await this.assertAccess(userId, id);
     const collection = await this.getCollectionRow(id);
     const labels = await this.loadLabelsByCollection(id);
-    const labelNameById = new Map(labels.map(l => [l.id, l.name]));
+    const labelNameById = new Map(labels.map((l) => [l.id, l.name]));
 
     const rows = await this.collectionsRepo.listPlaceRows(id);
-    const labelIdsByPlace = await this.loadLabelIdsByPlaceIds(rows.map(r => r.id));
+    const labelIdsByPlace = await this.loadLabelIdsByPlaceIds(rows.map((r) => r.id));
 
-    const places: CollectionFilePlace[] = rows.map(row => ({
+    const places: CollectionFilePlace[] = rows.map((row) => ({
       name: row.name,
       description: row.description ?? null,
       lat: row.lat ?? null,
@@ -379,7 +400,7 @@ export class CollectionsService {
       status: row.status as CollectionStatus,
       links: parseLinks((row as { links?: unknown }).links),
       category: row.category_name ?? null,
-      labels: (labelIdsByPlace[row.id] || []).map(lid => labelNameById.get(lid)).filter((n): n is string => !!n),
+      labels: (labelIdsByPlace[row.id] || []).map((lid) => labelNameById.get(lid)).filter((n): n is string => !!n),
     }));
 
     return {
@@ -390,7 +411,7 @@ export class CollectionsService {
       color: collection.color ?? null,
       icon: collection.icon ?? null,
       exported_at: new Date().toISOString(),
-      labels: labels.map(l => ({ name: l.name, color: l.color ?? null })),
+      labels: labels.map((l) => ({ name: l.name, color: l.color ?? null })),
       places,
     };
   }
@@ -465,7 +486,10 @@ export class CollectionsService {
    * of them, and everyone on the list sees the result at once.
    */
   async importIntoCollection(
-    userId: number, id: number, body: CollectionImportIntoRequest, socketId?: string,
+    userId: number,
+    id: number,
+    body: CollectionImportIntoRequest,
+    socketId?: string,
   ): Promise<CollectionImportResult> {
     await this.assertCanEdit(userId, id);
     const file = body.file;
@@ -483,7 +507,11 @@ export class CollectionsService {
     }
     const collection = await this.getCollectionRow(id);
     return {
-      collection: { ...collection, is_owner: collection.owner_id === userId, labels: await this.loadLabelsByCollection(id) },
+      collection: {
+        ...collection,
+        is_owner: collection.owner_id === userId,
+        labels: await this.loadLabelsByCollection(id),
+      },
       imported: result.imported,
       skipped: result.skipped,
       duplicates: result.duplicates,
@@ -496,7 +524,8 @@ export class CollectionsService {
    * renames or recolours a label that is already there.
    */
   private async labelIdsForFile(
-    collectionId: number, labels: CollectionFileLabel[] | undefined,
+    collectionId: number,
+    labels: CollectionFileLabel[] | undefined,
   ): Promise<{ byName: Map<string, number>; created: number }> {
     const byName = new Map<string, number>();
     for (const row of await this.labels.idNameByCollection(collectionId)) {
@@ -548,29 +577,49 @@ export class CollectionsService {
     let duplicates = 0;
     for (const raw of file.places) {
       const parsed = collectionFilePlaceSchema.safeParse(raw);
-      if (!parsed.success) { skipped += 1; continue; }
+      if (!parsed.success) {
+        skipped += 1;
+        continue;
+      }
       const place = parsed.data;
       // Rows written earlier in this same run count as already there, so a file
       // that lists a place twice adds it once.
-      if (opts.skipDuplicates && await this.findDuplicateCollectionPlace(collectionId, {
-        name: place.name,
-        lat: place.lat ?? null,
-        lng: place.lng ?? null,
-        google_place_id: place.google_place_id ?? null,
-        google_ftid: place.google_ftid ?? null,
-        osm_id: place.osm_id ?? null,
-      })) {
+      if (
+        opts.skipDuplicates &&
+        (await this.findDuplicateCollectionPlace(collectionId, {
+          name: place.name,
+          lat: place.lat ?? null,
+          lng: place.lng ?? null,
+          google_place_id: place.google_place_id ?? null,
+          google_ftid: place.google_ftid ?? null,
+          osm_id: place.osm_id ?? null,
+        }))
+      ) {
         duplicates += 1;
         continue;
       }
       const placeId = await this.collectionsRepo.insertFilePlace({
-        collection_id: collectionId, owner_id: ownerId, saved_by: savedBy,
-        name: place.name, description: place.description ?? null, lat: place.lat ?? null, lng: place.lng ?? null, address: place.address ?? null,
+        collection_id: collectionId,
+        owner_id: ownerId,
+        saved_by: savedBy,
+        name: place.name,
+        description: place.description ?? null,
+        lat: place.lat ?? null,
+        lng: place.lng ?? null,
+        address: place.address ?? null,
         category_id: place.category ? (categoryIdByName.get(place.category.trim().toLowerCase()) ?? null) : null,
-        price: place.price ?? null, currency: place.currency ?? null, notes: place.notes ?? null,
-        image_url: place.image_url ?? null, google_place_id: place.google_place_id ?? null, google_ftid: place.google_ftid ?? null,
-        osm_id: place.osm_id ?? null, website: place.website ?? null, phone: place.phone ?? null,
-        status: place.status ?? 'idea', links: serializeLinks(place.links), sort_order: firstOrder + imported,
+        price: place.price ?? null,
+        currency: place.currency ?? null,
+        notes: place.notes ?? null,
+        image_url: place.image_url ?? null,
+        google_place_id: place.google_place_id ?? null,
+        google_ftid: place.google_ftid ?? null,
+        osm_id: place.osm_id ?? null,
+        website: place.website ?? null,
+        phone: place.phone ?? null,
+        status: place.status ?? 'idea',
+        links: serializeLinks(place.links),
+        sort_order: firstOrder + imported,
       });
       for (const labelName of place.labels ?? []) {
         const labelId = labelIdByName.get(labelName.trim().toLowerCase());
@@ -587,9 +636,16 @@ export class CollectionsService {
    * The caller de-duplicates by name, and one notification for the whole
    * import is sent by the caller rather than one per label.
    */
-  private async insertImportedLabel(collectionId: number, label: CollectionFileLabel, sortOrder: number): Promise<number> {
+  private async insertImportedLabel(
+    collectionId: number,
+    label: CollectionFileLabel,
+    sortOrder: number,
+  ): Promise<number> {
     return this.labels.insertLabel({
-      collection_id: collectionId, name: label.name.trim(), color: label.color ?? '#6366f1', sort_order: sortOrder,
+      collection_id: collectionId,
+      name: label.name.trim(),
+      color: label.color ?? '#6366f1',
+      sort_order: sortOrder,
     });
   }
 
@@ -609,7 +665,12 @@ export class CollectionsService {
     return { ...col, is_owner: true };
   }
 
-  async updateCollection(userId: number, id: number, body: CollectionUpdateRequest, socketId?: string): Promise<Collection> {
+  async updateCollection(
+    userId: number,
+    id: number,
+    body: CollectionUpdateRequest,
+    socketId?: string,
+  ): Promise<Collection> {
     await this.assertCanEdit(userId, id);
     await this.collectionsRepo.updateFields(id, {
       ...(body.name !== undefined ? { name: body.name } : {}),
@@ -626,7 +687,12 @@ export class CollectionsService {
   }
 
   /** Set (or clear) a list's cover image, reclaiming the previous file. */
-  async setCollectionCover(userId: number, id: number, coverUrl: string | null, socketId?: string): Promise<Collection> {
+  async setCollectionCover(
+    userId: number,
+    id: number,
+    coverUrl: string | null,
+    socketId?: string,
+  ): Promise<Collection> {
     await this.assertCanEdit(userId, id);
     const prev = (await this.collectionsRepo.coverImage(id)) ?? null;
     await this.collectionsRepo.setCoverImage(id, coverUrl);
@@ -647,17 +713,15 @@ export class CollectionsService {
     await this.collectionsRepo.deleteById(id); // CASCADE drops members + places + tags
 
     [...new Set([...accepted, ...pending])]
-      .filter(uid => uid !== userId)
-      .forEach(uid => this.realtime.broadcastToUser(uid, { type: 'collections:deleted', collectionId: id }));
+      .filter((uid) => uid !== userId)
+      .forEach((uid) => this.realtime.broadcastToUser(uid, { type: 'collections:deleted', collectionId: id }));
   }
 
   async reorderCollections(userId: number, orderedIds: number[]): Promise<void> {
     const visible = new Set(await this.accessibleCollectionIds(userId));
     await this.uow.transactional(async () => {
       await this.collectionsRepo.setSortOrders(
-        orderedIds
-          .map((cid, index) => ({ id: cid, sortOrder: index }))
-          .filter(({ id }) => visible.has(id)),
+        orderedIds.map((cid, index) => ({ id: cid, sortOrder: index })).filter(({ id }) => visible.has(id)),
       );
     });
   }
@@ -692,7 +756,12 @@ export class CollectionsService {
       } else if (strategy.by === 'name') {
         hit = await this.collectionsRepo.findDuplicateByName(collectionId, strategy.name);
       } else {
-        hit = await this.collectionsRepo.findDuplicateByCoords(collectionId, strategy.lat, strategy.lng, strategy.tolerance);
+        hit = await this.collectionsRepo.findDuplicateByCoords(
+          collectionId,
+          strategy.lat,
+          strategy.lng,
+          strategy.tolerance,
+        );
       }
       if (hit) return hit;
     }
@@ -715,7 +784,7 @@ export class CollectionsService {
     const unique = [...new Set(tagIds)];
     const eligible = await this.collectionMemberIds(await this.collectionIdOfPlace(collectionPlaceId));
     const owned = await this.tags.findByIds(unique);
-    const eligibleTagIds = owned.filter(t => eligible.has(t.user_id)).map(t => t.id);
+    const eligibleTagIds = owned.filter((t) => eligible.has(t.user_id)).map((t) => t.id);
     await this.collectionPlaces.attachTags(collectionPlaceId, eligibleTagIds);
   }
 
@@ -723,7 +792,7 @@ export class CollectionsService {
   private async collectionMemberIds(collectionId: number): Promise<Set<number>> {
     const ids = new Set<number>([await this.ownerOf(collectionId)]);
     const accepted = await this.members.acceptedUserIds(collectionId);
-    accepted.forEach(id => ids.add(id));
+    accepted.forEach((id) => ids.add(id));
     return ids;
   }
 
@@ -736,7 +805,8 @@ export class CollectionsService {
     const eligible = await this.collectionMemberIds(collectionId);
     const rows = await this.tripPlaceRatings.listVotesForPlace(sourcePlaceId);
     for (const r of rows) {
-      if (eligible.has(r.user_id)) await this.collectionPlaceRatings.insertIgnoreRating(collectionPlaceId, r.user_id, r.rating);
+      if (eligible.has(r.user_id))
+        await this.collectionPlaceRatings.insertIgnoreRating(collectionPlaceId, r.user_id, r.rating);
     }
   }
 
@@ -745,8 +815,12 @@ export class CollectionsService {
 
     if (!body.force) {
       const dup = await this.findDuplicateCollectionPlace(body.collection_id, {
-        name: body.name, lat: body.lat, lng: body.lng,
-        google_place_id: body.google_place_id, google_ftid: body.google_ftid, osm_id: body.osm_id,
+        name: body.name,
+        lat: body.lat,
+        lng: body.lng,
+        google_place_id: body.google_place_id,
+        google_ftid: body.google_ftid,
+        osm_id: body.osm_id,
       });
       if (dup) return { duplicate: true, duplicateOf: dup };
     }
@@ -756,12 +830,27 @@ export class CollectionsService {
     // post-fold quirk pass (the relocation carried them un-transacted).
     const placeId = await this.uow.transactional(async () => {
       const id = await this.collectionPlaces.insertSavedPlace({
-        collection_id: body.collection_id, owner_id: ownerId, saved_by: userId,
-        name: body.name, description: body.description ?? null, lat: body.lat ?? null, lng: body.lng ?? null, address: body.address ?? null,
-        category_id: body.category_id ?? null, price: body.price ?? null, currency: body.currency ?? null, notes: body.notes ?? null,
-        image_url: body.image_url ?? null, google_place_id: body.google_place_id ?? null, google_ftid: body.google_ftid ?? null,
-        osm_id: body.osm_id ?? null, website: body.website ?? null, phone: body.phone ?? null,
-        status: body.status ?? 'idea', source_trip_id: body.source_trip_id ?? null, source_place_id: body.source_place_id ?? null,
+        collection_id: body.collection_id,
+        owner_id: ownerId,
+        saved_by: userId,
+        name: body.name,
+        description: body.description ?? null,
+        lat: body.lat ?? null,
+        lng: body.lng ?? null,
+        address: body.address ?? null,
+        category_id: body.category_id ?? null,
+        price: body.price ?? null,
+        currency: body.currency ?? null,
+        notes: body.notes ?? null,
+        image_url: body.image_url ?? null,
+        google_place_id: body.google_place_id ?? null,
+        google_ftid: body.google_ftid ?? null,
+        osm_id: body.osm_id ?? null,
+        website: body.website ?? null,
+        phone: body.phone ?? null,
+        status: body.status ?? 'idea',
+        source_trip_id: body.source_trip_id ?? null,
+        source_place_id: body.source_place_id ?? null,
         links: serializeLinks(body.links),
       });
 
@@ -774,7 +863,8 @@ export class CollectionsService {
       // assertCanEdit (this method's own entry guard, above) ran FIRST; the trip-access
       // check (AP1) runs SECOND, here, inside the write path — never reversed.
       if (
-        body.source_place_id && body.source_trip_id &&
+        body.source_place_id &&
+        body.source_trip_id &&
         (await this.trips.findAccessible(body.source_trip_id, userId)) &&
         (await this.tripPlaces.existsInTrip(body.source_place_id, body.source_trip_id))
       ) {
@@ -787,7 +877,12 @@ export class CollectionsService {
   }
 
   async saveFromTripPlace(
-    userId: number, collectionId: number, tripId: number, placeId: number, force?: boolean, socketId?: string,
+    userId: number,
+    collectionId: number,
+    tripId: number,
+    placeId: number,
+    force?: boolean,
+    socketId?: string,
   ): Promise<CollectionSaveResult> {
     await this.assertCanEdit(userId, collectionId);
     if (!(await this.trips.findAccessible(tripId, userId))) httpError(404, 'Trip not found');
@@ -795,27 +890,31 @@ export class CollectionsService {
     const place = await this.tripPlaces.findInTrip(placeId, tripId);
     if (!place) httpError(404, 'Place not found');
 
-    return this.savePlace(userId, {
-      collection_id: collectionId,
-      name: place.name,
-      description: place.description ?? null,
-      lat: place.lat ?? null,
-      lng: place.lng ?? null,
-      address: place.address ?? null,
-      category_id: place.category_id ?? null,
-      price: place.price ?? null,
-      currency: place.currency ?? null,
-      notes: place.notes ?? null,
-      image_url: place.image_url ?? null,
-      google_place_id: place.google_place_id ?? null,
-      google_ftid: place.google_ftid ?? null,
-      osm_id: place.osm_id ?? null,
-      website: place.website ?? null,
-      phone: place.phone ?? null,
-      source_trip_id: tripId,
-      source_place_id: placeId,
-      force,
-    }, socketId);
+    return this.savePlace(
+      userId,
+      {
+        collection_id: collectionId,
+        name: place.name,
+        description: place.description ?? null,
+        lat: place.lat ?? null,
+        lng: place.lng ?? null,
+        address: place.address ?? null,
+        category_id: place.category_id ?? null,
+        price: place.price ?? null,
+        currency: place.currency ?? null,
+        notes: place.notes ?? null,
+        image_url: place.image_url ?? null,
+        google_place_id: place.google_place_id ?? null,
+        google_ftid: place.google_ftid ?? null,
+        osm_id: place.osm_id ?? null,
+        website: place.website ?? null,
+        phone: place.phone ?? null,
+        source_trip_id: tripId,
+        source_place_id: placeId,
+        force,
+      },
+      socketId,
+    );
   }
 
   /** The trip's places as offered to the bulk import, each already carrying the verdict
@@ -851,7 +950,12 @@ export class CollectionsService {
    *  one WS notify (vs saving each place individually). Mirrors saveFromTripPlace's
    *  field mapping + dedup; skips duplicates unless force. Status starts at 'idea'. */
   async saveFromTripPlaces(
-    userId: number, collectionId: number, tripId: number, placeIds: number[], force?: boolean, socketId?: string,
+    userId: number,
+    collectionId: number,
+    tripId: number,
+    placeIds: number[],
+    force?: boolean,
+    socketId?: string,
   ): Promise<{ copied: number; skipped: { id: number; name: string }[] }> {
     await this.assertCanEdit(userId, collectionId);
     if (!(await this.trips.findAccessible(tripId, userId))) httpError(404, 'Trip not found');
@@ -871,12 +975,14 @@ export class CollectionsService {
         // below, so leaving them out here would recognise less than the row that
         // gets written knows about.
         const candidate = {
-          name, lat, lng,
+          name,
+          lat,
+          lng,
           google_place_id: p.google_place_id ?? null,
           google_ftid: p.google_ftid ?? null,
           osm_id: p.osm_id ?? null,
         };
-        if (!force && await this.findDuplicateCollectionPlace(collectionId, candidate)) {
+        if (!force && (await this.findDuplicateCollectionPlace(collectionId, candidate))) {
           skipped.push({ id: placeId, name });
           continue;
         }
@@ -885,12 +991,28 @@ export class CollectionsService {
         // as literals rather than placeholders — see `insertSavedPlace`'s own
         // docstring for why this is the SAME method, not a second insert shape.
         const newId = await this.collectionPlaces.insertSavedPlace({
-          collection_id: collectionId, owner_id: ownerId, saved_by: userId,
-          name, description: p.description ?? null, lat, lng, address: p.address ?? null,
-          category_id: p.category_id ?? null, price: p.price ?? null, currency: p.currency ?? null, notes: p.notes ?? null,
-          image_url: p.image_url ?? null, google_place_id: p.google_place_id ?? null, google_ftid: p.google_ftid ?? null,
-          osm_id: p.osm_id ?? null, website: p.website ?? null, phone: p.phone ?? null,
-          status: 'idea', source_trip_id: tripId, source_place_id: placeId, links: null,
+          collection_id: collectionId,
+          owner_id: ownerId,
+          saved_by: userId,
+          name,
+          description: p.description ?? null,
+          lat,
+          lng,
+          address: p.address ?? null,
+          category_id: p.category_id ?? null,
+          price: p.price ?? null,
+          currency: p.currency ?? null,
+          notes: p.notes ?? null,
+          image_url: p.image_url ?? null,
+          google_place_id: p.google_place_id ?? null,
+          google_ftid: p.google_ftid ?? null,
+          osm_id: p.osm_id ?? null,
+          website: p.website ?? null,
+          phone: p.phone ?? null,
+          status: 'idea',
+          source_trip_id: tripId,
+          source_place_id: placeId,
+          links: null,
         });
         await this.copyTripRatings(placeId, newId, collectionId);
         copied++;
@@ -900,13 +1022,18 @@ export class CollectionsService {
     return { copied, skipped };
   }
 
-  async updatePlace(userId: number, placeId: number, body: CollectionPlaceUpdateRequest, socketId?: string): Promise<CollectionPlace> {
+  async updatePlace(
+    userId: number,
+    placeId: number,
+    body: CollectionPlaceUpdateRequest,
+    socketId?: string,
+  ): Promise<CollectionPlace> {
     const currentCollection = await this.collectionIdOfPlace(placeId);
     await this.assertCanEdit(userId, currentCollection);
 
     // Capture the previous thumbnail so a replaced/cleared custom upload (#1136)
     // can be reclaimed once nothing references it any more.
-    const prevImage = body.image_url !== undefined ? (await this.collectionPlaces.imageUrl(placeId)) ?? null : null;
+    const prevImage = body.image_url !== undefined ? ((await this.collectionPlaces.imageUrl(placeId)) ?? null) : null;
 
     const write: Parameters<CollectionPlacesRepository['updateFields']>[1] = {};
     if (body.name !== undefined) write.name = body.name;
@@ -941,7 +1068,8 @@ export class CollectionsService {
       // Labels are collection-scoped: a move invalidates the source list's labels;
       // a provided label_ids set replaces them against the (target) collection.
       if (movedTo) await this.collectionPlaces.deleteLabelAssignments(placeId);
-      if (body.label_ids !== undefined) await this.setPlaceLabels(placeId, movedTo ?? currentCollection, body.label_ids);
+      if (body.label_ids !== undefined)
+        await this.setPlaceLabels(placeId, movedTo ?? currentCollection, body.label_ids);
     });
 
     if (body.image_url !== undefined && prevImage !== (body.image_url ?? null)) {
@@ -953,7 +1081,12 @@ export class CollectionsService {
     return this.getPlaceById(placeId);
   }
 
-  async setStatus(userId: number, placeId: number, status: CollectionStatus, socketId?: string): Promise<CollectionPlace> {
+  async setStatus(
+    userId: number,
+    placeId: number,
+    status: CollectionStatus,
+    socketId?: string,
+  ): Promise<CollectionPlace> {
     const collectionId = await this.collectionIdOfPlace(placeId);
     await this.assertCanEdit(userId, collectionId);
     await this.collectionPlaces.setStatus(placeId, status);
@@ -1043,7 +1176,12 @@ export class CollectionsService {
    * cannot leave half the batch applied. Rows that already carry the status are
    * counted as untouched rather than rewritten, which keeps updated_at honest.
    */
-  async setStatusMany(userId: number, ids: number[], status: CollectionStatus, socketId?: string): Promise<{ updated: number }> {
+  async setStatusMany(
+    userId: number,
+    ids: number[],
+    status: CollectionStatus,
+    socketId?: string,
+  ): Promise<{ updated: number }> {
     const touched = new Set<number>();
     for (const id of ids) {
       const collectionId = await this.collectionIdOfPlace(id);
@@ -1113,13 +1251,25 @@ export class CollectionsService {
   private async matchingCollectionPlaces(
     collectionIds: number[],
     tripId: number,
-    place: { id: number; lat: number | null; lng: number | null; google_place_id: string | null; google_ftid: string | null; osm_id: string | null },
+    place: {
+      id: number;
+      lat: number | null;
+      lng: number | null;
+      google_place_id: string | null;
+      google_ftid: string | null;
+      osm_id: string | null;
+    },
   ): Promise<Array<{ id: number }>> {
     return this.collectionPlaces.matchingByTripSource(collectionIds, tripId, place, COORD_DEDUP_TOLERANCE);
   }
 
   /** Set (or clear) a saved place's custom thumbnail, reclaiming the previous upload. */
-  async setPlaceImage(userId: number, placeId: number, imageUrl: string | null, socketId?: string): Promise<CollectionPlace> {
+  async setPlaceImage(
+    userId: number,
+    placeId: number,
+    imageUrl: string | null,
+    socketId?: string,
+  ): Promise<CollectionPlace> {
     const collectionId = await this.collectionIdOfPlace(placeId);
     await this.assertCanEdit(userId, collectionId);
     const prev = (await this.collectionPlaces.imageUrl(placeId)) ?? null;
@@ -1133,7 +1283,10 @@ export class CollectionsService {
   // Copy to trip
   // -------------------------------------------------------------------------
 
-  async copyToTrip(userId: number, body: CollectionCopyToTripRequest): Promise<{ copied: number; skipped: { id: number; name: string }[] }> {
+  async copyToTrip(
+    userId: number,
+    body: CollectionCopyToTripRequest,
+  ): Promise<{ copied: number; skipped: { id: number; name: string }[] }> {
     // R6's OPPOSITE order from `savePlace`: trip access (AP6, this method's own
     // entry guard) FIRST, then the `place_edit` permission check SECOND — each
     // method preserves its OWN legacy order independently, never forced to match.
@@ -1176,10 +1329,20 @@ export class CollectionsService {
     // The whole copy is one logical write — atomic since the post-fold quirk pass.
     await this.uow.transactional(async () => {
       for (const s of sources) {
-        if (!body.force && isPlaceDuplicate({
-          name: s.name, lat: s.lat, lng: s.lng,
-          google_place_id: s.google_place_id, google_ftid: s.google_ftid, osm_id: s.osm_id,
-        }, dedup)) {
+        if (
+          !body.force &&
+          isPlaceDuplicate(
+            {
+              name: s.name,
+              lat: s.lat,
+              lng: s.lng,
+              google_place_id: s.google_place_id,
+              google_ftid: s.google_ftid,
+              osm_id: s.osm_id,
+            },
+            dedup,
+          )
+        ) {
           skipped.push({ id: s.id, name: s.name });
           continue;
         }
@@ -1187,10 +1350,22 @@ export class CollectionsService {
         // permission checks above (the cross-tenant guard: a caller who can see
         // the collection place but not the target trip never reaches this write).
         const newPlaceId = await this.tripPlaces.insertFromCollectionPlace({
-          trip_id: body.trip_id, name: s.name, description: s.description, lat: s.lat, lng: s.lng,
-          address: s.address, category_id: s.category_id, price: s.price, currency: s.currency,
-          notes: s.notes, image_url: s.image_url, google_place_id: s.google_place_id, google_ftid: s.google_ftid,
-          website: s.website, phone: s.phone, osm_id: s.osm_id,
+          trip_id: body.trip_id,
+          name: s.name,
+          description: s.description,
+          lat: s.lat,
+          lng: s.lng,
+          address: s.address,
+          category_id: s.category_id,
+          price: s.price,
+          currency: s.currency,
+          notes: s.notes,
+          image_url: s.image_url,
+          google_place_id: s.google_place_id,
+          google_ftid: s.google_ftid,
+          website: s.website,
+          phone: s.phone,
+          osm_id: s.osm_id,
         });
         const tagIds = await this.collectionPlaces.tagIdsFor(s.id);
         await this.tags.insertIgnore(newPlaceId, tagIds);
@@ -1198,7 +1373,8 @@ export class CollectionsService {
         // collection voter who isn't on the trip stays out of it. Trip members keep
         // voting there; nothing is mirrored back.
         const votes = await this.collectionPlaceRatings.listForPlace(s.id);
-        for (const v of votes) if (tripMemberIds.has(v.user_id)) await this.tripPlaceRatings.insertIgnore(newPlaceId, v.user_id, v.rating);
+        for (const v of votes)
+          if (tripMemberIds.has(v.user_id)) await this.tripPlaceRatings.insertIgnore(newPlaceId, v.user_id, v.rating);
 
         trackInsertedInDedupSet(s, dedup);
         copied++;
@@ -1248,14 +1424,18 @@ export class CollectionsService {
   async notifyCollectionUsers(
     collectionId: number,
     excludeSid: string | undefined,
-    event: 'collections:updated' | 'collections:accepted' | 'collections:declined' | 'collections:left' = 'collections:updated',
+    event:
+      | 'collections:updated'
+      | 'collections:accepted'
+      | 'collections:declined'
+      | 'collections:left' = 'collections:updated',
   ): Promise<void> {
     const ownerId = await this.collectionsRepo.ownerId(collectionId);
     if (ownerId === undefined) return;
     const userIds = [ownerId];
     const members = await this.members.acceptedUserIds(collectionId);
-    members.forEach(id => userIds.push(id));
-    userIds.forEach(id => this.realtime.broadcastToUser(id, { type: event, collectionId }, excludeSid));
+    members.forEach((id) => userIds.push(id));
+    userIds.forEach((id) => this.realtime.broadcastToUser(id, { type: event, collectionId }, excludeSid));
   }
 
   // -------------------------------------------------------------------------
@@ -1278,26 +1458,43 @@ export class CollectionsService {
   private async setPlaceLabels(placeId: number, collectionId: number, labelIds: number[]): Promise<void> {
     await this.collectionPlaces.deleteLabelAssignments(placeId);
     if (labelIds.length === 0) return;
-    const valid = new Set((await this.loadLabelsByCollection(collectionId)).map(l => l.id));
+    const valid = new Set((await this.loadLabelsByCollection(collectionId)).map((l) => l.id));
     for (const id of labelIds) if (valid.has(id)) await this.collectionsRepo.assignPlaceLabel(placeId, id);
   }
 
-  async createLabel(userId: number, collectionId: number, name: string, color?: string, socketId?: string): Promise<CollectionLabel> {
+  async createLabel(
+    userId: number,
+    collectionId: number,
+    name: string,
+    color?: string,
+    socketId?: string,
+  ): Promise<CollectionLabel> {
     await this.assertCanEdit(userId, collectionId);
     const trimmed = name.trim();
     if (!trimmed) httpError(400, 'Label name is required');
     const count = await this.labels.countByCollection(collectionId);
-    if (count >= MAX_LABELS_PER_COLLECTION) httpError(400, `A list can have at most ${MAX_LABELS_PER_COLLECTION} labels`);
+    if (count >= MAX_LABELS_PER_COLLECTION)
+      httpError(400, `A list can have at most ${MAX_LABELS_PER_COLLECTION} labels`);
     if (await this.labels.nameExists(collectionId, trimmed)) {
       httpError(409, 'A label with this name already exists');
     }
     const nextSort = (await this.labels.maxSortOrder(collectionId)) + 1;
-    const newId = await this.labels.insertLabel({ collection_id: collectionId, name: trimmed, color: color ?? '#6366f1', sort_order: nextSort });
+    const newId = await this.labels.insertLabel({
+      collection_id: collectionId,
+      name: trimmed,
+      color: color ?? '#6366f1',
+      sort_order: nextSort,
+    });
     await this.notifyCollectionUsers(collectionId, socketId, 'collections:updated');
     return this.getLabelById(newId);
   }
 
-  async updateLabel(userId: number, labelId: number, body: { name?: string; color?: string; sort_order?: number }, socketId?: string): Promise<CollectionLabel> {
+  async updateLabel(
+    userId: number,
+    labelId: number,
+    body: { name?: string; color?: string; sort_order?: number },
+    socketId?: string,
+  ): Promise<CollectionLabel> {
     const collectionId = await this.collectionIdOfLabel(labelId);
     await this.assertCanEdit(userId, collectionId);
     const write: Parameters<CollectionLabelsRepository['updateFields']>[1] = {};
@@ -1326,7 +1523,13 @@ export class CollectionsService {
   /** Bulk add (or remove) one or more labels across a selection of places.
    *  Places are grouped by list so each list is permission-checked once, and only
    *  labels that belong to that list are applied. */
-  async assignLabels(userId: number, labelIds: number[], placeIds: number[], remove: boolean, socketId?: string): Promise<{ changed: number }> {
+  async assignLabels(
+    userId: number,
+    labelIds: number[],
+    placeIds: number[],
+    remove: boolean,
+    socketId?: string,
+  ): Promise<{ changed: number }> {
     const byCollection = new Map<number, number[]>();
     for (const pid of placeIds) {
       const cid = await this.collectionIdOfPlace(pid);
@@ -1343,13 +1546,15 @@ export class CollectionsService {
     const notified: number[] = [];
     await this.uow.transactional(async () => {
       for (const [cid, pids] of byCollection) {
-        const valid = new Set((await this.loadLabelsByCollection(cid)).map(l => l.id));
-        const applicable = labelIds.filter(id => valid.has(id));
+        const valid = new Set((await this.loadLabelsByCollection(cid)).map((l) => l.id));
+        const applicable = labelIds.filter((id) => valid.has(id));
         if (applicable.length === 0) continue;
         if (remove) {
-          for (const pid of pids) for (const lid of applicable) changed += await this.collectionPlaces.unassignLabel(pid, lid);
+          for (const pid of pids)
+            for (const lid of applicable) changed += await this.collectionPlaces.unassignLabel(pid, lid);
         } else {
-          for (const pid of pids) for (const lid of applicable) changed += await this.collectionPlaces.assignLabel(pid, lid);
+          for (const pid of pids)
+            for (const lid of applicable) changed += await this.collectionPlaces.assignLabel(pid, lid);
         }
         notified.push(cid);
       }
@@ -1363,7 +1568,11 @@ export class CollectionsService {
   // -------------------------------------------------------------------------
 
   async sendInvite(
-    collectionId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number,
+    collectionId: number,
+    inviterId: number,
+    inviterUsername: string,
+    inviterEmail: string,
+    targetUserId: number,
     role: 'viewer' | 'editor' | 'admin' = 'editor',
   ): Promise<{ error?: string; status?: number }> {
     if (!(await this.isOwner(inviterId, collectionId))) return { error: 'Not allowed', status: 403 };
@@ -1380,18 +1589,34 @@ export class CollectionsService {
 
     await this.members.insertInvite(collectionId, targetUserId, role);
 
-    this.realtime.broadcastToUser(targetUserId, { type: 'collections:invite', from: { id: inviterId, username: inviterUsername }, collectionId });
+    this.realtime.broadcastToUser(targetUserId, {
+      type: 'collections:invite',
+      from: { id: inviterId, username: inviterUsername },
+      collectionId,
+    });
 
     // Injected, not a lazy import of the old notifications bridge. The laziness bought
     // nothing the module graph does not already give — NotificationsModule
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
-    this.notifications.send({ event: 'collection_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterEmail, collectionId: String(collectionId) } }).catch(() => {});
+    this.notifications
+      .send({
+        event: 'collection_invite',
+        actorId: inviterId,
+        scope: 'user',
+        targetId: targetUserId,
+        params: { actor: inviterEmail, collectionId: String(collectionId) },
+      })
+      .catch(() => {});
 
     return {};
   }
 
-  async acceptInvite(userId: number, collectionId: number, socketId: string | undefined): Promise<{ error?: string; status?: number }> {
+  async acceptInvite(
+    userId: number,
+    collectionId: number,
+    socketId: string | undefined,
+  ): Promise<{ error?: string; status?: number }> {
     const inviteId = await this.members.findPendingInvite(collectionId, userId);
     if (inviteId === undefined) return { error: 'No pending invite', status: 404 };
     await this.members.accept(inviteId);
@@ -1427,7 +1652,12 @@ export class CollectionsService {
   }
 
   /** Owner changes an accepted member's permission role (viewer/editor/admin). */
-  async setMemberRole(ownerId: number, collectionId: number, targetUserId: number, role: 'viewer' | 'editor' | 'admin'): Promise<void> {
+  async setMemberRole(
+    ownerId: number,
+    collectionId: number,
+    targetUserId: number,
+    role: 'viewer' | 'editor' | 'admin',
+  ): Promise<void> {
     if (!(await this.isOwner(ownerId, collectionId))) httpError(403, 'Not allowed');
     const changed = await this.members.setRole(collectionId, targetUserId, role);
     if (changed === 0) httpError(404, 'Member not found');
@@ -1439,7 +1669,10 @@ export class CollectionsService {
     return this.members.availableUsers(ownerId, collectionId);
   }
 
-  async findMembershipForUser(userId: number, collectionId: number): Promise<{ is_member: boolean; is_owner: boolean; status: string | null }> {
+  async findMembershipForUser(
+    userId: number,
+    collectionId: number,
+  ): Promise<{ is_member: boolean; is_owner: boolean; status: string | null }> {
     if (await this.isOwner(userId, collectionId)) return { is_member: true, is_owner: true, status: 'accepted' };
     const status = await this.members.statusFor(collectionId, userId);
     return { is_member: status === 'accepted', is_owner: false, status: status ?? null };

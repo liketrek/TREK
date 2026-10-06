@@ -1,19 +1,26 @@
-import type Database from 'better-sqlite3';
-import { sharedTestOrm, createTestReservationsRepo, createTestPlacesRepo, createTestTripsRepo, createTestTripMembersRepo } from './test-uow';
-import { createTestBudgetItemsRepo } from './files-repos';
-import { BudgetItemMembers } from '../../src/db/entities/BudgetItemMembers.entity';
-import type { BudgetItemMembersRepository } from '../../src/db/repositories/BudgetItemMembers.repository';
-import { BudgetItemPayers } from '../../src/db/entities/BudgetItemPayers.entity';
-import type { BudgetItemPayersRepository } from '../../src/db/repositories/BudgetItemPayers.repository';
-import { BudgetSettlements } from '../../src/db/entities/BudgetSettlements.entity';
-import type { BudgetSettlementsRepository } from '../../src/db/repositories/BudgetSettlements.repository';
 import { BudgetCategoryOrder } from '../../src/db/entities/BudgetCategoryOrder.entity';
+import { BudgetItemMembers } from '../../src/db/entities/BudgetItemMembers.entity';
+import { BudgetItemPayers } from '../../src/db/entities/BudgetItemPayers.entity';
+import { BudgetSettlements } from '../../src/db/entities/BudgetSettlements.entity';
 import type { BudgetCategoryOrderRepository } from '../../src/db/repositories/BudgetCategoryOrder.repository';
+import type { BudgetItemMembersRepository } from '../../src/db/repositories/BudgetItemMembers.repository';
+import type { BudgetItemPayersRepository } from '../../src/db/repositories/BudgetItemPayers.repository';
 import type { BudgetItemsRepository } from '../../src/db/repositories/BudgetItems.repository';
-import type { ReservationsRepository } from '../../src/db/repositories/Reservations.repository';
+import type { BudgetSettlementsRepository } from '../../src/db/repositories/BudgetSettlements.repository';
 import type { PlacesRepository } from '../../src/db/repositories/Places.repository';
-import type { TripsRepository } from '../../src/db/repositories/Trips.repository';
+import type { ReservationsRepository } from '../../src/db/repositories/Reservations.repository';
 import type { TripMembersRepository } from '../../src/db/repositories/TripMembers.repository';
+import type { TripsRepository } from '../../src/db/repositories/Trips.repository';
+import { createTestBudgetItemsRepo } from './files-repos';
+import {
+  sharedTestOrm,
+  createTestReservationsRepo,
+  createTestPlacesRepo,
+  createTestTripsRepo,
+  createTestTripMembersRepo,
+} from './test-uow';
+
+import type Database from 'better-sqlite3';
 
 /**
  * Plan 3e Task 2 (budget) test-only repository factories, bound to a suite's
@@ -54,10 +61,21 @@ export function createTestBudgetCategoryOrderRepo(db: Database.Database): Promis
  * `new BudgetService(...)` test call site spreads this
  * (`...(await budgetRepoArgs(conn))`) instead of repeating all 9 factories.
  */
-export async function budgetRepoArgs(db: Database.Database): Promise<[
-  BudgetItemsRepository, BudgetItemMembersRepository, BudgetItemPayersRepository, BudgetSettlementsRepository,
-  BudgetCategoryOrderRepository, ReservationsRepository, PlacesRepository, TripsRepository, TripMembersRepository,
-]> {
+export async function budgetRepoArgs(
+  db: Database.Database,
+): Promise<
+  [
+    BudgetItemsRepository,
+    BudgetItemMembersRepository,
+    BudgetItemPayersRepository,
+    BudgetSettlementsRepository,
+    BudgetCategoryOrderRepository,
+    ReservationsRepository,
+    PlacesRepository,
+    TripsRepository,
+    TripMembersRepository,
+  ]
+> {
   return [
     await createTestBudgetItemsRepo(db),
     await createTestBudgetItemMembersRepo(db),

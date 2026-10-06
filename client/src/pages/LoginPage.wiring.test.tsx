@@ -5,11 +5,11 @@
 // directly, which is the only way to reach the states the hook rarely produces
 // (OIDC-only, passkeys, forced password change) and the presentation handlers.
 import React from 'react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '../../tests/helpers/render';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { useSettingsStore } from '../store/settingsStore';
 import { SUPPORTED_LANGUAGES } from '../i18n';
+import { useSettingsStore } from '../store/settingsStore';
 import LoginPage from './LoginPage';
 import { useLogin } from './login/useLogin';
 
@@ -134,7 +134,7 @@ describe('LoginPage — language switcher', () => {
     renderPage();
     const { before, hovered, after } = hoverRoundTrip(
       screen.getByRole('button', { name: 'Change language' }),
-      'background',
+      'background'
     );
 
     expect(hovered).not.toBe(before);
@@ -207,7 +207,7 @@ describe('LoginPage — OIDC-only mode', () => {
     // No switch in OIDC-only mode: the link always asks for the remembered lifetime.
     expect(link).toHaveAttribute('href', '/api/auth/oidc/login?remember=1');
     expect(
-      screen.getByText('Password authentication is disabled. Please sign in using your SSO provider.'),
+      screen.getByText('Password authentication is disabled. Please sign in using your SSO provider.')
     ).toBeInTheDocument();
   });
 
@@ -218,13 +218,11 @@ describe('LoginPage — OIDC-only mode', () => {
     fixture.error = 'Invalid session. Please try again.';
     renderPage();
 
-    expect(
-      screen.getByText('You have been logged out. Sign in again using your SSO provider.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('You have been logged out. Sign in again using your SSO provider.')).toBeInTheDocument();
     expect(screen.getByText('Invalid session. Please try again.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /sign in with sso/i })).toHaveAttribute(
       'href',
-      '/api/auth/oidc/login?invite=inv%2F42&remember=1',
+      '/api/auth/oidc/login?invite=inv%2F42&remember=1'
     );
   });
 
@@ -234,7 +232,7 @@ describe('LoginPage — OIDC-only mode', () => {
 
     const { before, hovered, after } = hoverRoundTrip(
       screen.getByRole('link', { name: /sign in with sso/i }),
-      'background',
+      'background'
     );
     expect(hovered).not.toBe(before);
     expect(after).toBe(before);
@@ -248,7 +246,9 @@ describe('LoginPage — password form', () => {
     expect(input).toHaveAttribute('type', 'password');
 
     const buttons = screen.getAllByRole('button');
-    const toggle = buttons.find((b) => b.getAttribute('type') === 'button' && b.querySelector('svg') && b.style.right === '12px')!;
+    const toggle = buttons.find(
+      (b) => b.getAttribute('type') === 'button' && b.querySelector('svg') && b.style.right === '12px'
+    )!;
     fireEvent.click(toggle);
 
     const updater = vi.mocked(fixture.setShowPassword).mock.calls[0][0] as (v: boolean) => boolean;
@@ -309,7 +309,7 @@ describe('LoginPage — password form', () => {
     expect(screen.getByText("Login won't stick over HTTP")).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /troubleshooting/i })).toHaveAttribute(
       'href',
-      'https://github.com/liketrek/TREK/wiki/Troubleshooting',
+      'https://github.com/liketrek/TREK/wiki/Troubleshooting'
     );
   });
 });
@@ -440,14 +440,18 @@ describe('LoginPage — alternative sign-in buttons', () => {
     fixture.appConfig.oidc_display_name = 'Keycloak';
     fixture.rememberMe = true;
     renderPage();
-    expect(screen.getByRole('link', { name: /sign in with keycloak/i }))
-      .toHaveAttribute('href', '/api/auth/oidc/login?remember=1');
+    expect(screen.getByRole('link', { name: /sign in with keycloak/i })).toHaveAttribute(
+      'href',
+      '/api/auth/oidc/login?remember=1'
+    );
 
     cleanup();
     fixture.mode = 'register';
     renderPage();
-    expect(screen.getByRole('link', { name: /sign in with keycloak/i }))
-      .toHaveAttribute('href', '/api/auth/oidc/login');
+    expect(screen.getByRole('link', { name: /sign in with keycloak/i })).toHaveAttribute(
+      'href',
+      '/api/auth/oidc/login'
+    );
   });
 
   it('FE-LOGIN-WIRE-027: the passkey button signs in and reacts to hover', () => {

@@ -207,7 +207,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.manualAppend': 'Nothing has routed yet, so it goes at the end of day {number}.',
   'roadtrip.poi.manualNoResults': 'No places found.',
   'roadtrip.poi.manualNoCoords':
-    'Without a position this goes to the trip\'s places rather than onto a drive. Pick one from the search above, or fill in the coordinates.',
+    "Without a position this goes to the trip's places rather than onto a drive. Pick one from the search above, or fill in the coordinates.",
   'roadtrip.summary.distance': 'Distance',
   'roadtrip.summary.driving': 'Driving time',
   'roadtrip.alt.ask': 'Other ways',
@@ -277,7 +277,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.summary.partial': 'Still working out the rest of the drive',
   'roadtrip.stay.releaseTitle': 'Drop the overnight stay?',
   'roadtrip.stay.releaseBody': 'The night at “{name}” will be removed. The stop stays on the drive as a pause.',
-  'roadtrip.stay.releaseBookedBody': 'The night at “{name}” will be removed together with the booking “{booking}” and any expense linked to it. The stop stays on the drive as a pause.',
+  'roadtrip.stay.releaseBookedBody':
+    'The night at “{name}” will be removed together with the booking “{booking}” and any expense linked to it. The stop stays on the drive as a pause.',
   'roadtrip.stay.releaseAction': 'Make it a pause',
   'roadtrip.ride.departure': 'Departure {time}',
   'roadtrip.ride.arrival': 'Arrival {time}',

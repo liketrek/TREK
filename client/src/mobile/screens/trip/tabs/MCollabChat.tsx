@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { ArrowUp, ChevronUp, ImagePlus, Loader2, Reply, Trash2 } from 'lucide-react'
-import MDancingTrek from '../../../components/MDancingTrek'
-import { useChatImages, MAX_CHAT_IMAGES } from '../../../../components/Collab/useChatImages'
-import { collabApi } from '../../../../api/client'
-import { addListener, removeListener } from '../../../../api/websocket'
-import { useAuthStore } from '../../../../store/authStore'
-import { useTranslation } from '../../../../i18n'
-import type { TripPlanner } from '../MTripShell'
+import { ArrowUp, ChevronUp, ImagePlus, Loader2, Reply, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { collabApi } from '../../../../api/client';
+import { addListener, removeListener } from '../../../../api/websocket';
+import { MAX_CHAT_IMAGES, useChatImages } from '../../../../components/Collab/useChatImages';
+import { useTranslation } from '../../../../i18n';
+import { useAuthStore } from '../../../../store/authStore';
+import MDancingTrek from '../../../components/MDancingTrek';
+import type { TripPlanner } from '../MTripShell';
 import {
   OTHER_BUBBLE_RADIUS,
   OWN_BUBBLE_RADIUS,
@@ -19,26 +19,32 @@ import {
   shouldShowChatDateSeparator,
   type ChatMessage,
   type ChatReaction,
-} from './collabModel'
+} from './collabModel';
 
-const PAGE_SIZE = 100
-const LONG_PRESS_MS = 500
-const DOUBLE_TAP_MS = 300
-const MOVE_CANCEL_PX = 10
-const POPOVER_WIDTH = 224
+const PAGE_SIZE = 100;
+const LONG_PRESS_MS = 500;
+const DOUBLE_TAP_MS = 300;
+const MOVE_CANCEL_PX = 10;
+const POPOVER_WIDTH = 224;
 // Emoji grid + reply row, plus the delete row when it is shown — used to keep
 // the popover inside the viewport.
-const POPOVER_HEIGHT = 150
-const POPOVER_DELETE_ROW = 37
-const POPOVER_MARGIN = 8
+const POPOVER_HEIGHT = 150;
+const POPOVER_DELETE_ROW = 37;
+const POPOVER_MARGIN = 8;
 
 interface MCollabChatProps {
-  planner: TripPlanner
+  planner: TripPlanner;
 }
 
-interface GetMessagesResponse { messages: ChatMessage[] }
-interface SendMessageResponse { message: ChatMessage }
-interface ReactMessageResponse { reactions: ChatReaction[] }
+interface GetMessagesResponse {
+  messages: ChatMessage[];
+}
+interface SendMessageResponse {
+  message: ChatMessage;
+}
+interface ReactMessageResponse {
+  reactions: ChatReaction[];
+}
 
 /**
  * Trip-tab Collab / Chat. Owns its own state + WebSocket listener per the
@@ -50,180 +56,198 @@ interface ReactMessageResponse { reactions: ChatReaction[] }
  * flex-column, not TabScroller, so the composer can sit flush above the dock.
  */
 export default function MCollabChat({ planner }: MCollabChatProps) {
-  const { t, tripId, toast } = planner
-  const { locale } = useTranslation()
-  const { user } = useAuthStore()
-  const canEdit = planner.can('collab_edit', planner.trip)
-  const is12h = planner.settings.time_format === '12h'
-  const currentUserId = user?.id ?? null
+  const { t, tripId, toast } = planner;
+  const { locale } = useTranslation();
+  const { user } = useAuthStore();
+  const canEdit = planner.can('collab_edit', planner.trip);
+  const is12h = planner.settings.time_format === '12h';
+  const currentUserId = user?.id ?? null;
 
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [loading, setLoading] = useState(true)
-  const [hasMore, setHasMore] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [text, setText] = useState('')
-  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
-  const [sending, setSending] = useState(false)
-  const images = useChatImages()
-  const [popover, setPopover] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [text, setText] = useState('');
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [sending, setSending] = useState(false);
+  const images = useChatImages();
+  const [popover, setPopover] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null);
 
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const imageInputRef = useRef<HTMLInputElement>(null)
-  const isAtBottomRef = useRef(true)
-  const messagesRef = useRef<ChatMessage[]>([])
-  messagesRef.current = messages
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const isAtBottomRef = useRef(true);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  messagesRef.current = messages;
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
-    const el = scrollRef.current
-    if (!el) return
-    requestAnimationFrame(() => el.scrollTo({ top: el.scrollHeight, behavior }))
-  }, [])
+    const el = scrollRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => el.scrollTo({ top: el.scrollHeight, behavior }));
+  }, []);
 
   const checkAtBottom = useCallback(() => {
-    const el = scrollRef.current
-    if (!el) return
-    isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48
-  }, [])
+    const el = scrollRef.current;
+    if (!el) return;
+    isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+  }, []);
 
   // ── Initial load ──
   useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    collabApi.getMessages(tripId).then((data: GetMessagesResponse) => {
-      if (cancelled) return
-      const msgs = (data.messages || []).map(m => (m.deleted ? { ...m, _deleted: true } : m))
-      setMessages(msgs)
-      setHasMore(msgs.length >= PAGE_SIZE)
-      setLoading(false)
-      setTimeout(() => scrollToBottom(), 30)
-    }).catch(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [tripId, scrollToBottom])
+    let cancelled = false;
+    setLoading(true);
+    collabApi
+      .getMessages(tripId)
+      .then((data: GetMessagesResponse) => {
+        if (cancelled) return;
+        const msgs = (data.messages || []).map((m) => (m.deleted ? { ...m, _deleted: true } : m));
+        setMessages(msgs);
+        setHasMore(msgs.length >= PAGE_SIZE);
+        setLoading(false);
+        setTimeout(() => scrollToBottom(), 30);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tripId, scrollToBottom]);
 
   // ── WebSocket (own listener, not handleRemoteEvent — collab has no store slice) ──
   useEffect(() => {
     const handler = (event: Record<string, unknown>) => {
-      if (String(event.tripId) !== String(tripId)) return
+      if (String(event.tripId) !== String(tripId)) return;
       if (event.type === 'collab:message:created') {
-        const message = event.message as ChatMessage
-        setMessages(prev => (prev.some(m => m.id === message.id) ? prev : [...prev, message]))
-        if (isAtBottomRef.current) setTimeout(() => scrollToBottom('smooth'), 30)
+        const message = event.message as ChatMessage;
+        setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+        if (isAtBottomRef.current) setTimeout(() => scrollToBottom('smooth'), 30);
       }
       if (event.type === 'collab:message:deleted') {
-        const messageId = event.messageId as number
-        setMessages(prev => prev.map(m => (m.id === messageId ? { ...m, _deleted: true } : m)))
+        const messageId = event.messageId as number;
+        setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, _deleted: true } : m)));
       }
       if (event.type === 'collab:message:reacted') {
-        const messageId = event.messageId as number
-        const reactions = event.reactions as ChatReaction[]
-        setMessages(prev => prev.map(m => (m.id === messageId ? { ...m, reactions } : m)))
+        const messageId = event.messageId as number;
+        const reactions = event.reactions as ChatReaction[];
+        setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)));
       }
-    }
-    addListener(handler)
-    return () => removeListener(handler)
-  }, [tripId, scrollToBottom])
+    };
+    addListener(handler);
+    return () => removeListener(handler);
+  }, [tripId, scrollToBottom]);
 
   const handleLoadMore = useCallback(async () => {
-    const current = messagesRef.current
-    if (loadingMore || current.length === 0) return
-    setLoadingMore(true)
-    const el = scrollRef.current
-    const prevHeight = el ? el.scrollHeight : 0
+    const current = messagesRef.current;
+    if (loadingMore || current.length === 0) return;
+    setLoadingMore(true);
+    const el = scrollRef.current;
+    const prevHeight = el ? el.scrollHeight : 0;
     try {
-      const beforeId = current[0]?.id
-      const data = (await collabApi.getMessages(tripId, beforeId != null ? String(beforeId) : undefined)) as GetMessagesResponse
-      const older = (data.messages || []).map(m => (m.deleted ? { ...m, _deleted: true } : m))
+      const beforeId = current[0]?.id;
+      const data = (await collabApi.getMessages(
+        tripId,
+        beforeId != null ? String(beforeId) : undefined
+      )) as GetMessagesResponse;
+      const older = (data.messages || []).map((m) => (m.deleted ? { ...m, _deleted: true } : m));
       if (older.length === 0) {
-        setHasMore(false)
+        setHasMore(false);
       } else {
-        setMessages(prev => [...older, ...prev])
-        setHasMore(older.length >= PAGE_SIZE)
-        requestAnimationFrame(() => { if (el) el.scrollTop = el.scrollHeight - prevHeight })
+        setMessages((prev) => [...older, ...prev]);
+        setHasMore(older.length >= PAGE_SIZE);
+        requestAnimationFrame(() => {
+          if (el) el.scrollTop = el.scrollHeight - prevHeight;
+        });
       }
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     } finally {
-      setLoadingMore(false)
+      setLoadingMore(false);
     }
-  }, [tripId, loadingMore, toast, t])
+  }, [tripId, loadingMore, toast, t]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value)
-    const ta = textareaRef.current
+    setText(e.target.value);
+    const ta = textareaRef.current;
     if (ta) {
-      ta.style.height = 'auto'
-      const h = Math.min(ta.scrollHeight, 100)
-      ta.style.height = `${h}px`
-      ta.style.overflowY = ta.scrollHeight > 100 ? 'auto' : 'hidden'
+      ta.style.height = 'auto';
+      const h = Math.min(ta.scrollHeight, 100);
+      ta.style.height = `${h}px`;
+      ta.style.overflowY = ta.scrollHeight > 100 ? 'auto' : 'hidden';
     }
-  }
+  };
 
   const addImageFiles = (incoming: FileList | File[]) => {
     images.add(incoming, ({ rejected, overflow }) => {
-      if (rejected) toast.error(t('collab.chat.imageRejected'))
-      if (overflow) toast.error(t('collab.chat.imageLimit', { max: MAX_CHAT_IMAGES }))
-    })
-  }
+      if (rejected) toast.error(t('collab.chat.imageRejected'));
+      if (overflow) toast.error(t('collab.chat.imageLimit', { max: MAX_CHAT_IMAGES }));
+    });
+  };
 
   const handleSend = useCallback(async () => {
-    const body = text.trim()
-    if ((!body && !images.files.length) || sending || !canEdit) return
-    setSending(true)
+    const body = text.trim();
+    if ((!body && !images.files.length) || sending || !canEdit) return;
+    setSending(true);
     try {
-      let data: SendMessageResponse
+      let data: SendMessageResponse;
       if (images.files.length) {
-        const form = new FormData()
-        if (body) form.append('text', body)
-        if (replyTo) form.append('reply_to', String(replyTo.id))
-        images.files.forEach(file => form.append('images', file))
-        data = (await collabApi.sendMessage(tripId, form)) as SendMessageResponse
+        const form = new FormData();
+        if (body) form.append('text', body);
+        if (replyTo) form.append('reply_to', String(replyTo.id));
+        images.files.forEach((file) => form.append('images', file));
+        data = (await collabApi.sendMessage(tripId, form)) as SendMessageResponse;
       } else {
-        const payload: { text: string; reply_to?: number } = { text: body }
-        if (replyTo) payload.reply_to = replyTo.id
-        data = (await collabApi.sendMessage(tripId, payload)) as SendMessageResponse
+        const payload: { text: string; reply_to?: number } = { text: body };
+        if (replyTo) payload.reply_to = replyTo.id;
+        data = (await collabApi.sendMessage(tripId, payload)) as SendMessageResponse;
       }
       if (data.message) {
-        setMessages(prev => (prev.some(m => m.id === data.message.id) ? prev : [...prev, data.message]))
+        setMessages((prev) => (prev.some((m) => m.id === data.message.id) ? prev : [...prev, data.message]));
       }
-      setText('')
-      setReplyTo(null)
-      images.clear()
-      if (textareaRef.current) textareaRef.current.style.height = 'auto'
-      isAtBottomRef.current = true
-      setTimeout(() => scrollToBottom('smooth'), 50)
+      setText('');
+      setReplyTo(null);
+      images.clear();
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
+      isAtBottomRef.current = true;
+      setTimeout(() => scrollToBottom('smooth'), 50);
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     } finally {
-      setSending(false)
+      setSending(false);
     }
-  }, [text, sending, canEdit, replyTo, tripId, scrollToBottom, toast, t, images])
+  }, [text, sending, canEdit, replyTo, tripId, scrollToBottom, toast, t, images]);
 
-  const handleDelete = useCallback(async (msgId: number) => {
-    setPopover(null)
-    try {
-      await collabApi.deleteMessage(tripId, msgId)
-      setMessages(prev => prev.map(m => (m.id === msgId ? { ...m, _deleted: true } : m)))
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }, [tripId, toast, t])
+  const handleDelete = useCallback(
+    async (msgId: number) => {
+      setPopover(null);
+      try {
+        await collabApi.deleteMessage(tripId, msgId);
+        setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, _deleted: true } : m)));
+      } catch {
+        toast.error(t('common.error'));
+      }
+    },
+    [tripId, toast, t]
+  );
 
-  const handleReact = useCallback(async (msgId: number, emoji: string) => {
-    setPopover(null)
-    try {
-      const data = (await collabApi.reactMessage(tripId, msgId, emoji)) as ReactMessageResponse
-      setMessages(prev => prev.map(m => (m.id === msgId ? { ...m, reactions: data.reactions } : m)))
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }, [tripId, toast, t])
+  const handleReact = useCallback(
+    async (msgId: number, emoji: string) => {
+      setPopover(null);
+      try {
+        const data = (await collabApi.reactMessage(tripId, msgId, emoji)) as ReactMessageResponse;
+        setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, reactions: data.reactions } : m)));
+      } catch {
+        toast.error(t('common.error'));
+      }
+    },
+    [tripId, toast, t]
+  );
 
   const openReply = (msg: ChatMessage) => {
-    setPopover(null)
-    setReplyTo(msg)
-    textareaRef.current?.focus()
-  }
+    setPopover(null);
+    setReplyTo(msg);
+    textareaRef.current?.focus();
+  };
 
   return (
     <div className="flex h-full flex-col px-4 pb-[var(--bottom-nav-h,84px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
@@ -246,18 +270,22 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
                 disabled={loadingMore}
                 className="inline-flex items-center gap-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[5px] font-geist text-[0.6875rem] font-bold text-m-muted"
               >
-                {loadingMore ? <Loader2 size={13} strokeWidth={2.2} className="animate-spin" /> : <ChevronUp size={13} strokeWidth={2.2} />}
+                {loadingMore ? (
+                  <Loader2 size={13} strokeWidth={2.2} className="animate-spin" />
+                ) : (
+                  <ChevronUp size={13} strokeWidth={2.2} />
+                )}
                 {t('collab.chat.loadMore')}
               </button>
             </div>
           )}
 
           {messages.map((msg, idx) => {
-            const prevMsg = messages[idx - 1]
-            const nextMsg = messages[idx + 1]
-            const isNewGroup = !isSameSender(msg, prevMsg) || shouldShowChatDateSeparator(msg, prevMsg)
-            const isLastInGroup = !nextMsg || !isSameSender(msg, nextMsg) || shouldShowChatDateSeparator(nextMsg, msg)
-            const own = currentUserId != null && String(msg.user_id) === String(currentUserId)
+            const prevMsg = messages[idx - 1];
+            const nextMsg = messages[idx + 1];
+            const isNewGroup = !isSameSender(msg, prevMsg) || shouldShowChatDateSeparator(msg, prevMsg);
+            const isLastInGroup = !nextMsg || !isSameSender(msg, nextMsg) || shouldShowChatDateSeparator(nextMsg, msg);
+            const own = currentUserId != null && String(msg.user_id) === String(currentUserId);
 
             return (
               <div key={msg.id}>
@@ -285,11 +313,11 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
                     canEdit={canEdit}
                     t={t}
                     onOpenActions={(x, y) => setPopover({ msg, x, y })}
-                    onReactBadgeTap={emoji => canEdit && handleReact(msg.id, emoji)}
+                    onReactBadgeTap={(emoji) => canEdit && handleReact(msg.id, emoji)}
                   />
                 )}
               </div>
-            )
+            );
           })}
         </div>
       )}
@@ -319,36 +347,60 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
                 {images.previews.map((url, i) => (
                   <div key={url} className="relative">
                     <img src={url} alt="" className="h-14 w-14 rounded-lg object-cover" />
-                    <button type="button" aria-label="Remove image" onClick={() => images.remove(i)} className="absolute -right-1 -top-1 h-4 w-4 rounded-full bg-m-ink text-[10px] text-m-bg">×</button>
+                    <button
+                      type="button"
+                      aria-label="Remove image"
+                      onClick={() => images.remove(i)}
+                      className="text-m-bg absolute -right-1 -top-1 h-4 w-4 rounded-full bg-m-ink text-[10px]"
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
             )}
             <div className="flex items-end gap-2">
-            <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden onChange={e => { if (e.target.files) addImageFiles(e.target.files); e.currentTarget.value = '' }} />
-            <button type="button" aria-label="Attach images" onClick={() => imageInputRef.current?.click()} className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full text-m-muted">
-              <ImagePlus size={18} strokeWidth={2.2} />
-            </button>
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              value={text}
-              onChange={handleTextChange}
-              onPaste={e => { if (e.clipboardData.files.length) addImageFiles(e.clipboardData.files) }}
-              placeholder={t('collab.chat.placeholder')}
-              maxLength={5000}
-              className="max-h-[100px] min-w-0 flex-1 resize-none rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[11px] font-[inherit] text-[0.8125rem] text-m-ink outline-none placeholder:text-m-faint"
-            />
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={(!text.trim() && !images.files.length) || sending}
-              aria-label={t('collab.chat.send')}
-              className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg disabled:opacity-40"
-            >
-              <ArrowUp size={17} strokeWidth={2.4} />
-            </button>
-          </div>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                multiple
+                hidden
+                onChange={(e) => {
+                  if (e.target.files) addImageFiles(e.target.files);
+                  e.currentTarget.value = '';
+                }}
+              />
+              <button
+                type="button"
+                aria-label="Attach images"
+                onClick={() => imageInputRef.current?.click()}
+                className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full text-m-muted"
+              >
+                <ImagePlus size={18} strokeWidth={2.2} />
+              </button>
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                value={text}
+                onChange={handleTextChange}
+                onPaste={(e) => {
+                  if (e.clipboardData.files.length) addImageFiles(e.clipboardData.files);
+                }}
+                placeholder={t('collab.chat.placeholder')}
+                maxLength={5000}
+                className="max-h-[100px] min-w-0 flex-1 resize-none rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[11px] font-[inherit] text-[0.8125rem] text-m-ink outline-none placeholder:text-m-faint"
+              />
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={(!text.trim() && !images.files.length) || sending}
+                aria-label={t('collab.chat.send')}
+                className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg disabled:opacity-40"
+              >
+                <ArrowUp size={17} strokeWidth={2.4} />
+              </button>
+            </div>
           </>
         ) : (
           <div className="rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[11px] text-center font-geist text-[0.75rem] text-m-faint">
@@ -363,90 +415,100 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
           y={popover.y}
           canDeleteOwn={canEdit && currentUserId != null && String(popover.msg.user_id) === String(currentUserId)}
           t={t}
-          onReact={emoji => handleReact(popover.msg.id, emoji)}
+          onReact={(emoji) => handleReact(popover.msg.id, emoji)}
           onReply={() => openReply(popover.msg)}
           onDelete={() => handleDelete(popover.msg.id)}
           onClose={() => setPopover(null)}
         />
       )}
     </div>
-  )
+  );
 }
 
 /* ------------------------------------------------------------------ */
 
-function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, canEdit, t, onOpenActions, onReactBadgeTap }: {
-  msg: ChatMessage
-  own: boolean
-  showHeader: boolean
-  isLastInGroup: boolean
-  marginTop: number
-  is12h: boolean
-  canEdit: boolean
-  t: TripPlanner['t']
-  onOpenActions: (x: number, y: number) => void
-  onReactBadgeTap: (emoji: string) => void
+function ChatBubbleRow({
+  msg,
+  own,
+  showHeader,
+  isLastInGroup,
+  marginTop,
+  is12h,
+  canEdit,
+  t,
+  onOpenActions,
+  onReactBadgeTap,
+}: {
+  msg: ChatMessage;
+  own: boolean;
+  showHeader: boolean;
+  isLastInGroup: boolean;
+  marginTop: number;
+  is12h: boolean;
+  canEdit: boolean;
+  t: TripPlanner['t'];
+  onOpenActions: (x: number, y: number) => void;
+  onReactBadgeTap: (emoji: string) => void;
 }) {
-  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const firedRef = useRef(false)
-  const startRef = useRef({ x: 0, y: 0 })
-  const lastTapRef = useRef(0)
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firedRef = useRef(false);
+  const startRef = useRef({ x: 0, y: 0 });
+  const lastTapRef = useRef(0);
 
   const clearPress = () => {
-    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null }
-  }
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+  };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (!canEdit) return
-    firedRef.current = false
-    startRef.current = { x: e.clientX, y: e.clientY }
+    if (!canEdit) return;
+    firedRef.current = false;
+    startRef.current = { x: e.clientX, y: e.clientY };
     pressTimer.current = setTimeout(() => {
-      firedRef.current = true
-      onOpenActions(e.clientX, e.clientY)
-    }, LONG_PRESS_MS)
-  }
+      firedRef.current = true;
+      onOpenActions(e.clientX, e.clientY);
+    }, LONG_PRESS_MS);
+  };
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!pressTimer.current) return
-    const dx = e.clientX - startRef.current.x
-    const dy = e.clientY - startRef.current.y
-    if (Math.hypot(dx, dy) > MOVE_CANCEL_PX) clearPress()
-  }
+    if (!pressTimer.current) return;
+    const dx = e.clientX - startRef.current.x;
+    const dy = e.clientY - startRef.current.y;
+    if (Math.hypot(dx, dy) > MOVE_CANCEL_PX) clearPress();
+  };
   const onPointerUp = (e: React.PointerEvent) => {
-    if (!canEdit) return
-    const wasLongPress = firedRef.current
-    clearPress()
-    if (wasLongPress) return
-    const now = Date.now()
+    if (!canEdit) return;
+    const wasLongPress = firedRef.current;
+    clearPress();
+    if (wasLongPress) return;
+    const now = Date.now();
     if (now - lastTapRef.current < DOUBLE_TAP_MS) {
-      lastTapRef.current = 0
-      onOpenActions(e.clientX, e.clientY)
+      lastTapRef.current = 0;
+      onOpenActions(e.clientX, e.clientY);
     } else {
-      lastTapRef.current = now
+      lastTapRef.current = now;
     }
-  }
+  };
 
-  const bigEmoji = isEmojiOnlyText(msg.text)
+  const bigEmoji = isEmojiOnlyText(msg.text);
   // A reply to a since-deleted message keeps reply_to but loses the quoted
   // text — no quote box then instead of an empty one.
-  const hasReply = !!msg.reply_text
-  const initial = (msg.username || '?')[0]?.toUpperCase() || '?'
+  const hasReply = !!msg.reply_text;
+  const initial = (msg.username || '?')[0]?.toUpperCase() || '?';
 
   return (
-    <div
-      className={`flex gap-2 ${own ? 'flex-row-reverse pl-10' : 'flex-row pr-10'}`}
-      style={{ marginTop }}
-    >
+    <div className={`flex gap-2 ${own ? 'flex-row-reverse pl-10' : 'flex-row pr-10'}`} style={{ marginTop }}>
       {!own && (
         <div className="w-7 flex-none self-end">
-          {showHeader && (
-            msg.avatar_url ? (
+          {showHeader &&
+            (msg.avatar_url ? (
               <img src={msg.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
             ) : (
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--m-ic)] font-geist text-[0.6875rem] font-bold text-m-muted">
                 {initial}
               </div>
-            )
-          )}
+            ))}
         </div>
       )}
 
@@ -480,8 +542,13 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
                 </div>
               )}
               <span className="whitespace-pre-wrap break-words">{msg.text}</span>
-              {msg.attachments?.map(att => (
-                <img key={att.id} src={att.url} alt={att.original_name || ''} className="mt-2 max-h-52 w-full rounded-[10px] object-cover" />
+              {msg.attachments?.map((att) => (
+                <img
+                  key={att.id}
+                  src={att.url}
+                  alt={att.original_name || ''}
+                  className="mt-2 max-h-52 w-full rounded-[10px] object-cover"
+                />
               ))}
             </div>
           )}
@@ -489,7 +556,7 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
 
         {msg.reactions.length > 0 && (
           <div className="mt-[-4px] flex flex-wrap gap-[3px] px-1">
-            {msg.reactions.map(r => (
+            {msg.reactions.map((r) => (
               <button
                 key={r.emoji}
                 type="button"
@@ -510,33 +577,42 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
         )}
       </div>
     </div>
-  )
+  );
 }
 
-function MessageActionsPopover({ x, y, canDeleteOwn, t, onReact, onReply, onDelete, onClose }: {
-  x: number
-  y: number
-  canDeleteOwn: boolean
-  t: TripPlanner['t']
-  onReact: (emoji: string) => void
-  onReply: () => void
-  onDelete: () => void
-  onClose: () => void
+function MessageActionsPopover({
+  x,
+  y,
+  canDeleteOwn,
+  t,
+  onReact,
+  onReply,
+  onDelete,
+  onClose,
+}: {
+  x: number;
+  y: number;
+  canDeleteOwn: boolean;
+  t: TripPlanner['t'];
+  onReact: (emoji: string) => void;
+  onReply: () => void;
+  onDelete: () => void;
+  onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null)
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const close = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener('pointerdown', close)
-    return () => document.removeEventListener('pointerdown', close)
-  }, [onClose])
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [onClose]);
 
-  const width = POPOVER_WIDTH
-  const left = Math.max(width / 2 + POPOVER_MARGIN, Math.min(x, window.innerWidth - width / 2 - POPOVER_MARGIN))
-  const height = POPOVER_HEIGHT + (canDeleteOwn ? POPOVER_DELETE_ROW : 0)
-  const top = Math.max(64, Math.min(y - 96, window.innerHeight - height - POPOVER_MARGIN))
+  const width = POPOVER_WIDTH;
+  const left = Math.max(width / 2 + POPOVER_MARGIN, Math.min(x, window.innerWidth - width / 2 - POPOVER_MARGIN));
+  const height = POPOVER_HEIGHT + (canDeleteOwn ? POPOVER_DELETE_ROW : 0);
+  const top = Math.max(64, Math.min(y - 96, window.innerHeight - height - POPOVER_MARGIN));
 
   return createPortal(
     <div className="m-root fixed inset-0 z-[55]">
@@ -546,7 +622,7 @@ function MessageActionsPopover({ x, y, canDeleteOwn, t, onReact, onReply, onDele
         className="fixed -translate-x-1/2 rounded-[18px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] p-2 shadow-[0_12px_32px_rgba(0,0,0,.28)]"
       >
         <div className="grid grid-cols-4 gap-1">
-          {QUICK_REACTIONS.map(emoji => (
+          {QUICK_REACTIONS.map((emoji) => (
             <button
               key={emoji}
               type="button"
@@ -578,6 +654,6 @@ function MessageActionsPopover({ x, y, canDeleteOwn, t, onReact, onReply, onDele
         </div>
       </div>
     </div>,
-    document.body,
-  )
+    document.body
+  );
 }

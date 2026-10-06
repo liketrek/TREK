@@ -1,14 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { Readable } from 'node:stream';
-import { XMLParser } from 'fast-xml-parser';
-import type { DocsyncErrorCode } from '@trek/shared';
 import { readCappedJson, readCappedText } from '../../../utils/cappedFetch';
-import {
-  PROVIDER_JSON_MAX_BYTES,
-  PROVIDER_TIMEOUT_MS,
-  PROVIDER_TRANSFER_TIMEOUT_MS,
-} from '../doc-sync.constants';
+import { PROVIDER_JSON_MAX_BYTES, PROVIDER_TIMEOUT_MS, PROVIDER_TRANSFER_TIMEOUT_MS } from '../doc-sync.constants';
 import { DOWNLOAD_MAX_BYTES, guardDownload, providerFetch, statusErrorCode } from './provider-http';
+import { Injectable } from '@nestjs/common';
+import type { DocsyncErrorCode } from '@trek/shared';
+
+import { XMLParser } from 'fast-xml-parser';
+import { Readable } from 'node:stream';
 
 /**
  * HTTP client for Nextcloud and OpenCloud. This is the ONLY place that talks to
@@ -413,8 +410,7 @@ function entryOf(response: Record<string, unknown>, creds: WebdavCreds): WebdavE
     fileId: normalizeFileId(textOf(props.fileid), creds.flavor),
     size: length !== null && length !== '' && Number.isFinite(Number(length)) ? Number(length) : null,
     mimeType: mimeType ? mimeType.split(';')[0].trim() : null,
-    lastModifiedIso:
-      parsedModified && !Number.isNaN(parsedModified.getTime()) ? parsedModified.toISOString() : null,
+    lastModifiedIso: parsedModified && !Number.isNaN(parsedModified.getTime()) ? parsedModified.toISOString() : null,
     sha256: sha256Of(props.checksums),
   };
 }
@@ -435,10 +431,7 @@ function toDrive(value: unknown, prefix: string): WebdavDrive | null {
 
 /** Text content for the PROPPATCH body, which is built as a string rather than parsed back. */
 function escapeXmlText(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 @Injectable()
@@ -458,12 +451,16 @@ export class WebdavClient {
     const headers = new Headers(init.headers);
     headers.set('Authorization', `Basic ${auth}`);
 
-    return providerFetch(`${creds.origin}${path}`, { ...init, headers }, {
-      timeoutMs,
-      allowInsecureTls: creds.allowInsecureTls,
-      onTransportFailure: ({ code, detail }) =>
-        new WebdavError(code, 'Could not reach the WebDAV instance', undefined, detail),
-    });
+    return providerFetch(
+      `${creds.origin}${path}`,
+      { ...init, headers },
+      {
+        timeoutMs,
+        allowInsecureTls: creds.allowInsecureTls,
+        onTransportFailure: ({ code, detail }) =>
+          new WebdavError(code, 'Could not reach the WebDAV instance', undefined, detail),
+      },
+    );
   }
 
   /** The error for a response nobody wanted, with a bounded slice of its body as detail. */
@@ -583,12 +580,7 @@ export class WebdavClient {
     throw await this.failed(response, 'MKCOL');
   }
 
-  async put(
-    creds: WebdavCreds,
-    path: string,
-    body: Readable,
-    options: WebdavPutOptions,
-  ): Promise<WebdavPutResult> {
+  async put(creds: WebdavCreds, path: string, body: Readable, options: WebdavPutOptions): Promise<WebdavPutResult> {
     const headers: Record<string, string> = {
       'Content-Type': options.mimeType,
       // Explicit, so the upload does not go out chunked: a reverse proxy in
@@ -683,12 +675,7 @@ export class WebdavClient {
     throw await this.failed(response, 'DELETE');
   }
 
-  private async graph(
-    creds: WebdavCreds,
-    method: 'GET' | 'POST',
-    path: string,
-    body?: unknown,
-  ): Promise<unknown> {
+  private async graph(creds: WebdavCreds, method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown> {
     const response = await this.send(creds, path, {
       method,
       headers:
@@ -748,12 +735,7 @@ export class WebdavClient {
   /** The account's own name, for the line the settings screen shows after a test. */
   async whoAmI(creds: WebdavCreds): Promise<string> {
     const me = asRecord(await this.graph(creds, 'GET', '/graph/v1.0/me'));
-    return (
-      textOf(me?.onPremisesSamAccountName) ??
-      textOf(me?.displayName) ??
-      textOf(me?.mail) ??
-      creds.username
-    );
+    return textOf(me?.onPremisesSamAccountName) ?? textOf(me?.displayName) ?? textOf(me?.mail) ?? creds.username;
   }
 
   /**

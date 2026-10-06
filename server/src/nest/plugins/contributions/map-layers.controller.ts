@@ -1,12 +1,13 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { Trips } from '../../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../../db/repositories/Trips.repository';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/map-layers/:tripId — bounded vector overlays plugins draw on the trip map
@@ -101,7 +102,9 @@ function normalize(pluginId: string, raw: unknown): MapLayer[] {
     const id = cap(l.id, 64);
     if (!id) continue;
     const feats: MapLayerFeature[] = [];
-    const rawFeats = Array.isArray(l.features) ? (l.features as Array<Record<string, unknown>>).slice(0, MAX_RAW_FEATURES) : [];
+    const rawFeats = Array.isArray(l.features)
+      ? (l.features as Array<Record<string, unknown>>).slice(0, MAX_RAW_FEATURES)
+      : [];
     for (const f of rawFeats) {
       if (features >= MAX_FEATURES || points >= MAX_POINTS) break;
       if (!f || typeof f !== 'object') continue;
@@ -160,7 +163,8 @@ export class MapLayersController {
     if (!pluginsEnabled()) return { layers: [] };
     const tripId = Number(tripIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(tripId) || userId == null || !(await this.trips.findAccessible(tripId, userId))) return { layers: [] };
+    if (!Number.isFinite(tripId) || userId == null || !(await this.trips.findAccessible(tripId, userId)))
+      return { layers: [] };
 
     const ids = this.hooks.providersOf('mapLayerProvider');
     const perProvider = await Promise.all(

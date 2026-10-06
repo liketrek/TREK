@@ -1,6 +1,6 @@
 // FE-COMP-NAVPREVIEW-001 to FE-COMP-NAVPREVIEW-006
+import { CalendarDays, Compass, Globe, LayoutGrid } from 'lucide-react';
 import { render, screen } from '../../../tests/helpers/render';
-import { LayoutGrid, CalendarDays, Globe, Compass } from 'lucide-react';
 import type { NavItemDef } from '../Layout/navItems';
 import MobileNavPreview from './MobileNavPreview';
 
@@ -11,14 +11,12 @@ const JOURNEY: NavItemDef = { id: 'journey', to: '/journey', label: 'Journey', i
 
 /** The dock's circles in DOM order, identified by their title attribute. */
 function slots(container: HTMLElement): string[] {
-  return Array.from(container.querySelectorAll('span[title]')).map(el => el.getAttribute('title') ?? '');
+  return Array.from(container.querySelectorAll('span[title]')).map((el) => el.getAttribute('title') ?? '');
 }
 
 describe('MobileNavPreview', () => {
   it('FE-COMP-NAVPREVIEW-001: renders a circle per bar item plus the More slot', () => {
-    const { container } = render(
-      <MobileNavPreview bar={[DASHBOARD, VACAY, ATLAS]} hasMore moreLabel="More" />,
-    );
+    const { container } = render(<MobileNavPreview bar={[DASHBOARD, VACAY, ATLAS]} hasMore moreLabel="More" />);
 
     expect(slots(container)).toEqual(['My Trips', 'Vacay', 'Atlas', 'More']);
     expect(screen.getByTitle('Vacay')).toBeInTheDocument();
@@ -32,25 +30,23 @@ describe('MobileNavPreview', () => {
   });
 
   it('FE-COMP-NAVPREVIEW-003: the raised centre button splits the slots evenly around it', () => {
-    const { container } = render(
-      <MobileNavPreview bar={[DASHBOARD, VACAY, ATLAS]} hasMore moreLabel="More" />,
-    );
+    const { container } = render(<MobileNavPreview bar={[DASHBOARD, VACAY, ATLAS]} hasMore moreLabel="More" />);
 
     const row = container.firstElementChild as HTMLElement;
     const children = Array.from(row.children);
     // 4 slots → 2 on the left, then the "+", then the rest.
-    const centre = children.findIndex(c => !c.hasAttribute('title'));
+    const centre = children.findIndex((c) => !c.hasAttribute('title'));
     expect(centre).toBe(2);
     expect(children).toHaveLength(5);
   });
 
   it('FE-COMP-NAVPREVIEW-004: an odd slot count keeps the extra circle on the left', () => {
     const { container } = render(
-      <MobileNavPreview bar={[DASHBOARD, VACAY, ATLAS, JOURNEY]} hasMore={false} moreLabel="More" />,
+      <MobileNavPreview bar={[DASHBOARD, VACAY, ATLAS, JOURNEY]} hasMore={false} moreLabel="More" />
     );
 
     const children = Array.from((container.firstElementChild as HTMLElement).children);
-    const centre = children.findIndex(c => !c.hasAttribute('title'));
+    const centre = children.findIndex((c) => !c.hasAttribute('title'));
     expect(centre).toBe(2);
     expect(slots(container)).toEqual(['My Trips', 'Vacay', 'Atlas', 'Journey']);
   });

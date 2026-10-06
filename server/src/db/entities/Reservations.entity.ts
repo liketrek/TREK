@@ -1,4 +1,3 @@
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { ReservationsRepository } from '../repositories/Reservations.repository';
 import { DbTimestampType } from '../types';
 import { BudgetItems } from './BudgetItems.entity';
@@ -11,6 +10,7 @@ import { ReservationEndpoints } from './ReservationEndpoints.entity';
 import { ReservationTravelers } from './ReservationTravelers.entity';
 import { TripFiles } from './TripFiles.entity';
 import { Trips } from './Trips.entity';
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class Reservations {
   [EntityRepositoryType]?: ReservationsRepository;

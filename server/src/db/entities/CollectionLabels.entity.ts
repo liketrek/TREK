@@ -1,8 +1,8 @@
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { CollectionLabelsRepository } from '../repositories/CollectionLabels.repository';
 import { DbTimestampType } from '../types';
 import { CollectionPlaces } from './CollectionPlaces.entity';
 import { Collections } from './Collections.entity';
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class CollectionLabels {
   [EntityRepositoryType]?: CollectionLabelsRepository;
@@ -21,7 +21,8 @@ export const CollectionLabelsSchema = defineEntity({
   repository: () => CollectionLabelsRepository,
   properties: {
     id: p.integer().primary(),
-    collection: () => p.manyToOne(Collections).ref().deleteRule('cascade').hidden().index('idx_collection_labels_collection'),
+    collection: () =>
+      p.manyToOne(Collections).ref().deleteRule('cascade').hidden().index('idx_collection_labels_collection'),
     collection_id: p.integer().persist(false).index('idx_collection_labels_collection'),
     name: p.text(),
     color: p.text().nullable(),

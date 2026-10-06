@@ -1,30 +1,28 @@
-import { ReactNode, Ref } from 'react'
-import { X } from 'lucide-react'
-import MIconBtn from '../../../components/MIconBtn'
-import { formatTime } from '../../../../utils/formatters'
+import { X } from 'lucide-react';
+import { ReactNode, Ref } from 'react';
+import { formatTime } from '../../../../utils/formatters';
+import MIconBtn from '../../../components/MIconBtn';
 
 /** Shared scaffolding of the trip inspection sheets (glass floating cards). */
 
 /** Inner row/card surface used inside glass sheets. */
-export const INNER_CLS = 'border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)]'
+export const INNER_CLS = 'border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)]';
 
 /** Eyebrow section label: Geist 10px/700 letter-spacing .09em, faint. */
 export function Eyebrow({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`font-geist text-[0.625rem] font-bold tracking-[.09em] text-m-faint ${className}`}>
-      {children}
-    </div>
-  )
+    <div className={`font-geist text-[0.625rem] font-bold tracking-[.09em] text-m-faint ${className}`}>{children}</div>
+  );
 }
 
 interface TileHeaderProps {
-  icon: ReactNode
-  title: ReactNode
-  sub?: ReactNode
+  icon: ReactNode;
+  title: ReactNode;
+  sub?: ReactNode;
   /** Let a sentence-length subtitle wrap instead of truncating it to one line. */
-  subWrap?: boolean
-  onClose: () => void
-  closeLabel: string
+  subWrap?: boolean;
+  onClose: () => void;
+  closeLabel: string;
 }
 
 /**
@@ -54,59 +52,69 @@ export function TileHeader({ icon, title, sub, subWrap = false, onClose, closeLa
         <X size={15} strokeWidth={2.2} />
       </MIconBtn>
     </div>
-  )
+  );
 }
 
 interface StatBoxProps {
-  value: ReactNode
-  label: ReactNode
-  blurred?: boolean
-  onClick?: () => void
+  value: ReactNode;
+  label: ReactNode;
+  blurred?: boolean;
+  onClick?: () => void;
   /** Colours the label, so a check-in or check-out time carries its own state. */
-  labelTone?: 'confirmed' | 'danger'
+  labelTone?: 'confirmed' | 'danger';
 }
 
 const LABEL_TONE: Record<NonNullable<StatBoxProps['labelTone']>, string> = {
   confirmed: 'font-bold uppercase tracking-[.05em] text-[color:var(--m-st-confirmed)]',
   danger: 'font-bold uppercase tracking-[.05em] text-[color:var(--m-st-danger)]',
-}
+};
 
 /** Small stat box (check-in / times / code): value 700 tabular over a faint Geist label. */
 export function StatBox({ value, label, blurred = false, onClick, labelTone }: StatBoxProps) {
-  const box = 'min-w-0 flex-1 rounded-[10px] bg-[color:var(--m-ic)] px-[9px] py-[7px] text-center'
+  const box = 'min-w-0 flex-1 rounded-[10px] bg-[color:var(--m-ic)] px-[9px] py-[7px] text-center';
   const inner = (
     <>
       <div
-        className={`truncate text-[0.8125rem] font-bold tabular-nums leading-tight ${blurred ? 'blur-[4px] select-none' : ''}`}
+        className={`truncate text-[0.8125rem] font-bold tabular-nums leading-tight ${blurred ? 'select-none blur-[4px]' : ''}`}
       >
         {value}
       </div>
-      <div className={`truncate font-geist text-[0.5625rem] ${labelTone ? LABEL_TONE[labelTone] : 'text-m-faint'}`}>{label}</div>
+      <div className={`truncate font-geist text-[0.5625rem] ${labelTone ? LABEL_TONE[labelTone] : 'text-m-faint'}`}>
+        {label}
+      </div>
     </>
-  )
+  );
   // A tappable stat is a real button — value and label give it its name. Without
   // a handler it stays a plain box rather than an empty stop in the tab order.
-  if (!onClick) return <div className={box}>{inner}</div>
+  if (!onClick) return <div className={box}>{inner}</div>;
   return (
     <button type="button" onClick={onClick} className={`${box} block border-0`}>
       {inner}
     </button>
-  )
+  );
 }
 
 interface ActionCircleProps {
-  onClick?: () => void
-  label: string
-  primary?: boolean
-  danger?: boolean
-  className?: string
-  children: ReactNode
+  onClick?: () => void;
+  label: string;
+  primary?: boolean;
+  danger?: boolean;
+  className?: string;
+  children: ReactNode;
   /** For callers that anchor a popup to the button. React 19 passes it through. */
-  ref?: Ref<HTMLButtonElement>
+  ref?: Ref<HTMLButtonElement>;
 }
 
 /** 38px round action button of the inspector footer rows. */
-export function ActionCircle({ onClick, label, primary = false, danger = false, className = '', children, ref }: ActionCircleProps) {
+export function ActionCircle({
+  onClick,
+  label,
+  primary = false,
+  danger = false,
+  className = '',
+  children,
+  ref,
+}: ActionCircleProps) {
   return (
     <button
       ref={ref}
@@ -122,17 +130,17 @@ export function ActionCircle({ onClick, label, primary = false, danger = false, 
     >
       {children}
     </button>
-  )
+  );
 }
 
 /** Formats a stored time — plain "HH:MM" or a full ISO timestamp — for display. */
 export function displayTime(value: string | null | undefined, locale: string, timeFormat: string): string {
-  if (!value) return ''
+  if (!value) return '';
   if (value.includes('T')) {
-    const d = new Date(value)
+    const d = new Date(value);
     if (!Number.isNaN(d.getTime())) {
-      return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })
+      return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' });
     }
   }
-  return formatTime(value, locale, timeFormat)
+  return formatTime(value, locale, timeFormat);
 }

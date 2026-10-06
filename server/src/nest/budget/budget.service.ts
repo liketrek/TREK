@@ -1,40 +1,56 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { BudgetFallbackFx, BudgetParticipantFinal, BudgetUnconverted, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
+import { BudgetCategoryOrder } from '../../db/entities/BudgetCategoryOrder.entity';
+import { BudgetItemMembers } from '../../db/entities/BudgetItemMembers.entity';
+import { BudgetItemPayers } from '../../db/entities/BudgetItemPayers.entity';
+import { BudgetItems } from '../../db/entities/BudgetItems.entity';
+import { BudgetSettlements } from '../../db/entities/BudgetSettlements.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { BudgetCategoryOrderRepository } from '../../db/repositories/BudgetCategoryOrder.repository';
+import type { BudgetItemMembersRepository } from '../../db/repositories/BudgetItemMembers.repository';
+import type { BudgetItemPayersRepository } from '../../db/repositories/BudgetItemPayers.repository';
+import type { BudgetItemsRepository, BudgetItemRow } from '../../db/repositories/BudgetItems.repository';
+import type { BudgetSettlementsRepository } from '../../db/repositories/BudgetSettlements.repository';
+import type { PlacesRepository } from '../../db/repositories/Places.repository';
+import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import type { TripsRepository, TripAccess } from '../../db/repositories/Trips.repository';
+import type { User, BudgetItem, BudgetItemMember, BudgetItemPayer, BudgetItemReceipt } from '../../types';
 import { avatarUrl } from '../common/avatarUrl';
 import { byCodeUnit } from '../common/compare';
-import type { User, BudgetItem, BudgetItemMember, BudgetItemPayer, BudgetItemReceipt } from '../../types';
-import { ExchangeRatesService } from './exchange-rates.service';
 import { UnitOfWork } from '../database/unit-of-work';
-import { BudgetItems } from '../../db/entities/BudgetItems.entity';
-import type { BudgetItemsRepository, BudgetItemRow } from '../../db/repositories/BudgetItems.repository';
-import { BudgetItemMembers } from '../../db/entities/BudgetItemMembers.entity';
-import type { BudgetItemMembersRepository } from '../../db/repositories/BudgetItemMembers.repository';
-import { BudgetItemPayers } from '../../db/entities/BudgetItemPayers.entity';
-import type { BudgetItemPayersRepository } from '../../db/repositories/BudgetItemPayers.repository';
-import { BudgetSettlements } from '../../db/entities/BudgetSettlements.entity';
-import type { BudgetSettlementsRepository } from '../../db/repositories/BudgetSettlements.repository';
-import { BudgetCategoryOrder } from '../../db/entities/BudgetCategoryOrder.entity';
-import type { BudgetCategoryOrderRepository } from '../../db/repositories/BudgetCategoryOrder.repository';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository } from '../../db/repositories/Places.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository, TripAccess } from '../../db/repositories/Trips.repository';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { ExchangeRatesService } from './exchange-rates.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type {
+  BudgetFallbackFx,
+  BudgetParticipantFinal,
+  BudgetUnconverted,
+  TrekWsPayload,
+  TrekWsTripEventName,
+} from '@trek/shared';
 
 type Trip = TripAccess;
 
 type SettlementRow = {
-  id: number; trip_id: number; from_user_id: number; to_user_id: number;
-  amount: number; currency: string | null; exchange_rate: number | null;
-  created_at: string; settled_at: string | null; note?: string | null; created_by_user_id: number | null;
-  from_username: string; from_avatar: string | null;
-  to_username: string; to_avatar: string | null;
+  id: number;
+  trip_id: number;
+  from_user_id: number;
+  to_user_id: number;
+  amount: number;
+  currency: string | null;
+  exchange_rate: number | null;
+  created_at: string;
+  settled_at: string | null;
+  note?: string | null;
+  created_by_user_id: number | null;
+  from_username: string;
+  from_avatar: string | null;
+  to_username: string;
+  to_avatar: string | null;
 };
 
 /** A settle-up note as stored (#2340): trimmed, and nothing at all when blank. */
@@ -102,14 +118,16 @@ function sumMoney(amounts: number[]): number {
  * own sum; the rows behind a figure pass the figure's already allocated cents
  * instead, so a list nested under a line lands exactly on that line.
  */
-function allocateDisplayCents(cents: number[], factor: number, total = Math.round(cents.reduce((a, c) => a + c, 0) * factor)): number[] {
+function allocateDisplayCents(
+  cents: number[],
+  factor: number,
+  total = Math.round(cents.reduce((a, c) => a + c, 0) * factor),
+): number[] {
   if (factor === 1) return [...cents];
-  const exact = cents.map(c => c * factor);
-  const out = exact.map(v => Math.floor(v));
+  const exact = cents.map((c) => c * factor);
+  const out = exact.map((v) => Math.floor(v));
   const drift = total - out.reduce((a, v) => a + v, 0);
-  const byFraction = exact
-    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
-    .sort((a, b) => b.frac - a.frac || a.i - b.i);
+  const byFraction = exact.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac || a.i - b.i);
   for (let k = 0; k < drift && k < byFraction.length; k++) out[byFraction[k].i] += 1;
   return out;
 }
@@ -148,11 +166,11 @@ function tripConverter(
   rates: Record<string, number> | null,
 ): ((amount: number) => number) | null {
   const cur = (itemCurrency || tripCurrency).toUpperCase();
-  if (cur === tripCurrency) return amount => amount;
-  if (isFrozenRate(itemRate)) return amount => amount / itemRate;
+  if (cur === tripCurrency) return (amount) => amount;
+  if (isFrozenRate(itemRate)) return (amount) => amount / itemRate;
   const rCur = rates?.[cur];
   const rTrip = rates?.[tripCurrency];
-  if (rCur && rCur > 0 && rTrip && rTrip > 0) return amount => (amount / rCur) * rTrip;
+  if (rCur && rCur > 0 && rTrip && rTrip > 0) return (amount) => (amount / rCur) * rTrip;
   return null;
 }
 
@@ -214,7 +232,12 @@ export class BudgetService {
     return this.permissions.checkPermission('budget_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -238,18 +261,18 @@ export class BudgetService {
 
   private async loadItemMembers(itemId: number | string) {
     const rows = await this.budgetItemMembersRepo.listForItem(itemId as number);
-    return rows.map(m => ({ ...m, avatar_url: avatarUrl(m) }));
+    return rows.map((m) => ({ ...m, avatar_url: avatarUrl(m) }));
   }
 
   private async loadItemPayers(itemId: number | string) {
     const rows = await this.budgetItemPayersRepo.listForItem(itemId as number);
-    return rows.map(p => ({ ...p, avatar_url: avatarUrl(p) }));
+    return rows.map((p) => ({ ...p, avatar_url: avatarUrl(p) }));
   }
 
   private async loadItemReceipts(itemId: number | string): Promise<BudgetItemReceipt[]> {
     const rows = await this.budgetItemsRepo.listReceipts(itemId);
 
-    return rows.map(f => ({
+    return rows.map((f) => ({
       id: f.id,
       filename: f.filename,
       original_name: f.original_name,
@@ -270,7 +293,7 @@ export class BudgetService {
     const unique = new Set(userIds);
     if (unique.size === 0) return new Set();
     const roster = await this.tripMembersRepo.rosterUserIds(tripId);
-    return new Set([...unique].filter(id => roster.has(id)));
+    return new Set([...unique].filter((id) => roster.has(id)));
   }
 
   /**
@@ -278,13 +301,24 @@ export class BudgetService {
    * A negative amount is a real payer — the recipient of a refund (#2176) — and
    * is stored as such; only a zero (or NaN) amount says nothing and is dropped.
    */
-  private async writeItemPayers(itemId: number | string, tripId: string | number, payers: { user_id: number; amount: number }[]) {
+  private async writeItemPayers(
+    itemId: number | string,
+    tripId: string | number,
+    payers: { user_id: number; amount: number }[],
+  ) {
     await this.budgetItemPayersRepo.deleteForItem(itemId as number);
-    const known = await this.rosterMemberIds(tripId, payers.map(p => p.user_id));
+    const known = await this.rosterMemberIds(
+      tripId,
+      payers.map((p) => p.user_id),
+    );
     const accepted: number[] = [];
     for (const p of payers) {
       if (!p.amount || !known.has(p.user_id)) continue;
-      await this.budgetItemPayersRepo.insertIgnore({ budget_item_id: itemId as number, user_id: p.user_id, amount: p.amount });
+      await this.budgetItemPayersRepo.insertIgnore({
+        budget_item_id: itemId as number,
+        user_id: p.user_id,
+        amount: p.amount,
+      });
       accepted.push(p.amount);
     }
     const total = sumMoney(accepted);
@@ -324,9 +358,9 @@ export class BudgetService {
   // -------------------------------------------------------------------------
 
   async listBudgetItems(tripId: string | number) {
-    const items = (await this.budgetItemsRepo.listWithCategoryOrder(tripId)).map(r => this.toBudgetItem(r));
+    const items = (await this.budgetItemsRepo.listWithCategoryOrder(tripId)).map((r) => this.toBudgetItem(r));
 
-    const itemIds = items.map(i => i.id);
+    const itemIds = items.map((i) => i.id);
     const membersByItem: Record<number, (BudgetItemMember & { avatar_url: string | null })[]> = {};
 
     if (itemIds.length > 0) {
@@ -335,7 +369,11 @@ export class BudgetService {
       for (const m of allMembers) {
         if (!membersByItem[m.budget_item_id]) membersByItem[m.budget_item_id] = [];
         membersByItem[m.budget_item_id].push({
-          user_id: m.user_id, paid: m.paid, username: m.username, avatar_url: avatarUrl(m), amount: m.amount,
+          user_id: m.user_id,
+          paid: m.paid,
+          username: m.username,
+          avatar_url: avatarUrl(m),
+          amount: m.amount,
         });
       }
     }
@@ -347,7 +385,10 @@ export class BudgetService {
       for (const p of allPayers) {
         if (!payersByItem[p.budget_item_id]) payersByItem[p.budget_item_id] = [];
         payersByItem[p.budget_item_id].push({
-          user_id: p.user_id, amount: p.amount, username: p.username, avatar_url: avatarUrl(p),
+          user_id: p.user_id,
+          amount: p.amount,
+          username: p.username,
+          avatar_url: avatarUrl(p),
         });
       }
     }
@@ -369,7 +410,7 @@ export class BudgetService {
       }
     }
 
-    items.forEach(item => {
+    items.forEach((item) => {
       item.members = membersByItem[item.id] || [];
       item.payers = payersByItem[item.id] || [];
       item.receipts = receiptsByItem[item.id] || [];
@@ -469,13 +510,19 @@ export class BudgetService {
   async freezeMissingRates(
     tripId: string | number,
     fallback?: BudgetFallbackFx,
-  ): Promise<{ items: BudgetItem[]; settlements: NonNullable<Awaited<ReturnType<BudgetService['getSettlement']>>>[]; unresolved: string[] } | null> {
+  ): Promise<{
+    items: BudgetItem[];
+    settlements: NonNullable<Awaited<ReturnType<BudgetService['getSettlement']>>>[];
+    unresolved: string[];
+  } | null> {
     const tripCur = await this.tripCurrency(tripId);
     // The legacy statement was one UNION of both tables, ORDER BY cur.
-    const pending = [...new Set([
-      ...(await this.budgetItemsRepo.listUnfrozenForeignCurrencies(tripId, tripCur)),
-      ...(await this.budgetSettlementsRepo.listUnfrozenForeignCurrencies(tripId, tripCur)),
-    ])].sort(byCodeUnit);
+    const pending = [
+      ...new Set([
+        ...(await this.budgetItemsRepo.listUnfrozenForeignCurrencies(tripId, tripCur)),
+        ...(await this.budgetSettlementsRepo.listUnfrozenForeignCurrencies(tripId, tripCur)),
+      ]),
+    ].sort(byCodeUnit);
     if (pending.length === 0) return { items: [], settlements: [], unresolved: [] };
 
     const serverRates = await this.exchangeRates.getRates(tripCur);
@@ -539,10 +586,7 @@ export class BudgetService {
    * Must run *before* the (synchronous) trip update, while the old currency is
    * still in `trips`, and is a no-op when the currency isn't actually changing.
    */
-  async rebaseTripCurrency(
-    tripId: string | number,
-    newCurrency: string | null | undefined,
-  ): Promise<void> {
+  async rebaseTripCurrency(tripId: string | number, newCurrency: string | null | undefined): Promise<void> {
     const next = (newCurrency || '').toUpperCase();
     if (!next) return;
     const tripCurrency = await this.tripsRepo.getCurrency(tripId);
@@ -586,17 +630,28 @@ export class BudgetService {
       await this.placesRepo.pinCurrencyForTrip(tripId, prev);
     };
 
-    await this.uow.transactional(async () => { await rebaseBudgetItems(); await rebaseBudgetSettlements(); await pinPlaces(); });
+    await this.uow.transactional(async () => {
+      await rebaseBudgetItems();
+      await rebaseBudgetSettlements();
+      await pinPlaces();
+    });
   }
 
   async createBudgetItem(
     tripId: string | number,
     data: {
-      category?: string; name: string; total_price?: number;
-      currency?: string | null; exchange_rate?: number;
-      payers?: { user_id: number; amount: number }[]; member_ids?: number[];
+      category?: string;
+      name: string;
+      total_price?: number;
+      currency?: string | null;
+      exchange_rate?: number;
+      payers?: { user_id: number; amount: number }[];
+      member_ids?: number[];
       members?: { user_id: number; amount?: number | null }[];
-      persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null;
+      persons?: number | null;
+      days?: number | null;
+      note?: string | null;
+      expense_date?: string | null;
       ticket_json?: string | null;
       reservation_id?: number | null;
       place_id?: number | null;
@@ -620,13 +675,19 @@ export class BudgetService {
       // total_price is derived from explicit payers when given; otherwise the caller
       // value (planning entries, or a bill no one has paid yet). Negative payer
       // amounts (a refund's recipient, #2176) count like any other.
-      const payerTotal = sumMoney((data.payers || []).filter(p => p.amount !== 0).map(p => p.amount));
-      const total = data.payers && data.payers.length > 0 ? payerTotal : (data.total_price || 0);
+      const payerTotal = sumMoney((data.payers || []).filter((p) => p.amount !== 0).map((p) => p.amount));
+      const total = data.payers && data.payers.length > 0 ? payerTotal : data.total_price || 0;
 
-      const knownMembers = data.members ? await this.rosterMemberIds(tripId, data.members.map(m => m.user_id)) : null;
-      const members = data.members && knownMembers ? data.members.filter(m => knownMembers.has(m.user_id)) : undefined;
+      const knownMembers = data.members
+        ? await this.rosterMemberIds(
+            tripId,
+            data.members.map((m) => m.user_id),
+          )
+        : null;
+      const members =
+        data.members && knownMembers ? data.members.filter((m) => knownMembers.has(m.user_id)) : undefined;
       const knownIds = data.member_ids ? await this.rosterMemberIds(tripId, data.member_ids) : null;
-      const memberIds = data.member_ids && knownIds ? data.member_ids.filter(uid => knownIds.has(uid)) : undefined;
+      const memberIds = data.member_ids && knownIds ? data.member_ids.filter((uid) => knownIds.has(uid)) : undefined;
 
       const { note, ticket } = splitLegacyTicketNote(data.note, data.ticket_json);
 
@@ -637,7 +698,7 @@ export class BudgetService {
         total_price: total,
         currency: data.currency || null,
         exchange_rate: data.exchange_rate != null ? data.exchange_rate : 1,
-        persons: memberIds ? memberIds.length : (data.persons != null ? data.persons : null),
+        persons: memberIds ? memberIds.length : data.persons != null ? data.persons : null,
         days: data.days !== undefined && data.days !== null ? data.days : null,
         note: note || null,
         ticket_json: ticket || null,
@@ -650,11 +711,21 @@ export class BudgetService {
       if (data.payers && data.payers.length > 0) await this.writeItemPayers(itemId, tripId, data.payers);
       if (members && members.length > 0) {
         for (const m of members) {
-          await this.budgetItemMembersRepo.insertIgnore({ budget_item_id: itemId, user_id: m.user_id, paid: 0, amount: m.amount !== undefined && m.amount !== null ? m.amount : null });
+          await this.budgetItemMembersRepo.insertIgnore({
+            budget_item_id: itemId,
+            user_id: m.user_id,
+            paid: 0,
+            amount: m.amount !== undefined && m.amount !== null ? m.amount : null,
+          });
         }
       } else if (memberIds && memberIds.length > 0) {
         for (const uid of memberIds) {
-          await this.budgetItemMembersRepo.insertIgnore({ budget_item_id: itemId, user_id: uid, paid: 0, amount: null });
+          await this.budgetItemMembersRepo.insertIgnore({
+            budget_item_id: itemId,
+            user_id: uid,
+            paid: 0,
+            amount: null,
+          });
         }
       }
 
@@ -712,11 +783,19 @@ export class BudgetService {
     id: number,
     tripId: string | number,
     data: {
-      category?: string; name?: string; total_price?: number;
-      currency?: string | null; exchange_rate?: number;
-      payers?: { user_id: number; amount: number }[]; member_ids?: number[];
+      category?: string;
+      name?: string;
+      total_price?: number;
+      currency?: string | null;
+      exchange_rate?: number;
+      payers?: { user_id: number; amount: number }[];
+      member_ids?: number[];
       members?: { user_id: number; amount?: number | null }[];
-      persons?: number | null; days?: number | null; note?: string | null; sort_order?: number; expense_date?: string | null;
+      persons?: number | null;
+      days?: number | null;
+      note?: string | null;
+      sort_order?: number;
+      expense_date?: string | null;
       ticket_json?: string | null;
       receipt_file_ids?: number[];
       reservation_id?: number | null;
@@ -741,14 +820,17 @@ export class BudgetService {
         category: [!!data.category, data.category || ''],
         name: [!!data.name, data.name || ''],
         total_price: [data.total_price !== undefined, data.total_price !== undefined ? data.total_price : 0],
-        currency: [data.currency !== undefined, data.currency !== undefined ? (data.currency || null) : null],
+        currency: [data.currency !== undefined, data.currency !== undefined ? data.currency || null : null],
         exchange_rate: [data.exchange_rate !== undefined, data.exchange_rate !== undefined ? data.exchange_rate : 1],
         persons: [data.persons !== undefined, data.persons !== undefined ? data.persons : null],
         days: [data.days !== undefined, data.days !== undefined ? data.days : null],
         note: [noteTouched, noteTouched ? (note as string | null) : null],
         ticket_json: [ticketTouched, ticketTouched ? (ticket as string | null) : null],
         sort_order: [data.sort_order !== undefined, data.sort_order !== undefined ? data.sort_order : 0],
-        expense_date: [data.expense_date !== undefined, data.expense_date !== undefined ? (data.expense_date || null) : null],
+        expense_date: [
+          data.expense_date !== undefined,
+          data.expense_date !== undefined ? data.expense_date || null : null,
+        ],
         reservation_id: [data.reservation_id !== undefined, data.reservation_id ?? null],
         place_id: [data.place_id !== undefined, data.place_id ?? null],
       });
@@ -764,16 +846,24 @@ export class BudgetService {
         }
       }
       if (data.members !== undefined) {
-        const known = await this.rosterMemberIds(tripId, data.members.map(m => m.user_id));
-        const members = data.members.filter(m => known.has(m.user_id));
+        const known = await this.rosterMemberIds(
+          tripId,
+          data.members.map((m) => m.user_id),
+        );
+        const members = data.members.filter((m) => known.has(m.user_id));
         await this.budgetItemMembersRepo.deleteForItem(id);
         for (const m of members) {
-          await this.budgetItemMembersRepo.insertIgnore({ budget_item_id: id, user_id: m.user_id, paid: 0, amount: m.amount !== undefined && m.amount !== null ? m.amount : null });
+          await this.budgetItemMembersRepo.insertIgnore({
+            budget_item_id: id,
+            user_id: m.user_id,
+            paid: 0,
+            amount: m.amount !== undefined && m.amount !== null ? m.amount : null,
+          });
         }
         await this.budgetItemsRepo.setPersons(id, members.length || null);
       } else if (data.member_ids !== undefined) {
         const known = await this.rosterMemberIds(tripId, data.member_ids);
-        const memberIds = data.member_ids.filter(uid => known.has(uid));
+        const memberIds = data.member_ids.filter((uid) => known.has(uid));
         await this.budgetItemMembersRepo.deleteForItem(id);
         for (const uid of memberIds) {
           await this.budgetItemMembersRepo.insertIgnore({ budget_item_id: id, user_id: uid, paid: 0, amount: null });
@@ -895,8 +985,14 @@ export class BudgetService {
    * a place it points at has to exist on the same trip (#2084). REST and MCP
    * both ask this before they write, so neither can reach into another trip.
    */
-  async linkRefusal(tripId: string | number, data: { reservation_id?: number | null; place_id?: number | null }): Promise<string | null> {
-    if (data.reservation_id != null && (await this.reservationsRepo.findTripId(data.reservation_id)) !== Number(tripId)) {
+  async linkRefusal(
+    tripId: string | number,
+    data: { reservation_id?: number | null; place_id?: number | null },
+  ): Promise<string | null> {
+    if (
+      data.reservation_id != null &&
+      (await this.reservationsRepo.findTripId(data.reservation_id)) !== Number(tripId)
+    ) {
       return 'reservation_id does not belong to this trip.';
     }
     if (data.place_id != null && (await this.placesRepo.findTripId(data.place_id)) !== Number(tripId)) {
@@ -921,11 +1017,17 @@ export class BudgetService {
     // an expense in EUR and one without a currency on a EUR trip do add up.
     const tripCurrency = ((await this.tripsRepo.getCurrency(tripId)) || '').toUpperCase();
     const codeOf = (currency: string | null) => (currency || tripCurrency).toUpperCase();
-    const oneCurrency = new Set(linked.map(row => codeOf(row.currency))).size === 1;
-    const total = oneCurrency ? sumMoney(linked.map(row => row.total_price || 0)) : (linked[0].total_price || 0);
+    const oneCurrency = new Set(linked.map((row) => codeOf(row.currency))).size === 1;
+    const total = oneCurrency ? sumMoney(linked.map((row) => row.total_price || 0)) : linked[0].total_price || 0;
     // Either way the figure is in the first expense's currency; none means the trip's.
-    const allInTripCurrency = oneCurrency && linked.every(row => !row.currency);
-    await this.syncReservationPrice(String(tripId), reservationId, total, socketId, allInTripCurrency ? null : codeOf(linked[0].currency) || null);
+    const allInTripCurrency = oneCurrency && linked.every((row) => !row.currency);
+    await this.syncReservationPrice(
+      String(tripId),
+      reservationId,
+      total,
+      socketId,
+      allInTripCurrency ? null : codeOf(linked[0].currency) || null,
+    );
   }
 
   /**
@@ -965,10 +1067,14 @@ export class BudgetService {
       await this.budgetItemMembersRepo.deleteForItem(id);
 
       const known = await this.rosterMemberIds(tripId, userIds);
-      const memberIds = userIds.filter(uid => known.has(uid));
+      const memberIds = userIds.filter((uid) => known.has(uid));
       if (memberIds.length > 0) {
         for (const userId of memberIds) {
-          await this.budgetItemMembersRepo.insertIgnore({ budget_item_id: id, user_id: userId, paid: existingPaid[userId] || 0 });
+          await this.budgetItemMembersRepo.insertIgnore({
+            budget_item_id: id,
+            user_id: userId,
+            paid: existingPaid[userId] || 0,
+          });
         }
         await this.budgetItemsRepo.setPersons(id, memberIds.length);
       } else {
@@ -1039,9 +1145,12 @@ export class BudgetService {
     const tripCurrency = await this.tripCurrency(tripId);
     const items = await this.budgetItemsRepo.listMoneyRows(tripId);
     const members = await this.budgetItemMembersRepo.listForTripWithUsersAndPaid(tripId);
-    const people = new Map<number, { user_id: number; username: string; avatar: string | null; assigned: number; paid: number; items_count: number }>();
+    const people = new Map<
+      number,
+      { user_id: number; username: string; avatar: string | null; assigned: number; paid: number; items_count: number }
+    >();
     for (const item of items) {
-      const own = members.filter(m => m.budget_item_id === item.id);
+      const own = members.filter((m) => m.budget_item_id === item.id);
       if (own.length === 0) continue;
       // A foreign row nothing can convert counts for nobody, as in the settlement.
       const convert = tripConverter(item.currency, item.exchange_rate, tripCurrency, rates);
@@ -1051,7 +1160,7 @@ export class BudgetService {
       // total evenly, as the query this replaces did.
       const equal = this.splitEqualShares(toTripCents(item.total_price || 0), own, item.id);
       for (const m of own) {
-        const share = m.amount !== null && m.amount !== undefined ? toTripCents(m.amount) : (equal[m.user_id] || 0);
+        const share = m.amount !== null && m.amount !== undefined ? toTripCents(m.amount) : equal[m.user_id] || 0;
         let p = people.get(m.user_id);
         if (!p) {
           p = { user_id: m.user_id, username: m.username, avatar: m.avatar, assigned: 0, paid: 0, items_count: 0 };
@@ -1065,9 +1174,13 @@ export class BudgetService {
 
     return [...people.values()]
       .sort((a, b) => a.user_id - b.user_id)
-      .map(p => ({
-        user_id: p.user_id, username: p.username, avatar: p.avatar,
-        total_assigned: p.assigned / 100, total_paid: p.paid / 100, items_count: p.items_count,
+      .map((p) => ({
+        user_id: p.user_id,
+        username: p.username,
+        avatar: p.avatar,
+        total_assigned: p.assigned / 100,
+        total_paid: p.paid / 100,
+        items_count: p.items_count,
         currency: tripCurrency,
         avatar_url: avatarUrl(p),
       }));
@@ -1080,7 +1193,11 @@ export class BudgetService {
    * dollars to euros and labels the result with the trip currency. A foreign row nothing
    * can convert is left out and its id listed under `unconverted`.
    */
-  async tripTotals(tripId: string | number, tripCurrency: string, rates: Record<string, number> | null = null): Promise<{ total: number; byCategory: Record<string, number>; unconverted: number[] }> {
+  async tripTotals(
+    tripId: string | number,
+    tripCurrency: string,
+    rates: Record<string, number> | null = null,
+  ): Promise<{ total: number; byCategory: Record<string, number>; unconverted: number[] }> {
     const trip = (tripCurrency || 'EUR').toUpperCase();
     const rows = await this.budgetItemsRepo.listMoneyRows(tripId);
     let total = 0;
@@ -1143,7 +1260,7 @@ export class BudgetService {
 
     for (let i = 0; i < n; i++) {
       const member = sortedMembers[i];
-      const hasExtraCent = ((i - startIndex + n) % n) < remainder;
+      const hasExtraCent = (i - startIndex + n) % n < remainder;
       shares[member.user_id] = baseCents + (hasExtraCent ? 1 : 0);
     }
 
@@ -1209,7 +1326,8 @@ export class BudgetService {
     // without a currency, which is taken to be in the display currency. With neither,
     // the answer stays in the trip currency and says so, rather than printing trip cents
     // as the display currency.
-    const baseRate = opts.baseRate != null && Number.isFinite(opts.baseRate) && opts.baseRate > 0 ? opts.baseRate : null;
+    const baseRate =
+      opts.baseRate != null && Number.isFinite(opts.baseRate) && opts.baseRate > 0 ? opts.baseRate : null;
     const quoted = requested === tripCurrency ? 1 : (quoteRatio(rates, requested, tripCurrency) ?? baseRate);
     const currency = quoted === null ? tripCurrency : requested;
     const displayFactor = quoted ?? 1;
@@ -1223,13 +1341,13 @@ export class BudgetService {
     const settleConverterFor = (sCurrency?: string | null, sRate?: number | null) =>
       sCurrency
         ? tripConverter(sCurrency, sRate, tripCurrency, rates)
-        // The inverse of the display factor, so such a transfer reads back as entered.
-        : (amount: number) => amount / displayFactor;
+        : // The inverse of the display factor, so such a transfer reads back as entered.
+          (amount: number) => amount / displayFactor;
     const unconvertedItems: number[] = [];
     const unconvertedSettlements: number[] = [];
     const unconvertedCurrencies = new Set<string>();
 
-    const items = (await this.budgetItemsRepo.listAllForTrip(tripId)).map(r => this.toBudgetItem(r));
+    const items = (await this.budgetItemsRepo.listAllForTrip(tripId)).map((r) => this.toBudgetItem(r));
     const allMembers = await this.budgetItemMembersRepo.listForTripWithUsers(tripId);
     const allPayers = await this.budgetItemPayersRepo.listForTripWithUsers(tripId);
 
@@ -1238,9 +1356,11 @@ export class BudgetService {
     // and rounded to a cent once, at the boundary — from there on the ledger is
     // integer arithmetic, so Σ(balances) is exactly 0 and no sub-cent residual can
     // build up behind the two-decimal figures the user sees (#1382).
-    const balances: Record<number, { user_id: number; username: string; avatar_url: string | null; cents: number }> = {};
+    const balances: Record<number, { user_id: number; username: string; avatar_url: string | null; cents: number }> =
+      {};
     const ensure = (id: number, src: { username?: string; avatar?: string | null }) => {
-      if (!balances[id]) balances[id] = { user_id: id, username: src.username || '', avatar_url: avatarUrl(src), cents: 0 };
+      if (!balances[id])
+        balances[id] = { user_id: id, username: src.username || '', avatar_url: avatarUrl(src), cents: 0 };
       return balances[id];
     };
     // The two halves of the balance, kept apart so the per-person final budget can
@@ -1253,7 +1373,10 @@ export class BudgetService {
     // ...and the rows they are made of, so the breakdown lists them in these same
     // cents rather than converting the expense list a second time on the client.
     const frontedRows: Record<number, { item_id: number; cents: number }[]> = {};
-    const movedRows: Record<number, { settlement_id: number; from_user_id: number; to_user_id: number; cents: number }[]> = {};
+    const movedRows: Record<
+      number,
+      { settlement_id: number; from_user_id: number; to_user_id: number; cents: number }[]
+    > = {};
     // Read in the trip currency, those figures are the ledger's own trip cents. Read in
     // another one, they are built from each row's unrounded trip amount instead: a trip
     // cent is worth more than a dollar cent on a euro trip, so a bill of 12,345.67 USD
@@ -1271,8 +1394,8 @@ export class BudgetService {
         continue;
       }
       const toTripCents = (amount: number): number => Math.round(convert(amount) * 100);
-      const members = allMembers.filter(m => m.budget_item_id === item.id);
-      const payers = allPayers.filter(p => p.budget_item_id === item.id);
+      const members = allMembers.filter((m) => m.budget_item_id === item.id);
+      const payers = allPayers.filter((p) => p.budget_item_id === item.id);
       if (members.length === 0) continue; // planning-only entry → doesn't affect balances
 
       // An expense nobody has paid stays out of the ledger (#2225), which is what
@@ -1291,7 +1414,7 @@ export class BudgetService {
       // payment between two people who never shared a bill. Booking every flow it
       // offered then left someone short: "everyone square" beside a balance that
       // is not zero.
-      if (!payers.some(p => p.amount !== 0)) continue;
+      if (!payers.some((p) => p.amount !== 0)) continue;
 
       // Payers are credited what they actually paid (converted to trip currency with
       // the item's stored exchange rate). A negative payer — the recipient of a
@@ -1316,12 +1439,13 @@ export class BudgetService {
       // to total_price any more: an item with no payer behind it never reaches
       // here since #2225. An item whose payers net to exactly zero still does, and
       // divides zero, which is what it is worth.
-      const hasCustomSplit = members.some(m => m.amount !== null && m.amount !== undefined);
+      const hasCustomSplit = members.some((m) => m.amount !== null && m.amount !== undefined);
       const equalShares = !hasCustomSplit ? this.splitEqualShares(creditCents, members, item.id) : {};
       for (const m of members) {
-        const memberShare = hasCustomSplit && m.amount !== null && m.amount !== undefined
-          ? toTripCents(m.amount)
-          : (equalShares[m.user_id] || 0);
+        const memberShare =
+          hasCustomSplit && m.amount !== null && m.amount !== undefined
+            ? toTripCents(m.amount)
+            : equalShares[m.user_id] || 0;
         ensure(m.user_id, m).cents -= memberShare;
       }
     }
@@ -1333,7 +1457,8 @@ export class BudgetService {
     // surfaces as an amount still to square up instead of silently vanishing.
     const settlements = await this.listSettlements(tripId);
     const ensureSettled = (id: number, username: string | undefined, avatar_url: string | null | undefined) => {
-      if (!balances[id]) balances[id] = { user_id: id, username: username || '', avatar_url: avatar_url ?? null, cents: 0 };
+      if (!balances[id])
+        balances[id] = { user_id: id, username: username || '', avatar_url: avatar_url ?? null, cents: 0 };
       return balances[id];
     };
     for (const s of settlements) {
@@ -1364,30 +1489,44 @@ export class BudgetService {
     // derived from the same integers, so what the balances say is owed is exactly
     // what "Settle up" offers to move, down to the last cent (#1382).
     const ledger = Object.values(balances);
-    const displayCents = allocateDisplayCents(ledger.map(b => b.cents), displayFactor);
+    const displayCents = allocateDisplayCents(
+      ledger.map((b) => b.cents),
+      displayFactor,
+    );
     // Each component of the final budget is re-denominated as its own set, for the
     // same reason the balances are: rounding one person at a time lets the column
     // drift away from the figure it converted from. The final itself is then
     // subtracted in display cents rather than converted separately, so the three
     // lines the breakdown shows always add up to the total beside them, whatever
     // currency the viewer picked.
-    const frontedDisplayCents = allocateDisplayCents(ledger.map(b => frontedCents[b.user_id] || 0), displayFactor);
-    const reimbursedDisplayCents = allocateDisplayCents(ledger.map(b => reimbursedCents[b.user_id] || 0), displayFactor);
+    const frontedDisplayCents = allocateDisplayCents(
+      ledger.map((b) => frontedCents[b.user_id] || 0),
+      displayFactor,
+    );
+    const reimbursedDisplayCents = allocateDisplayCents(
+      ledger.map((b) => reimbursedCents[b.user_id] || 0),
+      displayFactor,
+    );
 
     // Calculate optimized payment flows (greedy algorithm)
     const people = ledger
       .map((b, i) => ({ user_id: b.user_id, username: b.username, avatar_url: b.avatar_url, cents: displayCents[i] }))
-      .filter(b => b.cents !== 0);
-    const debtors = people.filter(p => p.cents < 0).map(p => ({ ...p, amount: -p.cents }));
-    const creditors = people.filter(p => p.cents > 0).map(p => ({ ...p, amount: p.cents }));
+      .filter((b) => b.cents !== 0);
+    const debtors = people.filter((p) => p.cents < 0).map((p) => ({ ...p, amount: -p.cents }));
+    const creditors = people.filter((p) => p.cents > 0).map((p) => ({ ...p, amount: p.cents }));
 
     // Sort by amount descending for efficient matching
     debtors.sort((a, b) => b.amount - a.amount);
     creditors.sort((a, b) => b.amount - a.amount);
 
-    const flows: { from: { user_id: number; username: string; avatar_url: string | null }; to: { user_id: number; username: string; avatar_url: string | null }; amount: number }[] = [];
+    const flows: {
+      from: { user_id: number; username: string; avatar_url: string | null };
+      to: { user_id: number; username: string; avatar_url: string | null };
+      amount: number;
+    }[] = [];
 
-    let di = 0, ci = 0;
+    let di = 0,
+      ci = 0;
     while (di < debtors.length && ci < creditors.length) {
       const transfer = Math.min(debtors[di].amount, creditors[ci].amount);
       flows.push({
@@ -1403,7 +1542,9 @@ export class BudgetService {
 
     return {
       balances: ledger.map((b, i) => ({
-        user_id: b.user_id, username: b.username, avatar_url: b.avatar_url,
+        user_id: b.user_id,
+        username: b.username,
+        avatar_url: b.avatar_url,
         balance: displayCents[i] / 100,
       })),
       flows,
@@ -1414,10 +1555,20 @@ export class BudgetService {
         // figure as the target, so each list adds up to the line it sits under.
         const fronted = frontedRows[b.user_id] || [];
         const moved = movedRows[b.user_id] || [];
-        const frontedDisplay = allocateDisplayCents(fronted.map(r => r.cents), displayFactor, frontedDisplayCents[i]);
-        const movedDisplay = allocateDisplayCents(moved.map(r => r.cents), displayFactor, reimbursedDisplayCents[i]);
+        const frontedDisplay = allocateDisplayCents(
+          fronted.map((r) => r.cents),
+          displayFactor,
+          frontedDisplayCents[i],
+        );
+        const movedDisplay = allocateDisplayCents(
+          moved.map((r) => r.cents),
+          displayFactor,
+          reimbursedDisplayCents[i],
+        );
         return {
-          user_id: b.user_id, username: b.username, avatar_url: b.avatar_url,
+          user_id: b.user_id,
+          username: b.username,
+          avatar_url: b.avatar_url,
           expenses: frontedDisplayCents[i] / 100,
           reimbursed: reimbursedDisplayCents[i] / 100,
           pending: displayCents[i] / 100,
@@ -1428,8 +1579,8 @@ export class BudgetService {
             // The flows are display cents already, and the greedy pass drains every
             // balance completely, so the flows on a person's side sum to their balance.
             outstanding: flows
-              .filter(f => f.from.user_id === b.user_id || f.to.user_id === b.user_id)
-              .map(f => ({
+              .filter((f) => f.from.user_id === b.user_id || f.to.user_id === b.user_id)
+              .map((f) => ({
                 from_user_id: f.from.user_id,
                 to_user_id: f.to.user_id,
                 cents: Math.round(f.amount * 100) * (f.to.user_id === b.user_id ? 1 : -1),
@@ -1456,18 +1607,27 @@ export class BudgetService {
 
   private mapSettlementRow(r: SettlementRow) {
     return {
-      id: r.id, trip_id: r.trip_id,
-      from_user_id: r.from_user_id, to_user_id: r.to_user_id,
-      amount: r.amount, currency: r.currency ?? null, exchange_rate: r.exchange_rate ?? 1,
-      created_at: r.created_at, settled_at: r.settled_at ?? null, note: r.note ?? null, created_by_user_id: r.created_by_user_id,
-      from_username: r.from_username, from_avatar_url: avatarUrl({ avatar: r.from_avatar }),
-      to_username: r.to_username, to_avatar_url: avatarUrl({ avatar: r.to_avatar }),
+      id: r.id,
+      trip_id: r.trip_id,
+      from_user_id: r.from_user_id,
+      to_user_id: r.to_user_id,
+      amount: r.amount,
+      currency: r.currency ?? null,
+      exchange_rate: r.exchange_rate ?? 1,
+      created_at: r.created_at,
+      settled_at: r.settled_at ?? null,
+      note: r.note ?? null,
+      created_by_user_id: r.created_by_user_id,
+      from_username: r.from_username,
+      from_avatar_url: avatarUrl({ avatar: r.from_avatar }),
+      to_username: r.to_username,
+      to_avatar_url: avatarUrl({ avatar: r.to_avatar }),
     };
   }
 
   async listSettlements(tripId: string | number) {
     const rows = await this.budgetSettlementsRepo.listForTrip(tripId);
-    return rows.map(r => this.mapSettlementRow(r));
+    return rows.map((r) => this.mapSettlementRow(r));
   }
 
   /**
@@ -1484,11 +1644,21 @@ export class BudgetService {
   /** Raw settlement insert (no FX freeze) — the REST path wraps it in createSettlement. */
   async insertSettlement(
     tripId: string | number,
-    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number; settled_at?: string | null; note?: string | null },
+    data: {
+      from_user_id: number;
+      to_user_id: number;
+      amount: number;
+      currency?: string | null;
+      exchange_rate?: number;
+      settled_at?: string | null;
+      note?: string | null;
+    },
     createdByUserId?: number,
   ) {
     const newId = await this.budgetSettlementsRepo.insertSettlement({
-      trip_id: tripId, from_user_id: data.from_user_id, to_user_id: data.to_user_id,
+      trip_id: tripId,
+      from_user_id: data.from_user_id,
+      to_user_id: data.to_user_id,
       amount: Math.round(data.amount * 100) / 100,
       currency: data.currency ? data.currency.toUpperCase() : null,
       exchange_rate: data.exchange_rate != null ? data.exchange_rate : 1,
@@ -1508,12 +1678,22 @@ export class BudgetService {
   async applySettlementUpdate(
     id: number,
     tripId: string | number,
-    data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number; settled_at?: string | null; note?: string | null },
+    data: {
+      from_user_id: number;
+      to_user_id: number;
+      amount: number;
+      currency?: string | null;
+      exchange_rate?: number;
+      settled_at?: string | null;
+      note?: string | null;
+    },
   ) {
     const row = await this.budgetSettlementsRepo.findGuard(id, tripId);
     if (!row) return null;
     await this.budgetSettlementsRepo.update(id, {
-      from_user_id: data.from_user_id, to_user_id: data.to_user_id, amount: Math.round(data.amount * 100) / 100,
+      from_user_id: data.from_user_id,
+      to_user_id: data.to_user_id,
+      amount: Math.round(data.amount * 100) / 100,
       currency: [data.currency !== undefined, data.currency ? data.currency.toUpperCase() : null],
       exchange_rate: [data.exchange_rate !== undefined, data.exchange_rate !== undefined ? data.exchange_rate : 1],
       settled_at: [data.settled_at !== undefined, data.settled_at || null],
@@ -1556,18 +1736,26 @@ export class BudgetService {
   async settlement(tripId: string | number, base: string | undefined, tripCurrency: string, baseRate?: number) {
     const trip = (tripCurrency || 'EUR').toUpperCase();
     const effectiveBase = (base || trip).toUpperCase();
-    const rates = (await this.exchangeRates.getRates(trip))
-      ?? (effectiveBase === trip ? null : await this.exchangeRates.getRates(effectiveBase));
+    const rates =
+      (await this.exchangeRates.getRates(trip)) ??
+      (effectiveBase === trip ? null : await this.exchangeRates.getRates(effectiveBase));
     return await this.calculateSettlement(tripId, { base: effectiveBase, rates, tripCurrency: trip, baseRate });
   }
 
-  async create(tripId: string, data: Parameters<BudgetService['createBudgetItem']>[1] & { fallback_fx?: BudgetFallbackFx }) {
+  async create(
+    tripId: string,
+    data: Parameters<BudgetService['createBudgetItem']>[1] & { fallback_fx?: BudgetFallbackFx },
+  ) {
     await this.freezeForeignRate(tripId, data);
     return await this.createBudgetItem(tripId, data);
   }
 
   /** `id: number` — Plan 4 Task 8b (U6): `BudgetController.update`/the `costs.update` RPC method both parse/hand this a real row id now (`toRowId`/`num()`). */
-  async update(id: number, tripId: string | number, data: Parameters<BudgetService['updateBudgetItem']>[2] & { fallback_fx?: BudgetFallbackFx }) {
+  async update(
+    id: number,
+    tripId: string | number,
+    data: Parameters<BudgetService['updateBudgetItem']>[2] & { fallback_fx?: BudgetFallbackFx },
+  ) {
     await this.freezeForeignRate(tripId, data, id);
     return await this.updateBudgetItem(id, tripId, data);
   }
@@ -1590,12 +1778,27 @@ export class BudgetService {
    * found" 404, which is also what keeps the endpoint from confirming whether
    * an id it rejected exists at all.
    */
-  private async settlementPartiesOnTrip(tripId: string | number, data: { from_user_id: number; to_user_id: number }): Promise<boolean> {
+  private async settlementPartiesOnTrip(
+    tripId: string | number,
+    data: { from_user_id: number; to_user_id: number },
+  ): Promise<boolean> {
     const roster = await this.tripMembersRepo.rosterUserIds(tripId);
     return roster.has(data.from_user_id) && roster.has(data.to_user_id);
   }
 
-  async createSettlement(tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null; note?: string | null; fallback_fx?: BudgetFallbackFx }, userId: number) {
+  async createSettlement(
+    tripId: string | number,
+    data: {
+      from_user_id: number;
+      to_user_id: number;
+      amount: number;
+      currency?: string | null;
+      settled_at?: string | null;
+      note?: string | null;
+      fallback_fx?: BudgetFallbackFx;
+    },
+    userId: number,
+  ) {
     if (!(await this.settlementPartiesOnTrip(tripId, data))) return null;
     // Freeze the FX rate for the display currency the amount was entered in so the
     // transfer keeps cancelling its expense when live rates drift (#1445).
@@ -1604,7 +1807,19 @@ export class BudgetService {
   }
 
   /** `id: number` — Plan 4 Task 8b (U6): `BudgetController.updateSettlement` parses `:settlementId` via `toRowId` and threads the number here; the MCP tool's Zod-typed `settlementId` was already a number. */
-  async updateSettlement(id: number, tripId: string | number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null; note?: string | null; fallback_fx?: BudgetFallbackFx }) {
+  async updateSettlement(
+    id: number,
+    tripId: string | number,
+    data: {
+      from_user_id: number;
+      to_user_id: number;
+      amount: number;
+      currency?: string | null;
+      settled_at?: string | null;
+      note?: string | null;
+      fallback_fx?: BudgetFallbackFx;
+    },
+  ) {
     // Pass the settlement's stored currency so an edit that doesn't change it keeps
     // the already-frozen rate (#1445) — otherwise a live-rate drift would re-open a
     // settled position on an unrelated edit.
@@ -1635,7 +1850,13 @@ export class BudgetService {
    * total_price changes, write it into the reservation's metadata and broadcast
    * reservation:updated. Non-fatal — a failure here never breaks the budget update.
    */
-  async syncReservationPrice(tripId: string, reservationId: number, totalPrice: number, socketId: string | undefined, currency?: string | null): Promise<void> {
+  async syncReservationPrice(
+    tripId: string,
+    reservationId: number,
+    totalPrice: number,
+    socketId: string | undefined,
+    currency?: string | null,
+  ): Promise<void> {
     try {
       const reservation = await this.reservationsRepo.getIdAndMetadata(reservationId, tripId);
       if (!reservation) return;

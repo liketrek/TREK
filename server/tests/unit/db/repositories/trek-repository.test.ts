@@ -36,17 +36,18 @@
  * backwards until this task; `OAUTHTOKREPO-029` (`OauthTokens.repository
  * .test.ts`) already had it right and is the shape to copy.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { Users } from '../../../../src/db/entities/Users.entity';
+import { WebauthnChallenges } from '../../../../src/db/entities/WebauthnChallenges.entity';
+import type { UsersRepository } from '../../../../src/db/repositories/Users.repository';
+import type { WebauthnChallengesRepository } from '../../../../src/db/repositories/WebauthnChallenges.repository';
+import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
-import { Users } from '../../../../src/db/entities/Users.entity';
-import type { UsersRepository } from '../../../../src/db/repositories/Users.repository';
-import { WebauthnChallenges } from '../../../../src/db/entities/WebauthnChallenges.entity';
-import type { WebauthnChallengesRepository } from '../../../../src/db/repositories/WebauthnChallenges.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
-import { withRequestContext } from '../../../../src/nest/database/request-context';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const GLOBAL_CONTEXT_ERROR = /global EntityManager|global context/i;
 
@@ -116,7 +117,13 @@ describe('TrekRepository — every overridden path fails closed outside a reques
 
   it('TREKREPO-007: insert rejects', async () => {
     await expect(
-      users.insert({ username: 'outside-context', email: 'outside@example.test', password_hash: 'h', role: 'user', first_seen_version: '1.0' }),
+      users.insert({
+        username: 'outside-context',
+        email: 'outside@example.test',
+        password_hash: 'h',
+        role: 'user',
+        first_seen_version: '1.0',
+      }),
     ).rejects.toThrow(GLOBAL_CONTEXT_ERROR);
   });
 
@@ -135,7 +142,9 @@ describe('TrekRepository — every overridden path fails closed outside a reques
   });
 
   it('TREKREPO-011: a Kysely statement (the protected kysely() helper) rejects', async () => {
-    await expect(challenges.claimChallenge('outside-context', 'registration', Date.now())).rejects.toThrow(GLOBAL_CONTEXT_ERROR);
+    await expect(challenges.claimChallenge('outside-context', 'registration', Date.now())).rejects.toThrow(
+      GLOBAL_CONTEXT_ERROR,
+    );
   });
 
   it('TREKREPO-012: getEntityManager() itself rejects', () => {
@@ -168,13 +177,24 @@ describe('TrekRepository — every overridden path fails closed outside a reques
 
   it('TREKREPO-021: insertMany rejects', async () => {
     await expect(
-      users.insertMany([{ username: 'outside-context-many', email: 'outside-many@example.test', password_hash: 'h', role: 'user', first_seen_version: '1.0' }]),
+      users.insertMany([
+        {
+          username: 'outside-context-many',
+          email: 'outside-many@example.test',
+          password_hash: 'h',
+          role: 'user',
+          first_seen_version: '1.0',
+        },
+      ]),
     ).rejects.toThrow(GLOBAL_CONTEXT_ERROR);
   });
 
   it('TREKREPO-022: upsertMany rejects', async () => {
     await expect(
-      users.upsertMany([{ id: 1, username: 'outside-context-upsert-many' }], { onConflictFields: ['id'], onConflictAction: 'merge' }),
+      users.upsertMany([{ id: 1, username: 'outside-context-upsert-many' }], {
+        onConflictFields: ['id'],
+        onConflictAction: 'merge',
+      }),
     ).rejects.toThrow(GLOBAL_CONTEXT_ERROR);
   });
 });
@@ -217,7 +237,14 @@ describe('TrekRepository — every overridden path succeeds inside withRequestCo
       expect(typeof inserted).toBe('number');
 
       await users.upsert(
-        { id: user.id, username: 'inside-upserted', email: user.email, password_hash: 'h', role: 'user', first_seen_version: '1.0' },
+        {
+          id: user.id,
+          username: 'inside-upserted',
+          email: user.email,
+          password_hash: 'h',
+          role: 'user',
+          first_seen_version: '1.0',
+        },
         { onConflictFields: ['id'], onConflictAction: 'merge' },
       );
 
@@ -258,12 +285,33 @@ describe('TrekRepository — every overridden path succeeds inside withRequestCo
       // context is what this test proves; the row count is verified below
       // from the raw table, outside the context.
       await users.insertMany([
-        { username: 'm4-many-1', email: 'm4-many-1@example.test', password_hash: 'h', role: 'user', first_seen_version: '1.0' },
-        { username: 'm4-many-2', email: 'm4-many-2@example.test', password_hash: 'h', role: 'user', first_seen_version: '1.0' },
+        {
+          username: 'm4-many-1',
+          email: 'm4-many-1@example.test',
+          password_hash: 'h',
+          role: 'user',
+          first_seen_version: '1.0',
+        },
+        {
+          username: 'm4-many-2',
+          email: 'm4-many-2@example.test',
+          password_hash: 'h',
+          role: 'user',
+          first_seen_version: '1.0',
+        },
       ]);
 
       const upserted = await users.upsertMany(
-        [{ id: user.id, username: 'm4-upserted', email: user.email, password_hash: 'h', role: 'user', first_seen_version: '1.0' }],
+        [
+          {
+            id: user.id,
+            username: 'm4-upserted',
+            email: user.email,
+            password_hash: 'h',
+            role: 'user',
+            first_seen_version: '1.0',
+          },
+        ],
         { onConflictFields: ['id'], onConflictAction: 'merge' },
       );
       expect(upserted).toHaveLength(1);
@@ -271,13 +319,15 @@ describe('TrekRepository — every overridden path succeeds inside withRequestCo
 
     const row = testDb.prepare('SELECT username FROM users WHERE id = ?').get(user.id) as { username: string };
     expect(row.username).toBe('m4-upserted');
-    const manyRows = testDb.prepare("SELECT username FROM users WHERE username LIKE 'm4-many-%'").all() as { username: string }[];
+    const manyRows = testDb.prepare("SELECT username FROM users WHERE username LIKE 'm4-many-%'").all() as {
+      username: string;
+    }[];
     expect(manyRows).toHaveLength(2);
   });
 });
 
 describe('TrekRepository — inside uow.transactional', () => {
-  it('TREKREPO-014: a disableIdentityMap read sees the transaction\'s own uncommitted write', async () => {
+  it("TREKREPO-014: a disableIdentityMap read sees the transaction's own uncommitted write", async () => {
     const { user } = createUser(testDb, { username: 'tx-before' });
     let seenInsideTx: string | undefined;
 
@@ -292,7 +342,7 @@ describe('TrekRepository — inside uow.transactional', () => {
     expect(seenInsideTx).toBe('tx-uncommitted');
   });
 
-  it('TREKREPO-015: disableIdentityMap is in effect by default — a raw UPDATE between two reads is seen, no stale write-back on the closing flush (reuses identity-map-writeback.test.ts\'s shape)', async () => {
+  it("TREKREPO-015: disableIdentityMap is in effect by default — a raw UPDATE between two reads is seen, no stale write-back on the closing flush (reuses identity-map-writeback.test.ts's shape)", async () => {
     const { user } = createUser(testDb, { username: 'before', email: 'before@example.test' });
 
     await withRequestContext(t.orm, async () => {
@@ -305,7 +355,10 @@ describe('TrekRepository — inside uow.transactional', () => {
       });
     });
 
-    const row = testDb.prepare('SELECT username, email FROM users WHERE id = ?').get(user.id) as { username: string; email: string };
+    const row = testDb.prepare('SELECT username, email FROM users WHERE id = ?').get(user.id) as {
+      username: string;
+      email: string;
+    };
     expect(row.username).toBe('after'); // the nativeUpdate must stick
     expect(row.email).toBe('before@example.test'); // untouched by either read
   });

@@ -112,7 +112,11 @@ export class PackingTemplatesRepository extends TrekRepository<PackingTemplates>
    * `deletePackingTemplate`'s existence check). One method, five sites.
    */
   async findById(id: number | string): Promise<PackingTemplateRow | undefined> {
-    return await this.db().selectFrom('packing_templates').selectAll().where('id', '=', id as number).executeTakeFirst();
+    return await this.db()
+      .selectFrom('packing_templates')
+      .selectAll()
+      .where('id', '=', id as number)
+      .executeTakeFirst();
   }
 
   /**
@@ -124,13 +128,20 @@ export class PackingTemplatesRepository extends TrekRepository<PackingTemplates>
    * .insertItem`'s precedent).
    */
   async insertTemplate(name: string, created_by: number): Promise<number> {
-    const result = await this.kysely<PackingTemplatesInsertKyselyDB>().insertInto('packing_templates').values({ name, created_by }).executeTakeFirstOrThrow();
+    const result = await this.kysely<PackingTemplatesInsertKyselyDB>()
+      .insertInto('packing_templates')
+      .values({ name, created_by })
+      .executeTakeFirstOrThrow();
     return Number(result.insertId);
   }
 
   /** PK71 (`updatePackingTemplate`) — `UPDATE packing_templates SET name = ? WHERE id = ?`. */
   async updateName(id: number | string, name: string): Promise<void> {
-    await this.db().updateTable('packing_templates').set({ name }).where('id', '=', id as number).execute();
+    await this.db()
+      .updateTable('packing_templates')
+      .set({ name })
+      .where('id', '=', id as number)
+      .execute();
   }
 
   /** PK74 (`deletePackingTemplate`) — `DELETE FROM packing_templates WHERE id = ?`. */

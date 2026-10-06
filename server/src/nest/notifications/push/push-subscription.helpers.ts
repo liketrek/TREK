@@ -1,6 +1,6 @@
-import { MAX_PUSH_ENDPOINT_LENGTH, type PushSubscriptionInput } from '@trek/shared';
 import { decodeBase64Url } from '../../../app-config';
 import { isP256Point } from './web-push-crypto';
+import { MAX_PUSH_ENDPOINT_LENGTH, type PushSubscriptionInput } from '@trek/shared';
 
 /**
  * The browser hands us a URL and the server POSTs to it for as long as the row

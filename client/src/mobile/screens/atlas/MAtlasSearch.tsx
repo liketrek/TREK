@@ -1,27 +1,27 @@
-import { useEffect, useState } from 'react'
-import { ChevronRight, Search } from 'lucide-react'
-import { useTranslation } from '../../../i18n'
+import { ChevronRight, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useTranslation } from '../../../i18n';
 
 interface CountryOption {
-  code: string
-  label: string
+  code: string;
+  label: string;
 }
 
 interface MAtlasSearchProps {
-  open: boolean
-  onClose: () => void
+  open: boolean;
+  onClose: () => void;
   /** All searchable countries (code + localized label). */
-  options: CountryOption[]
+  options: CountryOption[];
   /** Shown while the query is empty: recently visited + bucket countries. */
-  suggestions: CountryOption[]
-  isVisited: (code: string) => boolean
+  suggestions: CountryOption[];
+  isVisited: (code: string) => boolean;
   /** Countries that only appear via a trip which hasn't started yet (#1048). */
-  isPlanned: (code: string) => boolean
-  isOnBucketList: (code: string) => boolean
-  onSelect: (code: string) => void
+  isPlanned: (code: string) => boolean;
+  isOnBucketList: (code: string) => boolean;
+  onSelect: (code: string) => void;
 }
 
-const statusCls = 'flex-none font-geist text-[0.625rem] font-bold uppercase tracking-[.04em] text-m-faint'
+const statusCls = 'flex-none font-geist text-[0.625rem] font-bold uppercase tracking-[.04em] text-m-faint';
 
 /**
  * Full-screen country search on a blurred scrim. Typing filters the country
@@ -38,19 +38,20 @@ export default function MAtlasSearch({
   isOnBucketList,
   onSelect,
 }: MAtlasSearchProps) {
-  const { t } = useTranslation()
-  const [query, setQuery] = useState('')
+  const { t } = useTranslation();
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
-    if (!open) setQuery('')
-  }, [open])
+    if (!open) setQuery('');
+  }, [open]);
 
-  if (!open) return null
+  if (!open) return null;
 
-  const q = query.trim().toLowerCase()
-  const rows = q ? options.filter((o) => o.label.toLowerCase().includes(q)).slice(0, 6) : suggestions
+  const q = query.trim().toLowerCase();
+  const rows = q ? options.filter((o) => o.label.toLowerCase().includes(q)).slice(0, 6) : suggestions;
 
-  const scrimCls = 'm-fade-in fixed inset-0 z-[70] flex flex-col bg-[rgba(16,16,19,.28)] px-[18px] pt-[calc(var(--m-safe-top,12px)+12px)] backdrop-blur-[22px] backdrop-saturate-[1.6]' // theme-lint-disable — fixed scrim value from the design
+  const scrimCls =
+    'm-fade-in fixed inset-0 z-[70] flex flex-col bg-[rgba(16,16,19,.28)] px-[18px] pt-[calc(var(--m-safe-top,12px)+12px)] backdrop-blur-[22px] backdrop-saturate-[1.6]'; // theme-lint-disable — fixed scrim value from the design
 
   return (
     <div
@@ -72,14 +73,18 @@ export default function MAtlasSearch({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') onClose()
-              if (e.key === 'Enter' && rows.length > 0) onSelect(rows[0].code)
+              if (e.key === 'Escape') onClose();
+              if (e.key === 'Enter' && rows.length > 0) onSelect(rows[0].code);
             }}
             placeholder={t('atlas.searchCountry')}
             className="min-w-0 flex-1 bg-transparent font-geist text-[0.9375rem] font-semibold text-m-ink outline-none placeholder:font-normal placeholder:text-m-faint"
           />
         </label>
-        <button type="button" onClick={onClose} className="flex-none px-1 font-geist text-[0.9375rem] font-semibold text-white">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-none px-1 font-geist text-[0.9375rem] font-semibold text-white"
+        >
           {t('common.cancel')}
         </button>
       </div>
@@ -116,5 +121,5 @@ export default function MAtlasSearch({
         </div>
       )}
     </div>
-  )
+  );
 }

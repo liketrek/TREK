@@ -1,9 +1,10 @@
-import { ReferenceKind, type EntityMetadata, type EntityProperty } from '@mikro-orm/core';
-import type Database from 'better-sqlite3';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ALL_ENTITIES } from '../../../src/db/entities';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { ReferenceKind, type EntityMetadata, type EntityProperty } from '@mikro-orm/core';
+
+import type Database from 'better-sqlite3';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * The blocking entry gate for Plan 2 (the entity rewrite, see
@@ -56,9 +57,9 @@ interface DbColumn {
 
 /** Tables SQLite itself creates (`sqlite_sequence` for AUTOINCREMENT bookkeeping) — never a domain table, never an entity. */
 function dbTables(db: Database.Database): Set<string> {
-  const rows = db
-    .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`)
-    .all() as { name: string }[];
+  const rows = db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`).all() as {
+    name: string;
+  }[];
   return new Set(rows.map((r) => r.name));
 }
 
@@ -79,7 +80,10 @@ function tableInfo(db: Database.Database, table: string): DbColumn[] {
  * reports `text` on SQLite.
  */
 function normaliseColumnType(type: string): string {
-  const stripped = type.trim().toLowerCase().replace(/\(\d+(,\s*\d+)?\)/, '');
+  const stripped = type
+    .trim()
+    .toLowerCase()
+    .replace(/\(\d+(,\s*\d+)?\)/, '');
   if (stripped === 'double') return 'real';
   if (stripped === 'varchar' || stripped === 'json') return 'text';
   return stripped;
@@ -184,11 +188,15 @@ describe('entity ↔ migrated-schema parity', () => {
           if (!column) continue; // reported by PARITY-002
           const entityType = prop.columnTypes[i];
           if (!entityType) {
-            failures.push(`${table}.${fieldName}: entity property "${meta.className}.${prop.name}" declares no column type`);
+            failures.push(
+              `${table}.${fieldName}: entity property "${meta.className}.${prop.name}" declares no column type`,
+            );
             continue;
           }
           if (!columnTypesEqual(entityType, column.type)) {
-            failures.push(`${table}.${fieldName}: entity ${normaliseColumnType(entityType)} vs db ${normaliseColumnType(column.type)}`);
+            failures.push(
+              `${table}.${fieldName}: entity ${normaliseColumnType(entityType)} vs db ${normaliseColumnType(column.type)}`,
+            );
           }
         }
       }
@@ -243,10 +251,14 @@ describe('entity ↔ migrated-schema parity', () => {
         for (const fieldName of prop.fieldNames) {
           const column = columns.get(fieldName);
           if (!column) continue;
-          const entityDefault = normaliseDefault(prop.defaultRaw ?? (prop.default != null ? String(prop.default) : null));
+          const entityDefault = normaliseDefault(
+            prop.defaultRaw ?? (prop.default != null ? String(prop.default) : null),
+          );
           const dbDefault = normaliseDefault(column.dflt_value);
           if (entityDefault !== dbDefault) {
-            failures.push(`${table}.${fieldName}: default entity=${entityDefault ?? 'null'} vs db=${dbDefault ?? 'null'}`);
+            failures.push(
+              `${table}.${fieldName}: default entity=${entityDefault ?? 'null'} vs db=${dbDefault ?? 'null'}`,
+            );
           }
         }
       }
@@ -351,7 +363,9 @@ describe('entity ↔ migrated-schema parity', () => {
         }
         const entityReferencedColumn = prop.referencedColumnNames?.[0];
         if (entityReferencedColumn !== fk.to) {
-          failures.push(`${table}.${fieldName}: referencedColumn entity=${String(entityReferencedColumn)} vs db=${fk.to}`);
+          failures.push(
+            `${table}.${fieldName}: referencedColumn entity=${String(entityReferencedColumn)} vs db=${fk.to}`,
+          );
         }
       }
     }
@@ -457,7 +471,9 @@ describe('entity ↔ migrated-schema parity', () => {
     for (const meta of tableBackedMetas()) {
       const table = meta.tableName;
       const dbIndexRows = testDb.prepare(`PRAGMA index_list("${table}")`).all() as { name: string; unique: number }[];
-      const dbNames = new Set(dbIndexRows.filter((row) => !row.name.startsWith('sqlite_autoindex_')).map((row) => row.name));
+      const dbNames = new Set(
+        dbIndexRows.filter((row) => !row.name.startsWith('sqlite_autoindex_')).map((row) => row.name),
+      );
       const entityNames = new Set<string>();
       for (const prop of meta.props) {
         if (typeof prop.index === 'string') entityNames.add(prop.index);
@@ -466,7 +482,8 @@ describe('entity ↔ migrated-schema parity', () => {
       for (const idx of meta.indexes) if (idx.name) entityNames.add(idx.name);
       for (const uniq of meta.uniques) if (uniq.name) entityNames.add(uniq.name);
       for (const name of dbNames) {
-        if (!entityNames.has(name)) failures.push(`${table}: db index "${name}" has no matching entity index declaration`);
+        if (!entityNames.has(name))
+          failures.push(`${table}: db index "${name}" has no matching entity index declaration`);
       }
       for (const name of entityNames) {
         if (!dbNames.has(name)) failures.push(`${table}: entity declares index "${name}" with no matching db index`);
@@ -515,7 +532,8 @@ describe('entity ↔ migrated-schema parity', () => {
       if (primaryProps.length === 1) {
         const pk = primaryProps[0];
         const isIntegerScalarPk =
-          (pk.kind === undefined || pk.kind === ReferenceKind.SCALAR) && normaliseColumnType(pk.columnTypes[0] ?? '') === 'integer';
+          (pk.kind === undefined || pk.kind === ReferenceKind.SCALAR) &&
+          normaliseColumnType(pk.columnTypes[0] ?? '') === 'integer';
         if (isIntegerScalarPk && pk.autoincrement !== true) {
           failures.push(`${meta.className}.${pk.name}: integer primary key is not autoincrement`);
         }

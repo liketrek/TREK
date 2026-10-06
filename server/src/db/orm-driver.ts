@@ -1,8 +1,8 @@
 import { getRawConnection } from './database';
+import { NulSafeSqlitePlatform } from './nul-safe-sqlite-platform';
 import type { Configuration } from '@mikro-orm/core';
 import type { SqlitePlatform } from '@mikro-orm/sql';
 import { SqliteConnection, SqliteDriver } from '@mikro-orm/sqlite';
-import { NulSafeSqlitePlatform } from './nul-safe-sqlite-platform';
 
 import type Database from 'better-sqlite3';
 import { SqliteDialect, SqliteDriver as KyselySqliteDriver, type Dialect, type SqliteDialectConfig } from 'kysely';

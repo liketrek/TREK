@@ -7,9 +7,9 @@
  * into the places domain: the selector is pure, so it now lives in
  * places.helpers.ts and needs no DB/websocket/Maps stubbing at all.
  */
-import { describe, it, expect } from 'vitest';
-
 import { pickEnrichmentMatch } from '../../../src/nest/places/places.helpers';
+
+import { describe, it, expect } from 'vitest';
 
 const target = { lat: 48.85, lng: 2.35 };
 

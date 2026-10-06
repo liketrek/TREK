@@ -1,55 +1,76 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Check, Layers, Tag, CheckSquare, Star, Plus, ArrowDownUp, DownloadCloud } from 'lucide-react'
-import type { StatusFilter, CollectionSortMode } from '../../store/collectionStore'
-import type { TranslationFn } from '../../types'
-import { getCategoryIcon } from '../shared/categoryIcons'
-import { STATUS_META, STATUS_ORDER } from '../../pages/collections/collectionsModel'
-import type { CategoryOption, LabelOption } from '../../pages/collections/collectionsModel'
-import CollectionLabelFilter from './CollectionLabelFilter'
+import { ArrowDownUp, Check, CheckSquare, ChevronDown, DownloadCloud, Layers, Plus, Star, Tag } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import type { CategoryOption, LabelOption } from '../../pages/collections/collectionsModel';
+import { STATUS_META, STATUS_ORDER } from '../../pages/collections/collectionsModel';
+import type { CollectionSortMode, StatusFilter } from '../../store/collectionStore';
+import type { TranslationFn } from '../../types';
+import { getCategoryIcon } from '../shared/categoryIcons';
+import CollectionLabelFilter from './CollectionLabelFilter';
 
 interface Opt {
-  key: string | number
-  label: string
-  icon?: React.ReactNode
-  count?: number
+  key: string | number;
+  label: string;
+  icon?: React.ReactNode;
+  count?: number;
 }
 
 /** Small custom dropdown — compact trigger + click-away popover. */
-function Dropdown({ current, options, onSelect, lead }: {
-  current: string | number
-  options: Opt[]
-  onSelect: (key: string | number) => void
-  lead: React.ReactNode
+function Dropdown({
+  current,
+  options,
+  onSelect,
+  lead,
+}: {
+  current: string | number;
+  options: Opt[];
+  onSelect: (key: string | number) => void;
+  lead: React.ReactNode;
 }): React.ReactElement {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!open) return
-    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('mousedown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
-  }, [open])
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
 
-  const cur = options.find(o => o.key === current) ?? options[0]
+  const cur = options.find((o) => o.key === current) ?? options[0];
   return (
     <div className="col-filter" ref={ref}>
-      <button type="button" className={`col-filter-btn${open ? ' open' : ''}`} onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open}>
+      <button
+        type="button"
+        className={`col-filter-btn${open ? 'open' : ''}`}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
         {cur.icon ?? lead}
         <span className="col-filter-lbl">{cur.label}</span>
         <ChevronDown size={14} className="col-filter-chev" />
       </button>
       {open && (
         <div className="col-filter-pop" role="listbox">
-          {options.map(o => (
+          {options.map((o) => (
             <button
               key={o.key}
               type="button"
               role="option"
               aria-selected={o.key === current}
-              className={`col-filter-opt${o.key === current ? ' on' : ''}`}
-              onClick={() => { onSelect(o.key); setOpen(false) }}
+              className={`col-filter-opt${o.key === current ? 'on' : ''}`}
+              onClick={() => {
+                onSelect(o.key);
+                setOpen(false);
+              }}
             >
               {o.icon ?? <span className="col-filter-dot ghost" />}
               <span className="col-filter-lbl">{o.label}</span>
@@ -60,38 +81,38 @@ function Dropdown({ current, options, onSelect, lead }: {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 interface CollectionFilterBarProps {
-  statusFilter: StatusFilter
-  counts: Record<StatusFilter, number>
-  categoryFilter: number | 'all'
-  categoryOptions: CategoryOption[]
-  ratingFilter: number | 'all'
-  sortMode: CollectionSortMode
-  onStatusFilter: (f: StatusFilter) => void
-  onCategoryFilter: (f: number | 'all') => void
-  onRatingFilter: (f: number | 'all') => void
-  onSortMode: (m: CollectionSortMode) => void
+  statusFilter: StatusFilter;
+  counts: Record<StatusFilter, number>;
+  categoryFilter: number | 'all';
+  categoryOptions: CategoryOption[];
+  ratingFilter: number | 'all';
+  sortMode: CollectionSortMode;
+  onStatusFilter: (f: StatusFilter) => void;
+  onCategoryFilter: (f: number | 'all') => void;
+  onRatingFilter: (f: number | 'all') => void;
+  onSortMode: (m: CollectionSortMode) => void;
   // Add a place to the current list — leads the row when the list is editable.
-  canAddPlace: boolean
-  onAddPlace: () => void
+  canAddPlace: boolean;
+  onAddPlace: () => void;
   // Per-collection labels (hidden on the "All saved" union).
-  showLabels: boolean
-  labelOptions: LabelOption[]
-  labelFilter: number[]
-  onLabelFilter: (ids: number[]) => void
-  canManageLabels: boolean
-  onManageLabels: () => void
-  showSelect: boolean
-  selectMode: boolean
-  onToggleSelect: () => void
+  showLabels: boolean;
+  labelOptions: LabelOption[];
+  labelFilter: number[];
+  onLabelFilter: (ids: number[]) => void;
+  canManageLabels: boolean;
+  onManageLabels: () => void;
+  showSelect: boolean;
+  selectMode: boolean;
+  onToggleSelect: () => void;
   /** Bulk import from a trip — only on a real list, never the "All saved" union,
    *  which has no single destination to import into. */
-  canImport: boolean
-  onImport: () => void
-  t: TranslationFn
+  canImport: boolean;
+  onImport: () => void;
+  t: TranslationFn;
 }
 
 /**
@@ -100,63 +121,118 @@ interface CollectionFilterBarProps {
  * Custom compact dropdowns so they barely take any space.
  */
 export default function CollectionFilterBar({
-  statusFilter, counts, categoryFilter, categoryOptions, ratingFilter, sortMode,
-  onStatusFilter, onCategoryFilter, onRatingFilter, onSortMode,
-  canAddPlace, onAddPlace,
-  showLabels, labelOptions, labelFilter, onLabelFilter, canManageLabels, onManageLabels,
-  showSelect, selectMode, onToggleSelect, canImport, onImport, t,
+  statusFilter,
+  counts,
+  categoryFilter,
+  categoryOptions,
+  ratingFilter,
+  sortMode,
+  onStatusFilter,
+  onCategoryFilter,
+  onRatingFilter,
+  onSortMode,
+  canAddPlace,
+  onAddPlace,
+  showLabels,
+  labelOptions,
+  labelFilter,
+  onLabelFilter,
+  canManageLabels,
+  onManageLabels,
+  showSelect,
+  selectMode,
+  onToggleSelect,
+  canImport,
+  onImport,
+  t,
 }: CollectionFilterBarProps): React.ReactElement {
   const statusOpts: Opt[] = [
     { key: 'all', label: t('common.all'), count: counts.all },
-    ...STATUS_ORDER.map(s => {
-      const Icon = STATUS_META[s].icon
-      return { key: s, label: t(STATUS_META[s].labelKey), icon: <Icon size={13} style={{ color: STATUS_META[s].color }} />, count: counts[s] }
+    ...STATUS_ORDER.map((s) => {
+      const Icon = STATUS_META[s].icon;
+      return {
+        key: s,
+        label: t(STATUS_META[s].labelKey),
+        icon: <Icon size={13} style={{ color: STATUS_META[s].color }} />,
+        count: counts[s],
+      };
     }),
-  ]
+  ];
 
-  const catTotal = categoryOptions.reduce((n, c) => n + c.count, 0)
+  const catTotal = categoryOptions.reduce((n, c) => n + c.count, 0);
   const catOpts: Opt[] = [
     { key: 'all', label: t('common.all'), count: catTotal },
-    ...categoryOptions.map(c => {
-      const Icon = getCategoryIcon(c.icon ?? undefined)
-      return { key: c.id, label: c.name, icon: <Icon size={13} style={{ color: c.color ?? undefined }} />, count: c.count }
+    ...categoryOptions.map((c) => {
+      const Icon = getCategoryIcon(c.icon ?? undefined);
+      return {
+        key: c.id,
+        label: c.name,
+        icon: <Icon size={13} style={{ color: c.color ?? undefined }} />,
+        count: c.count,
+      };
     }),
-  ]
+  ];
 
   // Minimum-average-rating filter (#1435): All, then ≥5…≥1 stars.
   const ratingOpts: Opt[] = [
     { key: 'all', label: t('common.all') },
-    ...[5, 4, 3, 2, 1].map(n => ({
+    ...[5, 4, 3, 2, 1].map((n) => ({
       key: n,
       label: `${n}+`,
       icon: <Star size={13} color="#facc15" fill="#facc15" />,
     })),
-  ]
+  ];
 
   // Display order: the saved order, or alphabetical by name.
   const sortOpts: Opt[] = [
     { key: 'default', label: t('collections.sort.default') },
     { key: 'name_asc', label: t('collections.sort.nameAsc') },
-  ]
+  ];
 
   return (
     <div className="col-filterbar">
       {canAddPlace && (
-        <button type="button" onClick={onAddPlace} className="col-filter-btn col-filter-add" aria-label={t('collections.addPlace')} title={t('collections.addPlace')}>
+        <button
+          type="button"
+          onClick={onAddPlace}
+          className="col-filter-btn col-filter-add"
+          aria-label={t('collections.addPlace')}
+          title={t('collections.addPlace')}
+        >
           <Plus size={15} />
         </button>
       )}
-      <Dropdown current={statusFilter} options={statusOpts} onSelect={k => onStatusFilter(k as StatusFilter)} lead={<Layers size={13} />} />
+      <Dropdown
+        current={statusFilter}
+        options={statusOpts}
+        onSelect={(k) => onStatusFilter(k as StatusFilter)}
+        lead={<Layers size={13} />}
+      />
       {categoryOptions.length > 0 && (
-        <Dropdown current={categoryFilter} options={catOpts} onSelect={k => onCategoryFilter(k as number | 'all')} lead={<Tag size={13} />} />
+        <Dropdown
+          current={categoryFilter}
+          options={catOpts}
+          onSelect={(k) => onCategoryFilter(k as number | 'all')}
+          lead={<Tag size={13} />}
+        />
       )}
-      <Dropdown current={ratingFilter} options={ratingOpts} onSelect={k => onRatingFilter(k as number | 'all')} lead={<Star size={13} />} />
-      <Dropdown current={sortMode} options={sortOpts} onSelect={k => onSortMode(k as CollectionSortMode)} lead={<ArrowDownUp size={13} />} />
+      <Dropdown
+        current={ratingFilter}
+        options={ratingOpts}
+        onSelect={(k) => onRatingFilter(k as number | 'all')}
+        lead={<Star size={13} />}
+      />
+      <Dropdown
+        current={sortMode}
+        options={sortOpts}
+        onSelect={(k) => onSortMode(k as CollectionSortMode)}
+        lead={<ArrowDownUp size={13} />}
+      />
       {showSelect && (
         <button
           type="button"
           onClick={onToggleSelect}
-          className={`col-filter-btn col-filter-icon col-filter-select${selectMode ? ' on' : ''}`}
+          className={`col-filter-btn col-filter-icon col-filter-select${selectMode ? 'on' : ''}`}
           aria-pressed={selectMode}
           aria-label={t('collections.select')}
           title={t('collections.select')}
@@ -186,5 +262,5 @@ export default function CollectionFilterBar({
         />
       )}
     </div>
-  )
+  );
 }

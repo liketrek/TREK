@@ -12,9 +12,10 @@
  * migrate to the step immediately before it, seed rows with raw SQL, apply
  * just that one migration, assert.
  */
-import { describe, it, expect, vi } from 'vitest';
-import type { MikroORM } from '@mikro-orm/sqlite';
 import { createMigrationOrm, migrateTo, pendingNames, rawExec, rawQuery } from '../../helpers/migration-step';
+import type { MikroORM } from '@mikro-orm/sqlite';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const TARGET = 'Migration20200101020800_trim_leading_trailing_whitespace_from_stored_usernames';
 
@@ -34,7 +35,11 @@ async function insert(orm: MikroORM, username: string, email: string): Promise<n
 }
 
 async function row(orm: MikroORM, id: number): Promise<{ username: string; email: string }> {
-  const rows = await rawQuery<{ username: string; email: string }>(orm, 'SELECT username, email FROM users WHERE id = ?', [id]);
+  const rows = await rawQuery<{ username: string; email: string }>(
+    orm,
+    'SELECT username, email FROM users WHERE id = ?',
+    [id],
+  );
   return rows[0];
 }
 

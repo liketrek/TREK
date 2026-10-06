@@ -17,8 +17,7 @@ const collab: TranslationStrings = {
   'collab.tabs.links': 'Linklər',
 
   'collab.links.add': 'Link əlavə et',
-  'collab.chat.imageRejected':
-    'Yalnız ölçüsü 10 MB-dək olan JPEG, PNG, GIF və WebP şəkillərinə icazə verilir',
+  'collab.chat.imageRejected': 'Yalnız ölçüsü 10 MB-dək olan JPEG, PNG, GIF və WebP şəkillərinə icazə verilir',
   'collab.links.cancel': 'Ləğv et',
   'collab.links.save': 'Linki yadda saxla',
   'collab.links.titlePlaceholder': 'Linkin başlığı',
@@ -37,16 +36,13 @@ const collab: TranslationStrings = {
   'collab.whatsNext.tomorrow': 'Sabah',
   'collab.whatsNext.empty': 'Qarşıdan gələn fəaliyyət yoxdur',
   'collab.whatsNext.until': '–',
-  'collab.whatsNext.emptyHint':
-    'Vaxtı müəyyən edilmiş fəaliyyətlər burada görünəcək',
+  'collab.whatsNext.emptyHint': 'Vaxtı müəyyən edilmiş fəaliyyətlər burada görünəcək',
 
   'collab.chat.send': 'Göndər',
   'collab.chat.placeholder': 'Mesaj yazın...',
   'collab.chat.empty': 'Söhbətə başlayın',
-  'collab.chat.emptyHint':
-    'Mesajlar bütün səyahət üzvləri ilə paylaşılır',
-  'collab.chat.emptyDesc':
-    'Səyahət qrupunuzla ideyaları, planları və yenilikləri paylaşın',
+  'collab.chat.emptyHint': 'Mesajlar bütün səyahət üzvləri ilə paylaşılır',
+  'collab.chat.emptyDesc': 'Səyahət qrupunuzla ideyaları, planları və yenilikləri paylaşın',
   'collab.chat.today': 'Bu gün',
   'collab.chat.yesterday': 'Dünən',
   'collab.chat.deletedMessage': 'mesajı sildi',
@@ -109,8 +105,7 @@ const collab: TranslationStrings = {
   'collab.polls.delete': 'Sil',
   'collab.polls.closedSection': 'Bağlanmış sorğular',
 
-  'collab.chat.imageLimit':
-    'Hər mesaja maksimum {max} şəkil əlavə edə bilərsiniz',
+  'collab.chat.imageLimit': 'Hər mesaja maksimum {max} şəkil əlavə edə bilərsiniz',
   'collab.chat.uploading': 'Yüklənir: {percent}%',
   'collab.chat.attachImages': 'Şəkillər əlavə et',
   'collab.chat.attachedImage': 'Əlavə edilmiş şəkil',

@@ -1,8 +1,8 @@
-import Markdown from 'react-markdown'
-import type { Components } from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import { markdownLinkComponents } from './markdownLink'
+import type { Components } from 'react-markdown';
+import Markdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
+import { markdownLinkComponents } from './markdownLink';
 
 /**
  * A clamped caption lives inside a tappable row, so an anchor there would eat
@@ -10,7 +10,7 @@ import { markdownLinkComponents } from './markdownLink'
  */
 const clampedComponents: Components = {
   a: ({ children }) => <>{children}</>,
-}
+};
 
 /**
  * A description or note, rendered (#2337). The field is Markdown wherever it is
@@ -21,14 +21,18 @@ const clampedComponents: Components = {
  * sidebar rows do with the same field. The height cap is inline because the row
  * itself sets a font size, and a Tailwind `leading-*` would race with it.
  */
-export default function MarkdownText({ children, className = '', clamp = false }: {
-  children: string
-  className?: string
-  clamp?: boolean
+export default function MarkdownText({
+  children,
+  className = '',
+  clamp = false,
+}: {
+  children: string;
+  className?: string;
+  clamp?: boolean;
 }) {
   return (
     <div
-      className={`collab-note-md ${clamp ? 'truncate ' : ''}${className}`}
+      className={`collab-note-md ${clamp ? 'truncate' : ''}${className}`}
       style={clamp ? { maxHeight: '1.2em', lineHeight: 1.2 } : undefined}
     >
       <Markdown
@@ -38,5 +42,5 @@ export default function MarkdownText({ children, className = '', clamp = false }
         {children}
       </Markdown>
     </div>
-  )
+  );
 }

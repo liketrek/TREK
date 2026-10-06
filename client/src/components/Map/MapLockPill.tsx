@@ -1,13 +1,13 @@
-import { Lock, Unlock } from 'lucide-react'
-import { useTranslation } from '../../i18n'
-import { MapTogglePill } from './MapTogglePill'
+import { Lock, Unlock } from 'lucide-react';
+import { useTranslation } from '../../i18n';
+import { MapTogglePill } from './MapTogglePill';
 
 /**
  * Locks the map view (#2010): picking days and places then leaves the camera where it is.
  * Sits on top of the base-layer switcher, the other control about the view itself.
  */
 export function MapLockPill({ locked, onToggle }: { locked: boolean; onToggle: () => void }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <MapTogglePill
       active={locked}
@@ -17,5 +17,5 @@ export function MapLockPill({ locked, onToggle }: { locked: boolean; onToggle: (
       tooltipPlacement="right"
       icon={locked ? <Lock size={16} strokeWidth={2} /> : <Unlock size={16} strokeWidth={2} />}
     />
-  )
+  );
 }

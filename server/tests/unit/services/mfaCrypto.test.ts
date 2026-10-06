@@ -1,3 +1,5 @@
+import { encryptMfaSecret, decryptMfaSecret } from '../../../src/nest/common/crypto/mfaCrypto';
+
 import { describe, it, expect, vi } from 'vitest';
 
 // Inline factory to avoid vi.mock hoisting issue (no imported vars allowed)
@@ -6,8 +8,6 @@ vi.mock('../../../src/config', () => ({
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
 }));
-
-import { encryptMfaSecret, decryptMfaSecret } from '../../../src/nest/common/crypto/mfaCrypto';
 
 describe('mfaCrypto', () => {
   const TOTP_SECRET = 'JBSWY3DPEHPK3PXP'; // typical base32 TOTP secret

@@ -12,11 +12,13 @@
  * (`db/orm.ts:59`) already gives it in production (the TRAP: "direct-call
  * tests need withRequestContext").
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type Database from 'better-sqlite3';
+import { seedDemoData } from '../../../src/demo/demo-seed';
+import { withRequestContext } from '../../../src/nest/database/request-context';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { createTestOrm } from '../../helpers/test-orm';
-import { withRequestContext } from '../../../src/nest/database/request-context';
+
+import type Database from 'better-sqlite3';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Baseline handling is demo-reset's job and touches the file system.
 vi.mock('../../../src/demo/demo-reset', async (importOriginal) => {
@@ -28,8 +30,6 @@ vi.mock('../../../src/demo/demo-reset', async (importOriginal) => {
     resetDemoUser: vi.fn(),
   };
 });
-
-import { seedDemoData } from '../../../src/demo/demo-seed';
 
 describe('demo seeding', () => {
   let db: Database.Database;
@@ -90,7 +90,8 @@ describe('demo seeding', () => {
     // 10+6+8=24 packing items, 6+4+5=15 budget items, 2+1+3=6
     // reservations, 4+2+3=9 day notes, 3 trip_members rows (one per trip,
     // demo joined as a member alongside the admin owner).
-    const count = (table: string): number => (db.prepare(`SELECT COUNT(*) as n FROM ${table}`).get() as { n: number }).n;
+    const count = (table: string): number =>
+      (db.prepare(`SELECT COUNT(*) as n FROM ${table}`).get() as { n: number }).n;
     expect(count('users')).toBe(2); // admin + demo
     expect(count('trips')).toBe(3);
     expect(count('days')).toBe(16);
@@ -103,19 +104,32 @@ describe('demo seeding', () => {
     expect(count('trip_members')).toBe(3);
     expect(count('app_settings')).toBeGreaterThanOrEqual(1);
 
-    const allowRegistration = db.prepare("SELECT value FROM app_settings WHERE key = 'allow_registration'").get() as { value: string } | undefined;
+    const allowRegistration = db.prepare("SELECT value FROM app_settings WHERE key = 'allow_registration'").get() as
+      { value: string } | undefined;
     expect(allowRegistration?.value).toBe('false');
 
-    const admin = db.prepare('SELECT username, email, role FROM users WHERE id = ?').get(adminId) as { username: string; email: string; role: string };
+    const admin = db.prepare('SELECT username, email, role FROM users WHERE id = ?').get(adminId) as {
+      username: string;
+      email: string;
+      role: string;
+    };
     expect(admin.role).toBe('admin');
-    const demoUser = db.prepare('SELECT username, email, role FROM users WHERE id = ?').get(demoId) as { username: string; email: string; role: string };
+    const demoUser = db.prepare('SELECT username, email, role FROM users WHERE id = ?').get(demoId) as {
+      username: string;
+      email: string;
+      role: string;
+    };
     expect(demoUser).toEqual({ username: 'demo', email: 'demo@trek.app', role: 'user' });
 
-    const tripTitles = (db.prepare('SELECT title FROM trips ORDER BY id').all() as { title: string }[]).map((r) => r.title);
+    const tripTitles = (db.prepare('SELECT title FROM trips ORDER BY id').all() as { title: string }[]).map(
+      (r) => r.title,
+    );
     expect(tripTitles).toEqual(['Tokyo & Kyoto', 'Barcelona Long Weekend', 'New York City']);
 
     // reservation_time carries the full date (#1934), never a bare clock time.
-    const reservationTimes = (db.prepare('SELECT reservation_time FROM reservations ORDER BY id').all() as { reservation_time: string }[]).map((r) => r.reservation_time);
+    const reservationTimes = (
+      db.prepare('SELECT reservation_time FROM reservations ORDER BY id').all() as { reservation_time: string }[]
+    ).map((r) => r.reservation_time);
     for (const t of reservationTimes) expect(t).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
   });
 });

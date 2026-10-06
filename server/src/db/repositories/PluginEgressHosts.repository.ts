@@ -28,7 +28,10 @@ export class PluginEgressHostsRepository extends TrekRepository<PluginEgressHost
   async replaceAllForPlugin(pluginId: string, hosts: string[]): Promise<void> {
     await this.nativeDelete({ plugin_id: pluginId });
     for (const host of hosts) {
-      await this.upsert({ plugin_id: pluginId, host }, { onConflictFields: ['plugin_id', 'host'], onConflictAction: 'ignore' });
+      await this.upsert(
+        { plugin_id: pluginId, host },
+        { onConflictFields: ['plugin_id', 'host'], onConflictAction: 'ignore' },
+      );
     }
   }
 

@@ -13,22 +13,22 @@
  * assistant and answering "nothing to sync" to a question about someone's
  * boarding pass.
  */
+import { ADDON_IDS } from '../../../../src/addons';
+import type { McpContext, McpTextResult, ToolOptions } from '../../../../src/nest-mcp';
+import { getEntry, type ClassRef } from '../../../../src/nest-mcp/metadata';
+import type { AddonsService } from '../../../../src/nest/addons/addons.service';
+import type { DocSyncConfigService, LinkRow } from '../../../../src/nest/doc-sync/doc-sync-config.service';
+import { DocSyncMcp } from '../../../../src/nest/doc-sync/doc-sync.mcp';
+import type { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
+import type { FilesService } from '../../../../src/nest/files/files.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { z, type ZodRawShape } from 'zod';
-
-import { ADDON_IDS } from '../../../../src/addons';
-import { DocSyncMcp } from '../../../../src/nest/doc-sync/doc-sync.mcp';
-import type { DocSyncConfigService, LinkRow } from '../../../../src/nest/doc-sync/doc-sync-config.service';
-import type { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
-import type { AddonsService } from '../../../../src/nest/addons/addons.service';
-import type { FilesService } from '../../../../src/nest/files/files.service';
-import { getEntry, type ClassRef } from '../../../../src/nest-mcp/metadata';
-import type { McpContext, McpTextResult, ToolOptions } from '../../../../src/nest-mcp';
 
 const ctx = { userId: 7, scopes: null, isStaticToken: false } as McpContext;
 
 const link = (id: number, providerId = 'paperless', lastSyncState: string | null = null): LinkRow =>
-  ({ id, provider_id: providerId, trip_id: 3, last_sync_state: lastSyncState } as LinkRow);
+  ({ id, provider_id: providerId, trip_id: 3, last_sync_state: lastSyncState }) as LinkRow;
 
 const RUN = { state: 'ok', pulled: 2, pushed: 1, conflicts: 0, missing: 0 };
 
@@ -101,11 +101,11 @@ beforeEach(() => vi.clearAllMocks());
 describe('DocSyncMcp surface', () => {
   it('offers three tools, none of which can create or change a connection', () => {
     expect(registeredMethods()).toEqual(['getTripDocumentSync', 'listIssues', 'syncNow']);
-    expect(registeredMethods().map((m) => toolOptions(m).name).sort()).toEqual([
-      'get_trip_document_sync',
-      'list_trip_document_sync_issues',
-      'sync_trip_documents',
-    ]);
+    expect(
+      registeredMethods()
+        .map((m) => toolOptions(m).name)
+        .sort(),
+    ).toEqual(['get_trip_document_sync', 'list_trip_document_sync_issues', 'sync_trip_documents']);
   });
 
   it('asks for nothing but a trip id and a full-run flag', () => {

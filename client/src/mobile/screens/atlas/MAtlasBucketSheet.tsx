@@ -1,25 +1,25 @@
-import { useState } from 'react'
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight, MapPin, Plus, Search, Star, Trash2, X } from 'lucide-react'
-import MSheet from '../../components/MSheet'
-import MIconBtn from '../../components/MIconBtn'
-import { A2_TO_A3 } from '../../../pages/atlas/atlasModel'
-import type { BucketItem } from '../../../pages/atlas/atlasModel'
-import type { AtlasController } from './atlasController'
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight, MapPin, Plus, Search, Star, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
+import type { BucketItem } from '../../../pages/atlas/atlasModel';
+import { A2_TO_A3 } from '../../../pages/atlas/atlasModel';
+import MIconBtn from '../../components/MIconBtn';
+import MSheet from '../../components/MSheet';
+import type { AtlasController } from './atlasController';
 
 interface MAtlasBucketSheetProps {
-  atlas: AtlasController
-  open: boolean
-  onClose: () => void
+  atlas: AtlasController;
+  open: boolean;
+  onClose: () => void;
 }
 
 const inputCls =
-  'w-full rounded-[14px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-[14px] py-[11px] text-[0.84375rem] font-medium text-m-ink outline-none placeholder:text-m-faint'
+  'w-full rounded-[14px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-[14px] py-[11px] text-[0.84375rem] font-medium text-m-ink outline-none placeholder:text-m-faint';
 
 function itemCountryA2(item: BucketItem): string | null {
-  const code = item.country_code
-  if (!code) return null
-  if (code.length === 2) return code
-  return Object.entries(A2_TO_A3).find(([, v]) => v === code)?.[0] ?? null
+  const code = item.country_code;
+  if (!code) return null;
+  if (code.length === 2) return code;
+  return Object.entries(A2_TO_A3).find(([, v]) => v === code)?.[0] ?? null;
 }
 
 /**
@@ -45,35 +45,40 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
     handleBucketPoiSearch,
     handleAddBucketItem,
     handleDeleteBucketItem,
-  } = atlas
+  } = atlas;
 
   const resetForm = (): void => {
-    setShowBucketAdd(false)
-    setBucketForm({ name: '', notes: '', lat: '', lng: '', target_date: '' })
-    setBucketSearch('')
-    setBucketSearchResults([])
-  }
+    setShowBucketAdd(false);
+    setBucketForm({ name: '', notes: '', lat: '', lng: '', target_date: '' });
+    setBucketSearch('');
+    setBucketSearchResults([]);
+  };
 
   const close = (): void => {
-    resetForm()
-    onClose()
-  }
+    resetForm();
+    onClose();
+  };
 
   // Own POI pick instead of the hook's handleSelectBucketPoi: keeps the notes
   // and target month the user may already have typed into the form.
   const pickPoi = (result: { name?: string; lat?: number; lng?: number }): void => {
-    setBucketForm({ ...bucketForm, name: result.name || bucketSearch, lat: String(result.lat ?? ''), lng: String(result.lng ?? '') })
-    setBucketSearchResults([])
-    setBucketSearch('')
-  }
+    setBucketForm({
+      ...bucketForm,
+      name: result.name || bucketSearch,
+      lat: String(result.lat ?? ''),
+      lng: String(result.lng ?? ''),
+    });
+    setBucketSearchResults([]);
+    setBucketSearch('');
+  };
 
   const fmtTarget = (targetDate: string): string => {
-    const [y, m] = targetDate.split('-')
-    return m ? new Date(Number(y), Number(m) - 1).toLocaleDateString(language, { month: 'short', year: 'numeric' }) : y
-  }
+    const [y, m] = targetDate.split('-');
+    return m ? new Date(Number(y), Number(m) - 1).toLocaleDateString(language, { month: 'short', year: 'numeric' }) : y;
+  };
 
   const itemSub = (item: BucketItem): string => {
-    const a2 = itemCountryA2(item)
+    const a2 = itemCountryA2(item);
     return [
       a2 ? resolveName(a2) : null,
       item.target_date ? fmtTarget(item.target_date) : null,
@@ -81,8 +86,8 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
       item.notes || null,
     ]
       .filter(Boolean)
-      .join(' · ')
-  }
+      .join(' · ');
+  };
 
   return (
     <MSheet open={open} onClose={close} variant="bottom" material="glass" ariaLabel={t('atlas.bucketTab')}>
@@ -92,7 +97,9 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
           <div className="min-w-0 flex-1 truncate text-[0.9375rem] font-extrabold text-m-ink">
             {t('atlas.bucketTab')}
             {bucketList.length > 0 && (
-              <span className="ml-[6px] font-geist text-[0.75rem] font-semibold tabular-nums text-m-faint">{bucketList.length}</span>
+              <span className="ml-[6px] font-geist text-[0.75rem] font-semibold tabular-nums text-m-faint">
+                {bucketList.length}
+              </span>
             )}
           </div>
           <MIconBtn variant="neutral" size={34} onClick={close} ariaLabel={t('common.close')}>
@@ -108,10 +115,13 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
             </div>
           )}
           {bucketList.map((item) => {
-            const a2 = itemCountryA2(item)
-            const sub = itemSub(item)
+            const a2 = itemCountryA2(item);
+            const sub = itemSub(item);
             return (
-              <div key={item.id} className="flex items-center gap-3 rounded-[18px] bg-[color:var(--m-ic)] px-[14px] py-[11px]">
+              <div
+                key={item.id}
+                className="flex items-center gap-3 rounded-[18px] bg-[color:var(--m-ic)] px-[14px] py-[11px]"
+              >
                 {a2 ? (
                   <img
                     src={`https://flagcdn.com/w40/${a2.toLowerCase()}.png`}
@@ -134,7 +144,7 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
                   <Trash2 size={15} strokeWidth={2} />
                 </button>
               </div>
-            )
+            );
           })}
         </div>
 
@@ -146,14 +156,14 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
                   autoFocus
                   value={bucketForm.name || bucketSearch}
                   onChange={(e) => {
-                    const v = e.target.value
-                    if (bucketForm.name) setBucketForm({ ...bucketForm, name: v })
-                    else setBucketSearch(v)
+                    const v = e.target.value;
+                    if (bucketForm.name) setBucketForm({ ...bucketForm, name: v });
+                    else setBucketSearch(v);
                   }}
                   onKeyDown={(e) => {
-                    if (e.key !== 'Enter') return
-                    if (bucketForm.name) void handleAddBucketItem()
-                    else void handleBucketPoiSearch()
+                    if (e.key !== 'Enter') return;
+                    if (bucketForm.name) void handleAddBucketItem();
+                    else void handleBucketPoiSearch();
                   }}
                   placeholder={t('atlas.bucketNamePlaceholder')}
                   className={`${inputCls} min-w-0 flex-1`}
@@ -163,8 +173,8 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
                     variant="neutral"
                     size={40}
                     onClick={() => {
-                      setBucketForm({ ...bucketForm, name: '', lat: '', lng: '' })
-                      setBucketSearch('')
+                      setBucketForm({ ...bucketForm, name: '', lat: '', lng: '' });
+                      setBucketSearch('');
                     }}
                     ariaLabel={t('common.cancel')}
                   >
@@ -185,9 +195,16 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
               {bucketSearchResults.length > 0 && (
                 <div className="absolute bottom-full left-0 right-0 z-10 mb-2 max-h-40 divide-y divide-[color:var(--m-rowbr)] overflow-y-auto rounded-[16px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] shadow-[0_12px_30px_-14px_rgba(0,0,0,.4)]">
                   {bucketSearchResults.slice(0, 6).map((result, i) => (
-                    <button key={i} type="button" onClick={() => pickPoi(result)} className="flex w-full flex-col px-[14px] py-[9px] text-left active:bg-[color:var(--m-ic)]">
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => pickPoi(result)}
+                      className="flex w-full flex-col px-[14px] py-[9px] text-left active:bg-[color:var(--m-ic)]"
+                    >
                       <span className="text-[0.8125rem] font-semibold text-m-ink">{result.name}</span>
-                      {result.address && <span className="font-geist text-[0.625rem] text-m-faint">{result.address}</span>}
+                      {result.address && (
+                        <span className="font-geist text-[0.625rem] text-m-faint">{result.address}</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -213,7 +230,11 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
               t={t}
             />
             <div className="flex gap-2 pt-1">
-              <button type="button" onClick={resetForm} className="flex-1 rounded-full bg-[color:var(--m-ic)] py-[11px] text-[0.8125rem] font-bold text-m-ink">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="flex-1 rounded-full bg-[color:var(--m-ic)] py-[11px] text-[0.8125rem] font-bold text-m-ink"
+              >
                 {t('common.cancel')}
               </button>
               <button
@@ -236,70 +257,104 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
             {t('atlas.addPoi')}
           </button>
         )}
-
       </div>
     </MSheet>
-  )
+  );
 }
 
 /** Custom month/year picker replacing the native <input type="month">: a year
  *  stepper over a 12-month grid, opening upward so it clears the docked sheet. */
-function MMonthYearField({ value, onChange, placeholder, language, t }: {
-  value: string
-  onChange: (v: string) => void
-  placeholder: string
-  language: string
-  t: AtlasController['t']
+function MMonthYearField({
+  value,
+  onChange,
+  placeholder,
+  language,
+  t,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  language: string;
+  t: AtlasController['t'];
 }) {
-  const [open, setOpen] = useState(false)
-  const selYear = value ? Number(value.split('-')[0]) : null
-  const selMonth = value ? Number(value.split('-')[1]) : null
-  const [year, setYear] = useState(selYear ?? new Date().getFullYear())
+  const [open, setOpen] = useState(false);
+  const selYear = value ? Number(value.split('-')[0]) : null;
+  const selMonth = value ? Number(value.split('-')[1]) : null;
+  const [year, setYear] = useState(selYear ?? new Date().getFullYear());
 
   const display = selYear
     ? new Date(selYear, (selMonth ?? 1) - 1).toLocaleDateString(language, { month: 'long', year: 'numeric' })
-    : ''
+    : '';
 
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className={`${inputCls} flex items-center gap-2 text-left`}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={`${inputCls} flex items-center gap-2 text-left`}
+      >
         <Calendar size={15} strokeWidth={2.2} className="flex-none text-m-muted" />
         <span className={`min-w-0 flex-1 truncate ${display ? '' : 'text-m-faint'}`}>{display || placeholder}</span>
-        <ChevronDown size={15} strokeWidth={2} className={`flex-none text-m-faint transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          size={15}
+          strokeWidth={2}
+          className={`flex-none text-m-faint transition-transform ${open ? 'rotate-180' : ''}`}
+        />
       </button>
       {open && (
         <div className="absolute bottom-full left-0 right-0 z-10 mb-2 rounded-[16px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] p-3 shadow-[0_12px_30px_-14px_rgba(0,0,0,.4)]">
           <div className="mb-[10px] flex items-center justify-between">
-            <button type="button" onClick={() => setYear(y => y - 1)} aria-label={t('mobileVacay.prevYear')} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted">
+            <button
+              type="button"
+              onClick={() => setYear((y) => y - 1)}
+              aria-label={t('mobileVacay.prevYear')}
+              className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
+            >
               <ChevronLeft size={16} strokeWidth={2.2} />
             </button>
             <span className="text-[0.9375rem] font-extrabold tabular-nums text-m-ink">{year}</span>
-            <button type="button" onClick={() => setYear(y => y + 1)} aria-label={t('mobileVacay.nextYear')} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted">
+            <button
+              type="button"
+              onClick={() => setYear((y) => y + 1)}
+              aria-label={t('mobileVacay.nextYear')}
+              className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
+            >
               <ChevronRight size={16} strokeWidth={2.2} />
             </button>
           </div>
           <div className="grid grid-cols-4 gap-[6px]">
             {Array.from({ length: 12 }, (_, m) => {
-              const on = selYear === year && selMonth === m + 1
+              const on = selYear === year && selMonth === m + 1;
               return (
                 <button
                   key={m}
                   type="button"
-                  onClick={() => { onChange(`${year}-${String(m + 1).padStart(2, '0')}`); setOpen(false) }}
+                  onClick={() => {
+                    onChange(`${year}-${String(m + 1).padStart(2, '0')}`);
+                    setOpen(false);
+                  }}
                   className={`rounded-[10px] py-2 text-[0.71875rem] font-bold capitalize ${on ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'}`}
                 >
                   {new Date(2000, m, 1).toLocaleDateString(language, { month: 'short' })}
                 </button>
-              )
+              );
             })}
           </div>
           {value && (
-            <button type="button" onClick={() => { onChange(''); setOpen(false) }} className="mt-[10px] w-full rounded-[10px] py-[7px] text-[0.6875rem] font-bold text-m-muted">
+            <button
+              type="button"
+              onClick={() => {
+                onChange('');
+                setOpen(false);
+              }}
+              className="mt-[10px] w-full rounded-[10px] py-[7px] text-[0.6875rem] font-bold text-m-muted"
+            >
               {t('common.reset')}
             </button>
           )}
         </div>
       )}
     </div>
-  )
+  );
 }

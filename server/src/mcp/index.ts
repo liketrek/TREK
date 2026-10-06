@@ -46,8 +46,16 @@ const sessionSweepInterval = setInterval(() => {
   let cleaned = 0;
   for (const [sid, session] of sessions) {
     if (session.lastActivity < cutoff) {
-      try { session.server.close(); } catch { /* ignore */ }
-      try { session.transport.close(); } catch { /* ignore */ }
+      try {
+        session.server.close();
+      } catch {
+        /* ignore */
+      }
+      try {
+        session.transport.close();
+      } catch {
+        /* ignore */
+      }
       sessions.delete(sid);
       cleaned++;
     }
@@ -68,8 +76,16 @@ sessionSweepInterval.unref();
 export function closeMcpSessions(): void {
   clearInterval(sessionSweepInterval);
   for (const [, session] of sessions) {
-    try { session.server.close(); } catch { /* ignore */ }
-    try { session.transport.close(); } catch { /* ignore */ }
+    try {
+      session.server.close();
+    } catch {
+      /* ignore */
+    }
+    try {
+      session.transport.close();
+    } catch {
+      /* ignore */
+    }
   }
   sessions.clear();
   rateLimitMap.clear();

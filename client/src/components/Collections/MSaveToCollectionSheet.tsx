@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router'
-import { Bookmark, BookmarkCheck, Check, CheckCircle2, Loader2, Plus, X } from 'lucide-react'
-import MSheet from '../../mobile/components/MSheet'
-import MIconBtn from '../../mobile/components/MIconBtn'
-import { useToast } from '../shared/Toast'
-import { useTranslation } from '../../i18n'
-import { collectionsApi } from '../../api/collections'
-import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
-import { getApiErrorMessage } from '../../utils/apiError'
-import { STATUS_META, nextStatus } from '../../pages/collections/collectionsModel'
-import type { Collection, CollectionMembership, CollectionStatus } from '@trek/shared'
+import type { Collection, CollectionMembership, CollectionStatus } from '@trek/shared';
+import { Bookmark, BookmarkCheck, Check, CheckCircle2, Loader2, Plus, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { collectionsApi } from '../../api/collections';
+import { useTranslation } from '../../i18n';
+import MIconBtn from '../../mobile/components/MIconBtn';
+import MSheet from '../../mobile/components/MSheet';
+import { STATUS_META, nextStatus } from '../../pages/collections/collectionsModel';
+import { useSaveToCollectionStore } from '../../store/saveToCollectionStore';
+import { getApiErrorMessage } from '../../utils/apiError';
+import { useToast } from '../shared/Toast';
 
 /**
  * Mobile counterpart of SaveToCollectionModal — the same store-driven list
@@ -18,103 +18,112 @@ import type { Collection, CollectionMembership, CollectionStatus } from '@trek/s
  * detail sheet. Rendered instead of the desktop modal on phones (see App.tsx).
  */
 export default function MSaveToCollectionSheet() {
-  const target = useSaveToCollectionStore(s => s.target)
-  const close = useSaveToCollectionStore(s => s.close)
-  const bumpVersion = useSaveToCollectionStore(s => s.bumpVersion)
-  const { t } = useTranslation()
-  const toast = useToast()
-  const navigate = useNavigate()
+  const target = useSaveToCollectionStore((s) => s.target);
+  const close = useSaveToCollectionStore((s) => s.close);
+  const bumpVersion = useSaveToCollectionStore((s) => s.bumpVersion);
+  const { t } = useTranslation();
+  const toast = useToast();
+  const navigate = useNavigate();
 
-  const [lists, setLists] = useState<Collection[]>([])
-  const [membership, setMembership] = useState<CollectionMembership | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [busyId, setBusyId] = useState<number | null>(null)
+  const [lists, setLists] = useState<Collection[]>([]);
+  const [membership, setMembership] = useState<CollectionMembership | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busyId, setBusyId] = useState<number | null>(null);
 
   const membershipQuery = useMemo(() => {
-    if (!target) return null
+    if (!target) return null;
     return {
       google_place_id: target.google_place_id ?? undefined,
       google_ftid: target.google_ftid ?? undefined,
       name: target.name,
       lat: target.lat ?? undefined,
       lng: target.lng ?? undefined,
-    }
-  }, [target])
+    };
+  }, [target]);
 
   const refreshMembership = useCallback(async () => {
-    if (!membershipQuery) return
+    if (!membershipQuery) return;
     try {
-      setMembership(await collectionsApi.membership(membershipQuery))
+      setMembership(await collectionsApi.membership(membershipQuery));
     } catch {
-      setMembership({ saved: false, lists: [] })
+      setMembership({ saved: false, lists: [] });
     }
-  }, [membershipQuery])
+  }, [membershipQuery]);
 
   // Load lists + membership whenever the picker opens for a new target.
   useEffect(() => {
-    if (!target) return
-    let cancelled = false
-    setLoading(true)
-    setMembership(null)
+    if (!target) return;
+    let cancelled = false;
+    setLoading(true);
+    setMembership(null);
     void Promise.all([
       collectionsApi.list().catch(() => ({ collections: [], incomingInvites: [] })),
       membershipQuery
-        ? collectionsApi.membership(membershipQuery).catch(() => ({ saved: false, lists: [] as CollectionMembership['lists'] }))
+        ? collectionsApi
+            .membership(membershipQuery)
+            .catch(() => ({ saved: false, lists: [] as CollectionMembership['lists'] }))
         : Promise.resolve({ saved: false, lists: [] as CollectionMembership['lists'] }),
     ])
       .then(([listRes, m]) => {
-        if (cancelled) return
-        setLists(listRes.collections)
-        setMembership(m)
+        if (cancelled) return;
+        setLists(listRes.collections);
+        setMembership(m);
       })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target])
+  }, [target]);
 
-  const savedByCollection = new Map<number, CollectionMembership['lists'][number]>()
-  for (const l of membership?.lists ?? []) savedByCollection.set(l.collection_id, l)
+  const savedByCollection = new Map<number, CollectionMembership['lists'][number]>();
+  for (const l of membership?.lists ?? []) savedByCollection.set(l.collection_id, l);
 
   /** Lists holding this place that the viewer may edit and that are not visited yet. */
-  const unvisited = (membership?.lists ?? []).filter(l => l.can_edit && l.status !== 'visited')
+  const unvisited = (membership?.lists ?? []).filter((l) => l.can_edit && l.status !== 'visited');
 
   const handleStatus = async (entry: CollectionMembership['lists'][number], next: CollectionStatus) => {
-    if (busyId != null) return
-    setBusyId(entry.collection_id)
+    if (busyId != null) return;
+    setBusyId(entry.collection_id);
     try {
-      await collectionsApi.setStatus(entry.place_id, next)
-      await refreshMembership()
-      bumpVersion()
+      await collectionsApi.setStatus(entry.place_id, next);
+      await refreshMembership();
+      bumpVersion();
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setBusyId(null)
+      setBusyId(null);
     }
-  }
+  };
 
   const handleVisitedEverywhere = async () => {
-    if (busyId != null || unvisited.length === 0) return
-    setBusyId(-1)
+    if (busyId != null || unvisited.length === 0) return;
+    setBusyId(-1);
     try {
-      const { updated } = await collectionsApi.setStatusMany(unvisited.map(l => l.place_id), 'visited')
-      toast.success(t('collections.markedVisited', { count: updated }))
-      await refreshMembership()
-      bumpVersion()
+      const { updated } = await collectionsApi.setStatusMany(
+        unvisited.map((l) => l.place_id),
+        'visited'
+      );
+      toast.success(t('collections.markedVisited', { count: updated }));
+      await refreshMembership();
+      bumpVersion();
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setBusyId(null)
+      setBusyId(null);
     }
-  }
+  };
 
   const handleToggle = async (list: Collection) => {
-    if (busyId != null || !target) return
-    const savedPlaceId = savedByCollection.get(list.id)?.place_id
-    setBusyId(list.id)
+    if (busyId != null || !target) return;
+    const savedPlaceId = savedByCollection.get(list.id)?.place_id;
+    setBusyId(list.id);
     try {
       if (savedPlaceId != null) {
-        await collectionsApi.deletePlace(savedPlaceId)
-        toast.success(t('collections.removedFromList', { name: list.name }))
+        await collectionsApi.deletePlace(savedPlaceId);
+        toast.success(t('collections.removedFromList', { name: list.name }));
       } else {
         await collectionsApi.savePlace({
           collection_id: list.id,
@@ -136,17 +145,17 @@ export default function MSaveToCollectionSheet() {
           website: target.website ?? null,
           phone: target.phone ?? null,
           force: true,
-        })
-        toast.success(t('collections.addedToList', { name: list.name }))
+        });
+        toast.success(t('collections.addedToList', { name: list.name }));
       }
-      await refreshMembership()
-      bumpVersion()
+      await refreshMembership();
+      bumpVersion();
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setBusyId(null)
+      setBusyId(null);
     }
-  }
+  };
 
   return (
     <MSheet open={!!target} onClose={close} variant="card" material="glass" ariaLabel={t('collections.pickList')}>
@@ -181,19 +190,22 @@ export default function MSaveToCollectionSheet() {
             <p className="mb-3 font-geist text-[0.75rem] text-m-faint">{t('collections.noListsYet')}</p>
             <button
               type="button"
-              onClick={() => { close(); navigate('/collections') }}
+              onClick={() => {
+                close();
+                navigate('/collections');
+              }}
               className="inline-flex items-center gap-1.5 rounded-full bg-m-act px-4 py-[9px] text-[0.75rem] font-semibold text-m-actfg"
             >
               <Plus size={14} strokeWidth={2.2} /> {t('collections.newList')}
             </button>
           </div>
         ) : (
-          lists.map(list => {
-            const entry = savedByCollection.get(list.id)
-            const saved = !!entry
-            const busy = busyId === list.id
-            const statusMeta = entry ? STATUS_META[entry.status] : null
-            const StatusIcon = statusMeta?.icon
+          lists.map((list) => {
+            const entry = savedByCollection.get(list.id);
+            const saved = !!entry;
+            const busy = busyId === list.id;
+            const statusMeta = entry ? STATUS_META[entry.status] : null;
+            const StatusIcon = statusMeta?.icon;
             return (
               <button
                 key={list.id}
@@ -222,8 +234,26 @@ export default function MSaveToCollectionSheet() {
                       role={entry.can_edit ? 'button' : undefined}
                       tabIndex={entry.can_edit ? 0 : undefined}
                       aria-label={t(statusMeta.labelKey)}
-                      onClick={entry.can_edit ? e => { e.preventDefault(); e.stopPropagation(); void handleStatus(entry, nextStatus(entry.status)) } : undefined}
-                      onKeyDown={entry.can_edit ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); void handleStatus(entry, nextStatus(entry.status)) } } : undefined}
+                      onClick={
+                        entry.can_edit
+                          ? (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              void handleStatus(entry, nextStatus(entry.status));
+                            }
+                          : undefined
+                      }
+                      onKeyDown={
+                        entry.can_edit
+                          ? (e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                void handleStatus(entry, nextStatus(entry.status));
+                              }
+                            }
+                          : undefined
+                      }
                       className="mt-[3px] inline-flex items-center gap-1 rounded-full bg-[color:var(--m-inner)] px-2 py-[3px] font-geist text-[0.65625rem] font-semibold"
                       style={{ color: statusMeta.color }}
                     >
@@ -246,10 +276,16 @@ export default function MSaveToCollectionSheet() {
                     saved ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] text-m-faint'
                   }`}
                 >
-                  {busy ? <Loader2 size={14} className="animate-spin" /> : saved ? <BookmarkCheck size={14} strokeWidth={2} /> : <Check size={14} strokeWidth={2} />}
+                  {busy ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : saved ? (
+                    <BookmarkCheck size={14} strokeWidth={2} />
+                  ) : (
+                    <Check size={14} strokeWidth={2} />
+                  )}
                 </span>
               </button>
-            )
+            );
           })
         )}
       </div>
@@ -262,9 +298,11 @@ export default function MSaveToCollectionSheet() {
             disabled={busyId != null}
             className="flex w-full items-center justify-center gap-1.5 rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-[10px] text-[0.78125rem] font-semibold text-m-ink disabled:opacity-60"
           >
-            {busyId === -1
-              ? <Loader2 size={14} className="animate-spin" />
-              : <CheckCircle2 size={14} strokeWidth={2.2} />}
+            {busyId === -1 ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <CheckCircle2 size={14} strokeWidth={2.2} />
+            )}
             {unvisited.length > 1 ? t('collections.markVisitedAll') : t('collections.markVisited')}
           </button>
         </div>
@@ -274,7 +312,10 @@ export default function MSaveToCollectionSheet() {
         <div className="flex flex-none items-center justify-between gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] py-3">
           <button
             type="button"
-            onClick={() => { close(); navigate('/collections') }}
+            onClick={() => {
+              close();
+              navigate('/collections');
+            }}
             className="text-[0.78125rem] font-semibold text-[color:var(--m-act)]"
           >
             {t('collections.viewInCollection')}
@@ -289,5 +330,5 @@ export default function MSaveToCollectionSheet() {
         </div>
       )}
     </MSheet>
-  )
+  );
 }

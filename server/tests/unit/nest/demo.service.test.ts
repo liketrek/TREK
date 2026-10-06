@@ -3,13 +3,14 @@
  * `common/demo-write.ts#isDemoUserId(env, db, userId)` onto an injected
  * class resolving `env`/the repository via its own constructor.
  */
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createUser } from '../../helpers/factories';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { DemoService } from '../../../src/nest/common/demo.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;

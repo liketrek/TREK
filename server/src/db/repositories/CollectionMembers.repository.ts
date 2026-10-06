@@ -119,7 +119,10 @@ export class CollectionMembersRepository extends TrekRepository<CollectionMember
   // -------------------------------------------------------------------------
 
   /** CL80 (`sendInvite`) — `SELECT id, status FROM collection_members WHERE collection_id=? AND user_id=?` (dup/pending guard). */
-  async findByCollectionAndUser(collectionId: number, userId: number): Promise<{ id: number; status: string } | undefined> {
+  async findByCollectionAndUser(
+    collectionId: number,
+    userId: number,
+  ): Promise<{ id: number; status: string } | undefined> {
     const row = await this.findOne({ collection: collectionId, user: userId }, { fields: ['id', 'status'] });
     return row ?? undefined;
   }

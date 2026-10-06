@@ -1,6 +1,6 @@
 // FE-JRN-PUBWIRE-001 to FE-JRN-PUBWIRE-023
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '../../tests/helpers/render';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '../../tests/helpers/render';
 import { useSettingsStore } from '../store/settingsStore';
 import { groupByDate, type PublicEntry, type PublicGalleryPhoto } from './journeyPublic/journeyPublicModel';
 import JourneyPublicPage from './JourneyPublicPage';
@@ -44,9 +44,18 @@ function photo(id: number): PublicEntry['photos'][number] {
 
 function buildEntry(over: Partial<PublicEntry> = {}): PublicEntry {
   return {
-    id: 1, title: 'Arrival', story: null, entry_date: '2026-05-01', entry_time: '09:30',
-    location_name: 'Tokyo, Japan', location_lat: 35.6, location_lng: 139.7,
-    mood: null, weather: null, pros_cons: null, photos: [],
+    id: 1,
+    title: 'Arrival',
+    story: null,
+    entry_date: '2026-05-01',
+    entry_time: '09:30',
+    location_name: 'Tokyo, Japan',
+    location_lat: 35.6,
+    location_lng: 139.7,
+    mood: null,
+    weather: null,
+    pros_cons: null,
+    photos: [],
     ...over,
   };
 }
@@ -180,8 +189,14 @@ describe('JourneyPublicPage wiring', () => {
     });
     expect(screen.getByText('+1')).toBeInTheDocument();
 
-    for (const [photoId, index] of [[10, 0], [20, 1], [30, 2]] as const) {
-      fireEvent.click(document.querySelector(`img[src="/api/public/journey/tok-1/photos/${photoId}/thumbnail"]`)!.parentElement!);
+    for (const [photoId, index] of [
+      [10, 0],
+      [20, 1],
+      [30, 2],
+    ] as const) {
+      fireEvent.click(
+        document.querySelector(`img[src="/api/public/journey/tok-1/photos/${photoId}/thumbnail"]`)!.parentElement!
+      );
       expect(hook.setLightbox).toHaveBeenLastCalledWith(expect.objectContaining({ index }));
     }
   });
@@ -197,11 +212,13 @@ describe('JourneyPublicPage wiring', () => {
 
   it('FE-JRN-PUBWIRE-012: pros, cons, mood and weather are rendered', () => {
     setup({
-      timelineEntries: [buildEntry({
-        mood: 'amazing',
-        weather: 'rainy',
-        pros_cons: { pros: ['Great food', 'Friendly'], cons: ['Crowded'] },
-      })],
+      timelineEntries: [
+        buildEntry({
+          mood: 'amazing',
+          weather: 'rainy',
+          pros_cons: { pros: ['Great food', 'Friendly'], cons: ['Crowded'] },
+        }),
+      ],
     });
     expect(screen.getByText('Great food')).toBeInTheDocument();
     expect(screen.getByText('Friendly')).toBeInTheDocument();

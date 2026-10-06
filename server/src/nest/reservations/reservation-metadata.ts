@@ -17,9 +17,7 @@ function parseStored(stored: string | null | undefined): Record<string, unknown>
   if (!stored) return null;
   try {
     const parsed: unknown = JSON.parse(stored);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : null;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
   } catch {
     return null;
   }

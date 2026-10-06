@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { useTranslation } from '../../i18n'
-import MDancingTrek, { type TrekScene } from '../../mobile/components/MDancingTrek'
+import { useEffect, useState } from 'react';
+import { useTranslation } from '../../i18n';
+import MDancingTrek, { type TrekScene } from '../../mobile/components/MDancingTrek';
 
 /**
  * Trip-open splash for desktop â€” the same little journey the mobile splash
@@ -20,9 +20,9 @@ const STEPS: { scene: TrekScene; key: string }[] = [
   { scene: 'transport', key: 'trip.loadingSteps.road' },
   { scene: 'dashboard', key: 'trip.loadingPhotos' },
   { scene: 'collections', key: 'trip.loadingSteps.arrive' },
-]
-const STEP_MS = 1400
-const STILL_INDEX = 2
+];
+const STEP_MS = 1400;
+const STILL_INDEX = 2;
 
 const SPLASH_CSS = `
 .m-splash-root { background: #eef0fb; }
@@ -154,22 +154,21 @@ const SPLASH_CSS = `
   .m-splash-veil,
   .m-splash-card { animation: none !important; }
 }
-`
+`;
 
 export default function TripLoadingSplash({ title }: { title?: string }) {
-  const { t } = useTranslation()
-  const reduceMotion =
-    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const { t } = useTranslation();
+  const reduceMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-  const [index, setIndex] = useState(0)
+  const [index, setIndex] = useState(0);
   useEffect(() => {
-    if (reduceMotion) return
-    const id = setInterval(() => setIndex((n) => (n + 1) % STEPS.length), STEP_MS)
-    return () => clearInterval(id)
-  }, [reduceMotion])
+    if (reduceMotion) return;
+    const id = setInterval(() => setIndex((n) => (n + 1) % STEPS.length), STEP_MS);
+    return () => clearInterval(id);
+  }, [reduceMotion]);
 
-  const activeIndex = reduceMotion ? STILL_INDEX : index
-  const step = STEPS[activeIndex]
+  const activeIndex = reduceMotion ? STILL_INDEX : index;
+  const step = STEPS[activeIndex];
 
   return (
     <div
@@ -188,7 +187,10 @@ export default function TripLoadingSplash({ title }: { title?: string }) {
         <div className="m-splash-content flex flex-col items-center justify-center">
           {/* Fixed stage so the travelling mascot never nudges the layout. */}
           <div className="mb-6 flex h-[150px] w-[160px] items-center justify-center overflow-hidden">
-            <div key={step.scene} style={reduceMotion ? undefined : { animation: 'm-trek-beat 460ms cubic-bezier(.34,1.56,.64,1) both' }}>
+            <div
+              key={step.scene}
+              style={reduceMotion ? undefined : { animation: 'm-trek-beat 460ms cubic-bezier(.34,1.56,.64,1) both' }}
+            >
               <MDancingTrek scene={step.scene} mood="happy" size={128} />
             </div>
           </div>
@@ -207,7 +209,10 @@ export default function TripLoadingSplash({ title }: { title?: string }) {
               <span
                 key={i}
                 className="h-[6px] rounded-full transition-all duration-[400ms] ease-out"
-                style={{ width: i === activeIndex ? 20 : 6, background: i === activeIndex ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                style={{
+                  width: i === activeIndex ? 20 : 6,
+                  background: i === activeIndex ? 'var(--text-primary)' : 'var(--border-primary)',
+                }}
               />
             ))}
           </div>
@@ -216,5 +221,5 @@ export default function TripLoadingSplash({ title }: { title?: string }) {
 
       <style>{SPLASH_CSS}</style>
     </div>
-  )
+  );
 }

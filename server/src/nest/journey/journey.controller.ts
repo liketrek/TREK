@@ -1,3 +1,36 @@
+import { ADDON_IDS } from '../../addons';
+import type { User } from '../../types';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { logError } from '../audit/audit-log.logger';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AllowedFileTypesService } from '../files/allowed-file-types.service';
+import { isVideoMime, isVideoExtension, MAX_VIDEO_SIZE } from '../files/files.constants';
+import { journeyThumbName } from '../memories/thumbnail.service';
+import { StorageService } from '../storage/storage.service';
+import { JourneyBookService } from './journey-book.service';
+import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
+import {
+  JourneyAddTripDto,
+  JourneyContributorAddDto,
+  JourneyContributorUpdateDto,
+  JourneyCreateDto,
+  JourneyEntryCreateDto,
+  JourneyEntryPhotoUploadDto,
+  JourneyEntryUpdateDto,
+  JourneyGalleryVideoDto,
+  JourneyLinkPhotoDto,
+  JourneyPhotoUpdateDto,
+  JourneyPreferencesDto,
+  JourneyProviderPhotosDto,
+  JourneyReorderEntriesDto,
+  JourneyReorderEntryPhotosDto,
+  JourneyShareLinkDto,
+  JourneyUpdateDto,
+  BookSaveDto,
+} from './journey.dto';
+import { JourneyService } from './journey.service';
 import {
   Body,
   Controller,
@@ -16,33 +49,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
-import type { Options } from 'multer';
+
 import type { Request } from 'express';
-import path from 'node:path';
-import fs from 'node:fs';
+import type { Options } from 'multer';
 import crypto from 'node:crypto';
-import type { User } from '../../types';
-import { StorageService } from '../storage/storage.service';
-import { journeyThumbName } from '../memories/thumbnail.service';
-import { JourneyService } from './journey.service';
-import { JourneyBookService } from './journey-book.service';
-import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
-import { AddonGuard } from '../addons/addon.guard';
-import { RequireAddon } from '../addons/require-addon.decorator';
-import { ADDON_IDS } from '../../addons';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import {
-  JourneyAddTripDto, JourneyContributorAddDto, JourneyContributorUpdateDto, JourneyCreateDto,
-  JourneyEntryCreateDto, JourneyEntryPhotoUploadDto, JourneyEntryUpdateDto, JourneyGalleryVideoDto,
-  JourneyLinkPhotoDto, JourneyPhotoUpdateDto, JourneyPreferencesDto, JourneyProviderPhotosDto,
-  JourneyReorderEntriesDto,
-  JourneyReorderEntryPhotosDto, JourneyShareLinkDto, JourneyUpdateDto,
-  BookSaveDto,
-} from './journey.dto';
-import { isVideoMime, isVideoExtension, MAX_VIDEO_SIZE } from '../files/files.constants';
-import { AllowedFileTypesService } from '../files/allowed-file-types.service';
-import { logError } from '../audit/audit-log.logger';
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * One filename hook for all four journey upload routes (consumed by
@@ -58,9 +70,11 @@ export const journeyUploadFilename = (_req: Request, file: Express.Multer.File):
   // reachable via the public share proxy). The video extension is validated by
   // the fileFilter, so it is safe to keep.
   const ext =
-    file.fieldname === 'poster' ? '.jpg'
-    : file.fieldname === 'video' ? (path.extname(file.originalname).toLowerCase() || '.mp4')
-    : (path.extname(file.originalname).toLowerCase() || '.jpg');
+    file.fieldname === 'poster'
+      ? '.jpg'
+      : file.fieldname === 'video'
+        ? path.extname(file.originalname).toLowerCase() || '.mp4'
+        : path.extname(file.originalname).toLowerCase() || '.jpg';
   return `${crypto.randomUUID()}${ext}`;
 };
 
@@ -169,7 +183,13 @@ export class JourneyController {
       for (const f of files) await this.storage.put('journey', f.filename, { tmpPath: f.path });
     } catch (err) {
       for (const f of files) {
-        if (f.path) { try { fs.unlinkSync(f.path); } catch { /* best-effort */ } }
+        if (f.path) {
+          try {
+            fs.unlinkSync(f.path);
+          } catch {
+            /* best-effort */
+          }
+        }
       }
       for (const f of files) {
         await this.storage.delete('journey', f.filename).catch(() => {});
@@ -187,7 +207,13 @@ export class JourneyController {
    */
   private async discardJourneyUploads(files: Express.Multer.File[]): Promise<void> {
     for (const f of files) {
-      if (f.path) { try { fs.unlinkSync(f.path); } catch { /* best-effort */ } }
+      if (f.path) {
+        try {
+          fs.unlinkSync(f.path);
+        } catch {
+          /* best-effort */
+        }
+      }
       await this.storage.delete('journey', f.filename).catch(() => {});
     }
   }
@@ -224,7 +250,12 @@ export class JourneyController {
 
   // ── Entries (prefix /entries — before /:id) ─────────────────────────────
   @Patch('entries/:entryId')
-  async updateEntry(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: JourneyEntryUpdateDto, @Headers('x-socket-id') socketId?: string) {
+  async updateEntry(
+    @CurrentUser() user: User,
+    @Param('entryId') entryId: string,
+    @Body() body: JourneyEntryUpdateDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     const result = await this.journey.updateEntry(Number(entryId), user.id, body, socketId);
     if (!result) {
       throw new HttpException({ error: 'Entry not found' }, 404);
@@ -233,7 +264,12 @@ export class JourneyController {
   }
 
   @Put('entries/:entryId/photos/reorder')
-  async reorderEntryPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: JourneyReorderEntryPhotosDto, @Headers('x-socket-id') socketId?: string) {
+  async reorderEntryPhotos(
+    @CurrentUser() user: User,
+    @Param('entryId') entryId: string,
+    @Body() body: JourneyReorderEntryPhotosDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     if (!(await this.journey.reorderEntryPhotos(Number(entryId), user.id, body.orderedIds, socketId))) {
       throw new HttpException({ error: 'Entry not found' }, 404);
     }
@@ -241,7 +277,11 @@ export class JourneyController {
   }
 
   @Delete('entries/:entryId')
-  async deleteEntry(@CurrentUser() user: User, @Param('entryId') entryId: string, @Headers('x-socket-id') socketId?: string) {
+  async deleteEntry(
+    @CurrentUser() user: User,
+    @Param('entryId') entryId: string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     if (!(await this.journey.deleteEntry(Number(entryId), user.id, socketId))) {
       throw new HttpException({ error: 'Entry not found' }, 404);
     }
@@ -250,7 +290,12 @@ export class JourneyController {
 
   @Post('entries/:entryId/photos')
   @UseInterceptors(FilesInterceptor('photos'))
-  async uploadEntryPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @UploadedFiles() files: Express.Multer.File[] | undefined, @Body() body: JourneyEntryPhotoUploadDto) {
+  async uploadEntryPhotos(
+    @CurrentUser() user: User,
+    @Param('entryId') entryId: string,
+    @UploadedFiles() files: Express.Multer.File[] | undefined,
+    @Body() body: JourneyEntryPhotoUploadDto,
+  ) {
     if (!files?.length) {
       throw new HttpException({ error: 'No files uploaded' }, 400);
     }
@@ -261,7 +306,13 @@ export class JourneyController {
     const refused: Express.Multer.File[] = [];
     for (const file of files) {
       const relativePath = `journey/${file.filename}`;
-      const photo = await this.journey.addPhoto(Number(entryId), user.id, relativePath, undefined, body?.caption as string | undefined);
+      const photo = await this.journey.addPhoto(
+        Number(entryId),
+        user.id,
+        relativePath,
+        undefined,
+        body?.caption as string | undefined,
+      );
       if (!photo) {
         // No row points at this file, so nothing would ever clean it up.
         refused.push(file);
@@ -305,10 +356,15 @@ export class JourneyController {
    * frame the browser grabbed — and the same absence of transcoding.
    */
   @Post('entries/:entryId/video')
-  @UseInterceptors(FileFieldsInterceptor(
-    [{ name: 'video', maxCount: 1 }, { name: 'poster', maxCount: 1 }],
-    { limits: { fileSize: MAX_VIDEO_SIZE }, fileFilter: VIDEO_FILE_FILTER },
-  ))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'video', maxCount: 1 },
+        { name: 'poster', maxCount: 1 },
+      ],
+      { limits: { fileSize: MAX_VIDEO_SIZE }, fileFilter: VIDEO_FILE_FILTER },
+    ),
+  )
   async uploadEntryVideo(
     @CurrentUser() user: User,
     @Param('entryId') entryId: string,
@@ -319,7 +375,13 @@ export class JourneyController {
     const poster = files?.poster?.[0];
     const cleanup = () => {
       for (const f of [video, poster]) {
-        if (f?.path) { try { fs.unlinkSync(f.path); } catch { /* best-effort */ } }
+        if (f?.path) {
+          try {
+            fs.unlinkSync(f.path);
+          } catch {
+            /* best-effort */
+          }
+        }
       }
     };
     if (!video) {
@@ -346,14 +408,26 @@ export class JourneyController {
   }
 
   @Post('entries/:entryId/provider-photos')
-  async providerPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: JourneyProviderPhotosDto) {
+  async providerPhotos(
+    @CurrentUser() user: User,
+    @Param('entryId') entryId: string,
+    @Body() body: JourneyProviderPhotosDto,
+  ) {
     const pp = body.passphrase && typeof body.passphrase === 'string' ? body.passphrase : undefined;
     if (Array.isArray(body.asset_ids) && body.provider) {
       const added: unknown[] = [];
       for (let i = 0; i < body.asset_ids.length; i++) {
         const id = body.asset_ids[i];
         const mt = Array.isArray(body.media_types) && body.media_types[i] === 'video' ? 'video' : 'image';
-        const photo = await this.journey.addProviderPhoto(Number(entryId), user.id, String(body.provider), String(id), body.caption as string | undefined, pp, mt);
+        const photo = await this.journey.addProviderPhoto(
+          Number(entryId),
+          user.id,
+          String(body.provider),
+          String(id),
+          body.caption as string | undefined,
+          pp,
+          mt,
+        );
         if (photo) added.push(photo);
       }
       this.photoCapture.scheduleForEntry(Number(entryId), added, user.id);
@@ -362,7 +436,15 @@ export class JourneyController {
     if (!body.provider || !body.asset_id) {
       throw new HttpException({ error: 'provider and asset_id required' }, 400);
     }
-    const photo = await this.journey.addProviderPhoto(Number(entryId), user.id, String(body.provider), String(body.asset_id), body.caption as string | undefined, pp, body.media_type === 'video' ? 'video' : 'image');
+    const photo = await this.journey.addProviderPhoto(
+      Number(entryId),
+      user.id,
+      String(body.provider),
+      String(body.asset_id),
+      body.caption as string | undefined,
+      pp,
+      body.media_type === 'video' ? 'video' : 'image',
+    );
     if (!photo) {
       throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
     }
@@ -385,7 +467,11 @@ export class JourneyController {
 
   @Delete('entries/:entryId/photos/:journeyPhotoId')
   @HttpCode(204)
-  async unlinkPhoto(@CurrentUser() user: User, @Param('entryId') entryId: string, @Param('journeyPhotoId') journeyPhotoId: string): Promise<void> {
+  async unlinkPhoto(
+    @CurrentUser() user: User,
+    @Param('entryId') entryId: string,
+    @Param('journeyPhotoId') journeyPhotoId: string,
+  ): Promise<void> {
     if (!(await this.journey.unlinkPhotoFromEntry(Number(entryId), Number(journeyPhotoId), user.id))) {
       throw new HttpException({ error: 'Not found or not allowed' }, 404);
     }
@@ -420,7 +506,9 @@ export class JourneyController {
     if (!filePath) return;
     const name = filePath.startsWith('journey/') ? filePath.slice('journey/'.length) : null;
     if (!name) return;
-    await this.storage.delete('journey', name).catch(() => { /* file already gone */ });
+    await this.storage.delete('journey', name).catch(() => {
+      /* file already gone */
+    });
   }
 
   /**
@@ -429,19 +517,30 @@ export class JourneyController {
    * thumbnail_path recorded — a generated thumb (usually the same object) or
    * a video's uploaded poster. Both best-effort, both idempotent.
    */
-  private async reclaimDerived(filePath: string | null | undefined, thumbnailPath: string | null | undefined): Promise<void> {
+  private async reclaimDerived(
+    filePath: string | null | undefined,
+    thumbnailPath: string | null | undefined,
+  ): Promise<void> {
     if (filePath?.startsWith('journey/')) {
-      await this.storage.delete('journey', journeyThumbName(filePath)).catch(() => { /* already gone */ });
+      await this.storage.delete('journey', journeyThumbName(filePath)).catch(() => {
+        /* already gone */
+      });
     }
     if (thumbnailPath?.startsWith('journey/')) {
-      await this.storage.delete('journey', thumbnailPath.slice('journey/'.length)).catch(() => { /* already gone */ });
+      await this.storage.delete('journey', thumbnailPath.slice('journey/'.length)).catch(() => {
+        /* already gone */
+      });
     }
   }
 
   // ── Gallery (prefix /:id/gallery — before /:id) ─────────────────────────
   @Post(':id/gallery/photos')
   @UseInterceptors(FilesInterceptor('photos'))
-  async uploadGalleryPhotos(@CurrentUser() user: User, @Param('id') id: string, @UploadedFiles() files: Express.Multer.File[] | undefined) {
+  async uploadGalleryPhotos(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[] | undefined,
+  ) {
     if (!files?.length) {
       throw new HttpException({ error: 'No files uploaded' }, 400);
     }
@@ -460,12 +559,17 @@ export class JourneyController {
   }
 
   @Post(':id/gallery/video')
-  @UseInterceptors(FileFieldsInterceptor(
-    [{ name: 'video', maxCount: 1 }, { name: 'poster', maxCount: 1 }],
-    // Inherits the module's storage engine (spool + journeyUploadFilename) via
-    // the interceptor's shallow options merge; overrides only cap and filter.
-    { limits: { fileSize: MAX_VIDEO_SIZE }, fileFilter: VIDEO_FILE_FILTER },
-  ))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'video', maxCount: 1 },
+        { name: 'poster', maxCount: 1 },
+      ],
+      // Inherits the module's storage engine (spool + journeyUploadFilename) via
+      // the interceptor's shallow options merge; overrides only cap and filter.
+      { limits: { fileSize: MAX_VIDEO_SIZE }, fileFilter: VIDEO_FILE_FILTER },
+    ),
+  )
   async uploadGalleryVideo(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -478,7 +582,13 @@ export class JourneyController {
     // so a bad POST doesn't orphan a 500 MB clip (#823).
     const cleanup = () => {
       for (const f of [video, poster]) {
-        if (f?.path) { try { fs.unlinkSync(f.path); } catch { /* best-effort */ } }
+        if (f?.path) {
+          try {
+            fs.unlinkSync(f.path);
+          } catch {
+            /* best-effort */
+          }
+        }
       }
     };
     if (!video) {
@@ -487,12 +597,14 @@ export class JourneyController {
     }
     await this.commitJourneyUploads(poster ? [video, poster] : [video]);
     const durationMs = body?.duration_ms != null ? Number(body.duration_ms) : null;
-    const photos = await this.journey.uploadGalleryPhotos(Number(id), user.id, [{
-      path: `journey/${video.filename}`,
-      thumbnail: poster ? `journey/${poster.filename}` : undefined,
-      mediaType: 'video',
-      durationMs: durationMs != null && Number.isFinite(durationMs) ? durationMs : null,
-    }]);
+    const photos = await this.journey.uploadGalleryPhotos(Number(id), user.id, [
+      {
+        path: `journey/${video.filename}`,
+        thumbnail: poster ? `journey/${poster.filename}` : undefined,
+        mediaType: 'video',
+        durationMs: durationMs != null && Number.isFinite(durationMs) ? durationMs : null,
+      },
+    ]);
     if (!photos.length) {
       // The parts are already committed (file.path is consumed), so the
       // pre-commit unlink cleanup would silently orphan them — delete the
@@ -505,14 +617,26 @@ export class JourneyController {
   }
 
   @Post(':id/gallery/provider-photos')
-  async galleryProviderPhotos(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyProviderPhotosDto) {
+  async galleryProviderPhotos(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: JourneyProviderPhotosDto,
+  ) {
     const pp = body.passphrase && typeof body.passphrase === 'string' ? body.passphrase : undefined;
     if (Array.isArray(body.asset_ids) && body.provider) {
       const added: unknown[] = [];
       for (let i = 0; i < body.asset_ids.length; i++) {
         const aid = body.asset_ids[i];
         const mt = Array.isArray(body.media_types) && body.media_types[i] === 'video' ? 'video' : 'image';
-        const photo = await this.journey.addProviderPhotoToGallery(Number(id), user.id, String(body.provider), String(aid), undefined, pp, mt);
+        const photo = await this.journey.addProviderPhotoToGallery(
+          Number(id),
+          user.id,
+          String(body.provider),
+          String(aid),
+          undefined,
+          pp,
+          mt,
+        );
         if (photo) added.push(photo);
       }
       this.photoCapture.scheduleForJourney(Number(id), added, user.id);
@@ -521,7 +645,15 @@ export class JourneyController {
     if (!body.provider || !body.asset_id) {
       throw new HttpException({ error: 'provider and asset_id required' }, 400);
     }
-    const photo = await this.journey.addProviderPhotoToGallery(Number(id), user.id, String(body.provider), String(body.asset_id), undefined, pp, body.media_type === 'video' ? 'video' : 'image');
+    const photo = await this.journey.addProviderPhotoToGallery(
+      Number(id),
+      user.id,
+      String(body.provider),
+      String(body.asset_id),
+      undefined,
+      pp,
+      body.media_type === 'video' ? 'video' : 'image',
+    );
     if (!photo) {
       throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
     }
@@ -562,7 +694,11 @@ export class JourneyController {
   @Post(':id/cover')
   @HttpCode(200) // Express answers cover with res.json (200).
   @UseInterceptors(FileInterceptor('cover'))
-  async cover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined) {
+  async cover(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
     if (!file) {
       throw new HttpException({ error: 'No file uploaded' }, 400);
     }
@@ -691,10 +827,7 @@ export class JourneyController {
        * status code would make that a second round trip at exactly the moment
        * someone is worried about losing work.
        */
-      throw new HttpException(
-        { error: 'Book was changed by someone else', current: result.conflict },
-        409,
-      );
+      throw new HttpException({ error: 'Book was changed by someone else', current: result.conflict }, 409);
     }
     await this.books.broadcastSaved(Number(id), user.id, result.record, socketId);
     return result.record;
@@ -724,7 +857,12 @@ export class JourneyController {
   }
 
   @Post(':id/entries')
-  async createEntry(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyEntryCreateDto, @Headers('x-socket-id') socketId?: string) {
+  async createEntry(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: JourneyEntryCreateDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     if (!body.entry_date) {
       throw new HttpException({ error: 'entry_date is required' }, 400);
     }
@@ -736,7 +874,12 @@ export class JourneyController {
   }
 
   @Put(':id/entries/reorder')
-  async reorderEntries(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyReorderEntriesDto, @Headers('x-socket-id') socketId?: string) {
+  async reorderEntries(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: JourneyReorderEntriesDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     const orderedIds = body.orderedIds;
     if (!Array.isArray(orderedIds) || !orderedIds.every((v) => Number.isFinite(Number(v)))) {
       throw new HttpException({ error: 'orderedIds must be an array of numbers' }, 400);
@@ -753,15 +896,29 @@ export class JourneyController {
     if (!body.user_id) {
       throw new HttpException({ error: 'user_id required' }, 400);
     }
-    if (!(await this.journey.addContributor(Number(id), user.id, Number(body.user_id), (body.role as 'editor' | 'viewer') || 'viewer'))) {
+    if (
+      !(await this.journey.addContributor(
+        Number(id),
+        user.id,
+        Number(body.user_id),
+        (body.role as 'editor' | 'viewer') || 'viewer',
+      ))
+    ) {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
     return { success: true };
   }
 
   @Patch(':id/contributors/:userId')
-  async updateContributor(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body() body: JourneyContributorUpdateDto) {
-    if (!(await this.journey.updateContributorRole(Number(id), user.id, Number(userId), body.role as 'editor' | 'viewer'))) {
+  async updateContributor(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() body: JourneyContributorUpdateDto,
+  ) {
+    if (
+      !(await this.journey.updateContributorRole(Number(id), user.id, Number(userId), body.role as 'editor' | 'viewer'))
+    ) {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
     return { success: true };

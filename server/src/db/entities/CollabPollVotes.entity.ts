@@ -1,8 +1,8 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { CollabPollVotesRepository } from '../repositories/CollabPollVotes.repository';
 import { DbTimestampType } from '../types';
 import { CollabPolls } from './CollabPolls.entity';
 import { Users } from './Users.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class CollabPollVotes {
   [EntityRepositoryType]?: CollabPollVotesRepository;

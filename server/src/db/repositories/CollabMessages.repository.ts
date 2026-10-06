@@ -156,12 +156,23 @@ export class CollabMessagesRepository extends TrekRepository<CollabMessages> {
    * .deleteMessage` docstring for how that pre-existing gap is preserved.
    */
   async findInTrip(id: number, trip_id: number): Promise<CollabMessageRow | undefined> {
-    return await this.kysely<CollabMessagesKyselyDB>().selectFrom('collab_messages').selectAll().where('id', '=', id).where('trip_id', '=', trip_id).executeTakeFirst();
+    return await this.kysely<CollabMessagesKyselyDB>()
+      .selectFrom('collab_messages')
+      .selectAll()
+      .where('id', '=', id)
+      .where('trip_id', '=', trip_id)
+      .executeTakeFirst();
   }
 
   /** CB47 (`createMessage`'s reply-target validation) — `SELECT id FROM collab_messages WHERE id = ? AND trip_id = ? AND deleted = 0`. A soft-deleted message is gone as far as anyone replying is concerned. */
   async findActiveInTrip(id: number, trip_id: number): Promise<{ id: number } | undefined> {
-    return await this.kysely<CollabMessagesKyselyDB>().selectFrom('collab_messages').select(['id']).where('id', '=', id).where('trip_id', '=', trip_id).where('deleted', '=', 0).executeTakeFirst();
+    return await this.kysely<CollabMessagesKyselyDB>()
+      .selectFrom('collab_messages')
+      .select(['id'])
+      .where('id', '=', id)
+      .where('trip_id', '=', trip_id)
+      .where('deleted', '=', 0)
+      .executeTakeFirst();
   }
 
   /** CB44 (`countMessages`) — `SELECT COUNT(*) as cnt FROM collab_messages WHERE trip_id = ?`. */
@@ -170,7 +181,12 @@ export class CollabMessagesRepository extends TrekRepository<CollabMessages> {
   }
 
   /** CB48 (`createMessage`, inside its transaction) — `INSERT INTO collab_messages (trip_id, user_id, text, reply_to) VALUES (?×4)`. Returns the new row's id. */
-  async insertMessage(trip_id: number | string, user_id: number, text: string, reply_to: number | null): Promise<number> {
+  async insertMessage(
+    trip_id: number | string,
+    user_id: number,
+    text: string,
+    reply_to: number | null,
+  ): Promise<number> {
     return await this.insert({ trip: trip_id, user: user_id, text, reply_to });
   }
 
@@ -202,7 +218,15 @@ export class CollabMessagesRepository extends TrekRepository<CollabMessages> {
    * `INSERT INTO trip_files (trip_id, message_id, filename, original_name,
    * file_size, mime_type, uploaded_by) VALUES (?×7)`.
    */
-  async insertAttachmentForMessage(row: { trip_id: number | string; message_id: number | string; filename: string; original_name: string; file_size: number; mime_type: string; uploaded_by: number }): Promise<void> {
+  async insertAttachmentForMessage(row: {
+    trip_id: number | string;
+    message_id: number | string;
+    filename: string;
+    original_name: string;
+    file_size: number;
+    mime_type: string;
+    uploaded_by: number;
+  }): Promise<void> {
     await this.kysely<MessageAttachmentInsertKyselyDB>()
       .insertInto('trip_files')
       .values({
@@ -219,11 +243,20 @@ export class CollabMessagesRepository extends TrekRepository<CollabMessages> {
 
   /** CB52 (`deleteMessage`'s pre-tx storage-cleanup list) — `SELECT filename FROM trip_files WHERE message_id = ? AND trip_id = ?`, run BEFORE the transaction (the legacy ordering). */
   async listFilenamesForMessage(message_id: number, trip_id: number): Promise<{ filename: string }[]> {
-    return await this.kysely<MessageAttachmentsKyselyDB>().selectFrom('trip_files').select(['filename']).where('message_id', '=', message_id).where('trip_id', '=', trip_id).execute();
+    return await this.kysely<MessageAttachmentsKyselyDB>()
+      .selectFrom('trip_files')
+      .select(['filename'])
+      .where('message_id', '=', message_id)
+      .where('trip_id', '=', trip_id)
+      .execute();
   }
 
   /** CB53 (`deleteMessage`, inside its transaction, before CB54) — `DELETE FROM trip_files WHERE message_id = ? AND trip_id = ?`. */
   async deleteAttachmentsForMessage(message_id: number, trip_id: number): Promise<void> {
-    await this.kysely<MessageAttachmentsKyselyDB>().deleteFrom('trip_files').where('message_id', '=', message_id).where('trip_id', '=', trip_id).execute();
+    await this.kysely<MessageAttachmentsKyselyDB>()
+      .deleteFrom('trip_files')
+      .where('message_id', '=', message_id)
+      .where('trip_id', '=', trip_id)
+      .execute();
   }
 }

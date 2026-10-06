@@ -1,26 +1,22 @@
 // FE-COMP-BUDGET-001 to FE-COMP-BUDGET-040
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { buildBudgetItem, buildSettings, buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
-import { useSettingsStore } from '../../store/settingsStore';
-import { usePermissionsStore } from '../../store/permissionsStore';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip, buildBudgetItem, buildSettings } from '../../../tests/helpers/factories';
+import { useAuthStore } from '../../store/authStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { useTripStore } from '../../store/tripStore';
 import BudgetPanel from './BudgetPanel';
 
 beforeEach(() => {
   resetAllStores();
   // Settlement and per-person APIs needed by BudgetPanel
   server.use(
-    http.get('/api/trips/:id/budget/settlement', () =>
-      HttpResponse.json({ balances: [], flows: [] })
-    ),
-    http.get('/api/trips/:id/budget/per-person', () =>
-      HttpResponse.json({ summary: [] })
-    ),
+    http.get('/api/trips/:id/budget/settlement', () => HttpResponse.json({ balances: [], flows: [] })),
+    http.get('/api/trips/:id/budget/per-person', () => HttpResponse.json({ summary: [] }))
   );
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR' }) });
@@ -28,43 +24,33 @@ beforeEach(() => {
 
 describe('BudgetPanel', () => {
   it('FE-COMP-BUDGET-001: renders empty state when no budget items', async () => {
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })));
     render(<BudgetPanel tripId={1} />);
     expect(await screen.findByText('No budget created yet')).toBeInTheDocument();
   });
 
   it('FE-COMP-BUDGET-002: shows empty state text body', async () => {
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })));
     render(<BudgetPanel tripId={1} />);
     expect(await screen.findByText(/Create categories and entries/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-BUDGET-003: shows category input in empty state when user can edit', async () => {
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })));
     render(<BudgetPanel tripId={1} />);
     expect(await screen.findByPlaceholderText('Enter category name...')).toBeInTheDocument();
   });
 
   it('FE-COMP-BUDGET-004: renders budget items from store after load', async () => {
     const item = buildBudgetItem({ trip_id: 1, name: 'Hotel Paris', category: 'Accommodation' });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     expect(await screen.findByText('Hotel Paris')).toBeInTheDocument();
   });
 
   it('FE-COMP-BUDGET-005: renders category section header', async () => {
     const item = buildBudgetItem({ trip_id: 1, name: 'Flight to Rome', category: 'Transport' });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     // 'Transport' appears in the category section header and the spend breakdown chart.
     expect((await screen.findAllByText('Transport')).length).toBeGreaterThan(0);
@@ -72,9 +58,7 @@ describe('BudgetPanel', () => {
 
   it('FE-COMP-BUDGET-006: renders budget table headers', async () => {
     const item = buildBudgetItem({ trip_id: 1, category: 'Food' });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Name');
     // 'Total' appears both as a table header and in the chart total label.
@@ -83,27 +67,21 @@ describe('BudgetPanel', () => {
 
   it('FE-COMP-BUDGET-007: shows Budget title heading', async () => {
     const item = buildBudgetItem({ trip_id: 1, category: 'Other' });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     expect(await screen.findByText('Budget')).toBeInTheDocument();
   });
 
   it('FE-COMP-BUDGET-008: shows CSV export button', async () => {
     const item = buildBudgetItem({ trip_id: 1, category: 'Other' });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     expect(await screen.findByText('CSV')).toBeInTheDocument();
   });
 
   it('FE-COMP-BUDGET-009: add item row visible in table', async () => {
     const item = buildBudgetItem({ trip_id: 1, category: 'Food' });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     expect(await screen.findByPlaceholderText('New Entry')).toBeInTheDocument();
   });
@@ -114,7 +92,7 @@ describe('BudgetPanel', () => {
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [initialItem] })),
       http.post('/api/trips/1/budget', async ({ request }) => {
-        const body = await request.json() as Record<string, unknown>;
+        const body = (await request.json()) as Record<string, unknown>;
         const item = buildBudgetItem({ trip_id: 1, name: String(body.name || 'New Item'), category: 'Food' });
         return HttpResponse.json({ item });
       })
@@ -129,9 +107,7 @@ describe('BudgetPanel', () => {
 
   it('FE-COMP-BUDGET-011: delete button present for items when user can edit', async () => {
     const item = buildBudgetItem({ trip_id: 1, category: 'Food', name: 'Test Item' });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Test Item');
     // Delete button has title="Delete"
@@ -156,9 +132,7 @@ describe('BudgetPanel', () => {
   it('FE-COMP-BUDGET-013: multiple items in same category all render', async () => {
     const item1 = buildBudgetItem({ trip_id: 1, category: 'Hotels', name: 'Hotel A' });
     const item2 = buildBudgetItem({ trip_id: 1, category: 'Hotels', name: 'Hotel B' });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item1, item2] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item1, item2] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Hotel A');
     expect(await screen.findByText('Hotel B')).toBeInTheDocument();
@@ -167,9 +141,7 @@ describe('BudgetPanel', () => {
   it('FE-COMP-BUDGET-014: items from different categories render separate sections', async () => {
     const item1 = buildBudgetItem({ trip_id: 1, category: 'Transport', name: 'Flight' });
     const item2 = buildBudgetItem({ trip_id: 1, category: 'Hotels', name: 'Hotel' });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item1, item2] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item1, item2] })));
     render(<BudgetPanel tripId={1} />);
     // Each category appears in its section header and again in the breakdown chart.
     expect((await screen.findAllByText('Transport')).length).toBeGreaterThan(0);
@@ -178,9 +150,7 @@ describe('BudgetPanel', () => {
 
   it('FE-COMP-BUDGET-015: currency from settings store is used for default_currency display', async () => {
     seedStore(useSettingsStore, { settings: buildSettings({ default_currency: 'USD' }) });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })));
     render(<BudgetPanel tripId={1} />);
     // Component renders even in empty state
     expect(await screen.findByText('No budget created yet')).toBeInTheDocument();
@@ -189,9 +159,7 @@ describe('BudgetPanel', () => {
   it('FE-COMP-BUDGET-016: trip currency EUR is shown in header for item rows', async () => {
     seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR' }) });
     const item = buildBudgetItem({ trip_id: 1, category: 'Other', name: 'Misc', total_price: 50 });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     expect(await screen.findByText('Misc')).toBeInTheDocument();
     // Row exists - EUR formatting would appear in values
@@ -199,9 +167,7 @@ describe('BudgetPanel', () => {
 
   it('FE-COMP-BUDGET-017: Delete Category button shown in category header', async () => {
     const item = buildBudgetItem({ trip_id: 1, category: 'ToDelete', name: 'Item' });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     // 'ToDelete' appears in the category header and the breakdown chart.
     expect((await screen.findAllByText('ToDelete')).length).toBeGreaterThan(0);
@@ -210,9 +176,7 @@ describe('BudgetPanel', () => {
 
   it('FE-COMP-BUDGET-018: renders add item button (+ icon) in add row', async () => {
     const item = buildBudgetItem({ trip_id: 1, category: 'Other' });
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByPlaceholderText('New Entry');
     // The add button is present
@@ -225,7 +189,7 @@ describe('BudgetPanel', () => {
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [initialItem] })),
       http.post('/api/trips/1/budget', async ({ request }) => {
-        const body = await request.json() as Record<string, unknown>;
+        const body = (await request.json()) as Record<string, unknown>;
         const item = buildBudgetItem({ trip_id: 1, name: String(body.name), category: 'Food' });
         return HttpResponse.json({ item });
       })
@@ -237,9 +201,7 @@ describe('BudgetPanel', () => {
   });
 
   it('FE-COMP-BUDGET-020: component renders without crashing with empty tripMembers', async () => {
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })));
     render(<BudgetPanel tripId={1} tripMembers={[]} />);
     expect(await screen.findByText('No budget created yet')).toBeInTheDocument();
   });
@@ -247,9 +209,7 @@ describe('BudgetPanel', () => {
   it('FE-COMP-BUDGET-021: inline edit name cell — clicking a name cell makes it editable', async () => {
     const user = userEvent.setup();
     const item = { ...buildBudgetItem({ id: 21, trip_id: 1, category: 'Food', name: 'Old Name' }), total_price: 10 };
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Old Name');
     await user.click(screen.getByText('Old Name'));
@@ -265,7 +225,7 @@ describe('BudgetPanel', () => {
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
       http.put('/api/trips/1/budget/10', async ({ request }) => {
-        const b = await request.json() as Record<string, unknown>;
+        const b = (await request.json()) as Record<string, unknown>;
         putCalled = true;
         return HttpResponse.json({ item: { ...item, name: b.name } });
       })
@@ -281,10 +241,11 @@ describe('BudgetPanel', () => {
   });
 
   it('FE-COMP-BUDGET-023: total price is shown formatted with currency symbol', async () => {
-    const item = { ...buildBudgetItem({ id: 23, trip_id: 1, category: 'Restaurants', name: 'Dinner' }), total_price: 45.5 };
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    const item = {
+      ...buildBudgetItem({ id: 23, trip_id: 1, category: 'Restaurants', name: 'Dinner' }),
+      total_price: 45.5,
+    };
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Dinner');
     // The formatted number appears in the InlineEditCell for total price (and grand total card)
@@ -295,7 +256,10 @@ describe('BudgetPanel', () => {
 
   it('FE-COMP-BUDGET-024: delete category button removes all items in that category', async () => {
     const user = userEvent.setup();
-    const item = { ...buildBudgetItem({ id: 24, trip_id: 1, category: 'Flights', name: 'Flight to Paris' }), total_price: 200 };
+    const item = {
+      ...buildBudgetItem({ id: 24, trip_id: 1, category: 'Flights', name: 'Flight to Paris' }),
+      total_price: 200,
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
       http.delete('/api/trips/1/budget/24', () => HttpResponse.json({ success: true }))
@@ -315,9 +279,7 @@ describe('BudgetPanel', () => {
     vi.spyOn(URL, 'createObjectURL').mockImplementation(createObjectURL);
     const user = userEvent.setup();
     const item = { ...buildBudgetItem({ trip_id: 1, category: 'Other', name: 'Misc' }), total_price: 10 };
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('CSV');
     await user.click(screen.getByText('CSV'));
@@ -328,9 +290,7 @@ describe('BudgetPanel', () => {
   it('FE-COMP-BUDGET-026: category total row shows sum of items in category', async () => {
     const item1 = { ...buildBudgetItem({ trip_id: 1, category: 'Food', name: 'Lunch' }), total_price: 20 };
     const item2 = { ...buildBudgetItem({ trip_id: 1, category: 'Food', name: 'Dinner' }), total_price: 30 };
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item1, item2] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item1, item2] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Lunch');
     // The category header shows subtotal formatted as "50.00 €" (also appears in pie legend)
@@ -338,9 +298,7 @@ describe('BudgetPanel', () => {
   });
 
   it('FE-COMP-BUDGET-027: add new category input is visible in empty state', async () => {
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })));
     render(<BudgetPanel tripId={1} />);
     expect(await screen.findByPlaceholderText('Enter category name...')).toBeInTheDocument();
   });
@@ -350,7 +308,9 @@ describe('BudgetPanel', () => {
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.post('/api/trips/1/budget', () =>
-        HttpResponse.json({ item: { ...buildBudgetItem({ category: 'Souvenirs', name: 'New Entry' }), total_price: 0 } })
+        HttpResponse.json({
+          item: { ...buildBudgetItem({ category: 'Souvenirs', name: 'New Entry' }), total_price: 0 },
+        })
       )
     );
     render(<BudgetPanel tripId={1} />);
@@ -371,7 +331,11 @@ describe('BudgetPanel', () => {
             { user_id: 2, username: 'bob', balance: 10, avatar_url: null },
           ],
           flows: [
-            { from: { user_id: 1, username: 'alice', avatar_url: null }, to: { user_id: 2, username: 'bob', avatar_url: null }, amount: 10 },
+            {
+              from: { user_id: 1, username: 'alice', avatar_url: null },
+              to: { user_id: 2, username: 'bob', avatar_url: null },
+              amount: 10,
+            },
           ],
         })
       )
@@ -414,9 +378,7 @@ describe('BudgetPanel', () => {
   it('FE-COMP-BUDGET-032: grand total row shows sum across all categories', async () => {
     const item1 = { ...buildBudgetItem({ trip_id: 1, category: 'Transport', name: 'Flight' }), total_price: 100 };
     const item2 = { ...buildBudgetItem({ trip_id: 1, category: 'Hotels', name: 'Hotel' }), total_price: 200 };
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item1, item2] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item1, item2] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Flight');
     await screen.findByText('Hotel');
@@ -431,9 +393,7 @@ describe('BudgetPanel', () => {
     seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
     seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: 9999 }) });
     const item = { ...buildBudgetItem({ trip_id: 1, category: 'Food', name: 'Read Only Item' }), total_price: 50 };
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Read Only Item');
     // In read-only mode the Delete button should not be visible
@@ -444,10 +404,12 @@ describe('BudgetPanel', () => {
     seedStore(usePermissionsStore, { permissions: { budget_edit: 'trip_owner' } });
     seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
     seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: 9999 }) });
-    const item = { ...buildBudgetItem({ trip_id: 1, category: 'Transport', name: 'Train' }), total_price: 30, expense_date: '2025-06-15' };
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'Transport', name: 'Train' }),
+      total_price: 30,
+      expense_date: '2025-06-15',
+    };
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Train');
     // expense_date is rendered as plain text in read-only mode
@@ -465,10 +427,16 @@ describe('BudgetPanel', () => {
             { user_id: 1, username: 'alice', avatar_url: '/uploads/avatars/alice.jpg', balance: -30 },
             { user_id: 2, username: 'bob', avatar_url: null, balance: 30 },
           ],
-          flows: [{ from: { user_id: 1, username: 'alice', avatar_url: '/uploads/avatars/alice.jpg' }, to: { user_id: 2, username: 'bob', avatar_url: null }, amount: 30 }]
+          flows: [
+            {
+              from: { user_id: 1, username: 'alice', avatar_url: '/uploads/avatars/alice.jpg' },
+              to: { user_id: 2, username: 'bob', avatar_url: null },
+              amount: 30,
+            },
+          ],
         })
       ),
-      http.get('/api/trips/1/budget/per-person', () => HttpResponse.json({ summary: [] })),
+      http.get('/api/trips/1/budget/per-person', () => HttpResponse.json({ summary: [] }))
     );
     const tripMembers = [
       { id: 1, username: 'alice', avatar_url: '/uploads/avatars/alice.jpg' },
@@ -489,10 +457,12 @@ describe('BudgetPanel', () => {
     seedStore(usePermissionsStore, { permissions: { budget_edit: 'trip_owner' } });
     seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
     seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: 9999 }) });
-    const item = { ...buildBudgetItem({ trip_id: 1, category: 'Food', name: 'Snack' }), total_price: 5, expense_date: null };
-    server.use(
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
-    );
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'Food', name: 'Snack' }),
+      total_price: 5,
+      expense_date: null,
+    };
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })));
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Snack');
     // When expense_date is null, the fallback '—' is shown

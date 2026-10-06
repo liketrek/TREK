@@ -1,13 +1,11 @@
 // FE-PAGE-PUBLICJOURNEY-001 to FE-PAGE-PUBLICJOURNEY-023
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import React from 'react';
-import { render, screen, waitFor, fireEvent, within } from '../../tests/helpers/render';
-import { Routes, Route } from 'react-router';
-import { http, HttpResponse } from 'msw';
-import { server } from '../../tests/helpers/msw/server';
-import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { useSettingsStore } from '../store/settingsStore';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { server } from '../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor, within } from '../../tests/helpers/render';
+import { resetAllStores } from '../../tests/helpers/store';
+import { useSettingsStore } from '../store/settingsStore';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -55,7 +53,19 @@ vi.mock('../components/Journey/PhotoLightbox', () => ({
 vi.mock('../components/Journey/MobileMapTimeline', () => ({
   default: ({ onEntryClick }: any) => (
     <div data-testid="mobile-map-timeline">
-      <button onClick={() => onEntryClick({ id: 10, title: 'Shibuya Crossing', story: 'The most famous crossing in the world.', entry_date: '2026-03-15', entry_time: '14:00', location_name: 'Shibuya, Tokyo', photos: [] })}>
+      <button
+        onClick={() =>
+          onEntryClick({
+            id: 10,
+            title: 'Shibuya Crossing',
+            story: 'The most famous crossing in the world.',
+            entry_date: '2026-03-15',
+            entry_time: '14:00',
+            location_name: 'Shibuya, Tokyo',
+            photos: [],
+          })
+        }
+      >
         Open Entry
       </button>
     </div>
@@ -108,7 +118,16 @@ const mockJourneyData = {
       weather: 'cloudy',
       pros_cons: null,
       photos: [
-        { id: 100, entry_id: 11, photo_id: 100, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/temple.jpg', caption: 'Temple entrance' },
+        {
+          id: 100,
+          entry_id: 11,
+          photo_id: 100,
+          provider: 'local',
+          asset_id: null,
+          owner_id: null,
+          file_path: 'journey/temple.jpg',
+          caption: 'Temple entrance',
+        },
       ],
     },
   ],
@@ -118,7 +137,19 @@ const mockJourneyData = {
     share_map: true,
   },
   gallery: [
-    { id: 100, journey_id: 1, photo_id: 100, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/temple.jpg', caption: 'Temple entrance', shared: 1, sort_order: 0, created_at: 0 },
+    {
+      id: 100,
+      journey_id: 1,
+      photo_id: 100,
+      provider: 'local',
+      asset_id: null,
+      owner_id: null,
+      file_path: 'journey/temple.jpg',
+      caption: 'Temple entrance',
+      shared: 1,
+      sort_order: 0,
+      created_at: 0,
+    },
   ],
   stats: {
     entries: 2,
@@ -130,19 +161,11 @@ const mockJourneyData = {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function setupSuccess() {
-  server.use(
-    http.get('/api/public/journey/test-share-token', () =>
-      HttpResponse.json(mockJourneyData),
-    ),
-  );
+  server.use(http.get('/api/public/journey/test-share-token', () => HttpResponse.json(mockJourneyData)));
 }
 
 function setup404() {
-  server.use(
-    http.get('/api/public/journey/test-share-token', () =>
-      new HttpResponse(null, { status: 404 }),
-    ),
-  );
+  server.use(http.get('/api/public/journey/test-share-token', () => new HttpResponse(null, { status: 404 })));
 }
 
 // ── Setup / teardown ─────────────────────────────────────────────────────────
@@ -234,9 +257,7 @@ describe('JourneyPublicPage', () => {
 
     // Find the gallery tab button — the view tabs contain icons and labels
     const buttons = screen.getAllByRole('button');
-    const galleryBtn = buttons.find(
-      btn => btn.textContent && /gallery/i.test(btn.textContent),
-    );
+    const galleryBtn = buttons.find((btn) => btn.textContent && /gallery/i.test(btn.textContent));
     expect(galleryBtn).toBeDefined();
     if (galleryBtn) {
       fireEvent.click(galleryBtn);
@@ -291,9 +312,7 @@ describe('JourneyPublicPage', () => {
     expect(screen.getByText('Shibuya Crossing')).toBeInTheDocument();
 
     // Switch to gallery
-    const galleryBtn = screen.getAllByRole('button').find(
-      btn => btn.textContent && /gallery/i.test(btn.textContent),
-    );
+    const galleryBtn = screen.getAllByRole('button').find((btn) => btn.textContent && /gallery/i.test(btn.textContent));
     expect(galleryBtn).toBeDefined();
     await user.click(galleryBtn!);
 
@@ -339,27 +358,96 @@ describe('JourneyPublicPage', () => {
       ...mockJourneyData,
       entries: [
         {
-          id: 20, title: 'Photo Entry', story: null, entry_date: '2026-03-15',
-          entry_time: null, location_name: null, location_lat: null, location_lng: null,
-          mood: null, weather: null, pros_cons: null,
+          id: 20,
+          title: 'Photo Entry',
+          story: null,
+          entry_date: '2026-03-15',
+          entry_time: null,
+          location_name: null,
+          location_lat: null,
+          location_lng: null,
+          mood: null,
+          weather: null,
+          pros_cons: null,
           photos: [
-            { id: 200, entry_id: 20, photo_id: 200, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/a.jpg', caption: 'Photo A' },
-            { id: 201, entry_id: 20, photo_id: 201, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/b.jpg', caption: 'Photo B' },
-            { id: 202, entry_id: 20, photo_id: 202, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/c.jpg', caption: 'Photo C' },
+            {
+              id: 200,
+              entry_id: 20,
+              photo_id: 200,
+              provider: 'local',
+              asset_id: null,
+              owner_id: null,
+              file_path: 'journey/a.jpg',
+              caption: 'Photo A',
+            },
+            {
+              id: 201,
+              entry_id: 20,
+              photo_id: 201,
+              provider: 'local',
+              asset_id: null,
+              owner_id: null,
+              file_path: 'journey/b.jpg',
+              caption: 'Photo B',
+            },
+            {
+              id: 202,
+              entry_id: 20,
+              photo_id: 202,
+              provider: 'local',
+              asset_id: null,
+              owner_id: null,
+              file_path: 'journey/c.jpg',
+              caption: 'Photo C',
+            },
           ],
         },
       ],
       gallery: [
-        { id: 200, journey_id: 1, photo_id: 200, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/a.jpg', caption: 'Photo A', shared: 1, sort_order: 0, created_at: 0 },
-        { id: 201, journey_id: 1, photo_id: 201, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/b.jpg', caption: 'Photo B', shared: 1, sort_order: 1, created_at: 0 },
-        { id: 202, journey_id: 1, photo_id: 202, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/c.jpg', caption: 'Photo C', shared: 1, sort_order: 2, created_at: 0 },
+        {
+          id: 200,
+          journey_id: 1,
+          photo_id: 200,
+          provider: 'local',
+          asset_id: null,
+          owner_id: null,
+          file_path: 'journey/a.jpg',
+          caption: 'Photo A',
+          shared: 1,
+          sort_order: 0,
+          created_at: 0,
+        },
+        {
+          id: 201,
+          journey_id: 1,
+          photo_id: 201,
+          provider: 'local',
+          asset_id: null,
+          owner_id: null,
+          file_path: 'journey/b.jpg',
+          caption: 'Photo B',
+          shared: 1,
+          sort_order: 1,
+          created_at: 0,
+        },
+        {
+          id: 202,
+          journey_id: 1,
+          photo_id: 202,
+          provider: 'local',
+          asset_id: null,
+          owner_id: null,
+          file_path: 'journey/c.jpg',
+          caption: 'Photo C',
+          shared: 1,
+          sort_order: 2,
+          created_at: 0,
+        },
       ],
       stats: { entries: 1, photos: 3, places: 0 },
     };
 
-    server.use(
-      http.get('/api/public/journey/test-share-token', () => HttpResponse.json(richData)),
-    );
+    server.use(http.get('/api/public/journey/test-share-token', () => HttpResponse.json(richData)));
 
     render(<JourneyPublicPage />);
     await waitFor(() => {
@@ -367,9 +455,7 @@ describe('JourneyPublicPage', () => {
     });
 
     // Switch to gallery
-    const galleryBtn = screen.getAllByRole('button').find(
-      btn => btn.textContent && /gallery/i.test(btn.textContent),
-    );
+    const galleryBtn = screen.getAllByRole('button').find((btn) => btn.textContent && /gallery/i.test(btn.textContent));
     await user.click(galleryBtn!);
 
     await waitFor(() => {
@@ -385,9 +471,7 @@ describe('JourneyPublicPage', () => {
       ...mockJourneyData,
       stats: { entries: 14, photos: 83, places: 7 },
     };
-    server.use(
-      http.get('/api/public/journey/test-share-token', () => HttpResponse.json(customData)),
-    );
+    server.use(http.get('/api/public/journey/test-share-token', () => HttpResponse.json(customData)));
 
     render(<JourneyPublicPage />);
     await waitFor(() => {
@@ -411,7 +495,7 @@ describe('JourneyPublicPage', () => {
     });
 
     const buttons = screen.getAllByRole('button');
-    const mapBtn = buttons.find(btn => btn.textContent && /^map$/i.test(btn.textContent.trim()));
+    const mapBtn = buttons.find((btn) => btn.textContent && /^map$/i.test(btn.textContent.trim()));
     expect(mapBtn).toBeUndefined();
   });
 
@@ -476,9 +560,7 @@ describe('JourneyPublicPage', () => {
         share_map: true,
       },
     };
-    server.use(
-      http.get('/api/public/journey/test-share-token', () => HttpResponse.json(restrictedData)),
-    );
+    server.use(http.get('/api/public/journey/test-share-token', () => HttpResponse.json(restrictedData)));
 
     render(<JourneyPublicPage />);
     await waitFor(() => {
@@ -487,12 +569,12 @@ describe('JourneyPublicPage', () => {
 
     // Timeline tab should not exist
     const buttons = screen.getAllByRole('button');
-    const timelineBtn = buttons.find(btn => btn.textContent && /timeline/i.test(btn.textContent));
+    const timelineBtn = buttons.find((btn) => btn.textContent && /timeline/i.test(btn.textContent));
     expect(timelineBtn).toBeUndefined();
 
     // Gallery and Map tabs should exist
-    const galleryBtn = buttons.find(btn => btn.textContent && /gallery/i.test(btn.textContent));
-    const mapBtn = buttons.find(btn => btn.textContent && /map/i.test(btn.textContent));
+    const galleryBtn = buttons.find((btn) => btn.textContent && /gallery/i.test(btn.textContent));
+    const mapBtn = buttons.find((btn) => btn.textContent && /map/i.test(btn.textContent));
     expect(galleryBtn).toBeDefined();
     expect(mapBtn).toBeDefined();
   });
@@ -507,9 +589,7 @@ describe('JourneyPublicPage', () => {
         share_map: true,
       },
     };
-    server.use(
-      http.get('/api/public/journey/test-share-token', () => HttpResponse.json(restrictedData)),
-    );
+    server.use(http.get('/api/public/journey/test-share-token', () => HttpResponse.json(restrictedData)));
 
     render(<JourneyPublicPage />);
     await waitFor(() => {
@@ -543,7 +623,7 @@ describe('JourneyPublicPage', () => {
     expect(sensoji).toBeTruthy();
 
     const badge = (el: HTMLElement) =>
-      Array.from(el.querySelectorAll('span')).find(s => /^\d+$/.test(s.textContent || ''))?.textContent;
+      Array.from(el.querySelectorAll('span')).find((s) => /^\d+$/.test(s.textContent || ''))?.textContent;
 
     expect(badge(shibuya)).toBe('1');
     expect(badge(sensoji)).toBe('2');
@@ -558,7 +638,7 @@ describe('JourneyPublicPage', () => {
     await waitFor(() => expect(screen.getByText('Shibuya Crossing')).toBeInTheDocument());
 
     const order = () =>
-      Array.from(document.querySelectorAll('[data-entry-id]')).map(el => el.getAttribute('data-entry-id'));
+      Array.from(document.querySelectorAll('[data-entry-id]')).map((el) => el.getAttribute('data-entry-id'));
     expect(order()).toEqual(['10', '11']);
 
     fireEvent.click(screen.getByRole('button', { name: /first/i }));
@@ -567,7 +647,7 @@ describe('JourneyPublicPage', () => {
 
     // Numbering is unchanged: entry 10 is still stop 1 even though it is shown last.
     const shibuya = document.querySelector('[data-entry-id="10"]') as HTMLElement;
-    const badge = Array.from(shibuya.querySelectorAll('span')).find(s => /^\d+$/.test(s.textContent || ''));
+    const badge = Array.from(shibuya.querySelectorAll('span')).find((s) => /^\d+$/.test(s.textContent || ''));
     expect(badge?.textContent).toBe('1');
   });
 
@@ -576,22 +656,57 @@ describe('JourneyPublicPage', () => {
   // broken-image glyph on every shared layout (#2341).
   it('FE-PAGE-PUBLICJOURNEY-023: a shared clip without a poster is a black tile, with a poster its poster', async () => {
     const user = userEvent.setup();
-    const bare = { id: 200, entry_id: 20, photo_id: 200, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/a.mp4', thumbnail_path: null, media_type: 'video', caption: null };
-    const withPoster = { id: 201, entry_id: 21, photo_id: 201, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/b.mp4', thumbnail_path: 'journey/b.jpg', media_type: 'video', caption: null };
+    const bare = {
+      id: 200,
+      entry_id: 20,
+      photo_id: 200,
+      provider: 'local',
+      asset_id: null,
+      owner_id: null,
+      file_path: 'journey/a.mp4',
+      thumbnail_path: null,
+      media_type: 'video',
+      caption: null,
+    };
+    const withPoster = {
+      id: 201,
+      entry_id: 21,
+      photo_id: 201,
+      provider: 'local',
+      asset_id: null,
+      owner_id: null,
+      file_path: 'journey/b.mp4',
+      thumbnail_path: 'journey/b.jpg',
+      media_type: 'video',
+      caption: null,
+    };
     const entry = (id: number, photo: typeof bare) => ({
-      id, title: `Clip ${id}`, story: null, entry_date: '2026-03-15', entry_time: null,
-      location_name: null, location_lat: null, location_lng: null, mood: null, weather: null, pros_cons: null,
+      id,
+      title: `Clip ${id}`,
+      story: null,
+      entry_date: '2026-03-15',
+      entry_time: null,
+      location_name: null,
+      location_lat: null,
+      location_lng: null,
+      mood: null,
+      weather: null,
+      pros_cons: null,
       photos: [photo],
     });
-    server.use(http.get('/api/public/journey/test-share-token', () => HttpResponse.json({
-      ...mockJourneyData,
-      entries: [entry(20, bare), entry(21, withPoster)],
-      gallery: [
-        { ...bare, journey_id: 1, shared: 1, sort_order: 0, created_at: 0 },
-        { ...withPoster, journey_id: 1, shared: 1, sort_order: 1, created_at: 0 },
-      ],
-      stats: { entries: 2, photos: 2, places: 0 },
-    })));
+    server.use(
+      http.get('/api/public/journey/test-share-token', () =>
+        HttpResponse.json({
+          ...mockJourneyData,
+          entries: [entry(20, bare), entry(21, withPoster)],
+          gallery: [
+            { ...bare, journey_id: 1, shared: 1, sort_order: 0, created_at: 0 },
+            { ...withPoster, journey_id: 1, shared: 1, sort_order: 1, created_at: 0 },
+          ],
+          stats: { entries: 2, photos: 2, places: 0 },
+        })
+      )
+    );
     const bareSrc = 'img[src="/api/public/journey/test-share-token/photos/200/thumbnail"]';
     const posterSrc = 'img[src="/api/public/journey/test-share-token/photos/201/thumbnail"]';
 
@@ -602,7 +717,7 @@ describe('JourneyPublicPage', () => {
     expect(document.querySelector(posterSrc)).toBeInTheDocument();
     expect(document.querySelectorAll('svg.lucide-play')).toHaveLength(2);
 
-    await user.click(screen.getAllByRole('button').find(btn => /gallery/i.test(btn.textContent || ''))!);
+    await user.click(screen.getAllByRole('button').find((btn) => /gallery/i.test(btn.textContent || ''))!);
     await waitFor(() => expect(document.querySelectorAll('.grid svg.lucide-play')).toHaveLength(2));
 
     expect(document.querySelector(bareSrc)).toBeNull();

@@ -1,8 +1,8 @@
 // FE-ADMIN-AUDIT-001 to FE-ADMIN-AUDIT-010
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import AuditLogPanel from './AuditLogPanel';
 
@@ -44,7 +44,7 @@ describe('AuditLogPanel', () => {
       http.get('/api/admin/audit-log', async () => {
         await new Promise(() => {}); // never resolves
         return HttpResponse.json({ entries: [], total: 0 });
-      }),
+      })
     );
     render(<AuditLogPanel serverTimezone="UTC" />);
     expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -52,22 +52,14 @@ describe('AuditLogPanel', () => {
   });
 
   it('FE-ADMIN-AUDIT-002: empty state shown when no entries', async () => {
-    server.use(
-      http.get('/api/admin/audit-log', () =>
-        HttpResponse.json({ entries: [], total: 0 }),
-      ),
-    );
+    server.use(http.get('/api/admin/audit-log', () => HttpResponse.json({ entries: [], total: 0 })));
     render(<AuditLogPanel serverTimezone="UTC" />);
     await screen.findByText('No audit entries yet.');
     expect(document.querySelector('table')).not.toBeInTheDocument();
   });
 
   it('FE-ADMIN-AUDIT-003: table renders all columns with data', async () => {
-    server.use(
-      http.get('/api/admin/audit-log', () =>
-        HttpResponse.json({ entries: [ENTRY_1], total: 1 }),
-      ),
-    );
+    server.use(http.get('/api/admin/audit-log', () => HttpResponse.json({ entries: [ENTRY_1], total: 1 })));
     render(<AuditLogPanel serverTimezone="UTC" />);
     await screen.findByText('trip.create');
     expect(screen.getByText('Time')).toBeInTheDocument();
@@ -89,11 +81,7 @@ describe('AuditLogPanel', () => {
       { ...ENTRY_1, id: 12, username: null, user_email: null, user_id: 7, action: 'a.id' },
       { ...ENTRY_1, id: 13, username: null, user_email: null, user_id: null, action: 'a.none' },
     ];
-    server.use(
-      http.get('/api/admin/audit-log', () =>
-        HttpResponse.json({ entries, total: 4 }),
-      ),
-    );
+    server.use(http.get('/api/admin/audit-log', () => HttpResponse.json({ entries, total: 4 })));
     render(<AuditLogPanel serverTimezone="UTC" />);
     await screen.findByText('a.username');
     expect(screen.getByText('alice')).toBeInTheDocument();
@@ -121,9 +109,7 @@ describe('AuditLogPanel', () => {
       details: {},
     };
     server.use(
-      http.get('/api/admin/audit-log', () =>
-        HttpResponse.json({ entries: [entry, entryEmptyDetails], total: 2 }),
-      ),
+      http.get('/api/admin/audit-log', () => HttpResponse.json({ entries: [entry, entryEmptyDetails], total: 2 }))
     );
     render(<AuditLogPanel serverTimezone="UTC" />);
     await screen.findByText('a.nulls');
@@ -133,11 +119,7 @@ describe('AuditLogPanel', () => {
   });
 
   it('FE-ADMIN-AUDIT-006: showing count text reflects count and total', async () => {
-    server.use(
-      http.get('/api/admin/audit-log', () =>
-        HttpResponse.json({ entries: [ENTRY_1], total: 50 }),
-      ),
-    );
+    server.use(http.get('/api/admin/audit-log', () => HttpResponse.json({ entries: [ENTRY_1], total: 50 })));
     render(<AuditLogPanel serverTimezone="UTC" />);
     await screen.findByText('trip.create');
     expect(screen.getByText('1 loaded · 50 total')).toBeInTheDocument();
@@ -152,7 +134,7 @@ describe('AuditLogPanel', () => {
           return HttpResponse.json({ entries: [ENTRY_1], total: 2 });
         }
         return HttpResponse.json({ entries: [ENTRY_2], total: 2 });
-      }),
+      })
     );
     const user = userEvent.setup();
     render(<AuditLogPanel serverTimezone="UTC" />);
@@ -166,11 +148,7 @@ describe('AuditLogPanel', () => {
   });
 
   it('FE-ADMIN-AUDIT-008: "Load more" hidden when all entries loaded', async () => {
-    server.use(
-      http.get('/api/admin/audit-log', () =>
-        HttpResponse.json({ entries: [ENTRY_1, ENTRY_2], total: 2 }),
-      ),
-    );
+    server.use(http.get('/api/admin/audit-log', () => HttpResponse.json({ entries: [ENTRY_1, ENTRY_2], total: 2 })));
     render(<AuditLogPanel serverTimezone="UTC" />);
     await screen.findByText('trip.create');
     expect(screen.queryByText('Load more')).not.toBeInTheDocument();
@@ -191,7 +169,7 @@ describe('AuditLogPanel', () => {
           return HttpResponse.json({ entries: [PAGE2_ENTRY], total: 2 });
         }
         return HttpResponse.json({ entries: [REFRESH_ENTRY], total: 1 });
-      }),
+      })
     );
     const user = userEvent.setup();
     render(<AuditLogPanel serverTimezone="UTC" />);
@@ -214,7 +192,7 @@ describe('AuditLogPanel', () => {
       http.get('/api/admin/audit-log', async () => {
         await new Promise(() => {}); // never resolves
         return HttpResponse.json({ entries: [], total: 0 });
-      }),
+      })
     );
     render(<AuditLogPanel serverTimezone="UTC" />);
     const refreshBtn = screen.getByText('Refresh');

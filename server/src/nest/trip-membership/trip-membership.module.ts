@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { TripMembershipService } from './trip-membership.service';
-import { Trips } from '../../db/entities/Trips.entity';
 import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { TripMembershipService } from './trip-membership.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /** Trip membership joins. No controller of its own — the HTTP surface lives with
  *  auth, oidc and trip-invite, which all import this for the join itself. Kept

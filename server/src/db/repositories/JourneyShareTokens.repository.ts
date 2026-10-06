@@ -114,7 +114,10 @@ export class JourneyShareTokensRepository extends TrekRepository<JourneyShareTok
 
   /** JS4 — `getJourneyShareLink`: `SELECT * FROM journey_share_tokens WHERE journey_id = ?`. */
   async findByJourneyId(journeyId: number): Promise<JourneyShareTokenRow | undefined> {
-    return await this.qb('jst').select(['jst.*']).where({ journey: journeyId }).execute<JourneyShareTokenRow | undefined>('get', false);
+    return await this.qb('jst')
+      .select(['jst.*'])
+      .where({ journey: journeyId })
+      .execute<JourneyShareTokenRow | undefined>('get', false);
   }
 
   /** JS5 — `deleteJourneyShareLink`: `DELETE FROM journey_share_tokens WHERE journey_id = ?`. */
@@ -146,7 +149,10 @@ export class JourneyShareTokensRepository extends TrekRepository<JourneyShareTok
 
   /** JS11 — `getPublicJourney`'s entrypoint read: `SELECT * FROM journey_share_tokens WHERE token = ?`. Exact-match only (R4), same as {@link findAccessByToken}. */
   async findByToken(token: string): Promise<JourneyShareTokenRow | undefined> {
-    return await this.qb('jst').select(['jst.*']).where({ token }).execute<JourneyShareTokenRow | undefined>('get', false);
+    return await this.qb('jst')
+      .select(['jst.*'])
+      .where({ token })
+      .execute<JourneyShareTokenRow | undefined>('get', false);
   }
 
   // JS7/JS10 — `validateShareTokenForPhoto`'s/`validateShareTokenForAsset`'s

@@ -1,11 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { TransactionContext } from '@mikro-orm/core';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { TransactionContext } from '@mikro-orm/core';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * D5 ratchet (task-6-fix-brief.md item 2; task-1-2-rereview.md's "half that
@@ -30,8 +31,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   uow = new UnitOfWork(t.em);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('UnitOfWork transaction resolution (D5)', () => {
   it('UOW-D5-001: a repository built on the global, context-resolving EM resolves the SAME EntityManager transactional() opens — a manual fork() does not', async () => {

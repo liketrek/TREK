@@ -1,5 +1,5 @@
-import { EntityRepositoryType, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
 import { PluginOauthStateRepository } from '../repositories/PluginOauthState.repository';
+import { EntityRepositoryType, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
 
 export class PluginOauthState {
   [EntityRepositoryType]?: PluginOauthStateRepository;

@@ -1,5 +1,5 @@
-import type { TripInviteTokens } from '../entities/TripInviteTokens.entity';
 import { currentTimestamp } from '../dialect/sql-functions';
+import type { TripInviteTokens } from '../entities/TripInviteTokens.entity';
 import { TrekRepository } from './_shared/trek-repository';
 
 /** `trip-invite.service.ts::get`'s projection. */
@@ -59,10 +59,18 @@ export class TripInviteTokensRepository extends TrekRepository<TripInviteTokens>
    * `CURRENT_TIMESTAMP` through the shared dialect helper (rule 5), matching
    * the column's own `defaultRaw` literal exactly.
    */
-  async updateForTrip(trip_id: number | string, input: { token: string; expires_at: string | null; created_by: number }): Promise<void> {
+  async updateForTrip(
+    trip_id: number | string,
+    input: { token: string; expires_at: string | null; created_by: number },
+  ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.qb('t')
-      .update({ token: input.token, expires_at: input.expires_at, createdByRef: input.created_by, created_at: currentTimestamp(platform) })
+      .update({
+        token: input.token,
+        expires_at: input.expires_at,
+        createdByRef: input.created_by,
+        created_at: currentTimestamp(platform),
+      })
       .where('t.trip_id = ?', [trip_id])
       .execute('run');
   }
@@ -80,7 +88,12 @@ export class TripInviteTokensRepository extends TrekRepository<TripInviteTokens>
    * `Number(...)` here mirrors the same seam `DayNotesService.create`'s own
    * `Number(dayId)`/`Number(tripId)` conversion documents.
    */
-  async insertForTrip(input: { trip_id: number | string; token: string; created_by: number; expires_at: string | null }): Promise<void> {
+  async insertForTrip(input: {
+    trip_id: number | string;
+    token: string;
+    created_by: number;
+    expires_at: string | null;
+  }): Promise<void> {
     await this.insert({
       trip: Number(input.trip_id),
       token: input.token,
@@ -91,10 +104,7 @@ export class TripInviteTokensRepository extends TrekRepository<TripInviteTokens>
 
   /** `remove()` — `DELETE FROM trip_invite_tokens WHERE trip_id = ?`. */
   async deleteByTrip(trip_id: number | string): Promise<void> {
-    await this.qb('t')
-      .delete()
-      .where('t.trip_id = ?', [trip_id])
-      .execute('run');
+    await this.qb('t').delete().where('t.trip_id = ?', [trip_id]).execute('run');
   }
 
   /**

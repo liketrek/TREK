@@ -7,13 +7,26 @@
  * and its status route. Replaced: the kitinerary binary (absent) and the one
  * outbound call, `safeFetchLlm`, which answers as the provider would.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { KitineraryExtractorService } from '../../src/nest/booking-import/kitinerary-extractor.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { LlmParseModule } from '../../src/nest/llm-parse/llm-parse.module';
+import { NotificationsService } from '../../src/nest/notifications/notifications.service';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { ReceiptScanModule } from '../../src/nest/receipt-scan/receipt-scan.module';
+import { ReservationImportModule } from '../../src/nest/reservation-import/reservation-import.module';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
 import { Jimp } from 'jimp';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { safeFetchLlm } = vi.hoisted(() => ({ safeFetchLlm: vi.fn() }));
 // A copy of the migrated + seeded snapshot, so the schema is the MikroORM
@@ -21,23 +34,17 @@ const { safeFetchLlm } = vi.hoisted(() => ({ safeFetchLlm: vi.fn() }));
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb } = await import('../helpers/db-mock');
   const tmp = createSnapshotTestDb();
-  return { db: tmp, canAccessTrip: () => undefined, isOwner: () => false, getPlaceWithTags: () => null, closeDb: () => {}, reinitialize: () => {} };
+  return {
+    db: tmp,
+    canAccessTrip: () => undefined,
+    isOwner: () => false,
+    getPlaceWithTags: () => null,
+    closeDb: () => {},
+    reinitialize: () => {},
+  };
 });
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../src/utils/ssrfGuard', async (orig) => ({ ...(await orig<Record<string, unknown>>()), safeFetchLlm }));
-
-import { db } from '../../src/db/database';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { ReservationImportModule } from '../../src/nest/reservation-import/reservation-import.module';
-import { ReceiptScanModule } from '../../src/nest/receipt-scan/receipt-scan.module';
-import { LlmParseModule } from '../../src/nest/llm-parse/llm-parse.module';
-import { KitineraryExtractorService } from '../../src/nest/booking-import/kitinerary-extractor.service';
-import { NotificationsService } from '../../src/nest/notifications/notifications.service';
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
 
 function setVision(vision: string) {
   db.prepare("UPDATE addons SET config = ? WHERE id = 'llm_parsing'").run(
@@ -55,7 +62,8 @@ function providerAnswers(payload: unknown) {
   } as unknown as Response);
 }
 
-const sentUserContent = () => JSON.parse((safeFetchLlm.mock.calls[0][1] as RequestInit).body as string).messages[1].content;
+const sentUserContent = () =>
+  JSON.parse((safeFetchLlm.mock.calls[0][1] as RequestInit).body as string).messages[1].content;
 
 describe('Photos through AI Parsing e2e', () => {
   let server: Server;
@@ -65,9 +73,23 @@ describe('Photos through AI Parsing e2e', () => {
   let photo: Buffer;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, LlmParseModule, ReservationImportModule, ReceiptScanModule] })
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        LlmParseModule,
+        ReservationImportModule,
+        ReceiptScanModule,
+      ],
+    })
       .overrideProvider(KitineraryExtractorService)
-      .useValue({ onModuleInit: () => {}, isAvailable: () => false, extract: vi.fn(), describe: () => ({ available: false }) })
+      .useValue({
+        onModuleInit: () => {},
+        isAvailable: () => false,
+        extract: vi.fn(),
+        describe: () => ({ available: false }),
+      })
       .overrideProvider(NotificationsService)
       .useValue({ send: vi.fn().mockResolvedValue(undefined) })
       .compile();
@@ -88,7 +110,9 @@ describe('Photos through AI Parsing e2e', () => {
     db.prepare(
       "INSERT INTO users (id, username, email, password_hash, role, password_version) VALUES (2, 'e2e-other', 'e2e-other@example.test', 'x', 'user', 0)",
     ).run();
-    foreignTripId = Number(db.prepare("INSERT INTO trips (user_id, title) VALUES (2, 'Elsewhere')").run().lastInsertRowid);
+    foreignTripId = Number(
+      db.prepare("INSERT INTO trips (user_id, title) VALUES (2, 'Elsewhere')").run().lastInsertRowid,
+    );
     db.prepare(
       `INSERT INTO addons (id, name, type, enabled, config) VALUES ('llm_parsing', 'AI Parsing', 'integration', 1, '{}')
        ON CONFLICT(id) DO UPDATE SET enabled = 1`,
@@ -118,9 +142,13 @@ describe('Photos through AI Parsing e2e', () => {
     });
 
     it('answers the instance setting, and no for a cloud model on Automatic', async () => {
-      expect((await request(server).get('/api/llm/capabilities').set('Cookie', sessionCookie(1))).body).toEqual({ images: true });
+      expect((await request(server).get('/api/llm/capabilities').set('Cookie', sessionCookie(1))).body).toEqual({
+        images: true,
+      });
       setVision('auto');
-      expect((await request(server).get('/api/llm/capabilities').set('Cookie', sessionCookie(1))).body).toEqual({ images: false });
+      expect((await request(server).get('/api/llm/capabilities').set('Cookie', sessionCookie(1))).body).toEqual({
+        images: false,
+      });
       expect(safeFetchLlm).not.toHaveBeenCalled();
     });
   });
@@ -134,7 +162,18 @@ describe('Photos through AI Parsing e2e', () => {
         .attach('files', photo, { filename: 'ticket.png', contentType: 'image/png' });
 
     it('sends a photo to the model as an image, and maps its answer', async () => {
-      providerAnswers({ reservations: [{ '@type': 'TrainReservation', reservationFor: { departureStation: { name: 'Lyon Part-Dieu' }, arrivalStation: { name: 'Paris Gare de Lyon' }, departureTime: '2026-10-03T08:04:00' } }] });
+      providerAnswers({
+        reservations: [
+          {
+            '@type': 'TrainReservation',
+            reservationFor: {
+              departureStation: { name: 'Lyon Part-Dieu' },
+              arrivalStation: { name: 'Paris Gare de Lyon' },
+              departureTime: '2026-10-03T08:04:00',
+            },
+          },
+        ],
+      });
       const res = await upload();
 
       expect(res.status).toBe(201);
@@ -158,7 +197,10 @@ describe('Photos through AI Parsing e2e', () => {
       request(server)
         .post(`/api/trips/${trip}/budget/receipt-scan`)
         .set('Cookie', sessionCookie(1))
-        .attach('file', photo, { filename: name, contentType: name.endsWith('.png') ? 'image/png' : 'application/pdf' });
+        .attach('file', photo, {
+          filename: name,
+          contentType: name.endsWith('.png') ? 'image/png' : 'application/pdf',
+        });
 
     it('401 without a cookie, 404 for a trip out of reach', async () => {
       expect((await request(server).post(`/api/trips/${tripId}/budget/receipt-scan`)).status).toBe(401);
@@ -166,18 +208,36 @@ describe('Photos through AI Parsing e2e', () => {
     });
 
     it('reads the receipt in a job whose status answers what was read', async () => {
-      providerAnswers({ receipts: [{ merchant: 'Boulangerie du Port', date: '2026-09-21', total: 18.1, currency: 'EUR', items: [{ name: 'Quiche', price: 6.9 }] }] });
+      providerAnswers({
+        receipts: [
+          {
+            merchant: 'Boulangerie du Port',
+            date: '2026-09-21',
+            total: 18.1,
+            currency: 'EUR',
+            items: [{ name: 'Quiche', price: 6.9 }],
+          },
+        ],
+      });
       const res = await scan();
       expect(res.status).toBe(201);
       const { jobId } = res.body;
 
       let status: request.Response | undefined;
       await vi.waitFor(async () => {
-        status = await request(server).get(`/api/trips/${tripId}/reservations/import/jobs/${jobId}`).set('Cookie', sessionCookie(1));
+        status = await request(server)
+          .get(`/api/trips/${tripId}/reservations/import/jobs/${jobId}`)
+          .set('Cookie', sessionCookie(1));
         expect(status.body.status).toBe('done');
       });
       expect(status!.body.result).toEqual({
-        receipt: { merchant: 'Boulangerie du Port', date: '2026-09-21', total: 18.1, currency: 'EUR', items: [{ name: 'Quiche', price: 6.9 }] },
+        receipt: {
+          merchant: 'Boulangerie du Port',
+          date: '2026-09-21',
+          total: 18.1,
+          currency: 'EUR',
+          items: [{ name: 'Quiche', price: 6.9 }],
+        },
         warnings: [],
       });
       const body = JSON.parse((safeFetchLlm.mock.calls[0][1] as RequestInit).body as string);

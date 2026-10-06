@@ -1,8 +1,8 @@
 // FE-ADMIN-MCP-001 to FE-ADMIN-MCP-016
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { ToastContainer } from '../shared/Toast';
 import AdminMcpTokensPanel from './AdminMcpTokensPanel';
@@ -39,7 +39,7 @@ describe('AdminMcpTokensPanel', () => {
   it('FE-ADMIN-MCP-001: loading spinner shown on mount', async () => {
     server.use(
       http.get('/api/admin/mcp-tokens', async () => {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         return HttpResponse.json({ tokens: [] });
       })
     );
@@ -53,11 +53,7 @@ describe('AdminMcpTokensPanel', () => {
   });
 
   it('FE-ADMIN-MCP-003: token list renders correctly', async () => {
-    server.use(
-      http.get('/api/admin/mcp-tokens', () =>
-        HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })
-      )
-    );
+    server.use(http.get('/api/admin/mcp-tokens', () => HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })));
     render(<AdminMcpTokensPanel />);
     await screen.findByText('CI Token');
     expect(screen.getByText('Ops Token')).toBeInTheDocument();
@@ -69,11 +65,7 @@ describe('AdminMcpTokensPanel', () => {
   });
 
   it('FE-ADMIN-MCP-004: "Never" shown when last_used_at is null', async () => {
-    server.use(
-      http.get('/api/admin/mcp-tokens', () =>
-        HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })
-      )
-    );
+    server.use(http.get('/api/admin/mcp-tokens', () => HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })));
     render(<AdminMcpTokensPanel />);
     await screen.findByText('CI Token');
     expect(screen.getByText('Never')).toBeInTheDocument();
@@ -81,11 +73,7 @@ describe('AdminMcpTokensPanel', () => {
 
   it('FE-ADMIN-MCP-005: delete confirmation dialog opens', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.get('/api/admin/mcp-tokens', () =>
-        HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })
-      )
-    );
+    server.use(http.get('/api/admin/mcp-tokens', () => HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })));
     render(<AdminMcpTokensPanel />);
     await screen.findByText('CI Token');
 
@@ -100,11 +88,7 @@ describe('AdminMcpTokensPanel', () => {
 
   it('FE-ADMIN-MCP-006: cancel closes confirmation dialog without deleting', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.get('/api/admin/mcp-tokens', () =>
-        HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })
-      )
-    );
+    server.use(http.get('/api/admin/mcp-tokens', () => HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })));
     render(<AdminMcpTokensPanel />);
     await screen.findByText('CI Token');
 
@@ -121,11 +105,7 @@ describe('AdminMcpTokensPanel', () => {
 
   it('FE-ADMIN-MCP-007: backdrop click closes dialog', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.get('/api/admin/mcp-tokens', () =>
-        HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })
-      )
-    );
+    server.use(http.get('/api/admin/mcp-tokens', () => HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })));
     render(<AdminMcpTokensPanel />);
     await screen.findByText('CI Token');
 
@@ -145,14 +125,15 @@ describe('AdminMcpTokensPanel', () => {
   it('FE-ADMIN-MCP-008: successful delete removes token from list', async () => {
     const user = userEvent.setup();
     server.use(
-      http.get('/api/admin/mcp-tokens', () =>
-        HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })
-      ),
-      http.delete('/api/admin/mcp-tokens/:id', () =>
-        HttpResponse.json({ success: true })
-      )
+      http.get('/api/admin/mcp-tokens', () => HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })),
+      http.delete('/api/admin/mcp-tokens/:id', () => HttpResponse.json({ success: true }))
     );
-    render(<><ToastContainer /><AdminMcpTokensPanel /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AdminMcpTokensPanel />
+      </>
+    );
     await screen.findByText('CI Token');
 
     const deleteButtons = screen.getAllByLabelText('Delete');
@@ -170,14 +151,15 @@ describe('AdminMcpTokensPanel', () => {
   it('FE-ADMIN-MCP-009: failed delete shows error toast and keeps list unchanged', async () => {
     const user = userEvent.setup();
     server.use(
-      http.get('/api/admin/mcp-tokens', () =>
-        HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })
-      ),
-      http.delete('/api/admin/mcp-tokens/:id', () =>
-        HttpResponse.json({ error: 'forbidden' }, { status: 403 })
-      )
+      http.get('/api/admin/mcp-tokens', () => HttpResponse.json({ tokens: [TOKEN_1, TOKEN_2] })),
+      http.delete('/api/admin/mcp-tokens/:id', () => HttpResponse.json({ error: 'forbidden' }, { status: 403 }))
     );
-    render(<><ToastContainer /><AdminMcpTokensPanel /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AdminMcpTokensPanel />
+      </>
+    );
     await screen.findByText('CI Token');
 
     const deleteButtons = screen.getAllByLabelText('Delete');
@@ -189,19 +171,20 @@ describe('AdminMcpTokensPanel', () => {
   });
 
   it('FE-ADMIN-MCP-010: load failure shows error toast', async () => {
-    server.use(
-      http.get('/api/admin/mcp-tokens', () =>
-        HttpResponse.json({ error: 'server error' }, { status: 500 })
-      )
+    server.use(http.get('/api/admin/mcp-tokens', () => HttpResponse.json({ error: 'server error' }, { status: 500 })));
+    render(
+      <>
+        <ToastContainer />
+        <AdminMcpTokensPanel />
+      </>
     );
-    render(<><ToastContainer /><AdminMcpTokensPanel /></>);
     expect(await screen.findByText('Failed to load tokens')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-MCP-011: OAuth sessions loading spinner shown on mount', async () => {
     server.use(
       http.get('/api/admin/oauth-sessions', async () => {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         return HttpResponse.json({ sessions: [] });
       })
     );
@@ -210,11 +193,7 @@ describe('AdminMcpTokensPanel', () => {
   });
 
   it('FE-ADMIN-MCP-012: OAuth sessions empty state rendered when no sessions', async () => {
-    server.use(
-      http.get('/api/admin/oauth-sessions', () =>
-        HttpResponse.json({ sessions: [] })
-      )
-    );
+    server.use(http.get('/api/admin/oauth-sessions', () => HttpResponse.json({ sessions: [] })));
     render(<AdminMcpTokensPanel />);
     expect(await screen.findByText('No active OAuth sessions')).toBeInTheDocument();
   });
@@ -244,13 +223,19 @@ describe('AdminMcpTokensPanel', () => {
   it('FE-ADMIN-MCP-014: scope expand/collapse toggle shows hidden scopes', async () => {
     const user = userEvent.setup();
     // 7 scopes — more than SCOPES_PREVIEW=6, so "+1 more" button appears
-    const scopes = ['trips:read', 'trips:write', 'places:read', 'places:write', 'budget:read', 'budget:write', 'packing:read'];
+    const scopes = [
+      'trips:read',
+      'trips:write',
+      'places:read',
+      'places:write',
+      'budget:read',
+      'budget:write',
+      'packing:read',
+    ];
     server.use(
       http.get('/api/admin/oauth-sessions', () =>
         HttpResponse.json({
-          sessions: [
-            { id: 1, client_name: 'App', username: 'bob', scopes, created_at: '2025-01-01T00:00:00Z' },
-          ],
+          sessions: [{ id: 1, client_name: 'App', username: 'bob', scopes, created_at: '2025-01-01T00:00:00Z' }],
         })
       )
     );
@@ -270,15 +255,24 @@ describe('AdminMcpTokensPanel', () => {
       http.get('/api/admin/oauth-sessions', () =>
         HttpResponse.json({
           sessions: [
-            { id: 5, client_name: 'Revoke Me', username: 'carol', scopes: ['trips:read'], created_at: '2025-01-01T00:00:00Z' },
+            {
+              id: 5,
+              client_name: 'Revoke Me',
+              username: 'carol',
+              scopes: ['trips:read'],
+              created_at: '2025-01-01T00:00:00Z',
+            },
           ],
         })
       ),
-      http.delete('/api/admin/oauth-sessions/5', () =>
-        HttpResponse.json({ success: true })
-      )
+      http.delete('/api/admin/oauth-sessions/5', () => HttpResponse.json({ success: true }))
     );
-    render(<><ToastContainer /><AdminMcpTokensPanel /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AdminMcpTokensPanel />
+      </>
+    );
     await screen.findByText('Revoke Me');
 
     // Click the revoke (trash) button next to the session
@@ -289,7 +283,7 @@ describe('AdminMcpTokensPanel', () => {
     expect(screen.getByText('Revoke Session')).toBeInTheDocument();
     // Confirm — find the modal's Delete button (has no aria-label, unlike the trash icon)
     const deleteBtns = screen.getAllByRole('button', { name: 'Delete' });
-    const confirmBtn = deleteBtns.find(b => !b.hasAttribute('aria-label'));
+    const confirmBtn = deleteBtns.find((b) => !b.hasAttribute('aria-label'));
     await user.click(confirmBtn ?? deleteBtns[deleteBtns.length - 1]);
     await waitFor(() => {
       expect(screen.queryByText('Revoke Me')).not.toBeInTheDocument();
@@ -302,21 +296,30 @@ describe('AdminMcpTokensPanel', () => {
       http.get('/api/admin/oauth-sessions', () =>
         HttpResponse.json({
           sessions: [
-            { id: 6, client_name: 'Error Session', username: 'dave', scopes: ['trips:read'], created_at: '2025-01-01T00:00:00Z' },
+            {
+              id: 6,
+              client_name: 'Error Session',
+              username: 'dave',
+              scopes: ['trips:read'],
+              created_at: '2025-01-01T00:00:00Z',
+            },
           ],
         })
       ),
-      http.delete('/api/admin/oauth-sessions/6', () =>
-        HttpResponse.json({ error: 'forbidden' }, { status: 403 })
-      )
+      http.delete('/api/admin/oauth-sessions/6', () => HttpResponse.json({ error: 'forbidden' }, { status: 403 }))
     );
-    render(<><ToastContainer /><AdminMcpTokensPanel /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AdminMcpTokensPanel />
+      </>
+    );
     await screen.findByText('Error Session');
 
     const deleteBtn = screen.getAllByLabelText('Delete')[0];
     await user.click(deleteBtn);
     const deleteBtns = screen.getAllByRole('button', { name: 'Delete' });
-    const confirmBtn = deleteBtns.find(b => !b.hasAttribute('aria-label'));
+    const confirmBtn = deleteBtns.find((b) => !b.hasAttribute('aria-label'));
     await user.click(confirmBtn ?? deleteBtns[deleteBtns.length - 1]);
     expect(await screen.findByText('Failed to revoke session')).toBeInTheDocument();
   });

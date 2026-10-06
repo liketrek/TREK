@@ -1,12 +1,12 @@
 // FE-FILES-ROW-001 to FE-FILES-ROW-006
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildPlace, buildReservation, buildTrip, buildTripFile } from '../../../tests/helpers/factories';
-import { downloadFile } from '../../utils/fileDownload';
+import { render, screen } from '../../../tests/helpers/render';
 import type { TripFile } from '../../types';
-import type { FileManagerState } from './useFileManager';
+import { downloadFile } from '../../utils/fileDownload';
 import { FileRow } from './FileManagerRow';
+import type { FileManagerState } from './useFileManager';
 
 vi.mock('../../utils/fileDownload', () => ({ downloadFile: vi.fn(async () => {}) }));
 
@@ -20,16 +20,27 @@ const handlers = {
 };
 
 const labels: Record<string, string> = {
-  'common.open': 'Open', 'common.delete': 'Delete', 'files.download': 'Download', 'files.star': 'Star', 'files.unstar': 'Unstar',
-  'files.assign': 'Assign', 'files.restore': 'Restore', 'files.sourcePlan': 'Day Plan', 'files.sourceBooking': 'Booking',
-  'files.sourceTransport': 'Transport', 'files.sourceCollab': 'From Collab Notes',
+  'common.open': 'Open',
+  'common.delete': 'Delete',
+  'files.download': 'Download',
+  'files.star': 'Star',
+  'files.unstar': 'Unstar',
+  'files.assign': 'Assign',
+  'files.restore': 'Restore',
+  'files.sourcePlan': 'Day Plan',
+  'files.sourceBooking': 'Booking',
+  'files.sourceTransport': 'Transport',
+  'files.sourceCollab': 'From Collab Notes',
 };
 
 function renderRow(file: TripFile, { isTrash = false, allowed = true } = {}) {
   const state = {
     ...handlers,
     places: [buildPlace({ id: 71, name: 'Louvre' })],
-    reservations: [buildReservation({ id: 81, title: 'Shinkansen', type: 'train' }), buildReservation({ id: 82, title: '', type: 'restaurant' })],
+    reservations: [
+      buildReservation({ id: 81, title: 'Shinkansen', type: 'train' }),
+      buildReservation({ id: 82, title: '', type: 'restaurant' }),
+    ],
     t: (k: string) => labels[k] ?? k,
     locale: 'en-US',
     can: () => allowed,
@@ -39,7 +50,7 @@ function renderRow(file: TripFile, { isTrash = false, allowed = true } = {}) {
 }
 
 beforeEach(() => {
-  Object.values(handlers).forEach(fn => fn.mockClear());
+  Object.values(handlers).forEach((fn) => fn.mockClear());
   vi.mocked(downloadFile).mockClear();
 });
 
@@ -94,7 +105,14 @@ describe('FileRow', () => {
   });
 
   it('FE-FILES-ROW-006: says where the file came from: a place, a transport, a booking, a note', () => {
-    const file = buildTripFile({ place_id: 71, reservation_id: 81, linked_reservation_ids: [82], note_id: 3, description: 'Seat map', file_size: 2048 } as never);
+    const file = buildTripFile({
+      place_id: 71,
+      reservation_id: 81,
+      linked_reservation_ids: [82],
+      note_id: 3,
+      description: 'Seat map',
+      file_size: 2048,
+    } as never);
     renderRow(file);
     expect(screen.getByText('Louvre')).toBeInTheDocument();
     expect(screen.getByText('Shinkansen')).toBeInTheDocument();

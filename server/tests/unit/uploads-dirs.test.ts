@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { CATEGORY_PREFIXES } from '../../src/nest/storage/storage-registry.service';
+
 import fs from 'node:fs';
 import path from 'node:path';
-import { CATEGORY_PREFIXES } from '../../src/nest/storage/storage-registry.service';
+import { describe, it, expect } from 'vitest';
 
 // Driver-owned roots are created by LocalDriver.init on every storage-registry
 // load now (boot and reload()) — index.ts no longer mkdirs the uploads tree.
@@ -40,13 +41,6 @@ describe('uploads subdirectory parity', () => {
   });
 
   it('covers every uploads subdir the server writes to', () => {
-    expect([...fromRegistry].sort()).toEqual([
-      'avatars',
-      'covers',
-      'files',
-      'journey',
-      'photos',
-      'places',
-    ]);
+    expect([...fromRegistry].sort()).toEqual(['avatars', 'covers', 'files', 'journey', 'photos', 'places']);
   });
 });

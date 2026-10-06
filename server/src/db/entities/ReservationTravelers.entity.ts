@@ -1,7 +1,7 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { ReservationTravelersRepository } from '../repositories/ReservationTravelers.repository';
 import { Reservations } from './Reservations.entity';
 import { Users } from './Users.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class ReservationTravelers {
   [EntityRepositoryType]?: ReservationTravelersRepository;
@@ -18,7 +18,8 @@ export const ReservationTravelersSchema = defineEntity({
   uniques: [{ properties: ['reservation', 'user'] }],
   properties: {
     id: p.integer().primary(),
-    reservation: () => p.manyToOne(Reservations).ref().deleteRule('cascade').hidden().index('idx_reservation_travelers_res'),
+    reservation: () =>
+      p.manyToOne(Reservations).ref().deleteRule('cascade').hidden().index('idx_reservation_travelers_res'),
     reservation_id: p.integer().persist(false).index('idx_reservation_travelers_res'),
     user: () => p.manyToOne(Users).ref().deleteRule('cascade').hidden().index('idx_reservation_travelers_user'),
     user_id: p.integer().persist(false).index('idx_reservation_travelers_user'),

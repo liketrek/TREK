@@ -1,31 +1,48 @@
-import { ReactNode, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import type { CollectionStatus } from '@trek/shared';
 import {
-  Bookmark, Check, CheckCheck, CheckSquare, ChevronDown, Copy, CopyPlus,
-  FolderInput, Layers, List, Loader2, Map as MapIcon, Pencil, Plus, Search, Share2,
-  Tag, Tags, Trash2, X,
-} from 'lucide-react'
-import type { CollectionStatus } from '@trek/shared'
-import MDancingTrek, { type TrekScene } from '../../components/MDancingTrek'
-import { useCollections } from '../../../pages/collections/useCollections'
-import { STATUS_ORDER } from '../../../pages/collections/collectionsModel'
-import type { StatusFilter } from '../../../store/collectionStore'
-import { ALL_SAVED } from '../../../store/collectionStore'
-import CollectionMap from '../../../components/Collections/CollectionMap'
-import MSheet from '../../components/MSheet'
-import MCollPlaceRow from './MCollPlaceRow'
-import MCollPlaceSheet from './MCollPlaceSheet'
-import MCollAddSheet from './MCollAddSheet'
-import MCollShareSheet from './MCollShareSheet'
-import MCollEditSheet from './MCollEditSheet'
-import MCollLabelsSheet from './MCollLabelsSheet'
-import MCollTripPickerSheet from './MCollTripPickerSheet'
-import MCollListPickerSheet from './MCollListPickerSheet'
-import { STATUS_SPEC } from './collectionsMobileModel'
-import { CancelPill, PrimaryPill } from './MCollSheetKit'
+  Bookmark,
+  Check,
+  CheckCheck,
+  CheckSquare,
+  ChevronDown,
+  Copy,
+  CopyPlus,
+  FolderInput,
+  Layers,
+  List,
+  Loader2,
+  Map as MapIcon,
+  Pencil,
+  Plus,
+  Search,
+  Share2,
+  Tag,
+  Tags,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { ReactNode, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
+import CollectionMap from '../../../components/Collections/CollectionMap';
+import { STATUS_ORDER } from '../../../pages/collections/collectionsModel';
+import { useCollections } from '../../../pages/collections/useCollections';
+import type { StatusFilter } from '../../../store/collectionStore';
+import { ALL_SAVED } from '../../../store/collectionStore';
+import MDancingTrek, { type TrekScene } from '../../components/MDancingTrek';
+import MSheet from '../../components/MSheet';
+import { STATUS_SPEC } from './collectionsMobileModel';
+import MCollAddSheet from './MCollAddSheet';
+import MCollEditSheet from './MCollEditSheet';
+import MCollLabelsSheet from './MCollLabelsSheet';
+import MCollListPickerSheet from './MCollListPickerSheet';
+import MCollPlaceRow from './MCollPlaceRow';
+import MCollPlaceSheet from './MCollPlaceSheet';
+import MCollShareSheet from './MCollShareSheet';
+import { CancelPill, PrimaryPill } from './MCollSheetKit';
+import MCollTripPickerSheet from './MCollTripPickerSheet';
 
 const HEADER_CIRCLE =
-  'flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]'
+  'flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]';
 
 // min-w-0 is what lets the truncate on the chip labels engage: a flex item keeps
 // min-width:auto by default, so the row grew past the panel instead of shrinking
@@ -33,13 +50,13 @@ const HEADER_CIRCLE =
 // label name in the filter chip, or a bumped-up text size, still has to ellipsise
 // inside the panel rather than spill out of it.
 const FILTER_CHIP =
-  'flex min-w-0 flex-1 items-center justify-center gap-[5px] rounded-full py-2 text-[0.75rem] font-semibold'
+  'flex min-w-0 flex-1 items-center justify-center gap-[5px] rounded-full py-2 text-[0.75rem] font-semibold';
 
-const CHIP_IDLE = 'border border-[color:var(--m-rowbr)] bg-m-sheetop text-m-ink'
-const CHIP_ON = 'border border-transparent bg-m-act text-m-actfg'
+const CHIP_IDLE = 'border border-[color:var(--m-rowbr)] bg-m-sheetop text-m-ink';
+const CHIP_ON = 'border border-transparent bg-m-act text-m-actfg';
 
 const DROP_PANEL =
-  'rounded-[14px] border border-[color:var(--m-rowbr)] bg-m-sheetop shadow-[0_20px_44px_-18px_rgba(0,0,0,.45)]'
+  'rounded-[14px] border border-[color:var(--m-rowbr)] bg-m-sheetop shadow-[0_20px_44px_-18px_rgba(0,0,0,.45)]';
 
 function EmptyNote({ icon, scene, title }: { icon?: ReactNode; scene?: TrekScene; title: string }) {
   return (
@@ -47,11 +64,13 @@ function EmptyNote({ icon, scene, title }: { icon?: ReactNode; scene?: TrekScene
       {scene ? (
         <MDancingTrek scene={scene} className="mb-2" />
       ) : (
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color:var(--m-ic)] text-m-faint">{icon}</span>
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color:var(--m-ic)] text-m-faint">
+          {icon}
+        </span>
       )}
       <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{title}</p>
     </div>
-  )
+  );
 }
 
 /**
@@ -61,82 +80,82 @@ function EmptyNote({ icon, scene, title }: { icon?: ReactNode; scene?: TrekScene
  * shared useCollections() page hook.
  */
 export default function MCollections() {
-  const c = useCollections()
-  const { t } = c
+  const c = useCollections();
+  const { t } = c;
 
-  const [drop, setDrop] = useState(false)
-  const [statusDrop, setStatusDrop] = useState(false)
-  const [labelDrop, setLabelDrop] = useState(false)
+  const [drop, setDrop] = useState(false);
+  const [statusDrop, setStatusDrop] = useState(false);
+  const [labelDrop, setLabelDrop] = useState(false);
 
   // The bottom-nav "+" hands off via the ?create= contract.
-  const [searchParams, setSearchParams] = useSearchParams()
-  const createParam = searchParams.get('create')
-  const { activeId, canEdit, setShowAddPlace, ownedLists } = c
+  const [searchParams, setSearchParams] = useSearchParams();
+  const createParam = searchParams.get('create');
+  const { activeId, canEdit, setShowAddPlace, ownedLists } = c;
   useEffect(() => {
-    if (createParam !== 'place' && createParam !== '1') return
-    const next = new URLSearchParams(searchParams)
-    next.delete('create')
-    setSearchParams(next, { replace: true })
+    if (createParam !== 'place' && createParam !== '1') return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('create');
+    setSearchParams(next, { replace: true });
     // Open whenever the user can add somewhere: an editable active list, or at
     // least one owned list to pick as the target in the sheet.
-    if ((typeof activeId === 'number' && canEdit) || ownedLists.length > 0) setShowAddPlace(true)
-  }, [createParam, searchParams, setSearchParams, activeId, canEdit, ownedLists.length, setShowAddPlace])
+    if ((typeof activeId === 'number' && canEdit) || ownedLists.length > 0) setShowAddPlace(true);
+  }, [createParam, searchParams, setSearchParams, activeId, canEdit, ownedLists.length, setShowAddPlace]);
 
   // Close transient popovers when the active list changes under them.
   useEffect(() => {
-    setDrop(false)
-    setStatusDrop(false)
-    setLabelDrop(false)
-  }, [c.activeId])
+    setDrop(false);
+    setStatusDrop(false);
+    setLabelDrop(false);
+  }, [c.activeId]);
 
   // The mobile toolbar has no category or rating filter control, but the shared
   // hook still applies whatever was set on desktop — keep both cleared so
   // resizing to phone doesn't silently filter the list and map (#1435).
-  const { categoryFilter, setCategoryFilter, ratingFilter, setRatingFilter } = c
+  const { categoryFilter, setCategoryFilter, ratingFilter, setRatingFilter } = c;
   useEffect(() => {
-    if (categoryFilter !== 'all') setCategoryFilter('all')
-    if (ratingFilter !== 'all') setRatingFilter('all')
-  }, [categoryFilter, setCategoryFilter, ratingFilter, setRatingFilter])
+    if (categoryFilter !== 'all') setCategoryFilter('all');
+    if (ratingFilter !== 'all') setRatingFilter('all');
+  }, [categoryFilter, setCategoryFilter, ratingFilter, setRatingFilter]);
 
-  const title = c.isAllSaved ? t('collections.allSaved') : (c.activeCollection?.name ?? t('collections.title'))
-  const isRealList = !c.isAllSaved && typeof c.activeId === 'number'
-  const canManageLabels = isRealList && c.canEdit
-  const canEditList = isRealList && c.isOwner && c.activeCollection != null
-  const canAddPlace = typeof c.activeId === 'number' && c.canEdit
-  const noLists = !c.loading && c.collections.length === 0
-  const hasPlaces = c.places.length > 0
-  const showSelect = c.isAllSaved || c.activeCollection != null
+  const title = c.isAllSaved ? t('collections.allSaved') : (c.activeCollection?.name ?? t('collections.title'));
+  const isRealList = !c.isAllSaved && typeof c.activeId === 'number';
+  const canManageLabels = isRealList && c.canEdit;
+  const canEditList = isRealList && c.isOwner && c.activeCollection != null;
+  const canAddPlace = typeof c.activeId === 'number' && c.canEdit;
+  const noLists = !c.loading && c.collections.length === 0;
+  const hasPlaces = c.places.length > 0;
+  const showSelect = c.isAllSaved || c.activeCollection != null;
 
-  const statusLabel = c.statusFilter === 'all'
-    ? t('collections.status.filterAll')
-    : t(STATUS_SPEC[c.statusFilter].labelKey)
-  const labelLabel = c.labelFilter.length === 0
-    ? t('collections.status.filterAll')
-    : c.labelFilter.length === 1
-      ? (c.labelOptions.find(l => l.id === c.labelFilter[0])?.name ?? '1')
-      : String(c.labelFilter.length)
+  const statusLabel =
+    c.statusFilter === 'all' ? t('collections.status.filterAll') : t(STATUS_SPEC[c.statusFilter].labelKey);
+  const labelLabel =
+    c.labelFilter.length === 0
+      ? t('collections.status.filterAll')
+      : c.labelFilter.length === 1
+        ? (c.labelOptions.find((l) => l.id === c.labelFilter[0])?.name ?? '1')
+        : String(c.labelFilter.length);
 
   const selectList = (id: number | typeof ALL_SAVED) => {
-    setDrop(false)
-    c.handleSelectList(id)
-  }
+    setDrop(false);
+    c.handleSelectList(id);
+  };
 
   const openNewList = () => {
-    setDrop(false)
-    c.setEditorTarget('new')
-  }
+    setDrop(false);
+    c.setEditorTarget('new');
+  };
 
   const pickStatusFilter = (f: StatusFilter) => {
-    c.setStatusFilter(f)
-    setStatusDrop(false)
-  }
+    c.setStatusFilter(f);
+    setStatusDrop(false);
+  };
 
   const toggleLabelFilter = (id: number) => {
-    c.setLabelFilter(c.labelFilter.includes(id) ? c.labelFilter.filter(x => x !== id) : [...c.labelFilter, id])
-  }
+    c.setLabelFilter(c.labelFilter.includes(id) ? c.labelFilter.filter((x) => x !== id) : [...c.labelFilter, id]);
+  };
 
   const selectChip = (disabled: boolean) =>
-    `flex flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-m-sheetop px-3 py-2 text-[0.75rem] font-semibold text-m-ink ${disabled ? 'opacity-40' : ''}`
+    `flex flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-m-sheetop px-3 py-2 text-[0.75rem] font-semibold text-m-ink ${disabled ? 'opacity-40' : ''}`;
 
   return (
     <div
@@ -149,7 +168,7 @@ export default function MCollections() {
       <div className="mb-3 flex flex-none items-center gap-2 pt-2">
         <button
           type="button"
-          onClick={() => setDrop(v => !v)}
+          onClick={() => setDrop((v) => !v)}
           aria-expanded={drop}
           className="flex h-[38px] min-w-0 flex-1 items-center gap-[7px] rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] px-[14px] text-[0.8125rem] font-bold text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
         >
@@ -158,12 +177,22 @@ export default function MCollections() {
           <ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />
         </button>
         {canEditList && (
-          <button type="button" onClick={() => c.setEditorTarget(c.activeCollection!)} aria-label={t('collections.editListTitle')} className={HEADER_CIRCLE}>
+          <button
+            type="button"
+            onClick={() => c.setEditorTarget(c.activeCollection!)}
+            aria-label={t('collections.editListTitle')}
+            className={HEADER_CIRCLE}
+          >
             <Pencil size={15} strokeWidth={2.2} />
           </button>
         )}
         {c.canShare && (
-          <button type="button" onClick={() => c.setShowShare(true)} aria-label={t('collections.share.title')} className={HEADER_CIRCLE}>
+          <button
+            type="button"
+            onClick={() => c.setShowShare(true)}
+            aria-label={t('collections.share.title')}
+            className={HEADER_CIRCLE}
+          >
             <Share2 size={15} strokeWidth={2.2} />
           </button>
         )}
@@ -182,8 +211,8 @@ export default function MCollections() {
             <Layers size={15} strokeWidth={2} /> {t('collections.allSaved')}
           </button>
           <div className="my-[2px] h-px bg-[color:var(--m-rowbr)]" />
-          {[...c.ownedLists, ...c.sharedLists].map(l => {
-            const active = c.activeId === l.id
+          {[...c.ownedLists, ...c.sharedLists].map((l) => {
+            const active = c.activeId === l.id;
             return (
               <button
                 key={l.id}
@@ -196,7 +225,7 @@ export default function MCollections() {
                 <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">{l.name}</span>
                 <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{l.place_count ?? 0}</span>
               </button>
-            )
+            );
           })}
           <div className="my-[2px] h-px bg-[color:var(--m-rowbr)]" />
           <button
@@ -251,7 +280,7 @@ export default function MCollections() {
                 <Search size={15} strokeWidth={2.2} className="flex-none text-m-muted" />
                 <input
                   value={c.search}
-                  onChange={e => c.setSearch(e.target.value)}
+                  onChange={(e) => c.setSearch(e.target.value)}
                   placeholder={t('collections.search')}
                   className="min-w-0 flex-1 bg-transparent font-geist text-[0.78125rem] text-m-ink outline-none placeholder:text-m-faint"
                 />
@@ -262,28 +291,46 @@ export default function MCollections() {
               <div className="relative mt-2 flex items-center gap-[6px]">
                 <button
                   type="button"
-                  onClick={() => { setStatusDrop(v => !v); setLabelDrop(false) }}
+                  onClick={() => {
+                    setStatusDrop((v) => !v);
+                    setLabelDrop(false);
+                  }}
                   aria-expanded={statusDrop}
                   className={`${FILTER_CHIP} ${c.statusFilter !== 'all' ? CHIP_ON : CHIP_IDLE}`}
                 >
                   <Layers size={13} strokeWidth={2} className="flex-none" />
                   <span className="truncate">{statusLabel}</span>
-                  <ChevronDown size={12} strokeWidth={2} className={`flex-none ${c.statusFilter !== 'all' ? '' : 'text-m-faint'}`} />
+                  <ChevronDown
+                    size={12}
+                    strokeWidth={2}
+                    className={`flex-none ${c.statusFilter !== 'all' ? '' : 'text-m-faint'}`}
+                  />
                 </button>
                 {isRealList && (
                   <button
                     type="button"
-                    onClick={() => { setLabelDrop(v => !v); setStatusDrop(false) }}
+                    onClick={() => {
+                      setLabelDrop((v) => !v);
+                      setStatusDrop(false);
+                    }}
                     aria-expanded={labelDrop}
                     className={`${FILTER_CHIP} ${c.labelFilter.length > 0 ? CHIP_ON : CHIP_IDLE}`}
                   >
                     <Tag size={13} strokeWidth={2} className="flex-none" />
                     <span className="truncate">{labelLabel}</span>
-                    <ChevronDown size={12} strokeWidth={2} className={`flex-none ${c.labelFilter.length > 0 ? '' : 'text-m-faint'}`} />
+                    <ChevronDown
+                      size={12}
+                      strokeWidth={2}
+                      className={`flex-none ${c.labelFilter.length > 0 ? '' : 'text-m-faint'}`}
+                    />
                   </button>
                 )}
                 {canManageLabels && (
-                  <button type="button" onClick={() => c.setShowLabelManager(true)} className={`${FILTER_CHIP} ${CHIP_IDLE}`}>
+                  <button
+                    type="button"
+                    onClick={() => c.setShowLabelManager(true)}
+                    className={`${FILTER_CHIP} ${CHIP_IDLE}`}
+                  >
                     <Plus size={12} strokeWidth={2.2} className="flex-none" />
                     <span className="truncate">{t('collections.labels.title')}</span>
                   </button>
@@ -300,7 +347,10 @@ export default function MCollections() {
                     type="button"
                     aria-label={t('common.close')}
                     className="fixed inset-0 z-10 cursor-default"
-                    onClick={() => { setStatusDrop(false); setLabelDrop(false) }}
+                    onClick={() => {
+                      setStatusDrop(false);
+                      setLabelDrop(false);
+                    }}
                   />
                 )}
                 {statusDrop && (
@@ -314,9 +364,9 @@ export default function MCollections() {
                       <span className="flex-1 text-left">{t('collections.status.filterAll')}</span>
                       <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{c.counts.all}</span>
                     </button>
-                    {STATUS_ORDER.map(s => {
-                      const meta = STATUS_SPEC[s]
-                      const Icon = meta.icon
+                    {STATUS_ORDER.map((s) => {
+                      const meta = STATUS_SPEC[s];
+                      const Icon = meta.icon;
                       return (
                         <button
                           key={s}
@@ -328,22 +378,27 @@ export default function MCollections() {
                           <span className="flex-1 text-left">{t(meta.labelKey)}</span>
                           <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{c.counts[s]}</span>
                         </button>
-                      )
+                      );
                     })}
                   </div>
                 )}
                 {labelDrop && (
-                  <div className={`absolute left-0 right-0 top-[calc(100%+6px)] z-20 max-h-[240px] overflow-y-auto p-[6px] ${DROP_PANEL}`}>
+                  <div
+                    className={`absolute left-0 right-0 top-[calc(100%+6px)] z-20 max-h-[240px] overflow-y-auto p-[6px] ${DROP_PANEL}`}
+                  >
                     <button
                       type="button"
-                      onClick={() => { c.setLabelFilter([]); setLabelDrop(false) }}
+                      onClick={() => {
+                        c.setLabelFilter([]);
+                        setLabelDrop(false);
+                      }}
                       className={`flex w-full items-center gap-[9px] rounded-[11px] p-[10px] text-[0.8125rem] font-semibold text-m-ink ${c.labelFilter.length === 0 ? 'bg-[color:var(--m-ic)]' : ''}`}
                     >
                       <Tag size={15} strokeWidth={2} />
                       <span className="flex-1 text-left">{t('collections.status.filterAll')}</span>
                     </button>
-                    {c.labelOptions.map(l => {
-                      const on = c.labelFilter.includes(l.id)
+                    {c.labelOptions.map((l) => {
+                      const on = c.labelFilter.includes(l.id);
                       return (
                         <button
                           key={l.id}
@@ -351,15 +406,22 @@ export default function MCollections() {
                           onClick={() => toggleLabelFilter(l.id)}
                           className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-left ${on ? 'bg-[color:var(--m-ic)]' : ''}`}
                         >
-                          <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: l.color || '#6366F1' }} />
-                          <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">{l.name}</span>
+                          <span
+                            className="h-[9px] w-[9px] flex-none rounded-full"
+                            style={{ background: l.color || '#6366F1' }}
+                          />
+                          <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">
+                            {l.name}
+                          </span>
                           <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{l.count}</span>
                           {on && <Check size={14} strokeWidth={2.6} className="flex-none text-m-ink" />}
                         </button>
-                      )
+                      );
                     })}
                     {c.labelOptions.length === 0 && (
-                      <div className="p-[10px] text-center font-geist text-[0.71875rem] text-m-faint">{t('collections.labels.empty')}</div>
+                      <div className="p-[10px] text-center font-geist text-[0.71875rem] text-m-faint">
+                        {t('collections.labels.empty')}
+                      </div>
                     )}
                   </div>
                 )}
@@ -376,19 +438,39 @@ export default function MCollections() {
                   {t('collections.selectedCount', { count: c.selectedIds.length })}
                 </span>
                 {canManageLabels && (
-                  <button type="button" onClick={() => c.setLabelPickerOpen(true)} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
+                  <button
+                    type="button"
+                    onClick={() => c.setLabelPickerOpen(true)}
+                    disabled={c.selectedIds.length === 0}
+                    className={selectChip(c.selectedIds.length === 0)}
+                  >
                     <Tags size={13} strokeWidth={2.2} /> {t('collections.labels.assign')}
                   </button>
                 )}
-                <button type="button" onClick={c.openCopyForSelection} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
+                <button
+                  type="button"
+                  onClick={c.openCopyForSelection}
+                  disabled={c.selectedIds.length === 0}
+                  className={selectChip(c.selectedIds.length === 0)}
+                >
                   <Copy size={13} strokeWidth={2.2} /> {t('collections.copyToTrip')}
                 </button>
                 {c.canEdit && (
-                  <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
+                  <button
+                    type="button"
+                    onClick={() => c.setListPickerMode('move')}
+                    disabled={c.selectedIds.length === 0}
+                    className={selectChip(c.selectedIds.length === 0)}
+                  >
                     <FolderInput size={13} strokeWidth={2.2} /> {t('collections.moveToList')}
                   </button>
                 )}
-                <button type="button" onClick={() => c.setListPickerMode('copy')} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
+                <button
+                  type="button"
+                  onClick={() => c.setListPickerMode('copy')}
+                  disabled={c.selectedIds.length === 0}
+                  className={selectChip(c.selectedIds.length === 0)}
+                >
                   <CopyPlus size={13} strokeWidth={2.2} /> {t('collections.duplicateToList')}
                 </button>
                 {c.canDelete && (
@@ -401,7 +483,12 @@ export default function MCollections() {
                     <Trash2 size={13} strokeWidth={2.2} /> {t('common.delete')}
                   </button>
                 )}
-                <button type="button" onClick={() => c.setSelectMode(false)} aria-label={t('common.cancel')} className={selectChip(false)}>
+                <button
+                  type="button"
+                  onClick={() => c.setSelectMode(false)}
+                  aria-label={t('common.cancel')}
+                  className={selectChip(false)}
+                >
                   <X size={14} strokeWidth={2.2} />
                 </button>
               </div>
@@ -409,8 +496,8 @@ export default function MCollections() {
           </div>
 
           {/* List view */}
-          {c.view === 'list' && (
-            c.placesLoading && !hasPlaces ? (
+          {c.view === 'list' &&
+            (c.placesLoading && !hasPlaces ? (
               <div className="flex items-center justify-center py-16 text-m-faint">
                 <Loader2 size={20} className="animate-spin" />
               </div>
@@ -420,7 +507,7 @@ export default function MCollections() {
               <EmptyNote icon={<Search size={19} strokeWidth={1.8} />} title={t('collections.empty.noMatchTitle')} />
             ) : (
               <div>
-                {c.visiblePlaces.map(p => (
+                {c.visiblePlaces.map((p) => (
                   <MCollPlaceRow
                     key={p.id}
                     place={p}
@@ -434,12 +521,11 @@ export default function MCollections() {
                   />
                 ))}
               </div>
-            )
-          )}
+            ))}
 
           {/* Map view — the real map stack with marker clustering */}
-          {c.view === 'map' && (
-            c.mappable.length === 0 ? (
+          {c.view === 'map' &&
+            (c.mappable.length === 0 ? (
               <EmptyNote icon={<MapIcon size={19} strokeWidth={1.8} />} title={t('collections.empty.noMatchTitle')} />
             ) : (
               <div className="relative mt-3 min-h-0 flex-1 overflow-hidden rounded-[20px] border border-[color:var(--m-rowbr)]">
@@ -451,8 +537,7 @@ export default function MCollections() {
                   dark={c.dark}
                 />
               </div>
-            )
-          )}
+            ))}
         </>
       )}
 
@@ -465,11 +550,11 @@ export default function MCollections() {
         labels={c.labels}
         onClose={c.handleCloseDetail}
         onSetStatus={c.handleDetailStatus}
-        onSave={patch => c.updatePlace(c.selectedPlace!.id, patch)}
-        onUploadImage={file => c.uploadPlaceImage(c.selectedPlace!.id, file)}
+        onSave={(patch) => c.updatePlace(c.selectedPlace!.id, patch)}
+        onUploadImage={(file) => c.uploadPlaceImage(c.selectedPlace!.id, file)}
         onCopyToTrip={c.openCopyForSelectedPlace}
         onRemove={c.handleDetailRemove}
-        onRate={r => c.handleRatePlace(c.selectedPlace!.id, r)}
+        onRate={(r) => c.handleRatePlace(c.selectedPlace!.id, r)}
         t={t}
       />
 
@@ -512,8 +597,14 @@ export default function MCollections() {
         onUpdate={c.handleUpdateLabel}
         onDelete={c.handleDeleteLabel}
         onAssign={c.handleBulkAssignLabels}
-        onSwitchToManage={() => { c.setLabelPickerOpen(false); c.setShowLabelManager(true) }}
-        onClose={() => { c.setShowLabelManager(false); c.setLabelPickerOpen(false) }}
+        onSwitchToManage={() => {
+          c.setLabelPickerOpen(false);
+          c.setShowLabelManager(true);
+        }}
+        onClose={() => {
+          c.setShowLabelManager(false);
+          c.setLabelPickerOpen(false);
+        }}
         t={t}
       />
 
@@ -527,9 +618,9 @@ export default function MCollections() {
 
       <MCollListPickerSheet
         mode={c.listPickerMode}
-        lists={c.ownedLists.filter(l => l.id !== c.activeId)}
+        lists={c.ownedLists.filter((l) => l.id !== c.activeId)}
         count={c.selectedIds.length}
-        onPick={id => (c.listPickerMode === 'move' ? c.handleMoveToList(id) : c.handleDuplicateToList(id))}
+        onPick={(id) => (c.listPickerMode === 'move' ? c.handleMoveToList(id) : c.handleDuplicateToList(id))}
         onClose={() => c.setListPickerMode(null)}
         t={t}
       />
@@ -543,9 +634,13 @@ export default function MCollections() {
       >
         <div className="px-[18px] pb-[18px] pt-4">
           <div className="text-[1.0625rem] font-bold text-m-ink">{t('collections.deleteList')}</div>
-          <div className="mt-2 font-geist text-[0.78125rem] leading-[1.5] text-m-muted">{t('collections.deleteListConfirm')}</div>
+          <div className="mt-2 font-geist text-[0.78125rem] leading-[1.5] text-m-muted">
+            {t('collections.deleteListConfirm')}
+          </div>
           <div className="mt-4 flex items-center gap-2">
-            <CancelPill className="ml-auto" onClick={() => c.setConfirmDeleteList(null)}>{t('common.cancel')}</CancelPill>
+            <CancelPill className="ml-auto" onClick={() => c.setConfirmDeleteList(null)}>
+              {t('common.cancel')}
+            </CancelPill>
             <PrimaryPill onClick={c.handleDeleteList} className="!bg-[color:var(--m-st-danger)] !text-white">
               <Trash2 size={14} strokeWidth={2.2} /> {t('common.delete')}
             </PrimaryPill>
@@ -553,5 +648,5 @@ export default function MCollections() {
         </div>
       </MSheet>
     </div>
-  )
+  );
 }

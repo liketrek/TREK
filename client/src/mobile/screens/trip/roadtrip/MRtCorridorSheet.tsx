@@ -1,18 +1,18 @@
-import type { ReactNode } from 'react'
-import { AlertTriangle, Loader2, MapPin, Plus, Search, WifiOff, X } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import MChip from '../../../components/MChip'
-import MIconBtn from '../../../components/MIconBtn'
-import { Eyebrow } from '../sheets/MTripSheetUi'
-import { useMRtCorridor, type MRtCorridorController } from './useMRtCorridor'
-import { corridorHitLabel } from '../../../../components/Roadtrip/corridorSearchModel'
-import { CORRIDOR_CATEGORIES, CORRIDOR_CATEGORY_BY_KEY } from '../../../../components/Roadtrip/stopKinds'
-import { serviceColor } from '../../../../components/Roadtrip/roadtripModel'
-import { formatDistance } from '../../../../utils/units'
-import { useSettingsStore } from '../../../../store/settingsStore'
-import type { CorridorPoi } from '../../../../components/Roadtrip/useCorridorPois'
-import type { MTripSheetsProps } from '../MTripShell'
-import type { DistanceUnit, TranslationFn } from '../../../../types'
+import { AlertTriangle, Loader2, MapPin, Plus, Search, WifiOff, X } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { corridorHitLabel } from '../../../../components/Roadtrip/corridorSearchModel';
+import { serviceColor } from '../../../../components/Roadtrip/roadtripModel';
+import { CORRIDOR_CATEGORIES, CORRIDOR_CATEGORY_BY_KEY } from '../../../../components/Roadtrip/stopKinds';
+import type { CorridorPoi } from '../../../../components/Roadtrip/useCorridorPois';
+import { useSettingsStore } from '../../../../store/settingsStore';
+import type { DistanceUnit, TranslationFn } from '../../../../types';
+import { formatDistance } from '../../../../utils/units';
+import MChip from '../../../components/MChip';
+import MIconBtn from '../../../components/MIconBtn';
+import MSheet from '../../../components/MSheet';
+import type { MTripSheetsProps } from '../MTripShell';
+import { Eyebrow } from '../sheets/MTripSheetUi';
+import { useMRtCorridor, type MRtCorridorController } from './useMRtCorridor';
 
 /**
  * Asking "what is on the way" from the passenger seat.
@@ -37,15 +37,15 @@ import type { DistanceUnit, TranslationFn } from '../../../../types'
  * The rest are not lost: every one of them is a pin on the map behind this sheet, and
  * asking about less road is the way to see fewer.
  */
-const MAX_ROWS = 60
+const MAX_ROWS = 60;
 
 export default function MRtCorridorSheet({ planner, shell }: MTripSheetsProps) {
-  const { t } = planner
-  const corridor = useMRtCorridor(planner, shell)
-  const unit = useSettingsStore(s => s.settings.distance_unit)
-  const open = shell.sheet?.id === 'rtsearch'
+  const { t } = planner;
+  const corridor = useMRtCorridor(planner, shell);
+  const unit = useSettingsStore((s) => s.settings.distance_unit);
+  const open = shell.sheet?.id === 'rtsearch';
 
-  const reachLabel = t('mobileTrip.rtReachAhead', { distance: formatDistance(corridor.reachKm, unit) })
+  const reachLabel = t('mobileTrip.rtReachAhead', { distance: formatDistance(corridor.reachKm, unit) });
 
   /**
    * Taking a hit onto the trip.
@@ -56,18 +56,18 @@ export default function MRtCorridorSheet({ planner, shell }: MTripSheetsProps) {
    * first so the draft is not opened underneath it.
    */
   const add = (poi: CorridorPoi) => {
-    shell.closeSheet()
-    planner.handlePoiClick(poi)
-  }
+    shell.closeSheet();
+    planner.handlePoiClick(poi);
+  };
 
   /** Brings a hit into view, which on a phone means the map half of this tab. */
   const show = (poi: CorridorPoi) => {
-    shell.closeSheet()
-    planner.focusRoadtripPoint(poi.lat, poi.lng)
-    if (shell.rtView === 'list') shell.toggleRtView()
-  }
+    shell.closeSheet();
+    planner.focusRoadtripPoint(poi.lat, poi.lng);
+    if (shell.rtView === 'list') shell.toggleRtView();
+  };
 
-  const canAdd = planner.can('place_edit', planner.trip)
+  const canAdd = planner.can('place_edit', planner.trip);
 
   return (
     <MSheet
@@ -160,16 +160,18 @@ export default function MRtCorridorSheet({ planner, shell }: MTripSheetsProps) {
           disabled={!corridor.canSearch || corridor.loading}
           className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-m-act text-[0.875rem] font-semibold text-m-actfg disabled:opacity-40"
         >
-          {corridor.loading
-            ? <Loader2 size={16} strokeWidth={2.2} className="animate-spin" aria-hidden="true" />
-            : <Search size={16} strokeWidth={2.2} aria-hidden="true" />}
+          {corridor.loading ? (
+            <Loader2 size={16} strokeWidth={2.2} className="animate-spin" aria-hidden="true" />
+          ) : (
+            <Search size={16} strokeWidth={2.2} aria-hidden="true" />
+          )}
           {corridor.loading
             ? t('roadtrip.poi.searching', { done: corridor.progress.done, total: corridor.progress.total })
             : t('roadtrip.poi.search')}
         </button>
       </div>
     </MSheet>
-  )
+  );
 }
 
 /**
@@ -181,9 +183,9 @@ export default function MRtCorridorSheet({ planner, shell }: MTripSheetsProps) {
  * are the difference between "there is no petrol station" and "we did not look".
  */
 function StatusBand({ corridor, t }: { corridor: MRtCorridorController; t: TranslationFn }) {
-  const notes: string[] = []
-  if (corridor.capped) notes.push(t('roadtrip.poi.capped'))
-  if (corridor.failedAreas > 0) notes.push(t('roadtrip.poi.partial', { count: corridor.failedAreas }))
+  const notes: string[] = [];
+  if (corridor.capped) notes.push(t('roadtrip.poi.capped'));
+  if (corridor.failedAreas > 0) notes.push(t('roadtrip.poi.partial', { count: corridor.failedAreas }));
   // The phone's own wording, because the desk's ends in "narrow the corridor" and the
   // corridor width is a control this screen deliberately does not have. What it does
   // have is the category chips, and fewer of them really is what makes a box fit.
@@ -193,15 +195,25 @@ function StatusBand({ corridor, t }: { corridor: MRtCorridorController; t: Trans
     notes.push(
       t(corridor.truncatedAreas === 1 ? 'mobileTrip.rtTruncated.one' : 'mobileTrip.rtTruncated.other', {
         count: corridor.truncatedAreas,
-      }),
-    )
+      })
+    );
   }
 
-  if (corridor.offline) return <Note tone="warn" icon={<WifiOff size={13} strokeWidth={2} />}>{t('mobileTrip.rtSearchOffline')}</Note>
-  if (corridor.error) return <Note tone="warn" icon={<AlertTriangle size={13} strokeWidth={2} />}>{t('roadtrip.poi.failed')}</Note>
-  if (corridor.categories.length === 0) return <Note tone="calm">{t('roadtrip.poi.empty')}</Note>
+  if (corridor.offline)
+    return (
+      <Note tone="warn" icon={<WifiOff size={13} strokeWidth={2} />}>
+        {t('mobileTrip.rtSearchOffline')}
+      </Note>
+    );
+  if (corridor.error)
+    return (
+      <Note tone="warn" icon={<AlertTriangle size={13} strokeWidth={2} />}>
+        {t('roadtrip.poi.failed')}
+      </Note>
+    );
+  if (corridor.categories.length === 0) return <Note tone="calm">{t('roadtrip.poi.empty')}</Note>;
 
-  const empty = corridor.answered && corridor.hits.length === 0
+  const empty = corridor.answered && corridor.hits.length === 0;
   return (
     <>
       {empty && (
@@ -209,25 +221,29 @@ function StatusBand({ corridor, t }: { corridor: MRtCorridorController; t: Trans
           {corridor.reach === 'ahead' ? t('mobileTrip.rtNoneAhead') : t('mobileTrip.rtNoneOnStage')}
         </Note>
       )}
-      {notes.map(note => (
-        <Note key={note} tone="warn" icon={<AlertTriangle size={13} strokeWidth={2} />}>{note}</Note>
+      {notes.map((note) => (
+        <Note key={note} tone="warn" icon={<AlertTriangle size={13} strokeWidth={2} />}>
+          {note}
+        </Note>
       ))}
     </>
-  )
+  );
 }
 
 function Note({ tone, icon, children }: { tone: 'warn' | 'calm'; icon?: ReactNode; children: ReactNode }) {
   return (
     <div
       className="mt-3 flex items-start gap-[7px] rounded-[15px] px-3 py-[9px] font-geist text-[0.71875rem] leading-[1.45]"
-      style={tone === 'warn'
-        ? { background: 'color-mix(in srgb, var(--m-st-pending) 12%, transparent)', color: 'var(--m-st-pending)' }
-        : { background: 'var(--m-inner)', color: 'var(--m-muted)' }}
+      style={
+        tone === 'warn'
+          ? { background: 'color-mix(in srgb, var(--m-st-pending) 12%, transparent)', color: 'var(--m-st-pending)' }
+          : { background: 'var(--m-inner)', color: 'var(--m-muted)' }
+      }
     >
       {icon && <span className="mt-px flex-none">{icon}</span>}
       <span>{children}</span>
     </div>
-  )
+  );
 }
 
 /**
@@ -238,16 +254,23 @@ function Note({ tone, icon, children }: { tone: 'warn' | 'calm'; icon?: ReactNod
  * opening hours) belongs to the stop once it exists, where the stop sheet already
  * prints it. Adding it twice would be the same duplication the corridor line avoids.
  */
-function HitRow({ poi, unit, t, first, onShow, onAdd }: {
-  poi: CorridorPoi
-  unit: DistanceUnit
-  t: TranslationFn
-  first: boolean
-  onShow: () => void
-  onAdd?: () => void
+function HitRow({
+  poi,
+  unit,
+  t,
+  first,
+  onShow,
+  onAdd,
+}: {
+  poi: CorridorPoi;
+  unit: DistanceUnit;
+  t: TranslationFn;
+  first: boolean;
+  onShow: () => void;
+  onAdd?: () => void;
 }) {
-  const Icon = CORRIDOR_CATEGORY_BY_KEY[poi.category]?.Icon ?? MapPin
-  const color = serviceColor(poi.category)
+  const Icon = CORRIDOR_CATEGORY_BY_KEY[poi.category]?.Icon ?? MapPin;
+  const color = serviceColor(poi.category);
   return (
     <li className={`flex items-center gap-2.5 px-3 py-2 ${first ? '' : 'border-t border-[color:var(--m-rowbr)]'}`}>
       <button type="button" onClick={onShow} className="flex min-w-0 flex-1 items-center gap-2.5 py-1 text-left">
@@ -272,5 +295,5 @@ function HitRow({ poi, unit, t, first, onShow, onAdd }: {
         </MIconBtn>
       )}
     </li>
-  )
+  );
 }

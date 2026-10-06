@@ -1,8 +1,8 @@
 // FE-JRN-LISTWIRE-001 to FE-JRN-LISTWIRE-015
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { localIsoDate } from '../utils/localDate';
-import { render, screen, fireEvent } from '../../tests/helpers/render';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '../../tests/helpers/render';
 import type { Journey } from '../store/journeyStore';
+import { localIsoDate } from '../utils/localDate';
 import JourneyPage from './JourneyPage';
 
 const mocks = vi.hoisted(() => ({ journey: {} as Record<string, unknown> }));
@@ -21,9 +21,15 @@ type ListItem = Journey & {
 
 function buildJourney(over: Partial<ListItem> = {}): ListItem {
   return {
-    id: 1, user_id: 1, title: 'Japan 2026', subtitle: null,
-    cover_gradient: null, cover_image: null, status: 'completed',
-    created_at: new Date('2026-02-01T00:00:00Z').getTime(), updated_at: 0,
+    id: 1,
+    user_id: 1,
+    title: 'Japan 2026',
+    subtitle: null,
+    cover_gradient: null,
+    cover_image: null,
+    status: 'completed',
+    created_at: new Date('2026-02-01T00:00:00Z').getTime(),
+    updated_at: 0,
     ...over,
   };
 }
@@ -31,17 +37,31 @@ function buildJourney(over: Partial<ListItem> = {}): ListItem {
 function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> {
   const journeys = (over.journeys as ListItem[]) ?? [];
   return {
-    navigate: vi.fn(), journeys, loading: false,
-    showCreate: false, setShowCreate: vi.fn(),
-    newTitle: '', setNewTitle: vi.fn(),
-    newSubtitle: '', setNewSubtitle: vi.fn(),
-    availableTrips: [], selectedTripIds: new Set<number>(), setSelectedTripIds: vi.fn(),
-    searchOpen: false, setSearchOpen: vi.fn(), searchQuery: '', setSearchQuery: vi.fn(),
+    navigate: vi.fn(),
+    journeys,
+    loading: false,
+    showCreate: false,
+    setShowCreate: vi.fn(),
+    newTitle: '',
+    setNewTitle: vi.fn(),
+    newSubtitle: '',
+    setNewSubtitle: vi.fn(),
+    availableTrips: [],
+    selectedTripIds: new Set<number>(),
+    setSelectedTripIds: vi.fn(),
+    searchOpen: false,
+    setSearchOpen: vi.fn(),
+    searchQuery: '',
+    setSearchQuery: vi.fn(),
     searchInputRef: { current: null },
-    activeSuggestion: undefined, setDismissedSuggestions: vi.fn(),
-    activeJourney: null, activeJourneyIsLive: false,
+    activeSuggestion: undefined,
+    setDismissedSuggestions: vi.fn(),
+    activeJourney: null,
+    activeJourneyIsLive: false,
     filteredJourneys: journeys,
-    openCreateModal: vi.fn(), handleCreate: vi.fn(), totalPlaces: 0,
+    openCreateModal: vi.fn(),
+    handleCreate: vi.fn(),
+    totalPlaces: 0,
     ...over,
   };
 }
@@ -116,8 +136,9 @@ describe('JourneyPage wiring', () => {
     expect(screen.getByText('Trip just ended')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
-    const updater = (hook.setDismissedSuggestions as ReturnType<typeof vi.fn>).mock.calls[0][0] as
-      (prev: Set<number>) => Set<number>;
+    const updater = (hook.setDismissedSuggestions as ReturnType<typeof vi.fn>).mock.calls[0][0] as (
+      prev: Set<number>
+    ) => Set<number>;
     expect([...updater(new Set<number>())]).toEqual([42]);
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Create Journey' })[1]);
@@ -126,7 +147,12 @@ describe('JourneyPage wiring', () => {
 
   it('FE-JRN-LISTWIRE-008: the hero shows the active-journey eyebrow and opens the journey', () => {
     const activeJourney = buildJourney({ id: 3, title: 'Norway', subtitle: 'Fjords' });
-    const { hook } = setup({ activeJourney, activeJourneyIsLive: true, journeys: [activeJourney], filteredJourneys: [] });
+    const { hook } = setup({
+      activeJourney,
+      activeJourneyIsLive: true,
+      journeys: [activeJourney],
+      filteredJourneys: [],
+    });
 
     expect(screen.getByText('Active Journey')).toBeInTheDocument();
     expect(screen.getByText('Fjords')).toBeInTheDocument();
@@ -142,7 +168,15 @@ describe('JourneyPage wiring', () => {
   });
 
   it('FE-JRN-LISTWIRE-010: a journey card shows its counters and opens on click', () => {
-    const journey = buildJourney({ id: 5, title: 'Iceland', subtitle: 'Ring road', entry_count: 4, photo_count: 9, place_count: 0, cover_image: 'covers/i.jpg' });
+    const journey = buildJourney({
+      id: 5,
+      title: 'Iceland',
+      subtitle: 'Ring road',
+      entry_count: 4,
+      photo_count: 9,
+      place_count: 0,
+      cover_image: 'covers/i.jpg',
+    });
     const { hook } = setup({ journeys: [journey], filteredJourneys: [journey] });
 
     expect(screen.getByText('Ring road')).toBeInTheDocument();
@@ -185,11 +219,24 @@ describe('JourneyPage wiring', () => {
   it('FE-JRN-LISTWIRE-014: modal trips render their status and toggle their selection', () => {
     const today = localIsoDate(); // local — the status chips classify against the wall clock
     const availableTrips = [
-      { id: 1, title: 'Past trip', start_date: '2020-01-01', end_date: '2020-01-05', place_count: 3, cover_image: '/uploads/t.jpg' },
+      {
+        id: 1,
+        title: 'Past trip',
+        start_date: '2020-01-01',
+        end_date: '2020-01-05',
+        place_count: 3,
+        cover_image: '/uploads/t.jpg',
+      },
       { id: 2, title: 'Running trip', start_date: today, end_date: '2099-01-01', place_count: 1 },
       { id: 3, title: 'Future trip', start_date: '2099-01-01', end_date: '2099-01-05', place_count: 0 },
     ];
-    const { hook } = setup({ showCreate: true, newTitle: 'Japan', availableTrips, selectedTripIds: new Set([1]), totalPlaces: 3 });
+    const { hook } = setup({
+      showCreate: true,
+      newTitle: 'Japan',
+      availableTrips,
+      selectedTripIds: new Set([1]),
+      totalPlaces: 3,
+    });
 
     expect(screen.getByText('Completed')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
@@ -197,8 +244,9 @@ describe('JourneyPage wiring', () => {
     expect(screen.getByText('places will be imported')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Future trip'));
-    const updater = (hook.setSelectedTripIds as ReturnType<typeof vi.fn>).mock.calls[0][0] as
-      (prev: Set<number>) => Set<number>;
+    const updater = (hook.setSelectedTripIds as ReturnType<typeof vi.fn>).mock.calls[0][0] as (
+      prev: Set<number>
+    ) => Set<number>;
     expect([...updater(new Set<number>([1]))]).toEqual([1, 3]);
     expect([...updater(new Set<number>([3]))]).toEqual([]);
 

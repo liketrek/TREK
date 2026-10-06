@@ -1,6 +1,13 @@
+import {
+  coalesce,
+  coalesceOverrideWhileSame,
+  columnIncrementedBy,
+  currentTimestamp,
+  lower,
+  lowerParam,
+} from '../dialect/sql-functions';
 import { Users } from '../entities/Users.entity';
 import { toRow, type AssertRowKeys } from './_shared/rows';
-import { coalesce, coalesceOverrideWhileSame, columnIncrementedBy, currentTimestamp, lower, lowerParam } from '../dialect/sql-functions';
 import { TrekRepository } from './_shared/trek-repository';
 
 /**
@@ -308,11 +315,10 @@ export class UsersRepository extends TrekRepository<Users> {
    * request. `disableIdentityMap: true` per the class-level ruling above.
    */
   async findByIdWithPasswordVersion(id: number): Promise<UserWithPasswordVersion | null> {
-    const row = await this.findOne(
-      { id },
-      { fields: ['id', 'username', 'email', 'role', 'password_version'] },
-    );
-    return row ? { id: row.id, username: row.username, email: row.email, role: row.role, password_version: row.password_version } : null;
+    const row = await this.findOne({ id }, { fields: ['id', 'username', 'email', 'role', 'password_version'] });
+    return row
+      ? { id: row.id, username: row.username, email: row.email, role: row.role, password_version: row.password_version }
+      : null;
   }
 
   /**
@@ -534,7 +540,17 @@ export class UsersRepository extends TrekRepository<Users> {
     const row = await this.findOne(
       { id },
       {
-        fields: ['id', 'username', 'email', 'role', 'avatar', 'oidc_issuer', 'created_at', 'mfa_enabled', 'must_change_password'],
+        fields: [
+          'id',
+          'username',
+          'email',
+          'role',
+          'avatar',
+          'oidc_issuer',
+          'created_at',
+          'mfa_enabled',
+          'must_change_password',
+        ],
       },
     );
     return row
@@ -575,7 +591,12 @@ export class UsersRepository extends TrekRepository<Users> {
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate(
       { id },
-      { password_hash: passwordHash, must_change_password: 0, password_version: passwordVersion, updated_at: currentTimestamp(platform) },
+      {
+        password_hash: passwordHash,
+        must_change_password: 0,
+        password_version: passwordVersion,
+        updated_at: currentTimestamp(platform),
+      },
     );
   }
 
@@ -631,7 +652,12 @@ export class UsersRepository extends TrekRepository<Users> {
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate(
       { id },
-      { mfa_enabled: 1, mfa_secret: encryptedSecret, mfa_backup_codes: backupCodes, updated_at: currentTimestamp(platform) },
+      {
+        mfa_enabled: 1,
+        mfa_secret: encryptedSecret,
+        mfa_backup_codes: backupCodes,
+        updated_at: currentTimestamp(platform),
+      },
     );
   }
 
@@ -700,11 +726,10 @@ export class UsersRepository extends TrekRepository<Users> {
    * others (parity is law).
    */
   async findForPasswordReset(email: string): Promise<PasswordResetLookup | null> {
-    const row = await this.findOne(
-      { email, is_guest: 0 },
-      { fields: ['id', 'email', 'password_hash', 'oidc_sub'] },
-    );
-    return row ? { id: row.id, email: row.email, password_hash: row.password_hash, oidc_sub: row.oidc_sub ?? null } : null;
+    const row = await this.findOne({ email, is_guest: 0 }, { fields: ['id', 'email', 'password_hash', 'oidc_sub'] });
+    return row
+      ? { id: row.id, email: row.email, password_hash: row.password_hash, oidc_sub: row.oidc_sub ?? null }
+      : null;
   }
 
   // ---------------------------------------------------------------------
@@ -904,7 +929,18 @@ export class UsersRepository extends TrekRepository<Users> {
     const row = await this.findOne(
       { id },
       {
-        fields: ['id', 'username', 'email', 'role', 'maps_api_key', 'openweather_api_key', 'unsplash_api_key', 'amap_api_key', 'avatar', 'mfa_enabled'],
+        fields: [
+          'id',
+          'username',
+          'email',
+          'role',
+          'maps_api_key',
+          'openweather_api_key',
+          'unsplash_api_key',
+          'amap_api_key',
+          'avatar',
+          'mfa_enabled',
+        ],
       },
     );
     return row
@@ -995,7 +1031,9 @@ export class UsersRepository extends TrekRepository<Users> {
   /** `SELECT id, username, email, role, avatar FROM users WHERE id = ?` */
   async findProfileBasic(id: number): Promise<UserProfileBasic | null> {
     const row = await this.findOne({ id }, { fields: ['id', 'username', 'email', 'role', 'avatar'] });
-    return row ? { id: row.id, username: row.username, email: row.email, role: row.role, avatar: row.avatar ?? null } : null;
+    return row
+      ? { id: row.id, username: row.username, email: row.email, role: row.role, avatar: row.avatar ?? null }
+      : null;
   }
 
   // ---------------------------------------------------------------------
@@ -1032,7 +1070,9 @@ export class UsersRepository extends TrekRepository<Users> {
    * top of the 1:1 move (the ORIGINAL raw statement read the bare
    * `username`) — kept exactly as the code already stands, not re-litigated.
    */
-  async findOwnerSummary(id: number): Promise<{ id: number; username: string; email: string; avatar: string | null } | null> {
+  async findOwnerSummary(
+    id: number,
+  ): Promise<{ id: number; username: string; email: string; avatar: string | null } | null> {
     const platform = this.getEntityManager().getPlatform();
     const row = await this.qb('u')
       .select(['u.id', coalesce(platform, 'u.display_name', 'u.username').as('username'), 'u.email', 'u.avatar'])
@@ -1059,7 +1099,9 @@ export class UsersRepository extends TrekRepository<Users> {
    * docstring above: the column is `NOT NULL DEFAULT 0`, so no row can store
    * `NULL` there).
    */
-  async findInvitableByEmailOrUsername(identifier: string): Promise<{ id: number; username: string; email: string; avatar: string | null } | null> {
+  async findInvitableByEmailOrUsername(
+    identifier: string,
+  ): Promise<{ id: number; username: string; email: string; avatar: string | null } | null> {
     const row = await this.findOne(
       { $or: [{ email: identifier }, { username: identifier }], is_guest: 0 },
       { fields: ['id', 'username', 'email', 'avatar'] },
@@ -1213,9 +1255,11 @@ export class UsersRepository extends TrekRepository<Users> {
    * immich_api_key, immich_allow_insecure_tls FROM users WHERE id = ?`
    * (the TLS switch joined the read with #2475).
    */
-  async getImmichCredentials(
-    id: number,
-  ): Promise<{ immich_url: string | null; immich_api_key: string | null; immich_allow_insecure_tls: number | null } | null> {
+  async getImmichCredentials(id: number): Promise<{
+    immich_url: string | null;
+    immich_api_key: string | null;
+    immich_allow_insecure_tls: number | null;
+  } | null> {
     const row = await this.findOne({ id }, { fields: ['immich_url', 'immich_api_key', 'immich_allow_insecure_tls'] });
     return row
       ? {
@@ -1242,7 +1286,10 @@ export class UsersRepository extends TrekRepository<Users> {
   ): Promise<{ immich_auto_upload: number | null; immich_allow_insecure_tls: number | null } | null> {
     const row = await this.findOne({ id }, { fields: ['immich_auto_upload', 'immich_allow_insecure_tls'] });
     return row
-      ? { immich_auto_upload: row.immich_auto_upload ?? null, immich_allow_insecure_tls: row.immich_allow_insecure_tls ?? null }
+      ? {
+          immich_auto_upload: row.immich_auto_upload ?? null,
+          immich_allow_insecure_tls: row.immich_allow_insecure_tls ?? null,
+        }
       : null;
   }
 
@@ -1275,7 +1322,13 @@ export class UsersRepository extends TrekRepository<Users> {
       {
         immich_url,
         immich_api_key,
-        immich_allow_insecure_tls: coalesceOverrideWhileSame(platform, allow_insecure_tls, 'immich_allow_insecure_tls', 'immich_url', immich_url),
+        immich_allow_insecure_tls: coalesceOverrideWhileSame(
+          platform,
+          allow_insecure_tls,
+          'immich_allow_insecure_tls',
+          'immich_url',
+          immich_url,
+        ),
       },
     );
   }
@@ -1342,7 +1395,13 @@ export class UsersRepository extends TrekRepository<Users> {
   }
 
   /** SY5 (`SynologyService.updateSynologySettings`) — `UPDATE users SET synology_url = ?, synology_username = ?, synology_password = ?, synology_skip_ssl = ? WHERE id = ?`. */
-  async setSynologySettings(id: number, synology_url: string, synology_username: string, synology_password: string | null, synology_skip_ssl: number): Promise<void> {
+  async setSynologySettings(
+    id: number,
+    synology_url: string,
+    synology_username: string,
+    synology_password: string | null,
+    synology_skip_ssl: number,
+  ): Promise<void> {
     await this.nativeUpdate({ id }, { synology_url, synology_username, synology_password, synology_skip_ssl });
   }
 
@@ -1438,10 +1497,21 @@ export class UsersRepository extends TrekRepository<Users> {
    * wrap its writes in `uow.transactional`): preserved exactly, not
    * "fixed" to match Dawarich's shape.
    */
-  async setAirtrailSettingsWithKey(id: number, url: string | null, apiKey: string, allowInsecureTls: number, writeEnabled: number): Promise<void> {
+  async setAirtrailSettingsWithKey(
+    id: number,
+    url: string | null,
+    apiKey: string,
+    allowInsecureTls: number,
+    writeEnabled: number,
+  ): Promise<void> {
     await this.nativeUpdate(
       { id },
-      { airtrail_url: url, airtrail_api_key: apiKey, airtrail_allow_insecure_tls: allowInsecureTls, airtrail_write_enabled: writeEnabled },
+      {
+        airtrail_url: url,
+        airtrail_api_key: apiKey,
+        airtrail_allow_insecure_tls: allowInsecureTls,
+        airtrail_write_enabled: writeEnabled,
+      },
     );
   }
 
@@ -1451,8 +1521,16 @@ export class UsersRepository extends TrekRepository<Users> {
    * airtrail_write_enabled = ? WHERE id = ?`. Same no-transaction asymmetry
    * as {@link setAirtrailSettingsWithKey} — preserved, not fixed.
    */
-  async setAirtrailSettings(id: number, url: string | null, allowInsecureTls: number, writeEnabled: number): Promise<void> {
-    await this.nativeUpdate({ id }, { airtrail_url: url, airtrail_allow_insecure_tls: allowInsecureTls, airtrail_write_enabled: writeEnabled });
+  async setAirtrailSettings(
+    id: number,
+    url: string | null,
+    allowInsecureTls: number,
+    writeEnabled: number,
+  ): Promise<void> {
+    await this.nativeUpdate(
+      { id },
+      { airtrail_url: url, airtrail_allow_insecure_tls: allowInsecureTls, airtrail_write_enabled: writeEnabled },
+    );
   }
 
   /**
@@ -1549,7 +1627,14 @@ export class UsersRepository extends TrekRepository<Users> {
   async findAdminSummary(id: number): Promise<AdminUserSummaryRow | null> {
     const row = await this.findOne({ id }, { fields: ['id', 'username', 'email', 'role', 'created_at', 'updated_at'] });
     return row
-      ? { id: row.id, username: row.username, email: row.email, role: row.role, created_at: row.created_at ?? null, updated_at: row.updated_at ?? null }
+      ? {
+          id: row.id,
+          username: row.username,
+          email: row.email,
+          role: row.role,
+          created_at: row.created_at ?? null,
+          updated_at: row.updated_at ?? null,
+        }
       : null;
   }
 
@@ -1613,9 +1698,13 @@ export class UsersRepository extends TrekRepository<Users> {
    * repository method itself does no shaping, matching `findProfileBasic`'s
    * narrower-but-similarly-shaped precedent above.
    */
-  async findPublicIdentity(id: number): Promise<{ id: number; username: string; display_name: string | null; avatar: string | null } | null> {
+  async findPublicIdentity(
+    id: number,
+  ): Promise<{ id: number; username: string; display_name: string | null; avatar: string | null } | null> {
     const row = await this.findOne({ id }, { fields: ['id', 'username', 'display_name', 'avatar'] });
-    return row ? { id: row.id, username: row.username, display_name: row.display_name ?? null, avatar: row.avatar ?? null } : null;
+    return row
+      ? { id: row.id, username: row.username, display_name: row.display_name ?? null, avatar: row.avatar ?? null }
+      : null;
   }
 }
 
@@ -1624,7 +1713,8 @@ export class UsersRepository extends TrekRepository<Users> {
  * selectively — a closed union, not a dynamic column string, matching
  * `InstanceApiKeyName`'s reasoning above.
  */
-export type SynologyUserColumn = 'synology_url' | 'synology_username' | 'synology_password' | 'synology_sid' | 'synology_did' | 'synology_skip_ssl';
+export type SynologyUserColumn =
+  'synology_url' | 'synology_username' | 'synology_password' | 'synology_sid' | 'synology_did' | 'synology_skip_ssl';
 
 /**
  * {@link UsersRepository.getSynologyFields}'s return shape — structurally

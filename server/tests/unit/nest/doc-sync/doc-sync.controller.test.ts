@@ -1,6 +1,35 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { db as testDb } from '../../../../src/db/database';
+import { DocSyncConfigService } from '../../../../src/nest/doc-sync/doc-sync-config.service';
+import type { LinkRow } from '../../../../src/nest/doc-sync/doc-sync-config.service';
+import { DocSyncController } from '../../../../src/nest/doc-sync/doc-sync.controller';
+import type {
+  DocsyncConnectionDto,
+  DocsyncConnectionTestDto,
+  DocsyncLinkDto,
+} from '../../../../src/nest/doc-sync/doc-sync.dto';
+import type { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
+import type {
+  DocumentConnectionRef,
+  DocumentProvider,
+  DocumentScopeRef,
+} from '../../../../src/nest/doc-sync/document-provider';
+import { DocumentProviderRegistry } from '../../../../src/nest/doc-sync/document-provider.registry';
+import type { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
+import type { User } from '../../../../src/types';
+import {
+  createTestDocumentConnectionsRepo,
+  createTestDocumentProviderFieldsRepo,
+  createTestDocumentProvidersRepo,
+  createTestDocumentSyncItemsRepo,
+  createTestTripDocumentLinksRepo,
+} from '../../../helpers/doc-sync-repos';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { createTestUnitOfWork, createTestTripsRepo } from '../../../helpers/test-uow';
 import { HttpException, Logger } from '@nestjs/common';
+
 import type { Request } from 'express';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 /**
  * DocSyncController built with `new`, against a real in-memory SQLite.
@@ -19,19 +48,17 @@ import type { Request } from 'express';
  */
 
 vi.mock('../../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
   const db = createSnapshotTestDb();
-    return {
-      db,
-      closeDb: () => {},
-      reinitialize: () => {},
-      getPlaceWithTags: () => null,
-      canAccessTrip: () => undefined,
-      isOwner: () => false,
-    };
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => undefined,
+    isOwner: () => false,
+  };
 });
-
 
 vi.mock('../../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
@@ -52,35 +79,6 @@ vi.mock('../../../../src/utils/ssrfGuard', async (importOriginal) => ({
   checkSsrf,
 }));
 
-import { db as testDb } from '../../../../src/db/database';
-import { createTrip, createUser } from '../../../helpers/factories';
-import { DocSyncController } from '../../../../src/nest/doc-sync/doc-sync.controller';
-import { DocSyncConfigService } from '../../../../src/nest/doc-sync/doc-sync-config.service';
-import { DocumentProviderRegistry } from '../../../../src/nest/doc-sync/document-provider.registry';
-import type {
-  DocumentConnectionRef,
-  DocumentProvider,
-  DocumentScopeRef,
-} from '../../../../src/nest/doc-sync/document-provider';
-import type { LinkRow } from '../../../../src/nest/doc-sync/doc-sync-config.service';
-import type { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
-import type { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
-import type {
-  DocsyncConnectionDto,
-  DocsyncConnectionTestDto,
-  DocsyncLinkDto,
-} from '../../../../src/nest/doc-sync/doc-sync.dto';
-import type { User } from '../../../../src/types';
-import { createTestUnitOfWork, createTestTripsRepo } from '../../../helpers/test-uow';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import {
-  createTestDocumentConnectionsRepo,
-  createTestDocumentProviderFieldsRepo,
-  createTestDocumentProvidersRepo,
-  createTestDocumentSyncItemsRepo,
-  createTestTripDocumentLinksRepo,
-} from '../../../helpers/doc-sync-repos';
-
 const CAPS = {
   push: 'webhook-self-registered' as const,
   stableId: true,
@@ -96,20 +94,31 @@ function fakeProvider(id: string) {
   return {
     id,
     capabilities: () => CAPS,
-    probe: vi.fn(async (_conn: DocumentConnectionRef) => ({ success: true as const, data: { account: `${id}-account`, capabilities: CAPS } })),
+    probe: vi.fn(async (_conn: DocumentConnectionRef) => ({
+      success: true as const,
+      data: { account: `${id}-account`, capabilities: CAPS },
+    })),
     listScopes: vi.fn(async (_conn: DocumentConnectionRef, _query?: string) => ({ success: true as const, data: [] })),
     createScope: vi.fn(async () => ({ success: false as const, error: { code: 'provider_error' as const } })),
     resolveScope: vi.fn(async () => ({ success: false as const, error: { code: 'not_found' as const } })),
-    list: vi.fn(async () => ({ success: true as const, data: { documents: [], cursor: null, cursorUnchanged: false, truncated: false } })),
+    list: vi.fn(async () => ({
+      success: true as const,
+      data: { documents: [], cursor: null, cursorUnchanged: false, truncated: false },
+    })),
     fetch: vi.fn(async () => ({ success: false as const, error: { code: 'not_found' as const } })),
     push: vi.fn(async () => ({ success: false as const, error: { code: 'not_found' as const } })),
     rename: vi.fn(async () => ({ success: true as const, data: { remoteVersion: 'v2' } })),
     trash: vi.fn(async () => ({ success: true as const, data: undefined })),
-    registerWebhook: vi.fn(async (_conn: DocumentConnectionRef, _scope: DocumentScopeRef, _callbackUrl: string, _secret: string) => ({
+    registerWebhook: vi.fn(
+      async (_conn: DocumentConnectionRef, _scope: DocumentScopeRef, _callbackUrl: string, _secret: string) => ({
+        success: true as const,
+        data: { subscriptionId: 'sub-7' },
+      }),
+    ),
+    unregisterWebhook: vi.fn(async (_conn: DocumentConnectionRef, _subscriptionId: string) => ({
       success: true as const,
-      data: { subscriptionId: 'sub-7' },
+      data: undefined,
     })),
-    unregisterWebhook: vi.fn(async (_conn: DocumentConnectionRef, _subscriptionId: string) => ({ success: true as const, data: undefined })),
   };
 }
 
@@ -117,7 +126,13 @@ const paperless = fakeProvider('paperless');
 const nextcloud = fakeProvider('nextcloud');
 
 const sync = {
-  syncLink: vi.fn(async (_link: LinkRow, _opts?: { full?: boolean }) => ({ state: 'ok', pulled: 0, pushed: 0, conflicts: 0, missing: 0 })),
+  syncLink: vi.fn(async (_link: LinkRow, _opts?: { full?: boolean }) => ({
+    state: 'ok',
+    pulled: 0,
+    pushed: 0,
+    conflicts: 0,
+    missing: 0,
+  })),
   retryShelvedItems: vi.fn((_linkId: number) => {}),
   isSwitchedOff: vi.fn((_link: LinkRow) => false),
   status: vi.fn(() => ({ links: [], items: {} })),
@@ -219,7 +234,13 @@ beforeAll(async () => {
     registry,
     await createTestUnitOfWork(testDb),
   );
-  controller = new DocSyncController(config, sync as unknown as DocSyncService, registry, realtime as unknown as RealtimeService, t.orm);
+  controller = new DocSyncController(
+    config,
+    sync as unknown as DocSyncService,
+    registry,
+    realtime as unknown as RealtimeService,
+    t.orm,
+  );
   const o = createUser(testDb, { username: 'owner', email: 'owner@test.local' }).user;
   const m = createUser(testDb, { username: 'member', email: 'member@test.local' }).user;
   const a = createUser(testDb, { username: 'admin', email: 'admin@test.local', role: 'admin' }).user;
@@ -237,9 +258,11 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
-  testDb.exec('DELETE FROM document_sync_items; DELETE FROM trip_document_links; DELETE FROM document_connections; DELETE FROM trip_files');
+  testDb.exec(
+    'DELETE FROM document_sync_items; DELETE FROM trip_document_links; DELETE FROM document_connections; DELETE FROM trip_files',
+  );
   // Providers ship switched off; these three are what the cases below need.
-  testDb.prepare("UPDATE document_providers SET enabled = 0").run();
+  testDb.prepare('UPDATE document_providers SET enabled = 0').run();
   testDb.prepare("UPDATE document_providers SET enabled = 1 WHERE id IN ('paperless', 'nextcloud', 'papra')").run();
   vi.clearAllMocks();
 });
@@ -256,7 +279,9 @@ describe('who may change a trip binding', () => {
   });
 
   it('lets an instance admin through on a trip they neither own nor joined', async () => {
-    await expect(controller.resolve(String(otherTripId), '1', admin, { keep: 'trek' })).resolves.toEqual({ success: true });
+    await expect(controller.resolve(String(otherTripId), '1', admin, { keep: 'trek' })).resolves.toEqual({
+      success: true,
+    });
   });
 
   it('refuses a plain member with the message the client renders', async () => {
@@ -283,7 +308,10 @@ describe('providers', () => {
   });
 
   it('hands the form flags to the client as booleans rather than the 0/1 the column stores', async () => {
-    const rows = (await controller.providers()) as Array<{ id: string; fields: Array<{ field_key: string; secret: boolean; required: boolean }> }>;
+    const rows = (await controller.providers()) as Array<{
+      id: string;
+      fields: Array<{ field_key: string; secret: boolean; required: boolean }>;
+    }>;
     const fields = rows.find((r) => r.id === 'paperless')!.fields;
     const token = fields.find((f) => f.field_key === 'api_token')!;
     expect(token.secret).toBe(true);
@@ -302,7 +330,10 @@ describe('storing a connection', () => {
 
     expect(res.secrets.api_token).not.toContain('super-secret');
 
-    const listed = (await controller.listConnections(String(tripId))) as Array<{ id: number; secrets: Record<string, string> }>;
+    const listed = (await controller.listConnections(String(tripId))) as Array<{
+      id: number;
+      secrets: Record<string, string>;
+    }>;
     expect(listed).toHaveLength(1);
     expect(listed[0].id).toBe(res.id);
     // The list is what the form renders from, so the secret must not survive
@@ -311,7 +342,9 @@ describe('storing a connection', () => {
   });
 
   it('refuses a base URL the SSRF guard turns down', async () => {
-    const err = await thrown(() => controller.upsertConnection(String(tripId), owner, connBody({ baseUrl: 'https://blocked.invalid' })));
+    const err = await thrown(() =>
+      controller.upsertConnection(String(tripId), owner, connBody({ baseUrl: 'https://blocked.invalid' })),
+    );
     expect(err.getStatus()).toBe(400);
     expect(await config.listConnections(tripId)).toHaveLength(0);
   });
@@ -322,7 +355,11 @@ describe('storing a connection', () => {
     // their own with an empty form.
     const conn = await storedPaperless();
     const err = await thrown(() =>
-      controller.upsertConnection(String(tripId), admin, connBody({ baseUrl: 'https://elsewhere.example', credentials: {} })),
+      controller.upsertConnection(
+        String(tripId),
+        admin,
+        connBody({ baseUrl: 'https://elsewhere.example', credentials: {} }),
+      ),
     );
     expect(err.getStatus()).toBe(400);
     expect((await config.getConnection(conn.id))!.base_url).toBe('https://paperless.example.com');
@@ -332,7 +369,11 @@ describe('storing a connection', () => {
   it('refuses a provider the instance admin has not switched on, and names it', async () => {
     testDb.prepare("UPDATE document_providers SET enabled = 0 WHERE id = 'papra'").run();
     const err = await thrown(() =>
-      controller.upsertConnection(String(tripId), owner, connBody({ providerId: 'papra', credentials: { api_key: 'k', organization_id: 'org_1' } })),
+      controller.upsertConnection(
+        String(tripId),
+        owner,
+        connBody({ providerId: 'papra', credentials: { api_key: 'k', organization_id: 'org_1' } }),
+      ),
     );
     expect(err.getStatus()).toBe(400);
     expect(err.message).toBe('Provider: "papra" is not enabled, contact server administrator');
@@ -342,29 +383,45 @@ describe('storing a connection', () => {
 describe('probing form values', () => {
   it('keeps the stored secret when the form leaves the field blank', async () => {
     await storedPaperless();
-    await controller.testConnection(String(tripId), owner, connBody({ credentials: { api_token: '' } }) as DocsyncConnectionTestDto);
+    await controller.testConnection(
+      String(tripId),
+      owner,
+      connBody({ credentials: { api_token: '' } }) as DocsyncConnectionTestDto,
+    );
     expect(paperless.probe.mock.calls[0][0]).toMatchObject({ secrets: { api_token: 'stored-token' } });
   });
 
   it('takes a freshly typed secret over the stored one', async () => {
     await storedPaperless();
-    await controller.testConnection(String(tripId), owner, connBody({ credentials: { api_token: 'typed-now' } }) as DocsyncConnectionTestDto);
+    await controller.testConnection(
+      String(tripId),
+      owner,
+      connBody({ credentials: { api_token: 'typed-now' } }) as DocsyncConnectionTestDto,
+    );
     expect(paperless.probe.mock.calls[0][0]).toMatchObject({ secrets: { api_token: 'typed-now' } });
   });
 
   it('keeps a stored non-secret setting the form did not resend', async () => {
-    const res = await config.upsertConnection(tripId, Number(owner.id), connBody({
-      providerId: 'nextcloud',
-      baseUrl: 'https://cloud.example.com',
-      credentials: { login_name: 'alice', app_password: 'app-pw', base_path: '/TREK' },
-    }));
+    const res = await config.upsertConnection(
+      tripId,
+      Number(owner.id),
+      connBody({
+        providerId: 'nextcloud',
+        baseUrl: 'https://cloud.example.com',
+        credentials: { login_name: 'alice', app_password: 'app-pw', base_path: '/TREK' },
+      }),
+    );
     expect('error' in res).toBe(false);
 
-    await controller.testConnection(String(tripId), owner, connBody({
-      providerId: 'nextcloud',
-      baseUrl: 'https://cloud.example.com',
-      credentials: { app_password: '' },
-    }) as DocsyncConnectionTestDto);
+    await controller.testConnection(
+      String(tripId),
+      owner,
+      connBody({
+        providerId: 'nextcloud',
+        baseUrl: 'https://cloud.example.com',
+        credentials: { app_password: '' },
+      }) as DocsyncConnectionTestDto,
+    );
 
     expect(nextcloud.probe.mock.calls[0][0]).toMatchObject({
       settings: { login_name: 'alice', base_path: '/TREK' },
@@ -373,52 +430,83 @@ describe('probing form values', () => {
   });
 
   it('takes a freshly typed setting over the stored one', async () => {
-    const res = await config.upsertConnection(tripId, Number(owner.id), connBody({
-      providerId: 'nextcloud',
-      baseUrl: 'https://cloud.example.com',
-      credentials: { login_name: 'alice', app_password: 'app-pw' },
-    }));
+    const res = await config.upsertConnection(
+      tripId,
+      Number(owner.id),
+      connBody({
+        providerId: 'nextcloud',
+        baseUrl: 'https://cloud.example.com',
+        credentials: { login_name: 'alice', app_password: 'app-pw' },
+      }),
+    );
     expect('error' in res).toBe(false);
 
-    await controller.testConnection(String(tripId), owner, connBody({
-      providerId: 'nextcloud',
-      baseUrl: 'https://cloud.example.com',
-      credentials: { login_name: 'bob' },
-    }) as DocsyncConnectionTestDto);
+    await controller.testConnection(
+      String(tripId),
+      owner,
+      connBody({
+        providerId: 'nextcloud',
+        baseUrl: 'https://cloud.example.com',
+        credentials: { login_name: 'bob' },
+      }) as DocsyncConnectionTestDto,
+    );
 
     expect(nextcloud.probe.mock.calls[0][0]).toMatchObject({ settings: { login_name: 'bob' } });
   });
 
   it('answers with a body instead of throwing when no adapter is registered', async () => {
     await expect(
-      controller.testConnection(String(tripId), owner, connBody({ providerId: 'papra', credentials: { api_key: 'k' } }) as DocsyncConnectionTestDto),
+      controller.testConnection(
+        String(tripId),
+        owner,
+        connBody({ providerId: 'papra', credentials: { api_key: 'k' } }) as DocsyncConnectionTestDto,
+      ),
     ).resolves.toEqual({ connected: false, error: 'unknown_provider' });
   });
 
   it('answers with a body instead of throwing when the URL is refused', async () => {
     await expect(
-      controller.testConnection(String(tripId), owner, connBody({ baseUrl: 'https://blocked.invalid' }) as DocsyncConnectionTestDto),
+      controller.testConnection(
+        String(tripId),
+        owner,
+        connBody({ baseUrl: 'https://blocked.invalid' }) as DocsyncConnectionTestDto,
+      ),
     ).resolves.toEqual({ connected: false, error: 'ssrf_blocked' });
     expect(paperless.probe).not.toHaveBeenCalled();
   });
 
   it('answers with a body instead of throwing when the provider rejects the credentials', async () => {
-    paperless.probe.mockResolvedValueOnce({ success: false, error: { code: 'unauthorized', detail: 'token expired' } } as never);
+    paperless.probe.mockResolvedValueOnce({
+      success: false,
+      error: { code: 'unauthorized', detail: 'token expired' },
+    } as never);
     await expect(
-      controller.testConnection(String(tripId), owner, connBody({ credentials: { api_token: 'nope' } }) as DocsyncConnectionTestDto),
+      controller.testConnection(
+        String(tripId),
+        owner,
+        connBody({ credentials: { api_token: 'nope' } }) as DocsyncConnectionTestDto,
+      ),
     ).resolves.toEqual({ connected: false, error: 'unauthorized', detail: 'token expired' });
   });
 
   it('writes a successful probe onto the stored connection, so the status panel has something to show', async () => {
     const conn = await storedPaperless();
-    await controller.testConnection(String(tripId), owner, connBody({ credentials: { api_token: '' } }) as DocsyncConnectionTestDto);
+    await controller.testConnection(
+      String(tripId),
+      owner,
+      connBody({ credentials: { api_token: '' } }) as DocsyncConnectionTestDto,
+    );
     const row = (await config.getConnection(conn.id))!;
     expect(row.last_probe_state).toBe('ok');
     expect(JSON.parse(row.capabilities!)).toMatchObject({ push: 'webhook-self-registered' });
   });
 
   it('leaves no probe record behind when the form values belong to no stored connection yet', async () => {
-    await controller.testConnection(String(tripId), owner, connBody({ credentials: { api_token: 'first-try' } }) as DocsyncConnectionTestDto);
+    await controller.testConnection(
+      String(tripId),
+      owner,
+      connBody({ credentials: { api_token: 'first-try' } }) as DocsyncConnectionTestDto,
+    );
     expect(await config.listConnections(tripId)).toHaveLength(0);
     expect(paperless.probe.mock.calls[0][0]).toMatchObject({ connectionId: 0, secrets: { api_token: 'first-try' } });
   });
@@ -439,7 +527,10 @@ describe('a secret the adapter earned itself', () => {
 
     const listed = JSON.stringify(await controller.listConnections(String(tripId)));
     const edited = JSON.stringify(
-      await controller.upsertConnection(String(tripId), owner, { ...nas, credentials: { username: 'anna', password: 'rotated' } }),
+      await controller.upsertConnection(String(tripId), owner, {
+        ...nas,
+        credentials: { username: 'anna', password: 'rotated' },
+      }),
     );
     for (const payload of [listed, edited]) {
       expect(payload).not.toContain('DEVICE-SECRET');
@@ -451,7 +542,11 @@ describe('a secret the adapter earned itself', () => {
   it('reaches a probe of the saved form, which gets no way to write', async () => {
     const conn = await storedPaperless();
     await config.saveEarnedSecret(conn.id, 'device_token', EARNED);
-    const res = await controller.testConnection(String(tripId), owner, connBody({ credentials: { api_token: '' } }) as DocsyncConnectionTestDto);
+    const res = await controller.testConnection(
+      String(tripId),
+      owner,
+      connBody({ credentials: { api_token: '' } }) as DocsyncConnectionTestDto,
+    );
 
     const ref = paperless.probe.mock.calls[0][0];
     // The row as well as its id: together they are where the saved connection keeps its device token.
@@ -462,7 +557,11 @@ describe('a secret the adapter earned itself', () => {
   });
 
   it('gives a probe of an unsaved form no way to write either', async () => {
-    await controller.testConnection(String(tripId), owner, connBody({ credentials: { api_token: 'first-try' } }) as DocsyncConnectionTestDto);
+    await controller.testConnection(
+      String(tripId),
+      owner,
+      connBody({ credentials: { api_token: 'first-try' } }) as DocsyncConnectionTestDto,
+    );
     const ref = paperless.probe.mock.calls[0][0];
     expect(ref.connectionId).toBe(0);
     expect(ref.createdAt).toBe('');
@@ -481,11 +580,14 @@ describe('removing a connection', () => {
   it('unbinds without touching the documents that came through it', async () => {
     const conn = await storedPaperless();
     const fileId = Number(
-      testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)')
+      testDb
+        .prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)')
         .run(tripId, 'stored.pdf', 'boarding.pdf').lastInsertRowid,
     );
 
-    await expect(controller.deleteConnection(String(tripId), String(conn.id), owner)).resolves.toEqual({ success: true });
+    await expect(controller.deleteConnection(String(tripId), String(conn.id), owner)).resolves.toEqual({
+      success: true,
+    });
     expect(await config.getConnection(conn.id)).toBeUndefined();
     expect(testDb.prepare('SELECT id FROM trip_files WHERE id = ?').get(fileId)).toBeTruthy();
   });
@@ -497,10 +599,18 @@ describe('removing a connection', () => {
     // nothing, for good. Unbinding one binding already did this.
     const conn = await storedPaperless();
     const first = (await controller.createLink(
-      String(tripId), owner, linkBody(conn.id, { scopeKey: 'tag:1' }), makeReq({ host: 'trek.example' }),
+      String(tripId),
+      owner,
+      linkBody(conn.id, { scopeKey: 'tag:1' }),
+      makeReq({ host: 'trek.example' }),
     )) as { id: number };
     paperless.registerWebhook.mockResolvedValueOnce({ success: true, data: { subscriptionId: 'sub-8' } } as never);
-    await controller.createLink(String(tripId), owner, linkBody(conn.id, { scopeKey: 'tag:2' }), makeReq({ host: 'trek.example' }));
+    await controller.createLink(
+      String(tripId),
+      owner,
+      linkBody(conn.id, { scopeKey: 'tag:2' }),
+      makeReq({ host: 'trek.example' }),
+    );
     // One that never got a subscription, which must not be unregistered as ''.
     await controller.createLink(String(tripId), owner, linkBody(conn.id, { scopeKey: 'tag:3' }), makeReq());
     paperless.unregisterWebhook.mockClear();
@@ -508,7 +618,10 @@ describe('removing a connection', () => {
     await controller.deleteConnection(String(tripId), String(conn.id), owner);
 
     expect(paperless.unregisterWebhook.mock.calls.map((c) => c[1]).sort()).toEqual(['sub-7', 'sub-8']);
-    expect(paperless.unregisterWebhook.mock.calls[0][0]).toMatchObject({ connectionId: conn.id, secrets: { api_token: 'stored-token' } });
+    expect(paperless.unregisterWebhook.mock.calls[0][0]).toMatchObject({
+      connectionId: conn.id,
+      secrets: { api_token: 'stored-token' },
+    });
     expect(await config.getConnection(conn.id)).toBeUndefined();
     expect(await config.getLink(first.id)).toBeUndefined();
   });
@@ -518,7 +631,9 @@ describe('removing a connection', () => {
     await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq({ host: 'trek.example' }));
     paperless.unregisterWebhook.mockResolvedValueOnce({ success: false, error: { code: 'unreachable' } } as never);
 
-    await expect(controller.deleteConnection(String(tripId), String(conn.id), owner)).resolves.toEqual({ success: true });
+    await expect(controller.deleteConnection(String(tripId), String(conn.id), owner)).resolves.toEqual({
+      success: true,
+    });
     expect(await config.getConnection(conn.id)).toBeUndefined();
   });
 
@@ -532,11 +647,15 @@ describe('removing a connection', () => {
 
   it('pings the trip once for every binding that went with it, and for no other', async () => {
     const conn = await storedPaperless();
-    const cloud = await config.upsertConnection(tripId, Number(owner.id), connBody({
-      providerId: 'nextcloud',
-      baseUrl: 'https://cloud.example.com',
-      credentials: { login_name: 'alice', app_password: 'app-pw', base_path: '/TREK' },
-    }));
+    const cloud = await config.upsertConnection(
+      tripId,
+      Number(owner.id),
+      connBody({
+        providerId: 'nextcloud',
+        baseUrl: 'https://cloud.example.com',
+        credentials: { login_name: 'alice', app_password: 'app-pw', base_path: '/TREK' },
+      }),
+    );
     if ('error' in cloud) throw new Error(`fixture failed: ${cloud.error.code}`);
     const bind = async (connectionId: number, scopeKey: string) => {
       const res = await config.createLink(tripId, Number(owner.id), linkBody(connectionId, { scopeKey }));
@@ -573,12 +692,16 @@ describe('the scope picker', () => {
   it('reports a provider failure in the body, so the picker can say why it is empty', async () => {
     const conn = await storedPaperless();
     paperless.listScopes.mockResolvedValueOnce({ success: false, error: { code: 'unauthorized' } } as never);
-    await expect(controller.listScopes(String(tripId), String(conn.id), owner)).resolves.toEqual({ scopes: [], error: 'unauthorized' });
+    await expect(controller.listScopes(String(tripId), String(conn.id), owner)).resolves.toEqual({
+      scopes: [],
+      error: 'unauthorized',
+    });
   });
 
   it('refuses a connection whose provider has no adapter on this instance', async () => {
     const id = Number(
-      testDb.prepare('INSERT INTO document_connections (trip_id, provider_id, owner_user_id, base_url) VALUES (?, ?, ?, ?)')
+      testDb
+        .prepare('INSERT INTO document_connections (trip_id, provider_id, owner_user_id, base_url) VALUES (?, ?, ?, ?)')
         .run(tripId, 'papra', Number(owner.id), 'https://papra.example.com').lastInsertRowid,
     );
     const err = await thrown(() => controller.listScopes(String(tripId), String(id), owner));
@@ -600,8 +723,9 @@ describe('the scope picker', () => {
       data: { scopeKey: 'tag:9', label: 'Norway', remoteRootId: '9', remoteRootPath: '/TREK/norway' },
     } as never);
 
-    await expect(controller.createScope(String(tripId), String(conn.id), owner, { name: 'Norway' }))
-      .resolves.toMatchObject({ scopeKey: 'tag:9', label: 'Norway' });
+    await expect(
+      controller.createScope(String(tripId), String(conn.id), owner, { name: 'Norway' }),
+    ).resolves.toMatchObject({ scopeKey: 'tag:9', label: 'Norway' });
     expect(paperless.createScope).toHaveBeenCalledWith(expect.objectContaining({ connectionId: conn.id }), 'Norway');
   });
 
@@ -609,7 +733,9 @@ describe('the scope picker', () => {
     // The connection comes from the path and nowhere else, so the path is what
     // has to match the trip the caller was admitted to.
     const conn = await storedPaperless();
-    const err = await thrown(() => controller.createScope(String(otherTripId), String(conn.id), admin, { name: 'Norway' }));
+    const err = await thrown(() =>
+      controller.createScope(String(otherTripId), String(conn.id), admin, { name: 'Norway' }),
+    );
     expect(err.getStatus()).toBe(404);
     expect(paperless.createScope).not.toHaveBeenCalled();
   });
@@ -635,7 +761,9 @@ describe('creating a binding', () => {
 
     const row = (await config.getLink(link.id))!;
     expect(row.webhook_subscription_id).toBe('sub-7');
-    expect(paperless.registerWebhook.mock.calls[0][2]).toBe(`https://trek.example/api/docsync/webhook/${row.webhook_token}`);
+    expect(paperless.registerWebhook.mock.calls[0][2]).toBe(
+      `https://trek.example/api/docsync/webhook/${row.webhook_token}`,
+    );
     // The secret handed to the provider is the plaintext one, not the stored blob.
     expect(paperless.registerWebhook.mock.calls[0][3]).toBe(config.webhookSecret(row));
   });
@@ -664,9 +792,17 @@ describe('creating a binding', () => {
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     try {
       const conn = await storedPaperless();
-      paperless.registerWebhook.mockResolvedValueOnce({ success: false, error: { code: 'forbidden', detail: 'API key may not manage workflows' } } as never);
+      paperless.registerWebhook.mockResolvedValueOnce({
+        success: false,
+        error: { code: 'forbidden', detail: 'API key may not manage workflows' },
+      } as never);
 
-      const link = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq({ host: 'trek.example' }))) as { id: number };
+      const link = (await controller.createLink(
+        String(tripId),
+        owner,
+        linkBody(conn.id),
+        makeReq({ host: 'trek.example' }),
+      )) as { id: number };
 
       const lines = warn.mock.calls.map((c) => String(c[0])).filter((m) => m.includes(`link ${link.id}`));
       expect(lines).toHaveLength(1);
@@ -679,7 +815,9 @@ describe('creating a binding', () => {
 
   it('does not offer a webhook when no host reaches TREK', async () => {
     const conn = await storedPaperless();
-    const link = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as { webhookUrl: string | null };
+    const link = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as {
+      webhookUrl: string | null;
+    };
     expect(paperless.registerWebhook).not.toHaveBeenCalled();
     expect(link.webhookUrl).toBeNull();
   });
@@ -696,7 +834,11 @@ describe('creating a binding', () => {
     const link = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as { id: number };
 
     // Three arguments: no socket is skipped, the owner's own button reads it too.
-    expect(realtime.broadcast).toHaveBeenCalledWith(tripId, 'docsync:changed', { linkId: link.id, pulled: 0, pushed: 0 });
+    expect(realtime.broadcast).toHaveBeenCalledWith(tripId, 'docsync:changed', {
+      linkId: link.id,
+      pulled: 0,
+      pushed: 0,
+    });
   });
 
   it('refuses a binding for a connection that belongs to a different trip', async () => {
@@ -713,9 +855,17 @@ describe('creating a binding', () => {
 describe('changing a binding', () => {
   it('writes only the fields the request carried', async () => {
     const conn = await storedPaperless();
-    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as { id: number };
+    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as {
+      id: number;
+    };
 
-    const res = (await controller.updateLink(String(tripId), String(created.id), owner, { syncEnabled: false }, makeReq())) as {
+    const res = (await controller.updateLink(
+      String(tripId),
+      String(created.id),
+      owner,
+      { syncEnabled: false },
+      makeReq(),
+    )) as {
       syncEnabled: boolean;
       direction: string;
       remoteLabel: string;
@@ -728,8 +878,12 @@ describe('changing a binding', () => {
 
   it('refuses a link that belongs to a different trip', async () => {
     const conn = await storedPaperless();
-    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as { id: number };
-    const err = await thrown(() => controller.updateLink(String(otherTripId), String(created.id), admin, { syncEnabled: false }, makeReq()));
+    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as {
+      id: number;
+    };
+    const err = await thrown(() =>
+      controller.updateLink(String(otherTripId), String(created.id), admin, { syncEnabled: false }, makeReq()),
+    );
     expect(err.getStatus()).toBe(404);
     expect((await config.getLink(created.id))!.sync_enabled).toBe(1);
   });
@@ -738,7 +892,9 @@ describe('changing a binding', () => {
 describe('a manual run', () => {
   it('passes the full flag through to the reconciler', async () => {
     const conn = await storedPaperless();
-    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as { id: number };
+    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as {
+      id: number;
+    };
     sync.syncLink.mockClear();
 
     await controller.syncNow(String(tripId), String(created.id), { full: true });
@@ -749,7 +905,9 @@ describe('a manual run', () => {
 
   it('refuses a link that belongs to a different trip', async () => {
     const conn = await storedPaperless();
-    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as { id: number };
+    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as {
+      id: number;
+    };
     sync.syncLink.mockClear();
 
     const err = await thrown(() => controller.syncNow(String(otherTripId), String(created.id), { full: false }));
@@ -762,7 +920,9 @@ describe('a manual run', () => {
     // language; the MCP tool answers with the same one. Refused before the
     // shelved rows are cleared, so the binding resumes exactly as it was.
     const conn = await storedPaperless();
-    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as { id: number };
+    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as {
+      id: number;
+    };
     sync.syncLink.mockClear();
     sync.isSwitchedOff.mockReturnValueOnce(true);
 
@@ -776,9 +936,18 @@ describe('a manual run', () => {
   });
 
   it('refuses a paused binding whose owner left, although the sweep never marked it', async () => {
-    const res = await config.upsertConnection(tripId, Number(member.id), connBody({ credentials: { api_token: 'member-token' } }));
+    const res = await config.upsertConnection(
+      tripId,
+      Number(member.id),
+      connBody({ credentials: { api_token: 'member-token' } }),
+    );
     if ('error' in res) throw new Error('fixture failed');
-    const created = (await controller.createLink(String(tripId), owner, linkBody(res.data.id, { syncEnabled: false }), makeReq())) as { id: number };
+    const created = (await controller.createLink(
+      String(tripId),
+      owner,
+      linkBody(res.data.id, { syncEnabled: false }),
+      makeReq(),
+    )) as { id: number };
     sync.syncLink.mockClear();
     testDb.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(tripId, member.id);
     try {
@@ -797,16 +966,21 @@ describe('the document list', () => {
   async function seedItems() {
     const conn = await storedPaperless();
     const fileId = Number(
-      testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)')
+      testDb
+        .prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)')
         .run(tripId, 'stored.pdf', 'boarding.pdf').lastInsertRowid,
     );
     const linkId = Number(
-      testDb.prepare(
-        `INSERT INTO trip_document_links (trip_id, connection_id, provider_id, remote_scope_key)
+      testDb
+        .prepare(
+          `INSERT INTO trip_document_links (trip_id, connection_id, provider_id, remote_scope_key)
          VALUES (?, ?, ?, ?)`,
-      ).run(tripId, conn.id, 'paperless', 'tag:1').lastInsertRowid,
+        )
+        .run(tripId, conn.id, 'paperless', 'tag:1').lastInsertRowid,
     );
-    const insert = testDb.prepare('INSERT INTO document_sync_items (link_id, trip_id, file_id, trek_doc_uid, state) VALUES (?, ?, ?, ?, ?)');
+    const insert = testDb.prepare(
+      'INSERT INTO document_sync_items (link_id, trip_id, file_id, trek_doc_uid, state) VALUES (?, ?, ?, ?, ?)',
+    );
     insert.run(linkId, tripId, fileId, 'uid-1', 'synced');
     insert.run(linkId, tripId, null, 'uid-2', 'conflict');
     // Another trip's row, which must never appear in this trip's list.
@@ -846,11 +1020,14 @@ describe('removing a binding', () => {
       makeReq({ host: 'trek.example' }),
     )) as { id: number };
     const fileId = Number(
-      testDb.prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)')
+      testDb
+        .prepare('INSERT INTO trip_files (trip_id, filename, original_name) VALUES (?, ?, ?)')
         .run(tripId, 'stored.pdf', 'boarding.pdf').lastInsertRowid,
     );
     testDb
-      .prepare('INSERT INTO document_sync_items (link_id, trip_id, file_id, trek_doc_uid, state) VALUES (?, ?, ?, ?, ?)')
+      .prepare(
+        'INSERT INTO document_sync_items (link_id, trip_id, file_id, trek_doc_uid, state) VALUES (?, ?, ?, ?, ?)',
+      )
       .run(created.id, tripId, fileId, 'uid-1', 'synced');
 
     const res = await controller.deleteLink(String(tripId), String(created.id), owner);
@@ -863,7 +1040,9 @@ describe('removing a binding', () => {
 
   it('pings the trip that the binding is gone', async () => {
     const conn = await storedPaperless();
-    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as { id: number };
+    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as {
+      id: number;
+    };
     realtime.broadcast.mockClear();
 
     await controller.deleteLink(String(tripId), String(created.id), owner);
@@ -875,7 +1054,9 @@ describe('removing a binding', () => {
 
   it('refuses a link that belongs to a different trip', async () => {
     const conn = await storedPaperless();
-    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as { id: number };
+    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as {
+      id: number;
+    };
     realtime.broadcast.mockClear();
     const err = await thrown(() => controller.deleteLink(String(otherTripId), String(created.id), admin));
     expect(err.getStatus()).toBe(404);
@@ -887,25 +1068,35 @@ describe('removing a binding', () => {
 describe('the callback origin a provider is given', () => {
   async function linkedTrip() {
     const conn = await storedPaperless();
-    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as { id: number };
+    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as {
+      id: number;
+    };
     return (await config.getLink(created.id))!;
   }
 
   it('builds the callback URL from the forwarded proto and host', async () => {
     const row = await linkedTrip();
-    const [link] = (await controller.listLinks(String(tripId), makeReq({ 'x-forwarded-proto': 'https', 'x-forwarded-host': 'docs.example' }))) as Array<{ webhookUrl: string }>;
+    const [link] = (await controller.listLinks(
+      String(tripId),
+      makeReq({ 'x-forwarded-proto': 'https', 'x-forwarded-host': 'docs.example' }),
+    )) as Array<{ webhookUrl: string }>;
     expect(link.webhookUrl).toBe(`https://docs.example/api/docsync/webhook/${row.webhook_token}`);
   });
 
   it('takes the first hop when a proxy chain appends its own protocol', async () => {
     await linkedTrip();
-    const [link] = (await controller.listLinks(String(tripId), makeReq({ 'x-forwarded-proto': 'https, http', 'x-forwarded-host': 'docs.example' }))) as Array<{ webhookUrl: string }>;
+    const [link] = (await controller.listLinks(
+      String(tripId),
+      makeReq({ 'x-forwarded-proto': 'https, http', 'x-forwarded-host': 'docs.example' }),
+    )) as Array<{ webhookUrl: string }>;
     expect(link.webhookUrl).toMatch(/^https:\/\/docs\.example\//);
   });
 
   it('falls back to the Host header and the connection scheme when nothing is forwarded', async () => {
     await linkedTrip();
-    const [link] = (await controller.listLinks(String(tripId), makeReq({ host: 'trek.lan:3001' }, 'http'))) as Array<{ webhookUrl: string }>;
+    const [link] = (await controller.listLinks(String(tripId), makeReq({ host: 'trek.lan:3001' }, 'http'))) as Array<{
+      webhookUrl: string;
+    }>;
     expect(link.webhookUrl).toMatch(/^http:\/\/trek\.lan:3001\//);
   });
 
@@ -920,14 +1111,18 @@ describe('the callback origin a provider is given', () => {
     // your provider" next to it promised something there was nowhere to do.
     const row = await linkedTrip();
     await config.recordProbe(row.connection_id, 'ok', null, { ...CAPS, push: 'none' });
-    const [link] = (await controller.listLinks(String(tripId), makeReq({ host: 'trek.example' }))) as Array<{ webhookUrl: string | null }>;
+    const [link] = (await controller.listLinks(String(tripId), makeReq({ host: 'trek.example' }))) as Array<{
+      webhookUrl: string | null;
+    }>;
     expect(link.webhookUrl).toBeNull();
   });
 
   it('keeps offering it for a store the probe found able to take one', async () => {
     const row = await linkedTrip();
     await config.recordProbe(row.connection_id, 'ok', null, { ...CAPS, push: 'webhook-manual' });
-    const [link] = (await controller.listLinks(String(tripId), makeReq({ host: 'trek.example' }))) as Array<{ webhookUrl: string | null }>;
+    const [link] = (await controller.listLinks(String(tripId), makeReq({ host: 'trek.example' }))) as Array<{
+      webhookUrl: string | null;
+    }>;
     expect(link.webhookUrl).toBe(`http://trek.example/api/docsync/webhook/${row.webhook_token}`);
   });
 });
@@ -942,7 +1137,9 @@ describe('the callback origin a provider is given', () => {
 describe('a manual run and the shelved rows', () => {
   it('clears the attempt counters of the link it runs', async () => {
     const conn = await storedPaperless();
-    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as { id: number };
+    const created = (await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq())) as {
+      id: number;
+    };
     sync.retryShelvedItems.mockClear();
 
     await controller.syncNow(String(tripId), String(created.id), { full: false });

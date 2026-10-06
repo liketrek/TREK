@@ -1,32 +1,32 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { avatarUrl } from '../common/avatarUrl';
+import { JourneyContributors } from '../../db/entities/JourneyContributors.entity';
+import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
+import { JourneyEntryPhotos } from '../../db/entities/JourneyEntryPhotos.entity';
+import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
+import { JourneyTrips } from '../../db/entities/JourneyTrips.entity';
+import { Journeys } from '../../db/entities/Journeys.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { JourneyContributorsRepository } from '../../db/repositories/JourneyContributors.repository';
+import type { JourneyEntriesRepository } from '../../db/repositories/JourneyEntries.repository';
+import type { JourneyEntryPhotosRepository } from '../../db/repositories/JourneyEntryPhotos.repository';
+import type { JourneyPhotosRepository } from '../../db/repositories/JourneyPhotos.repository';
+import type { JourneyTripsRepository } from '../../db/repositories/JourneyTrips.repository';
+import type { JourneysRepository } from '../../db/repositories/Journeys.repository';
+import type { PlacesRepository } from '../../db/repositories/Places.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { presenceSet } from '../../db/repositories/_shared/presence-set';
 import type { GalleryPhoto, Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../../types';
-import { decodeEntryRow, type JourneyEntryWire } from './journey-entry-row';
+import { getCountryFromCoords } from '../atlas/atlas-geo';
+import { avatarUrl } from '../common/avatarUrl';
 import { UnitOfWork } from '../database/unit-of-work';
+import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import { decodeEntryRow, type JourneyEntryWire } from './journey-entry-row';
+import { computeJourneyStats, type StatsInputPoint } from './journey-stats';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import type { JourneyStats, JourneyTrack, TrekWsUserEventName } from '@trek/shared';
 import { todayUtc } from '@trek/shared';
-import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.service';
-import { getCountryFromCoords } from '../atlas/atlas-geo';
-import { computeJourneyStats, type StatsInputPoint } from './journey-stats';
-import { Journeys } from '../../db/entities/Journeys.entity';
-import type { JourneysRepository } from '../../db/repositories/Journeys.repository';
-import { JourneyContributors } from '../../db/entities/JourneyContributors.entity';
-import type { JourneyContributorsRepository } from '../../db/repositories/JourneyContributors.repository';
-import { JourneyTrips } from '../../db/entities/JourneyTrips.entity';
-import type { JourneyTripsRepository } from '../../db/repositories/JourneyTrips.repository';
-import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
-import type { JourneyEntriesRepository } from '../../db/repositories/JourneyEntries.repository';
-import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
-import type { JourneyPhotosRepository } from '../../db/repositories/JourneyPhotos.repository';
-import { JourneyEntryPhotos } from '../../db/entities/JourneyEntryPhotos.entity';
-import type { JourneyEntryPhotosRepository } from '../../db/repositories/JourneyEntryPhotos.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository } from '../../db/repositories/Places.repository';
-import { presenceSet } from '../../db/repositories/_shared/presence-set';
 
 /**
  * English country names for whatever codes a journey turned up.
@@ -75,8 +75,6 @@ function countryNamesFor(points: { country: string | null }[]): Record<string, s
   }
   return out;
 }
-
-
 
 // Per-journey gallery view: journey_photos → trek_photos (no entry context).
 // Per-entry photo view: join journey_entry_photos → journey_photos (gallery) → trek_photos.
@@ -140,8 +138,6 @@ export class JourneyDomainService {
   private ts(): number {
     return Date.now();
   }
-
-
 
   /**
    * Tell everyone on a journey that something changed.
@@ -398,7 +394,9 @@ export class JourneyDomainService {
    * An entry that already has coordinates is never moved. Answers what changed,
    * so the caller can name the places and tell the journeys.
    */
-  async placeEntriesFromPhotos(trekPhotoIds: number[]): Promise<{ entryId: number; journeyId: number; lat: number; lng: number }[]> {
+  async placeEntriesFromPhotos(
+    trekPhotoIds: number[],
+  ): Promise<{ entryId: number; journeyId: number; lat: number; lng: number }[]> {
     if (!trekPhotoIds.length) return [];
     const rows = await this.entriesRepo.listPhotoPlacementCandidates(trekPhotoIds); // JG122
     const placed: { entryId: number; journeyId: number; lat: number; lng: number }[] = [];
@@ -572,7 +570,11 @@ export class JourneyDomainService {
         const ownerId = (await this.journeysRepo.findOwnerId(journeyId)) as number;
 
         for (const place of assignments) {
-          const already = await this.entriesRepo.existsForPlaceAssignment(journeyId, placeId, place.assignment_id ?? null);
+          const already = await this.entriesRepo.existsForPlaceAssignment(
+            journeyId,
+            placeId,
+            place.assignment_id ?? null,
+          );
           if (already) continue;
 
           const entryDate = place.day_date as string;
@@ -868,7 +870,10 @@ export class JourneyDomainService {
         for (const e of existing) {
           if (e.source_place_id == null) continue;
           if (e.source_assignment_id == null && assignedPlaceIds.has(e.source_place_id)) continue;
-          if (e.source_assignment_id != null && assignedKeys.has(skeletonKey(e.source_place_id, e.source_assignment_id))) {
+          if (
+            e.source_assignment_id != null &&
+            assignedKeys.has(skeletonKey(e.source_place_id, e.source_assignment_id))
+          ) {
             continue;
           }
           if (e.type === 'skeleton') {
@@ -998,7 +1003,7 @@ export class JourneyDomainService {
      */
     const tripRows = await this.entriesRepo.listStatsTrips(journeyId);
 
-    const tripDates = tripRows.map(t => ({ start: t.start, end: t.end }));
+    const tripDates = tripRows.map((t) => ({ start: t.start, end: t.end }));
 
     // Ordered the way the trip is walked: by day, then by the order within it.
     // A place can be assigned to more than one day (a hotel across three nights
@@ -1042,7 +1047,7 @@ export class JourneyDomainService {
     // JG70 — chunked in groups of 400 inside the repository method (SQLite's
     // bound-variable-count limit is why it's chunked at all).
     const cachedCountry = new Map<number, string>();
-    const placeIds = placeRows.map(p => p.id);
+    const placeIds = placeRows.map((p) => p.id);
     const cachedCountryRows = await this.entriesRepo.listCachedCountriesForPlaceIds(placeIds);
     for (const r of cachedCountryRows) if (r.country_code) cachedCountry.set(r.place_id, r.country_code.toUpperCase());
 
@@ -1069,28 +1074,24 @@ export class JourneyDomainService {
      */
     const hasCoords = (e: { location_lat: number | null; location_lng: number | null }) =>
       Number.isFinite(e.location_lat) && Number.isFinite(e.location_lng);
-    const counting = entryRows.filter(e => !e.stats_excluded);
+    const counting = entryRows.filter((e) => !e.stats_excluded);
     const excluded = entryRows
-      .filter(e => e.stats_excluded && hasCoords(e))
-      .map(e => ({ entryId: e.id, label: e.title || e.location_name || '', date: e.entry_date ?? null }));
+      .filter((e) => e.stats_excluded && hasCoords(e))
+      .map((e) => ({ entryId: e.id, label: e.title || e.location_name || '', date: e.entry_date ?? null }));
     const excludedPlaceIds = new Set(
-      entryRows
-        .filter(e => e.stats_excluded && e.source_place_id != null)
-        .map(e => e.source_place_id as number),
+      entryRows.filter((e) => e.stats_excluded && e.source_place_id != null).map((e) => e.source_place_id as number),
     );
 
-    const fromEntries: StatsInputPoint[] = counting
-      .filter(hasCoords)
-      .map(e => ({
-        lat: e.location_lat as number,
-        lng: e.location_lng as number,
-        label: e.title || e.location_name || '',
-        date: e.entry_date ?? null,
-        country: countryAt(e.location_lat as number, e.location_lng as number),
-        tripId: e.source_trip_id ?? null,
-        photoId: photoByEntry.get(e.id) ?? null,
-        entryId: e.id,
-      }));
+    const fromEntries: StatsInputPoint[] = counting.filter(hasCoords).map((e) => ({
+      lat: e.location_lat as number,
+      lng: e.location_lng as number,
+      label: e.title || e.location_name || '',
+      date: e.entry_date ?? null,
+      country: countryAt(e.location_lat as number, e.location_lng as number),
+      tripId: e.source_trip_id ?? null,
+      photoId: photoByEntry.get(e.id) ?? null,
+      entryId: e.id,
+    }));
 
     /*
      * Which source wins is decided before the switches, not after.
@@ -1106,22 +1107,22 @@ export class JourneyDomainService {
     const points: StatsInputPoint[] = journalHasPoints
       ? fromEntries
       : placeRows
-        .filter(p => !excludedPlaceIds.has(p.id) && Number.isFinite(p.lat) && Number.isFinite(p.lng))
-        .map(p => ({
-          lat: p.lat as number,
-          lng: p.lng as number,
-          label: p.name || '',
-          date: p.day ?? null,
-          country: countryAt(p.lat as number, p.lng as number, p.id),
-          tripId: p.tripId ?? null,
-          // A trip place carries `image_url`, which is a provider photo behind
-          // its own attribution rather than a trek_photos id. It must not be
-          // smuggled into a field the book will print as one of the journey's
-          // own pictures.
-          photoId: null,
-          // No entry to switch off, so a panel lists it and offers no switch.
-          entryId: null,
-        }));
+          .filter((p) => !excludedPlaceIds.has(p.id) && Number.isFinite(p.lat) && Number.isFinite(p.lng))
+          .map((p) => ({
+            lat: p.lat as number,
+            lng: p.lng as number,
+            label: p.name || '',
+            date: p.day ?? null,
+            country: countryAt(p.lat as number, p.lng as number, p.id),
+            tripId: p.tripId ?? null,
+            // A trip place carries `image_url`, which is a provider photo behind
+            // its own attribution rather than a trek_photos id. It must not be
+            // smuggled into a field the book will print as one of the journey's
+            // own pictures.
+            photoId: null,
+            // No entry to switch off, so a panel lists it and offers no switch.
+            entryId: null,
+          }));
 
     /*
      * How many of the route's stops each trip owns.
@@ -1142,10 +1143,10 @@ export class JourneyDomainService {
       photos: photoCountN,
       // A place whose skeleton was switched off is not a place the journey
       // went to, whichever route drew it.
-      places: placeCountN - placeRows.filter(p => excludedPlaceIds.has(p.id)).length,
+      places: placeCountN - placeRows.filter((p) => excludedPlaceIds.has(p.id)).length,
       tripDates,
       countryNames: countryNamesFor(points),
-      trips: tripRows.map(t => ({
+      trips: tripRows.map((t) => ({
         id: t.id,
         title: t.title || '',
         start: t.start,
@@ -1327,7 +1328,10 @@ export class JourneyDomainService {
       // `"null"` (`JSON.stringify(null)`) — caught live by
       // `tools-journey.test.ts`'s own "clears a field on null" case.
       tags: [data.tags !== undefined, Array.isArray(data.tags) ? JSON.stringify(data.tags) : null],
-      pros_cons: [data.pros_cons !== undefined, data.pros_cons && typeof data.pros_cons === 'object' ? JSON.stringify(data.pros_cons) : null],
+      pros_cons: [
+        data.pros_cons !== undefined,
+        data.pros_cons && typeof data.pros_cons === 'object' ? JSON.stringify(data.pros_cons) : null,
+      ],
       visibility: [data.visibility !== undefined, data.visibility as string],
       sort_order: [data.sort_order !== undefined, data.sort_order as number],
       stats_excluded: [data.stats_excluded !== undefined, data.stats_excluded ? 1 : 0],
@@ -1407,7 +1411,8 @@ export class JourneyDomainService {
     if (!entry || !(await this.canEdit(entry.journey_id, userId))) return false;
     const held = await this.entryPhotosRepo.listPhotoIdsForEntry(entryId); // JG126
     const asked = new Set(orderedIds);
-    if (asked.size !== orderedIds.length || held.length !== orderedIds.length || held.some(id => !asked.has(id))) return false;
+    if (asked.size !== orderedIds.length || held.length !== orderedIds.length || held.some((id) => !asked.has(id)))
+      return false;
 
     const now = this.ts();
     await this.uow.transactional(async () => {
@@ -1463,7 +1468,12 @@ export class JourneyDomainService {
   }
 
   // Ensure a trek_photo_id is in the journey gallery; return its gallery row id.
-  private async ensureInGallery(journeyId: number, trekPhotoId: number, caption?: string, shared?: number): Promise<number> {
+  private async ensureInGallery(
+    journeyId: number,
+    trekPhotoId: number,
+    caption?: string,
+    shared?: number,
+  ): Promise<number> {
     const now = this.ts();
     // JG88 — same text as JG99.
     const maxOrder = await this.photosRepo.maxSortOrder(journeyId);
@@ -1529,7 +1539,9 @@ export class JourneyDomainService {
     // and `promoteSkeletonIfNeeded` run OUTSIDE the transaction, exactly as
     // the legacy code shipped it (the boundary looks inconsistent but
     // parity is law — not widened here, same for JG-TX2/JG-TX3 below).
-    const galleryId = await this.uow.transactional(async () => await this.ensureInGallery(entry.journey_id, trekPhotoId, caption));
+    const galleryId = await this.uow.transactional(
+      async () => await this.ensureInGallery(entry.journey_id, trekPhotoId, caption),
+    );
     const result = await this.linkGalleryPhotoToEntry(galleryId, entryId);
     await this.promoteSkeletonIfNeeded(entry);
     return result;
@@ -1556,7 +1568,9 @@ export class JourneyDomainService {
     if (alreadyLinked) return null;
 
     // JG-TX2
-    const galleryId = await this.uow.transactional(async () => await this.ensureInGallery(entry.journey_id, trekPhotoId, caption));
+    const galleryId = await this.uow.transactional(
+      async () => await this.ensureInGallery(entry.journey_id, trekPhotoId, caption),
+    );
     const result = await this.linkGalleryPhotoToEntry(galleryId, entryId);
     await this.promoteSkeletonIfNeeded(entry);
     return result;
@@ -1592,7 +1606,14 @@ export class JourneyDomainService {
     let nextOrder = (maxOrder ?? -1) + 1;
 
     for (const f of filePaths) {
-      const trekPhotoId = await this.photos.getOrCreateLocal(f.path, f.thumbnail, null, null, f.mediaType || 'image', f.durationMs ?? null);
+      const trekPhotoId = await this.photos.getOrCreateLocal(
+        f.path,
+        f.thumbnail,
+        null,
+        null,
+        f.mediaType || 'image',
+        f.durationMs ?? null,
+      );
       // JG100 — the 5-column `INSERT OR IGNORE` variant (no `caption`),
       // distinct text from JG89 but the SAME repository method (`INSERT OR
       // IGNORE` never touches an existing row, so passing `caption: null`
@@ -1625,7 +1646,9 @@ export class JourneyDomainService {
     if (!(await this.canEdit(journeyId, userId))) return null;
     const trekPhotoId = await this.photos.getOrCreate(provider, assetId, userId, passphrase, mediaType);
     // JG-TX3
-    const galleryId = await this.uow.transactional(async () => await this.ensureInGallery(journeyId, trekPhotoId, caption));
+    const galleryId = await this.uow.transactional(
+      async () => await this.ensureInGallery(journeyId, trekPhotoId, caption),
+    );
     // JG102
     return (await this.photosRepo.galleryReadOne(galleryId)) ?? null;
   }
@@ -1661,7 +1684,11 @@ export class JourneyDomainService {
     await this.photosRepo.deleteById(journeyPhotoId);
     await this.photos.deleteIfOrphan(row.photo_id);
 
-    return { photo_id: row.photo_id, file_path: trekRow?.file_path ?? null, thumbnail_path: trekRow?.thumbnail_path ?? null };
+    return {
+      photo_id: row.photo_id,
+      file_path: trekRow?.file_path ?? null,
+      thumbnail_path: trekRow?.thumbnail_path ?? null,
+    };
   }
 
   async setPhotoProvider(photoId: number, provider: string, assetId: string, ownerId: number) {
@@ -1708,7 +1735,13 @@ export class JourneyDomainService {
   async deletePhoto(
     photoId: number,
     userId: number,
-  ): Promise<{ id: number; photo_id: number; file_path?: string | null; thumbnail_path?: string | null; journey_id: number } | null> {
+  ): Promise<{
+    id: number;
+    photo_id: number;
+    file_path?: string | null;
+    thumbnail_path?: string | null;
+    journey_id: number;
+  } | null> {
     // JG114
     const row = await this.photosRepo.findScopeWithPhotoId(photoId);
     if (!row) return null;
@@ -1721,7 +1754,13 @@ export class JourneyDomainService {
     await this.photosRepo.deleteById(photoId);
     await this.photos.deleteIfOrphan(row.photo_id);
 
-    return { id: row.id, photo_id: row.photo_id, file_path: trekRow?.file_path ?? null, thumbnail_path: trekRow?.thumbnail_path ?? null, journey_id: row.journey_id };
+    return {
+      id: row.id,
+      photo_id: row.photo_id,
+      file_path: trekRow?.file_path ?? null,
+      thumbnail_path: trekRow?.thumbnail_path ?? null,
+      journey_id: row.journey_id,
+    };
   }
 
   // ── Contributors ─────────────────────────────────────────────────────────

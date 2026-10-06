@@ -1,8 +1,8 @@
 // FE-ADMIN-GH-001 to FE-ADMIN-GH-016
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import GitHubPanel from './GitHubPanel';
 
@@ -21,18 +21,12 @@ function buildRelease(overrides = {}) {
   };
 }
 
-const PAGE_1 = Array.from({ length: 10 }, (_, i) =>
-  buildRelease({ id: i + 1, tag_name: `v1.${i}.0` }),
-);
-const PAGE_2 = Array.from({ length: 5 }, (_, i) =>
-  buildRelease({ id: 100 + i, tag_name: `v0.${i}.0` }),
-);
+const PAGE_1 = Array.from({ length: 10 }, (_, i) => buildRelease({ id: i + 1, tag_name: `v1.${i}.0` }));
+const PAGE_2 = Array.from({ length: 5 }, (_, i) => buildRelease({ id: 100 + i, tag_name: `v0.${i}.0` }));
 
 beforeEach(() => {
   resetAllStores();
-  server.use(
-    http.get('/api/admin/github-releases', () => HttpResponse.json([])),
-  );
+  server.use(http.get('/api/admin/github-releases', () => HttpResponse.json([])));
 });
 
 afterEach(() => {
@@ -42,9 +36,7 @@ afterEach(() => {
 describe('GitHubPanel', () => {
   it('FE-ADMIN-GH-001: support link cards always render', async () => {
     render(<GitHubPanel />);
-    await waitFor(() =>
-      expect(screen.queryByRole('status')).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
     expect(screen.getByText('Ko-fi')).toBeInTheDocument();
     expect(screen.getByText('Buy Me a Coffee')).toBeInTheDocument();
     expect(screen.getByText('Discord')).toBeInTheDocument();
@@ -78,7 +70,7 @@ describe('GitHubPanel', () => {
       http.get('/api/admin/github-releases', async () => {
         await new Promise(() => {}); // never resolves
         return HttpResponse.json([]);
-      }),
+      })
     );
     render(<GitHubPanel />);
     // The Loader2 spinner is rendered while loading=true
@@ -89,8 +81,8 @@ describe('GitHubPanel', () => {
   it('FE-ADMIN-GH-004: error state shown on API failure', async () => {
     server.use(
       http.get('/api/admin/github-releases', () =>
-        HttpResponse.json({ message: 'Internal Server Error' }, { status: 500 }),
-      ),
+        HttpResponse.json({ message: 'Internal Server Error' }, { status: 500 })
+      )
     );
     render(<GitHubPanel />);
     await screen.findByText('Failed to load releases');
@@ -101,9 +93,7 @@ describe('GitHubPanel', () => {
   it('FE-ADMIN-GH-005: releases render in timeline', async () => {
     const r1 = buildRelease({ id: 1, tag_name: 'v1.0.0', author: { login: 'mauriceboe' } });
     const r2 = buildRelease({ id: 2, tag_name: 'v1.1.0', author: { login: 'mauriceboe' } });
-    server.use(
-      http.get('/api/admin/github-releases', () => HttpResponse.json([r1, r2])),
-    );
+    server.use(http.get('/api/admin/github-releases', () => HttpResponse.json([r1, r2])));
     render(<GitHubPanel />);
     await screen.findByText('v1.0.0');
     expect(screen.getByText('v1.1.0')).toBeInTheDocument();
@@ -112,16 +102,16 @@ describe('GitHubPanel', () => {
     expect(authorLabels.length).toBeGreaterThan(0);
     // Some date should be visible (non-empty)
     const dateEls = document.querySelectorAll('[class*="text-"]');
-    const dateTexts = Array.from(dateEls).map(el => el.textContent).filter(t => t && t.match(/\d{4}/));
+    const dateTexts = Array.from(dateEls)
+      .map((el) => el.textContent)
+      .filter((t) => t && t.match(/\d{4}/));
     expect(dateTexts.length).toBeGreaterThan(0);
   });
 
   it('FE-ADMIN-GH-006: latest badge shown only on first release', async () => {
     const r1 = buildRelease({ id: 1, tag_name: 'v2.0.0' });
     const r2 = buildRelease({ id: 2, tag_name: 'v1.9.0' });
-    server.use(
-      http.get('/api/admin/github-releases', () => HttpResponse.json([r1, r2])),
-    );
+    server.use(http.get('/api/admin/github-releases', () => HttpResponse.json([r1, r2])));
     render(<GitHubPanel />);
     await screen.findByText('v2.0.0');
     const latestBadges = screen.getAllByText('Latest');
@@ -130,9 +120,7 @@ describe('GitHubPanel', () => {
 
   it('FE-ADMIN-GH-007: prerelease badge shown', async () => {
     const r = buildRelease({ id: 10, tag_name: 'v3.0.0-beta.1', prerelease: true });
-    server.use(
-      http.get('/api/admin/github-releases', () => HttpResponse.json([r])),
-    );
+    server.use(http.get('/api/admin/github-releases', () => HttpResponse.json([r])));
     render(<GitHubPanel isPrerelease={true} />);
     await screen.findByText('v3.0.0-beta.1');
     expect(screen.getByText('Pre-release')).toBeInTheDocument();
@@ -144,9 +132,7 @@ describe('GitHubPanel', () => {
       tag_name: 'v1.5.0',
       body: '- Fixed bug\n- Another fix',
     });
-    server.use(
-      http.get('/api/admin/github-releases', () => HttpResponse.json([r])),
-    );
+    server.use(http.get('/api/admin/github-releases', () => HttpResponse.json([r])));
     const user = userEvent.setup();
     render(<GitHubPanel />);
     await screen.findByText('v1.5.0');
@@ -164,9 +150,7 @@ describe('GitHubPanel', () => {
 
     // Collapse
     await user.click(screen.getByText('Hide details'));
-    await waitFor(() =>
-      expect(screen.queryByText('Fixed bug')).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText('Fixed bug')).not.toBeInTheDocument());
     expect(screen.getByText('Show details')).toBeInTheDocument();
   });
 
@@ -176,9 +160,7 @@ describe('GitHubPanel', () => {
       tag_name: 'v1.6.0',
       body: '- list item\n- **bold text**\n- `inline code`',
     });
-    server.use(
-      http.get('/api/admin/github-releases', () => HttpResponse.json([r])),
-    );
+    server.use(http.get('/api/admin/github-releases', () => HttpResponse.json([r])));
     const user = userEvent.setup();
     render(<GitHubPanel />);
     await screen.findByText('v1.6.0');
@@ -201,18 +183,14 @@ describe('GitHubPanel', () => {
   });
 
   it('FE-ADMIN-GH-010: "Load more" button visible when full page returned', async () => {
-    server.use(
-      http.get('/api/admin/github-releases', () => HttpResponse.json(PAGE_1)),
-    );
+    server.use(http.get('/api/admin/github-releases', () => HttpResponse.json(PAGE_1)));
     render(<GitHubPanel />);
     await screen.findByText(`v1.0.0`);
     expect(screen.getByText('Load more')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-GH-011: "Load more" hidden when partial page returned', async () => {
-    server.use(
-      http.get('/api/admin/github-releases', () => HttpResponse.json(PAGE_2)),
-    );
+    server.use(http.get('/api/admin/github-releases', () => HttpResponse.json(PAGE_2)));
     render(<GitHubPanel />);
     await screen.findByText('v0.0.0');
     expect(screen.queryByText('Load more')).not.toBeInTheDocument();
@@ -224,9 +202,7 @@ describe('GitHubPanel', () => {
       tag_name: 'v1.7.0',
       body: 'This is a plain paragraph without any markdown syntax.',
     });
-    server.use(
-      http.get('/api/admin/github-releases', () => HttpResponse.json([r])),
-    );
+    server.use(http.get('/api/admin/github-releases', () => HttpResponse.json([r])));
     const user = userEvent.setup();
     render(<GitHubPanel />);
     await screen.findByText('v1.7.0');
@@ -240,9 +216,7 @@ describe('GitHubPanel', () => {
       tag_name: 'v1.8.0',
       body: '- [click here](https://example.com)',
     });
-    server.use(
-      http.get('/api/admin/github-releases', () => HttpResponse.json([r])),
-    );
+    server.use(http.get('/api/admin/github-releases', () => HttpResponse.json([r])));
     const user = userEvent.setup();
     render(<GitHubPanel />);
     await screen.findByText('v1.8.0');
@@ -257,9 +231,7 @@ describe('GitHubPanel', () => {
       tag_name: 'v1.9.0',
       body: '- [evil](javascript:alert(1))',
     });
-    server.use(
-      http.get('/api/admin/github-releases', () => HttpResponse.json([r])),
-    );
+    server.use(http.get('/api/admin/github-releases', () => HttpResponse.json([r])));
     const user = userEvent.setup();
     render(<GitHubPanel />);
     await screen.findByText('v1.9.0');
@@ -311,7 +283,7 @@ describe('GitHubPanel', () => {
           return HttpResponse.json(PAGE_2);
         }
         return HttpResponse.json(PAGE_1);
-      }),
+      })
     );
     const user = userEvent.setup();
     render(<GitHubPanel />);

@@ -1,5 +1,5 @@
-import type { CSSProperties, ReactNode } from 'react'
-import MDancingTrek, { type TrekScene, type TrekMood } from '../../mobile/components/MDancingTrek'
+import type { CSSProperties, ReactNode } from 'react';
+import MDancingTrek, { type TrekMood, type TrekScene } from '../../mobile/components/MDancingTrek';
 
 /**
  * The one desktop empty state: the TREK mascot acting out the page's scene with
@@ -27,12 +27,12 @@ export default function EmptyState({
   className = '',
   action,
 }: {
-  scene?: TrekScene
-  mood?: TrekMood
-  title: string
-  size?: number
-  surface?: string
-  layout?: 'stack' | 'row'
+  scene?: TrekScene;
+  mood?: TrekMood;
+  title: string;
+  size?: number;
+  surface?: string;
+  layout?: 'stack' | 'row';
   /**
    * Quieter type for a state inside a narrow column rather than on a page.
    *
@@ -40,7 +40,7 @@ export default function EmptyState({
    * competes with them for the eye; at the caption tier it reads as what it is, a note
    * about why the list below is blank.
    */
-  compact?: boolean
+  compact?: boolean;
   /**
    * Fill the parent and sit in the middle of it.
    *
@@ -55,22 +55,25 @@ export default function EmptyState({
    * which lands the mascot slightly above the middle. In a column you can scroll,
    * dead centre reads as "fell to the bottom" the moment the list is short.
    */
-  fill?: boolean
-  className?: string
+  fill?: boolean;
+  className?: string;
   /** Optional call to action under the title, for states that have an obvious next step. */
-  action?: ReactNode
+  action?: ReactNode;
 }) {
-  const layoutClasses = layout === 'row'
-    ? 'flex flex-row items-center justify-center gap-3 px-6 py-3'
-    : `flex flex-col items-center justify-center gap-3 px-6 text-center ${fill ? 'min-h-full pt-4 pb-14' : 'py-12'}`
+  const layoutClasses =
+    layout === 'row'
+      ? 'flex flex-row items-center justify-center gap-3 px-6 py-3'
+      : `flex flex-col items-center justify-center gap-3 px-6 text-center ${fill ? 'min-h-full pt-4 pb-14' : 'py-12'}`;
   return (
     <div
       className={`${layoutClasses} ${className}`}
       style={{ '--m-ink': 'var(--text-primary)', '--m-bg': surface } as CSSProperties}
     >
       <MDancingTrek scene={scene} mood={mood} size={size} />
-      <p className={compact ? 'text-caption text-content-muted' : 'text-[15px] font-semibold text-content-secondary'}>{title}</p>
+      <p className={compact ? 'text-caption text-content-muted' : 'text-[15px] font-semibold text-content-secondary'}>
+        {title}
+      </p>
       {action}
     </div>
-  )
+  );
 }

@@ -1,20 +1,20 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, Download, FileDown, MapPin } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import MIconBtn from '../../../components/MIconBtn'
-import { FormSheetHeader } from './PlSheetChrome'
-import ImpFileStep from './ImpFileStep'
-import ImpListStep from './ImpListStep'
-import type { TripPlanner } from '../MTripShell'
+import type { LucideIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, FileDown, MapPin } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import MIconBtn from '../../../components/MIconBtn';
+import MSheet from '../../../components/MSheet';
+import type { TripPlanner } from '../MTripShell';
+import ImpFileStep from './ImpFileStep';
+import ImpListStep from './ImpListStep';
+import { FormSheetHeader } from './PlSheetChrome';
 
 export interface MImportSheetProps {
-  planner: TripPlanner
-  open: boolean
-  onClose: () => void
+  planner: TripPlanner;
+  open: boolean;
+  onClose: () => void;
 }
 
-type ImportStep = 'menu' | 'file' | 'list'
+type ImportStep = 'menu' | 'file' | 'list';
 
 /**
  * "Import places" sheet — the demo's two-option card, expanded into working
@@ -22,15 +22,15 @@ type ImportStep = 'menu' | 'file' | 'list'
  * shared-list import (same flows as the desktop PlacesSidebar).
  */
 export default function MImportSheet({ planner, open, onClose }: MImportSheetProps) {
-  const { t } = planner
-  const [step, setStep] = useState<ImportStep>('menu')
+  const { t } = planner;
+  const [step, setStep] = useState<ImportStep>('menu');
 
   useEffect(() => {
-    if (open) setStep('menu')
-  }, [open])
+    if (open) setStep('menu');
+  }, [open]);
 
   const title =
-    step === 'file' ? t('places.importFile') : step === 'list' ? t('places.importList') : t('mobileTrip.importPlaces')
+    step === 'file' ? t('places.importFile') : step === 'list' ? t('places.importList') : t('mobileTrip.importPlaces');
 
   return (
     <MSheet open={open} onClose={onClose} ariaLabel={t('mobileTrip.importPlaces')}>
@@ -68,15 +68,15 @@ export default function MImportSheet({ planner, open, onClose }: MImportSheetPro
       {step === 'file' && <ImpFileStep planner={planner} onBack={() => setStep('menu')} onDone={onClose} />}
       {step === 'list' && <ImpListStep planner={planner} onBack={() => setStep('menu')} onDone={onClose} />}
     </MSheet>
-  )
+  );
 }
 
 interface ImpMenuRowProps {
-  icon: LucideIcon
-  title: ReactNode
-  sub: ReactNode
-  onClick: () => void
-  className?: string
+  icon: LucideIcon;
+  title: ReactNode;
+  sub: ReactNode;
+  onClick: () => void;
+  className?: string;
 }
 
 /** Option row of the import menu: 38px glass tile, title + sub, chevron. */
@@ -96,5 +96,5 @@ function ImpMenuRow({ icon: Icon, title, sub, onClick, className = '' }: ImpMenu
       </span>
       <ChevronRight size={15} strokeWidth={2} className="flex-none text-m-faint" />
     </button>
-  )
+  );
 }

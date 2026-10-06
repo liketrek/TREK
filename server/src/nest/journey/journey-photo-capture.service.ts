@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { MikroORM } from '@mikro-orm/core';
 import { withRequestContext } from '../database/request-context';
-import { PhotoCaptureBackfillService } from '../memories/photo-capture-backfill.service';
 import { MapsService } from '../maps/maps.service';
+import { PhotoCaptureBackfillService } from '../memories/photo-capture-backfill.service';
 import { JourneyDomainService } from './journey-domain.service';
+import { MikroORM } from '@mikro-orm/core';
+import { Injectable } from '@nestjs/common';
 
 /** The trek_photos ids of freshly added journey photo rows, whatever shape the add answered with. */
 function trekPhotoIdsOf(photos: readonly unknown[]): number[] {
   return photos
-    .map(p => (p as { photo_id?: unknown } | null)?.photo_id)
+    .map((p) => (p as { photo_id?: unknown } | null)?.photo_id)
     .filter((id): id is number => typeof id === 'number');
 }
 
@@ -86,8 +86,9 @@ export class JourneyPhotoCaptureService {
     if (!ids.length) return;
     // The placing is chained inside the fork, not after it, so it runs in the
     // same context as the backfill rather than in whatever the caller had.
-    void withRequestContext(this.orm, () => this.backfill.run(ids, userId).then(() => this.placeEntries(ids)))
-      .catch(err => console.error('[Journey] capture for uploads failed:', err instanceof Error ? err.message : err));
+    void withRequestContext(this.orm, () => this.backfill.run(ids, userId).then(() => this.placeEntries(ids))).catch(
+      (err) => console.error('[Journey] capture for uploads failed:', err instanceof Error ? err.message : err),
+    );
   }
 
   /**
@@ -106,14 +107,21 @@ export class JourneyPhotoCaptureService {
       return 0;
     }
     if (!placed.length) return 0;
-    await Promise.all(placed.map(async (p) => {
-      try {
-        const where = await this.maps.reverseGeocode(String(p.lat), String(p.lng), undefined, { timeoutMs: 8000, locality: true });
-        const name = where.name || where.address;
-        if (name) await this.journey.nameEntryLocation(p.entryId, name);
-      } catch { /* the pin stands without a name */ }
-    }));
-    for (const journeyId of new Set(placed.map(p => p.journeyId))) {
+    await Promise.all(
+      placed.map(async (p) => {
+        try {
+          const where = await this.maps.reverseGeocode(String(p.lat), String(p.lng), undefined, {
+            timeoutMs: 8000,
+            locality: true,
+          });
+          const name = where.name || where.address;
+          if (name) await this.journey.nameEntryLocation(p.entryId, name);
+        } catch {
+          /* the pin stands without a name */
+        }
+      }),
+    );
+    for (const journeyId of new Set(placed.map((p) => p.journeyId))) {
       await this.journey.broadcastJourneyEvent(journeyId, 'journey:photos:updated', {});
     }
     return placed.length;
@@ -135,7 +143,10 @@ export class JourneyPhotoCaptureService {
         await this.journey.broadcastJourneyEvent(journeyId, 'journey:photos:updated', {});
       }
     } catch (err) {
-      console.error(`[Journey] capture refresh failed for journey ${journeyId}:`, err instanceof Error ? err.message : err);
+      console.error(
+        `[Journey] capture refresh failed for journey ${journeyId}:`,
+        err instanceof Error ? err.message : err,
+      );
     }
     return changed;
   }

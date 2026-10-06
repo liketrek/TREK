@@ -1,55 +1,71 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Eye, LayoutDashboard, Paintbrush, RotateCcw, Smartphone } from 'lucide-react'
-import { useTranslation } from '../../../i18n'
-import { useSettingsStore } from '../../../store/settingsStore'
-import { useToast } from '../../../components/shared/Toast'
-import { applyAppearance } from '../../../theme/applyAppearance'
-import { APPEARANCE_SCHEMES, CUSTOM_ACCENT_PRESETS } from '../../../theme/schemes'
 import {
+  APPEARANCE_SCALE_MAX,
+  APPEARANCE_SCALE_MIN,
   DEFAULT_APPEARANCE,
   normalizeAppearance,
-  APPEARANCE_SCALE_MIN,
-  APPEARANCE_SCALE_MAX,
   type AppearanceConfig,
-} from '@trek/shared'
-import MToggle from '../../components/MToggle'
-import { MSetCard, MSetEyebrow, MSetSegments, MSetRow } from './MSettingsUi'
-import MMobileNavCustomizer from './MMobileNavCustomizer'
-import MMobileDashOrder from './MMobileDashOrder'
+} from '@trek/shared';
+import { Eye, LayoutDashboard, Paintbrush, RotateCcw, Smartphone } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useToast } from '../../../components/shared/Toast';
+import { useTranslation } from '../../../i18n';
+import { useSettingsStore } from '../../../store/settingsStore';
+import { applyAppearance } from '../../../theme/applyAppearance';
+import { APPEARANCE_SCHEMES, CUSTOM_ACCENT_PRESETS } from '../../../theme/schemes';
+import MToggle from '../../components/MToggle';
+import MMobileDashOrder from './MMobileDashOrder';
+import MMobileNavCustomizer from './MMobileNavCustomizer';
+import { MSetCard, MSetEyebrow, MSetRow, MSetSegments } from './MSettingsUi';
 
 // ── WCAG contrast helpers (custom-accent legibility hint) ────────────────────
 function channelLum(v: number): number {
-  return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
+  return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
 }
 function relLuminance(hex: string): number {
-  const c = hex.replace('#', '')
-  const full = c.length === 3 ? c.split('').map((x) => x + x).join('') : c
-  const r = channelLum(Number.parseInt(full.slice(0, 2), 16) / 255)
-  const g = channelLum(Number.parseInt(full.slice(2, 4), 16) / 255)
-  const b = channelLum(Number.parseInt(full.slice(4, 6), 16) / 255)
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  const c = hex.replace('#', '');
+  const full =
+    c.length === 3
+      ? c
+          .split('')
+          .map((x) => x + x)
+          .join('')
+      : c;
+  const r = channelLum(Number.parseInt(full.slice(0, 2), 16) / 255);
+  const g = channelLum(Number.parseInt(full.slice(2, 4), 16) / 255);
+  const b = channelLum(Number.parseInt(full.slice(4, 6), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 function contrastRatio(a: string, b: string): number {
-  const la = relLuminance(a)
-  const lb = relLuminance(b)
-  const [hi, lo] = la > lb ? [la, lb] : [lb, la]
-  return (hi + 0.05) / (lo + 0.05)
+  const la = relLuminance(a);
+  const lb = relLuminance(b);
+  const [hi, lo] = la > lb ? [la, lb] : [lb, la];
+  return (hi + 0.05) / (lo + 0.05);
 }
-const isHex = (v: string) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)
+const isHex = (v: string) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
 
-type DesktopWidgetKey = keyof AppearanceConfig['dashboard']['desktop']
-type MobileWidgetKey = keyof AppearanceConfig['dashboard']['mobile']
+type DesktopWidgetKey = keyof AppearanceConfig['dashboard']['desktop'];
+type MobileWidgetKey = keyof AppearanceConfig['dashboard']['mobile'];
 
 const DESKTOP_GROUPS: { id: string; master?: DesktopWidgetKey; keys: DesktopWidgetKey[] }[] = [
   { id: 'belowHero', keys: ['atlas', 'tripsTotal', 'daysTraveled', 'distanceFlown'] },
   { id: 'rightSidebar', master: 'sidebar', keys: ['currency', 'collections', 'timezones', 'upcomingReservations'] },
-]
+];
 const MOBILE_GROUPS: { id: string; keys: MobileWidgetKey[] }[] = [
   { id: 'belowHero', keys: ['tripsTotal', 'daysTraveled'] },
   { id: 'bottomOfPage', keys: ['currency', 'collections', 'timezones', 'upcomingReservations'] },
-]
+];
 
-function SliderRow({ label, sub, value, onChange }: { label: string; sub?: string; value: number; onChange: (v: number) => void }) {
+function SliderRow({
+  label,
+  sub,
+  value,
+  onChange,
+}: {
+  label: string;
+  sub?: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
   return (
     <div className="py-[6px]">
       <div className="mb-1 flex items-center justify-between gap-2">
@@ -67,10 +83,14 @@ function SliderRow({ label, sub, value, onChange }: { label: string; sub?: strin
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="m-range"
-        style={{ '--fill': `${((value - APPEARANCE_SCALE_MIN) / (APPEARANCE_SCALE_MAX - APPEARANCE_SCALE_MIN)) * 100}%` } as React.CSSProperties}
+        style={
+          {
+            '--fill': `${((value - APPEARANCE_SCALE_MIN) / (APPEARANCE_SCALE_MAX - APPEARANCE_SCALE_MIN)) * 100}%`,
+          } as React.CSSProperties
+        }
       />
     </div>
-  )
+  );
 }
 
 /**
@@ -79,55 +99,58 @@ function SliderRow({ label, sub, value, onChange }: { label: string; sub?: strin
  * density, text sizes) and the per-device dashboard widget configuration.
  */
 export default function MSettingsAppearance() {
-  const { settings, updateSetting } = useSettingsStore()
-  const { t } = useTranslation()
-  const toast = useToast()
+  const { settings, updateSetting } = useSettingsStore();
+  const { t } = useTranslation();
+  const toast = useToast();
 
-  const [cfg, setCfg] = useState<AppearanceConfig>(() => normalizeAppearance(settings.appearance))
-  const persistTimer = useRef<number | undefined>(undefined)
+  const [cfg, setCfg] = useState<AppearanceConfig>(() => normalizeAppearance(settings.appearance));
+  const persistTimer = useRef<number | undefined>(undefined);
   // What the pending timer would have written, so leaving the screen inside the
   // debounce window still saves instead of silently dropping the change.
-  const pendingWrite = useRef<AppearanceConfig | null>(null)
+  const pendingWrite = useRef<AppearanceConfig | null>(null);
 
   // Re-sync when settings change elsewhere (server reconcile / another tab).
   useEffect(() => {
-    setCfg(normalizeAppearance(settings.appearance))
-  }, [settings.appearance])
+    setCfg(normalizeAppearance(settings.appearance));
+  }, [settings.appearance]);
 
-  useEffect(() => () => {
-    if (!persistTimer.current) return
-    window.clearTimeout(persistTimer.current)
-    // The component is gone, so a failure has nowhere to be shown.
-    if (pendingWrite.current) updateSetting('appearance', pendingWrite.current).catch(() => {})
-  }, [updateSetting])
+  useEffect(
+    () => () => {
+      if (!persistTimer.current) return;
+      window.clearTimeout(persistTimer.current);
+      // The component is gone, so a failure has nowhere to be shown.
+      if (pendingWrite.current) updateSetting('appearance', pendingWrite.current).catch(() => {});
+    },
+    [updateSetting]
+  );
 
   const isDark =
     settings.dark_mode === true ||
     settings.dark_mode === 'dark' ||
-    (settings.dark_mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    (settings.dark_mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   // Live preview now (DOM), persist after a short debounce (API).
   const update = (patch: Partial<AppearanceConfig>) => {
-    const next = { ...cfg, ...patch }
-    setCfg(next)
-    applyAppearance({ darkMode: settings.dark_mode, appearance: next, isSharedPage: false })
-    if (persistTimer.current) window.clearTimeout(persistTimer.current)
-    pendingWrite.current = next
+    const next = { ...cfg, ...patch };
+    setCfg(next);
+    applyAppearance({ darkMode: settings.dark_mode, appearance: next, isSharedPage: false });
+    if (persistTimer.current) window.clearTimeout(persistTimer.current);
+    pendingWrite.current = next;
     persistTimer.current = window.setTimeout(() => {
-      pendingWrite.current = null
+      pendingWrite.current = null;
       updateSetting('appearance', next).catch((e: unknown) =>
-        toast.error(e instanceof Error ? e.message : t('common.error')),
-      )
-    }, 350)
-  }
+        toast.error(e instanceof Error ? e.message : t('common.error'))
+      );
+    }, 350);
+  };
 
   const setMode = async (mode: string) => {
     try {
-      await updateSetting('dark_mode', mode)
+      await updateSetting('dark_mode', mode);
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : t('common.error'))
+      toast.error(e instanceof Error ? e.message : t('common.error'));
     }
-  }
+  };
 
   const setWidget = (device: 'desktop' | 'mobile', key: string, on: boolean) => {
     update({
@@ -135,23 +158,30 @@ export default function MSettingsAppearance() {
         ...cfg.dashboard,
         [device]: { ...cfg.dashboard[device], [key]: on },
       },
-    })
-  }
+    });
+  };
 
-  const darkMode = settings.dark_mode
-  const modeValue = darkMode === true || darkMode === 'dark' ? 'dark' : darkMode === 'auto' ? 'auto' : 'light'
+  const darkMode = settings.dark_mode;
+  const modeValue = darkMode === true || darkMode === 'dark' ? 'dark' : darkMode === 'auto' ? 'auto' : 'light';
 
-  const accentLight = cfg.accent?.light ?? '#4f46e5'
-  const accentDark = cfg.accent?.dark ?? '#6366f1'
-  const customRatio = contrastRatio(isDark ? accentDark : accentLight, '#ffffff')
+  const accentLight = cfg.accent?.light ?? '#4f46e5';
+  const accentDark = cfg.accent?.dark ?? '#6366f1';
+  const customRatio = contrastRatio(isDark ? accentDark : accentLight, '#ffffff');
 
   const widgetToggle = (device: 'desktop' | 'mobile', key: string, on: boolean, disabled = false) => (
     <MSetRow
       key={`${device}-${key}`}
       label={t(`settings.appearance.widget.${key}`)}
-      trailing={<MToggle checked={on} disabled={disabled} onChange={(v) => setWidget(device, key, v)} ariaLabel={t(`settings.appearance.widget.${key}`)} />}
+      trailing={
+        <MToggle
+          checked={on}
+          disabled={disabled}
+          onChange={(v) => setWidget(device, key, v)}
+          ariaLabel={t(`settings.appearance.widget.${key}`)}
+        />
+      }
     />
-  )
+  );
 
   return (
     <>
@@ -170,8 +200,8 @@ export default function MSettingsAppearance() {
         <MSetEyebrow className="mb-[6px] mt-[14px]">{t('settings.appearance.scheme')}</MSetEyebrow>
         <div className="grid grid-cols-2 gap-[6px]">
           {APPEARANCE_SCHEMES.map((s) => {
-            const active = cfg.schemeId === s.id
-            const dot = isDark ? s.swatch.dark : s.swatch.light
+            const active = cfg.schemeId === s.id;
+            const dot = isDark ? s.swatch.dark : s.swatch.light;
             return (
               <button
                 key={s.id}
@@ -186,11 +216,13 @@ export default function MSettingsAppearance() {
                 <span className="h-4 w-4 flex-none rounded-full" style={{ background: dot }} />
                 <span className="min-w-0 flex-1 truncate">{t(`settings.appearance.scheme.${s.id}`)}</span>
               </button>
-            )
+            );
           })}
           <button
             type="button"
-            onClick={() => update({ schemeId: 'custom', accent: cfg.accent ?? { light: accentLight, dark: accentDark } })}
+            onClick={() =>
+              update({ schemeId: 'custom', accent: cfg.accent ?? { light: accentLight, dark: accentDark } })
+            }
             className={`flex items-center gap-2 rounded-xl px-3 py-[9px] text-left text-[0.78125rem] ${
               cfg.schemeId === 'custom'
                 ? 'bg-m-act font-semibold text-m-actfg'
@@ -260,8 +292,13 @@ export default function MSettingsAppearance() {
         <MMobileNavCustomizer value={cfg.mobileNav} onChange={(mn) => update({ mobileNav: mn })} />
 
         <MSetEyebrow className="mb-[6px] mt-[14px]">{t('settings.appearance.dashOrder')}</MSetEyebrow>
-        <p className="-mt-[2px] mb-2 font-geist text-[0.625rem] leading-relaxed text-m-muted">{t('settings.appearance.dashOrder.hint')}</p>
-        <MMobileDashOrder cfg={cfg} onChange={(order) => update({ dashboard: { ...cfg.dashboard, mobileOrder: order } })} />
+        <p className="-mt-[2px] mb-2 font-geist text-[0.625rem] leading-relaxed text-m-muted">
+          {t('settings.appearance.dashOrder.hint')}
+        </p>
+        <MMobileDashOrder
+          cfg={cfg}
+          onChange={(order) => update({ dashboard: { ...cfg.dashboard, mobileOrder: order } })}
+        />
       </MSetCard>
 
       <MSetCard
@@ -279,12 +316,24 @@ export default function MSettingsAppearance() {
             first
             label={t('settings.appearance.transparency')}
             sub={t('settings.appearance.transparencyHint')}
-            trailing={<MToggle checked={cfg.transparency} onChange={(v) => update({ transparency: v })} ariaLabel={t('settings.appearance.transparency')} />}
+            trailing={
+              <MToggle
+                checked={cfg.transparency}
+                onChange={(v) => update({ transparency: v })}
+                ariaLabel={t('settings.appearance.transparency')}
+              />
+            }
           />
           <MSetRow
             label={t('settings.appearance.reduceMotion')}
             sub={t('settings.appearance.reduceMotionHint')}
-            trailing={<MToggle checked={cfg.reduceMotion} onChange={(v) => update({ reduceMotion: v })} ariaLabel={t('settings.appearance.reduceMotion')} />}
+            trailing={
+              <MToggle
+                checked={cfg.reduceMotion}
+                onChange={(v) => update({ reduceMotion: v })}
+                ariaLabel={t('settings.appearance.reduceMotion')}
+              />
+            }
           />
         </div>
 
@@ -299,7 +348,11 @@ export default function MSettingsAppearance() {
         />
 
         <MSetEyebrow className="mb-[2px] mt-[14px]">{t('settings.appearance.textSize')}</MSetEyebrow>
-        <SliderRow label={t('settings.appearance.textSizeAll')} value={cfg.fontScale} onChange={(v) => update({ fontScale: v })} />
+        <SliderRow
+          label={t('settings.appearance.textSizeAll')}
+          value={cfg.fontScale}
+          onChange={(v) => update({ fontScale: v })}
+        />
         <div className="mt-1 border-t border-[color:var(--m-rowbr)] pt-2">
           <SliderRow
             label={t('settings.appearance.size.large')}
@@ -335,15 +388,24 @@ export default function MSettingsAppearance() {
 
         <MSetEyebrow className="mb-[2px]">{t('settings.appearance.desktop')}</MSetEyebrow>
         {DESKTOP_GROUPS.map((g) => {
-          const masterOn = g.master ? cfg.dashboard.desktop[g.master] : true
+          const masterOn = g.master ? cfg.dashboard.desktop[g.master] : true;
           return (
-            <div key={g.id} className="mt-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-3 py-[2px]">
+            <div
+              key={g.id}
+              className="mt-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-3 py-[2px]"
+            >
               {g.master ? (
                 <MSetRow
                   first
                   label={t(`settings.appearance.widget.${g.master}`)}
                   sub={t('settings.appearance.sidebarHint')}
-                  trailing={<MToggle checked={masterOn} onChange={(v) => setWidget('desktop', g.master as string, v)} ariaLabel={t(`settings.appearance.widget.${g.master}`)} />}
+                  trailing={
+                    <MToggle
+                      checked={masterOn}
+                      onChange={(v) => setWidget('desktop', g.master as string, v)}
+                      ariaLabel={t(`settings.appearance.widget.${g.master}`)}
+                    />
+                  }
                 />
               ) : (
                 <MSetEyebrow className="mt-[10px]">{t(`settings.appearance.group.${g.id}`)}</MSetEyebrow>
@@ -352,12 +414,15 @@ export default function MSettingsAppearance() {
                 {g.keys.map((k) => widgetToggle('desktop', k, cfg.dashboard.desktop[k], !!g.master && !masterOn))}
               </div>
             </div>
-          )
+          );
         })}
 
         <MSetEyebrow className="mb-[2px] mt-4">{t('settings.appearance.mobile')}</MSetEyebrow>
         {MOBILE_GROUPS.map((g) => (
-          <div key={g.id} className="mt-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-3 py-[2px]">
+          <div
+            key={g.id}
+            className="mt-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-3 py-[2px]"
+          >
             <MSetEyebrow className="mt-[10px]">{t(`settings.appearance.group.${g.id}`)}</MSetEyebrow>
             {g.keys.map((k) => widgetToggle('mobile', k, cfg.dashboard.mobile[k]))}
           </div>
@@ -373,5 +438,5 @@ export default function MSettingsAppearance() {
         {t('settings.appearance.reset')}
       </button>
     </>
-  )
+  );
 }

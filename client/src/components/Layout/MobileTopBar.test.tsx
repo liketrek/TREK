@@ -8,12 +8,12 @@ vi.mock('react-router', async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import { buildSettings, buildUser } from '../../../tests/helpers/factories';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildSettings } from '../../../tests/helpers/factories';
 import MobileTopBar from './MobileTopBar';
 
 const currentUser = buildUser({ id: 1, username: 'testuser', email: 'test@example.com' });
@@ -54,7 +54,10 @@ describe('MobileTopBar', () => {
   });
 
   it('FE-COMP-MOBILETOPBAR-005: admin badge shown for admin users', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 2, username: 'adminuser', role: 'admin' }), isAuthenticated: true });
+    seedStore(useAuthStore, {
+      user: buildUser({ id: 2, username: 'adminuser', role: 'admin' }),
+      isAuthenticated: true,
+    });
     const user = userEvent.setup();
     render(<MobileTopBar />, { initialEntries: ['/dashboard'] });
     await user.click(screen.getByRole('button', { name: 'Profile' }));

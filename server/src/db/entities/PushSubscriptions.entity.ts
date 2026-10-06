@@ -1,6 +1,6 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { PushSubscriptionsRepository } from '../repositories/PushSubscriptions.repository';
 import { Users } from './Users.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class PushSubscriptions {
   [EntityRepositoryType]?: PushSubscriptionsRepository;

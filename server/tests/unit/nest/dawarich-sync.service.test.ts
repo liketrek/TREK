@@ -15,44 +15,44 @@
  * `recordSyncResult` into `dawarich_connections`, so "the failure is stored" is
  * asserted against the table the settings card reads, not against a spy alone.
  */
+import { db as testDb } from '../../../src/db/database';
+import { BucketList } from '../../../src/db/entities/BucketList.entity';
+import type { BucketListRepository } from '../../../src/db/repositories/BucketList.repository';
+import type { DawarichConnectionsRepository } from '../../../src/db/repositories/DawarichConnections.repository';
+import type { DawarichVisitSuggestionsRepository } from '../../../src/db/repositories/DawarichVisitSuggestions.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { DawarichSyncService } from '../../../src/nest/integrations/dawarich-sync.service';
+import { DawarichError } from '../../../src/nest/integrations/dawarich.client';
+import type { DawarichClient, DawarichCreds, DawarichVisitRaw } from '../../../src/nest/integrations/dawarich.client';
+import type { DawarichService } from '../../../src/nest/integrations/dawarich.service';
+import {
+  createTestDawarichConnectionsRepo,
+  createTestDawarichVisitSuggestionsRepo,
+} from '../../helpers/dawarich-repos';
+import { createUser, createTrip } from '../../helpers/factories';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import { createTestTripsRepo, createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
+import type { DawarichCapabilities, DawarichSyncState } from '@trek/shared';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup (real in-memory SQLite — same vi.hoisted pattern as atlas/immich) ──
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
-    return {
-      db,
-      closeDb: () => {},
-      reinitialize: () => {},
-      getPlaceWithTags: () => null,
-      canAccessTrip: () => null,
-      isOwner: () => false,
-    };
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => null,
+    isOwner: () => false,
+  };
 });
-
-
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { DawarichSyncService } from '../../../src/nest/integrations/dawarich-sync.service';
-import { BucketList } from '../../../src/db/entities/BucketList.entity';
-import type { BucketListRepository } from '../../../src/db/repositories/BucketList.repository';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { DawarichVisitSuggestionsRepository } from '../../../src/db/repositories/DawarichVisitSuggestions.repository';
-import type { DawarichConnectionsRepository } from '../../../src/db/repositories/DawarichConnections.repository';
-import type { TestOrm } from '../../helpers/test-orm';
-import { createTestDawarichConnectionsRepo, createTestDawarichVisitSuggestionsRepo } from '../../helpers/dawarich-repos';
-import { createTestTripsRepo, createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
-import { DawarichError } from '../../../src/nest/integrations/dawarich.client';
-import type { DawarichClient, DawarichCreds, DawarichVisitRaw } from '../../../src/nest/integrations/dawarich.client';
-import type { DawarichService } from '../../../src/nest/integrations/dawarich.service';
-import type { DawarichCapabilities, DawarichSyncState } from '@trek/shared';
 
 // ── Fakes ────────────────────────────────────────────────────────────────────
 
@@ -1119,11 +1119,8 @@ describe('DawarichSyncService — runSync', () => {
     // answer is what the connection currently holds. Answering "ok" would
     // clear a warning nobody fixed, and answering "never" would wipe the
     // history of a connection that has synced for months.
-    testDb
-      .prepare("UPDATE dawarich_connections SET last_sync_state = 'partial' WHERE user_id = ?")
-      .run(USER);
-    let release: (value: { visits: DawarichVisitRaw[]; truncated: boolean; version: string | null }) => void =
-      () => {};
+    testDb.prepare("UPDATE dawarich_connections SET last_sync_state = 'partial' WHERE user_id = ?").run(USER);
+    let release: (value: { visits: DawarichVisitRaw[]; truncated: boolean; version: string | null }) => void = () => {};
     listVisits.mockReturnValue(
       new Promise((resolve) => {
         release = resolve;

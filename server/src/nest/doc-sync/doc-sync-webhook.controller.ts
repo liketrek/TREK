@@ -1,13 +1,14 @@
-import { Controller, HttpCode, OnModuleDestroy, Param, Post, Req } from '@nestjs/common';
-import { MikroORM } from '@mikro-orm/core';
-import type { Request } from 'express';
-import crypto from 'crypto';
+import { logError } from '../audit/audit-log.logger';
 import { Public } from '../auth/public.decorator';
 import { withRequestContext } from '../database/request-context';
-import { WEBHOOK_NUDGE_DEBOUNCE_SECONDS } from './doc-sync.constants';
 import { DocSyncConfigService, type LinkRow } from './doc-sync-config.service';
+import { WEBHOOK_NUDGE_DEBOUNCE_SECONDS } from './doc-sync.constants';
 import { DocSyncService } from './doc-sync.service';
-import { logError } from '../audit/audit-log.logger';
+import { MikroORM } from '@mikro-orm/core';
+import { Controller, HttpCode, OnModuleDestroy, Param, Post, Req } from '@nestjs/common';
+
+import crypto from 'crypto';
+import type { Request } from 'express';
 
 /**
  * `/api/docsync/webhook/:token`: the one endpoint a provider calls.
@@ -60,7 +61,7 @@ export class DocSyncWebhookController implements OnModuleDestroy {
    * on `DocSyncService.isSyncEnabled`, the same rule the job obeys.
    */
   private async syncIsOn(link: LinkRow): Promise<boolean> {
-    if ((await this.sync.isSwitchedOff(link))) return false;
+    if (await this.sync.isSwitchedOff(link)) return false;
     return this.sync.isSyncEnabled();
   }
 
@@ -70,7 +71,9 @@ export class DocSyncWebhookController implements OnModuleDestroy {
   }
 
   @Post(':token')
-  @Public('A provider cannot hold a TREK session; the per-link token in the URL is the authentication, and the call can only ever trigger a sync run.')
+  @Public(
+    'A provider cannot hold a TREK session; the per-link token in the URL is the authentication, and the call can only ever trigger a sync run.',
+  )
   @HttpCode(200)
   async nudge(@Param('token') token: string, @Req() req: Request) {
     const link = await this.config.getLinkByToken(token);
@@ -136,7 +139,9 @@ export class DocSyncWebhookController implements OnModuleDestroy {
         // only for `busy`, so this cannot become a loop.
         if (res?.state === 'busy' && !isRetry) this.schedule(linkId, reload, true);
       }).catch((err: unknown) => {
-        logError(`Document sync webhook nudge failed for link ${linkId}: ${err instanceof Error ? err.message : String(err)}`);
+        logError(
+          `Document sync webhook nudge failed for link ${linkId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
       });
     }, WEBHOOK_NUDGE_DEBOUNCE_SECONDS * 1000);
     // A pending nudge must not hold the process open at shutdown.
@@ -160,10 +165,7 @@ export class DocSyncWebhookController implements OnModuleDestroy {
     if (sig && id && ts) {
       const raw = (req as Request & { rawBody?: Buffer }).rawBody;
       const body = raw ? raw.toString('utf8') : JSON.stringify(req.body ?? {});
-      const expected = crypto
-        .createHmac('sha256', Buffer.from(secret))
-        .update(`${id}.${ts}.${body}`)
-        .digest('base64');
+      const expected = crypto.createHmac('sha256', Buffer.from(secret)).update(`${id}.${ts}.${body}`).digest('base64');
       for (const part of sig.split(' ')) {
         const value = part.startsWith('v1,') ? part.slice(3) : part;
         if (timingSafeEqualStr(value, expected)) return true;

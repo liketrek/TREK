@@ -5,14 +5,15 @@
  * the UTC-day floor, and the `code = 'ok'` filter (a denied call never counts
  * against the budget).
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
 import type { PluginCapabilityAuditRepository } from '../../../src/db/repositories/PluginCapabilityAudit.repository';
 import { appendAudit } from '../../../src/nest/plugins/host/plugin-audit';
 import { budgetFor, pluginBudgetUsage } from '../../../src/nest/plugins/host/plugin-host-state';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -22,22 +23,42 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   audit = t.repo(PluginCapabilityAudit);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterEach(() => { vi.restoreAllMocks(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 // `budgetFor`'s `budgets` Map is deliberately module-level (see plugin-host-state.ts's
 // class docstring) — it is NOT reset by `resetTestDb`/`t.clear()`, so each test below
 // uses its own plugin id to avoid one test's seed being served (cached) to the next.
 describe('budgetFor / pluginBudgetUsage seed read', () => {
-  it('HS-001: seeds ai (ai.complete + ai.extract) and notify counts separately from today\'s already-audited rows', async () => {
+  it("HS-001: seeds ai (ai.complete + ai.extract) and notify counts separately from today's already-audited rows", async () => {
     await appendAudit(audit, { pluginId: 'hs1', actingUserId: 1, method: 'ai.complete', resource: null, code: 'ok' });
     await appendAudit(audit, { pluginId: 'hs1', actingUserId: 1, method: 'ai.extract', resource: null, code: 'ok' });
     await appendAudit(audit, { pluginId: 'hs1', actingUserId: 1, method: 'notify.send', resource: null, code: 'ok' });
     // A denied call must not count against the budget.
-    await appendAudit(audit, { pluginId: 'hs1', actingUserId: 1, method: 'ai.complete', resource: null, code: 'RESOURCE_FORBIDDEN' });
+    await appendAudit(audit, {
+      pluginId: 'hs1',
+      actingUserId: 1,
+      method: 'ai.complete',
+      resource: null,
+      code: 'RESOURCE_FORBIDDEN',
+    });
     // A different plugin's calls must not bleed into this one's budget.
-    await appendAudit(audit, { pluginId: 'hs1-other', actingUserId: 1, method: 'ai.complete', resource: null, code: 'ok' });
+    await appendAudit(audit, {
+      pluginId: 'hs1-other',
+      actingUserId: 1,
+      method: 'ai.complete',
+      resource: null,
+      code: 'ok',
+    });
 
     const usage = await pluginBudgetUsage('hs1', audit);
     expect(usage.ai).toBe(2);

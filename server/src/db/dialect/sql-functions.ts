@@ -1,6 +1,16 @@
 import { raw, type Platform, type RawQueryFragment } from '@mikro-orm/core';
 import { SqlitePlatform } from '@mikro-orm/sql';
-import { sql, type Expression, type ExpressionBuilder, type ExpressionWrapper, type RawBuilder, type ReferenceExpression, type SqlBool, type StringReference } from 'kysely';
+
+import {
+  sql,
+  type Expression,
+  type ExpressionBuilder,
+  type ExpressionWrapper,
+  type RawBuilder,
+  type ReferenceExpression,
+  type SqlBool,
+  type StringReference,
+} from 'kysely';
 
 /**
  * The only place a repository may spell a database function.
@@ -225,7 +235,11 @@ export function coalesce(platform: Platform, ref: string, fallbackRef: string): 
  * anywhere a plain `RawQueryFragment` is expected, a strict widening with no
  * behaviour change (the function body is untouched).
  */
-export function coalesceParam(platform: Platform, ref: string, value: string | number | null): RawQueryFragment & symbol {
+export function coalesceParam(
+  platform: Platform,
+  ref: string,
+  value: string | number | null,
+): RawQueryFragment & symbol {
   if (platform instanceof SqlitePlatform) return raw(`COALESCE(${column(ref)}, ?)`, [value]);
   return unsupported(platform);
 }
@@ -249,7 +263,11 @@ export function coalesceParam(platform: Platform, ref: string, value: string | n
  * columns exactly as they were before, since `coalesceParam`'s `COALESCE(col,
  * ?)` always preferred the non-null existing value).
  */
-export function coalesceOverride(platform: Platform, value: string | number | null, ref: string): RawQueryFragment & symbol {
+export function coalesceOverride(
+  platform: Platform,
+  value: string | number | null,
+  ref: string,
+): RawQueryFragment & symbol {
   if (platform instanceof SqlitePlatform) return raw(`COALESCE(?, ${column(ref)})`, [value]);
   return unsupported(platform);
 }
@@ -327,8 +345,15 @@ export function maxOf(platform: Platform, ref: string, aliasName: string): RawQu
  * time regardless of this function's own escaping; callers must guard a
  * non-finite `value` before calling.)
  */
-export function caseWhenEquals(platform: Platform, ref: string, value: number, whenTrue: string, whenFalse: string): RawQueryFragment {
-  if (platform instanceof SqlitePlatform) return raw(`CASE WHEN ${column(ref)} = ? THEN ? ELSE ? END`, [value, whenTrue, whenFalse]);
+export function caseWhenEquals(
+  platform: Platform,
+  ref: string,
+  value: number,
+  whenTrue: string,
+  whenFalse: string,
+): RawQueryFragment {
+  if (platform instanceof SqlitePlatform)
+    return raw(`CASE WHEN ${column(ref)} = ? THEN ? ELSE ? END`, [value, whenTrue, whenFalse]);
   return unsupported(platform);
 }
 
@@ -593,9 +618,8 @@ export function substringKysely<DB, TB extends keyof DB>(
     throw new Error(`sql-functions: substringKysely needs a non-negative integer length, got ${length}`);
   }
   if (platform instanceof SqlitePlatform) {
-    const args: ReferenceExpression<DB, TB>[] = length === undefined
-      ? [ref, eb.val(start)]
-      : [ref, eb.val(start), eb.val(length)];
+    const args: ReferenceExpression<DB, TB>[] =
+      length === undefined ? [ref, eb.val(start)] : [ref, eb.val(start), eb.val(length)];
     return eb.fn<string>('substr', args);
   }
   return unsupported(platform);
@@ -603,9 +627,7 @@ export function substringKysely<DB, TB extends keyof DB>(
 
 /** A part of a `concatKysely()` expression — a column reference, a bound value, or a nested Kysely `Expression<string>` (composes freely, unlike `concat()`'s MikroORM `RawQueryFragment` form). */
 export type KyselyConcatPart<DB, TB extends keyof DB> =
-  | { column: StringReference<DB, TB> }
-  | { value: string }
-  | { expression: Expression<string> };
+  { column: StringReference<DB, TB> } | { value: string } | { expression: Expression<string> };
 
 /**
  * The Kysely-expression twin of {@link concat}: `<part> || <part> || …`,
@@ -972,10 +994,19 @@ export function currentTimestampKysely(platform: Platform): RawBuilder<string> {
  * though the same statement overwrites it. `value` is bound twice on purpose:
  * the fragment has two value slots and `raw()` binds positionally.
  */
-export function coalesceOverrideWhileSame(platform: Platform, value: number | null, ref: string, keyRef: string, keyValue: string): RawQueryFragment {
+export function coalesceOverrideWhileSame(
+  platform: Platform,
+  value: number | null,
+  ref: string,
+  keyRef: string,
+  keyValue: string,
+): RawQueryFragment {
   if (platform instanceof SqlitePlatform) {
-    return raw(`CASE WHEN ${column(keyRef)} IS ? THEN COALESCE(?, ${column(ref)}) ELSE COALESCE(?, 0) END`, [keyValue, value, value]);
+    return raw(`CASE WHEN ${column(keyRef)} IS ? THEN COALESCE(?, ${column(ref)}) ELSE COALESCE(?, 0) END`, [
+      keyValue,
+      value,
+      value,
+    ]);
   }
   return unsupported(platform);
 }
-

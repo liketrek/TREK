@@ -8,12 +8,23 @@
  * auth, trip-access 404, permission 403, the create-201-vs-update-200 split
  * and the unguarded public read.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
+import { ShareModule } from '../../src/nest/share/share.module';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import fs from 'node:fs';
+import path from 'node:path';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb } = await import('../helpers/db-mock');
@@ -23,19 +34,21 @@ vi.mock('../../src/db/database', async () => {
     // Real-SQL trip access over the temp db — ShareService.verifyTripAccess and
     // DatabaseModule both read the mocked singleton.
     canAccessTrip: (tripId: number | string, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
       SELECT t.id, t.user_id FROM trips t
       LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
       WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-    `).get(userId, tripId, userId),
+    `,
+        )
+        .get(userId, tripId, userId),
     isOwner: () => false,
     getPlaceWithTags: () => null,
     closeDb: () => {},
     reinitialize: () => {},
   };
 });
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
@@ -45,24 +58,17 @@ let checkPermission: MockInstance;
 // serveKey hands the controller a bare photos-google storage name (slice 3).
 const serveKey = vi.fn();
 
-import path from 'node:path';
-import fs from 'node:fs';
-import { db } from '../../src/db/database';
-import { ShareModule } from '../../src/nest/share/share.module';
-import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
-
 describe('Share-link e2e (real auth guard + real SQL over temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), ShareModule] })
-      .overrideProvider(PlacePhotoCacheService).useValue({ serveKey })
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), ShareModule],
+    })
+      .overrideProvider(PlacePhotoCacheService)
+      .useValue({ serveKey })
       .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -107,11 +113,17 @@ describe('Share-link e2e (real auth guard + real SQL over temp SQLite)', () => {
   });
 
   it('201 on first create, 200 on a subsequent update', async () => {
-    const created = await request(server).post(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1)).send({ share_map: true });
+    const created = await request(server)
+      .post(`/api/trips/${tripId}/share-link`)
+      .set('Cookie', sessionCookie(1))
+      .send({ share_map: true });
     expect(created.status).toBe(201);
     expect(created.body).toEqual({ token: tokenRow().token });
 
-    const updated = await request(server).post(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1)).send({});
+    const updated = await request(server)
+      .post(`/api/trips/${tripId}/share-link`)
+      .set('Cookie', sessionCookie(1))
+      .send({});
     expect(updated.status).toBe(200);
     expect(updated.body).toEqual({ token: created.body.token });
   });
@@ -131,10 +143,15 @@ describe('Share-link e2e (real auth guard + real SQL over temp SQLite)', () => {
   });
 
   it('GET returns the stored flags, DELETE revokes the link', async () => {
-    await request(server).post(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1)).send({ share_budget: true });
+    await request(server)
+      .post(`/api/trips/${tripId}/share-link`)
+      .set('Cookie', sessionCookie(1))
+      .send({ share_budget: true });
     const info = await request(server).get(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1));
     expect(info.status).toBe(200);
-    expect(info.body).toEqual(expect.objectContaining({ token: tokenRow().token, share_budget: true, share_packing: false }));
+    expect(info.body).toEqual(
+      expect.objectContaining({ token: tokenRow().token, share_budget: true, share_packing: false }),
+    );
 
     const removed = await request(server).delete(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1));
     expect(removed.status).toBe(200);
@@ -146,19 +163,27 @@ describe('Share-link e2e (real auth guard + real SQL over temp SQLite)', () => {
   });
 
   it('carries the narrowing options through to the public read (#1712)', async () => {
-    const created = await request(server).post(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1))
+    const created = await request(server)
+      .post(`/api/trips/${tripId}/share-link`)
+      .set('Cookie', sessionCookie(1))
       .send({ share_travel_only: true, share_hide_images: true });
     const info = await request(server).get(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1));
     expect(info.body).toEqual(expect.objectContaining({ share_travel_only: true, share_hide_images: true }));
     const res = await request(server).get(`/api/shared/${created.body.token}`);
     expect(res.body.permissions).toEqual(expect.objectContaining({ share_travel_only: true, share_hide_images: true }));
     expect(res.body.dayNotes).toEqual({});
-    const bad = await request(server).post(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1)).send({ share_hide_images: 'yes' });
+    const bad = await request(server)
+      .post(`/api/trips/${tripId}/share-link`)
+      .set('Cookie', sessionCookie(1))
+      .send({ share_hide_images: 'yes' });
     expect(bad.status).toBe(400);
   });
 
   it('public shared read is unguarded (200, no cookie)', async () => {
-    const created = await request(server).post(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1)).send({});
+    const created = await request(server)
+      .post(`/api/trips/${tripId}/share-link`)
+      .set('Cookie', sessionCookie(1))
+      .send({});
     const res = await request(server).get(`/api/shared/${created.body.token}`);
     expect(res.status).toBe(200);
     expect(res.body.trip).toEqual(expect.objectContaining({ id: tripId, title: 'Trip' }));
@@ -182,12 +207,24 @@ describe('Share-link e2e (real auth guard + real SQL over temp SQLite)', () => {
       fs.mkdirSync(path.dirname(photoFile), { recursive: true });
       fs.writeFileSync(photoFile, photoBytes);
     });
-    afterAll(() => { try { fs.unlinkSync(photoFile); } catch { /* ignore */ } });
+    afterAll(() => {
+      try {
+        fs.unlinkSync(photoFile);
+      } catch {
+        /* ignore */
+      }
+    });
 
     it('streams cached bytes with no cookie (unguarded) for a valid token + place', async () => {
-      const created = await request(server).post(`/api/trips/${tripId}/share-link`).set('Cookie', sessionCookie(1)).send({});
-      db.prepare('INSERT INTO places (trip_id, name, image_url) VALUES (?, ?, ?)')
-        .run(tripId, 'Louvre', '/api/maps/place-photo/ChIJabc/bytes');
+      const created = await request(server)
+        .post(`/api/trips/${tripId}/share-link`)
+        .set('Cookie', sessionCookie(1))
+        .send({});
+      db.prepare('INSERT INTO places (trip_id, name, image_url) VALUES (?, ?, ?)').run(
+        tripId,
+        'Louvre',
+        '/api/maps/place-photo/ChIJabc/bytes',
+      );
       serveKey.mockReturnValueOnce(photoName);
       const res = await request(server).get(`/api/shared/${created.body.token}/place-photo/ChIJabc/bytes`);
       expect(res.status).toBe(200);

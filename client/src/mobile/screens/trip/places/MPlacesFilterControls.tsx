@@ -1,11 +1,11 @@
-import { ReactNode } from 'react'
-import { Check, MapPin, Star } from 'lucide-react'
-import MChip from '../../../components/MChip'
-import { useTripStore } from '../../../../store/tripStore'
-import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
-import { RATING_FLOORS, UNCATEGORIZED } from '../../../../utils/placesFilter'
-import { useTranslation } from '../../../../i18n'
-import type { Category, Place } from '../../../../types'
+import { Check, MapPin, Star } from 'lucide-react';
+import { ReactNode } from 'react';
+import { getCategoryIcon } from '../../../../components/shared/categoryIcons';
+import { useTranslation } from '../../../../i18n';
+import { useTripStore } from '../../../../store/tripStore';
+import type { Category, Place } from '../../../../types';
+import { RATING_FLOORS, UNCATEGORIZED } from '../../../../utils/placesFilter';
+import MChip from '../../../components/MChip';
 
 /**
  * The phone's places filter controls, shared by the places browser's filter panel
@@ -23,14 +23,19 @@ export function SquareCheck({ checked, big = false }: { checked: boolean; big?: 
     >
       <Check size={big ? 12 : 11} strokeWidth={3} />
     </span>
-  )
+  );
 }
 
-function CategoryFilterRow({ checked, onToggle, label, children }: {
-  checked: boolean
-  onToggle: () => void
-  label: string
-  children: ReactNode
+function CategoryFilterRow({
+  checked,
+  onToggle,
+  label,
+  children,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+  label: string;
+  children: ReactNode;
 }) {
   return (
     <button
@@ -44,24 +49,24 @@ function CategoryFilterRow({ checked, onToggle, label, children }: {
       {children}
       <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-medium text-m-ink">{label}</span>
     </button>
-  )
+  );
 }
 
 /** The trip's categories as a multi-select, plus "no category" while a place has none. */
 export function MCategoryFilterList({ categories, places }: { categories: Category[]; places: Place[] }) {
-  const { t } = useTranslation()
-  const categoryFilters = useTripStore(s => s.placesCategoryFilter)
-  const setCategoryFilters = useTripStore(s => s.setPlacesCategoryFilter)
+  const { t } = useTranslation();
+  const categoryFilters = useTripStore((s) => s.placesCategoryFilter);
+  const setCategoryFilters = useTripStore((s) => s.setPlacesCategoryFilter);
   const toggle = (catId: string) => {
-    const next = new Set(categoryFilters)
-    if (next.has(catId)) next.delete(catId)
-    else next.add(catId)
-    setCategoryFilters(next)
-  }
+    const next = new Set(categoryFilters);
+    if (next.has(catId)) next.delete(catId);
+    else next.add(catId);
+    setCategoryFilters(next);
+  };
   return (
     <>
-      {categories.map(c => {
-        const CatIcon = getCategoryIcon(c.icon)
+      {categories.map((c) => {
+        const CatIcon = getCategoryIcon(c.icon);
         return (
           <CategoryFilterRow
             key={c.id}
@@ -71,9 +76,9 @@ export function MCategoryFilterList({ categories, places }: { categories: Catego
           >
             <CatIcon size={14} strokeWidth={2} className="flex-none" style={{ color: c.color || 'var(--m-muted)' }} />
           </CategoryFilterRow>
-        )
+        );
       })}
-      {places.some(p => p.category_id == null) && (
+      {places.some((p) => p.category_id == null) && (
         <CategoryFilterRow
           checked={categoryFilters.has(UNCATEGORIZED)}
           onToggle={() => toggle(UNCATEGORIZED)}
@@ -83,7 +88,7 @@ export function MCategoryFilterList({ categories, places }: { categories: Catego
         </CategoryFilterRow>
       )}
     </>
-  )
+  );
 }
 
 /**
@@ -92,14 +97,25 @@ export function MCategoryFilterList({ categories, places }: { categories: Catego
  * selection then, as it does for a new pool.
  */
 export function MRatingFloorChips({ onPick }: { onPick?: () => void } = {}) {
-  const { t } = useTranslation()
-  const ratingFilter = useTripStore(s => s.placesRatingFilter)
-  const setRatingFilter = useTripStore(s => s.setPlacesRatingFilter)
+  const { t } = useTranslation();
+  const ratingFilter = useTripStore((s) => s.placesRatingFilter);
+  const setRatingFilter = useTripStore((s) => s.setPlacesRatingFilter);
   return (
     <div role="group" aria-label={t('places.filterByRating')} className="flex flex-wrap gap-[6px]">
-      {RATING_FLOORS.map(floor => (
-        <MChip key={String(floor)} size="tap" pressable active={ratingFilter === floor} onClick={() => { setRatingFilter(floor); onPick?.() }}>
-          {floor === 'all' ? t('common.all') : (
+      {RATING_FLOORS.map((floor) => (
+        <MChip
+          key={String(floor)}
+          size="tap"
+          pressable
+          active={ratingFilter === floor}
+          onClick={() => {
+            setRatingFilter(floor);
+            onPick?.();
+          }}
+        >
+          {floor === 'all' ? (
+            t('common.all')
+          ) : (
             <>
               <Star size={12} strokeWidth={2.2} fill="currentColor" className="flex-none" />
               {`${floor}+`}
@@ -108,5 +124,5 @@ export function MRatingFloorChips({ onPick }: { onPick?: () => void } = {}) {
         </MChip>
       ))}
     </div>
-  )
+  );
 }

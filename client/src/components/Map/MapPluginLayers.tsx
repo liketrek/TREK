@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { Circle, Polygon, Polyline, Tooltip, useMap } from 'react-leaflet'
-import { pluginsApi, type PluginMapLayer, type PluginMapLayerFeature } from '../../api/client'
+import { useEffect, useState } from 'react';
+import { Circle, Polygon, Polyline, Tooltip, useMap } from 'react-leaflet';
+import { pluginsApi, type PluginMapLayer, type PluginMapLayerFeature } from '../../api/client';
 
 /**
  * Host-rendered overlay for the `mapLayerProvider` plugin hook. A plugin returns
@@ -18,18 +18,18 @@ const TONE_COLORS: Record<PluginMapLayerFeature['tone'], string> = {
   success: '#10b981',
   warn: '#f59e0b',
   danger: '#ef4444',
-}
+};
 
-const PANE = 'trek-plugin-layers'
+const PANE = 'trek-plugin-layers';
 
 const DASH_ARRAYS: Record<PluginMapLayerFeature['dash'], string | undefined> = {
   solid: undefined,
   dash: '8, 8',
   dot: '1, 7',
-}
+};
 
 function pathOptions(f: PluginMapLayerFeature, pane: string | undefined) {
-  const color = TONE_COLORS[f.tone] ?? TONE_COLORS.default
+  const color = TONE_COLORS[f.tone] ?? TONE_COLORS.default;
   return {
     ...(pane ? { pane } : {}),
     color,
@@ -42,54 +42,78 @@ function pathOptions(f: PluginMapLayerFeature, pane: string | undefined) {
     fillColor: color,
     fillOpacity: f.fill ? Math.min(0.25, f.opacity) : 0,
     interactive: !!f.label,
-  }
+  };
 }
 
 export function PluginMapLayers({ tripId }: { tripId?: number | string }) {
-  const map = useMap()
-  const [layers, setLayers] = useState<PluginMapLayer[]>([])
+  const map = useMap();
+  const [layers, setLayers] = useState<PluginMapLayer[]>([]);
   // Whether our dedicated below-overlay pane exists. Pane support is a Leaflet
   // optimization — if the map has no pane API (e.g. a minimal renderer), the
   // features still draw, just without the z-index separation, so we don't gate on it.
-  const [hasPane, setHasPane] = useState(false)
+  const [hasPane, setHasPane] = useState(false);
 
   useEffect(() => {
-    if (typeof map.getPane !== 'function' || typeof map.createPane !== 'function') return
+    if (typeof map.getPane !== 'function' || typeof map.createPane !== 'function') return;
     if (!map.getPane(PANE)) {
-      const pane = map.createPane(PANE)
-      if (pane) pane.style.zIndex = '399' // under overlayPane (400): core routes/arcs win
+      const pane = map.createPane(PANE);
+      if (pane) pane.style.zIndex = '399'; // under overlayPane (400): core routes/arcs win
     }
-    setHasPane(true)
-  }, [map])
+    setHasPane(true);
+  }, [map]);
 
   useEffect(() => {
-    if (tripId == null) { setLayers([]); return }
-    let alive = true
-    pluginsApi.mapLayers(tripId)
-      .then(r => { if (alive) setLayers(r.layers || []) })
-      .catch(() => { if (alive) setLayers([]) }) // fail-safe: no extra layers
-    return () => { alive = false }
-  }, [tripId])
+    if (tripId == null) {
+      setLayers([]);
+      return;
+    }
+    let alive = true;
+    pluginsApi
+      .mapLayers(tripId)
+      .then((r) => {
+        if (alive) setLayers(r.layers || []);
+      })
+      .catch(() => {
+        if (alive) setLayers([]);
+      }); // fail-safe: no extra layers
+    return () => {
+      alive = false;
+    };
+  }, [tripId]);
 
-  if (layers.length === 0) return null
-  const pane = hasPane ? PANE : undefined
+  if (layers.length === 0) return null;
+  const pane = hasPane ? PANE : undefined;
 
   return (
     <>
-      {layers.map(layer => layer.features.map((f, i) => {
-        const key = `${layer.pluginId}:${layer.id}:${i}`
-        const tooltip = f.label ? <Tooltip sticky>{f.label}</Tooltip> : null
-        if (f.type === 'polyline' && f.points) {
-          return <Polyline key={key} positions={f.points} pathOptions={pathOptions(f, pane)}>{tooltip}</Polyline>
-        }
-        if (f.type === 'polygon' && f.points) {
-          return <Polygon key={key} positions={f.points} pathOptions={pathOptions(f, pane)}>{tooltip}</Polygon>
-        }
-        if (f.type === 'circle' && f.center && f.radiusM) {
-          return <Circle key={key} center={f.center} radius={f.radiusM} pathOptions={pathOptions(f, pane)}>{tooltip}</Circle>
-        }
-        return null
-      }))}
+      {layers.map((layer) =>
+        layer.features.map((f, i) => {
+          const key = `${layer.pluginId}:${layer.id}:${i}`;
+          const tooltip = f.label ? <Tooltip sticky>{f.label}</Tooltip> : null;
+          if (f.type === 'polyline' && f.points) {
+            return (
+              <Polyline key={key} positions={f.points} pathOptions={pathOptions(f, pane)}>
+                {tooltip}
+              </Polyline>
+            );
+          }
+          if (f.type === 'polygon' && f.points) {
+            return (
+              <Polygon key={key} positions={f.points} pathOptions={pathOptions(f, pane)}>
+                {tooltip}
+              </Polygon>
+            );
+          }
+          if (f.type === 'circle' && f.center && f.radiusM) {
+            return (
+              <Circle key={key} center={f.center} radius={f.radiusM} pathOptions={pathOptions(f, pane)}>
+                {tooltip}
+              </Circle>
+            );
+          }
+          return null;
+        })
+      )}
     </>
-  )
+  );
 }

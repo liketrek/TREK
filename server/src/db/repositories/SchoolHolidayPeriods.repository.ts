@@ -1,6 +1,6 @@
-import type { SchoolHolidayPeriod } from '@trek/shared';
 import type { SchoolHolidayPeriods } from '../entities/SchoolHolidayPeriods.entity';
 import { TrekRepository } from './_shared/trek-repository';
+import type { SchoolHolidayPeriod } from '@trek/shared';
 
 /**
  * `school_holiday_periods`'s single-table read/write shape (Plan 3f Task 2,
@@ -57,6 +57,13 @@ export class SchoolHolidayPeriodsRepository extends TrekRepository<SchoolHoliday
    */
   async insertPeriods(region_id: number, holidays: SchoolHolidayPeriod[]): Promise<void> {
     if (holidays.length === 0) return;
-    await this.insertMany(holidays.map((holiday) => ({ region: region_id, name: holiday.name, start_date: holiday.startDate, end_date: holiday.endDate })));
+    await this.insertMany(
+      holidays.map((holiday) => ({
+        region: region_id,
+        name: holiday.name,
+        start_date: holiday.startDate,
+        end_date: holiday.endDate,
+      })),
+    );
   }
 }

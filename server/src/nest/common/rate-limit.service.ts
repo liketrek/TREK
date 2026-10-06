@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
-interface Attempt { count: number; first: number }
+interface Attempt {
+  count: number;
+  first: number;
+}
 
 /**
  * In-memory per-IP rate limiter, ported 1:1 from the legacy auth route's
@@ -23,7 +26,10 @@ export class RateLimitService {
 
   private store(bucket: string): Map<string, Attempt> {
     let s = this.buckets.get(bucket);
-    if (!s) { s = new Map(); this.buckets.set(bucket, s); }
+    if (!s) {
+      s = new Map();
+      this.buckets.set(bucket, s);
+    }
     return s;
   }
 
@@ -55,6 +61,9 @@ export class RateLimitService {
   /** Test helper: clear a bucket (mirrors the legacy exported maps used for resets). */
   reset(bucket?: string): void {
     if (bucket) this.buckets.get(bucket)?.clear();
-    else { this.buckets.clear(); this.lastSweep.clear(); }
+    else {
+      this.buckets.clear();
+      this.lastSweep.clear();
+    }
   }
 }

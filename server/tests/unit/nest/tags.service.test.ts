@@ -8,13 +8,14 @@
  * (TAG-SVC-016..020 covered the deleted tags.bridge; the plugin RPC host now
  * injects TagsService directly.)
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { createTestTagsRepo, sharedTestOrm } from '../../helpers/test-uow';
-import type { TestOrm } from '../../helpers/test-orm';
 import { TagsService } from '../../../src/nest/tags/tags.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import { createTestTagsRepo, sharedTestOrm } from '../../helpers/test-uow';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 

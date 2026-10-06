@@ -1,5 +1,5 @@
-import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 import { PluginEgressHostsRepository } from '../repositories/PluginEgressHosts.repository';
+import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 
 export class PluginEgressHosts {
   [EntityRepositoryType]?: PluginEgressHostsRepository;

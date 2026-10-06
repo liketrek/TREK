@@ -1,8 +1,9 @@
-import { createHash } from 'node:crypto';
-import { Injectable, HttpException } from '@nestjs/common';
-import { z } from 'zod';
-import { safeFetchLlm } from '../../utils/ssrfGuard';
 import { readCappedJson } from '../../utils/cappedFetch';
+import { safeFetchLlm } from '../../utils/ssrfGuard';
+import { Injectable, HttpException } from '@nestjs/common';
+
+import { createHash } from 'node:crypto';
+import { z } from 'zod';
 
 /** `/api/show` carries the licence and the template: tens of KB, never megabytes. */
 const MAX_SHOW_BYTES = 1024 * 1024;
@@ -56,7 +57,7 @@ export class LlmLocalService {
     }
     if (!res.ok) throw new HttpException({ error: `Local LLM server error (${res.status})` }, 502);
     const data = (await res.json()) as { models?: { name?: string; size?: number }[] };
-    const models = (data.models ?? []).map(m => ({ name: m.name ?? '', size: m.size ?? 0 })).filter(m => m.name);
+    const models = (data.models ?? []).map((m) => ({ name: m.name ?? '', size: m.size ?? 0 })).filter((m) => m.name);
     return { models };
   }
 

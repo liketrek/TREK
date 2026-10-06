@@ -1,3 +1,63 @@
+// ---------------------------------------------------------------------------
+// Imports (after mocks)
+// ---------------------------------------------------------------------------
+import { db as testDb } from '../../../src/db/database';
+import { revokeUserSessions } from '../../../src/mcp/sessionManager';
+import { hashBackupCode } from '../../../src/nest/auth/auth.helpers';
+import { AuthService } from '../../../src/nest/auth/auth.service';
+import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { createEphemeralToken } from '../../../src/nest/auth/ephemeral-tokens';
+import { verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
+import { DEFAULT_ALLOWED_EXTENSIONS } from '../../../src/nest/files/files.constants';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TokenService } from '../../../src/nest/tokens/token.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+import { budgetRepoArgs } from '../../helpers/budget-repos';
+import {
+  createUser,
+  createAdmin,
+  createInviteToken,
+  createTrip,
+  createPlace,
+  createReservation,
+} from '../../helpers/factories';
+import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
+import {
+  createTestJourneysRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyContributorsRepo,
+} from '../../helpers/journey-repos';
+import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
+import { createTestPushSubscriptionsRepo } from '../../helpers/notifications-repos';
+import {
+  createTestShareTokensRepo,
+  createTestPluginsRepo,
+  createTestPluginUserErasureQueueRepo,
+} from '../../helpers/share-repos';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  sharedTestOrm,
+  createTestUsersRepo,
+  createTestTripMembersRepo,
+  createTestMcpTokensRepo,
+  createTestInviteTokensRepo,
+  createTestOauthTokensRepo,
+  createTestWebauthnCredentialsRepo,
+  createTestPasswordResetTokensRepo,
+} from '../../helpers/test-uow';
+
+import { authenticator } from 'otplib';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
+
 /**
  * auth.service.test.ts
  *
@@ -14,7 +74,6 @@
 // ---------------------------------------------------------------------------
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -24,15 +83,14 @@ vi.mock('../../../src/db/database', async () => {
     canAccessTrip: (tripId: any, userId: number) =>
       db
         .prepare(
-          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
         )
         .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
-    return mock;
+  return mock;
 });
-
 
 vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-secret',
@@ -54,51 +112,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
 vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 
-// ---------------------------------------------------------------------------
-// Imports (after mocks)
-// ---------------------------------------------------------------------------
-
-import { db as testDb } from '../../../src/db/database';
-import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, createInviteToken, createTrip, createPlace, createReservation } from '../../helpers/factories';
-import { AuthService } from '../../../src/nest/auth/auth.service';
-import { TokenService } from '../../../src/nest/tokens/token.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
-import { authenticator } from 'otplib';
-import { hashBackupCode } from '../../../src/nest/auth/auth.helpers';
-import { createEphemeralToken } from '../../../src/nest/auth/ephemeral-tokens';
-import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
-import { revokeUserSessions } from '../../../src/mcp/sessionManager';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
-import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
-import { DEFAULT_ALLOWED_EXTENSIONS } from '../../../src/nest/files/files.constants';
-import { createTestPushSubscriptionsRepo } from '../../helpers/notifications-repos';
-import {
-  createTestUnitOfWork,
-  createTestAppSettingsRepo,
-  sharedTestOrm,
-  createTestUsersRepo,
-  createTestTripMembersRepo,
-  createTestMcpTokensRepo,
-  createTestInviteTokensRepo,
-  createTestOauthTokensRepo,
-  createTestWebauthnCredentialsRepo,
-  createTestPasswordResetTokensRepo,
-} from '../../helpers/test-uow';
-import { budgetRepoArgs } from '../../helpers/budget-repos';
-import { createTestShareTokensRepo, createTestPluginsRepo, createTestPluginUserErasureQueueRepo } from '../../helpers/share-repos';
-import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import { createTestJourneysRepo, createTestJourneyEntriesRepo, createTestJourneyContributorsRepo } from '../../helpers/journey-repos';
-import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
-
 // MailerService is injected since the notifications fold — a stub instead of a
 // module mock. sendPasswordResetEmail is the only thing auth reaches for.
 const mailerStub = { sendPasswordResetEmail: vi.fn() } as unknown as MailerService;
@@ -113,20 +126,49 @@ const membershipStub = { joinTripAsMember } as unknown as TripMembershipService;
 let tokens: TokenService;
 let svc: AuthService;
 beforeAll(async () => {
-  tokens = new TokenService(await createTestMcpTokensRepo(testDb), await createTestUsersRepo(testDb), new EphemeralTokenService());
+  tokens = new TokenService(
+    await createTestMcpTokensRepo(testDb),
+    await createTestUsersRepo(testDb),
+    new EphemeralTokenService(),
+  );
   svc = new AuthService(
-  new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
-  membershipStub,
-  new WebauthnConfigService(await createTestAppSettingsRepo(testDb)),
-  new UserCleanupService((await sharedTestOrm(testDb)).em, new BudgetService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new ExchangeRatesService(), new RealtimeService(), await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb))), await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb)),
-  mailerStub,
-  new EphemeralTokenService(),
-  new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)), await createTestUnitOfWork(testDb),
-  await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb),
-  await createTestInviteTokensRepo(testDb), await createTestMcpTokensRepo(testDb), await createTestOauthTokensRepo(testDb),
-  await createTestWebauthnCredentialsRepo(testDb), await createTestPasswordResetTokensRepo(testDb),
-  await createTestPushSubscriptionsRepo(testDb),
-);
+    new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
+    membershipStub,
+    new WebauthnConfigService(await createTestAppSettingsRepo(testDb)),
+    new UserCleanupService(
+      (await sharedTestOrm(testDb)).em,
+      new BudgetService(
+        new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
+        new ExchangeRatesService(),
+        new RealtimeService(),
+        await createTestUnitOfWork(testDb),
+        ...(await budgetRepoArgs(testDb)),
+      ),
+      await createTestUnitOfWork(testDb),
+      await createTestUsersRepo(testDb),
+      await createTestTripMembersRepo(testDb),
+      await createTestBudgetItemsRepo(testDb),
+      await createTestJourneyShareTokensRepo(testDb),
+      await createTestJourneysRepo(testDb),
+      await createTestJourneyEntriesRepo(testDb),
+      await createTestJourneyContributorsRepo(testDb),
+      await createTestShareTokensRepo(testDb),
+      await createTestPluginsRepo(testDb),
+      await createTestPluginUserErasureQueueRepo(testDb),
+    ),
+    mailerStub,
+    new EphemeralTokenService(),
+    new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)),
+    await createTestUnitOfWork(testDb),
+    await createTestAppSettingsRepo(testDb),
+    await createTestUsersRepo(testDb),
+    await createTestInviteTokensRepo(testDb),
+    await createTestMcpTokensRepo(testDb),
+    await createTestOauthTokensRepo(testDb),
+    await createTestWebauthnCredentialsRepo(testDb),
+    await createTestPasswordResetTokensRepo(testDb),
+    await createTestPushSubscriptionsRepo(testDb),
+  );
 });
 
 /** A Web Push device row; the password paths only care whose it is. */
@@ -159,15 +201,17 @@ describe('requestPasswordReset — OIDC/SSO accounts', () => {
     const { user } = createUser(testDb);
     // OIDC users are created with a random bcrypt hash, so password_hash is set —
     // the old guard keyed off a missing hash and therefore let the reset through.
-    testDb.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?')
       .run('sub-1129', 'https://idp.example', user.id);
 
     const result = await svc.requestPasswordReset(user.email, null);
 
     expect(result.reason).toBe('oidc_only');
     expect(result.tokenForDelivery).toBeNull();
-    const { n } = testDb.prepare('SELECT COUNT(*) AS n FROM password_reset_tokens WHERE user_id = ?')
-      .get(user.id) as { n: number };
+    const { n } = testDb.prepare('SELECT COUNT(*) AS n FROM password_reset_tokens WHERE user_id = ?').get(user.id) as {
+      n: number;
+    };
     expect(n).toBe(0);
   });
 
@@ -182,7 +226,8 @@ describe('requestPasswordReset — OIDC/SSO accounts', () => {
     const { user } = createUser(testDb);
     await svc.requestPasswordReset(user.email, null);
     await svc.requestPasswordReset(user.email, null);
-    const { n } = testDb.prepare('SELECT COUNT(*) AS n FROM password_reset_tokens WHERE user_id = ? AND consumed_at IS NULL')
+    const { n } = testDb
+      .prepare('SELECT COUNT(*) AS n FROM password_reset_tokens WHERE user_id = ? AND consumed_at IS NULL')
       .get(user.id) as { n: number };
     expect(n).toBe(1);
   });
@@ -202,9 +247,7 @@ describe('getAppSettings', () => {
 
   it('AUTH-DB-014: returns settings object for admin with known key allow_registration', async () => {
     const { user } = createAdmin(testDb);
-    testDb
-      .prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allow_registration', 'true')")
-      .run();
+    testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allow_registration', 'true')").run();
     const result = await svc.getAppSettings(user.id);
     expect(result.status).toBeUndefined();
     expect(result.data).toBeDefined();
@@ -247,7 +290,11 @@ describe('isOidcOnlyMode', () => {
 describe('resolveAuthToggles', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
-    testDb.prepare("DELETE FROM app_settings WHERE key IN ('password_login','password_registration','oidc_login','oidc_registration','oidc_only','allow_registration')").run();
+    testDb
+      .prepare(
+        "DELETE FROM app_settings WHERE key IN ('password_login','password_registration','oidc_login','oidc_registration','oidc_only','allow_registration')",
+      )
+      .run();
   });
 
   it('AUTH-DB-022a: returns all true by default (no DB keys, no env override)', async () => {
@@ -485,14 +532,18 @@ describe('changePassword — OIDC-only mode', () => {
     testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('oidc_issuer', 'https://x')").run();
     testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('oidc_client_id', 'id')").run();
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' });
+    const result = await svc.changePassword(user.id, user.email, {
+      current_password: password,
+      new_password: 'New1234!',
+    });
     expect(result.status).toBe(403);
   });
 });
 
 describe('changePassword — session invalidation', () => {
   const pvOf = (id: number) =>
-    (testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(id) as { password_version: number }).password_version;
+    (testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(id) as { password_version: number })
+      .password_version;
   const mcpCount = (id: number) =>
     (testDb.prepare('SELECT COUNT(*) c FROM mcp_tokens WHERE user_id = ?').get(id) as { c: number }).c;
 
@@ -503,7 +554,10 @@ describe('changePassword — session invalidation', () => {
     expect(pvOf(user.id)).toBe(0);
     expect(mcpCount(user.id)).toBe(1);
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' });
+    const result = await svc.changePassword(user.id, user.email, {
+      current_password: password,
+      new_password: 'New1234!',
+    });
 
     expect(result.success).toBe(true);
     expect(typeof result.token).toBe('string'); // fresh session for the current device
@@ -527,7 +581,12 @@ describe('changePassword — session invalidation', () => {
     const jwt = require('jsonwebtoken');
     const { user, password } = createUser(testDb);
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }, true);
+    const result = await svc.changePassword(
+      user.id,
+      user.email,
+      { current_password: password, new_password: 'New1234!' },
+      true,
+    );
     expect(result.success).toBe(true);
     const decoded = jwt.decode(result.token!) as { remember?: boolean; iat: number; exp: number };
     expect(decoded.remember).toBe(true);
@@ -537,15 +596,22 @@ describe('changePassword — session invalidation', () => {
   it('AUTH-DB-036e: the block is atomic — a failing mcp_tokens prune rolls the whole password change back (F2, task-5-review-security.md, USER-CLEANUP-009 pattern)', async () => {
     const { user, password } = createUser(testDb);
     await tokens.createMcpToken(user.id, 'cli');
-    const hashBefore = (testDb.prepare('SELECT password_hash FROM users WHERE id = ?').get(user.id) as { password_hash: string }).password_hash;
+    const hashBefore = (
+      testDb.prepare('SELECT password_hash FROM users WHERE id = ?').get(user.id) as { password_hash: string }
+    ).password_hash;
 
     const mcpTokensRepo = await createTestMcpTokensRepo(testDb);
     const deleteAllForUserSpy = vi.spyOn(mcpTokensRepo, 'deleteAllForUser').mockRejectedValueOnce(new Error('boom'));
     try {
-      await expect(svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' })).rejects.toThrow('boom');
+      await expect(
+        svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }),
+      ).rejects.toThrow('boom');
 
       expect(pvOf(user.id)).toBe(0); // password_version unchanged
-      expect((testDb.prepare('SELECT password_hash FROM users WHERE id = ?').get(user.id) as { password_hash: string }).password_hash).toBe(hashBefore); // old hash unchanged
+      expect(
+        (testDb.prepare('SELECT password_hash FROM users WHERE id = ?').get(user.id) as { password_hash: string })
+          .password_hash,
+      ).toBe(hashBefore); // old hash unchanged
       expect(mcpCount(user.id)).toBe(1); // the mcp_tokens row survives — the DELETE never committed
     } finally {
       deleteAllForUserSpy.mockRestore();
@@ -559,7 +625,10 @@ describe('changePassword — session invalidation', () => {
     addPushDevice(user.id, 'https://web.push.apple.com/mine-2');
     addPushDevice(other.id, 'https://fcm.googleapis.com/fcm/send/theirs');
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' });
+    const result = await svc.changePassword(user.id, user.email, {
+      current_password: password,
+      new_password: 'New1234!',
+    });
 
     expect(result.success).toBe(true);
     expect(pushDeviceCount(user.id)).toBe(0);
@@ -570,7 +639,10 @@ describe('changePassword — session invalidation', () => {
     const { user } = createUser(testDb);
     addPushDevice(user.id, 'https://fcm.googleapis.com/fcm/send/mine');
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: 'wrong', new_password: 'New1234!' });
+    const result = await svc.changePassword(user.id, user.email, {
+      current_password: 'wrong',
+      new_password: 'New1234!',
+    });
 
     expect(result.status).toBe(401);
     expect(pushDeviceCount(user.id)).toBe(1);
@@ -593,8 +665,9 @@ describe('changePassword — session invalidation', () => {
     expect(mcpCount(user.id)).toBe(1);
     expect(pushDeviceCount(user.id)).toBe(1);
     // The new hash rolled back as well, so the old password is still the one that counts.
-    expect((await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' })).success)
-      .toBe(true);
+    expect(
+      (await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' })).success,
+    ).toBe(true);
   });
 });
 
@@ -677,7 +750,9 @@ describe('getAppConfig', () => {
   it('AUTH-DB-051: authenticated caller gets the permissions block; app_settings rows flow through', async () => {
     const { user } = createUser(testDb);
     testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('require_mfa', 'true')").run();
-    testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('notification_channels', 'email,webhook')").run();
+    testDb
+      .prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('notification_channels', 'email,webhook')")
+      .run();
     testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allowed_file_types', 'jpg,png')").run();
     const cfg = await svc.getAppConfig({ id: user.id } as never);
     expect(cfg.permissions).toBeDefined();
@@ -805,21 +880,34 @@ describe('registerUser — success paths', () => {
 
   it('AUTH-DB-057: missing fields / bad email / duplicate answer their bespoke 400/409s', async () => {
     createUser(testDb, { username: 'taken', email: 'taken@x.com' });
-    expect(await svc.registerUser({ username: '', email: 'a@x.com', password: 'Secure123!' }))
-      .toEqual({ error: 'Username, email and password are required', status: 400 });
-    expect(await svc.registerUser({ username: 'u', email: 'not-an-email', password: 'Secure123!' }))
-      .toEqual({ error: 'Invalid email format', status: 400 });
-    expect(await svc.registerUser({ username: 'TAKEN', email: 'other@x.com', password: 'Secure123!' }))
-      .toEqual({ error: 'Registration failed. Please try different credentials.', status: 409 });
+    expect(await svc.registerUser({ username: '', email: 'a@x.com', password: 'Secure123!' })).toEqual({
+      error: 'Username, email and password are required',
+      status: 400,
+    });
+    expect(await svc.registerUser({ username: 'u', email: 'not-an-email', password: 'Secure123!' })).toEqual({
+      error: 'Invalid email format',
+      status: 400,
+    });
+    expect(await svc.registerUser({ username: 'TAKEN', email: 'other@x.com', password: 'Secure123!' })).toEqual({
+      error: 'Registration failed. Please try different credentials.',
+      status: 409,
+    });
   });
 
   it('AUTH-DB-058: an invite bypasses disabled registration and bumps used_count', async () => {
     createUser(testDb);
     testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allow_registration', 'false')").run();
     const invite = createInviteToken(testDb, { max_uses: 2 });
-    const result = await svc.registerUser({ username: 'invited', email: 'invited@x.com', password: 'Secure123!', invite_token: invite.token });
+    const result = await svc.registerUser({
+      username: 'invited',
+      email: 'invited@x.com',
+      password: 'Secure123!',
+      invite_token: invite.token,
+    });
     expect(result.error).toBeUndefined();
-    const { used_count } = testDb.prepare('SELECT used_count FROM invite_tokens WHERE id = ?').get(invite.id) as { used_count: number };
+    const { used_count } = testDb.prepare('SELECT used_count FROM invite_tokens WHERE id = ?').get(invite.id) as {
+      used_count: number;
+    };
     expect(used_count).toBe(1);
     testDb.prepare("DELETE FROM app_settings WHERE key = 'allow_registration'").run();
   });
@@ -833,7 +921,10 @@ describe('loginUser — credential branches', () => {
   });
 
   it('AUTH-DB-060: missing fields answer the bespoke 400', async () => {
-    expect(await svc.loginUser({ email: '', password: '' })).toEqual({ error: 'Email and password are required', status: 400 });
+    expect(await svc.loginUser({ email: '', password: '' })).toEqual({
+      error: 'Email and password are required',
+      status: 400,
+    });
   });
 
   it('AUTH-DB-061: wrong password answers the generic 401 with the wrong_password audit reason', async () => {
@@ -849,12 +940,15 @@ describe('loginUser — credential branches', () => {
     expect(typeof result.token).toBe('string');
     expect(result.user).not.toHaveProperty('password_hash');
     expect(result.auditAction).toBe('user.login');
-    const row = testDb.prepare('SELECT login_count, last_login FROM users WHERE id = ?').get(user.id) as { login_count: number; last_login: string };
+    const row = testDb.prepare('SELECT login_count, last_login FROM users WHERE id = ?').get(user.id) as {
+      login_count: number;
+      last_login: string;
+    };
     expect(row.login_count).toBe(1);
     expect(row.last_login).not.toBeNull();
   });
 
-  it('AUTH-DB-062b: forwards the caller\'s remember choice into the minted token (T4, task-5-review-template.md; unit-level pin, not only the e2e)', async () => {
+  it("AUTH-DB-062b: forwards the caller's remember choice into the minted token (T4, task-5-review-template.md; unit-level pin, not only the e2e)", async () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const jwt = require('jsonwebtoken');
     const { user, password } = createUser(testDb);
@@ -889,14 +983,18 @@ describe('getCurrentUser', () => {
 describe('deleteAccount', () => {
   it('AUTH-DB-065: refuses to delete the last admin', async () => {
     const { user } = createAdmin(testDb);
-    expect(await svc.deleteAccount(user.id, user.email, 'admin'))
-      .toEqual({ error: 'Cannot delete the last admin account', status: 400 });
+    expect(await svc.deleteAccount(user.id, user.email, 'admin')).toEqual({
+      error: 'Cannot delete the last admin account',
+      status: 400,
+    });
   });
 
   it('AUTH-DB-066: demo mode blocks deletion', async () => {
     vi.stubEnv('DEMO_MODE', 'true');
-    expect(await svc.deleteAccount(1, 'demo@nomad.app', 'user'))
-      .toEqual({ error: 'Account deletion is disabled in demo mode.', status: 403 });
+    expect(await svc.deleteAccount(1, 'demo@nomad.app', 'user')).toEqual({
+      error: 'Account deletion is disabled in demo mode.',
+      status: 403,
+    });
     vi.unstubAllEnvs();
   });
 
@@ -932,7 +1030,10 @@ describe('updateAppSettings', () => {
   it('AUTH-DB-074: lockout prevention refuses disabling every login method', async () => {
     const { user } = createAdmin(testDb);
     const result = await svc.updateAppSettings(user.id, { password_login: 'false', oidc_login: 'false' });
-    expect(result).toEqual({ error: 'Cannot disable all login methods. At least one must remain enabled.', status: 400 });
+    expect(result).toEqual({
+      error: 'Cannot disable all login methods. At least one must remain enabled.',
+      status: 400,
+    });
   });
 
   it('AUTH-DB-075: the smtp_pass masking sentinel is skipped on a notification-settings change', async () => {
@@ -942,7 +1043,9 @@ describe('updateAppSettings', () => {
     testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('smtp_pass', 'stored')").run();
     const result = await svc.updateAppSettings(user.id, { smtp_pass: '••••••••', notification_channels: 'email' });
     expect(result.success).toBe(true);
-    const { value } = testDb.prepare("SELECT value FROM app_settings WHERE key = 'smtp_pass'").get() as { value: string };
+    const { value } = testDb.prepare("SELECT value FROM app_settings WHERE key = 'smtp_pass'").get() as {
+      value: string;
+    };
     expect(value).toBe('stored'); // sentinel never overwrites the secret
     expect(result.auditDebugDetails).not.toHaveProperty('smtp_pass', 'stored');
     testDb.prepare("DELETE FROM app_settings WHERE key IN ('smtp_pass','notification_channels')").run();
@@ -957,7 +1060,10 @@ describe('MFA success flows', () => {
     const result = await svc.enableMfa(user.id, code);
     expect(result.success).toBe(true);
     expect(result.backup_codes).toHaveLength(10);
-    const row = testDb.prepare('SELECT mfa_enabled, mfa_secret FROM users WHERE id = ?').get(user.id) as { mfa_enabled: number; mfa_secret: string };
+    const row = testDb.prepare('SELECT mfa_enabled, mfa_secret FROM users WHERE id = ?').get(user.id) as {
+      mfa_enabled: number;
+      mfa_secret: string;
+    };
     expect(row.mfa_enabled).toBe(1);
     expect(row.mfa_secret).toBe('enc:' + setup.secret);
   });
@@ -974,7 +1080,10 @@ describe('MFA success flows', () => {
     testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ? WHERE id = ?').run('enc:' + secret, user.id);
     const result = await svc.disableMfa(user.id, user.email, { password, code: authenticator.generate(secret) });
     expect(result).toEqual({ success: true, mfa_enabled: false });
-    const row = testDb.prepare('SELECT mfa_enabled, mfa_secret FROM users WHERE id = ?').get(user.id) as { mfa_enabled: number; mfa_secret: string | null };
+    const row = testDb.prepare('SELECT mfa_enabled, mfa_secret FROM users WHERE id = ?').get(user.id) as {
+      mfa_enabled: number;
+      mfa_secret: string | null;
+    };
     expect(row.mfa_enabled).toBe(0);
     expect(row.mfa_secret).toBeNull();
   });
@@ -983,8 +1092,9 @@ describe('MFA success flows', () => {
     const { user } = createUser(testDb);
     const secret = authenticator.generateSecret();
     testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ? WHERE id = ?').run('enc:' + secret, user.id);
-    expect(await svc.disableMfa(user.id, user.email, { password: 'wrong', code: authenticator.generate(secret) }))
-      .toEqual({ error: 'Incorrect password', status: 401 });
+    expect(
+      await svc.disableMfa(user.id, user.email, { password: 'wrong', code: authenticator.generate(secret) }),
+    ).toEqual({ error: 'Incorrect password', status: 401 });
   });
 
   it('AUTH-DB-080: verifyMfaLogin succeeds with a TOTP code from the interstitial token', async () => {
@@ -993,7 +1103,10 @@ describe('MFA success flows', () => {
     testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ? WHERE id = ?').run('enc:' + secret, user.id);
     const interstitial = await svc.loginUser({ email: user.email, password });
     expect(interstitial.mfa_required).toBe(true);
-    const result = await svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: authenticator.generate(secret) });
+    const result = await svc.verifyMfaLogin({
+      mfa_token: interstitial.mfa_token,
+      code: authenticator.generate(secret),
+    });
     expect(typeof result.token).toBe('string');
     expect(result.auditUserId).toBe(user.id);
   });
@@ -1003,12 +1116,16 @@ describe('MFA success flows', () => {
     const secret = authenticator.generateSecret();
     const codes = ['AAAA-1111', 'BBBB-2222'];
     // hashBackupCode (legacy SHA-256) hashes still verify via matchBackupCode.
-    testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ?, updated_at = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ?, updated_at = ? WHERE id = ?')
       .run('enc:' + secret, JSON.stringify(codes.map(hashBackupCode)), '2000-01-01T00:00:00.000Z', user.id);
     const interstitial = await svc.loginUser({ email: user.email, password });
     const result = await svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: 'AAAA-1111' });
     expect(typeof result.token).toBe('string');
-    const row = testDb.prepare('SELECT mfa_backup_codes, updated_at FROM users WHERE id = ?').get(user.id) as { mfa_backup_codes: string; updated_at: string };
+    const row = testDb.prepare('SELECT mfa_backup_codes, updated_at FROM users WHERE id = ?').get(user.id) as {
+      mfa_backup_codes: string;
+      updated_at: string;
+    };
     expect(JSON.parse(row.mfa_backup_codes)).toHaveLength(1); // used code spliced out
     // AU33 (setBackupCodesAndTouch, F3 task-5-review-security.md): the backup-code
     // login branch DOES stamp updated_at, unlike resetPassword's AU44 below.
@@ -1026,11 +1143,15 @@ describe('resetPassword', () => {
     expect(issued.reason).toBe('issued');
     const result = await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' });
     expect(result).toEqual({ success: true, userId: user.id });
-    const row = testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as { password_version: number };
+    const row = testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as {
+      password_version: number;
+    };
     expect(row.password_version).toBe(1);
     // token is burned — a second use answers the bespoke 400
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh456!' }))
-      .toEqual({ error: 'This reset link has already been used', status: 400 });
+    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh456!' })).toEqual({
+      error: 'This reset link has already been used',
+      status: 400,
+    });
   });
 
   it('AUTH-DB-082b: forgets every push device of the user along with the MCP tokens', async () => {
@@ -1041,10 +1162,14 @@ describe('resetPassword', () => {
     addPushDevice(other.id, 'https://fcm.googleapis.com/fcm/send/theirs');
     const issued = await svc.requestPasswordReset(user.email, null);
 
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
-      .toEqual({ success: true, userId: user.id });
+    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).toEqual({
+      success: true,
+      userId: user.id,
+    });
 
-    expect((testDb.prepare('SELECT COUNT(*) c FROM mcp_tokens WHERE user_id = ?').get(user.id) as { c: number }).c).toBe(0);
+    expect(
+      (testDb.prepare('SELECT COUNT(*) c FROM mcp_tokens WHERE user_id = ?').get(user.id) as { c: number }).c,
+    ).toBe(0);
     expect(pushDeviceCount(user.id)).toBe(0);
     expect(pushDeviceCount(other.id)).toBe(1);
   });
@@ -1055,45 +1180,64 @@ describe('resetPassword', () => {
     const issued = await svc.requestPasswordReset(user.email, null);
     testDb.exec("CREATE TRIGGER boom BEFORE DELETE ON push_subscriptions BEGIN SELECT RAISE(ABORT, 'boom'); END");
     try {
-      await expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).rejects.toThrow('boom');
+      await expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).rejects.toThrow(
+        'boom',
+      );
     } finally {
       testDb.exec('DROP TRIGGER boom');
     }
 
     expect(pushDeviceCount(user.id)).toBe(1);
-    const row = testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as { password_version: number };
+    const row = testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as {
+      password_version: number;
+    };
     expect(row.password_version).toBe(0);
     // Nothing was burned, so the same link still completes the reset.
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
-      .toEqual({ success: true, userId: user.id });
+    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).toEqual({
+      success: true,
+      userId: user.id,
+    });
     expect(pushDeviceCount(user.id)).toBe(0);
   });
 
   it('AUTH-DB-083: bespoke 400s for missing/unknown/expired tokens', async () => {
-    expect(await svc.resetPassword({ new_password: 'Fresh123!' })).toEqual({ error: 'Reset token is required', status: 400 });
+    expect(await svc.resetPassword({ new_password: 'Fresh123!' })).toEqual({
+      error: 'Reset token is required',
+      status: 400,
+    });
     expect(await svc.resetPassword({ token: 't' })).toEqual({ error: 'New password is required', status: 400 });
-    expect(await svc.resetPassword({ token: 'unknown-token', new_password: 'Fresh123!' }))
-      .toEqual({ error: 'Invalid or expired reset link', status: 400 });
+    expect(await svc.resetPassword({ token: 'unknown-token', new_password: 'Fresh123!' })).toEqual({
+      error: 'Invalid or expired reset link',
+      status: 400,
+    });
 
     const { user } = createUser(testDb);
     const issued = await svc.requestPasswordReset(user.email, null);
-    testDb.prepare("UPDATE password_reset_tokens SET expires_at = '2000-01-01T00:00:00.000Z' WHERE user_id = ?").run(user.id);
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
-      .toEqual({ error: 'Reset link has expired. Please request a new one.', status: 400 });
+    testDb
+      .prepare("UPDATE password_reset_tokens SET expires_at = '2000-01-01T00:00:00.000Z' WHERE user_id = ?")
+      .run(user.id);
+    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).toEqual({
+      error: 'Reset link has expired. Please request a new one.',
+      status: 400,
+    });
   });
 
   it('AUTH-DB-084: an MFA-enabled account demands a code, then consumes a backup code', async () => {
     const { user } = createUser(testDb);
     const secret = authenticator.generateSecret();
-    testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?')
       .run('enc:' + secret, JSON.stringify([hashBackupCode('CCCC-3333')]), user.id);
     const issued = await svc.requestPasswordReset(user.email, null);
     // no code → mfa_required interstitial, token NOT burned
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
-      .toEqual({ mfa_required: true, status: 200 });
+    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).toEqual({
+      mfa_required: true,
+      status: 200,
+    });
     // wrong code → 401
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: '000000' }))
-      .toEqual({ error: 'Invalid MFA code', status: 401 });
+    expect(
+      await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: '000000' }),
+    ).toEqual({ error: 'Invalid MFA code', status: 401 });
 
     // AU44 vs AU33 (F3, task-5-review-security.md): resetPassword's backup-code
     // splice must call the untouched setBackupCodes (AU44), never
@@ -1107,8 +1251,9 @@ describe('resetPassword', () => {
     const setBackupCodesAndTouchSpy = vi.spyOn(usersRepo, 'setBackupCodesAndTouch');
     try {
       // backup code → success + code consumed
-      expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: 'CCCC-3333' }))
-        .toEqual({ success: true, userId: user.id });
+      expect(
+        await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: 'CCCC-3333' }),
+      ).toEqual({ success: true, userId: user.id });
       expect(setBackupCodesSpy).toHaveBeenCalledTimes(1);
       expect(setBackupCodesAndTouchSpy).not.toHaveBeenCalled();
     } finally {
@@ -1116,24 +1261,35 @@ describe('resetPassword', () => {
       setBackupCodesAndTouchSpy.mockRestore();
     }
 
-    const row = testDb.prepare('SELECT mfa_backup_codes FROM users WHERE id = ?').get(user.id) as { mfa_backup_codes: string };
+    const row = testDb.prepare('SELECT mfa_backup_codes FROM users WHERE id = ?').get(user.id) as {
+      mfa_backup_codes: string;
+    };
     expect(JSON.parse(row.mfa_backup_codes)).toHaveLength(0);
   });
 
   it('AUTH-DB-084b: the block is atomic — a failing mcp_tokens prune rolls the whole reset-password block back (F2, task-5-review-security.md, USER-CLEANUP-009 pattern)', async () => {
     const { user } = createUser(testDb);
     const issued = await svc.requestPasswordReset(user.email, null);
-    const hashBefore = (testDb.prepare('SELECT password_hash FROM users WHERE id = ?').get(user.id) as { password_hash: string }).password_hash;
+    const hashBefore = (
+      testDb.prepare('SELECT password_hash FROM users WHERE id = ?').get(user.id) as { password_hash: string }
+    ).password_hash;
 
     const mcpTokensRepo = await createTestMcpTokensRepo(testDb);
     const deleteAllForUserSpy = vi.spyOn(mcpTokensRepo, 'deleteAllForUser').mockRejectedValueOnce(new Error('boom'));
     try {
-      await expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).rejects.toThrow('boom');
+      await expect(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).rejects.toThrow(
+        'boom',
+      );
 
-      const row = testDb.prepare('SELECT password_hash, password_version FROM users WHERE id = ?').get(user.id) as { password_hash: string; password_version: number };
+      const row = testDb.prepare('SELECT password_hash, password_version FROM users WHERE id = ?').get(user.id) as {
+        password_hash: string;
+        password_version: number;
+      };
       expect(row.password_hash).toBe(hashBefore); // old hash unchanged
       expect(row.password_version).toBe(0);
-      const tokenRow = testDb.prepare('SELECT consumed_at FROM password_reset_tokens WHERE user_id = ?').get(user.id) as { consumed_at: string | null };
+      const tokenRow = testDb
+        .prepare('SELECT consumed_at FROM password_reset_tokens WHERE user_id = ?')
+        .get(user.id) as { consumed_at: string | null };
       expect(tokenRow.consumed_at).toBeNull(); // the reset token was never committed as consumed
     } finally {
       deleteAllForUserSpy.mockRestore();
@@ -1178,32 +1334,43 @@ describe('auth quirk fixes', () => {
     const trip = createTrip(testDb, owner.id);
     const invite = createInviteToken(testDb, { max_uses: 5 });
     testDb.prepare('UPDATE invite_tokens SET trip_id = ? WHERE id = ?').run(trip.id, invite.id);
-    joinTripAsMember.mockImplementationOnce(() => { throw new Error('boom'); });
+    joinTripAsMember.mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
 
-    const result = await svc.registerUser({ username: 'rollback', email: 'rollback@x.com', password: 'Secure123!', invite_token: invite.token });
+    const result = await svc.registerUser({
+      username: 'rollback',
+      email: 'rollback@x.com',
+      password: 'Secure123!',
+      invite_token: invite.token,
+    });
 
     expect(result).toEqual({ error: 'Error creating user', status: 500 });
     expect(testDb.prepare("SELECT id FROM users WHERE email = 'rollback@x.com'").get()).toBeUndefined();
-    const { used_count } = testDb.prepare('SELECT used_count FROM invite_tokens WHERE id = ?').get(invite.id) as { used_count: number };
+    const { used_count } = testDb.prepare('SELECT used_count FROM invite_tokens WHERE id = ?').get(invite.id) as {
+      used_count: number;
+    };
     expect(used_count).toBe(0);
   });
 
   it('AUTH-DB-091: a backup-code login burns the code and records the login as one atomic pair', async () => {
     const { user, password } = createUser(testDb);
     const secret = authenticator.generateSecret();
-    testDb.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ? WHERE id = ?')
       .run('enc:' + secret, JSON.stringify([hashBackupCode('DDDD-4444')]), user.id);
     const interstitial = await svc.loginUser({ email: user.email, password });
 
     const result = await svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: 'DDDD-4444' });
 
     expect(typeof result.token).toBe('string');
-    const row = testDb.prepare('SELECT mfa_backup_codes, login_count, last_login FROM users WHERE id = ?').get(user.id) as { mfa_backup_codes: string; login_count: number; last_login: string | null };
+    const row = testDb
+      .prepare('SELECT mfa_backup_codes, login_count, last_login FROM users WHERE id = ?')
+      .get(user.id) as { mfa_backup_codes: string; login_count: number; last_login: string | null };
     expect(JSON.parse(row.mfa_backup_codes)).toHaveLength(0);
     expect(row.login_count).toBe(1);
     expect(row.last_login).not.toBeNull();
   });
-
 });
 
 // ---------------------------------------------------------------------------
@@ -1234,18 +1401,30 @@ describe('generateToken remember claim (#1927)', () => {
 
   it('AUTH-TOKEN-001: embeds remember and picks the matching lifetime when the caller chose', async () => {
     const { user } = createUser(testDb);
-    const long = jwt.decode(await svc.generateToken({ id: user.id }, true)) as { remember?: boolean; iat: number; exp: number };
+    const long = jwt.decode(await svc.generateToken({ id: user.id }, true)) as {
+      remember?: boolean;
+      iat: number;
+      exp: number;
+    };
     expect(long.remember).toBe(true);
     expect(long.exp - long.iat).toBe(2592000);
 
-    const short = jwt.decode(await svc.generateToken({ id: user.id }, false)) as { remember?: boolean; iat: number; exp: number };
+    const short = jwt.decode(await svc.generateToken({ id: user.id }, false)) as {
+      remember?: boolean;
+      iat: number;
+      exp: number;
+    };
     expect(short.remember).toBe(false);
     expect(short.exp - short.iat).toBe(86400);
   });
 
   it('AUTH-TOKEN-002: omits the claim entirely when the caller did not choose (legacy payload)', async () => {
     const { user } = createUser(testDb);
-    const decoded = jwt.decode(await svc.generateToken({ id: user.id })) as { remember?: boolean; iat: number; exp: number };
+    const decoded = jwt.decode(await svc.generateToken({ id: user.id })) as {
+      remember?: boolean;
+      iat: number;
+      exp: number;
+    };
     expect('remember' in decoded).toBe(false);
     expect(decoded.exp - decoded.iat).toBe(86400);
   });

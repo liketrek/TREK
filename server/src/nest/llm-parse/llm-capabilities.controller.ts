@@ -1,9 +1,9 @@
+import type { User } from '../../types';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { LlmParseService } from './llm-parse.service';
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import type { LlmCapabilitiesResponse } from '@trek/shared';
-import type { User } from '../../types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { LlmParseService } from './llm-parse.service';
 
 /**
  * What the caller's AI model can be handed. Per user, unlike the public

@@ -41,8 +41,18 @@
  * check — is the ratchet that would actually go red the day a real
  * conversion regresses this.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { Trips } from '../../src/db/entities/Trips.entity';
+import { CalendarService } from '../../src/nest/calendar/calendar.service';
+import { createTrip, createUser } from '../helpers/factories';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import { randomUUID } from 'node:crypto';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -57,17 +67,11 @@ vi.mock('../../src/config', () => ({
   SESSION_DURATION_SECONDS: 86400,
   DEFAULT_LANGUAGE: 'en',
 }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn(), getOnlineUserIds: vi.fn(() => []) }));
-
-import { randomUUID } from 'node:crypto';
-import { MikroORM } from '@mikro-orm/core';
-import request from 'supertest';
-import type { Application } from 'express';
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { CalendarService } from '../../src/nest/calendar/calendar.service';
-import { Trips } from '../../src/db/entities/Trips.entity';
-import { createTrip, createUser } from '../helpers/factories';
+vi.mock('../../src/websocket', () => ({
+  broadcast: vi.fn(),
+  broadcastToUser: vi.fn(),
+  getOnlineUserIds: vi.fn(() => []),
+}));
 
 describe('Anonymous ICS feed routes run inside a request context', () => {
   let app: INestApplication;
@@ -141,7 +145,7 @@ describe('Anonymous ICS feed routes run inside a request context', () => {
     const calendar = app.get(CalendarService);
     const spy = vi.spyOn(calendar, 'buildTripCalendar').mockImplementation(async () => {
       throw new Error(
-        "ValidationError: Using global context, please provide the EM instance via ContextProvider.forkEntityManager() or wrap your queries via em.transactional(cb) or MikroORM.RequestContext.create(em, cb) (cannotUseGlobalContext)",
+        'ValidationError: Using global context, please provide the EM instance via ContextProvider.forkEntityManager() or wrap your queries via em.transactional(cb) or MikroORM.RequestContext.create(em, cb) (cannotUseGlobalContext)',
       );
     });
     try {
@@ -195,7 +199,12 @@ describe('Anonymous ICS feed routes run inside a request context', () => {
       } catch (e) {
         caught = e;
       }
-      return { calName: 'Stub Calendar', filename: 'stub.ics', timezones: new Map(), events: ['BEGIN:VEVENT\r\nSUMMARY:Sentinel Event\r\nEND:VEVENT\r\n'] };
+      return {
+        calName: 'Stub Calendar',
+        filename: 'stub.ics',
+        timezones: new Map(),
+        events: ['BEGIN:VEVENT\r\nSUMMARY:Sentinel Event\r\nEND:VEVENT\r\n'],
+      };
     });
     try {
       const httpApp = app.getHttpAdapter().getInstance() as Application;

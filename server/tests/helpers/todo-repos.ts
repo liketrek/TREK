@@ -1,9 +1,10 @@
-import type Database from 'better-sqlite3';
-import { sharedTestOrm } from './test-uow';
-import { TodoItems } from '../../src/db/entities/TodoItems.entity';
-import type { TodoItemsRepository } from '../../src/db/repositories/TodoItems.repository';
 import { TodoCategoryAssignees } from '../../src/db/entities/TodoCategoryAssignees.entity';
+import { TodoItems } from '../../src/db/entities/TodoItems.entity';
 import type { TodoCategoryAssigneesRepository } from '../../src/db/repositories/TodoCategoryAssignees.repository';
+import type { TodoItemsRepository } from '../../src/db/repositories/TodoItems.repository';
+import { sharedTestOrm } from './test-uow';
+
+import type Database from 'better-sqlite3';
 
 /**
  * Plan 3e Task 4 (`TodoService`) test-only repository factories, bound to a

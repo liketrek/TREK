@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   assignmentCreateRequestSchema,
   assignmentReorderRequestSchema,
@@ -10,6 +9,8 @@ import {
   assignmentRouteRequestSchema,
   assignmentParticipantsRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared assignment

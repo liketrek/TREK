@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Vyberte šablonu...',
   'settings.mapDefaultHint': 'Ponechte prázdné pro OpenStreetMap (výchozí)',
   'settings.routingBase': 'Vlastní směrovací server',
-  'settings.routingBaseHint': 'Vlastní instance OSRM. Prázdné použije veřejné servery s limitem asi jednoho požadavku za sekundu — na den to stačí, na road trip je to málo. Projeví se po restartu serveru.',
+  'settings.routingBaseHint':
+    'Vlastní instance OSRM. Prázdné použije veřejné servery s limitem asi jednoho požadavku za sekundu — na den to stačí, na road trip je to málo. Projeví se po restartu serveru.',
   'settings.valhallaBase': 'Vlastní instance Valhalla',
   'settings.valhallaBaseHint':
     'TREK ve výchozím nastavení používá veřejnou Valhallu FOSSGIS k vyhýbání se mýtnému, dálnicím a trajektům. Zde můžete zadat URL vlastní Valhally a používat ji místo veřejné. Pokud je nastavena pouze vlastní směrovací instance, veřejná Valhalla se nepoužije. Po zadání vlastní URL restartujte server a znovu načtěte stránku.',
@@ -79,7 +80,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'První den týdne ve všech výběrech data. Vacay má vlastní nastavení.',
   'settings.preferredNavApp': 'Otevírat místa v',
   'settings.preferredNavAppAsk': 'Pokaždé se zeptat',
-  'settings.preferredNavAppHint': 'Když je vybraná aplikace, tlačítko navigace ji rovnou otevře místo nabídky všech mapových aplikací.',
+  'settings.preferredNavAppHint':
+    'Když je vybraná aplikace, tlačítko navigace ji rovnou otevře místo nabídky všech mapových aplikací.',
   'settings.blurBookingCodes': 'Skrýt rezervační kódy',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -346,7 +348,8 @@ const settings: TranslationStrings = {
   'settings.currencyTrip': 'Měna cesty',
   'settings.placeLanguage': 'Názvy míst',
   'settings.placeLanguageApp': 'Stejně jako aplikace',
-  'settings.placeLanguageHint': 'Jazyk, ve kterém odpovídá vyhledávání míst, návrhy a adresy. Pokud místo v tomto jazyce název nemá, zobrazí se jeho místní název.',
+  'settings.placeLanguageHint':
+    'Jazyk, ve kterém odpovídá vyhledávání míst, návrhy a adresy. Pokud místo v tomto jazyce název nemá, zobrazí se jeho místní název.',
   'settings.passkey.title': 'Přístupové klíče',
   'settings.passkey.description':
     'Přihlašujte se rychleji a s ochranou proti phishingu pomocí přístupového klíče — otiskem prstu, obličejem, PINem nebo hardwarovým klíčem. Vaše heslo zůstává jako záloha.',
@@ -493,8 +496,10 @@ const settings: TranslationStrings = {
   'settings.general.startup': 'Spuštění',
   'settings.dayDateFirst': 'Datum na začátku nadpisů dnů',
   'settings.compactUnplanned': 'Kompaktní značky pro nenaplánovaná místa',
-  'settings.compactUnplannedHint': 'Místa, která nejsou naplánovaná v žádném dni, se zobrazí jako malé značky bez fotky, aby plánované zastávky vynikly.',
-  'settings.dayDateFirstHint': 'Každý den začne kalendářním datem a vedle něj se zobrazí „Den 1“ nebo vlastní název dne.',
+  'settings.compactUnplannedHint':
+    'Místa, která nejsou naplánovaná v žádném dni, se zobrazí jako malé značky bez fotky, aby plánované zastávky vynikly.',
+  'settings.dayDateFirstHint':
+    'Každý den začne kalendářním datem a vedle něj se zobrazí „Den 1“ nebo vlastní název dne.',
   'settings.startPage': 'Úvodní stránka',
   'settings.startPageDashboard': 'Přehled',
   'settings.startPageActiveTrip': 'Aktivní cesta',
@@ -537,7 +542,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'Bez připojení. Připojte se, abyste mohli ukládat cesty offline.',
   'settings.offline.notice.signedOut': 'Vaše relace vypršela. Pro synchronizaci se znovu přihlaste.',
   'settings.offline.notice.failed': 'Stahování se nepodařilo dokončit. Zkontrolujte připojení a zkuste to znovu.',
-  'settings.offline.notice.loadFailed': 'Offline úložiště tohoto zařízení se nepodařilo načíst. Obvykle pomůže vymazání mezipaměti.',
+  'settings.offline.notice.loadFailed':
+    'Offline úložiště tohoto zařízení se nepodařilo načíst. Obvykle pomůže vymazání mezipaměti.',
   'settings.offline.clear': 'Vymazat mezipaměť',
   'settings.offline.clearConfirm': 'Vymazat všechna offline data cest? Kdykoli online je můžete znovu synchronizovat.',
   'settings.offline.stats.trips': 'Cesty v mezipaměti',
@@ -595,7 +601,8 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Seznam přání',
   'settings.apiScopes.stats': 'Souhrny',
   'settings.apiKeys.title': 'Klíče API',
-  'settings.apiKeys.description': 'Klíče pro veřejné API, aby jiný software mohl číst tvoje cesty. Jen pro čtení: klíč nemůže nic měnit ani mazat.',
+  'settings.apiKeys.description':
+    'Klíče pro veřejné API, aby jiný software mohl číst tvoje cesty. Jen pro čtení: klíč nemůže nic měnit ani mazat.',
   'settings.apiKeys.create': 'Vytvořit klíč',
   'settings.apiKeys.empty': 'Zatím žádné klíče. Vytvoř jeden a připoj další software.',
   'settings.apiKeys.createdAt': 'vytvořen',
@@ -610,7 +617,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.endpoint': 'Endpoint',
   'settings.apiKeys.neverUsed': 'nikdy nepoužit',
   'settings.apiKeys.loadFailed': 'Klíče se nepodařilo načíst. Obnov stránku a zkus to znovu.',
-  'settings.apiKeys.limitReached': 'Máš {max} klíčů, víc jeden účet mít nemůže. Smaž klíč, který už nepotřebuješ, a vytvoř nový.',
+  'settings.apiKeys.limitReached':
+    'Máš {max} klíčů, víc jeden účet mít nemůže. Smaž klíč, který už nepotřebuješ, a vytvoř nový.',
   'settings.apiKeys.copyFailed': 'Kopírování se nepodařilo. Označ text a zkopíruj ho ručně.',
   'settings.apiKeys.modal.createTitle': 'Vytvořit klíč API',
   'settings.apiKeys.modal.name': 'Název',
@@ -619,7 +627,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Vytváří se...',
   'settings.apiKeys.modal.create': 'Vytvořit',
   'settings.apiKeys.modal.createdTitle': 'Klíč API vytvořen',
-  'settings.apiKeys.modal.createdWarning': 'Zkopíruj klíč hned teď. Zobrazí se jen jednou a později ho už nelze získat.',
+  'settings.apiKeys.modal.createdWarning':
+    'Zkopíruj klíč hned teď. Zobrazí se jen jednou a později ho už nelze získat.',
   'settings.apiKeys.modal.done': 'Hotovo',
 };
 

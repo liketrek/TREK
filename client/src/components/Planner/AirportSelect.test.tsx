@@ -1,9 +1,9 @@
 // FE-PLANNER-AIRPORTSEL-001 to FE-PLANNER-AIRPORTSEL-022
-import { useState } from 'react';
-import { delay, http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
-import { render, screen, fireEvent, waitFor, act } from '../../../tests/helpers/render';
+import { delay, http, HttpResponse } from 'msw';
+import { useState } from 'react';
 import { server } from '../../../tests/helpers/msw/server';
+import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import AirportSelect, { type Airport } from './AirportSelect';
 
 function buildAirport(overrides: Partial<Airport> = {}): Airport {
@@ -28,14 +28,19 @@ function Host({ initial = null, onPick }: { initial?: Airport | null; onPick?: (
   return (
     <AirportSelect
       value={value}
-      onChange={(a) => { setValue(a); onPick?.(a); }}
+      onChange={(a) => {
+        setValue(a);
+        onPick?.(a);
+      }}
     />
   );
 }
 
 /** Let the debounce fire and any in-flight request settle. */
 async function settle(ms = 350) {
-  await act(async () => { await new Promise((r) => setTimeout(r, ms)); });
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, ms));
+  });
 }
 
 function airportRoute(handler: (q: string) => Response | Promise<Response>) {
@@ -71,7 +76,12 @@ describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-005: a single character does not reach the API', async () => {
     const user = userEvent.setup();
     const seen: string[] = [];
-    server.use(airportRoute((q) => { seen.push(q); return HttpResponse.json([buildAirport()]); }));
+    server.use(
+      airportRoute((q) => {
+        seen.push(q);
+        return HttpResponse.json([buildAirport()]);
+      })
+    );
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'F');
@@ -117,7 +127,12 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-009: shows the loading row while the request is in flight', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute(async () => { await delay(200); return HttpResponse.json([buildAirport()]); }));
+    server.use(
+      airportRoute(async () => {
+        await delay(200);
+        return HttpResponse.json([buildAirport()]);
+      })
+    );
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'FRA');
@@ -144,7 +159,12 @@ describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-011: the picked label does not trigger a follow-up search', async () => {
     const user = userEvent.setup();
     const seen: string[] = [];
-    server.use(airportRoute((q) => { seen.push(q); return HttpResponse.json([buildAirport()]); }));
+    server.use(
+      airportRoute((q) => {
+        seen.push(q);
+        return HttpResponse.json([buildAirport()]);
+      })
+    );
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'FRA');
@@ -180,10 +200,11 @@ describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-014: ArrowDown then Enter picks the highlighted airport', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(airportRoute(() => HttpResponse.json([
-      buildAirport(),
-      buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' }),
-    ])));
+    server.use(
+      airportRoute(() =>
+        HttpResponse.json([buildAirport(), buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' })])
+      )
+    );
 
     render(<Host onPick={onPick} />);
     const input = screen.getByRole('textbox');
@@ -199,10 +220,11 @@ describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-015: ArrowUp cannot move the highlight above the first row', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(airportRoute(() => HttpResponse.json([
-      buildAirport(),
-      buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' }),
-    ])));
+    server.use(
+      airportRoute(() =>
+        HttpResponse.json([buildAirport(), buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' })])
+      )
+    );
 
     render(<Host onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'ger');
@@ -246,10 +268,11 @@ describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-018: hovering a row moves the highlight so Enter picks it', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(airportRoute(() => HttpResponse.json([
-      buildAirport(),
-      buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' }),
-    ])));
+    server.use(
+      airportRoute(() =>
+        HttpResponse.json([buildAirport(), buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' })])
+      )
+    );
 
     render(<Host onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'ger');
@@ -278,11 +301,13 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-020: a failing request drops the previous suggestions', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute((q) =>
-      q === 'FRA'
-        ? HttpResponse.json([buildAirport()])
-        : HttpResponse.json({ error: 'lookup failed' }, { status: 500 }),
-    ));
+    server.use(
+      airportRoute((q) =>
+        q === 'FRA'
+          ? HttpResponse.json([buildAirport()])
+          : HttpResponse.json({ error: 'lookup failed' }, { status: 500 })
+      )
+    );
 
     render(<Host />);
     const input = screen.getByRole('textbox');
@@ -309,13 +334,15 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-022: a superseded slow request must not clobber the newer rows', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute(async (q) => {
-      if (q === 'Fra') {
-        await delay(600);
-        return HttpResponse.json([buildAirport({ iata: 'STL', name: 'Stale Airport', city: 'Stale' })]);
-      }
-      return HttpResponse.json([buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' })]);
-    }));
+    server.use(
+      airportRoute(async (q) => {
+        if (q === 'Fra') {
+          await delay(600);
+          return HttpResponse.json([buildAirport({ iata: 'STL', name: 'Stale Airport', city: 'Stale' })]);
+        }
+        return HttpResponse.json([buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' })]);
+      })
+    );
 
     render(<Host />);
     const input = screen.getByRole('textbox');

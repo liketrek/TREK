@@ -1,4 +1,3 @@
-import { Injectable } from '@nestjs/common';
 import type {
   DocResult,
   DocumentConnectionRef,
@@ -27,6 +26,7 @@ import {
   type WebdavEntry,
   type WebdavFlavor,
 } from './webdav.client';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The document adapter for Nextcloud and OpenCloud.
@@ -131,13 +131,9 @@ function credsOf(conn: DocumentConnectionRef): WebdavCreds | null {
   if (!flavor || !base) return null;
 
   const username =
-    flavor === 'nextcloud'
-      ? textSetting(conn.settings, 'login_name')
-      : textSetting(conn.settings, 'username');
+    flavor === 'nextcloud' ? textSetting(conn.settings, 'login_name') : textSetting(conn.settings, 'username');
   const password =
-    flavor === 'nextcloud'
-      ? textSetting(conn.secrets, 'app_password')
-      : textSetting(conn.secrets, 'app_token');
+    flavor === 'nextcloud' ? textSetting(conn.secrets, 'app_password') : textSetting(conn.secrets, 'app_token');
   if (!username || !password) return null;
 
   return { origin, prefix: base[2], username, password, allowInsecureTls: conn.allowInsecureTls, flavor };
@@ -186,9 +182,7 @@ function parentOf(encodedPath: string): string {
 
 /** The document's path inside its scope, decoded, with no leading slash. */
 function relativeOf(entry: WebdavEntry, rootDecoded: string): string {
-  return entry.path.startsWith(`${rootDecoded}/`)
-    ? entry.path.slice(rootDecoded.length + 1)
-    : entry.name;
+  return entry.path.startsWith(`${rootDecoded}/`) ? entry.path.slice(rootDecoded.length + 1) : entry.name;
 }
 
 function documentOf(entry: WebdavEntry, rootDecoded: string): RemoteDocument {
@@ -315,19 +309,14 @@ export class WebdavDocumentProvider implements DocumentProvider {
 
     try {
       const options =
-        creds.flavor === 'nextcloud'
-          ? await this.nextcloudScopes(conn, creds)
-          : await this.opencloudScopes(creds);
+        creds.flavor === 'nextcloud' ? await this.nextcloudScopes(conn, creds) : await this.opencloudScopes(creds);
       return docOk(needle ? options.filter((option) => option.label.toLowerCase().includes(needle)) : options);
     } catch (err: unknown) {
       return failureOf(err);
     }
   }
 
-  private async nextcloudScopes(
-    conn: DocumentConnectionRef,
-    creds: WebdavCreds,
-  ): Promise<DocumentScopeOption[]> {
+  private async nextcloudScopes(conn: DocumentConnectionRef, creds: WebdavCreds): Promise<DocumentScopeOption[]> {
     const basePath = basePathOf(conn);
     let listing;
     try {
@@ -355,16 +344,18 @@ export class WebdavDocumentProvider implements DocumentProvider {
 
   private async opencloudScopes(creds: WebdavCreds): Promise<DocumentScopeOption[]> {
     const drives = await this.client.listDrives(creds);
-    return drives
-      // `virtual` is the synthetic "Shares" drive, which has no storage of its
-      // own and cannot hold an upload.
-      .filter((drive) => drive.driveType !== 'virtual')
-      .map((drive) => ({
-        scopeKey: `drive:${drive.id}`,
-        label: drive.name,
-        remoteRootId: drive.id,
-        remoteRootPath: `${creds.origin}${drive.webDavPath}`,
-      }));
+    return (
+      drives
+        // `virtual` is the synthetic "Shares" drive, which has no storage of its
+        // own and cannot hold an upload.
+        .filter((drive) => drive.driveType !== 'virtual')
+        .map((drive) => ({
+          scopeKey: `drive:${drive.id}`,
+          label: drive.name,
+          remoteRootId: drive.id,
+          remoteRootPath: `${creds.origin}${drive.webDavPath}`,
+        }))
+    );
   }
 
   async createScope(conn: DocumentConnectionRef, name: string): Promise<DocResult<DocumentScopeOption>> {
@@ -422,10 +413,7 @@ export class WebdavDocumentProvider implements DocumentProvider {
     }
   }
 
-  async resolveScope(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-  ): Promise<DocResult<DocumentScopeOption>> {
+  async resolveScope(conn: DocumentConnectionRef, scope: DocumentScopeRef): Promise<DocResult<DocumentScopeOption>> {
     const resolved = this.resolve(conn, scope);
     if (docFailed(resolved)) return resolved;
     const { creds, rootPath, scopeId } = resolved.data;
@@ -469,12 +457,14 @@ export class WebdavDocumentProvider implements DocumentProvider {
   async list(
     conn: DocumentConnectionRef,
     scope: DocumentScopeRef,
-  ): Promise<DocResult<{
-    documents: RemoteDocument[];
-    cursor: string | null;
-    cursorUnchanged: boolean;
-    truncated: boolean;
-  }>> {
+  ): Promise<
+    DocResult<{
+      documents: RemoteDocument[];
+      cursor: string | null;
+      cursorUnchanged: boolean;
+      truncated: boolean;
+    }>
+  > {
     const resolved = this.resolve(conn, scope);
     if (docFailed(resolved)) return resolved;
     const { creds, rootPath, rootDecoded } = resolved.data;
@@ -518,11 +508,7 @@ export class WebdavDocumentProvider implements DocumentProvider {
     }
   }
 
-  async fetch(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-    remoteId: string,
-  ): Promise<DocResult<FetchResult>> {
+  async fetch(conn: DocumentConnectionRef, scope: DocumentScopeRef, remoteId: string): Promise<DocResult<FetchResult>> {
     const resolved = this.resolve(conn, scope);
     if (docFailed(resolved)) return resolved;
 
@@ -541,11 +527,7 @@ export class WebdavDocumentProvider implements DocumentProvider {
     }
   }
 
-  async push(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-    req: PushRequest,
-  ): Promise<DocResult<PushResult>> {
+  async push(conn: DocumentConnectionRef, scope: DocumentScopeRef, req: PushRequest): Promise<DocResult<PushResult>> {
     const resolved = this.resolve(conn, scope);
     if (docFailed(resolved)) return resolved;
     const { creds, rootPath } = resolved.data;
@@ -648,11 +630,7 @@ export class WebdavDocumentProvider implements DocumentProvider {
     }
   }
 
-  async trash(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-    remoteId: string,
-  ): Promise<DocResult<void>> {
+  async trash(conn: DocumentConnectionRef, scope: DocumentScopeRef, remoteId: string): Promise<DocResult<void>> {
     const resolved = this.resolve(conn, scope);
     if (docFailed(resolved)) return resolved;
 
@@ -747,10 +725,7 @@ export class WebdavDocumentProvider implements DocumentProvider {
   }
 
   /** Connection plus scope key turned into an addressable root, or the reason it is not one. */
-  private resolve(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-  ): DocResult<ResolvedScope> {
+  private resolve(conn: DocumentConnectionRef, scope: DocumentScopeRef): DocResult<ResolvedScope> {
     const creds = credsOf(conn);
     if (!creds) return docFail('unauthorized', 'The connection is missing a URL, a username or a password');
 
@@ -762,7 +737,10 @@ export class WebdavDocumentProvider implements DocumentProvider {
     if (creds.flavor === 'nextcloud') {
       const userPath = scope.remoteRootPath ? normalizePath(scope.remoteRootPath) : null;
       if (!userPath || userPath === '/') {
-        return docFail('scope_missing', 'The binding has no folder path, and a file id cannot be addressed over WebDAV');
+        return docFail(
+          'scope_missing',
+          'The binding has no folder path, and a file id cannot be addressed over WebDAV',
+        );
       }
       const rootPath = `${filesRoot(creds)}${encodePath(userPath)}`;
       return docOk({ creds, rootPath, rootDecoded: `${filesRoot(creds)}${userPath}`, scopeId });
@@ -791,11 +769,7 @@ export class WebdavDocumentProvider implements DocumentProvider {
     return `${conn.connectionId}:${scope.scopeKey}`;
   }
 
-  private rememberHrefs(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-    hrefs: Map<string, string>,
-  ): void {
+  private rememberHrefs(conn: DocumentConnectionRef, scope: DocumentScopeRef, hrefs: Map<string, string>): void {
     const key = this.cacheKey(conn, scope);
     const existing = this.hrefCache.get(key);
     if (existing) {
@@ -827,7 +801,7 @@ export class WebdavDocumentProvider implements DocumentProvider {
       // TREK's. A `..` in it would address a file outside the folder the trip is
       // bound to. Every other id here is opaque, this one is a path and has to
       // be treated like one.
-      if (!relative || relative.split('/').some(seg => seg === '..' || seg === '.')) return null;
+      if (!relative || relative.split('/').some((seg) => seg === '..' || seg === '.')) return null;
       return `${resolved.rootPath}/${encodePath(relative)}`;
     }
 

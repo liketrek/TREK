@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { expandIpv6, embeddedTransitionIpv4 } from '../../../src/utils/ipv6';
+
+import { describe, it, expect } from 'vitest';
 
 describe('expandIpv6', () => {
   it.each([

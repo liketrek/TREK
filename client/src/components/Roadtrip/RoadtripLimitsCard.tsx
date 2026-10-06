@@ -1,26 +1,51 @@
-import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
-import React, { useId, useState } from 'react'
 import {
-  Clock, Fuel, CalendarClock, SlidersHorizontal, ChevronRight, Coins, Signpost, Ship, Check,
-  Car, Zap, BatteryCharging, BatteryFull, BatteryWarning, Gauge, Route, Sparkles, Link2, Palette,
-} from 'lucide-react'
-import Modal from '../shared/Modal'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { useSettingsStore } from '../../store/settingsStore'
-import { convertDistance, formatDistance } from '../../utils/units'
-import { formatDurationShort, parseAvoid, serializeAvoid, type VehicleKind } from './roadtripModel'
-import { effectiveRangeKm, rangeFromSpec, showSpec, storeSpec, specUnit, type SpecKey, type VehicleSpec } from './vehicleRange'
-import RangeStrip from './RangeStrip'
-import { valhallaAvailable } from '../Map/valhallaRoute'
-import ToggleSwitch from '../Settings/ToggleSwitch'
-import type { DistanceUnit, RouteAvoidClass } from '../../types'
-import { FS } from './typeScale'
-import DayWindowFields from './DayWindowFields'
-import SettingsHint from './SettingsHint'
-import { dayWindow } from './dayWindow'
-import { BOOKEND_ICON } from './nightBookend'
-import { useHotelBookends } from './useHotelBookends'
-import FigureBadge from './FigureBadge'
+  BatteryCharging,
+  BatteryFull,
+  BatteryWarning,
+  CalendarClock,
+  Car,
+  Check,
+  ChevronRight,
+  Clock,
+  Coins,
+  Fuel,
+  Gauge,
+  Link2,
+  Palette,
+  Route,
+  Ship,
+  Signpost,
+  SlidersHorizontal,
+  Sparkles,
+  Zap,
+} from 'lucide-react';
+import React, { useId, useState } from 'react';
+import { useRoadtripSettings } from '../../hooks/useRoadtripSettings';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { useSettingsStore } from '../../store/settingsStore';
+import type { DistanceUnit, RouteAvoidClass } from '../../types';
+import { convertDistance, formatDistance } from '../../utils/units';
+import { valhallaAvailable } from '../Map/valhallaRoute';
+import ToggleSwitch from '../Settings/ToggleSwitch';
+import Modal from '../shared/Modal';
+import DayWindowFields from './DayWindowFields';
+import FigureBadge from './FigureBadge';
+import RangeStrip from './RangeStrip';
+import SettingsHint from './SettingsHint';
+import { dayWindow } from './dayWindow';
+import { BOOKEND_ICON } from './nightBookend';
+import { formatDurationShort, parseAvoid, serializeAvoid, type VehicleKind } from './roadtripModel';
+import { FS } from './typeScale';
+import { useHotelBookends } from './useHotelBookends';
+import {
+  effectiveRangeKm,
+  rangeFromSpec,
+  showSpec,
+  specUnit,
+  storeSpec,
+  type SpecKey,
+  type VehicleSpec,
+} from './vehicleRange';
 
 /**
  * Everything that decides when the rail speaks up about the driving.
@@ -44,8 +69,8 @@ import FigureBadge from './FigureBadge'
 
 /** Empty means no limit, and so does zero — both are stored as 0 and read as off. */
 function parseLimit(raw: string): number {
-  const n = Number(raw.replace(',', '.'))
-  return Number.isFinite(n) && n > 0 ? n : 0
+  const n = Number(raw.replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 /**
@@ -55,27 +80,39 @@ function parseLimit(raw: string): number {
  * its shape either way, because a range that switched between an input and a line of text
  * would move every row under it the moment a consumption was typed.
  */
-function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived, disabled, testId, onDraft, onChange }: {
-  icon: typeof Clock
-  label: string
-  suffix: string
-  value: number | undefined
-  placeholder: string
-  step?: number
-  derived?: string
+function LimitRow({
+  icon: Icon,
+  label,
+  suffix,
+  value,
+  placeholder,
+  step,
+  derived,
+  disabled,
+  testId,
+  onDraft,
+  onChange,
+}: {
+  icon: typeof Clock;
+  label: string;
+  suffix: string;
+  value: number | undefined;
+  placeholder: string;
+  step?: number;
+  derived?: string;
   /**
    * Readable but not editable, which is how a reader without the right to change the
    * settings sees the dialog. Nothing this row could commit would be saved, and a field
    * that takes a number and springs back to the old one reads as broken.
    */
-  disabled?: boolean
+  disabled?: boolean;
   /**
    * A stable handle for the tests, because the rows are no longer at fixed indices.
    *
    * The vehicle figures now live behind a disclosure, so "the fourth number field" means
    * different things depending on whether it is open.
    */
-  testId?: string
+  testId?: string;
   /**
    * What is in the field right now, on every keystroke, saved or not.
    *
@@ -85,22 +122,22 @@ function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived
    * or it would sit still until the field is left and the promise it makes, that these
    * figures are the range, would only pay out after the fact.
    */
-  onDraft?: (next: number) => void
-  onChange: (next: number) => void
+  onDraft?: (next: number) => void;
+  onChange: (next: number) => void;
 }): React.ReactElement {
   // Typed here, saved on blur or Enter. Writing on every keystroke sent one
   // settings PUT per character — typing "180" produced three, carrying 1, 18 and
   // 180, unordered and concurrent over HTTP/2. Whichever the server committed
   // last won, so the limit that decides every over-budget warning could quietly
   // end up a tenth of what was typed, and only show it after the next reload.
-  const [draft, setDraft] = useState<string | null>(null)
-  const shown = draft ?? (value ? String(value) : '')
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (value ? String(value) : '');
   const commit = () => {
-    if (draft === null) return
-    const next = parseLimit(draft)
-    setDraft(null)
-    if (next !== (value ?? 0)) onChange(next)
-  }
+    if (draft === null) return;
+    const next = parseLimit(draft);
+    setDraft(null);
+    if (next !== (value ?? 0)) onChange(next);
+  };
 
   return (
     <label className="flex min-h-9 items-center gap-4">
@@ -143,12 +180,21 @@ function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived
             aria-label={`${label}, ${suffix}`}
             data-testid={testId}
             disabled={disabled}
-            onChange={e => { setDraft(e.target.value); onDraft?.(parseLimit(e.target.value)) }}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              onDraft?.(parseLimit(e.target.value));
+            }}
             onBlur={commit}
             // Committed here rather than by blurring and letting onBlur do it: a
             // second commit is a no-op anyway, and going through blur made Enter
             // depend on focus handling instead of on the key.
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); (e.target as HTMLInputElement).blur() } }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                commit();
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
             // The spinners are the other half of the width problem: they eat a third of a
             // narrow field and nobody sets a driving limit by clicking an arrow.
             className="w-full rounded-lg border border-edge bg-surface px-2.5 py-1.5 text-end text-body tabular-nums text-content [appearance:textfield] focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -156,7 +202,7 @@ function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived
         )}
       </span>
     </label>
-  )
+  );
 }
 
 /**
@@ -170,27 +216,40 @@ function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived
  * the label, in the caption the panels close on, and the switch is described by it: behind a
  * hover it was a sentence nobody found, and a screen reader never heard.
  */
-function AvoidRow({ icon: Icon, label, hint, on, disabled, onToggle }: {
-  icon: typeof Coins
-  label: string
-  hint?: string
-  on: boolean
-  disabled: boolean
-  onToggle: () => void
+function AvoidRow({
+  icon: Icon,
+  label,
+  hint,
+  on,
+  disabled,
+  onToggle,
+}: {
+  icon: typeof Coins;
+  label: string;
+  hint?: string;
+  on: boolean;
+  disabled: boolean;
+  onToggle: () => void;
 }): React.ReactElement {
-  const hintId = useId()
+  const hintId = useId();
   return (
     <div className={`flex items-center gap-3 ${disabled ? 'opacity-50' : ''}`}>
       <Icon size={16} className="shrink-0 text-content-faint" aria-hidden />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-body text-content-secondary">{label}</span>
-        {hint ? <span id={hintId} className="text-caption leading-snug text-content-faint">{hint}</span> : null}
+        {hint ? (
+          <span id={hintId} className="text-caption leading-snug text-content-faint">
+            {hint}
+          </span>
+        ) : null}
       </span>
-      {disabled
-        ? <span className="text-caption text-content-faint">{'—'}</span>
-        : <ToggleSwitch on={on} onToggle={onToggle} label={label} describedBy={hint ? hintId : undefined} />}
+      {disabled ? (
+        <span className="text-caption text-content-faint">{'—'}</span>
+      ) : (
+        <ToggleSwitch on={on} onToggle={onToggle} label={label} describedBy={hint ? hintId : undefined} />
+      )}
     </div>
-  )
+  );
 }
 
 /**
@@ -206,11 +265,16 @@ function AvoidRow({ icon: Icon, label, hint, on, disabled, onToggle }: {
  * time only; avoidance is a weighting, not a ban), and left to each caller they drifted
  * apart in spacing and in colour.
  */
-function Panel({ icon: Icon, title, note, children }: {
-  icon: typeof Clock
-  title: string
-  note?: string
-  children: React.ReactNode
+function Panel({
+  icon: Icon,
+  title,
+  note,
+  children,
+}: {
+  icon: typeof Clock;
+  title: string;
+  note?: string;
+  children: React.ReactNode;
 }): React.ReactElement {
   return (
     <section className="flex min-w-0 flex-col gap-3 rounded-xl border border-edge-faint bg-surface-secondary px-4 py-3.5">
@@ -218,20 +282,17 @@ function Panel({ icon: Icon, title, note, children }: {
       {children}
       {note ? <SettingsHint>{note}</SettingsHint> : null}
     </section>
-  )
+  );
 }
 
 /** The name of one section, inside its panel. */
-function SectionTitle({ icon: Icon, children }: {
-  icon: typeof Clock
-  children: React.ReactNode
-}): React.ReactElement {
+function SectionTitle({ icon: Icon, children }: { icon: typeof Clock; children: React.ReactNode }): React.ReactElement {
   return (
     <p className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wide text-content-faint">
       <Icon size={13} aria-hidden />
       {children}
     </p>
-  )
+  );
 }
 
 /** Not said, petrol, electric. "Not said" first, because it is what everybody starts on. */
@@ -239,7 +300,7 @@ const VEHICLES: { key: VehicleKind | null; labelKey: string; Icon: typeof Car }[
   { key: null, labelKey: 'roadtrip.limit.vehicleAny', Icon: Car },
   { key: 'combustion', labelKey: 'roadtrip.limit.vehicleCombustion', Icon: Fuel },
   { key: 'electric', labelKey: 'roadtrip.limit.vehicleElectric', Icon: Zap },
-]
+];
 
 /**
  * What each kind of car is made of, and where each figure is kept.
@@ -251,17 +312,38 @@ const VEHICLES: { key: VehicleKind | null; labelKey: string; Icon: typeof Car }[
  * consumption the traveller states, so those fields would add typing without moving a
  * single kilometre of the answer.
  */
-const SPEC_ROWS: Record<VehicleKind, { key: SpecKey; setting: string; Icon: typeof Fuel; labelKey: string; step: number }[]> = {
+const SPEC_ROWS: Record<
+  VehicleKind,
+  { key: SpecKey; setting: string; Icon: typeof Fuel; labelKey: string; step: number }[]
+> = {
   combustion: [
     { key: 'tankLitres', setting: 'roadtrip_tank_litres', Icon: Fuel, labelKey: 'roadtrip.limit.tankLabel', step: 1 },
-    { key: 'litresPer100', setting: 'roadtrip_litres_per_100', Icon: Gauge, labelKey: 'roadtrip.limit.useLabel', step: 0.1 },
+    {
+      key: 'litresPer100',
+      setting: 'roadtrip_litres_per_100',
+      Icon: Gauge,
+      labelKey: 'roadtrip.limit.useLabel',
+      step: 0.1,
+    },
   ],
   electric: [
-    { key: 'batteryKwh', setting: 'roadtrip_battery_kwh', Icon: BatteryFull, labelKey: 'roadtrip.limit.batteryLabel', step: 1 },
+    {
+      key: 'batteryKwh',
+      setting: 'roadtrip_battery_kwh',
+      Icon: BatteryFull,
+      labelKey: 'roadtrip.limit.batteryLabel',
+      step: 1,
+    },
     { key: 'kwhPer100', setting: 'roadtrip_kwh_per_100', Icon: Gauge, labelKey: 'roadtrip.limit.useLabel', step: 0.1 },
-    { key: 'degradationPercent', setting: 'roadtrip_battery_degradation', Icon: BatteryWarning, labelKey: 'roadtrip.limit.wearLabel', step: 1 },
+    {
+      key: 'degradationPercent',
+      setting: 'roadtrip_battery_degradation',
+      Icon: BatteryWarning,
+      labelKey: 'roadtrip.limit.wearLabel',
+      step: 1,
+    },
   ],
-}
+};
 
 /**
  * The settings every one of the car's own figures is stored under.
@@ -269,49 +351,58 @@ const SPEC_ROWS: Record<VehicleKind, { key: SpecKey; setting: string; Icon: type
  * Read once, to decide whether the disclosure below the range starts open: a stored
  * figure means the range row is derived, and its cause has to be in sight.
  */
-const SPEC_SETTINGS = ['roadtrip_tank_litres', 'roadtrip_litres_per_100', 'roadtrip_battery_kwh', 'roadtrip_kwh_per_100', 'roadtrip_battery_degradation'] as const
+const SPEC_SETTINGS = [
+  'roadtrip_tank_litres',
+  'roadtrip_litres_per_100',
+  'roadtrip_battery_kwh',
+  'roadtrip_kwh_per_100',
+  'roadtrip_battery_degradation',
+] as const;
 
-export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loading = false }: {
-  loading?: boolean
-  onResetDayBoundaries?: () => Promise<void>
+export default function RoadtripLimitsCard({
+  onSave,
+  onResetDayBoundaries,
+  loading = false,
+}: {
+  loading?: boolean;
+  onResetDayBoundaries?: () => Promise<void>;
   /**
    * Persists one setting. Absent leaves the dialog read-only.
    *
    * A string as well as a number since the avoidance is stored as a comma list: one
    * decision with three parts, which goes to the router as one request either way.
    */
-  onSave?: (key: string, value: number | string | boolean) => void
+  onSave?: (key: string, value: number | string | boolean) => void;
 }): React.ReactElement {
-  const { t } = useTranslation()
-  const settings = useRoadtripSettings(s => s)
-  const unit = useSettingsStore(s => s.settings.distance_unit)
-  const [open, setOpen] = useState(false)
-  const distanceUnit: DistanceUnit = unit === 'imperial' ? 'imperial' : 'metric'
-  const imperial = distanceUnit === 'imperial'
+  const { t } = useTranslation();
+  const settings = useRoadtripSettings((s) => s);
+  const unit = useSettingsStore((s) => s.settings.distance_unit);
+  const [open, setOpen] = useState(false);
+  const distanceUnit: DistanceUnit = unit === 'imperial' ? 'imperial' : 'metric';
+  const imperial = distanceUnit === 'imperial';
   // No way to save is the caller saying the reader may look but not change. Every
   // control below is disabled on that one answer: a member without the right to edit
   // days gets the dialog with the trip's figures in it, not a form that takes a number
   // and drops it.
-  const readOnly = !onSave
-  const bookends = useHotelBookends(onSave)
+  const readOnly = !onSave;
+  const bookends = useHotelBookends(onSave);
 
-  const legMinutes = settings.roadtrip_leg_minutes
-  const dayMinutes = settings.roadtrip_day_minutes
-  const automaticWindow = dayWindow(settings.roadtrip_day_start, settings.roadtrip_day_end)
-  const rangeKm = settings.roadtrip_range_km
+  const legMinutes = settings.roadtrip_leg_minutes;
+  const dayMinutes = settings.roadtrip_day_minutes;
+  const automaticWindow = dayWindow(settings.roadtrip_day_start, settings.roadtrip_day_end);
+  const rangeKm = settings.roadtrip_range_km;
 
   // Parsed rather than trusted: a per-user setting gets no server-side validation, and
   // an unknown word here would become a costing option the router does not have.
-  const vehicle = settings.roadtrip_vehicle ?? ''
-  const vehicleKind: VehicleKind | null =
-    vehicle === 'combustion' || vehicle === 'electric' ? vehicle : null
+  const vehicle = settings.roadtrip_vehicle ?? '';
+  const vehicleKind: VehicleKind | null = vehicle === 'combustion' || vehicle === 'electric' ? vehicle : null;
   const saved: VehicleSpec = {
     tankLitres: settings.roadtrip_tank_litres,
     litresPer100: settings.roadtrip_litres_per_100,
     batteryKwh: settings.roadtrip_battery_kwh,
     kwhPer100: settings.roadtrip_kwh_per_100,
     degradationPercent: settings.roadtrip_battery_degradation,
-  }
+  };
   /**
    * The one field being typed in, ahead of the write that will save it.
    *
@@ -324,7 +415,7 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
    * The value arrives in whatever unit the field is labelled with, so it goes back
    * through the same conversion the save would have used.
    */
-  const [preview, setPreview] = useState<{ key: SpecKey | 'range' | 'fill'; value: number } | null>(null)
+  const [preview, setPreview] = useState<{ key: SpecKey | 'range' | 'fill'; value: number } | null>(null);
   /**
    * Whether the car's own figures are unfolded.
    *
@@ -334,46 +425,46 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
    * the hand of somebody clearing the last field.
    */
   const [specOpen, setSpecOpen] = useState(() =>
-    SPEC_SETTINGS.some(k => typeof (settings as unknown as Record<string, unknown>)[k] === 'number'))
-  const spec: VehicleSpec = preview && preview.key !== 'range' && preview.key !== 'fill'
-    ? { ...saved, [preview.key]: storeSpec(preview.key, preview.value, imperial) }
-    : saved
-  const typedKm = preview?.key === 'range'
-    ? (imperial ? preview.value / 0.621371 : preview.value)
-    : rangeKm
-  const shownFill = preview?.key === 'fill' ? preview.value : settings.roadtrip_fill_percent ?? null
+    SPEC_SETTINGS.some((k) => typeof (settings as unknown as Record<string, unknown>)[k] === 'number')
+  );
+  const spec: VehicleSpec =
+    preview && preview.key !== 'range' && preview.key !== 'fill'
+      ? { ...saved, [preview.key]: storeSpec(preview.key, preview.value, imperial) }
+      : saved;
+  const typedKm = preview?.key === 'range' ? (imperial ? preview.value / 0.621371 : preview.value) : rangeKm;
+  const shownFill = preview?.key === 'fill' ? preview.value : (settings.roadtrip_fill_percent ?? null);
 
   // What the parts say, and what the trip will actually plan with. The second is the
   // first when there is one, which is the rule effectiveRangeKm states once for
   // everybody who needs it.
-  const computedKm = rangeFromSpec(vehicleKind, spec)
-  const planningKm = effectiveRangeKm(vehicleKind, spec, typedKm)
+  const computedKm = rangeFromSpec(vehicleKind, spec);
+  const planningKm = effectiveRangeKm(vehicleKind, spec, typedKm);
 
-  const avoiding = parseAvoid(settings.roadtrip_avoid)
+  const avoiding = parseAvoid(settings.roadtrip_avoid);
   // No second engine, no avoidance. An instance pointed at its own OSRM has one, and its
   // car profile is built without excludable classes on every public host.
-  const canAvoid = valhallaAvailable()
+  const canAvoid = valhallaAvailable();
   const toggleAvoid = (cls: RouteAvoidClass) => {
-    const next = avoiding.includes(cls) ? avoiding.filter(c => c !== cls) : [...avoiding, cls]
-    onSave?.('roadtrip_avoid', serializeAvoid(next))
-  }
+    const next = avoiding.includes(cls) ? avoiding.filter((c) => c !== cls) : [...avoiding, cls];
+    onSave?.('roadtrip_avoid', serializeAvoid(next));
+  };
 
   const AVOID_ROWS: { cls: RouteAvoidClass; icon: typeof Coins; label: string }[] = [
     { cls: 'toll', icon: Coins, label: t('roadtrip.avoid.toll') },
     { cls: 'motorway', icon: Signpost, label: t('roadtrip.avoid.motorway') },
     { cls: 'ferry', icon: Ship, label: t('roadtrip.avoid.ferry') },
-  ]
+  ];
 
   // Kilometres in storage, the traveller's own unit on screen. Without the round trip an
   // imperial user types 400 meaning miles, 400 km gets stored, and the warnings arrive a
   // third too early for ever after. The same rule runs through the vehicle's own figures,
   // where showSpec and storeSpec do it per field.
-  const rangeValue = computedKm ?? rangeKm
-  const rangeShown = rangeValue ? Math.round(convertDistance(rangeValue, distanceUnit)) : undefined
+  const rangeValue = computedKm ?? rangeKm;
+  const rangeShown = rangeValue ? Math.round(convertDistance(rangeValue, distanceUnit)) : undefined;
   const setRange = (shown: number) => {
-    const km = imperial ? shown / 0.621371 : shown
-    onSave?.('roadtrip_range_km', Math.round(km))
-  }
+    const km = imperial ? shown / 0.621371 : shown;
+    onSave?.('roadtrip_range_km', Math.round(km));
+  };
 
   // What is set, on the button itself, so the form does not have to be open to read it.
   // Each one keeps its own icon, because numbers in a row say nothing about which is
@@ -381,12 +472,16 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
   // imperial traveller reads miles here and types miles in the dialog, while what is
   // stored stays kilometres either way.
   const badges = [
-    automaticWindow ? { key: 'window', Icon: CalendarClock, text: `${settings.roadtrip_day_start} · ${settings.roadtrip_day_end}` } : null,
+    automaticWindow
+      ? { key: 'window', Icon: CalendarClock, text: `${settings.roadtrip_day_start} · ${settings.roadtrip_day_end}` }
+      : null,
     legMinutes ? { key: 'leg', Icon: Clock, text: formatDurationShort(legMinutes * 60) } : null,
     dayMinutes ? { key: 'day', Icon: CalendarClock, text: formatDurationShort(dayMinutes * 60) } : null,
     // The planning range, not the typed one: when the vehicle's figures win, the badge
     // has to say what the warnings will actually use.
-    planningKm ? { key: 'range', Icon: vehicleKind === 'electric' ? Zap : Fuel, text: formatDistance(planningKm, distanceUnit) } : null,
+    planningKm
+      ? { key: 'range', Icon: vehicleKind === 'electric' ? Zap : Fuel, text: formatDistance(planningKm, distanceUnit) }
+      : null,
     // Only worth a badge when it is NOT a full tank, which is the case that changes the
     // arithmetic. "100 %" on the trigger would be a badge for the default.
     settings.roadtrip_fill_percent && settings.roadtrip_fill_percent < 100
@@ -396,12 +491,16 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
     // decision, the three icons already say which parts of it are on, and a fourth,
     // fifth and sixth badge would wrap the row onto a second line in a narrow rail.
     avoiding.length && canAvoid
-      ? { key: 'avoid', Icon: AVOID_ROWS.find(r => r.cls === avoiding[0])!.icon, text: t('roadtrip.avoid.badge', { count: avoiding.length }) }
+      ? {
+          key: 'avoid',
+          Icon: AVOID_ROWS.find((r) => r.cls === avoiding[0])!.icon,
+          text: t('roadtrip.avoid.badge', { count: avoiding.length }),
+        }
       : null,
     // A switch has no figure, so its badge is the sign alone and its words are the tooltip.
     // Without it a trip whose days start and end at the stay said "None set" on the button.
     bookends.on ? { key: 'bookends', Icon: BOOKEND_ICON, label: t('roadtrip.line.hotelBookends') } : null,
-  ].filter(Boolean) as { key: string; Icon: typeof Clock; text?: string; label?: string }[]
+  ].filter(Boolean) as { key: string; Icon: typeof Clock; text?: string; label?: string }[];
 
   return (
     <>
@@ -444,12 +543,20 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
       </button>
 
       {open ? (
-        <Modal isOpen onClose={() => { setOpen(false); setPreview(null) }} size="4xl" title={
-          <span className="flex items-center gap-2">
-            <SlidersHorizontal size={15} className="text-content-faint" aria-hidden />
-            {t('roadtrip.limit.title')}
-          </span>
-        }>
+        <Modal
+          isOpen
+          onClose={() => {
+            setOpen(false);
+            setPreview(null);
+          }}
+          size="4xl"
+          title={
+            <span className="flex items-center gap-2">
+              <SlidersHorizontal size={15} className="text-content-faint" aria-hidden />
+              {t('roadtrip.limit.title')}
+            </span>
+          }
+        >
           <div className="flex min-w-0 flex-col gap-4">
             {/* Two columns, kept. One column reads more tidily but turns the dialog into
                 something that has to be scrolled, and a setting you cannot see while you
@@ -470,7 +577,7 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                     placeholder={t('roadtrip.limit.off')}
                     disabled={readOnly}
                     testId="limit-legMinutes"
-                    onChange={v => onSave?.('roadtrip_leg_minutes', v)}
+                    onChange={(v) => onSave?.('roadtrip_leg_minutes', v)}
                   />
                   <LimitRow
                     icon={CalendarClock}
@@ -480,13 +587,26 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                     placeholder={t('roadtrip.limit.off')}
                     disabled={readOnly}
                     testId="limit-dayMinutes"
-                    onChange={v => onSave?.('roadtrip_day_minutes', v)}
+                    onChange={(v) => onSave?.('roadtrip_day_minutes', v)}
                   />
                 </Panel>
 
                 <Panel icon={CalendarClock} title={t('roadtrip.window.title')}>
-                  <DayWindowFields start={settings.roadtrip_day_start} end={settings.roadtrip_day_end} endMode={settings.roadtrip_day_end_mode} onSave={onSave} />
-                  {onResetDayBoundaries && <button type="button" onClick={() => void onResetDayBoundaries()} className="text-start text-caption font-medium text-accent-on hover:underline">{t('roadtrip.window.resetBoundaries')}</button>}
+                  <DayWindowFields
+                    start={settings.roadtrip_day_start}
+                    end={settings.roadtrip_day_end}
+                    endMode={settings.roadtrip_day_end_mode}
+                    onSave={onSave}
+                  />
+                  {onResetDayBoundaries && (
+                    <button
+                      type="button"
+                      onClick={() => void onResetDayBoundaries()}
+                      className="text-start text-caption font-medium text-accent-on hover:underline"
+                    >
+                      {t('roadtrip.window.resetBoundaries')}
+                    </button>
+                  )}
                 </Panel>
 
                 <Panel
@@ -506,10 +626,14 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                   ))}
                 </Panel>
                 <Panel icon={Signpost} title={t('roadtrip.stops.section')} note={t('roadtrip.stops.daysHint')}>
-                  <AvoidRow icon={Link2} label={t('roadtrip.stops.inDays')}
+                  <AvoidRow
+                    icon={Link2}
+                    label={t('roadtrip.stops.inDays')}
                     on={settings.roadtrip_service_stops_in_days !== false}
                     disabled={readOnly}
-                    onToggle={() => onSave?.('roadtrip_service_stops_in_days', settings.roadtrip_service_stops_in_days === false)}
+                    onToggle={() =>
+                      onSave?.('roadtrip_service_stops_in_days', settings.roadtrip_service_stops_in_days === false)
+                    }
                   />
                 </Panel>
               </div>
@@ -545,8 +669,8 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                               // the other one, and the typed range comes back as an editable
                               // field. Deleting the other kind's values here would lose data
                               // on a mis-click.
-                              setPreview(null)
-                              onSave?.('roadtrip_vehicle', key ?? '')
+                              setPreview(null);
+                              onSave?.('roadtrip_vehicle', key ?? '');
                             }}
                           />
                           <span className="flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-center text-body text-content-secondary transition-colors hover:bg-surface-hover peer-checked:bg-accent peer-checked:text-accent-text peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-disabled:pointer-events-none">
@@ -561,7 +685,7 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                   <RangeStrip
                     rangeKm={planningKm}
                     fillPercent={shownFill}
-                    wearPercent={vehicleKind === 'electric' ? spec.degradationPercent ?? null : null}
+                    wearPercent={vehicleKind === 'electric' ? (spec.degradationPercent ?? null) : null}
                     unit={distanceUnit}
                     electric={vehicleKind === 'electric'}
                   />
@@ -573,14 +697,16 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                   <LimitRow
                     icon={Route}
                     // "on one tank" is the wrong noun for half the travellers who set this.
-                    label={t(vehicleKind === 'electric' ? 'roadtrip.limit.rangeLabelCharge' : 'roadtrip.limit.rangeLabel')}
+                    label={t(
+                      vehicleKind === 'electric' ? 'roadtrip.limit.rangeLabelCharge' : 'roadtrip.limit.rangeLabel'
+                    )}
                     suffix={imperial ? 'mi' : 'km'}
                     value={rangeShown}
                     placeholder={t('roadtrip.limit.off')}
                     derived={computedKm ? t('roadtrip.limit.computed') : undefined}
                     disabled={readOnly}
                     testId="limit-range"
-                    onDraft={v => setPreview({ key: 'range', value: v })}
+                    onDraft={(v) => setPreview({ key: 'range', value: v })}
                     onChange={setRange}
                   />
                   {/* Under the range, because it is a fraction OF it. Nobody charges to
@@ -595,8 +721,8 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                     placeholder={t('roadtrip.limit.fillFull')}
                     disabled={readOnly}
                     testId="limit-fill"
-                    onDraft={v => setPreview({ key: 'fill', value: v > 100 ? 100 : v })}
-                    onChange={v => onSave?.('roadtrip_fill_percent', v > 100 ? 100 : v)}
+                    onDraft={(v) => setPreview({ key: 'fill', value: v > 100 ? 100 : v })}
+                    onChange={(v) => onSave?.('roadtrip_fill_percent', v > 100 ? 100 : v)}
                   />
 
                   {/* The car's own figures, folded away. Nothing here is required — somebody
@@ -607,7 +733,10 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                     <>
                       <button
                         type="button"
-                        onClick={() => { setSpecOpen(o => !o); setPreview(null) }}
+                        onClick={() => {
+                          setSpecOpen((o) => !o);
+                          setPreview(null);
+                        }}
                         aria-expanded={specOpen}
                         aria-controls="roadtrip-spec"
                         className="-mx-1 flex items-center gap-1.5 self-start rounded-lg px-1 py-0.5 text-caption font-semibold text-accent-on transition-colors hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
@@ -638,8 +767,8 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                             placeholder={t('roadtrip.limit.off')}
                             disabled={readOnly}
                             testId={`limit-${key}`}
-                            onDraft={v => setPreview({ key, value: v })}
-                            onChange={v => onSave?.(setting, storeSpec(key, v, imperial))}
+                            onDraft={(v) => setPreview({ key, value: v })}
+                            onChange={(v) => onSave?.(setting, storeSpec(key, v, imperial))}
                           />
                         ))}
                       </div>
@@ -647,7 +776,11 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                   ) : null}
                 </Panel>
 
-                <Panel icon={Route} title={t('roadtrip.line.section')} note={automaticWindow ? undefined : t('roadtrip.line.hint')}>
+                <Panel
+                  icon={Route}
+                  title={t('roadtrip.line.section')}
+                  note={automaticWindow ? undefined : t('roadtrip.line.hint')}
+                >
                   {/* The road between one day's last stop and the next day's first is real
                       driving that the rail has never drawn: days are routed one at a time,
                       so that gap was never asked for. Off by default because it costs a
@@ -655,16 +788,20 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                   {automaticWindow ? (
                     <div className="flex items-center gap-3" title={t('roadtrip.window.hint')}>
                       <Link2 size={16} className="shrink-0 text-content-faint" aria-hidden />
-                      <span className="min-w-0 flex-1 text-body text-content-secondary">{t('roadtrip.line.connect')}</span>
+                      <span className="min-w-0 flex-1 text-body text-content-secondary">
+                        {t('roadtrip.line.connect')}
+                      </span>
                       <Check size={16} className="text-accent-on" aria-label={t('roadtrip.window.hint')} />
                     </div>
-                  ) : <AvoidRow
-                    icon={Link2}
-                    label={t('roadtrip.line.connect')}
-                    on={!!settings.roadtrip_connect_days}
-                    disabled={readOnly}
-                    onToggle={() => onSave?.('roadtrip_connect_days', !settings.roadtrip_connect_days)}
-                  />}
+                  ) : (
+                    <AvoidRow
+                      icon={Link2}
+                      label={t('roadtrip.line.connect')}
+                      on={!!settings.roadtrip_connect_days}
+                      disabled={readOnly}
+                      onToggle={() => onSave?.('roadtrip_connect_days', !settings.roadtrip_connect_days)}
+                    />
+                  )}
                   {/* Where a day begins and ends rather than what joins them: after a booked
                       night the drive sets off from the stay, and before one it ends there.
                       Off by default, because it adds a leg to most days of a trip that has
@@ -688,15 +825,19 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                   />
                 </Panel>
                 <Panel icon={Signpost} title={t('roadtrip.hazards.current')} note={t('roadtrip.hazards.note')}>
-                  <AvoidRow icon={Signpost} label={t('roadtrip.hazards.show')} on={settings.roadtrip_show_hazards === true} disabled={readOnly}
-                    onToggle={() => onSave?.('roadtrip_show_hazards', !settings.roadtrip_show_hazards)} />
+                  <AvoidRow
+                    icon={Signpost}
+                    label={t('roadtrip.hazards.show')}
+                    on={settings.roadtrip_show_hazards === true}
+                    disabled={readOnly}
+                    onToggle={() => onSave?.('roadtrip_show_hazards', !settings.roadtrip_show_hazards)}
+                  />
                 </Panel>
-
               </div>
             </div>
           </div>
         </Modal>
       ) : null}
     </>
-  )
+  );
 }

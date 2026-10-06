@@ -1,4 +1,6 @@
 import { ADDON_IDS } from '../../addons';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
   McpController,
@@ -12,12 +14,10 @@ import {
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { AuthService } from '../auth/auth.service';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { RoadtripPreferencesService } from './roadtrip-preferences.service';
 import { answeringRefusals } from './roadtrip-mcp.helpers';
+import { RoadtripPreferencesService } from './roadtrip-preferences.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { roadtripPreferencesUpdateSchema, type RoadtripPreferences } from '@trek/shared';
 
 import { z } from 'zod';
@@ -62,6 +62,8 @@ export class RoadtripPreferencesMcp {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     // A day window that ends before it starts is refused by the service, with the reason.
-    return answeringRefusals(async () => ok({ tripId, settings: await this.preferences.update(tripId, settings), scope: 'trip' }));
+    return answeringRefusals(async () =>
+      ok({ tripId, settings: await this.preferences.update(tripId, settings), scope: 'trip' }),
+    );
   }
 }

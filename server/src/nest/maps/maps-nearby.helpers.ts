@@ -1,5 +1,5 @@
-import { normalizePlaceWebsite } from '@trek/shared';
 import { haversineMetres, OVERPASS_QUERY_TIMEOUT_S } from './maps.helpers';
+import { normalizePlaceWebsite } from '@trek/shared';
 
 /** What "near" means when the caller does not say: a short walk. */
 export const NEARBY_DEFAULT_RADIUS_M = 500;
@@ -85,8 +85,11 @@ export function nearestFirst(
   limit: number,
 ): Record<string, unknown>[] {
   return records
-    .filter(r => typeof r.lat === 'number' && typeof r.lng === 'number')
-    .map(r => ({ ...r, distance_m: Math.round(haversineMetres(origin.lat, origin.lng, r.lat as number, r.lng as number)) }))
+    .filter((r) => typeof r.lat === 'number' && typeof r.lng === 'number')
+    .map((r) => ({
+      ...r,
+      distance_m: Math.round(haversineMetres(origin.lat, origin.lng, r.lat as number, r.lng as number)),
+    }))
     .sort((a, b) => a.distance_m - b.distance_m)
     .slice(0, limit);
 }

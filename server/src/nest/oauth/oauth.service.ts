@@ -1,8 +1,11 @@
-import crypto, { randomBytes, randomUUID } from 'crypto';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { ADDON_IDS } from '../../addons';
 import { getMcpSafeUrl } from '../../app-config';
+import { OauthClients } from '../../db/entities/OauthClients.entity';
+import { OauthConsents } from '../../db/entities/OauthConsents.entity';
+import { OauthTokens } from '../../db/entities/OauthTokens.entity';
+import type { OauthClientRow, OauthClientsRepository } from '../../db/repositories/OauthClients.repository';
+import type { OauthConsentsRepository } from '../../db/repositories/OauthConsents.repository';
+import type { OauthTokenRefreshRow, OauthTokensRepository } from '../../db/repositories/OauthTokens.repository';
 // Import from scopes/sessionManager directly, NOT the ../../mcp barrel: the
 // barrel pulls the whole tools fan-out (and via the domain bridges, the Nest
 // services) into every consumer of this module — a nest→mcp→nest module cycle.
@@ -12,15 +15,9 @@ import { validateScopes } from '../../mcp/scopes';
 import { revokeUserSessionsForClient } from '../../mcp/sessionManager';
 import { User } from '../../types';
 import { AddonsService } from '../addons/addons.service';
-import { AuditService } from '../audit/audit.service';
 import { logWarn } from '../audit/audit-log.logger';
+import { AuditService } from '../audit/audit.service';
 import { toRowId } from '../common/row-id';
-import { OauthClients } from '../../db/entities/OauthClients.entity';
-import type { OauthClientRow, OauthClientsRepository } from '../../db/repositories/OauthClients.repository';
-import { OauthTokens } from '../../db/entities/OauthTokens.entity';
-import type { OauthTokenRefreshRow, OauthTokensRepository } from '../../db/repositories/OauthTokens.repository';
-import { OauthConsents } from '../../db/entities/OauthConsents.entity';
-import type { OauthConsentsRepository } from '../../db/repositories/OauthConsents.repository';
 import {
   ACCESS_TOKEN_TTL_S,
   CODE_CHALLENGE_RE,
@@ -36,6 +33,10 @@ import {
   timingSafeEqualHex,
 } from './oauth.helpers';
 import { AUTH_CODE_TTL_MS, putPendingCode, takePendingCode, type PendingCode } from './oauth.pending-codes';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+import crypto, { randomBytes, randomUUID } from 'crypto';
 
 export type { PendingCode } from './oauth.pending-codes';
 
@@ -91,8 +92,12 @@ export class OauthService {
     private readonly audit: AuditService,
   ) {}
 
-  async mcpEnabled(): Promise<boolean> { return this.addons.isAddonEnabled(ADDON_IDS.MCP); }
-  mcpSafeUrl(): string { return getMcpSafeUrl(); }
+  async mcpEnabled(): Promise<boolean> {
+    return this.addons.isAddonEnabled(ADDON_IDS.MCP);
+  }
+  mcpSafeUrl(): string {
+    return getMcpSafeUrl();
+  }
 
   // -------------------------------------------------------------------------
   // Client management (self-service, gated by MCP addon)
@@ -100,7 +105,7 @@ export class OauthService {
 
   async listOAuthClients(userId: number): Promise<Record<string, unknown>[]> {
     const rows = await this.clients.listByUser(userId);
-    return rows.map(r => ({
+    return rows.map((r) => ({
       ...r,
       is_public: Boolean(r.is_public),
       allows_client_credentials: Boolean(r.allows_client_credentials),
@@ -120,7 +125,8 @@ export class OauthService {
     if (!name?.trim()) return { error: 'Name is required', status: 400 };
     if (name.trim().length > 100) return { error: 'Name must be 100 characters or less', status: 400 };
     const isMachineClient = Boolean(options?.allowsClientCredentials);
-    if (!isMachineClient && (!redirectUris || redirectUris.length === 0)) return { error: 'At least one redirect URI is required', status: 400 };
+    if (!isMachineClient && (!redirectUris || redirectUris.length === 0))
+      return { error: 'At least one redirect URI is required', status: 400 };
     if (redirectUris.length > 10) return { error: 'Maximum 10 redirect URIs per client', status: 400 };
 
     // Same policy as the DCR path (#2227). This used to exempt any host named
@@ -131,7 +137,8 @@ export class OauthService {
       const verdict = classifyRedirectUri(uri);
       if (verdict === 'malformed') return { error: `Invalid redirect URI: ${uri}`, status: 400 };
       if (verdict === 'dangerous') return { error: `Dangerous redirect URI scheme: ${uri}`, status: 400 };
-      if (verdict === 'not_allowed') return { error: `Redirect URI must use HTTPS, loopback HTTP, or a private custom scheme: ${uri}`, status: 400 };
+      if (verdict === 'not_allowed')
+        return { error: `Redirect URI must use HTTPS, loopback HTTP, or a private custom scheme: ${uri}`, status: 400 };
     }
 
     if (!allowedScopes || allowedScopes.length === 0) return { error: 'At least one scope is required', status: 400 };
@@ -148,13 +155,13 @@ export class OauthService {
     }
 
     // Machine clients (client_credentials) must always be confidential — ignore isPublic for them.
-    const isPublic    = isMachineClient ? false : (options?.isPublic ?? false);
-    const createdVia  = options?.createdVia ?? 'settings_ui';
-    const id          = randomUUID();
-    const clientId    = randomUUID();
+    const isPublic = isMachineClient ? false : (options?.isPublic ?? false);
+    const createdVia = options?.createdVia ?? 'settings_ui';
+    const id = randomUUID();
+    const clientId = randomUUID();
     // Public clients have no usable secret; store an opaque random value to satisfy NOT NULL.
-    const rawSecret   = isPublic ? null : 'trekcs_' + randomBytes(24).toString('hex');
-    const secretHash  = rawSecret ? hashToken(rawSecret) : randomBytes(32).toString('hex');
+    const rawSecret = isPublic ? null : 'trekcs_' + randomBytes(24).toString('hex');
+    const secretHash = rawSecret ? hashToken(rawSecret) : randomBytes(32).toString('hex');
 
     const row = await this.clients.insertClient({
       id,
@@ -169,7 +176,17 @@ export class OauthService {
       allows_client_credentials: isMachineClient ? 1 : 0,
     });
 
-    await this.audit.writeAudit({ userId, action: 'oauth.client.create', details: { client_id: clientId, name: name.trim(), is_public: isPublic, allows_client_credentials: isMachineClient }, ip });
+    await this.audit.writeAudit({
+      userId,
+      action: 'oauth.client.create',
+      details: {
+        client_id: clientId,
+        name: name.trim(),
+        is_public: isPublic,
+        allows_client_credentials: isMachineClient,
+      },
+      ip,
+    });
 
     return {
       client: {
@@ -198,7 +215,7 @@ export class OauthService {
     if (!row) return { error: 'Client not found', status: 404 };
     if (row.is_public) return { error: 'Public clients do not use a client secret', status: 400 };
 
-    const rawSecret  = 'trekcs_' + randomBytes(24).toString('hex');
+    const rawSecret = 'trekcs_' + randomBytes(24).toString('hex');
     const secretHash = hashToken(rawSecret);
 
     await this.clients.updateSecretHash(clientRowId, secretHash);
@@ -209,7 +226,12 @@ export class OauthService {
     // Terminate active MCP sessions for this (user, client) pair
     revokeUserSessionsForClient(userId, row.client_id);
 
-    await this.audit.writeAudit({ userId, action: 'oauth.client.rotate_secret', details: { client_id: row.client_id }, ip });
+    await this.audit.writeAudit({
+      userId,
+      action: 'oauth.client.rotate_secret',
+      details: { client_id: row.client_id },
+      ip,
+    });
 
     return { client_secret: rawSecret };
   }
@@ -262,11 +284,16 @@ export class OauthService {
     const existing = (await this.getConsent(clientId, userId)) ?? [];
     const merged = Array.from(new Set([...existing, ...scopes]));
     await this.consents.upsertGrant(clientId, userId, JSON.stringify(merged));
-    await this.audit.writeAudit({ userId, action: 'oauth.consent.grant', details: { client_id: clientId, scopes: merged }, ip });
+    await this.audit.writeAudit({
+      userId,
+      action: 'oauth.consent.grant',
+      details: { client_id: clientId, scopes: merged },
+      ip,
+    });
   }
 
   isConsentSufficient(existingScopes: string[], requestedScopes: string[]): boolean {
-    return requestedScopes.every(s => existingScopes.includes(s));
+    return requestedScopes.every((s) => existingScopes.includes(s));
   }
 
   // -------------------------------------------------------------------------
@@ -286,13 +313,13 @@ export class OauthService {
     expires_in: number;
     scope: string;
   }> {
-    const rawAccess   = generateAccessToken();
-    const rawRefresh  = generateRefreshToken();
-    const accessHash  = hashToken(rawAccess);
+    const rawAccess = generateAccessToken();
+    const rawRefresh = generateRefreshToken();
+    const accessHash = hashToken(rawAccess);
     const refreshHash = hashToken(rawRefresh);
 
-    const now           = new Date();
-    const accessExpiry  = new Date(now.getTime() + ACCESS_TOKEN_TTL_S * 1000);
+    const now = new Date();
+    const accessExpiry = new Date(now.getTime() + ACCESS_TOKEN_TTL_S * 1000);
     const refreshExpiry = new Date(now.getTime() + REFRESH_TOKEN_TTL_MS);
 
     await this.tokens.insertToken({
@@ -308,11 +335,11 @@ export class OauthService {
     });
 
     return {
-      access_token:  rawAccess,
+      access_token: rawAccess,
       refresh_token: rawRefresh,
-      token_type:    'Bearer',
-      expires_in:    ACCESS_TOKEN_TTL_S,
-      scope:         scopes.join(' '),
+      token_type: 'Bearer',
+      expires_in: ACCESS_TOKEN_TTL_S,
+      scope: scopes.join(' '),
     };
   }
 
@@ -334,11 +361,11 @@ export class OauthService {
     expires_in: number;
     scope: string;
   }> {
-    const rawAccess       = generateAccessToken();
-    const accessHash      = hashToken(rawAccess);
+    const rawAccess = generateAccessToken();
+    const accessHash = hashToken(rawAccess);
     const placeholderHash = randomBytes(32).toString('hex');
 
-    const now         = new Date();
+    const now = new Date();
     const accessExpiry = new Date(now.getTime() + ACCESS_TOKEN_TTL_S * 1000);
 
     await this.tokens.insertToken({
@@ -355,9 +382,9 @@ export class OauthService {
 
     return {
       access_token: rawAccess,
-      token_type:   'Bearer',
-      expires_in:   ACCESS_TOKEN_TTL_S,
-      scope:        scopes.join(' '),
+      token_type: 'Bearer',
+      expires_in: ACCESS_TOKEN_TTL_S,
+      scope: scopes.join(' '),
     };
   }
 
@@ -462,7 +489,13 @@ export class OauthService {
       // to take the whole chain down with it. Issue a sibling pair off the same
       // parent so each client walks away with its own token.
       if (await this.isConcurrentRotation(row)) {
-        const tokens = await this.issueTokens(clientId, row.user_id, JSON.parse(row.scopes), row.id, row.audience ?? null);
+        const tokens = await this.issueTokens(
+          clientId,
+          row.user_id,
+          JSON.parse(row.scopes),
+          row.id,
+          row.audience ?? null,
+        );
         await this.audit.writeAudit({
           userId: row.user_id,
           action: 'oauth.token.refresh',
@@ -506,7 +539,12 @@ export class OauthService {
     await this.tokens.revokeById(row.id);
 
     const tokens = await this.issueTokens(clientId, row.user_id, JSON.parse(row.scopes), row.id, row.audience ?? null);
-    await this.audit.writeAudit({ userId: row.user_id, action: 'oauth.token.refresh', details: { client_id: clientId }, ip });
+    await this.audit.writeAudit({
+      userId: row.user_id,
+      action: 'oauth.token.refresh',
+      details: { client_id: clientId },
+      ip,
+    });
 
     return { tokens };
   }
@@ -530,7 +568,12 @@ export class OauthService {
     const affectedUserId = row?.user_id ?? userId;
     if (affectedUserId) {
       revokeUserSessionsForClient(affectedUserId, clientId);
-      await this.audit.writeAudit({ userId: affectedUserId, action: 'oauth.token.revoke', details: { client_id: clientId, method: 'token' }, ip });
+      await this.audit.writeAudit({
+        userId: affectedUserId,
+        action: 'oauth.token.revoke',
+        details: { client_id: clientId, method: 'token' },
+        ip,
+      });
     }
   }
 
@@ -540,7 +583,7 @@ export class OauthService {
 
   async listOAuthSessions(userId: number): Promise<Record<string, unknown>[]> {
     const rows = await this.tokens.listActiveByUser(userId);
-    return rows.map(r => ({ ...r, scopes: JSON.parse(r.scopes) }));
+    return rows.map((r) => ({ ...r, scopes: JSON.parse(r.scopes) }));
   }
 
   async revokeSession(
@@ -564,7 +607,12 @@ export class OauthService {
 
     revokeUserSessionsForClient(userId, row.client_id);
 
-    await this.audit.writeAudit({ userId, action: 'oauth.token.revoke', details: { client_id: row.client_id, method: 'session' }, ip });
+    await this.audit.writeAudit({
+      userId,
+      action: 'oauth.token.revoke',
+      details: { client_id: row.client_id, method: 'session' },
+      ip,
+    });
 
     return { success: true };
   }
@@ -573,25 +621,34 @@ export class OauthService {
   // Authorize request validation (option A: called by SPA via GET /api/oauth/authorize/validate)
   // -------------------------------------------------------------------------
 
-  async validateAuthorizeRequest(
-    params: AuthorizeParams,
-    userId: number | null,
-  ): Promise<ValidateAuthorizeResult> {
+  async validateAuthorizeRequest(params: AuthorizeParams, userId: number | null): Promise<ValidateAuthorizeResult> {
     if (!(await this.addons.isAddonEnabled(ADDON_IDS.MCP))) {
       return { valid: false, error: 'mcp_disabled', error_description: 'MCP is not enabled on this server' };
     }
 
     if (params.response_type !== 'code') {
-      return { valid: false, error: 'unsupported_response_type', error_description: 'Only response_type=code is supported' };
+      return {
+        valid: false,
+        error: 'unsupported_response_type',
+        error_description: 'Only response_type=code is supported',
+      };
     }
 
     if (!params.code_challenge || params.code_challenge_method !== 'S256') {
-      return { valid: false, error: 'invalid_request', error_description: 'PKCE with code_challenge_method=S256 is required (OAuth 2.1)' };
+      return {
+        valid: false,
+        error: 'invalid_request',
+        error_description: 'PKCE with code_challenge_method=S256 is required (OAuth 2.1)',
+      };
     }
 
     // H1: Enforce code_challenge format (RFC 7636 §4.2)
     if (!CODE_CHALLENGE_RE.test(params.code_challenge)) {
-      return { valid: false, error: 'invalid_request', error_description: 'code_challenge must be 43 base64url characters (S256)' };
+      return {
+        valid: false,
+        error: 'invalid_request',
+        error_description: 'code_challenge must be 43 base64url characters (S256)',
+      };
     }
 
     if (!params.client_id) {
@@ -609,8 +666,12 @@ export class OauthService {
     // native client got a 302 to consent and an invalid_redirect_uri from this
     // route for one and the same request (#2227).
     const requestedUri = params.redirect_uri;
-    if (!requestedUri || !allowedUris.some(allowed => redirectUriMatches(allowed, requestedUri))) {
-      return { valid: false, error: 'invalid_redirect_uri', error_description: 'redirect_uri does not match any registered URI' };
+    if (!requestedUri || !allowedUris.some((allowed) => redirectUriMatches(allowed, requestedUri))) {
+      return {
+        valid: false,
+        error: 'invalid_redirect_uri',
+        error_description: 'redirect_uri does not match any registered URI',
+      };
     }
 
     // RFC 8707 resource indicator: if provided, must identify the TREK
@@ -621,11 +682,13 @@ export class OauthService {
     // The lookbehind matches only the first slash of the trailing run. Without it the
     // engine retries from every slash, which is quadratic on a slash-heavy value.
     const mcpResource = `${getMcpSafeUrl().replace(/(?<!\/)\/+$/, '')}/mcp`;
-    const resource = params.resource
-      ? params.resource.replace(/(?<!\/)\/+$/, '')
-      : mcpResource;
+    const resource = params.resource ? params.resource.replace(/(?<!\/)\/+$/, '') : mcpResource;
     if (resource !== mcpResource) {
-      return { valid: false, error: 'invalid_target', error_description: 'Requested resource must be the TREK MCP endpoint' };
+      return {
+        valid: false,
+        error: 'invalid_target',
+        error_description: 'Requested resource must be the TREK MCP endpoint',
+      };
     }
 
     const requestedScopes = (params.scope || '').split(' ').filter(Boolean);
@@ -636,9 +699,13 @@ export class OauthService {
     const allowedScopes: string[] = JSON.parse(client.allowed_scopes);
     // Narrow to the intersection: drop scopes the client isn't permitted for rather
     // than rejecting the whole request (per OAuth 2.0 §3.3 scope narrowing).
-    const grantedScopes = requestedScopes.filter(s => allowedScopes.includes(s));
+    const grantedScopes = requestedScopes.filter((s) => allowedScopes.includes(s));
     if (grantedScopes.length === 0) {
-      return { valid: false, error: 'invalid_scope', error_description: 'None of the requested scopes are permitted for this client' };
+      return {
+        valid: false,
+        error: 'invalid_scope',
+        error_description: 'None of the requested scopes are permitted for this client',
+      };
     }
 
     if (userId === null) {
@@ -673,7 +740,9 @@ export class OauthService {
     if (expected.length !== codeChallenge.length) return false;
     try {
       return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(codeChallenge));
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 
   // -------------------------------------------------------------------------

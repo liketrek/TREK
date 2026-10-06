@@ -1,6 +1,6 @@
-import { EntityRepositoryType, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
 import { PluginMetaMigrationsRepository } from '../repositories/PluginMetaMigrations.repository';
 import { DbTimestampType } from '../types';
+import { EntityRepositoryType, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
 
 export class PluginMetaMigrations {
   [EntityRepositoryType]?: PluginMetaMigrationsRepository;

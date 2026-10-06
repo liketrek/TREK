@@ -34,7 +34,7 @@ export function load(): Airport[] {
   }
   const raw = fs.readFileSync(file, 'utf8');
   cache = JSON.parse(raw) as Airport[];
-  byIata = new Map(cache.map(a => [a.iata, a]));
+  byIata = new Map(cache.map((a) => [a.iata, a]));
   return cache;
 }
 
@@ -67,5 +67,5 @@ export function searchAirports(query: string, limit = 12): Airport[] {
     if (score > 0) matches.push({ a, score });
   }
   matches.sort((x, y) => y.score - x.score || x.a.iata.localeCompare(y.a.iata));
-  return matches.slice(0, limit).map(m => m.a);
+  return matches.slice(0, limit).map((m) => m.a);
 }

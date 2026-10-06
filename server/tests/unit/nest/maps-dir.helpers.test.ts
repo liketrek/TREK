@@ -6,8 +6,9 @@
  * they drop two pins and copy the address bar. The data blobs are trimmed to the parts
  * that matter, because the full ones run to four hundred characters of protobuf.
  */
-import { describe, it, expect } from 'vitest';
 import { isDirectionsUrl, parseDirectionsUrl, MAX_DIR_WAYPOINTS } from '../../../src/nest/places/maps-dir.helpers';
+
+import { describe, it, expect } from 'vitest';
 
 describe('isDirectionsUrl', () => {
   it('MAPS-DIR-001: tells a route apart from a list and from a single place', () => {
@@ -29,8 +30,9 @@ describe('parseDirectionsUrl', () => {
   });
 
   it('MAPS-DIR-011: takes the coordinates out of the data blob when there is one per stop', () => {
-    const url = 'https://www.google.com/maps/dir/Berlin/Dresden/@51.5,13.5,8z/'
-      + 'data=!4m14!4m13!1m5!1m1!1s0x0:0x0!2m2!1d13.404954!2d52.520008!1m5!1m1!1s0x0:0x0!2m2!1d13.737262!2d51.050409';
+    const url =
+      'https://www.google.com/maps/dir/Berlin/Dresden/@51.5,13.5,8z/' +
+      'data=!4m14!4m13!1m5!1m1!1s0x0:0x0!2m2!1d13.404954!2d52.520008!1m5!1m1!1s0x0:0x0!2m2!1d13.737262!2d51.050409';
     // 1d is longitude and 2d is latitude, the reverse of a place link. Getting the two
     // the wrong way round is the failure this pins.
     expect(parseDirectionsUrl(url)).toEqual([
@@ -43,8 +45,9 @@ describe('parseDirectionsUrl', () => {
     // Google drops the pair for "your location" and adds pairs of its own on a route
     // through several countries. Half a link read confidently is worse than one read as
     // names, so a mismatched count means names.
-    const url = 'https://www.google.com/maps/dir/Berlin/Dresden/Prague/@51,13,7z/'
-      + 'data=!4m8!1m5!1m1!1s0x0:0x0!2m2!1d13.404954!2d52.520008';
+    const url =
+      'https://www.google.com/maps/dir/Berlin/Dresden/Prague/@51,13,7z/' +
+      'data=!4m8!1m5!1m1!1s0x0:0x0!2m2!1d13.404954!2d52.520008';
     const stops = parseDirectionsUrl(url);
     expect(stops).toHaveLength(3);
     expect(stops.every((s) => s.lat === null)).toBe(true);
@@ -63,8 +66,9 @@ describe('parseDirectionsUrl', () => {
   });
 
   it('MAPS-DIR-015: the documented api=1 form names its parts instead of ordering them', () => {
-    const url = 'https://www.google.com/maps/dir/?api=1&origin=Berlin&destination=Prague'
-      + '&waypoints=Dresden%7CLeipzig&travelmode=driving';
+    const url =
+      'https://www.google.com/maps/dir/?api=1&origin=Berlin&destination=Prague' +
+      '&waypoints=Dresden%7CLeipzig&travelmode=driving';
     expect(parseDirectionsUrl(url).map((s) => s.name)).toEqual(['Berlin', 'Dresden', 'Leipzig', 'Prague']);
   });
 
@@ -77,8 +81,10 @@ describe('parseDirectionsUrl', () => {
   });
 
   it('MAPS-DIR-017: a country domain is still Google Maps', () => {
-    expect(parseDirectionsUrl('https://www.google.de/maps/dir/Berlin/Dresden').map((s) => s.name))
-      .toEqual(['Berlin', 'Dresden']);
+    expect(parseDirectionsUrl('https://www.google.de/maps/dir/Berlin/Dresden').map((s) => s.name)).toEqual([
+      'Berlin',
+      'Dresden',
+    ]);
   });
 
   it('MAPS-DIR-018: one stop is a place, not a route', () => {
@@ -104,7 +110,7 @@ describe('parseDirectionsUrl', () => {
     expect(stops[0]).toEqual({ name: '999.5,13.4', lat: null, lng: null });
   });
 
-  it('MAPS-DIR-022: a malformed escape is somebody else\'s bad link, not a throw', () => {
+  it("MAPS-DIR-022: a malformed escape is somebody else's bad link, not a throw", () => {
     expect(() => parseDirectionsUrl('https://www.google.com/maps/dir/%E0%A4%A/Dresden')).not.toThrow();
     expect(parseDirectionsUrl('https://www.google.com/maps/dir/%E0%A4%A/Dresden')).toHaveLength(2);
   });

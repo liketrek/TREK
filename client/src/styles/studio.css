@@ -49,11 +49,13 @@
   position: fixed;
   inset: 0;
   z-index: 9998;
-  background: oklch(0.2 0.01 65 / .38);
+  background: oklch(0.2 0.01 65 / 0.38);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
 }
-.dark .st-scrim { background: oklch(0 0 0 / .55); }
+.dark .st-scrim {
+  background: oklch(0 0 0 / 0.55);
+}
 
 /* ----------------- entry / exit ----------------- */
 /* Grows out of the button that opened it. --st-ox/--st-oy are written by the
@@ -62,30 +64,71 @@
 .trek-dash.st-root {
   transform-origin: var(--st-ox, 50%) var(--st-oy, 50%);
 }
-.st-enter { animation: st-in 280ms cubic-bezier(0.23, 1, 0.32, 1) both; }
-.st-exit { animation: st-out 180ms cubic-bezier(0.4, 0, 1, 1) both; }
-.st-scrim-enter { animation: st-fade-in 180ms ease-out both; }
-.st-scrim-exit { animation: st-fade-out 160ms ease-in both; }
+.st-enter {
+  animation: st-in 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.st-exit {
+  animation: st-out 180ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+.st-scrim-enter {
+  animation: st-fade-in 180ms ease-out both;
+}
+.st-scrim-exit {
+  animation: st-fade-out 160ms ease-in both;
+}
 
 @keyframes st-in {
-  from { opacity: 0; transform: scale(0.86); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 @keyframes st-out {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(0.94); }
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
 }
-@keyframes st-fade-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes st-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes st-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes st-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
 
 /* The app-wide damping in index.css only covers the trek-* classes, so ours has
    to opt in here or Studio would be the one surface that ignores the setting. */
 @media (prefers-reduced-motion: reduce) {
-  .st-enter, .st-exit, .st-scrim-enter, .st-scrim-exit {
+  .st-enter,
+  .st-exit,
+  .st-scrim-enter,
+  .st-scrim-exit {
     animation-duration: 120ms;
   }
-  .st-enter { animation-name: st-fade-in; }
-  .st-exit { animation-name: st-fade-out; }
+  .st-enter {
+    animation-name: st-fade-in;
+  }
+  .st-exit {
+    animation-name: st-fade-out;
+  }
 }
 
 /* ----------------- top bar ----------------- */
@@ -117,9 +160,14 @@
   font-weight: 500;
   letter-spacing: -0.01em;
   max-width: 240px;
-  transition: background .18s, color .18s;
+  transition:
+    background 0.18s,
+    color 0.18s;
 }
-.trek-dash .st-back:hover { background: var(--accent-soft); color: var(--ink); }
+.trek-dash .st-back:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
 .trek-dash .st-back .st-back-label {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -145,7 +193,9 @@
   margin-left: auto;
 }
 /* The undo/redo pair belongs together; everything else in the group breathes. */
-.trek-dash .st-bar-group .st-tool.is-icon + .st-tool.is-icon { margin-left: -5px; }
+.trek-dash .st-bar-group .st-tool.is-icon + .st-tool.is-icon {
+  margin-left: -5px;
+}
 
 .trek-dash .st-tool {
   display: inline-flex;
@@ -161,29 +211,53 @@
   letter-spacing: -0.005em;
   white-space: nowrap;
   flex: none;
-  transition: background .18s, color .18s, opacity .18s;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    opacity 0.18s;
 }
-.trek-dash .st-tool.is-icon { width: 30px; padding: 0; }
+.trek-dash .st-tool.is-icon {
+  width: 30px;
+  padding: 0;
+}
 
 /* The browser's own ring is a hard black box on a glass bar. Keep it for
    keyboard users, drop it for the pointer. */
-.trek-dash .st-tool:focus { outline: none; }
+.trek-dash .st-tool:focus {
+  outline: none;
+}
 .trek-dash .st-tool:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--accent);
+  box-shadow:
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
 }
-.trek-dash .st-tool-label { line-height: 1; }
+.trek-dash .st-tool-label {
+  line-height: 1;
+}
 
 /* Below 1360 the labels go and the tools become icons — the bar is not allowed
    to grow into the book's space. */
 @media (max-width: 1359px) {
-  .trek-dash .st-tool-label { display: none; }
-  .trek-dash .st-tool { padding: 0 8px; }
+  .trek-dash .st-tool-label {
+    display: none;
+  }
+  .trek-dash .st-tool {
+    padding: 0 8px;
+  }
 }
-.trek-dash .st-tool:hover:not(:disabled) { background: color-mix(in oklch, var(--ink) 7%, transparent); color: var(--ink); }
-.trek-dash .st-tool:disabled { opacity: .35; }
+.trek-dash .st-tool:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--ink) 7%, transparent);
+  color: var(--ink);
+}
+.trek-dash .st-tool:disabled {
+  opacity: 0.35;
+}
 /* ----------------- format picker ----------------- */
-.trek-dash .st-picker { position: relative; flex: none; }
+.trek-dash .st-picker {
+  position: relative;
+  flex: none;
+}
 
 .trek-dash .st-menu {
   position: absolute;
@@ -209,10 +283,20 @@
   animation: st-menu-in 140ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 @keyframes st-menu-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-@media (prefers-reduced-motion: reduce) { .st-menu { animation-duration: 80ms; } }
+@media (prefers-reduced-motion: reduce) {
+  .st-menu {
+    animation-duration: 80ms;
+  }
+}
 
 .trek-dash .st-menu-item {
   display: flex;
@@ -222,10 +306,17 @@
   border-radius: 10px;
   text-align: left;
   color: var(--ink-2);
-  transition: background .16s, color .16s;
+  transition:
+    background 0.16s,
+    color 0.16s;
 }
-.trek-dash .st-menu-item:hover { background: color-mix(in oklch, var(--ink) 7%, transparent); color: var(--ink); }
-.trek-dash .st-menu-item.is-active { color: var(--ink); }
+.trek-dash .st-menu-item:hover {
+  background: color-mix(in oklch, var(--ink) 7%, transparent);
+  color: var(--ink);
+}
+.trek-dash .st-menu-item.is-active {
+  color: var(--ink);
+}
 /* One tile for every format, with the sheet centred inside it. Sizing the
    shapes directly made a portrait and a landscape sheet different heights, so
    nothing lined up down the list. */
@@ -242,9 +333,22 @@
   border: 1px solid var(--line-2);
   box-shadow: var(--sh-xs);
 }
-.trek-dash .st-menu-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
-.trek-dash .st-menu-name { font-size: 13px; font-weight: 500; }
-.trek-dash .st-menu-dim { font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.trek-dash .st-menu-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+.trek-dash .st-menu-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+.trek-dash .st-menu-dim {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
 
 .trek-dash .st-tool.is-primary {
   /* --accent-on is the accent used AS text on a surface; the colour that reads
@@ -262,11 +366,19 @@
   background: transparent;
   color: var(--ink-2);
   box-shadow: inset 0 0 0 1px var(--line-2);
-  opacity: .5;
+  opacity: 0.5;
 }
-.trek-dash .st-tool.is-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.trek-dash .st-tool.is-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
 
-.trek-dash .st-sep { width: 1px; height: 20px; background: var(--line-2); margin: 0 2px; flex: none; }
+.trek-dash .st-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--line-2);
+  margin: 0 2px;
+  flex: none;
+}
 
 /* ----------------- body: rail | workbench | inspector ----------------- */
 .trek-dash .st-body {
@@ -278,7 +390,9 @@
 /* Under 1280 the inspector floats over the workbench instead of narrowing it —
    below roughly 700px of canvas a spread stops being legible at any zoom. */
 @media (max-width: 1279px) {
-  .trek-dash .st-body { grid-template-columns: 64px 236px minmax(0, 1fr); }
+  .trek-dash .st-body {
+    grid-template-columns: 64px 236px minmax(0, 1fr);
+  }
   .trek-dash .st-inspector {
     position: absolute;
     top: 56px;
@@ -289,7 +403,9 @@
   }
 }
 @media (max-width: 1079px) {
-  .trek-dash .st-body { grid-template-columns: 64px minmax(0, 1fr); }
+  .trek-dash .st-body {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
   .trek-dash .st-side {
     position: absolute;
     top: 56px;
@@ -309,8 +425,12 @@
   min-height: 0;
   z-index: 1;
 }
-.trek-dash .st-pages { border-right: 1px solid var(--glass-border); }
-.trek-dash .st-inspector { border-left: 1px solid var(--glass-border); }
+.trek-dash .st-pages {
+  border-right: 1px solid var(--glass-border);
+}
+.trek-dash .st-inspector {
+  border-left: 1px solid var(--glass-border);
+}
 
 .trek-dash .st-panel-head {
   display: flex;
@@ -325,7 +445,12 @@
   color: var(--ink-3);
   flex: none;
 }
-.trek-dash .st-panel-scroll { overflow-y: auto; overflow-x: hidden; padding: 0 12px 14px; min-height: 0; }
+.trek-dash .st-panel-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 12px 14px;
+  min-height: 0;
+}
 
 /* ----------------- inspector: the head ----------------- */
 /*
@@ -335,7 +460,11 @@
  * same small capitals in the same grey, so a panel with eight groups had nine
  * headings that all looked alike and no top.
  */
-.trek-dash .st-inspector-head { padding: 12px 12px 10px; text-transform: none; letter-spacing: 0; }
+.trek-dash .st-inspector-head {
+  padding: 12px 12px 10px;
+  text-transform: none;
+  letter-spacing: 0;
+}
 .trek-dash .st-inspector-head .st-what {
   display: flex;
   align-items: center;
@@ -361,7 +490,12 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink-2);
 }
-.trek-dash .st-head-acts { display: flex; align-items: center; gap: 2px; flex: none; }
+.trek-dash .st-head-acts {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
 .trek-dash .st-act {
   display: inline-flex;
   align-items: center;
@@ -370,28 +504,58 @@
   height: 26px;
   border-radius: 8px;
   color: var(--ink-3);
-  transition: background .14s, color .14s;
+  transition:
+    background 0.14s,
+    color 0.14s;
 }
-.trek-dash .st-act:hover { background: color-mix(in oklch, var(--ink) 8%, transparent); color: var(--ink); }
-.trek-dash .st-act.is-on { color: var(--accent); background: color-mix(in oklch, var(--accent) 12%, transparent); }
-.trek-dash .st-act.is-danger:hover { background: color-mix(in oklch, #e11d48 16%, transparent); color: #e11d48; } /* theme-lint-disable — destructive, not a scheme colour */
-.trek-dash .st-act:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--accent); }
+.trek-dash .st-act:hover {
+  background: color-mix(in oklch, var(--ink) 8%, transparent);
+  color: var(--ink);
+}
+.trek-dash .st-act.is-on {
+  color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 12%, transparent);
+}
+.trek-dash .st-act.is-danger:hover {
+  background: color-mix(in oklch, #e11d48 16%, transparent);
+  color: #e11d48;
+} /* theme-lint-disable — destructive, not a scheme colour */
+.trek-dash .st-act:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
+}
 
 /* ----------------- page thumbnails ----------------- */
-.trek-dash .st-thumbs { display: flex; flex-direction: column; gap: 10px; }
+.trek-dash .st-thumbs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 .trek-dash .st-thumb {
   display: block;
   width: 100%;
   border-radius: var(--r-xs);
   border: 2px solid transparent;
   padding: 3px;
-  transition: border-color .18s, background .18s;
+  transition:
+    border-color 0.18s,
+    background 0.18s;
   text-align: left;
 }
-.trek-dash .st-thumb:focus { outline: none; }
-.trek-dash .st-thumb:focus-visible { border-color: var(--accent); }
-.trek-dash .st-thumb:hover { background: color-mix(in oklch, var(--ink) 5%, transparent); }
-.trek-dash .st-thumb.is-active { border-color: var(--accent); }
+.trek-dash .st-thumb:focus {
+  outline: none;
+}
+.trek-dash .st-thumb:focus-visible {
+  border-color: var(--accent);
+}
+.trek-dash .st-thumb:hover {
+  background: color-mix(in oklch, var(--ink) 5%, transparent);
+}
+.trek-dash .st-thumb.is-active {
+  border-color: var(--accent);
+}
 .trek-dash .st-thumb-sheet {
   /* The sheet is paper: flat, opaque, no glass. `position: relative` is
      load-bearing: the preview inside is absolutely positioned, and without an
@@ -467,7 +631,9 @@
   left: 0;
   transform-origin: top left;
   background: #ffffff;
-  box-shadow: 0 1px 2px oklch(0 0 0 / .1), 0 30px 70px -30px oklch(0 0 0 / .45);
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.1),
+    0 30px 70px -30px oklch(0 0 0 / 0.45);
 }
 /* The trim edge, drawn as an inset outline so it never shifts the geometry. */
 .trek-dash .st-sheet::after {
@@ -475,7 +641,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  box-shadow: inset 0 0 0 1px oklch(0 0 0 / .07);
+  box-shadow: inset 0 0 0 1px oklch(0 0 0 / 0.07);
 }
 
 .trek-dash .st-empty {
@@ -514,7 +680,9 @@
   gap: 3px;
   border-radius: 11px;
   color: var(--ink-3);
-  transition: background .16s, color .16s;
+  transition:
+    background 0.16s,
+    color 0.16s;
 }
 .trek-dash .st-rail-btn span {
   font-size: 9px;
@@ -524,10 +692,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.trek-dash .st-rail-btn:hover { background: color-mix(in oklch, var(--ink) 6%, transparent); color: var(--ink-2); }
-.trek-dash .st-rail-btn.is-on { background: var(--accent-soft); color: var(--accent-ink); }
+.trek-dash .st-rail-btn:hover {
+  background: color-mix(in oklch, var(--ink) 6%, transparent);
+  color: var(--ink-2);
+}
+.trek-dash .st-rail-btn.is-on {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
 
-.trek-dash .st-side { border-right: 1px solid var(--glass-border); }
+.trek-dash .st-side {
+  border-right: 1px solid var(--glass-border);
+}
 
 .trek-dash .st-tabs {
   display: flex;
@@ -547,7 +723,9 @@
   font-weight: 600;
   color: var(--ink-3);
   background: color-mix(in oklch, var(--ink) 4%, transparent);
-  transition: background .16s, color .16s;
+  transition:
+    background 0.16s,
+    color 0.16s;
   /* A label that still will not fit is cut rather than wrapped: a wrapped tab
      grows taller than the row and knocks the whole strip out of line. */
   white-space: nowrap;
@@ -578,8 +756,13 @@
   background: color-mix(in oklch, var(--accent-text, #fff) 24%, transparent);
   color: var(--accent-text, #fff);
 }
-.trek-dash .st-tabs button:hover { color: var(--ink-2); }
-.trek-dash .st-tabs button.is-on { background: var(--accent); color: var(--accent-text, #fff); }
+.trek-dash .st-tabs button:hover {
+  color: var(--ink-2);
+}
+.trek-dash .st-tabs button.is-on {
+  background: var(--accent);
+  color: var(--accent-text, #fff);
+}
 
 /* ----------------- search ----------------- */
 .trek-dash .st-search {
@@ -594,9 +777,11 @@
   background: var(--surface);
   border: 1px solid var(--line-2);
   color: var(--ink-3);
-  transition: border-color .16s;
+  transition: border-color 0.16s;
 }
-.trek-dash .st-search:focus-within { border-color: var(--accent); }
+.trek-dash .st-search:focus-within {
+  border-color: var(--accent);
+}
 .trek-dash .st-search input {
   flex: 1;
   min-width: 0;
@@ -605,7 +790,9 @@
   color: var(--ink);
   font-size: 12.5px;
 }
-.trek-dash .st-search input:focus { outline: none; }
+.trek-dash .st-search input:focus {
+  outline: none;
+}
 .trek-dash .st-search button {
   width: 18px;
   height: 18px;
@@ -614,7 +801,10 @@
   border-radius: 999px;
   color: var(--ink-3);
 }
-.trek-dash .st-search button:hover { background: color-mix(in oklch, var(--ink) 10%, transparent); color: var(--ink); }
+.trek-dash .st-search button:hover {
+  background: color-mix(in oklch, var(--ink) 10%, transparent);
+  color: var(--ink);
+}
 
 /* ----------------- badges ----------------- */
 .trek-dash .st-badge {
@@ -636,7 +826,9 @@
 /* The date keeps its full width; the place gives way. Both were shrinkable
    flex items, so a long address ate into the date until it read "Tue, ." —
    a truncated place is a truncated place, but a truncated date is wrong. */
-.trek-dash .st-entry-meta > .st-badge { flex: none; }
+.trek-dash .st-entry-meta > .st-badge {
+  flex: none;
+}
 .trek-dash .st-badge.is-quiet {
   background: transparent;
   color: var(--ink-3);
@@ -653,29 +845,59 @@
   gap: 5px;
 }
 /* A message is not a photo: left in a column it wrapped one word per line. */
-.trek-dash .st-photo-grid > .st-hint { grid-column: 1 / -1; }
+.trek-dash .st-photo-grid > .st-hint {
+  grid-column: 1 / -1;
+}
 .trek-dash .st-photo-cell {
   aspect-ratio: 1;
   border-radius: 8px;
   overflow: hidden;
   background: var(--surface-2);
   border: 1px solid var(--line);
-  transition: transform .14s ease-out, box-shadow .14s;
+  transition:
+    transform 0.14s ease-out,
+    box-shadow 0.14s;
 }
-.trek-dash .st-photo-cell:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
-.trek-dash .st-photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.trek-dash .st-photo-cell:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-md);
+}
+.trek-dash .st-photo-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 
-.trek-dash .st-entries { display: flex; flex-direction: column; gap: 8px; }
+.trek-dash .st-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 .trek-dash .st-entry {
   padding: 10px 11px 11px;
   border-radius: var(--r-sm);
   background: color-mix(in oklch, var(--surface) 70%, transparent);
   border: 1px solid var(--line);
 }
-.trek-dash .st-entry-head { font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; }
-.trek-dash .st-entry-meta { display: flex; align-items: center; gap: 5px; margin-top: 5px; min-width: 0; }
+.trek-dash .st-entry-head {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.trek-dash .st-entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  min-width: 0;
+}
 
-.trek-dash .st-stack { display: flex; flex-direction: column; gap: 5px; }
+.trek-dash .st-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
 .trek-dash .st-tile {
   display: flex;
   align-items: center;
@@ -686,9 +908,16 @@
   color: var(--ink);
   background: color-mix(in oklch, var(--surface) 65%, transparent);
   border: 1px solid var(--line);
-  transition: background .16s, border-color .16s, transform .14s;
+  transition:
+    background 0.16s,
+    border-color 0.16s,
+    transform 0.14s;
 }
-.trek-dash .st-tile:hover { background: var(--surface); border-color: var(--line-2); transform: translateY(-1px); }
+.trek-dash .st-tile:hover {
+  background: var(--surface);
+  border-color: var(--line-2);
+  transform: translateY(-1px);
+}
 
 /*
  * Three across, sharing the panel.
@@ -715,9 +944,16 @@
   color: var(--ink-2);
   background: color-mix(in oklch, var(--surface) 65%, transparent);
   border: 1px solid var(--line);
-  transition: background .16s, transform .14s, color .16s;
+  transition:
+    background 0.16s,
+    transform 0.14s,
+    color 0.16s;
 }
-.trek-dash .st-shape-btn:hover { background: var(--surface); color: var(--ink); transform: translateY(-1px); }
+.trek-dash .st-shape-btn:hover {
+  background: var(--surface);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
 
 /* ----------------- template cards ----------------- */
 .trek-dash .st-tpl-slot {
@@ -725,8 +961,12 @@
   border-radius: 1.5px;
   background: color-mix(in oklch, var(--ink) 16%, transparent);
 }
-.trek-dash .st-tpl-slot.is-heading { background: color-mix(in oklch, var(--ink) 45%, transparent); }
-.trek-dash .st-tpl-slot.is-meta { background: color-mix(in oklch, var(--ink) 26%, transparent); }
+.trek-dash .st-tpl-slot.is-heading {
+  background: color-mix(in oklch, var(--ink) 45%, transparent);
+}
+.trek-dash .st-tpl-slot.is-meta {
+  background: color-mix(in oklch, var(--ink) 26%, transparent);
+}
 .trek-dash .st-tpl-slot.is-body {
   background: repeating-linear-gradient(
     to bottom,
@@ -768,7 +1008,7 @@
    */
   box-shadow:
     0 0 0 1.5px var(--accent),
-    0 0 0 2.5px rgba(255, 255, 255, .92),
+    0 0 0 2.5px rgba(255, 255, 255, 0.92),
     0 0 0 6px color-mix(in oklch, var(--accent) 13%, transparent);
   border-radius: 1px;
 }
@@ -781,19 +1021,37 @@
   border: 1.5px solid var(--accent);
   /* Same reasoning as the frame: a white ring outside the dark border keeps the
      handle findable on a dark photograph. */
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .85), 0 1px 3px oklch(0 0 0 / .3);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 1px 3px oklch(0 0 0 / 0.3);
   pointer-events: auto;
-  transition: transform .12s ease-out, box-shadow .12s;
+  transition:
+    transform 0.12s ease-out,
+    box-shadow 0.12s;
 }
-.trek-dash .st-handle:hover { transform: scale(1.25); box-shadow: 0 0 0 1px rgba(255,255,255,.85), 0 2px 7px oklch(0 0 0 / .34); }
+.trek-dash .st-handle:hover {
+  transform: scale(1.25);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 2px 7px oklch(0 0 0 / 0.34);
+}
 .trek-dash .st-handle.is-corner {
-  width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
 }
 .trek-dash .st-handle.is-h {
-  width: 22px; height: 7px; margin: -3.5px 0 0 -11px; border-radius: 4px;
+  width: 22px;
+  height: 7px;
+  margin: -3.5px 0 0 -11px;
+  border-radius: 4px;
 }
 .trek-dash .st-handle.is-v {
-  width: 7px; height: 22px; margin: -11px 0 0 -3.5px; border-radius: 4px;
+  width: 7px;
+  height: 22px;
+  margin: -11px 0 0 -3.5px;
+  border-radius: 4px;
 }
 
 /* Drop target for a photo dragged in from the content panel. */
@@ -803,7 +1061,7 @@
   border-radius: 2px;
   box-shadow:
     0 0 0 2px var(--accent),
-    0 0 0 3px rgba(255, 255, 255, .9),
+    0 0 0 3px rgba(255, 255, 255, 0.9),
     inset 0 0 0 100vmax color-mix(in oklch, var(--accent) 16%, transparent);
 }
 
@@ -816,13 +1074,17 @@
   border: 0;
   resize: none;
   overflow: hidden;
-  background: rgba(255, 255, 255, .92);
-  box-shadow: 0 0 0 1.5px var(--accent), 0 0 0 2.5px rgba(255, 255, 255, .9);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 0 0 1.5px var(--accent),
+    0 0 0 2.5px rgba(255, 255, 255, 0.9);
   white-space: pre-wrap;
   user-select: text;
   -webkit-user-select: text;
 }
-.trek-dash .st-inline-edit:focus { outline: none; }
+.trek-dash .st-inline-edit:focus {
+  outline: none;
+}
 
 /* ----------------- floating quick bar ----------------- */
 .trek-dash .st-quickbar {
@@ -843,10 +1105,20 @@
   z-index: 3;
 }
 @keyframes st-quick-in {
-  from { opacity: 0; transform: translate(-50%, calc(-100% + 5px)); }
-  to { opacity: 1; transform: translate(-50%, -100%); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% + 5px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
 }
-@media (prefers-reduced-motion: reduce) { .trek-dash .st-quickbar { animation-duration: 70ms; } }
+@media (prefers-reduced-motion: reduce) {
+  .trek-dash .st-quickbar {
+    animation-duration: 70ms;
+  }
+}
 
 .trek-dash .st-quickbar button {
   width: 27px;
@@ -855,16 +1127,29 @@
   place-items: center;
   border-radius: 8px;
   color: var(--ink-2);
-  transition: background .14s, color .14s;
+  transition:
+    background 0.14s,
+    color 0.14s;
 }
-.trek-dash .st-quickbar button:hover { background: color-mix(in oklch, var(--ink) 9%, transparent); color: var(--ink); }
-.trek-dash .st-quickbar button.is-danger:hover { background: color-mix(in oklch, #e11d48 16%, transparent); color: #e11d48; }
-.trek-dash .st-quickbar-sep { width: 1px; height: 16px; background: var(--line-2); margin: 0 3px; }
+.trek-dash .st-quickbar button:hover {
+  background: color-mix(in oklch, var(--ink) 9%, transparent);
+  color: var(--ink);
+}
+.trek-dash .st-quickbar button.is-danger:hover {
+  background: color-mix(in oklch, #e11d48 16%, transparent);
+  color: #e11d48;
+}
+.trek-dash .st-quickbar-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--line-2);
+  margin: 0 3px;
+}
 
 .trek-dash .st-guide {
   position: absolute;
   background: #f43f5e; /* theme-lint-disable — an alignment guide must not be the accent, or it vanishes against a selection outline */
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .7);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
   pointer-events: none;
 }
 
@@ -897,10 +1182,17 @@
   display: grid;
   place-items: center;
   color: var(--ink-2);
-  transition: background .18s, color .18s;
+  transition:
+    background 0.18s,
+    color 0.18s;
 }
-.trek-dash .st-zoom button:hover:not(:disabled) { background: color-mix(in oklch, var(--ink) 8%, transparent); color: var(--ink); }
-.trek-dash .st-zoom button:disabled { opacity: .35; }
+.trek-dash .st-zoom button:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--ink) 8%, transparent);
+  color: var(--ink);
+}
+.trek-dash .st-zoom button:disabled {
+  opacity: 0.35;
+}
 .trek-dash .st-zoom-value {
   min-width: 54px;
   text-align: center;
@@ -933,9 +1225,16 @@
  * plain sections still written by hand, which lost their air and left every
  * heading in the panels sitting on the block above it.
  */
-.trek-dash .st-section { padding: 14px 2px 18px; border-bottom: 1px solid var(--line); }
-.trek-dash .st-section:last-of-type { border-bottom: 0; }
-.trek-dash .st-section.is-fold { padding: 0 2px; }
+.trek-dash .st-section {
+  padding: 14px 2px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.trek-dash .st-section:last-of-type {
+  border-bottom: 0;
+}
+.trek-dash .st-section.is-fold {
+  padding: 0 2px;
+}
 .trek-dash .st-section-head {
   display: flex;
   align-items: center;
@@ -944,10 +1243,14 @@
   width: 100%;
   padding: 13px 2px 11px;
   color: var(--ink-3);
-  transition: color .14s;
+  transition: color 0.14s;
 }
-.trek-dash .st-section-head:hover { color: var(--ink); }
-.trek-dash .st-section-head:hover .st-section-label { color: inherit; }
+.trek-dash .st-section-head:hover {
+  color: var(--ink);
+}
+.trek-dash .st-section-head:hover .st-section-label {
+  color: inherit;
+}
 .trek-dash .st-section-label {
   font-size: 10.5px;
   font-weight: 600;
@@ -968,7 +1271,9 @@
    */
   margin-bottom: 10px;
 }
-.trek-dash .st-section-head .st-section-label { margin-bottom: 0; }
+.trek-dash .st-section-head .st-section-label {
+  margin-bottom: 0;
+}
 /* A figure in the head, for a section worth reading while it is folded. It
    sits against the caret rather than the label, so the labels stay aligned. */
 .trek-dash .st-section-badge {
@@ -978,22 +1283,45 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink-3);
 }
-.trek-dash .st-section-caret { flex: none; opacity: 0.5; transition: transform .18s, opacity .14s; }
-.trek-dash .st-section-head:hover .st-section-caret { opacity: 1; }
-.trek-dash .st-section.is-folded .st-section-caret { transform: rotate(-90deg); }
-.trek-dash .st-section-body { padding: 0 2px 17px; }
+.trek-dash .st-section-caret {
+  flex: none;
+  opacity: 0.5;
+  transition:
+    transform 0.18s,
+    opacity 0.14s;
+}
+.trek-dash .st-section-head:hover .st-section-caret {
+  opacity: 1;
+}
+.trek-dash .st-section.is-folded .st-section-caret {
+  transform: rotate(-90deg);
+}
+.trek-dash .st-section-body {
+  padding: 0 2px 17px;
+}
 /* Specific enough to beat `.st-hint`, which is declared later in this file
    and was quietly winning with its own 6px top padding. */
-.trek-dash .st-section-body > .st-section-hint { padding: 0 0 8px; }
+.trek-dash .st-section-body > .st-section-hint {
+  padding: 0 0 8px;
+}
 
 /* ----------------- inspector: one labelled line ----------------- */
 /*
  * The label carries the *role* — accent, text, icon — which is the thing three
  * identical swatch rows under three identical headings could never say.
  */
-.trek-dash .st-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.trek-dash .st-line + .st-line { margin-top: 8px; }
-.trek-dash .st-line.is-wide { display: block; }
+.trek-dash .st-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.trek-dash .st-line + .st-line {
+  margin-top: 8px;
+}
+.trek-dash .st-line.is-wide {
+  display: block;
+}
 .trek-dash .st-line-label {
   flex: none;
   width: 52px;
@@ -1001,8 +1329,15 @@
   color: var(--ink-3);
   line-height: 1.25;
 }
-.trek-dash .st-line.is-wide .st-line-label { display: block; margin-bottom: 7px; width: auto; }
-.trek-dash .st-line-body { flex: 1; min-width: 0; }
+.trek-dash .st-line.is-wide .st-line-label {
+  display: block;
+  margin-bottom: 7px;
+  width: auto;
+}
+.trek-dash .st-line-body {
+  flex: 1;
+  min-width: 0;
+}
 
 /* ----------------- inspector: a switch on its own line ----------------- */
 .trek-dash .st-switch {
@@ -1012,14 +1347,37 @@
   gap: 10px;
   padding: 4px 0;
 }
-.trek-dash .st-switch + .st-switch { border-top: 1px solid var(--line); }
-.trek-dash .st-switch-label { font-size: 12px; color: var(--ink-2); min-width: 0; }
+.trek-dash .st-switch + .st-switch {
+  border-top: 1px solid var(--line);
+}
+.trek-dash .st-switch-label {
+  font-size: 12px;
+  color: var(--ink-2);
+  min-width: 0;
+}
 
 /* ----------------- inspector: a number with its unit ----------------- */
-.trek-dash .st-num { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.trek-dash .st-num-label { flex: none; font-size: 11px; color: var(--ink-3); min-width: 13px; }
-.trek-dash .st-num-box { position: relative; flex: 1; min-width: 0; display: flex; }
-.trek-dash .st-num-box .st-input { padding-right: 26px; }
+.trek-dash .st-num {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.trek-dash .st-num-label {
+  flex: none;
+  font-size: 11px;
+  color: var(--ink-3);
+  min-width: 13px;
+}
+.trek-dash .st-num-box {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+.trek-dash .st-num-box .st-input {
+  padding-right: 26px;
+}
 /* The unit sits inside the field, so the number and what it is in read as one
    value rather than as a field with a word next to it. */
 .trek-dash .st-num-unit {
@@ -1032,18 +1390,34 @@
   pointer-events: none;
 }
 
+.trek-dash .st-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.trek-dash .st-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
 
-.trek-dash .st-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.trek-dash .st-row { display: flex; flex-wrap: wrap; gap: 5px; }
-
-.trek-dash .st-field { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.trek-dash .st-field {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
 .trek-dash .st-field > span {
   font-size: 11px;
   color: var(--ink-3);
   flex: none;
   min-width: 13px;
 }
-.trek-dash .st-field input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.trek-dash .st-field input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
 
 .trek-dash .st-input {
   width: 100%;
@@ -1056,9 +1430,12 @@
   color: var(--ink);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  transition: border-color .16s;
+  transition: border-color 0.16s;
 }
-.trek-dash .st-input:focus { outline: none; border-color: var(--accent); }
+.trek-dash .st-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
 .trek-dash .st-textarea {
   height: auto;
   padding: 8px;
@@ -1080,11 +1457,22 @@
   font-size: 11.5px;
   font-weight: 500;
   white-space: nowrap;
-  transition: background .16s, color .16s;
+  transition:
+    background 0.16s,
+    color 0.16s;
 }
-.trek-dash .st-chip:hover { background: color-mix(in oklch, var(--ink) 10%, transparent); color: var(--ink); }
-.trek-dash .st-chip.is-on { background: var(--accent); color: var(--accent-text, #fff); }
-.trek-dash .st-chip.is-icon { width: 27px; padding: 0; }
+.trek-dash .st-chip:hover {
+  background: color-mix(in oklch, var(--ink) 10%, transparent);
+  color: var(--ink);
+}
+.trek-dash .st-chip.is-on {
+  background: var(--accent);
+  color: var(--accent-text, #fff);
+}
+.trek-dash .st-chip.is-icon {
+  width: 27px;
+  padding: 0;
+}
 /*
  * Choose-several, which is a different question from choose-one and has to
  * look like it: an outline that fills only with the tick, so a set of seven
@@ -1095,15 +1483,26 @@
   box-shadow: inset 0 0 0 1px var(--line-2);
   padding: 0 10px 0 9px;
 }
-.trek-dash .st-chip.is-pick:hover { background: color-mix(in oklch, var(--ink) 6%, transparent); }
+.trek-dash .st-chip.is-pick:hover {
+  background: color-mix(in oklch, var(--ink) 6%, transparent);
+}
 .trek-dash .st-chip.is-pick.is-on {
   background: color-mix(in oklch, var(--accent) 12%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 45%, transparent);
   color: var(--ink);
 }
-.trek-dash .st-chip.is-danger:hover { background: color-mix(in oklch, #e11d48 18%, transparent); color: #e11d48; }
-.trek-dash .st-chip:focus { outline: none; }
-.trek-dash .st-chip:focus-visible { box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--accent); }
+.trek-dash .st-chip.is-danger:hover {
+  background: color-mix(in oklch, #e11d48 18%, transparent);
+  color: #e11d48;
+}
+.trek-dash .st-chip:focus {
+  outline: none;
+}
+.trek-dash .st-chip:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--accent-soft),
+    0 0 0 3px var(--accent);
+}
 
 /*
  * Ten swatches on one line, which needs the whole panel width rather than what
@@ -1111,27 +1510,51 @@
  * them. Measured rather than guessed: the body is 261px, and 10 at 22px with
  * 4px between them is 256.
  */
-.trek-dash .st-swatches { display: flex; flex-wrap: wrap; gap: 4px; }
+.trek-dash .st-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
 .trek-dash .st-swatch {
   width: 22px;
   height: 22px;
   border-radius: 7px;
   border: 1px solid var(--line-2);
   box-shadow: var(--sh-xs);
-  transition: transform .14s, box-shadow .14s;
+  transition:
+    transform 0.14s,
+    box-shadow 0.14s;
 }
-.trek-dash .st-swatch:hover { transform: scale(1.08); }
-.trek-dash .st-swatch.is-on { box-shadow: 0 0 0 2px var(--accent); }
+.trek-dash .st-swatch:hover {
+  transform: scale(1.08);
+}
+.trek-dash .st-swatch.is-on {
+  box-shadow: 0 0 0 2px var(--accent);
+}
 .trek-dash .st-swatch-custom {
   position: relative;
   overflow: hidden;
-  background: conic-gradient(#e11d48, #f59e0b, #10b981, #3b82f6, #8b5cf6, #e11d48); /* theme-lint-disable — the colour wheel is the control */
+  background: conic-gradient(
+    #e11d48,
+    #f59e0b,
+    #10b981,
+    #3b82f6,
+    #8b5cf6,
+    #e11d48
+  ); /* theme-lint-disable — the colour wheel is the control */
   cursor: pointer;
 }
-.trek-dash .st-swatch-custom input { position: absolute; inset: -6px; opacity: 0; cursor: pointer; }
+.trek-dash .st-swatch-custom input {
+  position: absolute;
+  inset: -6px;
+  opacity: 0;
+  cursor: pointer;
+}
 
 /* ----------------- focal point pad ----------------- */
-.trek-dash .st-focal-wrap { margin-top: 9px; }
+.trek-dash .st-focal-wrap {
+  margin-top: 9px;
+}
 .trek-dash .st-focal {
   position: relative;
   width: 100%;
@@ -1158,7 +1581,9 @@
   margin: -9px 0 0 -9px;
   border-radius: 50%;
   border: 2px solid #fff;
-  box-shadow: 0 0 0 1px oklch(0 0 0 / .35), 0 2px 6px oklch(0 0 0 / .4);
+  box-shadow:
+    0 0 0 1px oklch(0 0 0 / 0.35),
+    0 2px 6px oklch(0 0 0 / 0.4);
   pointer-events: none;
 }
 .trek-dash .st-focal-dot::after {
@@ -1202,12 +1627,22 @@
 
 /* A drawn shape needs room to be recognisable; a lucide glyph does not. The
    tile keeps its size and the artwork inside it grows instead. */
-.trek-dash .st-shape-btn.is-glyph { padding: 10px; color: var(--ink-2); }
-.trek-dash .st-shape-btn.is-glyph svg { width: 100%; height: 100%; }
-.trek-dash .st-shape-btn.is-glyph:hover { color: var(--ink); }
+.trek-dash .st-shape-btn.is-glyph {
+  padding: 10px;
+  color: var(--ink-2);
+}
+.trek-dash .st-shape-btn.is-glyph svg {
+  width: 100%;
+  height: 100%;
+}
+.trek-dash .st-shape-btn.is-glyph:hover {
+  color: var(--ink);
+}
 
 .trek-dash .st-shape-btn.is-frame,
-.trek-dash .st-shape-btn.is-map { padding: 8px; }
+.trek-dash .st-shape-btn.is-map {
+  padding: 8px;
+}
 
 /* The frame previews stand in for paper and film, so they carry their own
    colours rather than the app's — see the theme-lint note in the component. */
@@ -1231,7 +1666,7 @@
   width: 16px;
   height: 6px;
   border-radius: 1px;
-  background: rgba(236, 228, 206, .85);
+  background: rgba(236, 228, 206, 0.85);
   transform: rotate(-45deg);
 }
 .trek-dash .st-frame-glyph-tape.is-right {
@@ -1253,7 +1688,10 @@
   border-radius: 9px;
   background: color-mix(in oklch, var(--surface) 65%, transparent);
   border: 1px solid var(--line);
-  transition: background .16s, transform .14s, border-color .16s;
+  transition:
+    background 0.16s,
+    transform 0.14s,
+    border-color 0.16s;
 }
 .trek-dash .st-grid-btn:hover {
   background: var(--surface);
@@ -1310,15 +1748,25 @@
   border-radius: 7px;
   color: var(--ink-3);
   border: 1px solid transparent;
-  transition: background .14s, color .14s, border-color .14s;
+  transition:
+    background 0.14s,
+    color 0.14s,
+    border-color 0.14s;
 }
-.trek-dash .st-mini-shape:hover { background: var(--surface); color: var(--ink); }
+.trek-dash .st-mini-shape:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
 .trek-dash .st-mini-shape.is-on {
   color: var(--accent);
   border-color: color-mix(in oklch, var(--accent) 45%, transparent);
   background: color-mix(in oklch, var(--accent) 10%, transparent);
 }
-.trek-dash .st-mini-shape svg { width: 100%; height: 100%; display: block; }
+.trek-dash .st-mini-shape svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
 /* "No mask" is the absence of a shape, drawn as the plain rectangle a photo is
    without one — an empty tile would read as a missing icon. */
 .trek-dash .st-mini-none {
@@ -1327,7 +1775,7 @@
   height: 100%;
   border-radius: 2px;
   border: 1.5px dashed currentColor;
-  opacity: .6;
+  opacity: 0.6;
 }
 
 /* ----------------- travel cards ----------------- *
@@ -1346,7 +1794,9 @@
   align-items: start;
 }
 /* One to a row, for elements as wide as a spread. */
-.trek-dash .st-travel-grid.is-wide { grid-template-columns: 1fr; }
+.trek-dash .st-travel-grid.is-wide {
+  grid-template-columns: 1fr;
+}
 .trek-dash .st-travel-card {
   display: flex;
   flex-direction: column;
@@ -1356,7 +1806,10 @@
   border-radius: 10px;
   border: 1px solid var(--line);
   background: color-mix(in oklch, var(--surface) 60%, transparent);
-  transition: background .16s, border-color .16s, transform .14s;
+  transition:
+    background 0.16s,
+    border-color 0.16s,
+    transform 0.14s;
   min-width: 0;
 }
 /*
@@ -1369,7 +1822,11 @@
  * picked for their book, and it changes.
  */
 .trek-dash .st-travel-card.is-recommended {
-  border-color: color-mix(in oklch, #16a34a 55%, transparent); /* theme-lint-disable — a recommendation, not a scheme colour */
+  border-color: color-mix(
+    in oklch,
+    #16a34a 55%,
+    transparent
+  ); /* theme-lint-disable — a recommendation, not a scheme colour */
   box-shadow: 0 0 0 1px color-mix(in oklch, #16a34a 30%, transparent); /* theme-lint-disable */
 }
 .trek-dash .st-travel-card.is-recommended:hover {
@@ -1403,7 +1860,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.trek-dash .st-travel-card:hover .st-travel-card-label { color: var(--ink-2); }
+.trek-dash .st-travel-card:hover .st-travel-card-label {
+  color: var(--ink-2);
+}
 
 /* ----------------- page actions ----------------- *
  * The controls live on the thumbnail, appearing on hover or when the spread is
@@ -1411,7 +1870,9 @@
  * 200px rail; behind a menu they would be a click away from something you do
  * constantly while laying a book out.
  */
-.trek-dash .st-thumb-row { position: relative; }
+.trek-dash .st-thumb-row {
+  position: relative;
+}
 
 .trek-dash .st-thumb-actions {
   position: absolute;
@@ -1428,7 +1889,9 @@
   box-shadow: var(--sh-sm);
   opacity: 0;
   transform: translateY(-2px);
-  transition: opacity .14s, transform .14s;
+  transition:
+    opacity 0.14s,
+    transform 0.14s;
   pointer-events: none;
 }
 .trek-dash .st-thumb-row:hover .st-thumb-actions,
@@ -1444,13 +1907,18 @@
   height: 21px;
   border-radius: 6px;
   color: var(--ink-2);
-  transition: background .14s, color .14s, opacity .14s;
+  transition:
+    background 0.14s,
+    color 0.14s,
+    opacity 0.14s;
 }
 .trek-dash .st-thumb-actions button:hover:not(:disabled) {
   background: color-mix(in oklch, var(--ink) 9%, transparent);
   color: var(--ink);
 }
-.trek-dash .st-thumb-actions button:disabled { opacity: .3; }
+.trek-dash .st-thumb-actions button:disabled {
+  opacity: 0.3;
+}
 .trek-dash .st-thumb-actions button.is-danger:hover:not(:disabled) {
   background: color-mix(in oklch, var(--danger, #b91c1c) 14%, transparent);
   color: var(--danger, #b91c1c);
@@ -1474,10 +1942,12 @@
   background: var(--accent);
   border: 2px solid var(--bg);
   opacity: 0;
-  transition: opacity .14s;
+  transition: opacity 0.14s;
 }
 .trek-dash .st-thumb-row:hover .st-thumb-insert,
-.trek-dash .st-thumb-insert:focus-visible { opacity: 1; }
+.trek-dash .st-thumb-insert:focus-visible {
+  opacity: 1;
+}
 
 .trek-dash .st-add-page {
   display: flex;
@@ -1492,7 +1962,10 @@
   color: var(--ink-3);
   font-size: 12px;
   font-weight: 600;
-  transition: background .16s, color .16s, border-color .16s;
+  transition:
+    background 0.16s,
+    color 0.16s,
+    border-color 0.16s;
 }
 .trek-dash .st-add-page:hover {
   background: var(--surface);
@@ -1512,7 +1985,9 @@
   color: var(--ink);
   min-width: 0;
 }
-.trek-dash .st-brand svg { flex: none; }
+.trek-dash .st-brand svg {
+  flex: none;
+}
 
 /* Small, quiet and set apart — a beta mark states a fact about the feature; it
    is not a call to action and should not read as one. */
@@ -1605,15 +2080,24 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
-  transition: background .14s, border-color .14s, color .14s;
+  transition:
+    background 0.14s,
+    border-color 0.14s,
+    color 0.14s;
 }
-.trek-dash .st-font:hover { background: var(--surface); color: var(--ink); }
+.trek-dash .st-font:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
 .trek-dash .st-font.is-on {
   color: var(--ink);
   border-color: color-mix(in oklch, var(--accent) 50%, transparent);
   background: color-mix(in oklch, var(--accent) 10%, transparent);
 }
-.trek-dash .st-chip:disabled { opacity: .32; cursor: default; }
+.trek-dash .st-chip:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
 
 /* ----------------- save state ----------------- *
  * Quiet by default. A status that announces every successful save is one people
@@ -1634,7 +2118,9 @@
   flex: none;
   white-space: nowrap;
 }
-.trek-dash .st-save.is-quiet { background: transparent; }
+.trek-dash .st-save.is-quiet {
+  background: transparent;
+}
 .trek-dash .st-save.is-error {
   color: var(--danger, #b91c1c);
   background: color-mix(in oklch, var(--danger, #b91c1c) 12%, transparent);
@@ -1658,9 +2144,19 @@
   background: color-mix(in oklch, var(--ink) 18%, transparent);
 }
 
-.trek-dash .st-spin { animation: st-spin 900ms linear infinite; }
-@keyframes st-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .trek-dash .st-spin { animation: none; } }
+.trek-dash .st-spin {
+  animation: st-spin 900ms linear infinite;
+}
+@keyframes st-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trek-dash .st-spin {
+    animation: none;
+  }
+}
 
 /* ── Presence and pointers (#1973) ────────────────────────────────────────
    The arrow is positioned in the sheet's millimetres and scales itself back
@@ -1674,7 +2170,10 @@
   gap: 4px;
   will-change: left, top;
 }
-.trek-dash .st-peer svg { flex: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28)); }
+.trek-dash .st-peer svg {
+  flex: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28));
+}
 .trek-dash .st-peer-name {
   margin-top: 10px;
   padding: 2px 7px;
@@ -1702,7 +2201,10 @@
   border: 1px solid var(--line);
   background: var(--surface-2);
 }
-.trek-dash .st-peer-faces { display: inline-flex; align-items: center; }
+.trek-dash .st-peer-faces {
+  display: inline-flex;
+  align-items: center;
+}
 .trek-dash .st-peer-dot {
   display: grid;
   place-items: center;
@@ -1719,8 +2221,14 @@
   /* Overlapped, the way a stack of faces reads as a group rather than a list. */
   margin-right: -7px;
 }
-.trek-dash .st-peer-dot:last-child { margin-right: 0; }
-.trek-dash .st-peer-dot img { width: 100%; height: 100%; object-fit: cover; }
+.trek-dash .st-peer-dot:last-child {
+  margin-right: 0;
+}
+.trek-dash .st-peer-dot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .trek-dash .st-peer-more {
   font-size: 10.5px;
   font-weight: 600;
@@ -1733,7 +2241,11 @@
   color: var(--ink-2);
   white-space: nowrap;
 }
-@media (max-width: 1280px) { .trek-dash .st-peer-label { display: none; } }
+@media (max-width: 1280px) {
+  .trek-dash .st-peer-label {
+    display: none;
+  }
+}
 
 /* ── The rotation handle (#1973) ──────────────────────────────────────────
    Held out past the corner rather than sitting on it: a handle on the corner
@@ -1767,8 +2279,12 @@
    * proper button under the pointer. The hit area stays full size either way,
    * so the quiet version is no harder to grab than the loud one was.
    */
-  opacity: .28;
-  transition: opacity .12s, background .12s, border-color .12s, color .12s;
+  opacity: 0.28;
+  transition:
+    opacity 0.12s,
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
 }
 .trek-dash .st-rotate:hover {
   opacity: 1;
@@ -1790,11 +2306,18 @@
  * edge sits about 6px out, which is far enough that neither is ever grabbed by
  * accident and near enough to still read as belonging to that corner.
  */
-.trek-dash .st-rotate.is-nw { transform: translate(-131%, -131%); }
-.trek-dash .st-rotate.is-ne { transform: translate(31%, -131%); }
-.trek-dash .st-rotate.is-se { transform: translate(31%, 31%); }
-.trek-dash .st-rotate.is-sw { transform: translate(-131%, 31%); }
-
+.trek-dash .st-rotate.is-nw {
+  transform: translate(-131%, -131%);
+}
+.trek-dash .st-rotate.is-ne {
+  transform: translate(31%, -131%);
+}
+.trek-dash .st-rotate.is-se {
+  transform: translate(31%, 31%);
+}
+.trek-dash .st-rotate.is-sw {
+  transform: translate(-131%, 31%);
+}
 
 /*
  * Add spread, split with Import.
@@ -1809,7 +2332,9 @@
   gap: 6px;
   margin-top: 10px;
 }
-.trek-dash .st-add-row .st-add-page { margin-top: 0; }
+.trek-dash .st-add-row .st-add-page {
+  margin-top: 0;
+}
 .trek-dash .st-add-page.is-import {
   width: auto;
   padding: 0 11px;
@@ -1857,10 +2382,14 @@
   min-width: 0;
   padding: 4px 0;
   border-bottom: 1px solid var(--line);
-  transition: opacity .16s;
+  transition: opacity 0.16s;
 }
-.trek-dash .st-stop:last-child { border-bottom: 0; }
-.trek-dash .st-stop.is-off { opacity: .55; }
+.trek-dash .st-stop:last-child {
+  border-bottom: 0;
+}
+.trek-dash .st-stop.is-off {
+  opacity: 0.55;
+}
 .trek-dash .st-stop-label {
   flex: 1 1 auto;
   min-width: 0;
@@ -1873,14 +2402,27 @@
   text-overflow: ellipsis;
 }
 /* The day keeps its width, as on the entry cards; the country gives way. */
-.trek-dash .st-stop > .st-badge { flex: none; }
-.trek-dash .st-stop > .st-badge.is-quiet { flex: 0 1 auto; }
+.trek-dash .st-stop > .st-badge {
+  flex: none;
+}
+.trek-dash .st-stop > .st-badge.is-quiet {
+  flex: 0 1 auto;
+}
 /* The switch, as a mark: a square the size of the badges beside it. The
    padding is reset because `is-pick` sets its own further down the file. */
-.trek-dash .st-stop > .st-chip.is-icon { flex: none; width: 22px; height: 22px; padding: 0; }
-.trek-dash .st-stop > .st-chip:not(.is-on) { color: var(--ink-3); }
+.trek-dash .st-stop > .st-chip.is-icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+}
+.trek-dash .st-stop > .st-chip:not(.is-on) {
+  color: var(--ink-3);
+}
 /* The same chip as a plain label: a viewer's, or a stop with no entry to switch. */
-.trek-dash .st-stop > span.st-chip { pointer-events: none; }
+.trek-dash .st-stop > span.st-chip {
+  pointer-events: none;
+}
 
 /* content filter + upload */
 /*
@@ -1906,7 +2448,10 @@
   flex: none;
   min-width: 0;
 }
-.trek-dash .st-filter-row .st-picker { flex: 1 0 100%; min-width: 0; }
+.trek-dash .st-filter-row .st-picker {
+  flex: 1 0 100%;
+  min-width: 0;
+}
 .trek-dash .st-filter-chip {
   display: flex;
   width: 100%;
@@ -1924,10 +2469,20 @@
   color: inherit;
 }
 /* The name takes the slack; the count and the chevron stay at the right edge. */
-.trek-dash .st-filter-chip > button:first-child { flex: 1; justify-content: flex-start; }
-.trek-dash .st-filter-chip > button + button { padding: 0 8px 0 3px; margin-left: -5px; }
-.trek-dash .st-filter-chip > button:hover { background: color-mix(in oklch, var(--ink) 7%, transparent); }
-.trek-dash .st-filter-chip.is-on > button:hover { background: color-mix(in oklch, var(--accent-text, #fff) 14%, transparent); }
+.trek-dash .st-filter-chip > button:first-child {
+  flex: 1;
+  justify-content: flex-start;
+}
+.trek-dash .st-filter-chip > button + button {
+  padding: 0 8px 0 3px;
+  margin-left: -5px;
+}
+.trek-dash .st-filter-chip > button:hover {
+  background: color-mix(in oklch, var(--ink) 7%, transparent);
+}
+.trek-dash .st-filter-chip.is-on > button:hover {
+  background: color-mix(in oklch, var(--accent-text, #fff) 14%, transparent);
+}
 .trek-dash .st-filter-name {
   flex: 1;
   min-width: 0;
@@ -1942,7 +2497,7 @@
   font-size: 10.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  opacity: .7;
+  opacity: 0.7;
 }
 /* Hung under the chip and as wide as it: a menu narrower than the control that
    opens it reads as belonging to something else. */
@@ -1952,17 +2507,25 @@
   min-width: 0;
   max-width: none;
 }
-.trek-dash .st-filter-row .st-menu-item { padding: 7px 10px; gap: 8px; }
+.trek-dash .st-filter-row .st-menu-item {
+  padding: 7px 10px;
+  gap: 8px;
+}
 .trek-dash .st-filter-row .st-menu-name,
 .trek-dash .st-filter-row .st-menu-dim {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.trek-dash .st-filter-count { flex: none; }
+.trek-dash .st-filter-count {
+  flex: none;
+}
 
 /* Where the next pictures go. Under the filter because the filter decides it. */
-.trek-dash .st-upload-where { padding: 0 2px 8px; font-size: 11.5px; }
+.trek-dash .st-upload-where {
+  padding: 0 2px 8px;
+  font-size: 11.5px;
+}
 
 /*
  * The upload cell: the first square of the grid, drawn as an outline so it
@@ -1984,7 +2547,12 @@
   font-weight: 600;
   line-height: 1.25;
   text-align: center;
-  transition: border-color .16s, color .16s, background .16s, transform .14s ease-out, box-shadow .14s;
+  transition:
+    border-color 0.16s,
+    color 0.16s,
+    background 0.16s,
+    transform 0.14s ease-out,
+    box-shadow 0.14s;
 }
 .trek-dash .st-photo-cell.is-upload span {
   max-width: 100%;
@@ -2069,9 +2637,26 @@
  * The book's own layouts sit above the built-in ones, with the save button
  * closing their group, so what a click keeps and where it goes read as one.
  */
-.trek-dash .st-saved-layouts { display: flex; flex-direction: column; margin-bottom: 14px; }
-.trek-dash .st-saved-layouts .st-hint { margin: 0 0 4px; }
-.trek-dash .st-saved-layouts .st-add-page { margin-top: 8px; }
-.trek-dash .st-saved-layouts .st-add-page:disabled { opacity: .5; cursor: default; }
-.trek-dash .st-saved-layouts .st-add-page:disabled:hover { background: none; border-color: var(--line-2); color: var(--ink-3); }
-.trek-dash .st-saved-layouts .st-builtin-label { margin-top: 18px; }
+.trek-dash .st-saved-layouts {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+.trek-dash .st-saved-layouts .st-hint {
+  margin: 0 0 4px;
+}
+.trek-dash .st-saved-layouts .st-add-page {
+  margin-top: 8px;
+}
+.trek-dash .st-saved-layouts .st-add-page:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.trek-dash .st-saved-layouts .st-add-page:disabled:hover {
+  background: none;
+  border-color: var(--line-2);
+  color: var(--ink-3);
+}
+.trek-dash .st-saved-layouts .st-builtin-label {
+  margin-top: 18px;
+}

@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { Response } from 'express';
-import { PassThrough } from 'node:stream';
-
 import { MapsController } from '../../../src/nest/maps/maps.controller';
 import type { MapsService } from '../../../src/nest/maps/maps.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+
+import type { Response } from 'express';
+import { PassThrough } from 'node:stream';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const user = { id: 3 } as User;
 
@@ -68,14 +68,16 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     it('maps a service error to its status + message', async () => {
       const search = vi.fn().mockRejectedValue(withError(429, 'Rate limited'));
       expect(await thrown(() => makeController({ search }).search(user, { query: 'x' }))).toEqual({
-        status: 429, body: { error: 'Rate limited' },
+        status: 429,
+        body: { error: 'Rate limited' },
       });
     });
 
     it('defaults a non-Error rejection to 500 + the fallback message', async () => {
       const search = vi.fn().mockRejectedValue('boom');
       expect(await thrown(() => makeController({ search }).search(user, { query: 'x' }))).toEqual({
-        status: 500, body: { error: 'Search error' },
+        status: 500,
+        body: { error: 'Search error' },
       });
     });
   });
@@ -83,7 +85,11 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
   describe('POST /nearby', () => {
     it('forwards the point, the circle, the count and the language', async () => {
       const nearbyPlaces = vi.fn().mockResolvedValue({ places: [], source: 'trek-places' });
-      const res = await makeController({ nearbyPlaces }).nearby(user, { lat: 52.5, lng: 13.4, radius: 300, limit: 5 }, 'de');
+      const res = await makeController({ nearbyPlaces }).nearby(
+        user,
+        { lat: 52.5, lng: 13.4, radius: 300, limit: 5 },
+        'de',
+      );
       expect(res).toEqual({ places: [], source: 'trek-places' });
       expect(nearbyPlaces).toHaveBeenCalledWith(3, 52.5, 13.4, { radius: 300, limit: 5, lang: 'de' });
     });
@@ -91,11 +97,13 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     it('maps a provider error to its status, and anything else to 500', async () => {
       const refused = vi.fn().mockRejectedValue(withError(429, 'Quota exceeded'));
       expect(await thrown(() => makeController({ nearbyPlaces: refused }).nearby(user, { lat: 1, lng: 2 }))).toEqual({
-        status: 429, body: { error: 'Quota exceeded' },
+        status: 429,
+        body: { error: 'Quota exceeded' },
       });
       const broken = vi.fn().mockRejectedValue('boom');
       expect(await thrown(() => makeController({ nearbyPlaces: broken }).nearby(user, { lat: 1, lng: 2 }))).toEqual({
-        status: 500, body: { error: 'Nearby search error' },
+        status: 500,
+        body: { error: 'Nearby search error' },
       });
     });
   });
@@ -138,7 +146,8 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     it('400 when category is missing', async () => {
       const pois = vi.fn();
       expect(await thrown(() => makeController({ pois }).pois(undefined, '1', '2', '3', '4'))).toEqual({
-        status: 400, body: { error: 'A category is required' },
+        status: 400,
+        body: { error: 'A category is required' },
       });
       expect(pois).not.toHaveBeenCalled();
     });
@@ -146,7 +155,8 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     it('400 when the bbox has a non-finite value', async () => {
       const pois = vi.fn();
       expect(await thrown(() => makeController({ pois }).pois('cafe', 'x', '2', '3', '4'))).toEqual({
-        status: 400, body: { error: 'A valid bbox (south, west, north, east) is required' },
+        status: 400,
+        body: { error: 'A valid bbox (south, west, north, east) is required' },
       });
       expect(pois).not.toHaveBeenCalled();
     });
@@ -161,7 +171,8 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     it('maps a service error, defaulting to 500', async () => {
       const pois = vi.fn().mockRejectedValue(new Error('Overpass down'));
       expect(await thrown(() => makeController({ pois }).pois('cafe', '1', '2', '3', '4'))).toEqual({
-        status: 500, body: { error: 'Overpass down' },
+        status: 500,
+        body: { error: 'Overpass down' },
       });
     });
   });
@@ -169,7 +180,9 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
   describe('POST /autocomplete', () => {
     it('returns the disabled envelope when the kill-switch is off', async () => {
       const autocomplete = vi.fn();
-      const res = await makeController({ autocompleteDisabled: async () => true, autocomplete }).autocomplete(user, { input: 'be' });
+      const res = await makeController({ autocompleteDisabled: async () => true, autocomplete }).autocomplete(user, {
+        input: 'be',
+      });
       expect(res).toEqual({ suggestions: [], source: 'disabled' });
       expect(autocomplete).not.toHaveBeenCalled();
     });
@@ -177,7 +190,11 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     it('delegates a valid request', async () => {
       const autocomplete = vi.fn().mockResolvedValue({ suggestions: [], source: 'osm' });
       const bias = { low: { lat: 1, lng: 2 }, high: { lat: 3, lng: 4 } };
-      await makeController({ autocompleteDisabled: async () => false, autocomplete }).autocomplete(user, { input: 'be', lang: 'en', locationBias: bias });
+      await makeController({ autocompleteDisabled: async () => false, autocomplete }).autocomplete(user, {
+        input: 'be',
+        lang: 'en',
+        locationBias: bias,
+      });
       expect(autocomplete).toHaveBeenCalledWith(3, 'be', 'en', bias, undefined);
     });
 
@@ -185,8 +202,10 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     // Google billing session instead of charging each request.
     it('passes a session token through to the service', async () => {
       const autocomplete = vi.fn().mockResolvedValue({ suggestions: [], source: 'google' });
-      await makeController({ autocompleteDisabled: async () => false, autocomplete })
-        .autocomplete(user, { input: 'be', sessionToken: 'abc123' });
+      await makeController({ autocompleteDisabled: async () => false, autocomplete }).autocomplete(user, {
+        input: 'be',
+        sessionToken: 'abc123',
+      });
       expect(autocomplete).toHaveBeenCalledWith(3, 'be', undefined, undefined, 'abc123');
     });
 
@@ -194,7 +213,8 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       const autocomplete = vi.fn().mockRejectedValue(withError(503, 'Upstream down'));
       const c = makeController({ autocompleteDisabled: async () => false, autocomplete });
       expect(await thrown(() => c.autocomplete(user, { input: 'be' }))).toEqual({
-        status: 503, body: { error: 'Upstream down' },
+        status: 503,
+        body: { error: 'Upstream down' },
       });
     });
   });
@@ -208,8 +228,13 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     it('uses the expanded lookup when expand is set', async () => {
       const detailsExpanded = vi.fn().mockResolvedValue({ place: { id: 'p1' } });
       const details = vi.fn();
-      await makeController({ detailsDisabled: async () => false, detailsExpanded, details })
-        .details(user, 'p1', 'full', 'de', '1');
+      await makeController({ detailsDisabled: async () => false, detailsExpanded, details }).details(
+        user,
+        'p1',
+        'full',
+        'de',
+        '1',
+      );
       expect(detailsExpanded).toHaveBeenCalledWith(3, 'p1', 'de', true);
       expect(details).not.toHaveBeenCalled();
     });
@@ -238,8 +263,11 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
 
     it('maps a service error', async () => {
       const details = vi.fn().mockRejectedValue(withError(404, 'Not found'));
-      expect(await thrown(() => makeController({ detailsDisabled: async () => false, details }).details(user, 'p1'))).toEqual({
-        status: 404, body: { error: 'Not found' },
+      expect(
+        await thrown(() => makeController({ detailsDisabled: async () => false, details }).details(user, 'p1')),
+      ).toEqual({
+        status: 404,
+        body: { error: 'Not found' },
       });
     });
   });
@@ -254,14 +282,25 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
 
     it('bypasses the kill-switch for coords: ids', async () => {
       const photo = vi.fn().mockResolvedValue({ photoUrl: 'u', attribution: null });
-      await makeController({ photosDisabled: async () => true, photo }).placePhoto(user, 'coords:1,2', '1', '2', 'Spot');
+      await makeController({ photosDisabled: async () => true, photo }).placePhoto(
+        user,
+        'coords:1,2',
+        '1',
+        '2',
+        'Spot',
+      );
       expect(photo).toHaveBeenCalledWith(3, 'coords:1,2', 1, 2, 'Spot');
     });
 
     it('maps a 4xx service error', async () => {
       const photo = vi.fn().mockRejectedValue(withError(429, 'Rate limited'));
-      expect(await thrown(() => makeController({ photosDisabled: async () => false, photo }).placePhoto(user, 'p1', '1', '2'))).toEqual({
-        status: 429, body: { error: 'Rate limited' },
+      expect(
+        await thrown(() =>
+          makeController({ photosDisabled: async () => false, photo }).placePhoto(user, 'p1', '1', '2'),
+        ),
+      ).toEqual({
+        status: 429,
+        body: { error: 'Rate limited' },
       });
     });
 
@@ -269,22 +308,35 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
     // place gets the user banned by any 404-rate IPS in front of TREK (#1727).
     it('passes a photo-less place through as a 200 with photoUrl null', async () => {
       const photo = vi.fn().mockResolvedValue({ photoUrl: null, attribution: null });
-      const res = await makeController({ photosDisabled: async () => false, photo }).placePhoto(user, 'node:123', '1', '2');
+      const res = await makeController({ photosDisabled: async () => false, photo }).placePhoto(
+        user,
+        'node:123',
+        '1',
+        '2',
+      );
       expect(res).toEqual({ photoUrl: null, attribution: null });
     });
 
     it('logs and maps a 5xx service error', async () => {
       const photo = vi.fn().mockRejectedValue(withError(502, 'Upstream failed'));
-      expect(await thrown(() => makeController({ photosDisabled: async () => false, photo }).placePhoto(user, 'p1', '1', '2'))).toEqual({
-        status: 502, body: { error: 'Upstream failed' },
+      expect(
+        await thrown(() =>
+          makeController({ photosDisabled: async () => false, photo }).placePhoto(user, 'p1', '1', '2'),
+        ),
+      ).toEqual({
+        status: 502,
+        body: { error: 'Upstream failed' },
       });
       expect(console.error).toHaveBeenCalledWith('Place photo error:', expect.any(Error));
     });
 
     it('defaults a status-less error to 500 and parses NaN coords', async () => {
       const photo = vi.fn().mockRejectedValue(new Error('Error fetching photo'));
-      expect(await thrown(() => makeController({ photosDisabled: async () => false, photo }).placePhoto(user, 'p1'))).toEqual({
-        status: 500, body: { error: 'Error fetching photo' },
+      expect(
+        await thrown(() => makeController({ photosDisabled: async () => false, photo }).placePhoto(user, 'p1')),
+      ).toEqual({
+        status: 500,
+        body: { error: 'Error fetching photo' },
       });
       const [, , lat, lng] = photo.mock.calls[0];
       expect(Number.isNaN(lat)).toBe(true);
@@ -307,7 +359,10 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       const realEnd = sink.end.bind(sink) as (...a: unknown[]) => unknown;
       const res = Object.assign(sink, {
         statusCode: 200,
-        status: vi.fn(function (this: unknown, c: number) { (res as { statusCode: number }).statusCode = c; return res; }),
+        status: vi.fn(function (this: unknown, c: number) {
+          (res as { statusCode: number }).statusCode = c;
+          return res;
+        }),
         json: vi.fn(),
         set: vi.fn(),
         type: vi.fn(),
@@ -414,7 +469,8 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
   describe('GET /reverse', () => {
     it('400 when lat/lng missing', async () => {
       expect(await thrown(() => makeController({}).reverse(undefined, '2'))).toEqual({
-        status: 400, body: { error: 'lat and lng required' },
+        status: 400,
+        body: { error: 'lat and lng required' },
       });
     });
 
@@ -432,27 +488,35 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
   describe('POST /resolve-url', () => {
     it('returns the resolved coordinates', async () => {
       const resolveUrl = vi.fn().mockResolvedValue({ lat: 1, lng: 2, name: null, address: null });
-      expect(await makeController({ resolveUrl }).resolveUrl({ url: 'https://maps.app.goo.gl/x' })).toEqual({ lat: 1, lng: 2, name: null, address: null });
+      expect(await makeController({ resolveUrl }).resolveUrl({ url: 'https://maps.app.goo.gl/x' })).toEqual({
+        lat: 1,
+        lng: 2,
+        name: null,
+        address: null,
+      });
     });
 
     it('maps a service error, defaulting to 400', async () => {
       const resolveUrl = vi.fn().mockRejectedValue(new Error('Failed to resolve URL'));
       expect(await thrown(() => makeController({ resolveUrl }).resolveUrl({ url: 'bad' }))).toEqual({
-        status: 400, body: { error: 'Failed to resolve URL' },
+        status: 400,
+        body: { error: 'Failed to resolve URL' },
       });
     });
 
     it('honours an explicit status on the thrown error', async () => {
       const resolveUrl = vi.fn().mockRejectedValue(withError(422, 'Unsupported link'));
       expect(await thrown(() => makeController({ resolveUrl }).resolveUrl({ url: 'bad' }))).toEqual({
-        status: 422, body: { error: 'Unsupported link' },
+        status: 422,
+        body: { error: 'Unsupported link' },
       });
     });
 
     it('falls back to the default message when a non-Error is thrown', async () => {
       const resolveUrl = vi.fn().mockRejectedValue('nope');
       expect(await thrown(() => makeController({ resolveUrl }).resolveUrl({ url: 'bad' }))).toEqual({
-        status: 400, body: { error: 'Failed to resolve URL' },
+        status: 400,
+        body: { error: 'Failed to resolve URL' },
       });
     });
   });
@@ -471,10 +535,16 @@ describe('MapsController (parity with the legacy /api/maps route)', () => {
       const sent: Buffer[] = [];
       const res = {
         statusCode: 200,
-        status: vi.fn((c: number) => { res.statusCode = c; return res; }),
+        status: vi.fn((c: number) => {
+          res.statusCode = c;
+          return res;
+        }),
         set: vi.fn(),
         type: vi.fn(),
-        send: vi.fn((b: Buffer) => { sent.push(b); return res; }),
+        send: vi.fn((b: Buffer) => {
+          sent.push(b);
+          return res;
+        }),
         end: vi.fn(),
         json: vi.fn(),
         body: () => Buffer.concat(sent),

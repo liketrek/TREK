@@ -1,17 +1,17 @@
-import React from 'react'
-import type { CollectionStatus } from '@trek/shared'
-import type { TranslationFn } from '../../types'
-import { STATUS_META, nextStatus } from '../../pages/collections/collectionsModel'
+import type { CollectionStatus } from '@trek/shared';
+import React from 'react';
+import { STATUS_META, nextStatus } from '../../pages/collections/collectionsModel';
+import type { TranslationFn } from '../../types';
 
 interface StatusBadgeProps {
-  status: CollectionStatus
+  status: CollectionStatus;
   /** One-tap cycle: idea → want → visited → idea. Omit for a read-only badge. */
-  onChange?: (next: CollectionStatus) => void
-  showLabel?: boolean
-  size?: number
+  onChange?: (next: CollectionStatus) => void;
+  showLabel?: boolean;
+  size?: number;
   /** Dark-glass variant for a pill sitting over a photo cover / the hero. */
-  onCover?: boolean
-  t: TranslationFn
+  onCover?: boolean;
+  t: TranslationFn;
 }
 
 /**
@@ -21,34 +21,47 @@ interface StatusBadgeProps {
  * `onCover` dark-glass pill that stays legible on top of a photo cover. Styled
  * with utility classes only, so it works both inside and outside `.trek-dash`.
  */
-export default function StatusBadge({ status, onChange, showLabel = true, size = 13, onCover = false, t }: StatusBadgeProps): React.ReactElement {
-  const meta = STATUS_META[status]
-  const Icon = meta.icon
-  const label = t(meta.labelKey)
-  const color = onCover ? meta.coverColor : meta.color
-  const interactive = !!onChange
+export default function StatusBadge({
+  status,
+  onChange,
+  showLabel = true,
+  size = 13,
+  onCover = false,
+  t,
+}: StatusBadgeProps): React.ReactElement {
+  const meta = STATUS_META[status];
+  const Icon = meta.icon;
+  const label = t(meta.labelKey);
+  const color = onCover ? meta.coverColor : meta.color;
+  const interactive = !!onChange;
 
   const cycle = (e: React.SyntheticEvent) => {
-    if (!onChange) return
-    e.preventDefault()
-    e.stopPropagation()
-    onChange(nextStatus(status))
-  }
+    if (!onChange) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onChange(nextStatus(status));
+  };
 
   const content = (
     <>
       <Icon size={size} style={{ color }} strokeWidth={2.4} />
-      {showLabel && <span className="font-semibold" style={{ color }}>{label}</span>}
+      {showLabel && (
+        <span className="font-semibold" style={{ color }}>
+          {label}
+        </span>
+      )}
     </>
-  )
+  );
 
-  const skin = onCover
-    ? 'bg-black/45 border-white/25 text-white'
-    : 'bg-surface-card/85 border-edge text-content'
-  const className = `inline-flex items-center gap-1.5 rounded-full text-[11px] leading-none border backdrop-blur-md ${showLabel ? 'px-2.5 py-1' : 'p-1.5'} ${skin}`
+  const skin = onCover ? 'bg-black/45 border-white/25 text-white' : 'bg-surface-card/85 border-edge text-content';
+  const className = `inline-flex items-center gap-1.5 rounded-full text-[11px] leading-none border backdrop-blur-md ${showLabel ? 'px-2.5 py-1' : 'p-1.5'} ${skin}`;
 
   if (!interactive) {
-    return <span className={className} title={label}>{content}</span>
+    return (
+      <span className={className} title={label}>
+        {content}
+      </span>
+    );
   }
 
   // Rendered as a role=button span (not a native <button type="button">) on purpose: inside
@@ -60,12 +73,14 @@ export default function StatusBadge({ status, onChange, showLabel = true, size =
       role="button"
       tabIndex={0}
       onClick={cycle}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') cycle(e) }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') cycle(e);
+      }}
       title={`${label} — ${t('collections.status.cycleHint')}`}
       aria-label={label}
-      className={`${className} transition-transform hover:scale-110 active:scale-95 cursor-pointer select-none`}
+      className={`${className} cursor-pointer select-none transition-transform hover:scale-110 active:scale-95`}
     >
       {content}
     </span>
-  )
+  );
 }

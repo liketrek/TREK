@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react'
-import { AlertTriangle, Check, RotateCw, Spline, Trash2 } from 'lucide-react'
-import Modal from '../shared/Modal'
-import EmptyState from '../shared/EmptyState'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { useSettingsStore } from '../../store/settingsStore'
-import { formatDistance } from '../../utils/units'
-import { FS } from './typeScale'
-import type { FollowTrack, TrackChoice } from './useFollowTrack'
+import { AlertTriangle, Check, RotateCw, Spline, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { useSettingsStore } from '../../store/settingsStore';
+import { formatDistance } from '../../utils/units';
+import EmptyState from '../shared/EmptyState';
+import Modal from '../shared/Modal';
+import { FS } from './typeScale';
+import type { FollowTrack, TrackChoice } from './useFollowTrack';
 
 /**
  * Picking the track a day drives along.
@@ -22,16 +22,20 @@ import type { FollowTrack, TrackChoice } from './useFollowTrack'
  */
 
 /** A track close enough that it is plainly about this day rather than another one. */
-const ON_THIS_DAY_KM = 2
+const ON_THIS_DAY_KM = 2;
 
-function TrackRow({ track, disabled, onPick }: {
-  track: TrackChoice
-  disabled: boolean
-  onPick: () => void
+function TrackRow({
+  track,
+  disabled,
+  onPick,
+}: {
+  track: TrackChoice;
+  disabled: boolean;
+  onPick: () => void;
 }): React.ReactElement {
-  const { t } = useTranslation()
-  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
-  const onDay = track.gapKm <= ON_THIS_DAY_KM
+  const { t } = useTranslation();
+  const distanceUnit = useSettingsStore((s) => s.settings.distance_unit);
+  const onDay = track.gapKm <= ON_THIS_DAY_KM;
 
   return (
     <li>
@@ -39,7 +43,7 @@ function TrackRow({ track, disabled, onPick }: {
         type="button"
         disabled={disabled}
         onClick={onPick}
-        className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-start transition-colors hover:bg-surface-hover disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-start transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
       >
         {/* The line's own colour, as a short stroke rather than a dot: it is a line on the
             map, and a dot beside a name reads as a place. */}
@@ -63,26 +67,31 @@ function TrackRow({ track, disabled, onPick }: {
         </span>
       </button>
     </li>
-  )
+  );
 }
 
-export default function RoadtripTrackModal({ follow, dayNumber }: {
-  follow: FollowTrack
+export default function RoadtripTrackModal({
+  follow,
+  dayNumber,
+}: {
+  follow: FollowTrack;
   /** The day's number, so the dialog says which drive it is about to reshape. */
-  dayNumber: number
+  dayNumber: number;
 }): React.ReactElement | null {
-  const { t } = useTranslation()
-  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
-  const [picked, setPicked] = useState<number | null>(null)
+  const { t } = useTranslation();
+  const distanceUnit = useSettingsStore((s) => s.settings.distance_unit);
+  const [picked, setPicked] = useState<number | null>(null);
 
-  const { dayId, busy, round, error, outcome, tracks, viaCount, current } = follow
+  const { dayId, busy, round, error, outcome, tracks, viaCount, current } = follow;
 
   // A track picked on one day means nothing on the next.
-  useEffect(() => { setPicked(null) }, [dayId])
+  useEffect(() => {
+    setPicked(null);
+  }, [dayId]);
 
-  if (dayId === null) return null
+  if (dayId === null) return null;
 
-  const chosen = tracks.find(track => track.id === picked) ?? null
+  const chosen = tracks.find((track) => track.id === picked) ?? null;
 
   return (
     <Modal
@@ -112,7 +121,7 @@ export default function RoadtripTrackModal({ follow, dayNumber }: {
           </div>
         ) : (
           <ul className="-mx-2 max-h-[280px] overflow-y-auto">
-            {tracks.map(track => (
+            {tracks.map((track) => (
               <TrackRow
                 key={track.id}
                 track={track}
@@ -134,7 +143,7 @@ export default function RoadtripTrackModal({ follow, dayNumber }: {
 
         {busy ? (
           <p className="flex items-center gap-2 text-caption text-content-secondary" role="status">
-            <RotateCw size={13} className="animate-spin shrink-0" aria-hidden />
+            <RotateCw size={13} className="shrink-0 animate-spin" aria-hidden />
             {t('roadtrip.track.working', { round })}
           </p>
         ) : null}
@@ -171,7 +180,9 @@ export default function RoadtripTrackModal({ follow, dayNumber }: {
             <button
               type="button"
               disabled={busy}
-              onClick={() => { void follow.clear() }}
+              onClick={() => {
+                void follow.clear();
+              }}
               className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-caption text-content-secondary transition-colors hover:bg-surface-hover disabled:opacity-50"
             >
               <Trash2 size={13} aria-hidden />
@@ -181,7 +192,9 @@ export default function RoadtripTrackModal({ follow, dayNumber }: {
           <button
             type="button"
             disabled={!chosen || busy}
-            onClick={() => { if (chosen) void follow.apply(chosen.id) }}
+            onClick={() => {
+              if (chosen) void follow.apply(chosen.id);
+            }}
             className="ms-auto rounded-lg bg-accent px-3 py-2 text-caption font-semibold text-accent-text transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             {t('roadtrip.track.action')}
@@ -189,5 +202,5 @@ export default function RoadtripTrackModal({ follow, dayNumber }: {
         </div>
       </div>
     </Modal>
-  )
+  );
 }

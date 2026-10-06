@@ -1,5 +1,5 @@
-import type { FilterQuery, FilterValue, OrderDefinition } from '@mikro-orm/core';
 import type { TrekRepository } from './trek-repository';
+import type { FilterQuery, FilterValue, OrderDefinition } from '@mikro-orm/core';
 
 /**
  * Shared lookup shapes for entities scoped to a user.

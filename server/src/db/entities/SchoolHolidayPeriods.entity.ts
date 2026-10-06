@@ -1,6 +1,6 @@
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { SchoolHolidayPeriodsRepository } from '../repositories/SchoolHolidayPeriods.repository';
 import { SchoolHolidayRegions } from './SchoolHolidayRegions.entity';
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class SchoolHolidayPeriods {
   [EntityRepositoryType]?: SchoolHolidayPeriodsRepository;
@@ -23,7 +23,8 @@ export const SchoolHolidayPeriodsSchema = defineEntity({
   ],
   properties: {
     id: p.integer().primary(),
-    region: () => p.manyToOne(SchoolHolidayRegions).ref().deleteRule('cascade').hidden().index('idx_school_holiday_periods_region'),
+    region: () =>
+      p.manyToOne(SchoolHolidayRegions).ref().deleteRule('cascade').hidden().index('idx_school_holiday_periods_region'),
     region_id: p.integer().persist(false).index('idx_school_holiday_periods_region'),
     name: p.text(),
     start_date: p.text(),

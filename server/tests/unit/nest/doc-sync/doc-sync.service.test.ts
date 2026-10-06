@@ -13,38 +13,11 @@
  * downloaded" is asserted against the table the file manager reads, not against
  * a spy alone.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import crypto from 'node:crypto';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { Readable } from 'node:stream';
-
-vi.mock('../../../../src/db/database', async () => {
-
-  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
-  const db = createSnapshotTestDb();
-    return {
-      db,
-      closeDb: () => {},
-      reinitialize: () => {},
-      getPlaceWithTags: () => null,
-      canAccessTrip: () => null,
-      isOwner: () => false,
-    };
-});
-
-
-
 import { db as testDb } from '../../../../src/db/database';
-import type { DocsyncErrorCode } from '@trek/shared';
-import { createTrip, createUser } from '../../../helpers/factories';
-import { AllowedFileTypesService } from '../../../../src/nest/files/allowed-file-types.service';
-import { MAX_FILE_SIZE } from '../../../../src/nest/files/files.constants';
+import type { AddonsService } from '../../../../src/nest/addons/addons.service';
 import { DocSyncConfigService, type LinkRow } from '../../../../src/nest/doc-sync/doc-sync-config.service';
-import { DocumentProviderRegistry } from '../../../../src/nest/doc-sync/document-provider.registry';
-import { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
 import { LINK_CIRCUIT_OPEN_AFTER, MAX_TRANSFERS_PER_RUN } from '../../../../src/nest/doc-sync/doc-sync.constants';
+import { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
 import type {
   DocFailure,
   DocResult,
@@ -58,11 +31,12 @@ import type {
   PushResult,
   RemoteDocument,
 } from '../../../../src/nest/doc-sync/document-provider';
-import type { AddonsService } from '../../../../src/nest/addons/addons.service';
+import { DocumentProviderRegistry } from '../../../../src/nest/doc-sync/document-provider.registry';
+import { AllowedFileTypesService } from '../../../../src/nest/files/allowed-file-types.service';
+import { MAX_FILE_SIZE } from '../../../../src/nest/files/files.constants';
 import type { FilesService } from '../../../../src/nest/files/files.service';
-import type { StorageService } from '../../../../src/nest/storage/storage.service';
 import type { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo } from '../../../helpers/test-uow';
+import type { StorageService } from '../../../../src/nest/storage/storage.service';
 import {
   createTestDocumentConnectionsRepo,
   createTestDocumentProviderFieldsRepo,
@@ -72,6 +46,29 @@ import {
   createTestTripDocumentLinksRepo,
   createTestTripFilesRepo,
 } from '../../../helpers/doc-sync-repos';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo } from '../../../helpers/test-uow';
+import type { DocsyncErrorCode } from '@trek/shared';
+
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { Readable } from 'node:stream';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
+  const db = createSnapshotTestDb();
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => null,
+    isOwner: () => false,
+  };
+});
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -127,27 +124,38 @@ const provider = {
   id: 'paperless',
   capabilities: vi.fn((): DocumentProviderCapabilities => capabilities),
   probe: vi.fn(async (): Promise<DocResult<{ account: string; capabilities: DocumentProviderCapabilities }>> =>
-    ok({ account: 'test', capabilities })),
+    ok({ account: 'test', capabilities }),
+  ),
   listScopes: vi.fn(async (): Promise<DocResult<DocumentScopeOption[]>> => ok([SCOPE])),
   createScope: vi.fn(async (): Promise<DocResult<DocumentScopeOption>> => ok(SCOPE)),
   resolveScope: vi.fn(async (): Promise<DocResult<DocumentScopeOption>> => ok(SCOPE)),
-  list: vi.fn(async (_conn: DocumentConnectionRef, _scope: DocumentScopeRef): Promise<DocResult<Listing>> => ok(listing())),
+  list: vi.fn(async (_conn: DocumentConnectionRef, _scope: DocumentScopeRef): Promise<DocResult<Listing>> =>
+    ok(listing()),
+  ),
   fetch: vi.fn(async (): Promise<DocResult<FetchResult>> =>
-    ok({ body: Readable.from([FILE_BYTES]), size: FILE_BYTES.length, mimeType: 'application/pdf', remoteVersion: 'v9' })),
-  push: vi.fn(async (
-    _conn: DocumentConnectionRef,
-    _scope: DocumentScopeRef,
-    _req: PushRequest,
-  ): Promise<DocResult<PushResult>> =>
-    ok({ remoteId: 'r-pushed', remoteVersion: 'v1', remoteModifiedAt: null, deduplicated: false })),
-  rename: vi.fn(async (
-    _conn: DocumentConnectionRef,
-    _scope: DocumentScopeRef,
-    _remoteId: string,
-    _name: string,
-  ): Promise<DocResult<{ remoteVersion: string }>> => ok({ remoteVersion: 'v2' })),
-  trash: vi.fn(async (_conn: DocumentConnectionRef, _scope: DocumentScopeRef, _remoteId: string): Promise<DocResult<void>> =>
-    ok(undefined)),
+    ok({
+      body: Readable.from([FILE_BYTES]),
+      size: FILE_BYTES.length,
+      mimeType: 'application/pdf',
+      remoteVersion: 'v9',
+    }),
+  ),
+  push: vi.fn(
+    async (_conn: DocumentConnectionRef, _scope: DocumentScopeRef, _req: PushRequest): Promise<DocResult<PushResult>> =>
+      ok({ remoteId: 'r-pushed', remoteVersion: 'v1', remoteModifiedAt: null, deduplicated: false }),
+  ),
+  rename: vi.fn(
+    async (
+      _conn: DocumentConnectionRef,
+      _scope: DocumentScopeRef,
+      _remoteId: string,
+      _name: string,
+    ): Promise<DocResult<{ remoteVersion: string }>> => ok({ remoteVersion: 'v2' }),
+  ),
+  trash: vi.fn(
+    async (_conn: DocumentConnectionRef, _scope: DocumentScopeRef, _remoteId: string): Promise<DocResult<void>> =>
+      ok(undefined),
+  ),
 };
 
 const storage = {
@@ -160,24 +168,38 @@ const storage = {
 
 const files = {
   getFileById: vi.fn((id: string | number, tripId: string | number) =>
-    testDb.prepare('SELECT * FROM trip_files WHERE id = ? AND trip_id = ?').get(id, tripId)),
-  createFile: vi.fn((
-    tripId: string | number,
-    file: { filename: string; originalname: string; size: number; mimetype: string },
-    uploadedBy: number,
-    opts: { place_id?: string | number | null; reservation_id?: string | number | null; description?: string | null } = {},
-  ) => {
-    const info = testDb
-      .prepare(
-        `INSERT INTO trip_files (trip_id, place_id, reservation_id, filename, original_name, file_size, mime_type, description, uploaded_by)
+    testDb.prepare('SELECT * FROM trip_files WHERE id = ? AND trip_id = ?').get(id, tripId),
+  ),
+  createFile: vi.fn(
+    (
+      tripId: string | number,
+      file: { filename: string; originalname: string; size: number; mimetype: string },
+      uploadedBy: number,
+      opts: {
+        place_id?: string | number | null;
+        reservation_id?: string | number | null;
+        description?: string | null;
+      } = {},
+    ) => {
+      const info = testDb
+        .prepare(
+          `INSERT INTO trip_files (trip_id, place_id, reservation_id, filename, original_name, file_size, mime_type, description, uploaded_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        tripId, opts.place_id || null, opts.reservation_id || null,
-        file.filename, file.originalname, file.size, file.mimetype, opts.description || null, uploadedBy || null,
-      );
-    return testDb.prepare('SELECT * FROM trip_files WHERE id = ?').get(info.lastInsertRowid);
-  }),
+        )
+        .run(
+          tripId,
+          opts.place_id || null,
+          opts.reservation_id || null,
+          file.filename,
+          file.originalname,
+          file.size,
+          file.mimetype,
+          opts.description || null,
+          uploadedBy || null,
+        );
+      return testDb.prepare('SELECT * FROM trip_files WHERE id = ?').get(info.lastInsertRowid);
+    },
+  ),
   // Writes for real, like the two above: a double that answers but changes
   // nothing lets a missing call pass as a passing test.
   softDeleteFile: vi.fn((id: string | number) => {
@@ -197,16 +219,18 @@ let config: DocSyncConfigService;
 // ── Row builders ─────────────────────────────────────────────────────────────
 
 let scopeSeq = 0;
-async function makeLink(over: {
-  direction?: string;
-  deletePolicy?: string;
-  conflictPolicy?: string;
-  syncEnabled?: number;
-  failureCount?: number;
-  nextAttemptAt?: string | null;
-  lastSyncAt?: string | null;
-  providerId?: string;
-} = {}): Promise<LinkRow> {
+async function makeLink(
+  over: {
+    direction?: string;
+    deletePolicy?: string;
+    conflictPolicy?: string;
+    syncEnabled?: number;
+    failureCount?: number;
+    nextAttemptAt?: string | null;
+    lastSyncAt?: string | null;
+    providerId?: string;
+  } = {},
+): Promise<LinkRow> {
   scopeSeq += 1;
   const info = testDb
     .prepare(
@@ -216,30 +240,42 @@ async function makeLink(over: {
        VALUES (?, ?, ?, ?, '1', '/TREK/japan', 'Japan 2026', ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
-      tripId, connectionId, over.providerId ?? 'paperless', `tag:${scopeSeq}`,
-      over.direction ?? 'both', over.deletePolicy ?? 'unlink', over.conflictPolicy ?? 'manual',
-      over.syncEnabled ?? 1, over.failureCount ?? 0, over.nextAttemptAt ?? null, ownerId,
+      tripId,
+      connectionId,
+      over.providerId ?? 'paperless',
+      `tag:${scopeSeq}`,
+      over.direction ?? 'both',
+      over.deletePolicy ?? 'unlink',
+      over.conflictPolicy ?? 'manual',
+      over.syncEnabled ?? 1,
+      over.failureCount ?? 0,
+      over.nextAttemptAt ?? null,
+      ownerId,
     );
   if (over.lastSyncAt !== undefined) {
-    testDb.prepare('UPDATE trip_document_links SET last_sync_at = ? WHERE id = ?')
+    testDb
+      .prepare('UPDATE trip_document_links SET last_sync_at = ? WHERE id = ?')
       .run(over.lastSyncAt, Number(info.lastInsertRowid));
   }
   return (await config.getLink(Number(info.lastInsertRowid)))!;
 }
 
 let uidSeq = 0;
-function seedItem(link: LinkRow, over: {
-  remoteId?: string;
-  remoteName?: string;
-  remoteVersion?: string;
-  fileId?: number;
-  state?: string;
-  contentSha256?: string;
-  pushedSha256?: string;
-  remoteSize?: number;
-  remoteModifiedAt?: string;
-  remoteMissingAt?: string;
-} = {}): number {
+function seedItem(
+  link: LinkRow,
+  over: {
+    remoteId?: string;
+    remoteName?: string;
+    remoteVersion?: string;
+    fileId?: number;
+    state?: string;
+    contentSha256?: string;
+    pushedSha256?: string;
+    remoteSize?: number;
+    remoteModifiedAt?: string;
+    remoteMissingAt?: string;
+  } = {},
+): number {
   uidSeq += 1;
   const info = testDb
     .prepare(
@@ -249,32 +285,48 @@ function seedItem(link: LinkRow, over: {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
-      link.id, link.trip_id, over.fileId ?? null, `uid-${uidSeq}`,
-      over.remoteId ?? null, over.remoteName ?? null, over.remoteVersion ?? null,
-      over.remoteSize ?? null, over.remoteModifiedAt ?? null,
-      over.contentSha256 ?? null, over.pushedSha256 ?? null, over.state ?? 'synced',
+      link.id,
+      link.trip_id,
+      over.fileId ?? null,
+      `uid-${uidSeq}`,
+      over.remoteId ?? null,
+      over.remoteName ?? null,
+      over.remoteVersion ?? null,
+      over.remoteSize ?? null,
+      over.remoteModifiedAt ?? null,
+      over.contentSha256 ?? null,
+      over.pushedSha256 ?? null,
+      over.state ?? 'synced',
       over.remoteMissingAt ?? null,
     );
   return Number(info.lastInsertRowid);
 }
 
-function makeFile(over: {
-  name?: string;
-  storageKey?: string;
-  mime?: string;
-  messageId?: number;
-  noteId?: number;
-  deletedAt?: string;
-} = {}): number {
+function makeFile(
+  over: {
+    name?: string;
+    storageKey?: string;
+    mime?: string;
+    messageId?: number;
+    noteId?: number;
+    deletedAt?: string;
+  } = {},
+): number {
   const info = testDb
     .prepare(
       `INSERT INTO trip_files (trip_id, filename, original_name, file_size, mime_type, uploaded_by, message_id, note_id, deleted_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
-      tripId, over.storageKey ?? `key-${over.name ?? 'boarding.pdf'}`, over.name ?? 'boarding.pdf',
-      FILE_BYTES.length, over.mime ?? 'application/pdf', ownerId,
-      over.messageId ?? null, over.noteId ?? null, over.deletedAt ?? null,
+      tripId,
+      over.storageKey ?? `key-${over.name ?? 'boarding.pdf'}`,
+      over.name ?? 'boarding.pdf',
+      FILE_BYTES.length,
+      over.mime ?? 'application/pdf',
+      ownerId,
+      over.messageId ?? null,
+      over.noteId ?? null,
+      over.deletedAt ?? null,
     );
   return Number(info.lastInsertRowid);
 }
@@ -285,8 +337,7 @@ const itemRows = () =>
   testDb.prepare('SELECT * FROM document_sync_items ORDER BY id').all() as Array<Record<string, unknown>>;
 const linkRow = (id: number) =>
   testDb.prepare('SELECT * FROM trip_document_links WHERE id = ?').get(id) as Record<string, unknown>;
-const fileRows = () =>
-  testDb.prepare('SELECT * FROM trip_files ORDER BY id').all() as Array<Record<string, unknown>>;
+const fileRows = () => testDb.prepare('SELECT * FROM trip_files ORDER BY id').all() as Array<Record<string, unknown>>;
 
 /** SQLite's own clock and format, so a comparison against CURRENT_TIMESTAMP means something. */
 const sqlTime = (modifier: string): string =>
@@ -459,7 +510,10 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       let release: () => void;
       provider.resolveScope.mockImplementationOnce(
-        () => new Promise((resolve) => { release = () => resolve(ok(SCOPE)); }),
+        () =>
+          new Promise((resolve) => {
+            release = () => resolve(ok(SCOPE));
+          }),
       );
 
       const first = service.syncLink(link);
@@ -534,7 +588,8 @@ describe('DocSyncService', () => {
     it('abandons the entire run when most known documents vanish from one listing', async () => {
       const link = await makeLink();
       const itemIds = Array.from({ length: 10 }, (_, i) =>
-        seedItem(link, { remoteId: `r${i}`, remoteName: `doc-${i}.pdf`, state: 'synced' }));
+        seedItem(link, { remoteId: `r${i}`, remoteName: `doc-${i}.pdf`, state: 'synced' }),
+      );
       makeFile({ name: 'local-only.pdf' });
       provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r0', name: 'doc-0.pdf' })])));
 
@@ -567,10 +622,14 @@ describe('DocSyncService', () => {
      */
     it('refuses a document whose extension TREK would serve inline', async () => {
       const link = await makeLink();
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r-svg', name: 'floorplan.svg' }),
-        remoteDoc({ remoteId: 'r-html', name: 'itinerary.html' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(
+          listing([
+            remoteDoc({ remoteId: 'r-svg', name: 'floorplan.svg' }),
+            remoteDoc({ remoteId: 'r-html', name: 'itinerary.html' }),
+          ]),
+        ),
+      );
 
       const res = await service.syncLink(link);
 
@@ -585,9 +644,9 @@ describe('DocSyncService', () => {
 
     it('refuses a document larger than an upload would be allowed to be', async () => {
       const link = await makeLink();
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r-big', name: 'scan.pdf', size: MAX_FILE_SIZE + 1 }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r-big', name: 'scan.pdf', size: MAX_FILE_SIZE + 1 })])),
+      );
 
       await service.syncLink(link);
 
@@ -636,9 +695,13 @@ describe('DocSyncService', () => {
 
       // Same bytes back, under a new version marker, which is what a provider
       // reports for TREK's own write.
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r-pushed', name: 'boarding.pdf', remoteVersion: 'v2', contentHash: FILE_SHA }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(
+          listing([
+            remoteDoc({ remoteId: 'r-pushed', name: 'boarding.pdf', remoteVersion: 'v2', contentHash: FILE_SHA }),
+          ]),
+        ),
+      );
 
       const secondRun = await service.syncLink(link);
 
@@ -684,7 +747,9 @@ describe('DocSyncService', () => {
       await service.syncLink(link);
 
       const after = testDb
-        .prepare('SELECT failure_count, next_attempt_at > CURRENT_TIMESTAMP AS in_future FROM trip_document_links WHERE id = ?')
+        .prepare(
+          'SELECT failure_count, next_attempt_at > CURRENT_TIMESTAMP AS in_future FROM trip_document_links WHERE id = ?',
+        )
         .get(link.id) as { failure_count: number; in_future: number };
       expect(after.failure_count).toBe(1);
       expect(after.in_future).toBe(1);
@@ -714,12 +779,14 @@ describe('DocSyncService', () => {
      */
     it('leaves chat and note attachments out of the upload entirely', async () => {
       const link = await makeLink();
-      const messageId = Number(testDb
-        .prepare("INSERT INTO collab_messages (trip_id, user_id, text) VALUES (?, ?, 'hi')")
-        .run(tripId, ownerId).lastInsertRowid);
-      const noteId = Number(testDb
-        .prepare("INSERT INTO collab_notes (trip_id, user_id, title) VALUES (?, ?, 'note')")
-        .run(tripId, ownerId).lastInsertRowid);
+      const messageId = Number(
+        testDb.prepare("INSERT INTO collab_messages (trip_id, user_id, text) VALUES (?, ?, 'hi')").run(tripId, ownerId)
+          .lastInsertRowid,
+      );
+      const noteId = Number(
+        testDb.prepare("INSERT INTO collab_notes (trip_id, user_id, title) VALUES (?, ?, 'note')").run(tripId, ownerId)
+          .lastInsertRowid,
+      );
 
       makeFile({ name: 'boarding.pdf' });
       makeFile({ name: 'chat-screenshot.pdf', storageKey: 'key-chat', messageId });
@@ -775,7 +842,11 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       const fileId = makeFile({ name: 'new.pdf' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'old.pdf', remoteVersion: 'v1', fileId, state: 'synced',
+        remoteId: 'r1',
+        remoteName: 'old.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
       });
       provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r1', name: 'old.pdf' })])));
 
@@ -791,7 +862,11 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       const fileId = makeFile({ name: 'old.pdf' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'old.pdf', remoteVersion: 'v1', fileId, state: 'synced',
+        remoteId: 'r1',
+        remoteName: 'old.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
       });
       provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r1', name: 'new-upstream.pdf' })])));
 
@@ -807,7 +882,11 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       const fileId = makeFile({ name: 'mine.pdf' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'old.pdf', remoteVersion: 'v1', fileId, state: 'synced',
+        remoteId: 'r1',
+        remoteName: 'old.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
       });
       provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r1', name: 'theirs.pdf' })])));
 
@@ -823,7 +902,11 @@ describe('DocSyncService', () => {
       const link = await makeLink({ conflictPolicy: 'trek_wins' });
       const fileId = makeFile({ name: 'mine.pdf' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'old.pdf', remoteVersion: 'v1', fileId, state: 'synced',
+        remoteId: 'r1',
+        remoteName: 'old.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
       });
       provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r1', name: 'theirs.pdf' })])));
 
@@ -834,7 +917,9 @@ describe('DocSyncService', () => {
       expect(provider.rename).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'r1', 'mine.pdf');
       expect(itemRow(itemId)).toMatchObject({ state: 'synced', remote_name: 'mine.pdf' });
 
-      provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r1', name: 'mine.pdf', remoteVersion: 'v2' })])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'mine.pdf', remoteVersion: 'v2' })])),
+      );
       await service.syncLink(await config.getLink(link.id));
 
       expect(provider.rename).toHaveBeenCalledTimes(1);
@@ -850,7 +935,11 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       const fileId = makeFile({ name: 'old.pdf' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'old.pdf', remoteVersion: 'v1', fileId, state: 'remote_missing',
+        remoteId: 'r1',
+        remoteName: 'old.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'remote_missing',
         remoteMissingAt: '2026-09-18 09:00:00',
       });
       provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r1', name: 'new-upstream.pdf' })])));
@@ -858,7 +947,11 @@ describe('DocSyncService', () => {
       await service.syncLink(link);
 
       expect(fileRows()[0].original_name).toBe('new-upstream.pdf');
-      expect(itemRow(itemId)).toMatchObject({ state: 'synced', remote_missing_at: null, remote_name: 'new-upstream.pdf' });
+      expect(itemRow(itemId)).toMatchObject({
+        state: 'synced',
+        remote_missing_at: null,
+        remote_name: 'new-upstream.pdf',
+      });
       expect(await service.issues(tripId)).toEqual([]);
     });
 
@@ -866,7 +959,11 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       const fileId = makeFile({ name: 'new.pdf' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'old.pdf', remoteVersion: 'v1', fileId, state: 'remote_missing',
+        remoteId: 'r1',
+        remoteName: 'old.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'remote_missing',
         remoteMissingAt: '2026-09-18 09:00:00',
       });
       provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r1', name: 'old.pdf' })])));
@@ -884,13 +981,17 @@ describe('DocSyncService', () => {
      */
     it('cuts off a download that outgrows the cap the listing promised to stay under', async () => {
       const link = await makeLink();
-      provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r-lying', name: 'scan.pdf', size: null })])));
-      provider.fetch.mockResolvedValueOnce(ok({
-        body: Readable.from([Buffer.allocUnsafe(MAX_FILE_SIZE + 1)]),
-        size: null,
-        mimeType: 'application/pdf',
-        remoteVersion: 'v1',
-      }));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r-lying', name: 'scan.pdf', size: null })])),
+      );
+      provider.fetch.mockResolvedValueOnce(
+        ok({
+          body: Readable.from([Buffer.allocUnsafe(MAX_FILE_SIZE + 1)]),
+          size: null,
+          mimeType: 'application/pdf',
+          remoteVersion: 'v1',
+        }),
+      );
 
       await service.syncLink(link);
 
@@ -991,7 +1092,8 @@ describe('DocSyncService', () => {
     it('stops after the per-run transfer budget and leaves the rest for next time', async () => {
       const link = await makeLink();
       const many = Array.from({ length: MAX_TRANSFERS_PER_RUN + 5 }, (_, i) =>
-        remoteDoc({ remoteId: `r${i}`, name: `doc-${i}.pdf` }));
+        remoteDoc({ remoteId: `r${i}`, name: `doc-${i}.pdf` }),
+      );
       provider.list.mockResolvedValueOnce(ok(listing(many)));
 
       const res = await service.syncLink(link);
@@ -1003,7 +1105,9 @@ describe('DocSyncService', () => {
 
     it('records an unexpected crash as a failed run instead of letting it escape', async () => {
       const link = await makeLink();
-      provider.list.mockImplementationOnce(() => { throw new Error('adapter blew up'); });
+      provider.list.mockImplementationOnce(() => {
+        throw new Error('adapter blew up');
+      });
 
       const res = await service.syncLink(link);
 
@@ -1067,7 +1171,8 @@ describe('DocSyncService', () => {
 
     it('stands down without touching the binding or its documents while the provider is off', async () => {
       const link = await makeLink({ failureCount: 2 });
-      testDb.prepare("UPDATE trip_document_links SET last_sync_state = 'partial', last_sync_error = 'timeout' WHERE id = ?")
+      testDb
+        .prepare("UPDATE trip_document_links SET last_sync_state = 'partial', last_sync_error = 'timeout' WHERE id = ?")
         .run(link.id);
       const itemId = seedItem(link, { remoteId: 'r1', remoteVersion: 'v1', state: 'error' });
       testDb.prepare('UPDATE document_sync_items SET attempts = 6 WHERE id = ?').run(itemId);
@@ -1226,9 +1331,9 @@ describe('DocSyncService', () => {
     it('keeps both copies and gives each its own pairing when the user asks for both', async () => {
       const link = await makeLink();
       const { itemId, fileId } = seedConflict(link);
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r1', name: 'boarding.pdf', remoteVersion: 'v2' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'boarding.pdf', remoteVersion: 'v2' })])),
+      );
 
       expect(await service.resolveConflict(itemId, 'both')).toBe(true);
 
@@ -1258,9 +1363,9 @@ describe('DocSyncService', () => {
       // user just chose to keep.
       const link = await makeLink();
       const { itemId } = seedConflict(link);
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r1', name: 'boarding.pdf', remoteVersion: 'v2' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'boarding.pdf', remoteVersion: 'v2' })])),
+      );
 
       await service.resolveConflict(itemId, 'trek');
 
@@ -1271,9 +1376,9 @@ describe('DocSyncService', () => {
     it('pulls the provider copy when the conflict was resolved in its favour', async () => {
       const link = await makeLink();
       const { itemId } = seedConflict(link);
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r1', name: 'boarding.pdf', remoteVersion: 'v2' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'boarding.pdf', remoteVersion: 'v2' })])),
+      );
 
       await service.resolveConflict(itemId, 'provider');
 
@@ -1289,10 +1394,10 @@ describe('DocSyncService', () => {
      */
     describe('a double rename', () => {
       function seedRenameConflict(link: LinkRow) {
-        const fileId = makeFile({ name: 'Invoice.pdf' });   // renamed in TREK
+        const fileId = makeFile({ name: 'Invoice.pdf' }); // renamed in TREK
         const itemId = seedItem(link, {
           remoteId: 'r1',
-          remoteName: 'Bill.pdf',                            // what both agreed on
+          remoteName: 'Bill.pdf', // what both agreed on
           remoteVersion: 'v1',
           fileId,
           state: 'conflict',
@@ -1304,28 +1409,28 @@ describe('DocSyncService', () => {
       it('renames the provider copy to TREK name when TREK wins', async () => {
         const link = await makeLink();
         const { itemId } = seedRenameConflict(link);
-        provider.list.mockResolvedValue(ok(listing([
-          remoteDoc({ remoteId: 'r1', name: 'Invoice.pdf', remoteVersion: 'v2' }),
-        ])));
+        provider.list.mockResolvedValue(
+          ok(listing([remoteDoc({ remoteId: 'r1', name: 'Invoice.pdf', remoteVersion: 'v2' })])),
+        );
 
         await service.resolveConflict(itemId, 'trek');
 
-        expect(provider.rename).toHaveBeenCalledWith(
-          expect.anything(), expect.anything(), 'r1', 'Invoice.pdf',
-        );
+        expect(provider.rename).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'r1', 'Invoice.pdf');
         expect(itemRow(itemId).remote_name).toBe('Invoice.pdf');
       });
 
       it('takes the local rename back when the provider wins, so TREK follows next run', async () => {
         const link = await makeLink();
         const { itemId, fileId } = seedRenameConflict(link);
-        provider.list.mockResolvedValue(ok(listing([
-          remoteDoc({ remoteId: 'r1', name: 'Rechnung.pdf', remoteVersion: 'v1' }),
-        ])));
+        provider.list.mockResolvedValue(
+          ok(listing([remoteDoc({ remoteId: 'r1', name: 'Rechnung.pdf', remoteVersion: 'v1' })])),
+        );
 
         await service.resolveConflict(itemId, 'provider');
 
-        const file = testDb.prepare('SELECT original_name FROM trip_files WHERE id = ?').get(fileId) as { original_name: string };
+        const file = testDb.prepare('SELECT original_name FROM trip_files WHERE id = ?').get(fileId) as {
+          original_name: string;
+        };
         expect(file.original_name).toBe('Rechnung.pdf');
       });
 
@@ -1336,17 +1441,24 @@ describe('DocSyncService', () => {
         const link = await makeLink();
         const fileId = makeFile({ name: 'Invoice.pdf' });
         const itemId = seedItem(link, {
-          remoteId: 'r1', remoteName: 'Hotel: Kyoto.pdf', remoteVersion: 'v1', fileId, state: 'conflict', contentSha256: 'agreed-hash',
+          remoteId: 'r1',
+          remoteName: 'Hotel: Kyoto.pdf',
+          remoteVersion: 'v1',
+          fileId,
+          state: 'conflict',
+          contentSha256: 'agreed-hash',
         });
-        provider.list.mockResolvedValue(ok(listing([
-          remoteDoc({ remoteId: 'r1', name: 'Hotel: Kyoto 2026.pdf', remoteVersion: 'v1' }),
-        ])));
+        provider.list.mockResolvedValue(
+          ok(listing([remoteDoc({ remoteId: 'r1', name: 'Hotel: Kyoto 2026.pdf', remoteVersion: 'v1' })])),
+        );
 
         await service.resolveConflict(itemId, 'provider');
 
         expect(itemRow(itemId).state).not.toBe('conflict');
         expect(provider.rename).not.toHaveBeenCalled();
-        const file = testDb.prepare('SELECT original_name FROM trip_files WHERE id = ?').get(fileId) as { original_name: string };
+        const file = testDb.prepare('SELECT original_name FROM trip_files WHERE id = ?').get(fileId) as {
+          original_name: string;
+        };
         expect(file.original_name).toBe('Hotel_ Kyoto 2026.pdf');
       });
 
@@ -1354,9 +1466,9 @@ describe('DocSyncService', () => {
         for (const keep of ['trek', 'provider'] as const) {
           const link = await makeLink();
           const { itemId } = seedRenameConflict(link);
-          provider.list.mockResolvedValue(ok(listing([
-            remoteDoc({ remoteId: 'r1', name: 'Rechnung.pdf', remoteVersion: 'v1' }),
-          ])));
+          provider.list.mockResolvedValue(
+            ok(listing([remoteDoc({ remoteId: 'r1', name: 'Rechnung.pdf', remoteVersion: 'v1' })])),
+          );
 
           await service.resolveConflict(itemId, keep);
 
@@ -1425,15 +1537,15 @@ describe('DocSyncService', () => {
     it('puts the superseded copy in the trash instead of leaving it beside the new one', async () => {
       const link = await makeLink();
       const { fileId } = seedSynced(link);
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2' })])),
+      );
 
       await service.syncLink(link);
 
       const rows = fileRows();
-      const old = rows.find(r => Number(r.id) === fileId) as Record<string, unknown>;
-      const fresh = rows.find(r => Number(r.id) !== fileId) as Record<string, unknown>;
+      const old = rows.find((r) => Number(r.id) === fileId) as Record<string, unknown>;
+      const fresh = rows.find((r) => Number(r.id) !== fileId) as Record<string, unknown>;
       expect(old.deleted_at).not.toBeNull();
       expect(fresh).toBeDefined();
       expect(fresh.deleted_at).toBeNull();
@@ -1442,27 +1554,27 @@ describe('DocSyncService', () => {
     it('leaves exactly one live document, so the file manager does not show two', async () => {
       const link = await makeLink();
       seedSynced(link);
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2' })])),
+      );
 
       await service.syncLink(link);
 
-      expect(fileRows().filter(r => r.deleted_at === null)).toHaveLength(1);
+      expect(fileRows().filter((r) => r.deleted_at === null)).toHaveLength(1);
     });
 
     it('does not push the superseded copy back on the next run', async () => {
       const link = await makeLink();
       seedSynced(link);
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2' })])),
+      );
       await service.syncLink(link);
 
       provider.push.mockClear();
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2' })])),
+      );
       await service.syncLink(link);
 
       expect(provider.push).not.toHaveBeenCalled();
@@ -1470,13 +1582,13 @@ describe('DocSyncService', () => {
 
     it('leaves a first download alone: there is nothing to supersede', async () => {
       const link = await makeLink();
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r-new', name: 'fresh.pdf', remoteVersion: 'v1' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r-new', name: 'fresh.pdf', remoteVersion: 'v1' })])),
+      );
 
       await service.syncLink(link);
 
-      expect(fileRows().filter(r => r.deleted_at === null)).toHaveLength(1);
+      expect(fileRows().filter((r) => r.deleted_at === null)).toHaveLength(1);
     });
 
     /**
@@ -1491,28 +1603,43 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       const { itemId, fileId } = seedSynced(link);
       const reservationId = Number(
-        testDb.prepare("INSERT INTO reservations (trip_id, title) VALUES (?, 'Hotel Kyoto')").run(tripId).lastInsertRowid,
+        testDb.prepare("INSERT INTO reservations (trip_id, title) VALUES (?, 'Hotel Kyoto')").run(tripId)
+          .lastInsertRowid,
       );
       const otherReservationId = Number(
-        testDb.prepare("INSERT INTO reservations (trip_id, title) VALUES (?, 'Ryokan Hakone')").run(tripId).lastInsertRowid,
+        testDb.prepare("INSERT INTO reservations (trip_id, title) VALUES (?, 'Ryokan Hakone')").run(tripId)
+          .lastInsertRowid,
       );
-      testDb.prepare('UPDATE trip_files SET reservation_id = ?, description = ?, starred = 1 WHERE id = ?')
+      testDb
+        .prepare('UPDATE trip_files SET reservation_id = ?, description = ?, starred = 1 WHERE id = ?')
         .run(reservationId, 'Booking confirmation', fileId);
       testDb.prepare('INSERT INTO file_links (file_id, reservation_id) VALUES (?, ?)').run(fileId, otherReservationId);
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2' })])),
+      );
 
       await service.syncLink(link);
 
-      const fresh = fileRows().find(r => Number(r.id) !== fileId) as Record<string, unknown>;
-      expect(fresh).toMatchObject({ reservation_id: reservationId, description: 'Booking confirmation', starred: 1, deleted_at: null });
+      const fresh = fileRows().find((r) => Number(r.id) !== fileId) as Record<string, unknown>;
+      expect(fresh).toMatchObject({
+        reservation_id: reservationId,
+        description: 'Booking confirmation',
+        starred: 1,
+        deleted_at: null,
+      });
       expect(itemRow(itemId).file_id).toBe(Number(fresh.id));
-      const links = testDb.prepare('SELECT reservation_id FROM file_links WHERE file_id = ? ORDER BY id').all(fresh.id) as Array<{ reservation_id: number }>;
-      expect(links.map(l => l.reservation_id)).toEqual([otherReservationId]);
+      const links = testDb
+        .prepare('SELECT reservation_id FROM file_links WHERE file_id = ? ORDER BY id')
+        .all(fresh.id) as Array<{ reservation_id: number }>;
+      expect(links.map((l) => l.reservation_id)).toEqual([otherReservationId]);
       // The old copy keeps what it had: the trash shows it as it was.
-      expect(fileRows().find(r => Number(r.id) === fileId)).toMatchObject({ reservation_id: reservationId, starred: 1 });
-      expect(realtime.broadcast).toHaveBeenCalledWith(tripId, 'file:created', { file: expect.objectContaining({ id: fresh.id, starred: 1 }) });
+      expect(fileRows().find((r) => Number(r.id) === fileId)).toMatchObject({
+        reservation_id: reservationId,
+        starred: 1,
+      });
+      expect(realtime.broadcast).toHaveBeenCalledWith(tripId, 'file:created', {
+        file: expect.objectContaining({ id: fresh.id, starred: 1 }),
+      });
     });
 
     /**
@@ -1529,17 +1656,27 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       const fileId = makeFile({ name: 'invoice.pdf' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'invoice.pdf', remoteVersion: 'v1', fileId, state: 'synced', contentSha256: FILE_SHA,
+        remoteId: 'r1',
+        remoteName: 'invoice.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
+        contentSha256: FILE_SHA,
       });
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2', contentHash: null }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2', contentHash: null })])),
+      );
 
       const res = await service.syncLink(link);
 
       expect(fileRows()).toHaveLength(1);
       expect(fileRows()[0]).toMatchObject({ id: fileId, deleted_at: null });
-      expect(itemRow(itemId)).toMatchObject({ file_id: fileId, remote_version: 'v2', state: 'synced', content_sha256: FILE_SHA });
+      expect(itemRow(itemId)).toMatchObject({
+        file_id: fileId,
+        remote_version: 'v2',
+        state: 'synced',
+        content_sha256: FILE_SHA,
+      });
       expect(storage.put).not.toHaveBeenCalled();
       expect(fs.readdirSync(spoolDir)).toHaveLength(0);
       expect(res.pulled).toBe(0);
@@ -1552,20 +1689,25 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       const fileId = makeFile({ name: 'invoice.pdf' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'invoice.pdf', remoteVersion: 'v1', fileId, state: 'synced', contentSha256: FILE_SHA,
+        remoteId: 'r1',
+        remoteName: 'invoice.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
+        contentSha256: FILE_SHA,
       });
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r1', name: 'hotel-invoice.pdf', remoteVersion: 'v2', contentHash: null }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'hotel-invoice.pdf', remoteVersion: 'v2', contentHash: null })])),
+      );
 
       await service.syncLink(link);
 
       expect(itemRow(itemId)).toMatchObject({ remote_name: 'invoice.pdf', remote_version: 'v2' });
       expect(fileRows()[0].original_name).toBe('invoice.pdf');
 
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r1', name: 'hotel-invoice.pdf', remoteVersion: 'v2', contentHash: null }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r1', name: 'hotel-invoice.pdf', remoteVersion: 'v2', contentHash: null })])),
+      );
       await service.syncLink(link);
 
       expect(provider.rename).not.toHaveBeenCalled();
@@ -1583,12 +1725,14 @@ describe('DocSyncService', () => {
   describe('video from the store', () => {
     it('is pulled, not refused for its type', async () => {
       const link = await makeLink();
-      provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r-clip', name: 'flug.mp4', mimeType: 'video/mp4' })])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r-clip', name: 'flug.mp4', mimeType: 'video/mp4' })])),
+      );
 
       const res = await service.syncLink(link);
 
       expect(provider.fetch).toHaveBeenCalledTimes(1);
-      expect(fileRows().map(r => r.original_name)).toEqual(['flug.mp4']);
+      expect(fileRows().map((r) => r.original_name)).toEqual(['flug.mp4']);
       expect(itemRows()[0].state).toBe('synced');
       expect(res.state).toBe('ok');
     });
@@ -1609,15 +1753,26 @@ describe('DocSyncService', () => {
     function seedHeld(link: LinkRow): { itemId: number; fileId: number } {
       const fileId = makeFile({ name: 'invoice.pdf' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'invoice.pdf', remoteVersion: 'v1', fileId, state: 'synced',
-        contentSha256: 'held-hash', remoteSize: 512, remoteModifiedAt: '2026-09-01T08:00:00Z',
+        remoteId: 'r1',
+        remoteName: 'invoice.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
+        contentSha256: 'held-hash',
+        remoteSize: 512,
+        remoteModifiedAt: '2026-09-01T08:00:00Z',
       });
       return { itemId, fileId };
     }
 
-    const edited = () => remoteDoc({
-      remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v2', size: 2048, remoteModifiedAt: '2026-09-18T10:00:00Z',
-    });
+    const edited = () =>
+      remoteDoc({
+        remoteId: 'r1',
+        name: 'invoice.pdf',
+        remoteVersion: 'v2',
+        size: 2048,
+        remoteModifiedAt: '2026-09-18T10:00:00Z',
+      });
 
     it('keeps the version TREK holds on record, not the one it failed to get', async () => {
       const link = await makeLink();
@@ -1628,8 +1783,13 @@ describe('DocSyncService', () => {
       await service.syncLink(link);
 
       expect(itemRow(itemId)).toMatchObject({
-        state: 'error', error_code: 'timeout', file_id: fileId, content_sha256: 'held-hash',
-        remote_version: 'v1', remote_size: 512, remote_modified_at: '2026-09-01T08:00:00Z',
+        state: 'error',
+        error_code: 'timeout',
+        file_id: fileId,
+        content_sha256: 'held-hash',
+        remote_version: 'v1',
+        remote_size: 512,
+        remote_modified_at: '2026-09-01T08:00:00Z',
       });
     });
 
@@ -1647,10 +1807,15 @@ describe('DocSyncService', () => {
       expect(provider.fetch).toHaveBeenCalledTimes(2);
       const row = itemRow(itemId);
       expect(row).toMatchObject({
-        state: 'synced', error_code: null, attempts: 0, remote_version: 'v2', content_sha256: FILE_SHA,
-        remote_size: 2048, remote_modified_at: '2026-09-18T10:00:00Z',
+        state: 'synced',
+        error_code: null,
+        attempts: 0,
+        remote_version: 'v2',
+        content_sha256: FILE_SHA,
+        remote_size: 2048,
+        remote_modified_at: '2026-09-18T10:00:00Z',
       });
-      const live = fileRows().filter(r => r.deleted_at === null);
+      const live = fileRows().filter((r) => r.deleted_at === null);
       expect(live).toHaveLength(1);
       expect(Number(live[0].id)).toBe(Number(row.file_id));
       expect(Number(row.file_id)).not.toBe(fileId);
@@ -1673,7 +1838,9 @@ describe('DocSyncService', () => {
 
     it('still retries a first download, which has no version to keep', async () => {
       const link = await makeLink();
-      provider.list.mockResolvedValue(ok(listing([remoteDoc({ remoteId: 'r-new', name: 'fresh.pdf', remoteVersion: 'v1' })])));
+      provider.list.mockResolvedValue(
+        ok(listing([remoteDoc({ remoteId: 'r-new', name: 'fresh.pdf', remoteVersion: 'v1' })])),
+      );
       provider.fetch.mockResolvedValueOnce(fail('timeout'));
       await service.syncLink(link);
       expect(itemRows()[0]).toMatchObject({ state: 'error', file_id: null, remote_id: 'r-new', remote_version: null });
@@ -1708,9 +1875,9 @@ describe('DocSyncService', () => {
      */
     async function failingRun(link: LinkRow) {
       testDb.prepare("UPDATE document_sync_items SET next_attempt_at = NULL WHERE remote_id = 'r-flaky'").run();
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r-flaky', name: 'flaky.pdf', remoteVersion: 'v1' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r-flaky', name: 'flaky.pdf', remoteVersion: 'v1' })])),
+      );
       provider.fetch.mockResolvedValueOnce(fail('provider_error'));
       await service.syncLink(link);
     }
@@ -1718,15 +1885,14 @@ describe('DocSyncService', () => {
     /** One run in which it works. */
     async function goodRun(link: LinkRow) {
       testDb.prepare("UPDATE document_sync_items SET next_attempt_at = NULL WHERE remote_id = 'r-flaky'").run();
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r-flaky', name: 'flaky.pdf', remoteVersion: 'v1' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: 'r-flaky', name: 'flaky.pdf', remoteVersion: 'v1' })])),
+      );
       await service.syncLink(link);
     }
 
-    const flakyRow = () => testDb
-      .prepare("SELECT * FROM document_sync_items WHERE remote_id = 'r-flaky'")
-      .get() as Record<string, unknown>;
+    const flakyRow = () =>
+      testDb.prepare("SELECT * FROM document_sync_items WHERE remote_id = 'r-flaky'").get() as Record<string, unknown>;
 
     it('counts consecutive failures', async () => {
       const link = await makeLink();
@@ -1753,9 +1919,11 @@ describe('DocSyncService', () => {
       for (let i = 0; i < 3; i += 1) {
         await failingRun(link);
         const row = flakyRow();
-        const secs = (testDb
-          .prepare("SELECT CAST((julianday(?) - julianday('now')) * 86400 AS INTEGER) AS s")
-          .get(row.next_attempt_at) as { s: number }).s;
+        const secs = (
+          testDb
+            .prepare("SELECT CAST((julianday(?) - julianday('now')) * 86400 AS INTEGER) AS s")
+            .get(row.next_attempt_at) as { s: number }
+        ).s;
         waits.push(secs);
       }
       // Rising rather than flat: the curve used to be indexed at 1 every time.
@@ -1776,8 +1944,13 @@ describe('DocSyncService', () => {
     function deletedPairing(link: LinkRow): { itemId: number; fileId: number } {
       const fileId = makeFile({ name: 'boarding.pdf', deletedAt: '2026-09-18 08:00:00' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'boarding.pdf', remoteVersion: 'v1', fileId, state: 'synced',
-        contentSha256: FILE_SHA, pushedSha256: FILE_SHA,
+        remoteId: 'r1',
+        remoteName: 'boarding.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
+        contentSha256: FILE_SHA,
+        pushedSha256: FILE_SHA,
       });
       return { itemId, fileId };
     }
@@ -1841,16 +2014,21 @@ describe('DocSyncService', () => {
      * cursor it handed out, "nothing changed" and no documents at all; asked
      * without one, the whole folder.
      */
-    const quietUnlessAsked = (documents: RemoteDocument[]) =>
-      async (_conn: DocumentConnectionRef, scope: DocumentScopeRef) =>
+    const quietUnlessAsked =
+      (documents: RemoteDocument[]) => async (_conn: DocumentConnectionRef, scope: DocumentScopeRef) =>
         ok(scope.cursor === null ? listing(documents) : listing([], { cursorUnchanged: true }));
 
     /** A synced pairing whose file was deleted in TREK and whose deletion one run has seen. */
     async function deletedAndSeen(link: LinkRow): Promise<{ itemId: number; fileId: number }> {
       const fileId = makeFile({ name: 'boarding.pdf', deletedAt: '2026-09-18 08:00:00' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'boarding.pdf', remoteVersion: 'v1', fileId, state: 'synced',
-        contentSha256: FILE_SHA, pushedSha256: FILE_SHA,
+        remoteId: 'r1',
+        remoteName: 'boarding.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
+        contentSha256: FILE_SHA,
+        pushedSha256: FILE_SHA,
       });
       provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r1' })])));
       await service.syncLink(link);
@@ -1881,7 +2059,9 @@ describe('DocSyncService', () => {
       // An edit is new bytes, not only a new version marker: the same bytes under
       // a moved marker are kept as they are.
       const edited = Buffer.from('trek-document-bytes, revised upstream');
-      provider.fetch.mockResolvedValueOnce(ok({ body: Readable.from([edited]), size: edited.length, mimeType: 'application/pdf', remoteVersion: 'v2' }));
+      provider.fetch.mockResolvedValueOnce(
+        ok({ body: Readable.from([edited]), size: edited.length, mimeType: 'application/pdf', remoteVersion: 'v2' }),
+      );
       provider.list.mockResolvedValueOnce(ok(listing([remoteDoc({ remoteId: 'r1', remoteVersion: 'v2' })])));
       const run = await service.syncLink(await config.getLink(link.id));
 
@@ -1903,7 +2083,11 @@ describe('DocSyncService', () => {
       const run = await service.syncLink(await config.getLink(link.id));
 
       expect(run.pushed).toBe(1);
-      expect(provider.push.mock.calls[0][2]).toMatchObject({ fileName: 'boarding.pdf', remoteId: undefined, trekDocUid: uid });
+      expect(provider.push.mock.calls[0][2]).toMatchObject({
+        fileName: 'boarding.pdf',
+        remoteId: undefined,
+        trekDocUid: uid,
+      });
       const row = itemRow(itemId);
       expect(row.state).toBe('synced');
       expect(row.remote_id).toBe('r-pushed');
@@ -1921,9 +2105,13 @@ describe('DocSyncService', () => {
       provider.list.mockResolvedValueOnce(ok(listing([])));
       await service.syncLink(await config.getLink(link.id));
 
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: 'r-pushed', name: 'boarding.pdf', remoteVersion: 'v2', contentHash: FILE_SHA }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(
+          listing([
+            remoteDoc({ remoteId: 'r-pushed', name: 'boarding.pdf', remoteVersion: 'v2', contentHash: FILE_SHA }),
+          ]),
+        ),
+      );
       const run = await service.syncLink(await config.getLink(link.id));
 
       expect(run.pulled).toBe(0);
@@ -1955,10 +2143,14 @@ describe('DocSyncService', () => {
     it('uploads many files TREK had binned instead of reading them as a mass deletion', async () => {
       const link = await makeLink({ deletePolicy: 'trash' });
       const fileIds = Array.from({ length: 10 }, (_, i) =>
-        makeFile({ name: `doc-${i}.pdf`, storageKey: `key-${i}`, deletedAt: '2026-09-18 08:00:00' }));
+        makeFile({ name: `doc-${i}.pdf`, storageKey: `key-${i}`, deletedAt: '2026-09-18 08:00:00' }),
+      );
       fileIds.forEach((fileId, i) =>
-        seedItem(link, { remoteId: `r${i}`, remoteName: `doc-${i}.pdf`, remoteVersion: 'v1', fileId, state: 'synced' }));
-      provider.list.mockResolvedValueOnce(ok(listing(fileIds.map((_, i) => remoteDoc({ remoteId: `r${i}`, name: `doc-${i}.pdf` })))));
+        seedItem(link, { remoteId: `r${i}`, remoteName: `doc-${i}.pdf`, remoteVersion: 'v1', fileId, state: 'synced' }),
+      );
+      provider.list.mockResolvedValueOnce(
+        ok(listing(fileIds.map((_, i) => remoteDoc({ remoteId: `r${i}`, name: `doc-${i}.pdf` })))),
+      );
       await service.syncLink(link);
       expect(provider.trash).toHaveBeenCalledTimes(10);
 
@@ -2028,21 +2220,33 @@ describe('DocSyncService', () => {
       const link = await makeLink({ deletePolicy: 'unlink' });
       const inStep = Array.from({ length: 6 }, (_, i) => {
         const fileId = makeFile({ name: `doc-${i}.pdf`, storageKey: `key-doc-${i}` });
-        seedItem(link, { remoteId: `s${i}`, remoteName: `doc-${i}.pdf`, remoteVersion: 'v1', fileId, contentSha256: FILE_SHA });
+        seedItem(link, {
+          remoteId: `s${i}`,
+          remoteName: `doc-${i}.pdf`,
+          remoteVersion: 'v1',
+          fileId,
+          contentSha256: FILE_SHA,
+        });
         return remoteDoc({ remoteId: `s${i}`, name: `doc-${i}.pdf` });
       });
-      const restored = Array.from({ length: 5 }, (_, i) => seedItem(link, {
-        remoteId: `g${i}`, remoteName: `gone-${i}.pdf`, remoteVersion: 'v1', state: 'local_deleted', contentSha256: FILE_SHA,
-        fileId: makeFile({ name: `gone-${i}.pdf`, storageKey: `key-gone-${i}` }),
-      }));
+      const restored = Array.from({ length: 5 }, (_, i) =>
+        seedItem(link, {
+          remoteId: `g${i}`,
+          remoteName: `gone-${i}.pdf`,
+          remoteVersion: 'v1',
+          state: 'local_deleted',
+          contentSha256: FILE_SHA,
+          fileId: makeFile({ name: `gone-${i}.pdf`, storageKey: `key-gone-${i}` }),
+        }),
+      );
       makeFile({ name: 'new-here.pdf', storageKey: 'key-new-here' });
       const newThere = remoteDoc({ remoteId: 'r-new', name: 'new-there.pdf' });
 
       provider.list.mockResolvedValueOnce(ok(listing([...inStep, newThere])));
       const first = await service.syncLink(link);
-      provider.list.mockResolvedValueOnce(ok(listing([
-        ...inStep, newThere, remoteDoc({ remoteId: 'r-pushed', name: 'new-here.pdf' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([...inStep, newThere, remoteDoc({ remoteId: 'r-pushed', name: 'new-here.pdf' })])),
+      );
       const second = await service.syncLink(await config.getLink(link.id));
 
       expect(first).toMatchObject({ state: 'ok', pulled: 1, pushed: 1, missing: 5 });
@@ -2079,7 +2283,13 @@ describe('DocSyncService', () => {
     it('does not download a document again once its deletion was seen', async () => {
       const link = await makeLink({ deletePolicy: 'unlink' });
       const fileId = makeFile({ name: 'boarding.pdf', deletedAt: '2026-09-18 08:00:00' });
-      const itemId = seedItem(link, { remoteId: 'r1', remoteName: 'boarding.pdf', remoteVersion: 'v1', fileId, state: 'synced' });
+      const itemId = seedItem(link, {
+        remoteId: 'r1',
+        remoteName: 'boarding.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
+      });
       provider.list.mockResolvedValue(ok(listing([remoteDoc({ remoteId: 'r1' })])));
       await service.syncLink(link);
 
@@ -2094,7 +2304,13 @@ describe('DocSyncService', () => {
     it('applies the delete policy when the purge came before any run saw the deletion', async () => {
       const link = await makeLink({ deletePolicy: 'trash' });
       const fileId = makeFile({ name: 'boarding.pdf', deletedAt: '2026-09-18 08:00:00' });
-      const itemId = seedItem(link, { remoteId: 'r1', remoteName: 'boarding.pdf', remoteVersion: 'v1', fileId, state: 'synced' });
+      const itemId = seedItem(link, {
+        remoteId: 'r1',
+        remoteName: 'boarding.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
+      });
       purge(fileId);
       provider.list.mockResolvedValue(ok(listing([remoteDoc({ remoteId: 'r1' })])));
 
@@ -2114,7 +2330,12 @@ describe('DocSyncService', () => {
       const link = await makeLink({ deletePolicy: 'trash' });
       const fileId = makeFile({ name: 'boarding.pdf' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'boarding.pdf', remoteVersion: 'v1', fileId, state: 'synced', contentSha256: FILE_SHA,
+        remoteId: 'r1',
+        remoteName: 'boarding.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
+        contentSha256: FILE_SHA,
       });
       provider.list.mockResolvedValue(ok(listing([remoteDoc({ remoteId: 'r1', remoteVersion: 'v2' })])));
       provider.fetch.mockResolvedValueOnce(fail('timeout'));
@@ -2144,7 +2365,11 @@ describe('DocSyncService', () => {
       const link = await makeLink({ deletePolicy: 'trash' });
       const fileId = makeFile({ name: 'boarding.pdf', deletedAt: '2026-09-18 08:00:00' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'boarding.pdf', remoteVersion: 'v1', fileId, state: 'remote_missing',
+        remoteId: 'r1',
+        remoteName: 'boarding.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'remote_missing',
         remoteMissingAt: '2026-09-17 08:00:00',
       });
       purge(fileId);
@@ -2157,7 +2382,9 @@ describe('DocSyncService', () => {
       expect(itemRow(itemId).remote_missing_at).not.toBeNull();
       expect((await service.issues(tripId)).map((r) => r.id)).not.toContain(itemId);
       // Closed is not "back at the store": the holdings must not count it there.
-      const [status] = ((await service.status(tripId)) as { links: Array<{ holdings: { atProvider: number; missing: number } }> }).links;
+      const [status] = (
+        (await service.status(tripId)) as { links: Array<{ holdings: { atProvider: number; missing: number } }> }
+      ).links;
       expect(status.holdings).toMatchObject({ atProvider: 0, missing: 0 });
       expect(res.state).toBe('ok');
     });
@@ -2182,19 +2409,31 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       const fileId = makeFile({ name: 'a.pdf' });
       const itemId = seedItem(link, {
-        remoteId: '/trek/a.pdf', remoteName: 'a.pdf', remoteVersion: 'va', fileId, state: 'synced',
-        contentSha256: FILE_SHA, remoteSize: 1024, remoteModifiedAt: AT,
+        remoteId: '/trek/a.pdf',
+        remoteName: 'a.pdf',
+        remoteVersion: 'va',
+        fileId,
+        state: 'synced',
+        contentSha256: FILE_SHA,
+        remoteSize: 1024,
+        remoteModifiedAt: AT,
       });
-      provider.list.mockResolvedValue(ok(listing([
-        remoteDoc({ remoteId: '/trek/b.pdf', name: 'b.pdf', remoteVersion: 'vb', contentHash: FILE_SHA }),
-      ])));
+      provider.list.mockResolvedValue(
+        ok(
+          listing([remoteDoc({ remoteId: '/trek/b.pdf', name: 'b.pdf', remoteVersion: 'vb', contentHash: FILE_SHA })]),
+        ),
+      );
 
       const first = await service.syncLink(link);
 
       expect(first).toMatchObject({ state: 'ok', missing: 0, pulled: 0 });
       expect(fileRows().map((f) => [f.id, f.original_name, f.deleted_at])).toEqual([[fileId, 'b.pdf', null]]);
       expect(itemRow(itemId)).toMatchObject({
-        remote_id: '/trek/b.pdf', remote_name: 'b.pdf', remote_version: 'vb', state: 'synced', remote_missing_at: null,
+        remote_id: '/trek/b.pdf',
+        remote_name: 'b.pdf',
+        remote_version: 'vb',
+        state: 'synced',
+        remote_missing_at: null,
       });
 
       const second = await service.syncLink(await config.getLink(link.id));
@@ -2211,12 +2450,19 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       const fileId = makeFile({ name: 'a.pdf' });
       const itemId = seedItem(link, {
-        remoteId: '/trek/a.pdf', remoteName: 'a.pdf', remoteVersion: 'va', fileId, state: 'remote_missing',
-        contentSha256: FILE_SHA, remoteSize: 1024, remoteModifiedAt: AT, remoteMissingAt: '2026-09-18 09:00:00',
+        remoteId: '/trek/a.pdf',
+        remoteName: 'a.pdf',
+        remoteVersion: 'va',
+        fileId,
+        state: 'remote_missing',
+        contentSha256: FILE_SHA,
+        remoteSize: 1024,
+        remoteModifiedAt: AT,
+        remoteMissingAt: '2026-09-18 09:00:00',
       });
-      provider.list.mockResolvedValue(ok(listing([
-        remoteDoc({ remoteId: '/trek/b.pdf', name: 'b.pdf', remoteVersion: 'vb' }),
-      ])));
+      provider.list.mockResolvedValue(
+        ok(listing([remoteDoc({ remoteId: '/trek/b.pdf', name: 'b.pdf', remoteVersion: 'vb' })])),
+      );
 
       await service.syncLink(link);
 
@@ -2234,16 +2480,16 @@ describe('DocSyncService', () => {
       // What Synology actually sends. The pull records size and time, which is
       // all there is to go on once the path has changed.
       const link = await makeLink();
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: '/trek/a.pdf', name: 'a.pdf', remoteVersion: 'va' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: '/trek/a.pdf', name: 'a.pdf', remoteVersion: 'va' })])),
+      );
       await service.syncLink(link);
       expect(provider.fetch).toHaveBeenCalledTimes(1);
       const fileId = Number(fileRows()[0].id);
 
-      provider.list.mockResolvedValue(ok(listing([
-        remoteDoc({ remoteId: '/trek/2026/b.pdf', name: 'b.pdf', remoteVersion: 'vb' }),
-      ])));
+      provider.list.mockResolvedValue(
+        ok(listing([remoteDoc({ remoteId: '/trek/2026/b.pdf', name: 'b.pdf', remoteVersion: 'vb' })])),
+      );
       const renamed = await service.syncLink(await config.getLink(link.id));
       await service.syncLink(await config.getLink(link.id));
 
@@ -2251,21 +2497,37 @@ describe('DocSyncService', () => {
       expect(provider.fetch).toHaveBeenCalledTimes(1);
       expect(provider.rename).not.toHaveBeenCalled();
       expect(fileRows().map((f) => [f.id, f.original_name, f.deleted_at])).toEqual([[fileId, 'b.pdf', null]]);
-      expect(itemRows().map((r) => [r.remote_id, r.remote_name, r.state])).toEqual([['/trek/2026/b.pdf', 'b.pdf', 'synced']]);
+      expect(itemRows().map((r) => [r.remote_id, r.remote_name, r.state])).toEqual([
+        ['/trek/2026/b.pdf', 'b.pdf', 'synced'],
+      ]);
     });
 
     it('recognises a copy it uploaded itself when it is renamed before the next run', async () => {
       const link = await makeLink();
       makeFile({ name: 'boarding.pdf' });
       provider.list.mockResolvedValueOnce(ok(listing([])));
-      provider.push.mockResolvedValueOnce(ok({
-        remoteId: '/trek/boarding.pdf', remoteVersion: 'v1', remoteModifiedAt: AT, deduplicated: false,
-      }));
+      provider.push.mockResolvedValueOnce(
+        ok({
+          remoteId: '/trek/boarding.pdf',
+          remoteVersion: 'v1',
+          remoteModifiedAt: AT,
+          deduplicated: false,
+        }),
+      );
       await service.syncLink(link);
 
-      provider.list.mockResolvedValue(ok(listing([
-        remoteDoc({ remoteId: '/trek/flight.pdf', name: 'flight.pdf', remoteVersion: 'v2', size: FILE_BYTES.length }),
-      ])));
+      provider.list.mockResolvedValue(
+        ok(
+          listing([
+            remoteDoc({
+              remoteId: '/trek/flight.pdf',
+              name: 'flight.pdf',
+              remoteVersion: 'v2',
+              size: FILE_BYTES.length,
+            }),
+          ]),
+        ),
+      );
       await service.syncLink(await config.getLink(link.id));
       await service.syncLink(await config.getLink(link.id));
 
@@ -2282,19 +2544,25 @@ describe('DocSyncService', () => {
       const link = await makeLink();
       const fileId = makeFile({ name: 'b.pdf' });
       const itemId = seedItem(link, {
-        remoteId: '/trek/a.pdf', remoteName: 'a.pdf', remoteVersion: 'va', fileId, state: 'synced',
-        contentSha256: FILE_SHA, remoteSize: 1024, remoteModifiedAt: AT,
+        remoteId: '/trek/a.pdf',
+        remoteName: 'a.pdf',
+        remoteVersion: 'va',
+        fileId,
+        state: 'synced',
+        contentSha256: FILE_SHA,
+        remoteSize: 1024,
+        remoteModifiedAt: AT,
       });
-      provider.list.mockResolvedValueOnce(ok(listing([
-        remoteDoc({ remoteId: '/trek/a.pdf', name: 'a.pdf', remoteVersion: 'va' }),
-      ])));
+      provider.list.mockResolvedValueOnce(
+        ok(listing([remoteDoc({ remoteId: '/trek/a.pdf', name: 'a.pdf', remoteVersion: 'va' })])),
+      );
       provider.rename.mockResolvedValueOnce(ok({ remoteVersion: 'vb' }));
       await service.syncLink(link);
       expect(provider.rename).toHaveBeenCalledWith(expect.anything(), expect.anything(), '/trek/a.pdf', 'b.pdf');
 
-      provider.list.mockResolvedValue(ok(listing([
-        remoteDoc({ remoteId: '/trek/b.pdf', name: 'b.pdf', remoteVersion: 'vb' }),
-      ])));
+      provider.list.mockResolvedValue(
+        ok(listing([remoteDoc({ remoteId: '/trek/b.pdf', name: 'b.pdf', remoteVersion: 'vb' })])),
+      );
       const next = await service.syncLink(await config.getLink(link.id));
       await service.syncLink(await config.getLink(link.id));
 
@@ -2325,7 +2593,10 @@ describe('DocSyncService', () => {
       const held = new Map(documents.map((d) => [d.remoteId, d]));
       let seq = 0;
       provider.list.mockImplementation(async (_conn, scope) => {
-        const cursor = `digest:${[...held.values()].map((d) => `${d.remoteId}@${d.remoteVersion}`).sort().join(',')}`;
+        const cursor = `digest:${[...held.values()]
+          .map((d) => `${d.remoteId}@${d.remoteVersion}`)
+          .sort()
+          .join(',')}`;
         return ok(listing([...held.values()], { cursor, cursorUnchanged: scope.cursor === cursor }));
       });
       provider.push.mockImplementation(async (_conn, _scope, req) => {
@@ -2378,7 +2649,12 @@ describe('DocSyncService', () => {
       const link = await makeLink({ deletePolicy: 'trash' });
       const fileId = makeFile({ name: 'boarding.pdf', deletedAt: '2026-09-18 08:00:00' });
       const itemId = seedItem(link, {
-        remoteId: 'r1', remoteName: 'boarding.pdf', remoteVersion: 'v1', fileId, state: 'synced', contentSha256: FILE_SHA,
+        remoteId: 'r1',
+        remoteName: 'boarding.pdf',
+        remoteVersion: 'v1',
+        fileId,
+        state: 'synced',
+        contentSha256: FILE_SHA,
       });
       const copy = remoteDoc({ remoteId: 'r1' });
       const held = digestScope([copy]);
@@ -2420,8 +2696,11 @@ describe('DocSyncService', () => {
 
     it('pulls what the transfer budget left over on the next ordinary run', async () => {
       const link = await makeLink();
-      digestScope(Array.from({ length: MAX_TRANSFERS_PER_RUN + 5 }, (_, i) =>
-        remoteDoc({ remoteId: `r${i}`, name: `doc-${i}.pdf` })));
+      digestScope(
+        Array.from({ length: MAX_TRANSFERS_PER_RUN + 5 }, (_, i) =>
+          remoteDoc({ remoteId: `r${i}`, name: `doc-${i}.pdf` }),
+        ),
+      );
 
       expect(await service.syncLink(link)).toMatchObject({ state: 'partial', pulled: MAX_TRANSFERS_PER_RUN });
       const rest = await service.syncLink(await config.getLink(link.id));
@@ -2447,23 +2726,31 @@ describe('DocSyncService', () => {
 
   describe('resolveConflict across trips', () => {
     function conflictedItem(linkId: number, tripOfItem: number): number {
-      return Number(testDb.prepare(
-        `INSERT INTO document_sync_items (link_id, trip_id, trek_doc_uid, remote_id, state)
+      return Number(
+        testDb
+          .prepare(
+            `INSERT INTO document_sync_items (link_id, trip_id, trek_doc_uid, remote_id, state)
          VALUES (?, ?, 'uid-conflict', 'r-conflict', 'conflict')`,
-      ).run(linkId, tripOfItem).lastInsertRowid);
+          )
+          .run(linkId, tripOfItem).lastInsertRowid,
+      );
     }
     it('refuses when the row belongs to another trip', async () => {
       const link = await makeLink();
       const itemId = conflictedItem(link.id, link.trip_id);
       expect(await service.resolveConflict(itemId, 'trek', link.trip_id + 999)).toBe(false);
-      const after = testDb.prepare('SELECT state FROM document_sync_items WHERE id = ?').get(itemId) as { state: string };
+      const after = testDb.prepare('SELECT state FROM document_sync_items WHERE id = ?').get(itemId) as {
+        state: string;
+      };
       expect(after.state).toBe('conflict');
     });
     it('resolves when the row belongs to the trip', async () => {
       const link = await makeLink();
       const itemId = conflictedItem(link.id, link.trip_id);
       expect(await service.resolveConflict(itemId, 'trek', link.trip_id)).toBe(true);
-      const after = testDb.prepare('SELECT state FROM document_sync_items WHERE id = ?').get(itemId) as { state: string };
+      const after = testDb.prepare('SELECT state FROM document_sync_items WHERE id = ?').get(itemId) as {
+        state: string;
+      };
       expect(after.state).not.toBe('conflict');
     });
     it('still works for a caller that names no trip, so nothing else breaks', async () => {

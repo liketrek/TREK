@@ -25,9 +25,7 @@ export interface Validators {
 }
 
 export type RangeDecision =
-  | { kind: 'full' }
-  | { kind: 'partial'; start: number; end: number }
-  | { kind: 'unsatisfiable' };
+  { kind: 'full' } | { kind: 'partial'; start: number; end: number } | { kind: 'unsatisfiable' };
 
 /**
  * ETag: the driver's own (S3 returns one on every HEAD/GET), else the same

@@ -1,19 +1,20 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import nodemailer from 'nodemailer';
-import { PASSWORD_RESET_I18N } from '@trek/shared/i18n/externalNotifications';
 import { readEnv } from '../../../app-config';
-import { logError, logInfo, logDebug, logWarn } from '../../audit/audit-log.logger';
-import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
-import { AppSettingsRepository } from '../../../db/repositories/AppSettings.repository';
-import { SettingsRepository } from '../../../db/repositories/Settings.repository';
-import { UsersRepository } from '../../../db/repositories/Users.repository';
 import { AppSettings } from '../../../db/entities/AppSettings.entity';
 import { Settings } from '../../../db/entities/Settings.entity';
 import { Users } from '../../../db/entities/Users.entity';
+import { AppSettingsRepository } from '../../../db/repositories/AppSettings.repository';
+import { SettingsRepository } from '../../../db/repositories/Settings.repository';
+import { UsersRepository } from '../../../db/repositories/Users.repository';
+import { logError, logInfo, logDebug, logWarn } from '../../audit/audit-log.logger';
+import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
 import { buildEmailHtml, buildPasswordResetHtml } from './email-html';
 import { emailLogoAttachment } from './email-logo';
 import { describeSmtpFailure, describeSmtpGap, parseSmtpPort, type SmtpTarget } from './smtp-diagnostics';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { PASSWORD_RESET_I18N } from '@trek/shared/i18n/externalNotifications';
+
+import nodemailer from 'nodemailer';
 
 interface SmtpConfig {
   host: string;
@@ -103,7 +104,8 @@ export class MailerService {
    * one method is the only change, and it keeps the freshness property visible.
    */
   private async createTransport(config: SmtpConfig, socketTimeoutMs: number = SOCKET_TIMEOUT_MS) {
-    const skipTls = readEnv().smtp.skipTlsVerify || (await this.appSettings.getValue('smtp_skip_tls_verify')) === 'true';
+    const skipTls =
+      readEnv().smtp.skipTlsVerify || (await this.appSettings.getValue('smtp_skip_tls_verify')) === 'true';
     if (skipTls) this.warnOnceAboutSkippedTls(config);
     return nodemailer.createTransport({
       host: config.host,
@@ -186,7 +188,9 @@ export class MailerService {
     }
 
     try {
-      await (await this.createTransport(smtpCfg)).sendMail({
+      await (
+        await this.createTransport(smtpCfg)
+      ).sendMail({
         from: smtpCfg.from,
         to,
         subject: `TREK — ${strings.subject}`,
@@ -215,7 +219,9 @@ export class MailerService {
     const lang = userId ? await this.getUserLanguage(userId) : 'en';
 
     try {
-      await (await this.createTransport(config)).sendMail({
+      await (
+        await this.createTransport(config)
+      ).sendMail({
         from: config.from,
         to,
         subject: `TREK — ${subject}`,
@@ -248,7 +254,9 @@ export class MailerService {
       return { success: false, error: reason };
     }
     try {
-      await (await this.createTransport(config, TEST_SOCKET_TIMEOUT_MS)).sendMail({
+      await (
+        await this.createTransport(config, TEST_SOCKET_TIMEOUT_MS)
+      ).sendMail({
         from: config.from,
         to,
         subject: 'TREK — Test Notification',
@@ -258,7 +266,9 @@ export class MailerService {
       return { success: true };
     } catch (err) {
       const failure = describeSmtpFailure(err, this.target(config), config.pass);
-      logError(`SMTP test email failed to=${to} ${this.describeTarget(config)} code=${failure.code}: ${failure.reason}`);
+      logError(
+        `SMTP test email failed to=${to} ${this.describeTarget(config)} code=${failure.code}: ${failure.reason}`,
+      );
       return { success: false, error: failure.reason };
     }
   }

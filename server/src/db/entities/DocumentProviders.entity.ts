@@ -1,7 +1,7 @@
-import { Collection, EntityRepositoryType, defineEntity, p } from '@mikro-orm/core';
 import { DocumentProvidersRepository } from '../repositories/DocumentProviders.repository';
 import { DocumentConnections } from './DocumentConnections.entity';
 import { DocumentProviderFields } from './DocumentProviderFields.entity';
+import { Collection, EntityRepositoryType, defineEntity, p } from '@mikro-orm/core';
 
 export class DocumentProviders {
   [EntityRepositoryType]?: DocumentProvidersRepository;

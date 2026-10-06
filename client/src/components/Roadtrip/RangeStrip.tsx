@@ -1,8 +1,8 @@
-import React from 'react'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { convertDistance, formatDistance, getDistanceUnitLabel } from '../../utils/units'
-import type { DistanceUnit } from '../../types'
-import { FS } from './typeScale'
+import React from 'react';
+import { useTranslation } from '../../i18n/TranslationContext';
+import type { DistanceUnit } from '../../types';
+import { convertDistance, formatDistance, getDistanceUnitLabel } from '../../utils/units';
+import { FS } from './typeScale';
 
 /**
  * How far the car goes on one fill, drawn as the tank it leaves the factory with.
@@ -33,10 +33,11 @@ import { FS } from './typeScale'
  * chip has to be a step away from it in whichever scheme is on, and a white literal would
  * be a step the wrong way in the dark one.
  */
-const NOTE_CHIP = 'inline-flex items-center rounded-lg bg-surface-secondary px-2 py-1 text-caption leading-snug text-content-secondary'
+const NOTE_CHIP =
+  'inline-flex items-center rounded-lg bg-surface-secondary px-2 py-1 text-caption leading-snug text-content-secondary';
 
 /** How many kilometres one block of the bar stands for. */
-const BLOCK_KM = 50
+const BLOCK_KM = 50;
 
 /**
  * The bar, cut into blocks of a fixed distance rather than into quarters.
@@ -56,46 +57,53 @@ const BLOCK_KM = 50
  * carrying no style whatsoever. Through the DOM the rule is unobservable.
  */
 export function blockMask(rangeKm: number | null): string | undefined {
-  if (!rangeKm) return undefined
-  const blocks = Math.round(rangeKm / BLOCK_KM)
+  if (!rangeKm) return undefined;
+  const blocks = Math.round(rangeKm / BLOCK_KM);
   // Below three the cuts read as damage rather than as measure, and above about thirty
   // the gaps eat the bar. Outside that the bar is simply solid, which is honest: at that
   // range the blocks were never going to be counted.
-  if (blocks < 3 || blocks > 30) return undefined
-  const step = 100 / blocks
+  if (blocks < 3 || blocks > 30) return undefined;
+  const step = 100 / blocks;
   // Straight, not slanted. The slant was tried and read as a decorative texture rather
   // than as a measure: on a bar this thin the lean is legible only as fuzz on the seams.
   //
   // The colour is opacity here, not paint: black is "keep", transparent is "cut".
-  return `repeating-linear-gradient(90deg, #000 0 calc(${step}% - 2px), transparent calc(${step}% - 2px) ${step}%)` // theme-lint-disable — mask stencil, not a colour
+  return `repeating-linear-gradient(90deg, #000 0 calc(${step}% - 2px), transparent calc(${step}% - 2px) ${step}%)`; // theme-lint-disable — mask stencil, not a colour
 }
 
-export default function RangeStrip({ rangeKm, fillPercent, wearPercent, unit, electric }: {
-  rangeKm: number | null
-  fillPercent: number | null
-  wearPercent: number | null
-  unit: DistanceUnit
-  electric: boolean
+export default function RangeStrip({
+  rangeKm,
+  fillPercent,
+  wearPercent,
+  unit,
+  electric,
+}: {
+  rangeKm: number | null;
+  fillPercent: number | null;
+  wearPercent: number | null;
+  unit: DistanceUnit;
+  electric: boolean;
 }): React.ReactElement {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   // Capped where the arithmetic caps it, so the picture cannot claim a battery is gone.
-  const wear = rangeKm ? Math.min(90, Math.max(0, wearPercent ?? 0)) : 0
-  const fill = fillPercent && fillPercent > 0 && fillPercent < 100 ? fillPercent : 100
-  const usable = 100 - wear
-  const filled = rangeKm ? (usable * fill) / 100 : 0
-  const rest = 100 - wear - filled
+  const wear = rangeKm ? Math.min(90, Math.max(0, wearPercent ?? 0)) : 0;
+  const fill = fillPercent && fillPercent > 0 && fillPercent < 100 ? fillPercent : 100;
+  const usable = 100 - wear;
+  const filled = rangeKm ? (usable * fill) / 100 : 0;
+  const rest = 100 - wear - filled;
   // Split rather than formatted whole, so the unit can sit smaller beside the figure. The
   // rounding is formatDistance's own, because the badge on the trigger uses that and the
   // two must not disagree by a tenth.
-  const shown = rangeKm ? Math.round(convertDistance(rangeKm, unit) * 10) / 10 : null
-  const stripes = 'repeating-linear-gradient(135deg, var(--border-primary) 0 3px, transparent 3px 6px)'
-  const mask = blockMask(rangeKm)
+  const shown = rangeKm ? Math.round(convertDistance(rangeKm, unit) * 10) / 10 : null;
+  const stripes = 'repeating-linear-gradient(135deg, var(--border-primary) 0 3px, transparent 3px 6px)';
+  const mask = blockMask(rangeKm);
 
-  const note = shown === null
-    ? t('roadtrip.limit.rangeEmptyHint')
-    : fill < 100
-      ? t('roadtrip.limit.afterFill', { percent: fill, distance: formatDistance((rangeKm! * fill) / 100, unit) })
-      : t('roadtrip.limit.fullNote')
+  const note =
+    shown === null
+      ? t('roadtrip.limit.rangeEmptyHint')
+      : fill < 100
+        ? t('roadtrip.limit.afterFill', { percent: fill, distance: formatDistance((rangeKm! * fill) / 100, unit) })
+        : t('roadtrip.limit.fullNote');
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-edge-faint bg-surface-card px-3 py-2.5">
@@ -124,7 +132,11 @@ export default function RangeStrip({ rangeKm, fillPercent, wearPercent, unit, el
         role="img"
         aria-label={shown === null ? note : `${shown} ${getDistanceUnitLabel(unit)} — ${note}`}
       >
-        <div className="flex h-full w-full" style={mask ? { maskImage: mask, WebkitMaskImage: mask } : undefined} aria-hidden>
+        <div
+          className="flex h-full w-full"
+          style={mask ? { maskImage: mask, WebkitMaskImage: mask } : undefined}
+          aria-hidden
+        >
           <div
             className="h-full transition-[width] duration-500 ease-out"
             style={{ width: `${filled}%`, background: 'linear-gradient(90deg, var(--accent-hover), var(--accent))' }}
@@ -145,7 +157,9 @@ export default function RangeStrip({ rangeKm, fillPercent, wearPercent, unit, el
       <div className="flex flex-wrap items-center gap-1.5">
         <span className={NOTE_CHIP}>{note}</span>
         {mask ? (
-          <span className={NOTE_CHIP}>{t('roadtrip.limit.blockNote', { distance: formatDistance(BLOCK_KM, unit) })}</span>
+          <span className={NOTE_CHIP}>
+            {t('roadtrip.limit.blockNote', { distance: formatDistance(BLOCK_KM, unit) })}
+          </span>
         ) : null}
         {/* The swatch is what ties the chip to the tail of the bar. Without it the
             hatching is an unexplained stripe and the sentence an unexplained loss. */}
@@ -157,5 +171,5 @@ export default function RangeStrip({ rangeKm, fillPercent, wearPercent, unit, el
         ) : null}
       </div>
     </div>
-  )
+  );
 }

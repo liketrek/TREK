@@ -65,7 +65,12 @@ export class UserNoticeDismissalsRepository extends TrekRepository<UserNoticeDis
    * that stores a timestamp this way; preserved exactly, not normalized to
    * match every other domain's `CURRENT_TIMESTAMP` convention.
    */
-  async upsertDismissal(userId: number, noticeId: string, dismissedAt: number, dismissedAppVersion: string): Promise<void> {
+  async upsertDismissal(
+    userId: number,
+    noticeId: string,
+    dismissedAt: number,
+    dismissedAppVersion: string,
+  ): Promise<void> {
     await this.upsert(
       { user: userId, notice_id: noticeId, dismissed_at: dismissedAt, dismissed_app_version: dismissedAppVersion },
       { onConflictFields: ['user', 'notice_id'], onConflictAction: 'merge' },

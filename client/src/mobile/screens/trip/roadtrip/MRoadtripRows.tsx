@@ -1,19 +1,47 @@
-import { AlertTriangle, Bike, CarFront, Clock, Footprints, Fuel, Hourglass, Moon, Pin, Plus, RotateCcw, Shuffle, Sunrise, X, Zap } from 'lucide-react'
-import type { CSSProperties, ReactNode } from 'react'
-import MDancingTrek from '../../../components/MDancingTrek'
-import MIconBtn from '../../../components/MIconBtn'
-import { formatDurationShort, serviceColor } from '../../../../components/Roadtrip/roadtripModel'
-import { bookingOpens, carrierIcon, rideReading, terminalReading, type CheckInReading, type RideEnd } from '../../../../components/Roadtrip/carrierRide'
-import { BOOKEND_DISC, BOOKEND_ICON, bookendBadge } from '../../../../components/Roadtrip/nightBookend'
-import { bookingClock, bookingIcon } from '../../../../components/Roadtrip/stopBookings'
-import { STOP_KIND_BY_KEY } from '../../../../components/Roadtrip/stopKinds'
-import { formatDistance } from '../../../../utils/units'
-import { formatClockTime } from '../../../../utils/formatters'
-import type { BookendReading, RoadtripRow, StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
-import type { RefuelSearch } from '../../../../components/Roadtrip/useRefuelSearch'
-import { REFUEL_EMPTY_KEY, REFUEL_WORDS, refuelBandState, type RefuelCandidate } from '../../../../components/Roadtrip/refuelSuggestion'
-import type { DistanceUnit, RouteSegment, ScheduleWarning } from '@trek/shared/roadtrip'
-import type { Reservation, TranslationFn } from '../../../../types'
+import type { DistanceUnit, RouteSegment, ScheduleWarning } from '@trek/shared/roadtrip';
+import {
+  AlertTriangle,
+  Bike,
+  CarFront,
+  Clock,
+  Footprints,
+  Fuel,
+  Hourglass,
+  Moon,
+  Pin,
+  Plus,
+  RotateCcw,
+  Shuffle,
+  Sunrise,
+  X,
+  Zap,
+} from 'lucide-react';
+import type { CSSProperties, ReactNode } from 'react';
+import {
+  bookingOpens,
+  carrierIcon,
+  rideReading,
+  terminalReading,
+  type CheckInReading,
+  type RideEnd,
+} from '../../../../components/Roadtrip/carrierRide';
+import { BOOKEND_DISC, BOOKEND_ICON, bookendBadge } from '../../../../components/Roadtrip/nightBookend';
+import {
+  REFUEL_EMPTY_KEY,
+  REFUEL_WORDS,
+  refuelBandState,
+  type RefuelCandidate,
+} from '../../../../components/Roadtrip/refuelSuggestion';
+import { formatDurationShort, serviceColor } from '../../../../components/Roadtrip/roadtripModel';
+import type { BookendReading, RoadtripRow, StopRow } from '../../../../components/Roadtrip/roadtripRowModel';
+import { bookingClock, bookingIcon } from '../../../../components/Roadtrip/stopBookings';
+import { STOP_KIND_BY_KEY } from '../../../../components/Roadtrip/stopKinds';
+import type { RefuelSearch } from '../../../../components/Roadtrip/useRefuelSearch';
+import type { Reservation, TranslationFn } from '../../../../types';
+import { formatClockTime } from '../../../../utils/formatters';
+import { formatDistance } from '../../../../utils/units';
+import MDancingTrek from '../../../components/MDancingTrek';
+import MIconBtn from '../../../components/MIconBtn';
 
 /**
  * The row types of the mobile drive chain, plus the two bands that interrupt it.
@@ -31,8 +59,8 @@ import type { Reservation, TranslationFn } from '../../../../types'
  */
 
 export interface RowChrome {
-  t: TranslationFn
-  unit: DistanceUnit
+  t: TranslationFn;
+  unit: DistanceUnit;
   /**
    * Whether this reader is on a twelve hour clock.
    *
@@ -41,7 +69,7 @@ export interface RowChrome {
    * day timeline and this tab's own sheets all honour. It rides in the chrome rather than
    * being read per row: the chain draws dozens of rows and they must not disagree.
    */
-  is12h: boolean
+  is12h: boolean;
 }
 
 /**
@@ -54,19 +82,19 @@ export interface RowChrome {
  * opens the stop, and the 34px column the row gives this disc is the whole target.
  */
 function Disc({ row, t, onPickKind }: { row: StopRow; t: TranslationFn; onPickKind?: () => void }) {
-  const kind = row.stop.stopType ? STOP_KIND_BY_KEY[row.stop.stopType] : undefined
+  const kind = row.stop.stopType ? STOP_KIND_BY_KEY[row.stop.stopType] : undefined;
   // A terminal wears the booking's icon and is not a control: nobody turns an airport
   // into a petrol station.
   if (row.stop.carrier) {
-    const Icon = carrierIcon(row.stop.carrier.type)
+    const Icon = carrierIcon(row.stop.carrier.type);
     return (
       <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-[color:var(--m-ic)] text-m-ink">
         <Icon size={15} strokeWidth={2.1} aria-hidden="true" />
       </span>
-    )
+    );
   }
-  const face = row.service && kind
-    ? (
+  const face =
+    row.service && kind ? (
       <span
         className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full text-white"
         // theme-lint-disable: the stop kinds share their colour with the map markers,
@@ -75,27 +103,31 @@ function Disc({ row, t, onPickKind }: { row: StopRow; t: TranslationFn; onPickKi
       >
         <kind.Icon size={15} strokeWidth={2.1} aria-hidden="true" />
       </span>
-    )
-    : (
+    ) : (
       // Deliberately not font-geist: `.m-root .font-geist` caps the tier at Medium,
       // which would quietly undo the bold on a number that has to read at 12px.
       <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-[color:var(--m-ic)] text-[0.75rem] font-bold tabular-nums text-m-ink">
         {row.number}
       </span>
-    )
+    );
 
-  if (!onPickKind) return face
+  if (!onPickKind) return face;
   return (
     <button
       type="button"
       aria-label={row.service ? t('roadtrip.stop.kind') : t('roadtrip.stop.makeService')}
-      onClick={e => { e.stopPropagation(); onPickKind() }}
-      onKeyDown={e => { e.stopPropagation() }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onPickKind();
+      }}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+      }}
       className="grid place-items-center rounded-full"
     >
       {face}
     </button>
-  )
+  );
 }
 
 /**
@@ -104,42 +136,69 @@ function Disc({ row, t, onPickKind }: { row: StopRow; t: TranslationFn; onPickKi
  * hears in place of the two, since a row that opens a booking sheet has no other place to
  * say it.
  */
-function Mark({ icon, children, tone, value, label }: {
-  icon: ReactNode
-  children: ReactNode
-  tone?: 'warn'
-  value?: ReactNode
-  label?: string
+function Mark({
+  icon,
+  children,
+  tone,
+  value,
+  label,
+}: {
+  icon: ReactNode;
+  children: ReactNode;
+  tone?: 'warn';
+  value?: ReactNode;
+  label?: string;
 }) {
   return (
     <span
       role={label ? 'img' : undefined}
       aria-label={label}
       className="inline-flex h-[22px] items-center gap-[4px] rounded-full px-[8px] font-geist text-[0.65625rem] font-semibold"
-      style={tone === 'warn'
-        ? { background: 'color-mix(in srgb, var(--m-st-pending) 14%, transparent)', color: 'var(--m-st-pending)' }
-        : { background: 'var(--m-ic)', color: 'var(--m-muted)' }}
+      style={
+        tone === 'warn'
+          ? { background: 'color-mix(in srgb, var(--m-st-pending) 14%, transparent)', color: 'var(--m-st-pending)' }
+          : { background: 'var(--m-ic)', color: 'var(--m-muted)' }
+      }
     >
       {icon}
       {children}
-      {value !== undefined && <span className="ms-[2px] rounded-full bg-[color:var(--m-card)] px-[6px] tabular-nums">{value}</span>}
+      {value !== undefined && (
+        <span className="ms-[2px] rounded-full bg-[color:var(--m-card)] px-[6px] tabular-nums">{value}</span>
+      )}
     </span>
-  )
+  );
 }
 
 /** The short form of a finding: the number only, the sentence waits in the sheet. */
 function warningMark(warning: ScheduleWarning, chrome: RowChrome): ReactNode {
-  const { t, unit } = chrome
+  const { t, unit } = chrome;
   if (warning.code === 'late' || warning.code === 'missedLeave') {
-    return <Mark tone="warn" icon={<AlertTriangle size={10} strokeWidth={2} />}>{`+${formatDurationShort((warning.minutes ?? 0) * 60)}`}</Mark>
+    return (
+      <Mark
+        tone="warn"
+        icon={<AlertTriangle size={10} strokeWidth={2} />}
+      >{`+${formatDurationShort((warning.minutes ?? 0) * 60)}`}</Mark>
+    );
   }
   if (warning.code === 'range') {
-    return <Mark tone="warn" icon={<Fuel size={10} strokeWidth={2} />}>{formatDistance(warning.sinceKm ?? 0, unit)}</Mark>
+    return (
+      <Mark tone="warn" icon={<Fuel size={10} strokeWidth={2} />}>
+        {formatDistance(warning.sinceKm ?? 0, unit)}
+      </Mark>
+    );
   }
   if (warning.code === 'leg') {
-    return <Mark tone="warn" icon={<Hourglass size={10} strokeWidth={2} />}>{formatDurationShort((warning.overMinutes ?? 0) * 60)}</Mark>
+    return (
+      <Mark tone="warn" icon={<Hourglass size={10} strokeWidth={2} />}>
+        {formatDurationShort((warning.overMinutes ?? 0) * 60)}
+      </Mark>
+    );
   }
-  return <Mark tone="warn" icon={<Moon size={10} strokeWidth={2} />}>{t('roadtrip.warn.overnight')}</Mark>
+  return (
+    <Mark tone="warn" icon={<Moon size={10} strokeWidth={2} />}>
+      {t('roadtrip.warn.overnight')}
+    </Mark>
+  );
 }
 
 /**
@@ -153,62 +212,86 @@ function TapRow({ onOpen, children }: { onOpen: () => void; children: ReactNode 
       role="button"
       tabIndex={0}
       onClick={onOpen}
-      onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen() } }}
-      className="grid cursor-pointer items-center gap-x-[10px] py-1" style={{ gridTemplateColumns: '34px 1fr auto' }}
+      onKeyDown={(e) => {
+        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="grid cursor-pointer items-center gap-x-[10px] py-1"
+      style={{ gridTemplateColumns: '34px 1fr auto' }}
     >
       {children}
     </div>
-  )
+  );
 }
 
 /** A stop of the stage; see `TapRow`. */
-export function RtStopRow({ row, chrome, onOpen, onPickKind }: {
-  row: StopRow
-  chrome: RowChrome
-  onOpen: () => void
+export function RtStopRow({
+  row,
+  chrome,
+  onOpen,
+  onPickKind,
+}: {
+  row: StopRow;
+  chrome: RowChrome;
+  onOpen: () => void;
   /** Absent for a traveller who may not edit places: the disc is then not a control. */
-  onPickKind?: () => void
+  onPickKind?: () => void;
 }) {
-  const { t, unit } = chrome
-  if (row.stop.carrier) return <RtTerminalRow row={row} chrome={chrome} onOpen={onOpen} />
-  const marks: ReactNode[] = []
+  const { t, unit } = chrome;
+  if (row.stop.carrier) return <RtTerminalRow row={row} chrome={chrome} onOpen={onOpen} />;
+  const marks: ReactNode[] = [];
   if (row.stop.night && row.stop.checkInTime) {
     marks.push(
-      <Mark key="checkin" icon={null} value={formatClockTime(row.stop.checkInTime, chrome.is12h)}>{t('roadtrip.bookend.checkIn')}</Mark>,
-    )
+      <Mark key="checkin" icon={null} value={formatClockTime(row.stop.checkInTime, chrome.is12h)}>
+        {t('roadtrip.bookend.checkIn')}
+      </Mark>
+    );
   }
   if (row.dwellMinutes) {
     marks.push(
-      <Mark key="dwell" icon={<Hourglass size={10} strokeWidth={2} />}>{formatDurationShort(row.dwellMinutes * 60)}</Mark>,
-    )
+      <Mark key="dwell" icon={<Hourglass size={10} strokeWidth={2} />}>
+        {formatDurationShort(row.dwellMinutes * 60)}
+      </Mark>
+    );
   }
-  if (row.warning) marks.push(<span key="warn">{warningMark(row.warning, chrome)}</span>)
+  if (row.warning) marks.push(<span key="warn">{warningMark(row.warning, chrome)}</span>);
   if (!marks.length && row.offRoadMeters) {
     marks.push(
       <Mark key="off" icon={<Footprints size={10} strokeWidth={2} />}>
         {formatDistance(row.offRoadMeters / 1000, unit)}
-      </Mark>,
-    )
+      </Mark>
+    );
   }
 
   return (
     <TapRow onOpen={onOpen}>
-      <span className="flex justify-center"><Disc row={row} t={t} onPickKind={onPickKind} /></span>
+      <span className="flex justify-center">
+        <Disc row={row} t={t} onPickKind={onPickKind} />
+      </span>
       <span className="min-w-0 py-2">
-        <span className={`block text-[0.875rem] leading-[1.25] ${row.service ? 'truncate font-medium text-m-muted' : 'line-clamp-2 font-semibold text-m-ink'}`}>
+        <span
+          className={`block text-[0.875rem] leading-[1.25] ${row.service ? 'truncate font-medium text-m-muted' : 'line-clamp-2 font-semibold text-m-ink'}`}
+        >
           {row.stop.name}
         </span>
         {marks.length > 0 && <span className="mt-[4px] flex flex-wrap items-center gap-[5px]">{marks}</span>}
       </span>
       {row.time && (
         // dir=ltr so a clock reads the same way round in an RTL locale.
-        <span dir="ltr" className={`flex items-center gap-[3px] whitespace-nowrap text-[0.8125rem] tabular-nums ${row.pinned ? 'font-semibold text-m-ink' : 'font-medium text-m-faint'}`}>
-          {row.pinned && <Pin size={9} strokeWidth={2.4} className="flex-none text-m-faint" aria-label={t('roadtrip.stop.pinned')} />}
+        <span
+          dir="ltr"
+          className={`flex items-center gap-[3px] whitespace-nowrap text-[0.8125rem] tabular-nums ${row.pinned ? 'font-semibold text-m-ink' : 'font-medium text-m-faint'}`}
+        >
+          {row.pinned && (
+            <Pin size={9} strokeWidth={2.4} className="flex-none text-m-faint" aria-label={t('roadtrip.stop.pinned')} />
+          )}
           {formatClockTime(row.time, chrome.is12h)}
         </span>
       )}
     </TapRow>
-  )
+  );
 }
 
 /**
@@ -218,13 +301,18 @@ export function RtStopRow({ row, chrome, onOpen, onPickKind }: {
  * it the latest hour the room is handed back, on the morning it is, and the one finding a
  * row has room for. The whole row opens the booking behind the night, or the stay.
  */
-export function RtBookendRow({ row, bookend, chrome, onOpen }: {
-  row: StopRow
-  bookend: BookendReading
-  chrome: RowChrome
-  onOpen: () => void
+export function RtBookendRow({
+  row,
+  bookend,
+  chrome,
+  onOpen,
+}: {
+  row: StopRow;
+  bookend: BookendReading;
+  chrome: RowChrome;
+  onOpen: () => void;
 }) {
-  const badge = bookendBadge(bookend, row.entry, chrome.t, chrome.is12h)
+  const badge = bookendBadge(bookend, row.entry, chrome.t, chrome.is12h);
   return (
     <TapRow onOpen={onOpen}>
       <span className="flex justify-center">
@@ -233,7 +321,9 @@ export function RtBookendRow({ row, bookend, chrome, onOpen }: {
         </span>
       </span>
       <span className="min-w-0 py-2">
-        <span className="line-clamp-2 block text-[0.875rem] font-semibold leading-[1.25] text-m-ink">{bookend.name}</span>
+        <span className="line-clamp-2 block text-[0.875rem] font-semibold leading-[1.25] text-m-ink">
+          {bookend.name}
+        </span>
         <span className="mt-[4px] flex flex-wrap items-center gap-[5px]">
           <Mark
             tone={badge.warning ? 'warn' : undefined}
@@ -252,34 +342,35 @@ export function RtBookendRow({ row, bookend, chrome, onOpen }: {
         </span>
       )}
     </TapRow>
-  )
+  );
 }
 
 const LEG_ICONS: Record<string, typeof CarFront> = {
   walking: Footprints,
   cycling: Bike,
-}
+};
 
 /** The ride between two terminals, drawn in the dash the chain's legs wear, laid on its side. */
 const RIDE_CONN: CSSProperties = {
   backgroundImage: 'repeating-linear-gradient(90deg, var(--m-conn) 0 4px, transparent 4px 8px)',
-}
+};
 
 /** A terminal's code, or the name of one without it. On the card it takes the chain's own ground. */
 function RtChip({ text, onCard }: { text: string; onCard?: boolean }) {
   return (
-    <span className={`block max-w-[7.5rem] flex-none truncate rounded-full px-[7px] py-px font-geist text-[0.6875rem] font-semibold text-m-ink ${
-      onCard ? 'bg-[color:var(--m-ic)]' : 'bg-[color:var(--m-card)]'
-    }`}
+    <span
+      className={`block max-w-[7.5rem] flex-none truncate rounded-full px-[7px] py-px font-geist text-[0.6875rem] font-semibold text-m-ink ${
+        onCard ? 'bg-[color:var(--m-ic)]' : 'bg-[color:var(--m-card)]'
+      }`}
     >
       {text}
     </span>
-  )
+  );
 }
 
 /** The timetable's clock at one end, with the day it falls on and its role said to a screen reader. */
 function RtClock({ end, t }: { end: RideEnd; t: TranslationFn }) {
-  if (!end.clock) return null
+  if (!end.clock) return null;
   return (
     <span dir="ltr" className="flex-none whitespace-nowrap text-[0.8125rem] font-semibold tabular-nums text-m-ink">
       <span aria-hidden="true">
@@ -288,12 +379,12 @@ function RtClock({ end, t }: { end: RideEnd; t: TranslationFn }) {
       </span>
       <span className="sr-only">{end.dayOffset > 0 ? `${end.label} ${t('roadtrip.warn.overnight')}` : end.label}</span>
     </span>
-  )
+  );
 }
 
 /** The check-in as one mark with the hour, or the lateness, in a pill inside it; see `carrierRide`. */
 function CheckInMark({ checkIn }: { checkIn: CheckInReading }) {
-  const warning = checkIn.state !== 'ok'
+  const warning = checkIn.state !== 'ok';
   return (
     <Mark
       tone={warning ? 'warn' : undefined}
@@ -303,7 +394,7 @@ function CheckInMark({ checkIn }: { checkIn: CheckInReading }) {
     >
       {checkIn.lead}
     </Mark>
-  )
+  );
 }
 
 /**
@@ -313,16 +404,20 @@ function CheckInMark({ checkIn }: { checkIn: CheckInReading }) {
  * booking, as the rail's row does.
  */
 function RtTerminalRow({ row, chrome, onOpen }: { row: StopRow; chrome: RowChrome; onOpen: () => void }) {
-  const { t, is12h } = chrome
-  const { end, desk, checkIn } = terminalReading(row.stop, row.entry, row.warning ? [row.warning] : [], t, is12h)
-  const warning = checkIn && row.warning?.code === 'late' ? null : row.warning
+  const { t, is12h } = chrome;
+  const { end, desk, checkIn } = terminalReading(row.stop, row.entry, row.warning ? [row.warning] : [], t, is12h);
+  const warning = checkIn && row.warning?.code === 'late' ? null : row.warning;
   return (
     <TapRow onOpen={onOpen}>
-      <span className="flex justify-center"><Disc row={row} t={t} /></span>
+      <span className="flex justify-center">
+        <Disc row={row} t={t} />
+      </span>
       <span className="min-w-0 py-2">
         <span className="flex min-w-0 items-center gap-[6px]">
           {end.code && <RtChip text={end.code} onCard />}
-          <span className="line-clamp-2 min-w-0 text-[0.875rem] font-semibold leading-[1.25] text-m-ink">{end.place}</span>
+          <span className="line-clamp-2 min-w-0 text-[0.875rem] font-semibold leading-[1.25] text-m-ink">
+            {end.place}
+          </span>
         </span>
         {(desk || checkIn || warning) && (
           <span className="mt-[4px] flex flex-wrap items-center gap-[5px]">
@@ -332,13 +427,17 @@ function RtTerminalRow({ row, chrome, onOpen }: { row: StopRow; chrome: RowChrom
           </span>
         )}
       </span>
-      {end.clock ? <RtClock end={end} t={t} /> : row.time && (
-        <span dir="ltr" className="whitespace-nowrap text-[0.8125rem] font-medium tabular-nums text-m-faint">
-          {formatClockTime(row.time, is12h)}
-        </span>
+      {end.clock ? (
+        <RtClock end={end} t={t} />
+      ) : (
+        row.time && (
+          <span dir="ltr" className="whitespace-nowrap text-[0.8125rem] font-medium tabular-nums text-m-faint">
+            {formatClockTime(row.time, is12h)}
+          </span>
+        )
       )}
     </TapRow>
-  )
+  );
 }
 
 /**
@@ -350,19 +449,27 @@ function RtTerminalRow({ row, chrome, onOpen }: { row: StopRow; chrome: RowChrom
  * edged in the warning colour. The block is the tap target and opens the booking, the
  * same sheet the map's endpoint badge opens.
  */
-export function RtRideRow({ row, chrome, onOpen }: {
-  row: Extract<RoadtripRow, { kind: 'ride' }>
-  chrome: RowChrome
-  onOpen?: () => void
+export function RtRideRow({
+  row,
+  chrome,
+  onOpen,
+}: {
+  row: Extract<RoadtripRow, { kind: 'ride' }>;
+  chrome: RowChrome;
+  onOpen?: () => void;
 }) {
-  const Icon = carrierIcon(row.carrier.type)
-  const ride = rideReading({
-    departure: row.departure.stop,
-    arrival: row.arrival.stop,
-    entries: [row.departure.entry, row.arrival.entry],
-    warnings: row.departure.warning ? [row.departure.warning] : [],
-    seg: row.seg,
-  }, chrome.t, chrome.is12h)
+  const Icon = carrierIcon(row.carrier.type);
+  const ride = rideReading(
+    {
+      departure: row.departure.stop,
+      arrival: row.arrival.stop,
+      entries: [row.departure.entry, row.arrival.entry],
+      warnings: row.departure.warning ? [row.departure.warning] : [],
+      seg: row.seg,
+    },
+    chrome.t,
+    chrome.is12h
+  );
   const body = (
     <>
       <span className="min-w-0 truncate text-[0.75rem] font-semibold text-m-ink">{ride.title}</span>
@@ -386,10 +493,10 @@ export function RtRideRow({ row, chrome, onOpen }: {
         </span>
       )}
     </>
-  )
+  );
   const cls = `my-1 flex min-w-0 flex-col gap-[7px] rounded-[16px] border bg-[color:var(--m-ic)] px-[11px] py-[8px] text-start ${
     ride.checkIn?.state === 'missed' ? 'border-[color:var(--m-st-pending)]' : 'border-transparent'
-  }`
+  }`;
   return (
     <div className="grid items-center gap-x-[10px] py-1" style={{ gridTemplateColumns: '34px 1fr' }}>
       <span className="flex justify-center">
@@ -398,12 +505,14 @@ export function RtRideRow({ row, chrome, onOpen }: {
         </span>
       </span>
       {onOpen ? (
-        <button type="button" onClick={onOpen} className={cls}>{body}</button>
+        <button type="button" onClick={onOpen} className={cls}>
+          {body}
+        </button>
       ) : (
         <span className={cls}>{body}</span>
       )}
     </div>
-  )
+  );
 }
 
 /**
@@ -413,37 +522,51 @@ export function RtRideRow({ row, chrome, onOpen }: {
  * opens is a button; one this reader may not open stays a plain chip, the rule the rail
  * follows too (`bookingOpens`).
  */
-export function RtBookingChips({ bookings, chrome, canEdit, onOpen }: {
-  bookings: Reservation[]
-  chrome: RowChrome
+export function RtBookingChips({
+  bookings,
+  chrome,
+  canEdit,
+  onOpen,
+}: {
+  bookings: Reservation[];
+  chrome: RowChrome;
   /** Whether a table's or a ticket's editor opens for this reader; see `bookingOpens`. */
-  canEdit: boolean
-  onOpen?: (reservation: Reservation) => void
+  canEdit: boolean;
+  onOpen?: (reservation: Reservation) => void;
 }) {
   return (
     <div className="grid gap-x-[10px] pb-2" style={{ gridTemplateColumns: '34px 1fr' }}>
       <span aria-hidden="true" />
       <span className="flex flex-wrap gap-[6px]">
-        {bookings.map(r => {
-          const Icon = bookingIcon(r.type)
-          const clock = bookingClock(r)
+        {bookings.map((r) => {
+          const Icon = bookingIcon(r.type);
+          const clock = bookingClock(r);
           const body = (
             <>
               <Icon size={11} strokeWidth={2} className="flex-none text-m-muted" aria-hidden="true" />
               <span className="min-w-0 truncate text-[0.75rem] font-medium text-m-ink">{r.title}</span>
-              {clock && <span className="flex-none font-geist text-[0.65625rem] tabular-nums text-m-faint">{formatClockTime(clock, chrome.is12h)}</span>}
+              {clock && (
+                <span className="flex-none font-geist text-[0.65625rem] tabular-nums text-m-faint">
+                  {formatClockTime(clock, chrome.is12h)}
+                </span>
+              )}
             </>
-          )
-          const cls = 'inline-flex h-[28px] max-w-full items-center gap-[5px] rounded-full border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-[10px]'
+          );
+          const cls =
+            'inline-flex h-[28px] max-w-full items-center gap-[5px] rounded-full border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-[10px]';
           return onOpen && bookingOpens(r, canEdit) ? (
-            <button key={r.id} type="button" onClick={() => onOpen(r)} className={`${cls} text-start`}>{body}</button>
+            <button key={r.id} type="button" onClick={() => onOpen(r)} className={`${cls} text-start`}>
+              {body}
+            </button>
           ) : (
-            <span key={r.id} className={cls}>{body}</span>
-          )
+            <span key={r.id} className={cls}>
+              {body}
+            </span>
+          );
         })}
       </span>
     </div>
-  )
+  );
 }
 
 /**
@@ -461,13 +584,13 @@ export function RtBookingChips({ bookings, chrome, canEdit, onOpen }: {
  * it is pending, the honest answer and the one the missing-segment case already gave.
  */
 function legText(seg: RouteSegment | undefined, { t, unit }: RowChrome): string {
-  if (!seg) return t('roadtrip.leg.pending')
-  const metres = Number.isFinite(seg.distance) ? seg.distance : 0
-  const seconds = Number.isFinite(seg.duration) ? seg.duration : 0
-  const distance = seg.distanceText || (metres > 0 ? formatDistance(metres / 1000, unit) : '')
-  const time = seg.durationText || seg.drivingText || (seconds > 0 ? formatDurationShort(seconds) : '')
-  if (!distance || !time) return t('roadtrip.leg.pending')
-  return t('roadtrip.leg.driveText', { distance, time })
+  if (!seg) return t('roadtrip.leg.pending');
+  const metres = Number.isFinite(seg.distance) ? seg.distance : 0;
+  const seconds = Number.isFinite(seg.duration) ? seg.duration : 0;
+  const distance = seg.distanceText || (metres > 0 ? formatDistance(metres / 1000, unit) : '');
+  const time = seg.durationText || seg.drivingText || (seconds > 0 ? formatDurationShort(seconds) : '');
+  if (!distance || !time) return t('roadtrip.leg.pending');
+  return t('roadtrip.leg.driveText', { distance, time });
 }
 
 /**
@@ -491,34 +614,45 @@ function legText(seg: RouteSegment | undefined, { t, unit }: RowChrome): string 
  * card. The stop it leaves is not on this card, so its name goes above the pill; without
  * it the chain would open on a drive from nowhere.
  */
-export function RtLegRow({ seg, mode, origin, chrome, onAlternatives, alternativesOpen = false, alternativesDisabled = false }: {
-  seg: RouteSegment | undefined
-  mode: string | null
+export function RtLegRow({
+  seg,
+  mode,
+  origin,
+  chrome,
+  onAlternatives,
+  alternativesOpen = false,
+  alternativesDisabled = false,
+}: {
+  seg: RouteSegment | undefined;
+  mode: string | null;
   /** The place the drive leaves from, named when it is not the stop drawn above it. */
-  origin?: string
-  chrome: RowChrome
+  origin?: string;
+  chrome: RowChrome;
   /** Asks for other ways of driving this leg. Absent means the leg offers none. */
-  onAlternatives?: () => void
+  onAlternatives?: () => void;
   /** True while the picker is open on this leg. */
-  alternativesOpen?: boolean
-  alternativesDisabled?: boolean
+  alternativesOpen?: boolean;
+  alternativesDisabled?: boolean;
 }) {
-  const { t } = chrome
-  const Icon = mode && LEG_ICONS[mode] ? LEG_ICONS[mode] : mode?.startsWith('plugin:') ? Zap : CarFront
-  const text = legText(seg, chrome)
+  const { t } = chrome;
+  const Icon = mode && LEG_ICONS[mode] ? LEG_ICONS[mode] : mode?.startsWith('plugin:') ? Zap : CarFront;
+  const text = legText(seg, chrome);
   const pill = (
     <span className="my-1.5 flex min-w-0 items-center gap-[7px] rounded-[13px] bg-[color:var(--m-ic)] px-[11px] py-[7px]">
       <Icon size={14} strokeWidth={2} className="flex-none text-m-muted" aria-hidden="true" />
       <span className="truncate text-[0.75rem] font-semibold tabular-nums text-m-ink">{text}</span>
     </span>
-  )
+  );
   return (
     <div className="grid items-center gap-x-[10px]" style={{ gridTemplateColumns: '34px 1fr auto' }}>
       {/* flex-col, not flex: in a row the dashes would stretch sideways and read as
           a barcode. --m-conn rather than --m-rowbr, because the row hairline is 4.5%
           alpha and disappears in sunlight, and this line is what says "you drive here". */}
       <span className="flex min-h-[40px] flex-col items-center" aria-hidden="true">
-        <span className="w-[2px] flex-1" style={{ backgroundImage: 'repeating-linear-gradient(var(--m-conn) 0 4px, transparent 4px 8px)' }} />
+        <span
+          className="w-[2px] flex-1"
+          style={{ backgroundImage: 'repeating-linear-gradient(var(--m-conn) 0 4px, transparent 4px 8px)' }}
+        />
       </span>
       {origin ? (
         <span className="min-w-0">
@@ -527,7 +661,9 @@ export function RtLegRow({ seg, mode, origin, chrome, onAlternatives, alternativ
           </span>
           {pill}
         </span>
-      ) : pill}
+      ) : (
+        pill
+      )}
       {onAlternatives ? (
         <button
           type="button"
@@ -547,7 +683,7 @@ export function RtLegRow({ seg, mode, origin, chrome, onAlternatives, alternativ
         <span />
       )}
     </div>
-  )
+  );
 }
 
 /**
@@ -559,7 +695,7 @@ export function RtLegRow({ seg, mode, origin, chrome, onAlternatives, alternativ
  * rather than against `--m-bg`, because the mascot's span renames `--m-bg` to this value
  * and a variable defined in terms of itself is invalid, which would drop the cutouts.
  */
-const DRY_GROUND = 'color-mix(in srgb, var(--m-st-danger) 11%, var(--m-sheetop))'
+const DRY_GROUND = 'color-mix(in srgb, var(--m-st-danger) 11%, var(--m-sheetop))';
 
 /**
  * The lamp's circle: a soft wash of the band's own colour rather than the black action
@@ -569,7 +705,7 @@ const DRY_GROUND = 'color-mix(in srgb, var(--m-st-danger) 11%, var(--m-sheetop))
 const DANGER_SOFT: CSSProperties = {
   background: 'color-mix(in srgb, var(--m-st-danger) 14%, transparent)',
   color: 'var(--m-st-danger)',
-}
+};
 
 /**
  * Where the tank runs out on this leg, and the reserve lamp that goes looking.
@@ -597,22 +733,32 @@ const DANGER_SOFT: CSSProperties = {
  * empty sentence is decided in `refuelBandState`, the same place the desktop band reads
  * it from.
  */
-export function RtDryRow({ intoLegKm, chrome, electric, onSearch, offline, refuel, dayId, legIndex, onAccept }: {
-  intoLegKm: number
-  chrome: RowChrome
-  electric: boolean
-  onSearch?: () => void
-  offline: boolean
-  refuel: RefuelSearch
-  dayId: number
-  legIndex: number
+export function RtDryRow({
+  intoLegKm,
+  chrome,
+  electric,
+  onSearch,
+  offline,
+  refuel,
+  dayId,
+  legIndex,
+  onAccept,
+}: {
+  intoLegKm: number;
+  chrome: RowChrome;
+  electric: boolean;
+  onSearch?: () => void;
+  offline: boolean;
+  refuel: RefuelSearch;
+  dayId: number;
+  legIndex: number;
   /** Takes one of the offers onto the trip. Absent for somebody who may not edit days. */
-  onAccept?: (poi: RefuelCandidate) => void
+  onAccept?: (poi: RefuelCandidate) => void;
 }) {
-  const { t, unit } = chrome
-  const band = refuelBandState(refuel, dayId, legIndex)
-  const words = REFUEL_WORDS[electric ? 'electric' : 'fuel']
-  const Lamp = electric ? Zap : Fuel
+  const { t, unit } = chrome;
+  const band = refuelBandState(refuel, dayId, legIndex);
+  const words = REFUEL_WORDS[electric ? 'electric' : 'fuel'];
+  const Lamp = electric ? Zap : Fuel;
   return (
     <div
       className="-mx-1 my-2 flex flex-col gap-2 rounded-[16px] border px-3 py-2.5"
@@ -658,12 +804,17 @@ export function RtDryRow({ intoLegKm, chrome, electric, onSearch, offline, refue
             style={offline ? undefined : DANGER_SOFT}
             className={`grid h-11 w-11 flex-none place-items-center rounded-full ${offline ? 'bg-[color:var(--m-ic)] text-m-faint' : ''}`}
           >
-            {band.control === 'again'
-              ? <RotateCcw size={17} strokeWidth={2.2} aria-hidden="true" />
-              : <Lamp size={18} strokeWidth={2} className={offline ? undefined : 'trek-lowfuel'} aria-hidden="true" />}
+            {band.control === 'again' ? (
+              <RotateCcw size={17} strokeWidth={2.2} aria-hidden="true" />
+            ) : (
+              <Lamp size={18} strokeWidth={2} className={offline ? undefined : 'trek-lowfuel'} aria-hidden="true" />
+            )}
           </button>
         ) : (
-          <span className="grid h-11 w-11 flex-none place-items-center text-[color:var(--m-st-danger)]" aria-hidden="true">
+          <span
+            className="grid h-11 w-11 flex-none place-items-center text-[color:var(--m-st-danger)]"
+            aria-hidden="true"
+          >
             <Lamp size={18} strokeWidth={2} className="trek-lowfuel" />
           </span>
         )}
@@ -671,7 +822,9 @@ export function RtDryRow({ intoLegKm, chrome, electric, onSearch, offline, refue
 
       {/* Blunt rather than silent: the lamp keeps its place and this says why it is out. */}
       {onSearch && offline && band.control !== 'close' && (
-        <span className="font-geist text-[0.6875rem] leading-[1.4] text-m-faint">{t('mobileTrip.rtSearchOffline')}</span>
+        <span className="font-geist text-[0.6875rem] leading-[1.4] text-m-faint">
+          {t('mobileTrip.rtSearchOffline')}
+        </span>
       )}
 
       {band.loading && (
@@ -683,7 +836,7 @@ export function RtDryRow({ intoLegKm, chrome, electric, onSearch, offline, refue
           an offer somebody has to go and find. */}
       {band.offers.length > 0 && (
         <ul className="flex flex-col gap-[6px]">
-          {band.offers.map(poi => (
+          {band.offers.map((poi) => (
             <RefuelOffer
               key={poi.osm_id}
               poi={poi}
@@ -698,10 +851,12 @@ export function RtDryRow({ intoLegKm, chrome, electric, onSearch, offline, refue
       {/* Three sentences for three different facts. "Nothing on this stretch" after a
           request that failed states something that was never checked. */}
       {band.empty && (
-        <span className="font-geist text-[0.71875rem] leading-[1.4] text-m-muted">{t(REFUEL_EMPTY_KEY[band.empty])}</span>
+        <span className="font-geist text-[0.71875rem] leading-[1.4] text-m-muted">
+          {t(REFUEL_EMPTY_KEY[band.empty])}
+        </span>
       )}
     </div>
-  )
+  );
 }
 
 /**
@@ -713,15 +868,20 @@ export function RtDryRow({ intoLegKm, chrome, electric, onSearch, offline, refue
  * figures rather than the desktop's icon badges: a tooltip is the desktop's way of
  * saying which number is which, and there is no hover here to carry it.
  */
-function RefuelOffer({ poi, chrome, electric, onAccept }: {
-  poi: RefuelCandidate
-  chrome: RowChrome
-  electric: boolean
-  onAccept?: () => void
+function RefuelOffer({
+  poi,
+  chrome,
+  electric,
+  onAccept,
+}: {
+  poi: RefuelCandidate;
+  chrome: RowChrome;
+  electric: boolean;
+  onAccept?: () => void;
 }) {
-  const { t, unit } = chrome
-  const kind = STOP_KIND_BY_KEY[poi.category]
-  const KindIcon = kind?.Icon ?? Fuel
+  const { t, unit } = chrome;
+  const kind = STOP_KIND_BY_KEY[poi.category];
+  const KindIcon = kind?.Icon ?? Fuel;
   return (
     <li className="flex items-center gap-2.5 rounded-[14px] bg-[color:var(--m-card)] py-1.5 pe-1.5 ps-2.5">
       <span
@@ -752,26 +912,34 @@ function RefuelOffer({ poi, chrome, electric, onAccept }: {
         </button>
       )}
     </li>
-  )
+  );
 }
 
 /** Where a day ended for the night, or picked back up. Information, not a control. */
-export function RtAutoRow({ phase, time, chrome }: {
-  phase: 'end' | 'resume'
-  time: string | null
-  chrome: RowChrome
+export function RtAutoRow({
+  phase,
+  time,
+  chrome,
+}: {
+  phase: 'end' | 'resume';
+  time: string | null;
+  chrome: RowChrome;
 }) {
-  const { t } = chrome
-  const Icon = phase === 'end' ? Moon : Sunrise
+  const { t } = chrome;
+  const Icon = phase === 'end' ? Moon : Sunrise;
   return (
     <div className="my-1.5 flex min-h-[38px] items-center gap-2 rounded-[13px] bg-[color:var(--m-ic)] px-[11px] py-[7px]">
       <Icon size={14} strokeWidth={2} className="flex-none text-m-muted" aria-hidden="true" />
       <span className="text-[0.75rem] font-semibold text-m-muted">
         {phase === 'end' ? t('roadtrip.window.stop') : t('roadtrip.window.resume')}
       </span>
-      {time && <span className="ms-auto text-[0.8125rem] font-semibold tabular-nums text-m-ink">{formatClockTime(time, chrome.is12h)}</span>}
+      {time && (
+        <span className="ms-auto text-[0.8125rem] font-semibold tabular-nums text-m-ink">
+          {formatClockTime(time, chrome.is12h)}
+        </span>
+      )}
     </div>
-  )
+  );
 }
 
 /**
@@ -781,19 +949,25 @@ export function RtAutoRow({ phase, time, chrome }: {
  * traveller counts wrong at a night crossing, because the card opens with stops it
  * does not own.
  */
-export function RtSpillRow({ fromDayNumber, departs, chrome, children }: {
-  fromDayNumber: number
-  departs: string | null
-  chrome: RowChrome
-  children?: ReactNode
+export function RtSpillRow({
+  fromDayNumber,
+  departs,
+  chrome,
+  children,
+}: {
+  fromDayNumber: number;
+  departs: string | null;
+  chrome: RowChrome;
+  children?: ReactNode;
 }) {
-  const { t } = chrome
+  const { t } = chrome;
   return (
     <div
       className="-mx-1 mb-2 mt-1 overflow-hidden rounded-[16px] border px-3 py-2.5"
       style={{
         borderColor: 'color-mix(in srgb, var(--m-st-info) 26%, transparent)',
-        background: 'linear-gradient(180deg, color-mix(in srgb, var(--m-st-info) 11%, var(--m-card)) 0%, var(--m-card) 100%)',
+        background:
+          'linear-gradient(180deg, color-mix(in srgb, var(--m-st-info) 11%, var(--m-card)) 0%, var(--m-card) 100%)',
       }}
     >
       <div className="flex items-center gap-[6px]">
@@ -809,5 +983,5 @@ export function RtSpillRow({ fromDayNumber, departs, chrome, children }: {
       </div>
       {children && <div className="mt-1 px-[7px]">{children}</div>}
     </div>
-  )
+  );
 }

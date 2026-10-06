@@ -1,13 +1,18 @@
-import { placeCreateRequestSchema, placeImageUrlSchema, placeUpdateRequestSchema, placeWebsiteSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import { JourneyDomainService } from '../journey/journey-domain.service';
 import { PluginGuards } from '../plugins/host/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, schemaMessage } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { num, schemaMessage } from '../plugins/host/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
-import { JourneyDomainService } from '../journey/journey-domain.service';
 import { PlacesService } from './places.service';
 import type { PlaceCreateInput, PlaceUpdateInput } from './places.service';
+import {
+  placeCreateRequestSchema,
+  placeImageUrlSchema,
+  placeUpdateRequestSchema,
+  placeWebsiteSchema,
+} from '@trek/shared';
 
 const PLACE_EDIT_ACTION = 'place_edit';
 
@@ -27,7 +32,9 @@ const PLACE_STR_LIMITS: Record<string, number> = { name: 200, description: 2000,
 function capUrls(input: Record<string, unknown>): void {
   const image = input.image_url;
   if (image !== undefined && image !== null && !placeImageUrlSchema.safeParse(image).success) {
-    throw new BadParams('invalid place: image_url must be an uploaded path, a photo-proxy path, an inline image or an https URL');
+    throw new BadParams(
+      'invalid place: image_url must be an uploaded path, a photo-proxy path, an inline image or an https URL',
+    );
   }
   const website = input.website;
   if (website !== undefined && website !== null && website !== '') {
@@ -117,8 +124,10 @@ export class PlacesRpc {
     // A night booked at this place went with it, and took its partner booking and
     // that booking's expense along. Neither is covered by place:deleted, and an
     // expense linked by reservation_id is not one linkedExpenseIds finds.
-    for (const reservationId of cancelled.reservationIds) this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId });
-    for (const itemId of [...expenseIds, ...cancelled.budgetItemIds]) this.realtime.broadcast(tripId, 'budget:deleted', { itemId });
+    for (const reservationId of cancelled.reservationIds)
+      this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId });
+    for (const itemId of [...expenseIds, ...cancelled.budgetItemIds])
+      this.realtime.broadcast(tripId, 'budget:deleted', { itemId });
     return { deleted: true };
   }
 

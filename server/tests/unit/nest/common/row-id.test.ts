@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-
 import { toRowId } from '../../../../src/nest/common/row-id';
+
+import { describe, it, expect } from 'vitest';
 
 describe('toRowId', () => {
   it('ROWID-001: rejects a non-numeric string', () => {
@@ -11,7 +11,7 @@ describe('toRowId', () => {
     expect(toRowId('0x10')).toBeNull();
   });
 
-  it('ROWID-003: rejects an exponent-shaped string ("1e3") — a DELIBERATE, ACCEPTED deviation: SQLite\'s own numeric-affinity comparison DOES match this against integer 1000 (verified against better-sqlite3, not assumed — the row-id.ts docstring previously claimed the opposite), but no id this guard ever sees originates that way (every id is a canonical decimal string from our own client), so this fails closed to the route\'s legacy not-found result instead of widening the guard to match SQLite\'s affinity exactly', () => {
+  it("ROWID-003: rejects an exponent-shaped string (\"1e3\") — a DELIBERATE, ACCEPTED deviation: SQLite's own numeric-affinity comparison DOES match this against integer 1000 (verified against better-sqlite3, not assumed — the row-id.ts docstring previously claimed the opposite), but no id this guard ever sees originates that way (every id is a canonical decimal string from our own client), so this fails closed to the route's legacy not-found result instead of widening the guard to match SQLite's affinity exactly", () => {
     expect(toRowId('1e3')).toBeNull();
   });
 
@@ -59,7 +59,7 @@ describe('toRowId', () => {
     expect(toRowId(2 ** 53)).toBeNull();
   });
 
-  it('ROWID-012: rejects a digits-only STRING one past MAX_SAFE_INTEGER (coverage: the string branch\'s own safe-integer check)', () => {
+  it("ROWID-012: rejects a digits-only STRING one past MAX_SAFE_INTEGER (coverage: the string branch's own safe-integer check)", () => {
     expect(toRowId('9007199254740993')).toBeNull();
   });
 });

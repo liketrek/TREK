@@ -1,11 +1,11 @@
 // FE-COMP-LISTSRAIL-001 to FE-COMP-LISTSRAIL-010
-import React from 'react';
-import { render, screen, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import type { Collection } from '@trek/shared';
+import React from 'react';
+import { render, screen, within } from '../../../tests/helpers/render';
 import { useTranslation } from '../../i18n/TranslationContext';
-import { ALL_SAVED } from '../../store/collectionStore';
 import type { IncomingCollectionInvite } from '../../store/collectionStore';
+import { ALL_SAVED } from '../../store/collectionStore';
 import ListsRail from './ListsRail';
 
 // The rail takes `t` as a prop, so a harness forwards the real English translator
@@ -19,7 +19,14 @@ function Harness(props: RailProps): React.ReactElement {
 
 const rome: Collection = { id: 11, owner_id: 1, name: 'Weekend in Rome', color: '#ef4444', place_count: 3 };
 const tokyo: Collection = { id: 22, owner_id: 1, name: 'Tokyo Food Tour', color: null };
-const shared: Collection = { id: 33, owner_id: 9, name: 'Family trip', color: '#22c55e', place_count: 7, is_owner: false };
+const shared: Collection = {
+  id: 33,
+  owner_id: 9,
+  name: 'Family trip',
+  color: '#22c55e',
+  place_count: 7,
+  is_owner: false,
+};
 
 const invite: IncomingCollectionInvite = {
   collection_id: 44,
@@ -92,10 +99,21 @@ describe('ListsRail', () => {
   });
 
   it('FE-COMP-LISTSRAIL-007: renders a Shared section with its lists only when there are shared lists', () => {
-    const { unmount } = render(<Harness {...{
-      ownedLists: [rome], sharedLists: [], activeId: null, incomingInvites: [],
-      onSelect: vi.fn(), onNewList: vi.fn(), onImportList: vi.fn(), onAcceptInvite: vi.fn(), onDeclineInvite: vi.fn(),
-    }} />);
+    const { unmount } = render(
+      <Harness
+        {...{
+          ownedLists: [rome],
+          sharedLists: [],
+          activeId: null,
+          incomingInvites: [],
+          onSelect: vi.fn(),
+          onNewList: vi.fn(),
+          onImportList: vi.fn(),
+          onAcceptInvite: vi.fn(),
+          onDeclineInvite: vi.fn(),
+        }}
+      />
+    );
     expect(screen.queryByText('Shared')).not.toBeInTheDocument();
     unmount();
 

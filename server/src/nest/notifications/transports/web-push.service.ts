@@ -1,5 +1,3 @@
-import { Injectable } from '@nestjs/common';
-import type { ChannelTestResult, PushPayload } from '@trek/shared';
 import { decodeBase64Url } from '../../../app-config';
 import { discardBody, readCappedText } from '../../../utils/cappedFetch';
 import { safeFetchFollow, SsrfBlockedError } from '../../../utils/ssrfGuard';
@@ -9,6 +7,8 @@ import { isPushServiceEndpoint } from '../push/push-subscription.helpers';
 import { PushSubscriptionsService, type PushSubscriptionRow } from '../push/push-subscriptions.service';
 import { PUSH_UNAVAILABLE_ERROR, VapidKeysService } from '../push/vapid-keys.service';
 import { createVapidSigner, encryptPushMessage, type VapidSigner } from '../push/web-push-crypto';
+import { Injectable } from '@nestjs/common';
+import type { ChannelTestResult, PushPayload } from '@trek/shared';
 
 /**
  * Ceiling for the JSON the service worker receives. A single aes128gcm record

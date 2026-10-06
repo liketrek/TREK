@@ -1,9 +1,15 @@
-import React from 'react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { render, screen, fireEvent, waitFor } from '../../tests/helpers/render';
+import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  buildAtlasController,
+  buildAtlasData,
+  buildBucketItem,
+  buildCountryDetail,
+  type VisitedRegions,
+} from '../../tests/helpers/atlas';
 import { server } from '../../tests/helpers/msw/server';
-import { buildAtlasController, buildAtlasData, buildBucketItem, buildCountryDetail, type VisitedRegions } from '../../tests/helpers/atlas';
+import { fireEvent, render, screen, waitFor } from '../../tests/helpers/render';
 import type { AtlasController } from '../mobile/screens/atlas/atlasController';
 import type { AtlasData, CountryDetail } from './atlas/atlasModel';
 import AtlasPage from './AtlasPage';
@@ -45,8 +51,8 @@ beforeEach(() => {
     http.post('/api/addons/atlas/region/:code/mark', () => HttpResponse.json({ success: true })),
     http.delete('/api/addons/atlas/region/:code/mark', () => HttpResponse.json({ success: true })),
     http.post('/api/addons/atlas/bucket-list', () =>
-      HttpResponse.json({ item: buildBucketItem({ id: 99, name: 'Germany', country_code: 'DE' }) }),
-    ),
+      HttpResponse.json({ item: buildBucketItem({ id: 99, name: 'Germany', country_code: 'DE' }) })
+    )
   );
 });
 
@@ -87,7 +93,7 @@ describe('AtlasPage wiring', () => {
     it('FE-PAGE-ATLASW-004: a failing mark shows the server error as a toast', async () => {
       setAtlas({ confirmAction: { type: 'choose', code: 'DE', name: 'Germany' } });
       server.use(
-        http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ error: 'Locked' }, { status: 400 })),
+        http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ error: 'Locked' }, { status: 400 }))
       );
       render(<AtlasPage />);
 
@@ -124,7 +130,13 @@ describe('AtlasPage wiring', () => {
 
     it('FE-PAGE-ATLASW-007: the region popup marks a region and adopts its country', async () => {
       const atlas = setAtlas({
-        confirmAction: { type: 'choose-region', code: 'ES', name: 'Galicia', regionCode: 'ES-GA', countryName: 'Spain' },
+        confirmAction: {
+          type: 'choose-region',
+          code: 'ES',
+          name: 'Galicia',
+          regionCode: 'ES-GA',
+          countryName: 'Spain',
+        },
       });
       render(<AtlasPage />);
 
@@ -144,7 +156,13 @@ describe('AtlasPage wiring', () => {
     it('FE-PAGE-ATLASW-008: an already recorded region is not added twice and the country stays put', async () => {
       const regions: VisitedRegions = { FR: [{ code: 'FR-BRE', name: 'Bretagne', placeCount: 2 }] };
       const atlas = setAtlas({
-        confirmAction: { type: 'choose-region', code: 'FR', name: 'Bretagne', regionCode: 'FR-BRE', countryName: 'France' },
+        confirmAction: {
+          type: 'choose-region',
+          code: 'FR',
+          name: 'Bretagne',
+          regionCode: 'FR-BRE',
+          countryName: 'France',
+        },
         visitedRegions: regions,
       });
       render(<AtlasPage />);
@@ -159,7 +177,7 @@ describe('AtlasPage wiring', () => {
     it('FE-PAGE-ATLASW-009: a failing region mark shows the error toast', async () => {
       setAtlas({ confirmAction: { type: 'choose-region', code: 'ES', name: 'Galicia', regionCode: 'ES-GA' } });
       server.use(
-        http.post('/api/addons/atlas/region/:code/mark', () => HttpResponse.json({ error: 'Nope' }, { status: 422 })),
+        http.post('/api/addons/atlas/region/:code/mark', () => HttpResponse.json({ error: 'Nope' }, { status: 422 }))
       );
       render(<AtlasPage />);
 
@@ -180,7 +198,12 @@ describe('AtlasPage wiring', () => {
     });
 
     it('FE-PAGE-ATLASW-010b: the region bucket option highlights on hover', () => {
-      const action = { type: 'choose-region', code: 'ES', name: 'Galicia', regionCode: 'ES-GA' } as AtlasController['confirmAction'];
+      const action = {
+        type: 'choose-region',
+        code: 'ES',
+        name: 'Galicia',
+        regionCode: 'ES-GA',
+      } as AtlasController['confirmAction'];
       const atlas = setAtlas({ confirmAction: action });
       render(<AtlasPage />);
 
@@ -194,7 +217,10 @@ describe('AtlasPage wiring', () => {
     it('FE-PAGE-ATLASW-010c: a region removal without a region code performs no request', async () => {
       const deleteSpy = vi.fn();
       server.use(
-        http.delete('/api/addons/atlas/region/:code/mark', () => { deleteSpy(); return HttpResponse.json({}); }),
+        http.delete('/api/addons/atlas/region/:code/mark', () => {
+          deleteSpy();
+          return HttpResponse.json({});
+        })
       );
       const atlas = setAtlas({ confirmAction: { type: 'unmark-region', code: 'ES', name: 'Galicia' } });
       render(<AtlasPage />);
@@ -308,7 +334,7 @@ describe('AtlasPage wiring', () => {
     it('FE-PAGE-ATLASW-015: a failing region removal shows the error toast', async () => {
       setAtlas({ confirmAction: { type: 'unmark-region', code: 'IT', name: 'Lazio', regionCode: 'IT-62' } });
       server.use(
-        http.delete('/api/addons/atlas/region/:code/mark', () => HttpResponse.json({ error: 'Boom' }, { status: 500 })),
+        http.delete('/api/addons/atlas/region/:code/mark', () => HttpResponse.json({ error: 'Boom' }, { status: 500 }))
       );
       render(<AtlasPage />);
 
@@ -339,8 +365,10 @@ describe('AtlasPage wiring', () => {
       server.use(
         http.post('/api/addons/atlas/bucket-list', async ({ request }) => {
           body = await request.json();
-          return HttpResponse.json({ item: buildBucketItem({ id: 99, name: 'Germany', country_code: 'DE', target_date: '2027-05' }) });
-        }),
+          return HttpResponse.json({
+            item: buildBucketItem({ id: 99, name: 'Germany', country_code: 'DE', target_date: '2027-05' }),
+          });
+        })
       );
       const atlas = setAtlas({
         confirmAction: { type: 'bucket', code: 'DE', name: 'Germany' },
@@ -364,14 +392,17 @@ describe('AtlasPage wiring', () => {
         http.post('/api/addons/atlas/bucket-list', async ({ request }) => {
           body = await request.json();
           return HttpResponse.json({ item: buildBucketItem({ id: 100, name: 'Bretagne' }) });
-        }),
+        })
       );
       const atlas = setAtlas({ confirmAction: { type: 'bucket', code: 'FR', name: 'Bretagne', regionCode: 'FR-BRE' } });
       render(<AtlasPage />);
 
       fireEvent.click(screen.getByText('common.back'));
       expect(atlas.setConfirmAction).toHaveBeenCalledWith({
-        type: 'choose-region', code: 'FR', name: 'Bretagne', regionCode: 'FR-BRE',
+        type: 'choose-region',
+        code: 'FR',
+        name: 'Bretagne',
+        regionCode: 'FR-BRE',
       });
 
       fireEvent.click(screen.getByText('atlas.addToBucket'));
@@ -381,10 +412,12 @@ describe('AtlasPage wiring', () => {
 
     it('FE-PAGE-ATLASW-018b: a country already wishlisted for that date is not posted again (#1898)', async () => {
       const post = vi.fn();
-      server.use(http.post('/api/addons/atlas/bucket-list', () => {
-        post();
-        return HttpResponse.json({ item: buildBucketItem({ id: 99, name: 'Germany', country_code: 'DE' }) });
-      }));
+      server.use(
+        http.post('/api/addons/atlas/bucket-list', () => {
+          post();
+          return HttpResponse.json({ item: buildBucketItem({ id: 99, name: 'Germany', country_code: 'DE' }) });
+        })
+      );
       const atlas = setAtlas({
         confirmAction: { type: 'bucket', code: 'DE', name: 'Germany' },
         bucketList: [buildBucketItem({ id: 7, name: 'Germany', country_code: 'DE' })],
@@ -401,7 +434,7 @@ describe('AtlasPage wiring', () => {
 
     it('FE-PAGE-ATLASW-018: a failing bucket post shows the error toast', async () => {
       server.use(
-        http.post('/api/addons/atlas/bucket-list', () => HttpResponse.json({ error: 'Full' }, { status: 400 })),
+        http.post('/api/addons/atlas/bucket-list', () => HttpResponse.json({ error: 'Full' }, { status: 400 }))
       );
       setAtlas({ confirmAction: { type: 'bucket', code: 'DE', name: 'Germany' } });
       render(<AtlasPage />);
@@ -461,7 +494,9 @@ describe('AtlasPage wiring', () => {
 
       expect(screen.getByText('France')).toBeInTheDocument();
       expect(screen.getAllByText((_, el) => el?.textContent?.trim() === '3 atlas.places').length).toBeGreaterThan(0);
-      expect(screen.getAllByText((_, el) => el?.textContent?.trim() === '4 atlas.tripPlural').length).toBeGreaterThan(0);
+      expect(screen.getAllByText((_, el) => el?.textContent?.trim() === '4 atlas.tripPlural').length).toBeGreaterThan(
+        0
+      );
       // Only the first three trips are shown.
       expect(screen.queryByText('Brest')).not.toBeInTheDocument();
 
@@ -484,7 +519,7 @@ describe('AtlasPage wiring', () => {
           constructor(cb: ResizeObserverCallback) {
             cb([], this as unknown as ResizeObserver);
           }
-        },
+        }
       );
       const { unmount } = render(<AtlasPage />);
 
@@ -566,7 +601,11 @@ describe('AtlasPage wiring', () => {
       const nameInput = screen.getByPlaceholderText('atlas.bucketNamePlaceholder');
       fireEvent.change(nameInput, { target: { value: 'Kyoto old town' } });
       expect(atlas.setBucketForm).toHaveBeenCalledWith({
-        name: 'Kyoto old town', notes: '', lat: '35.0116', lng: '135.7681', target_date: '',
+        name: 'Kyoto old town',
+        notes: '',
+        lat: '35.0116',
+        lng: '135.7681',
+        target_date: '',
       });
 
       fireEvent.keyDown(nameInput, { key: 'Enter' });
@@ -577,7 +616,11 @@ describe('AtlasPage wiring', () => {
       const clearBtn = nameInput.parentElement?.querySelector('button') as HTMLButtonElement;
       fireEvent.click(clearBtn);
       expect(atlas.setBucketForm).toHaveBeenLastCalledWith({
-        name: '', notes: '', lat: '', lng: '', target_date: '',
+        name: '',
+        notes: '',
+        lat: '',
+        lng: '',
+        target_date: '',
       });
 
       fireEvent.click(screen.getByText('common.add'));
@@ -677,7 +720,14 @@ describe('AtlasPage wiring', () => {
   describe('planned countries (#1048)', () => {
     const withPlanned = (totalCountriesPlanned: number) =>
       buildAtlasData({
-        stats: { totalTrips: 6, totalPlaces: 40, totalCountries: 9, totalDays: 55, totalCities: 12, totalCountriesPlanned },
+        stats: {
+          totalTrips: 6,
+          totalPlaces: 40,
+          totalCountries: 9,
+          totalDays: 55,
+          totalCities: 12,
+          totalCountriesPlanned,
+        },
       });
 
     it('FE-PAGE-ATLASW-032: the panel only mentions planned countries once there are some', () => {

@@ -1,19 +1,19 @@
-import { useState } from 'react'
-import { placesApi } from '../../../../api/client'
-import { useAuthStore } from '../../../../store/authStore'
-import MChip from '../../../components/MChip'
-import MToggle from '../../../components/MToggle'
-import { FIELD_CLS, FormSheetFooter } from './PlSheetChrome'
-import type { TripPlanner } from '../MTripShell'
+import { useState } from 'react';
+import { placesApi } from '../../../../api/client';
+import { useAuthStore } from '../../../../store/authStore';
+import MChip from '../../../components/MChip';
+import MToggle from '../../../components/MToggle';
+import type { TripPlanner } from '../MTripShell';
+import { FIELD_CLS, FormSheetFooter } from './PlSheetChrome';
 
-type ListProvider = 'google' | 'naver'
+type ListProvider = 'google' | 'naver';
 
 interface ImpListStepProps {
-  planner: TripPlanner
+  planner: TripPlanner;
   /** Back to the import menu. */
-  onBack: () => void
+  onBack: () => void;
   /** Close the whole sheet after a successful import. */
-  onDone: () => void
+  onDone: () => void;
 }
 
 /**
@@ -22,53 +22,53 @@ interface ImpListStepProps {
  * Google enrichment.
  */
 export default function ImpListStep({ planner, onBack, onDone }: ImpListStepProps) {
-  const { t, toast, tripId, tripActions, pushUndo } = planner
-  const canEnrich = useAuthStore(s => s.hasMapsKey)
+  const { t, toast, tripId, tripActions, pushUndo } = planner;
+  const canEnrich = useAuthStore((s) => s.hasMapsKey);
 
-  const [provider, setProvider] = useState<ListProvider>('google')
-  const [url, setUrl] = useState('')
-  const [enrich, setEnrich] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [provider, setProvider] = useState<ListProvider>('google');
+  const [url, setUrl] = useState('');
+  const [enrich, setEnrich] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleImport = async () => {
-    const trimmed = url.trim()
-    if (!trimmed || loading) return
-    setLoading(true)
+    const trimmed = url.trim();
+    if (!trimmed || loading) return;
+    setLoading(true);
     try {
       const result =
         provider === 'google'
           ? await placesApi.importGoogleList(tripId, trimmed, enrich && canEnrich)
-          : await placesApi.importNaverList(tripId, trimmed, enrich && canEnrich)
-      await tripActions.loadTrip(tripId)
+          : await placesApi.importNaverList(tripId, trimmed, enrich && canEnrich);
+      await tripActions.loadTrip(tripId);
       if (result.count === 0 && result.skipped > 0) {
-        toast.warning(t('places.importAllSkipped'))
+        toast.warning(t('places.importAllSkipped'));
       } else {
         toast.success(
           t(provider === 'google' ? 'places.googleListImported' : 'places.naverListImported', {
             count: result.count,
             list: result.listName,
-          }),
-        )
+          })
+        );
       }
       if (result.places?.length > 0) {
-        const importedIds: number[] = result.places.map((p: { id: number }) => p.id)
+        const importedIds: number[] = result.places.map((p: { id: number }) => p.id);
         pushUndo(t(provider === 'google' ? 'undo.importGoogleList' : 'undo.importNaverList'), async () => {
           try {
-            await placesApi.bulkDelete(tripId, importedIds)
+            await placesApi.bulkDelete(tripId, importedIds);
           } catch {
             // best effort — the trip reload below reflects whatever happened
           }
-          await tripActions.loadTrip(tripId)
-        })
+          await tripActions.loadTrip(tripId);
+        });
       }
-      onDone()
+      onDone();
     } catch (err: unknown) {
-      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-      toast.error(message || t(provider === 'google' ? 'places.googleListError' : 'places.naverListError'))
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      toast.error(message || t(provider === 'google' ? 'places.googleListError' : 'places.naverListError'));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <>
@@ -90,11 +90,11 @@ export default function ImpListStep({ planner, onBack, onDone }: ImpListStepProp
         <input
           type="url"
           value={url}
-          onChange={e => setUrl(e.target.value)}
-          onKeyDown={e => {
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              e.preventDefault()
-              void handleImport()
+              e.preventDefault();
+              void handleImport();
             }
           }}
           placeholder={provider === 'google' ? 'https://maps.app.goo.gl/…' : 'https://naver.me/…'}
@@ -109,7 +109,12 @@ export default function ImpListStep({ planner, onBack, onDone }: ImpListStepProp
                 {t('places.enrichOnImportHint')}
               </div>
             </div>
-            <MToggle checked={enrich} onChange={setEnrich} ariaLabel={t('places.enrichOnImport')} className="mt-[2px]" />
+            <MToggle
+              checked={enrich}
+              onChange={setEnrich}
+              ariaLabel={t('places.enrichOnImport')}
+              className="mt-[2px]"
+            />
           </div>
         )}
       </div>
@@ -122,5 +127,5 @@ export default function ImpListStep({ planner, onBack, onDone }: ImpListStepProp
         submitDisabled={!url.trim() || loading}
       />
     </>
-  )
+  );
 }

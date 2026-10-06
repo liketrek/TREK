@@ -1,23 +1,36 @@
 // FE-PLANNER-BKTIMELINEVIEW-001 to FE-PLANNER-BKTIMELINEVIEW-016
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, within } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { resetAllStores, seedStore } from '../../../../tests/helpers/store';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildDay, buildReservation } from '../../../../tests/helpers/factories';
+import { fireEvent, render, screen, within } from '../../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../../tests/helpers/store';
 import { useSettingsStore } from '../../../store/settingsStore';
 import type { Day, Reservation, ReservationEndpoint } from '../../../types';
 import { bookingFacts } from './bookingFacts';
 import BookingsTimeline, { type BookingsTimelineProps } from './BookingsTimeline';
 
 function ep(over: Partial<ReservationEndpoint>): ReservationEndpoint {
-  return { role: 'from', sequence: 0, name: 'Stop', code: null, lat: 1, lng: 1, timezone: null, local_time: null, local_date: null, ...over };
+  return {
+    role: 'from',
+    sequence: 0,
+    name: 'Stop',
+    code: null,
+    lat: 1,
+    lng: 1,
+    timezone: null,
+    local_time: null,
+    local_date: null,
+    ...over,
+  };
 }
 
 // The lanes are laid out from the width the observer reports; jsdom has no layout, so this one reports a wide screen.
 let reportedWidth = 1400;
 class WideObserver {
   constructor(private cb: ResizeObserverCallback) {}
-  observe() { this.cb([{ contentRect: { width: reportedWidth } } as ResizeObserverEntry], this as unknown as ResizeObserver); }
+  observe() {
+    this.cb([{ contentRect: { width: reportedWidth } } as ResizeObserverEntry], this as unknown as ResizeObserver);
+  }
   unobserve() {}
   disconnect() {}
 }
@@ -28,18 +41,51 @@ const d3 = buildDay({ id: 803, day_number: 3, date: '2025-06-03', title: null })
 const days: Day[] = [d1, d2, d3];
 
 const flight = buildReservation({
-  id: 8801, type: 'flight', title: 'LH 716', status: 'confirmed', reservation_time: '2025-06-01T08:00', reservation_end_time: '2025-06-01T12:00',
+  id: 8801,
+  type: 'flight',
+  title: 'LH 716',
+  status: 'confirmed',
+  reservation_time: '2025-06-01T08:00',
+  reservation_end_time: '2025-06-01T12:00',
   location: 'Frankfurt',
-  endpoints: [ep({ role: 'from', name: 'Frankfurt', code: 'FRA' }), ep({ role: 'to', sequence: 1, name: 'Haneda', code: 'HND' })],
+  endpoints: [
+    ep({ role: 'from', name: 'Frankfurt', code: 'FRA' }),
+    ep({ role: 'to', sequence: 1, name: 'Haneda', code: 'HND' }),
+  ],
 });
-const train = buildReservation({ id: 8802, type: 'train', title: 'Shinkansen', status: 'pending', reservation_time: '2025-06-02T09:00', reservation_end_time: '2025-06-02T11:30' });
-const early = buildReservation({ id: 8803, type: 'restaurant', title: 'Farewell dinner', reservation_time: '2025-05-20T19:00' });
-const late = buildReservation({ id: 8804, type: 'tour', title: 'Bonus tour', status: 'pending', reservation_time: '2025-07-01T10:00' });
+const train = buildReservation({
+  id: 8802,
+  type: 'train',
+  title: 'Shinkansen',
+  status: 'pending',
+  reservation_time: '2025-06-02T09:00',
+  reservation_end_time: '2025-06-02T11:30',
+});
+const early = buildReservation({
+  id: 8803,
+  type: 'restaurant',
+  title: 'Farewell dinner',
+  reservation_time: '2025-05-20T19:00',
+});
+const late = buildReservation({
+  id: 8804,
+  type: 'tour',
+  title: 'Bonus tour',
+  status: 'pending',
+  reservation_time: '2025-07-01T10:00',
+});
 const loose = buildReservation({ id: 8805, type: 'transit', title: 'Metro ride' });
 
-const factsOf = (r: Reservation) => bookingFacts(r, {
-  t: (k, p) => (p && 'n' in p ? `Day ${p.n}` : k), locale: 'en-US', timeFormat: '24h', days, assignmentLookup: {}, tripCurrency: 'EUR', hasLinkedCost: false,
-});
+const factsOf = (r: Reservation) =>
+  bookingFacts(r, {
+    t: (k, p) => (p && 'n' in p ? `Day ${p.n}` : k),
+    locale: 'en-US',
+    timeFormat: '24h',
+    days,
+    assignmentLookup: {},
+    tripCurrency: 'EUR',
+    hasLinkedCost: false,
+  });
 
 const onSelect = vi.fn();
 const onZoom = vi.fn();
@@ -59,13 +105,15 @@ function renderTimeline(props: Partial<BookingsTimelineProps> = {}) {
       onSelect={onSelect}
       factsOf={factsOf}
       {...props}
-    />,
+    />
   );
 }
 
 beforeEach(() => {
   resetAllStores();
-  seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, time_format: '24h', language: 'en' } });
+  seedStore(useSettingsStore, {
+    settings: { ...useSettingsStore.getState().settings, time_format: '24h', language: 'en' },
+  });
   reportedWidth = 1400;
   vi.stubGlobal('ResizeObserver', WideObserver);
   onSelect.mockClear();
@@ -78,7 +126,7 @@ afterEach(() => {
 });
 
 describe('BookingsTimeline: trip view', () => {
-  it('FE-PLANNER-BKTIMELINEVIEW-001: states the trip\'s range and length, with one lane per type', () => {
+  it("FE-PLANNER-BKTIMELINEVIEW-001: states the trip's range and length, with one lane per type", () => {
     renderTimeline();
     expect(screen.getByText('Jun 1 → Jun 3')).toBeInTheDocument();
     expect(screen.getByText('3 days')).toBeInTheDocument();
@@ -133,13 +181,30 @@ describe('BookingsTimeline: trip view', () => {
   });
 
   it('FE-PLANNER-BKTIMELINEVIEW-008: the other tab shows as a dimmed lane, only while asked for', () => {
-    const hotel = buildReservation({ id: 8806, type: 'hotel', title: 'Ryokan', accommodation_start_day_id: 801, accommodation_end_day_id: 803 });
+    const hotel = buildReservation({
+      id: 8806,
+      type: 'hotel',
+      title: 'Ryokan',
+      accommodation_start_day_id: 801,
+      accommodation_end_day_id: 803,
+    });
     const { rerender } = renderTimeline({ context: [hotel], contextLabel: 'Bookings' });
     expect(screen.getByText('Bookings')).toBeInTheDocument();
     expect(screen.getByText('Ryokan')).toBeInTheDocument();
     rerender(
-      <BookingsTimeline items={[flight]} context={[hotel]} contextLabel="Bookings" days={days} zoom="trip" onZoom={onZoom}
-        byType showContext={false} selectedId={null} onSelect={onSelect} factsOf={factsOf} />,
+      <BookingsTimeline
+        items={[flight]}
+        context={[hotel]}
+        contextLabel="Bookings"
+        days={days}
+        zoom="trip"
+        onZoom={onZoom}
+        byType
+        showContext={false}
+        selectedId={null}
+        onSelect={onSelect}
+        factsOf={factsOf}
+      />
     );
     expect(screen.queryByText('Ryokan')).toBeNull();
   });
@@ -161,7 +226,17 @@ describe('BookingsTimeline: trip view', () => {
   it('FE-PLANNER-BKTIMELINEVIEW-010: the focus shows the same card, near the bottom of the window above the bar', () => {
     renderTimeline();
     const bar = screen.getByRole('button', { name: 'Shinkansen' });
-    vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({ top: 700, bottom: 740, left: 5000, right: 5100, width: 100, height: 40, x: 5000, y: 700, toJSON: () => ({}) } as DOMRect);
+    vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({
+      top: 700,
+      bottom: 740,
+      left: 5000,
+      right: 5100,
+      width: 100,
+      height: 40,
+      x: 5000,
+      y: 700,
+      toJSON: () => ({}),
+    } as DOMRect);
     fireEvent.focus(bar);
     const card = screen.getByRole('tooltip');
     expect(card).toHaveTextContent('Train, Pending');
@@ -206,7 +281,13 @@ describe('BookingsTimeline: day view', () => {
   });
 
   it('FE-PLANNER-BKTIMELINEVIEW-014: a bar running past the day in view marks the cut', () => {
-    const rental = buildReservation({ id: 8808, type: 'car', title: 'Rental', reservation_time: '2025-06-01T10:00', reservation_end_time: '2025-06-03T10:00' });
+    const rental = buildReservation({
+      id: 8808,
+      type: 'car',
+      title: 'Rental',
+      reservation_time: '2025-06-01T10:00',
+      reservation_end_time: '2025-06-03T10:00',
+    });
     renderTimeline({ zoom: 'day', items: [rental] });
     expect(screen.getByRole('button', { name: 'Rental' }).querySelectorAll('svg').length).toBeGreaterThanOrEqual(2);
   });
@@ -226,7 +307,9 @@ describe('BookingsTimeline: day view', () => {
   it('FE-PLANNER-BKTIMELINEVIEW-016: a long trip scrolls in the trip view, and Today scrolls to now', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2025, 5, 20, 9, 0));
-    const many = Array.from({ length: 30 }, (_, i) => buildDay({ id: 900 + i, day_number: i + 1, date: `2025-06-${String(i + 1).padStart(2, '0')}` }));
+    const many = Array.from({ length: 30 }, (_, i) =>
+      buildDay({ id: 900 + i, day_number: i + 1, date: `2025-06-${String(i + 1).padStart(2, '0')}` })
+    );
     reportedWidth = 600;
     const original = Element.prototype.scrollTo;
     const scrollTo = vi.fn();

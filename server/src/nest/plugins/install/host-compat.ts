@@ -1,5 +1,6 @@
-import semver from 'semver';
 import { readEnv } from '../../../app-config';
+
+import semver from 'semver';
 
 /**
  * Host-version compatibility for plugins (#plugins). A manifest declares the TREK
@@ -46,7 +47,9 @@ export function normalizedHost(): string | null {
   const coerced = semver.coerce(raw)?.version ?? null;
   if (!coerced && !warnedUnparseable) {
     warnedUnparseable = true;
-    console.warn(`[plugins] APP_VERSION "${raw}" is not a semver version — plugin TREK-compatibility checks are disabled`);
+    console.warn(
+      `[plugins] APP_VERSION "${raw}" is not a semver version — plugin TREK-compatibility checks are disabled`,
+    );
   }
   return coerced;
 }

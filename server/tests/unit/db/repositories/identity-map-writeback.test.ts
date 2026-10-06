@@ -30,15 +30,16 @@
  * no `disableIdentityMap`) makes IMWB-001 fail with the stale write-back this
  * test is built to catch.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import type { UsersRepository } from '../../../../src/db/repositories/Users.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -50,13 +51,21 @@ beforeAll(async () => {
   users = t.repo(Users);
   uow = new UnitOfWork(t.em);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('identity-map write-back (task-1-review.md B1)', () => {
   it('IMWB-001: findByIdWithPasswordVersion then getApiKeyColumns then patchProfile — the profile write survives the request', async () => {
     const { user } = createUser(testDb, { username: 'before', email: 'before@example.test' });
-    const originalPasswordVersion = (testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as { password_version: number }).password_version;
+    const originalPasswordVersion = (
+      testDb.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as { password_version: number }
+    ).password_version;
 
     await withRequestContext(t.orm, async () => {
       // Projection A — the JwtAuthGuard/GlobalAuthGuard shape.
@@ -71,9 +80,11 @@ describe('identity-map write-back (task-1-review.md B1)', () => {
       });
     });
 
-    const row = testDb
-      .prepare('SELECT username, email, password_version FROM users WHERE id = ?')
-      .get(user.id) as { username: string; email: string; password_version: number };
+    const row = testDb.prepare('SELECT username, email, password_version FROM users WHERE id = ?').get(user.id) as {
+      username: string;
+      email: string;
+      password_version: number;
+    };
     expect(row.username).toBe('newname'); // the nativeUpdate must stick
     expect(row.email).toBe('before@example.test'); // untouched by either read
     expect(row.password_version).toBe(originalPasswordVersion); // untouched by either read

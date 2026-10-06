@@ -1,5 +1,5 @@
-import { useState, type InputHTMLAttributes, type ReactNode, type Ref } from 'react'
-import { useBlurBookingCodes } from '../../hooks/useBlurBookingCodes'
+import { useState, type InputHTMLAttributes, type ReactNode, type Ref } from 'react';
+import { useBlurBookingCodes } from '../../hooks/useBlurBookingCodes';
 
 /**
  * The "Blur booking codes" preference (blur_booking_codes) keeps confirmation
@@ -10,13 +10,13 @@ import { useBlurBookingCodes } from '../../hooks/useBlurBookingCodes'
  */
 
 // The strength the code boxes in the bookings tabs and the day sheet use.
-const BLUR_CLS = 'blur-[4px] select-none'
+const BLUR_CLS = 'blur-[4px] select-none';
 
-const joinCls = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join(' ')
+const joinCls = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join(' ');
 
 type BookingCodeInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
-  ref?: Ref<HTMLInputElement>
-}
+  ref?: Ref<HTMLInputElement>;
+};
 
 /**
  * The text field of a form that edits a booking code. While the preference is
@@ -31,17 +31,19 @@ type BookingCodeInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>
  * manager and a different phone keyboard with it.
  */
 export function BookingCodeInput({ className, ...props }: BookingCodeInputProps) {
-  const blur = useBlurBookingCodes()
-  const hidden = blur && props.value != null && props.value !== ''
+  const blur = useBlurBookingCodes();
+  const hidden = blur && props.value != null && props.value !== '';
   return (
     <input
       type="text"
       {...props}
-      className={hidden
-        ? joinCls(className, 'blur-[4px] transition-[filter] duration-200 hover:blur-none focus:blur-none')
-        : className}
+      className={
+        hidden
+          ? joinCls(className, 'blur-[4px] transition-[filter] duration-200 hover:blur-none focus:blur-none')
+          : className
+      }
     />
-  )
+  );
 }
 
 /**
@@ -54,26 +56,35 @@ export function BookingCodeInput({ className, ...props }: BookingCodeInputProps)
  * `interactive={false}` gives a plain blurred span there; the booking the row
  * opens is where that code can be read.
  */
-export function BlurredCode({ children, interactive = true, className }: {
-  children: ReactNode
-  interactive?: boolean
-  className?: string
+export function BlurredCode({
+  children,
+  interactive = true,
+  className,
+}: {
+  children: ReactNode;
+  interactive?: boolean;
+  className?: string;
 }) {
-  const blur = useBlurBookingCodes()
-  const [revealed, setRevealed] = useState(false)
-  if (!blur) return <>{children}</>
-  if (!interactive) return <span className={joinCls(className, BLUR_CLS)}>{children}</span>
+  const blur = useBlurBookingCodes();
+  const [revealed, setRevealed] = useState(false);
+  if (!blur) return <>{children}</>;
+  if (!interactive) return <span className={joinCls(className, BLUR_CLS)}>{children}</span>;
   return (
     <button
       type="button"
       aria-pressed={revealed}
       // The code often sits on a strip that opens its booking on a click or on
       // Enter; revealing the code must not open the editor as well.
-      onClick={e => { e.stopPropagation(); setRevealed(v => !v) }}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation() }}
+      onClick={(e) => {
+        e.stopPropagation();
+        setRevealed((v) => !v);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
+      }}
       className={joinCls(className, 'cursor-pointer', !revealed && `${BLUR_CLS} hover:blur-none`)}
     >
       {children}
     </button>
-  )
+  );
 }

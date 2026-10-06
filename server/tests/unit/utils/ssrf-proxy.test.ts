@@ -8,8 +8,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const built = vi.hoisted(() => ({ agents: [] as unknown[], proxies: [] as Array<Record<string, unknown>> }));
 
 vi.mock('undici', () => ({
-  Agent: class { constructor(opts: unknown) { built.agents.push(opts); } },
-  ProxyAgent: class { constructor(opts: Record<string, unknown>) { built.proxies.push(opts); } },
+  Agent: class {
+    constructor(opts: unknown) {
+      built.agents.push(opts);
+    }
+  },
+  ProxyAgent: class {
+    constructor(opts: Record<string, unknown>) {
+      built.proxies.push(opts);
+    }
+  },
 }));
 
 const PROXY_KEYS = ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'no_proxy'] as const;

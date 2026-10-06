@@ -1,9 +1,10 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * Calendar events contributed by plugins that implement the `calendarSource` hook
@@ -14,11 +15,20 @@ import { stripEmoji } from '../text-sanitize';
  *   short timeout, one that errors/times out is skipped. Every field is NORMALIZED —
  *   strings length-capped, dates kept as ISO strings, the event count capped per source.
  */
-interface DevEvent { id: string; pluginId: string; source: string; title: string; start: string; end: string; allDay: boolean; }
+interface DevEvent {
+  id: string;
+  pluginId: string;
+  source: string;
+  title: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+}
 
-const MAX_EVENTS = 500;      // per source per request
+const MAX_EVENTS = 500; // per source per request
 const cap = (v: unknown, n: number): string => stripEmoji(String(v ?? '')).slice(0, n);
-const isoish = (v: unknown): string | undefined => (typeof v === 'string' && v.length > 0 && v.length <= 40 ? v : undefined);
+const isoish = (v: unknown): string | undefined =>
+  typeof v === 'string' && v.length > 0 && v.length <= 40 ? v : undefined;
 
 function normalizeEvents(pluginId: string, source: string, raw: unknown): DevEvent[] {
   const list = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];

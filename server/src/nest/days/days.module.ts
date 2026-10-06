@@ -1,28 +1,28 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { DaysController } from './days.controller';
-import { DaysService } from './days.service';
-import { DaysMcp } from './days.mcp';
-import { DaysRpc } from './days.rpc';
-import { DayRemovalService } from './day-removal.service';
-import { AccommodationsDomainModule } from '../accommodations/accommodations-domain.module';
-import { AssignmentsDomainModule } from '../assignments/assignments-domain.module';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
-import { RealtimeModule } from '../realtime/realtime.module';
-import { PermissionsModule } from '../permissions/permissions.module';
-import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
-import { PlacesModule } from '../places/places.module';
-import { AuthModule } from '../auth/auth.module';
-import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
-import { Days } from '../../db/entities/Days.entity';
+import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import { DayNotes } from '../../db/entities/DayNotes.entity';
-import { Trips } from '../../db/entities/Trips.entity';
-import { Reservations } from '../../db/entities/Reservations.entity';
+import { Days } from '../../db/entities/Days.entity';
 import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
-import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
-import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
 import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
+import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { AccommodationsDomainModule } from '../accommodations/accommodations-domain.module';
+import { AssignmentsDomainModule } from '../assignments/assignments-domain.module';
+import { AuthModule } from '../auth/auth.module';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { PlacesModule } from '../places/places.module';
+import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
+import { RealtimeModule } from '../realtime/realtime.module';
+import { DayRemovalService } from './day-removal.service';
+import { DaysController } from './days.controller';
+import { DaysMcp } from './days.mcp';
+import { DaysRpc } from './days.rpc';
+import { DaysService } from './days.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Days (S6 — Phase 2 trip sub-domain), mounted at /api/trips/:tripId/days.
@@ -66,8 +66,15 @@ import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.e
     AccommodationsDomainModule,
     AssignmentsDomainModule,
     MikroOrmModule.forFeature([
-      Days, DayAssignments, DayNotes, Trips, Reservations, ReservationEndpoints, DayAccommodations,
-      RoadtripVias, RoadtripDayBoundaries,
+      Days,
+      DayAssignments,
+      DayNotes,
+      Trips,
+      Reservations,
+      ReservationEndpoints,
+      DayAccommodations,
+      RoadtripVias,
+      RoadtripDayBoundaries,
     ]),
   ],
   controllers: [DaysController],

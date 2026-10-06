@@ -1,10 +1,11 @@
+import { Public } from '../auth/public.decorator';
+import { contentDisposition } from '../common/content-disposition';
+import { StorageService } from '../storage/storage.service';
+import { FilesService } from './files.service';
 import { Controller, Get, HttpException, Param, Req, Res } from '@nestjs/common';
+
 import type { Request, Response } from 'express';
 import path from 'path';
-import { FilesService } from './files.service';
-import { contentDisposition } from '../common/content-disposition';
-import { Public } from '../auth/public.decorator';
-import { StorageService } from '../storage/storage.service';
 
 /**
  * GET /api/trips/:tripId/files/:id/download — authenticated file download.
@@ -69,7 +70,10 @@ export class FilesDownloadController {
       name,
       res,
       walletMime
-        ? { contentType: walletMime, disposition: contentDisposition(path.basename(file.original_name || name), 'inline') }
+        ? {
+            contentType: walletMime,
+            disposition: contentDisposition(path.basename(file.original_name || name), 'inline'),
+          }
         : undefined,
     );
   }

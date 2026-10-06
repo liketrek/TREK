@@ -1,8 +1,9 @@
+import { readEnv } from '../../app-config';
+import { openDatabase } from '../../db/connection';
+
 import fs from 'fs';
 import path from 'path';
 import unzipper from 'unzipper';
-import { readEnv } from '../../app-config';
-import { openDatabase } from '../../db/connection';
 
 /**
  * Reading a backup archive, without touching the live database.
@@ -104,13 +105,16 @@ export function checkBackupDatabase(extractDir: string): ArchiveRefusal | null {
     }
 
     const requiredTables = ['users', 'trips', 'trip_members', 'places', 'days'];
-    const existingTables = uploadedDb
-      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
-      .all() as { name: string }[];
-    const tableNames = new Set(existingTables.map(t => t.name));
+    const existingTables = uploadedDb.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as {
+      name: string;
+    }[];
+    const tableNames = new Set(existingTables.map((t) => t.name));
     for (const table of requiredTables) {
       if (!tableNames.has(table)) {
-        return { error: `Uploaded database is missing required table: ${table}. This does not appear to be a TREK backup.`, status: 400 };
+        return {
+          error: `Uploaded database is missing required table: ${table}. This does not appear to be a TREK backup.`,
+          status: 400,
+        };
       }
     }
     return null;

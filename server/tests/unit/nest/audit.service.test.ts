@@ -8,6 +8,18 @@
  * old suite's fs mock: the import-time mkdir lives there now, and mocking it
  * lets the exact log-line formats be asserted).
  */
+import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { AuditLogRepository } from '../../../src/db/repositories/AuditLog.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { logInfo, logDebug, logError } from '../../../src/nest/audit/audit-log.logger';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import { getClientIp } from '../../../src/nest/audit/client-ip';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { ValidationError } from '@mikro-orm/core';
+
+import type { Request } from 'express';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
@@ -17,18 +29,6 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
   logError: vi.fn(),
   logWarn: vi.fn(),
 }));
-
-import type { Request } from 'express';
-import { ValidationError } from '@mikro-orm/core';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import type { AuditLogRepository } from '../../../src/db/repositories/AuditLog.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import { getClientIp } from '../../../src/nest/audit/client-ip';
-import { logInfo, logDebug, logError } from '../../../src/nest/audit/audit-log.logger';
 
 const testDb = createSnapshotTestDb();
 
@@ -56,11 +56,13 @@ afterAll(async () => {
   testDb.close();
 });
 
-function makeReq(options: {
-  ip?: string;
-  xff?: string | string[];
-  remoteAddress?: string;
-} = {}): Request {
+function makeReq(
+  options: {
+    ip?: string;
+    xff?: string | string[];
+    remoteAddress?: string;
+  } = {},
+): Request {
   return {
     ip: options.ip,
     headers: {
@@ -110,17 +112,29 @@ describe('getClientIp', () => {
 // ── writeAudit (real DB, through the repositories) ────────────────────────────
 
 function seedUser(id: number, email: string): void {
-  testDb.prepare(
-    "INSERT INTO users (id, username, email, password_hash, role) VALUES (?, ?, ?, 'x', 'user')"
-  ).run(id, `u${id}`, email);
+  testDb
+    .prepare("INSERT INTO users (id, username, email, password_hash, role) VALUES (?, ?, ?, 'x', 'user')")
+    .run(id, `u${id}`, email);
 }
 
 describe('writeAudit', () => {
   it('AUDIT-SVC-008: inserts the row and logs the labeled summary line', async () => {
     seedUser(1, 'a@b.c');
-    await svc.writeAudit({ userId: 1, action: 'trip.create', resource: 'trip', details: { title: 'Rome' }, ip: '1.2.3.4' });
+    await svc.writeAudit({
+      userId: 1,
+      action: 'trip.create',
+      resource: 'trip',
+      details: { title: 'Rome' },
+      ip: '1.2.3.4',
+    });
     const row = testDb.prepare('SELECT user_id, action, resource, details, ip FROM audit_log').get();
-    expect(row).toEqual({ user_id: 1, action: 'trip.create', resource: 'trip', details: '{"title":"Rome"}', ip: '1.2.3.4' });
+    expect(row).toEqual({
+      user_id: 1,
+      action: 'trip.create',
+      resource: 'trip',
+      details: '{"title":"Rome"}',
+      ip: '1.2.3.4',
+    });
     expect(logInfo).toHaveBeenCalledWith('a@b.c created trip "Rome" ip=1.2.3.4');
   });
 
@@ -169,7 +183,12 @@ describe('writeAudit', () => {
 
   it('AUDIT-SVC-012: debugDetails wins the debug line; detailsJson is the fallback', async () => {
     seedUser(1, 'a@b.c');
-    await svc.writeAudit({ userId: 1, action: 'settings.app_update', details: { require_mfa: true }, debugDetails: { raw: 1 } });
+    await svc.writeAudit({
+      userId: 1,
+      action: 'settings.app_update',
+      details: { require_mfa: true },
+      debugDetails: { raw: 1 },
+    });
     expect(logDebug).toHaveBeenLastCalledWith('AUDIT settings.app_update userId=1 {"raw":1}');
     await svc.writeAudit({ userId: 1, action: 'settings.app_update', details: { require_mfa: true } });
     expect(logDebug).toHaveBeenLastCalledWith('AUDIT settings.app_update userId=1 {"require_mfa":true}');
@@ -219,7 +238,12 @@ describe('writeAudit', () => {
 
   it('AUDIT-SVC-014: buildInfoSummary variants (settings parts, login empty brief)', async () => {
     seedUser(1, 'a@b.c');
-    await svc.writeAudit({ userId: 1, action: 'settings.app_update', details: { notification_channel: 'smtp', require_mfa: false }, ip: '1.1.1.1' });
+    await svc.writeAudit({
+      userId: 1,
+      action: 'settings.app_update',
+      details: { notification_channel: 'smtp', require_mfa: false },
+      ip: '1.1.1.1',
+    });
     expect(logInfo).toHaveBeenLastCalledWith('a@b.c updated settings (channel=smtp, mfa=false) ip=1.1.1.1');
     await svc.writeAudit({ userId: 1, action: 'user.login', details: { anything: true }, ip: '1.1.1.1' });
     expect(logInfo).toHaveBeenLastCalledWith('a@b.c logged in ip=1.1.1.1');

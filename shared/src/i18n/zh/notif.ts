@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} 现已可用',
   'notif.replica_failure.title': '存储副本故障',
   'notif.replica_failure.text': "写入副本 '{backend}' 失败：{op} / {key} — {error}",
-  'notif.replica_failure.textSuppressed': "写入副本 '{backend}' 失败：{op} / {key} — {error}。自上次通知以来，还有 {suppressed} 个失败被抑制。",
+  'notif.replica_failure.textSuppressed':
+    "写入副本 '{backend}' 失败：{op} / {key} — {error}。自上次通知以来，还有 {suppressed} 个失败被抑制。",
   'notif.action.view_trip': '查看旅行',
   'notif.action.view_collab': '查看消息',
   'notif.action.view_packing': '查看行李',

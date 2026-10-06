@@ -1,13 +1,13 @@
-import { useRef } from 'react'
-import { Printer } from 'lucide-react'
-import Modal from '../shared/Modal'
-import { useTranslation } from '../../i18n'
+import { Printer } from 'lucide-react';
+import { useRef } from 'react';
+import { useTranslation } from '../../i18n';
+import Modal from '../shared/Modal';
 
 interface PackingPrintPreviewProps {
   /** The page to print; the preview is closed while this is null. */
-  html: string | null
-  title: string
-  onClose: () => void
+  html: string | null;
+  title: string;
+  onClose: () => void;
 }
 
 /**
@@ -18,17 +18,21 @@ interface PackingPrintPreviewProps {
  * is the PDF export. No script runs inside the frame; printing is started from here.
  */
 export default function PackingPrintPreview({ html, title, onClose }: PackingPrintPreviewProps) {
-  const { t } = useTranslation()
-  const frameRef = useRef<HTMLIFrameElement>(null)
+  const { t } = useTranslation();
+  const frameRef = useRef<HTMLIFrameElement>(null);
   return (
     <Modal
       isOpen={html != null}
       onClose={onClose}
       title={title}
       size="3xl"
-      footer={(
+      footer={
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg border border-edge px-4 py-2 text-body text-content-muted hover:bg-surface-hover">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-edge px-4 py-2 text-body text-content-muted hover:bg-surface-hover"
+          >
             {t('common.close')}
           </button>
           <button
@@ -40,7 +44,7 @@ export default function PackingPrintPreview({ html, title, onClose }: PackingPri
             {t('packing.exportPrint')}
           </button>
         </div>
-      )}
+      }
     >
       {html != null && (
         <iframe
@@ -52,5 +56,5 @@ export default function PackingPrintPreview({ html, title, onClose }: PackingPri
         />
       )}
     </Modal>
-  )
+  );
 }

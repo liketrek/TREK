@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { prepareLlmAddonConfigForWrite } from '../../../../src/nest/llm-parse/llm-config';
+
+import { describe, it, expect } from 'vitest';
 
 describe('prepareLlmAddonConfigForWrite: the vision setting', () => {
   it('stores a known mode as sent', () => {

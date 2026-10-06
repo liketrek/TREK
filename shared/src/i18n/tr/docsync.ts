@@ -69,7 +69,7 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': 'TREK’te silindi',
   'docsync.state.scope_drift': 'Klasörün dışına taşındı',
 
-  'docsync.conflict.resolve': "{count} tanesini çöz",
+  'docsync.conflict.resolve': '{count} tanesini çöz',
 
   'docsync.conflict.title': 'İki kopya da değişti',
   'docsync.conflict.keepTrek': 'TREK sürümünü tut',
@@ -176,7 +176,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Aktarım tamamlanamadı.',
 
   'docsync.error.unknown_provider': 'Bu sağlayıcı bu kurulumda kullanılamıyor.',
-  'docsync.error.provider_disabled': 'Duraklatıldı: bir yönetici bu sağlayıcıyı kapattı. Yeniden açıldığında eşitleme kaldığı yerden devam eder.',
+  'docsync.error.provider_disabled':
+    'Duraklatıldı: bir yönetici bu sağlayıcıyı kapattı. Yeniden açıldığında eşitleme kaldığı yerden devam eder.',
   'docsync.binding.reconnect': 'Yeniden bağlan',
 };
 

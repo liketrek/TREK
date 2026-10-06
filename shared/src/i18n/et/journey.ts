@@ -215,10 +215,12 @@ const journey: TranslationStrings = {
   'journey.settings.status': 'Olek',
   'journey.settings.statusAuto': 'Automaatne',
   'journey.settings.statusAutoHint': 'Järgib seotud reiside kuupäevi. Ilma reisita jääb teekond mustandiks.',
-  'journey.settings.statusManualHint': 'Määratud käsitsi. Reisi kuupäevad ei muuda seda enam, kuni lülitad tagasi automaatsele.',
+  'journey.settings.statusManualHint':
+    'Määratud käsitsi. Reisi kuupäevad ei muuda seda enam, kuni lülitad tagasi automaatsele.',
   'journey.settings.photosSection': 'Fotod',
   'journey.settings.photoLocation': 'Paiguta sissekanded fotode järgi',
-  'journey.settings.photoLocationHint': 'Kohata sissekanne saab koha, kus tehti selle esimene GPS-iga foto. Ise määratud kohti ei liigutata kunagi.',
+  'journey.settings.photoLocationHint':
+    'Kohata sissekanne saab koha, kus tehti selle esimene GPS-iga foto. Ise määratud kohti ei liigutata kunagi.',
   'journey.settings.endJourney': 'Arhiveeri reisilugu',
   'journey.settings.reopenJourney': 'Taasta reisilugu',
   'journey.settings.archived': 'Reisilugu arhiveeritud',

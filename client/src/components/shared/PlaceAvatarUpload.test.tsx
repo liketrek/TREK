@@ -1,6 +1,6 @@
-import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { getCached, isLoading, fetchPhoto, onThumbReady } from '../../services/photoService';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
+import { fetchPhoto, getCached, isLoading, onThumbReady } from '../../services/photoService';
 
 // Mock photoService — PlaceAvatarUpload wraps PlaceAvatar, which pulls thumbnails.
 vi.mock('../../services/photoService', () => ({

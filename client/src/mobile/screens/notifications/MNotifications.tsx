@@ -1,12 +1,12 @@
-import { useNavigate } from 'react-router'
-import { ArrowLeft, CheckCheck, Trash2 } from 'lucide-react'
-import MDancingTrek from '../../components/MDancingTrek'
-import { useTranslation } from '../../../i18n'
-import { useInAppNotifications } from '../../../pages/inAppNotifications/useInAppNotifications'
-import MGlassBar from '../../components/MGlassBar'
-import MIconBtn from '../../components/MIconBtn'
-import MSegmented from '../../components/MSegmented'
-import MNotificationRow from './MNotificationRow'
+import { ArrowLeft, CheckCheck, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { useTranslation } from '../../../i18n';
+import { useInAppNotifications } from '../../../pages/inAppNotifications/useInAppNotifications';
+import MDancingTrek from '../../components/MDancingTrek';
+import MGlassBar from '../../components/MGlassBar';
+import MIconBtn from '../../components/MIconBtn';
+import MSegmented from '../../components/MSegmented';
+import MNotificationRow from './MNotificationRow';
 
 function Spinner({ size = 20 }: { size?: number }) {
   return (
@@ -14,7 +14,7 @@ function Spinner({ size = 20 }: { size?: number }) {
       className="inline-block animate-spin rounded-full border-2 border-[color:var(--m-trackoff)] border-t-[color:var(--m-ink)]"
       style={{ width: size, height: size }}
     />
-  )
+  );
 }
 
 /**
@@ -24,13 +24,20 @@ function Spinner({ size = 20 }: { size?: number }) {
  * the same useInAppNotifications hook the desktop page wires up.
  */
 export default function MNotifications() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const {
-    notifications, unreadCount, isLoading, hasMore,
-    unreadOnly, setUnreadOnly, loaderRef, displayed,
-    markAllRead, deleteAll,
-  } = useInAppNotifications()
+    notifications,
+    unreadCount,
+    isLoading,
+    hasMore,
+    unreadOnly,
+    setUnreadOnly,
+    loaderRef,
+    displayed,
+    markAllRead,
+    deleteAll,
+  } = useInAppNotifications();
 
   return (
     <>
@@ -65,7 +72,7 @@ export default function MNotifications() {
             { value: 'unread', label: t('notifications.unreadOnly') },
           ]}
           value={unreadOnly ? 'unread' : 'all'}
-          onChange={v => setUnreadOnly(v === 'unread')}
+          onChange={(v) => setUnreadOnly(v === 'unread')}
         />
 
         <div className="mt-3 overflow-hidden rounded-[20px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-[14px]">
@@ -79,7 +86,7 @@ export default function MNotifications() {
               <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('notifications.empty')}</p>
             </div>
           ) : (
-            displayed.map(n => <MNotificationRow key={n.id} notification={n} />)
+            displayed.map((n) => <MNotificationRow key={n.id} notification={n} />)
           )}
 
           {hasMore && (
@@ -90,5 +97,5 @@ export default function MNotifications() {
         </div>
       </div>
     </>
-  )
+  );
 }

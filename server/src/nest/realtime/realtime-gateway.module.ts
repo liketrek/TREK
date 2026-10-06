@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { RealtimeGateway } from './realtime.gateway';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
 import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
 import { JourneyDomainModule } from '../journey/journey-domain.module';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { Users } from '../../db/entities/Users.entity';
-import { Trips } from '../../db/entities/Trips.entity';
+import { RealtimeGateway } from './realtime.gateway';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * The transport, kept out of RealtimeModule on purpose.

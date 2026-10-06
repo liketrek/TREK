@@ -20,8 +20,12 @@
  * regression class `boot-sweeps-request-context.test.ts` guards for the
  * seven cron boot sweeps.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { StorageEventsService } from '../../src/nest/storage/storage-events.service';
 import type { INestApplication } from '@nestjs/common';
+
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -36,11 +40,11 @@ vi.mock('../../src/config', () => ({
   SESSION_DURATION_SECONDS: 86400,
   DEFAULT_LANGUAGE: 'en',
 }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn(), getOnlineUserIds: vi.fn(() => []) }));
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { StorageEventsService } from '../../src/nest/storage/storage-events.service';
+vi.mock('../../src/websocket', () => ({
+  broadcast: vi.fn(),
+  broadcastToUser: vi.fn(),
+  getOnlineUserIds: vi.fn(() => []),
+}));
 
 describe('StorageHealthNotifierService listener runs inside its own request context, outside any active one', () => {
   let app: INestApplication;

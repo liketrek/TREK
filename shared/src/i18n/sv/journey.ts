@@ -205,11 +205,14 @@ const journey: TranslationStrings = {
   'journey.settings.showTripTracksHint': 'Ritar de inspelade rutterna från de länkade resorna på kartan.',
   'journey.settings.status': 'Status',
   'journey.settings.statusAuto': 'Automatiskt',
-  'journey.settings.statusAutoHint': 'Följer datumen för de länkade resorna. Utan resa förblir resedagboken ett utkast.',
-  'journey.settings.statusManualHint': 'Satt för hand. Resans datum ändrar det inte längre förrän du växlar tillbaka till automatiskt.',
+  'journey.settings.statusAutoHint':
+    'Följer datumen för de länkade resorna. Utan resa förblir resedagboken ett utkast.',
+  'journey.settings.statusManualHint':
+    'Satt för hand. Resans datum ändrar det inte längre förrän du växlar tillbaka till automatiskt.',
   'journey.settings.photosSection': 'Foton',
   'journey.settings.photoLocation': 'Placera inlägg utifrån deras foton',
-  'journey.settings.photoLocationHint': 'Ett inlägg utan plats får platsen där dess första foto med GPS togs. Platser du själv satt flyttas aldrig.',
+  'journey.settings.photoLocationHint':
+    'Ett inlägg utan plats får platsen där dess första foto med GPS togs. Platser du själv satt flyttas aldrig.',
   'journey.settings.endJourney': 'Arkivera Journey',
   'journey.settings.reopenJourney': 'Återställ Journey',
   'journey.settings.archived': 'Journey arkiverad',
@@ -298,12 +301,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Ladda ner det här uppslaget',
-  'journey.studio.downloadSpreadHint': 'Sparar uppslagets design som en fil, utan fotografierna, att dela eller återanvända',
+  'journey.studio.downloadSpreadHint':
+    'Sparar uppslagets design som en fil, utan fotografierna, att dela eller återanvända',
   'journey.studio.importSpread': 'Importera',
   'journey.studio.importSpreadHint': 'Lägger till ett uppslag från en nedladdad designfil',
   'journey.studio.importSpreadFailed': 'Filen är inte ett uppslag från TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Att formge en bok kräver plats, så Studio finns bara på datorn, och det gör pdf:en också. Allt annat i resan fungerar som vanligt här.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Att formge en bok kräver plats, så Studio finns bara på datorn, och det gör pdf:en också. Allt annat i resan fungerar som vanligt här.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -367,7 +372,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -448,7 +454,8 @@ const journey: TranslationStrings = {
   'journey.studio.paste': 'Klistra in (Ctrl+V)',
   'journey.studio.pasteEmpty': 'Kopiera något först och klistra sedan in det på valfri sida',
   'journey.studio.myLayouts': 'Mina layouter',
-  'journey.studio.myLayoutsEmpty': 'Spara en sida du har ordnat och lägg upp andra sidor på samma sätt. Deras foton och texter finns kvar.',
+  'journey.studio.myLayoutsEmpty':
+    'Spara en sida du har ordnat och lägg upp andra sidor på samma sätt. Deras foton och texter finns kvar.',
   'journey.studio.saveLayout': 'Spara den här sidan som layout',
   'journey.studio.saveLayoutHint': 'Behåller arrangemanget utan foton, för alla redaktörer av den här boken',
   'journey.studio.saveLayoutFull': 'Den här boken rymmer upp till 24 layouter. Ta bort en för att spara en till.',
@@ -560,7 +567,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Konturer',
   'journey.studio.mapSourceRelief': 'Relief',
   'journey.studio.mapSourceSatellite': 'Satellit',
-  'journey.studio.mapSourceSatelliteHint': 'Molnfri Sentinel-2, får tryckas fritt med källhänvisning. Skarp ända ner till en gata i staden.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Molnfri Sentinel-2, får tryckas fritt med källhänvisning. Skarp ända ner till en gata i staden.',
   'journey.studio.routeLook': 'Linjen',
   'journey.studio.routeStyle': 'Linjestil',
   'journey.studio.routePlain': 'Vanlig',
@@ -590,7 +598,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapScope': 'Visning',
   'journey.studio.mapPrintDpi': 'Trycks i ungefär',
   'journey.studio.mapPrintDpiLow': 'oskarpt i den här storleken, prova ett vidare utsnitt eller en annan källa',
-  'journey.studio.mapSourceReliefHint': 'NASA:s reliefskuggning, får tryckas fritt. Bra för ett land eller en kontinent, för grov för en stad.',
+  'journey.studio.mapSourceReliefHint':
+    'NASA:s reliefskuggning, får tryckas fritt. Bra för ett land eller en kontinent, för grov för en stad.',
   'journey.studio.mapSourceTiles': 'Kartrutor',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Hämtas vid rendering och trycks med sin källhänvisning',
@@ -652,8 +661,10 @@ const journey: TranslationStrings = {
   'journey.entry.offRoute': 'Utanför rutten',
   'journey.entry.draft': 'Utkast',
   'journey.editor.draft': 'Utkast',
-  'journey.editor.draftHint': 'Bara du och de andra bidragsgivarna ser det här inlägget. Den delade journeyn utelämnar det tills du stänger av detta.',
-  'journey.editor.tripSuggestionHint': 'Den här dagen ingår i den här resan. Länka den så läggs dess platser till i den här journeyn.',
+  'journey.editor.draftHint':
+    'Bara du och de andra bidragsgivarna ser det här inlägget. Den delade journeyn utelämnar det tills du stänger av detta.',
+  'journey.editor.tripSuggestionHint':
+    'Den här dagen ingår i den här resan. Länka den så läggs dess platser till i den här journeyn.',
   'journey.editor.tripSuggestionLater': 'Inte nu',
   'journey.suggestions.dismiss': 'Avfärda det här förslaget',
   'journey.suggestions.dismissed': 'Förslaget avfärdat',
@@ -665,7 +676,8 @@ const journey: TranslationStrings = {
   'journey.detail.searchPlaceholder': 'Sök i den här resan',
   'journey.detail.searchEmpty': 'Inget inlägg matchar ”{query}”',
   'journey.settings.entryFields': 'Fält i inlägget',
-  'journey.settings.entryFieldsHint': 'Stäng av det som den här resan inte använder. Inget som redan skrivits går förlorat.',
+  'journey.settings.entryFieldsHint':
+    'Stäng av det som den här resan inte använder. Inget som redan skrivits går förlorat.',
   'journey.settings.showVerdict': 'För- och nackdelar',
   'journey.settings.showMood': 'Humör',
   'journey.settings.showWeather': 'Väder',

@@ -1,7 +1,7 @@
-import type { RoadtripDayBoundary } from '@trek/shared';
-import type { RoadtripDayBoundaries } from '../entities/RoadtripDayBoundaries.entity';
 import { columnRef } from '../dialect/sql-functions';
+import type { RoadtripDayBoundaries } from '../entities/RoadtripDayBoundaries.entity';
 import { TrekRepository } from './_shared/trek-repository';
+import type { RoadtripDayBoundary } from '@trek/shared';
 
 /**
  * `roadtrip_day_boundaries` — where a manual day ending sits (a stop, or a
@@ -23,7 +23,12 @@ export class RoadtripDayBoundariesRepository extends TrekRepository<RoadtripDayB
   async listForTrip(trip_id: number): Promise<RoadtripDayBoundary[]> {
     const platform = this.getEntityManager().getPlatform();
     return await this.qb('b')
-      .select(['b.day_number', columnRef(platform, 'b.from_assignment_id'), columnRef(platform, 'b.to_assignment_id'), 'b.fraction'])
+      .select([
+        'b.day_number',
+        columnRef(platform, 'b.from_assignment_id'),
+        columnRef(platform, 'b.to_assignment_id'),
+        'b.fraction',
+      ])
       .where({ trip: trip_id })
       .orderBy({ day_number: 'asc' })
       .execute<RoadtripDayBoundary[]>('all', false);
@@ -54,7 +59,11 @@ export class RoadtripDayBoundariesRepository extends TrekRepository<RoadtripDayB
         toAssignment: boundary.to_assignment_id,
         fraction: boundary.fraction,
       },
-      { onConflictFields: ['trip', 'day_number'], onConflictAction: 'merge', onConflictMergeFields: ['fromAssignment', 'toAssignment', 'fraction'] },
+      {
+        onConflictFields: ['trip', 'day_number'],
+        onConflictAction: 'merge',
+        onConflictMergeFields: ['fromAssignment', 'toAssignment', 'fraction'],
+      },
     );
   }
 

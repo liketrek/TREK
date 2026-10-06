@@ -1,3 +1,24 @@
+import type { TripAccess } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { toRowId } from '../common/row-id';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { Trip } from '../permissions/trip.decorator';
+import {
+  BudgetCreateItemDto,
+  BudgetUpdateItemDto,
+  BudgetUpdatePayersDto,
+  BudgetUpdateMembersDto,
+  BudgetToggleMemberPaidDto,
+  BudgetReorderItemsDto,
+  BudgetReorderCategoriesDto,
+  BudgetCreateSettlementDto,
+  BudgetUpdateSettlementDto,
+  BudgetFreezeRatesDto,
+  BudgetSettlementQueryDto,
+} from './budget.dto';
+import { BudgetService } from './budget.service';
 import {
   Body,
   Controller,
@@ -12,27 +33,6 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import type { User } from '../../types';
-import { BudgetService } from './budget.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { Trip } from '../permissions/trip.decorator';
-import type { TripAccess } from '../../db/repositories/Trips.repository';
-import { toRowId } from '../common/row-id';
-import {
-  BudgetCreateItemDto,
-  BudgetUpdateItemDto,
-  BudgetUpdatePayersDto,
-  BudgetUpdateMembersDto,
-  BudgetToggleMemberPaidDto,
-  BudgetReorderItemsDto,
-  BudgetReorderCategoriesDto,
-  BudgetCreateSettlementDto,
-  BudgetUpdateSettlementDto,
-  BudgetFreezeRatesDto,
-  BudgetSettlementQueryDto,
-} from './budget.dto';
 
 /**
  * /api/trips/:tripId/budget — trip-scoped expense planner.
@@ -58,8 +58,6 @@ import {
 @UseGuards(JwtAuthGuard, TripAccessGuard)
 export class BudgetController {
   constructor(private readonly budget: BudgetService) {}
-
-
 
   @Get()
   async list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
@@ -99,8 +97,13 @@ export class BudgetController {
     const settlement = await this.budget.createSettlement(
       tripId,
       {
-        from_user_id: body.from_user_id, to_user_id: body.to_user_id, amount: body.amount,
-        currency: body.currency, settled_at: body.settled_at, note: body.note, fallback_fx: body.fallback_fx,
+        from_user_id: body.from_user_id,
+        to_user_id: body.to_user_id,
+        amount: body.amount,
+        currency: body.currency,
+        settled_at: body.settled_at,
+        note: body.note,
+        fallback_fx: body.fallback_fx,
       },
       user.id,
     );
@@ -191,7 +194,8 @@ export class BudgetController {
       throw new HttpException({ error: 'The trip currency changed. Reload and try again.' }, 409);
     }
     for (const item of healed.items) this.budget.broadcast(tripId, 'budget:updated', { item }, socketId);
-    for (const settlement of healed.settlements) this.budget.broadcast(tripId, 'budget:settlement-updated', { settlement }, socketId);
+    for (const settlement of healed.settlements)
+      this.budget.broadcast(tripId, 'budget:settlement-updated', { settlement }, socketId);
     return healed;
   }
 
@@ -291,7 +295,12 @@ export class BudgetController {
     if (!result) {
       throw new HttpException({ error: 'Budget item not found' }, 404);
     }
-    this.budget.broadcast(tripId, 'budget:members-updated', { itemId, members: result.members, persons: result.item.persons }, socketId);
+    this.budget.broadcast(
+      tripId,
+      'budget:members-updated',
+      { itemId, members: result.members, persons: result.item.persons },
+      socketId,
+    );
     return { members: result.members, item: result.item };
   }
 
@@ -342,10 +351,16 @@ export class BudgetController {
     // fallback for a malformed id.
     const itemId = toRowId(id);
     const memberUserId = toRowId(userId);
-    const member = itemId !== null && memberUserId !== null
-      ? await this.budget.toggleMemberPaid(itemId, tripId, memberUserId, body.paid)
-      : null;
-    this.budget.broadcast(tripId, 'budget:member-paid-updated', { itemId: itemId ?? Number(id), userId: memberUserId ?? Number(userId), paid: body.paid ? 1 : 0 }, socketId);
+    const member =
+      itemId !== null && memberUserId !== null
+        ? await this.budget.toggleMemberPaid(itemId, tripId, memberUserId, body.paid)
+        : null;
+    this.budget.broadcast(
+      tripId,
+      'budget:member-paid-updated',
+      { itemId: itemId ?? Number(id), userId: memberUserId ?? Number(userId), paid: body.paid ? 1 : 0 },
+      socketId,
+    );
     return { member };
   }
 

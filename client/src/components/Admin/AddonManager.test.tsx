@@ -1,11 +1,11 @@
 // FE-ADMIN-ADDON-001 to FE-ADMIN-ADDON-039
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { useSettingsStore } from '../../store/settingsStore';
 import { useAddonStore } from '../../store/addonStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { ToastContainer } from '../shared/Toast';
 import AddonManager from './AddonManager';
 
@@ -40,7 +40,7 @@ function llmAddon(config: Record<string, unknown> = {}) {
 function modelsRoute(names: string[], seen?: (string | null)[]) {
   return http.get('/api/admin/llm/local/models', ({ request }) => {
     seen?.push(new URL(request.url).searchParams.get('baseUrl'));
-    return HttpResponse.json({ models: names.map(name => ({ name, size: 1 })) });
+    return HttpResponse.json({ models: names.map((name) => ({ name, size: 1 })) });
   });
 }
 
@@ -71,9 +71,7 @@ beforeEach(() => {
   resetAllStores();
   seedStore(useSettingsStore, { settings: { dark_mode: false } });
   vi.spyOn(useAddonStore.getState(), 'loadAddons').mockResolvedValue(undefined);
-  server.use(
-    http.get('/api/admin/addons', () => HttpResponse.json({ addons: [] }))
-  );
+  server.use(http.get('/api/admin/addons', () => HttpResponse.json({ addons: [] })));
 });
 
 afterEach(() => {
@@ -85,7 +83,7 @@ describe('AddonManager', () => {
   it('FE-ADMIN-ADDON-001: loading spinner shown while fetching', async () => {
     server.use(
       http.get('/api/admin/addons', async () => {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         return HttpResponse.json({ addons: [] });
       })
     );
@@ -131,14 +129,15 @@ describe('AddonManager', () => {
   it('FE-ADMIN-ADDON-005: toggle enables a disabled addon (optimistic update)', async () => {
     const user = userEvent.setup();
     server.use(
-      http.get('/api/admin/addons', () =>
-        HttpResponse.json({ addons: [buildAddon({ id: 'todo', enabled: false })] })
-      ),
-      http.put('/api/admin/addons/todo', () =>
-        HttpResponse.json({ success: true })
-      )
+      http.get('/api/admin/addons', () => HttpResponse.json({ addons: [buildAddon({ id: 'todo', enabled: false })] })),
+      http.put('/api/admin/addons/todo', () => HttpResponse.json({ success: true }))
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
     await screen.findByText('Todo List');
 
     const toggleBtn = addonToggle('Todo List');
@@ -153,14 +152,15 @@ describe('AddonManager', () => {
   it('FE-ADMIN-ADDON-006: toggle rolls back on API failure', async () => {
     const user = userEvent.setup();
     server.use(
-      http.get('/api/admin/addons', () =>
-        HttpResponse.json({ addons: [buildAddon({ id: 'todo', enabled: false })] })
-      ),
-      http.put('/api/admin/addons/todo', () =>
-        HttpResponse.error()
-      )
+      http.get('/api/admin/addons', () => HttpResponse.json({ addons: [buildAddon({ id: 'todo', enabled: false })] })),
+      http.put('/api/admin/addons/todo', () => HttpResponse.error())
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
     await screen.findByText('Todo List');
 
     await user.click(addonToggle('Todo List'));
@@ -178,13 +178,9 @@ describe('AddonManager', () => {
     const user = userEvent.setup();
     const mockToggle = vi.fn();
     server.use(
-      http.get('/api/admin/addons', () =>
-        HttpResponse.json({ addons: [buildAddon({ id: 'packing', enabled: true })] })
-      )
+      http.get('/api/admin/addons', () => HttpResponse.json({ addons: [buildAddon({ id: 'packing', enabled: true })] }))
     );
-    render(
-      <AddonManager bagTrackingEnabled={false} onToggleBagTracking={mockToggle} />
-    );
+    render(<AddonManager bagTrackingEnabled={false} onToggleBagTracking={mockToggle} />);
     await screen.findByText('Bag Tracking');
     await user.click(subToggle('Bag Tracking'));
     expect(mockToggle).toHaveBeenCalled();
@@ -196,18 +192,14 @@ describe('AddonManager', () => {
         HttpResponse.json({ addons: [buildAddon({ id: 'packing', enabled: false })] })
       )
     );
-    render(
-      <AddonManager bagTrackingEnabled={false} onToggleBagTracking={vi.fn()} />
-    );
+    render(<AddonManager bagTrackingEnabled={false} onToggleBagTracking={vi.fn()} />);
     await screen.findByText('Lists');
     expect(screen.queryByText('Bag Tracking')).not.toBeInTheDocument();
   });
 
   it('FE-ADMIN-ADDON-009: bag tracking hidden when onToggleBagTracking prop not provided', async () => {
     server.use(
-      http.get('/api/admin/addons', () =>
-        HttpResponse.json({ addons: [buildAddon({ id: 'packing', enabled: true })] })
-      )
+      http.get('/api/admin/addons', () => HttpResponse.json({ addons: [buildAddon({ id: 'packing', enabled: true })] }))
     );
     render(<AddonManager bagTrackingEnabled={false} />);
     await screen.findByText('Lists');
@@ -257,7 +249,12 @@ describe('AddonManager', () => {
 
   it('FE-ADMIN-ADDON-012: a failing load toasts the addon error and shows the empty state', async () => {
     server.use(http.get('/api/admin/addons', () => HttpResponse.error()));
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
 
     await screen.findByText('Failed to update addon');
     expect(screen.getByText('No addons available')).toBeInTheDocument();
@@ -273,11 +270,13 @@ describe('AddonManager', () => {
   });
 
   it('FE-ADMIN-ADDON-014: photo-flavoured trip addons are hidden from the trip section', async () => {
-    server.use(addonsRoute([
-      buildAddon({ id: 'photos', name: 'Memories', icon: 'Image' }),
-      buildAddon({ id: 'gallery', name: 'Trip Photos', icon: 'Puzzle', description: 'Share your photo stream' }),
-      buildAddon({ id: 'todo', name: 'Todo List' }),
-    ]));
+    server.use(
+      addonsRoute([
+        buildAddon({ id: 'photos', name: 'Memories', icon: 'Image' }),
+        buildAddon({ id: 'gallery', name: 'Trip Photos', icon: 'Puzzle', description: 'Share your photo stream' }),
+        buildAddon({ id: 'todo', name: 'Todo List' }),
+      ])
+    );
     render(<AddonManager />);
 
     await screen.findByText('Todo List');
@@ -286,12 +285,32 @@ describe('AddonManager', () => {
   });
 
   it('FE-ADMIN-ADDON-015: provider sub-rows carry their vendor icons and toggle state', async () => {
-    server.use(addonsRoute([
-      buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: true }),
-      buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: true }),
-      buildAddon({ id: 'synologyphotos', name: 'Synology Photos', description: 'NAS photos', type: 'photo_provider', enabled: false }),
-      buildAddon({ id: 'unsplash', name: 'Unsplash', description: 'Stock photos', type: 'photo_provider', enabled: false }),
-    ]));
+    server.use(
+      addonsRoute([
+        buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: true }),
+        buildAddon({
+          id: 'immich',
+          name: 'Immich',
+          description: 'Self-hosted photos',
+          type: 'photo_provider',
+          enabled: true,
+        }),
+        buildAddon({
+          id: 'synologyphotos',
+          name: 'Synology Photos',
+          description: 'NAS photos',
+          type: 'photo_provider',
+          enabled: false,
+        }),
+        buildAddon({
+          id: 'unsplash',
+          name: 'Unsplash',
+          description: 'Stock photos',
+          type: 'photo_provider',
+          enabled: false,
+        }),
+      ])
+    );
     render(<AddonManager />);
 
     await screen.findByText('Immich');
@@ -313,14 +332,25 @@ describe('AddonManager', () => {
     server.use(
       addonsRoute([
         buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: true }),
-        buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: false }),
+        buildAddon({
+          id: 'immich',
+          name: 'Immich',
+          description: 'Self-hosted photos',
+          type: 'photo_provider',
+          enabled: false,
+        }),
       ]),
       http.put('/api/admin/addons/immich', async ({ request }) => {
         body = await request.json();
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
     await screen.findByText('Immich');
 
     await user.click(subToggle('Immich'));
@@ -335,11 +365,22 @@ describe('AddonManager', () => {
     server.use(
       addonsRoute([
         buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: true }),
-        buildAddon({ id: 'unsplash', name: 'Unsplash', description: 'Stock photos', type: 'photo_provider', enabled: true }),
+        buildAddon({
+          id: 'unsplash',
+          name: 'Unsplash',
+          description: 'Stock photos',
+          type: 'photo_provider',
+          enabled: true,
+        }),
       ]),
-      http.put('/api/admin/addons/unsplash', () => HttpResponse.error()),
+      http.put('/api/admin/addons/unsplash', () => HttpResponse.error())
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
     await screen.findByText('Unsplash');
 
     await user.click(subToggle('Unsplash'));
@@ -349,11 +390,25 @@ describe('AddonManager', () => {
   });
 
   it('FE-ADMIN-ADDON-030: provider sub-rows stay hidden while Journey itself is off', async () => {
-    server.use(addonsRoute([
-      buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: false }),
-      buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: true }),
-      buildAddon({ id: 'synologyphotos', name: 'Synology Photos', description: 'NAS photos', type: 'photo_provider', enabled: false }),
-    ]));
+    server.use(
+      addonsRoute([
+        buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: false }),
+        buildAddon({
+          id: 'immich',
+          name: 'Immich',
+          description: 'Self-hosted photos',
+          type: 'photo_provider',
+          enabled: true,
+        }),
+        buildAddon({
+          id: 'synologyphotos',
+          name: 'Synology Photos',
+          description: 'NAS photos',
+          type: 'photo_provider',
+          enabled: false,
+        }),
+      ])
+    );
     render(<AddonManager />);
 
     await screen.findByText('Journey');
@@ -372,18 +427,29 @@ describe('AddonManager', () => {
         return HttpResponse.json({
           addons: [
             buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: journeyOn }),
-            buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: immichOn }),
+            buildAddon({
+              id: 'immich',
+              name: 'Immich',
+              description: 'Self-hosted photos',
+              type: 'photo_provider',
+              enabled: immichOn,
+            }),
           ],
         });
       }),
       http.put('/api/admin/addons/journey', async ({ request }) => {
-        journeyOn = (await request.json() as { enabled: boolean }).enabled;
+        journeyOn = ((await request.json()) as { enabled: boolean }).enabled;
         // Journey off takes its providers with it, see admin.service.ts.
         if (!journeyOn) immichOn = false;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
     await screen.findByText('Immich');
 
     await user.click(addonToggle('Journey'));
@@ -406,9 +472,14 @@ describe('AddonManager', () => {
         loads += 1;
         return HttpResponse.json({ addons: [buildAddon({ id: 'todo', enabled: false })] });
       }),
-      http.put('/api/admin/addons/todo', () => HttpResponse.json({ success: true })),
+      http.put('/api/admin/addons/todo', () => HttpResponse.json({ success: true }))
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
     await screen.findByText('Todo List');
 
     await user.click(addonToggle('Todo List'));
@@ -419,12 +490,26 @@ describe('AddonManager', () => {
   });
 
   it('FE-ADMIN-ADDON-033: document providers hang off Documents with their glyphs and stay out of the count', async () => {
-    server.use(addonsRoute([
-      buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: true }),
-      buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: false }),
-      buildAddon({ id: 'paperless', name: 'Paperless-ngx', description: 'Document archive', type: 'document_provider', enabled: true }),
-      buildAddon({ id: 'nextcloud', name: 'Nextcloud', description: 'WebDAV files', type: 'document_provider', enabled: false }),
-    ]));
+    server.use(
+      addonsRoute([
+        buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: true }),
+        buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: false }),
+        buildAddon({
+          id: 'paperless',
+          name: 'Paperless-ngx',
+          description: 'Document archive',
+          type: 'document_provider',
+          enabled: true,
+        }),
+        buildAddon({
+          id: 'nextcloud',
+          name: 'Nextcloud',
+          description: 'WebDAV files',
+          type: 'document_provider',
+          enabled: false,
+        }),
+      ])
+    );
     render(<AddonManager />);
 
     await screen.findByText('Paperless-ngx');
@@ -438,10 +523,12 @@ describe('AddonManager', () => {
   });
 
   it('FE-ADMIN-ADDON-034: document providers stay hidden while Documents itself is off', async () => {
-    server.use(addonsRoute([
-      buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: false }),
-      buildAddon({ id: 'paperless', name: 'Paperless-ngx', type: 'document_provider', enabled: true }),
-    ]));
+    server.use(
+      addonsRoute([
+        buildAddon({ id: 'documents', name: 'Documents', icon: 'FileText', enabled: false }),
+        buildAddon({ id: 'paperless', name: 'Paperless-ngx', type: 'document_provider', enabled: true }),
+      ])
+    );
     render(<AddonManager />);
 
     await screen.findByText('Documents');
@@ -464,12 +551,17 @@ describe('AddonManager', () => {
         });
       }),
       http.put('/api/admin/addons/documents', async ({ request }) => {
-        documentsOn = (await request.json() as { enabled: boolean }).enabled;
+        documentsOn = ((await request.json()) as { enabled: boolean }).enabled;
         if (!documentsOn) paperlessOn = false;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
     await screen.findByText('Paperless-ngx');
 
     await user.click(addonToggle('Documents'));
@@ -500,9 +592,14 @@ describe('AddonManager', () => {
       http.put('/api/admin/addons/papra', async ({ request }) => {
         body = await request.json();
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
     await screen.findByText('Papra');
 
     await user.click(subToggle('Papra'));
@@ -521,7 +618,7 @@ describe('AddonManager', () => {
       <AddonManager
         collabFeatures={{ chat: true, notes: false, polls: false, whatsnext: true }}
         onToggleCollabFeature={onToggleCollabFeature}
-      />,
+      />
     );
 
     await screen.findByText('Chat');
@@ -551,7 +648,7 @@ describe('AddonManager', () => {
       <AddonManager
         collabFeatures={{ chat: true, notes: true, links: true, polls: true, whatsnext: true }}
         onToggleCollabFeature={vi.fn()}
-      />,
+      />
     );
 
     const links = await screen.findByText('Links');
@@ -566,7 +663,9 @@ describe('AddonManager', () => {
     await screen.findByText('AI Parsing');
     // The catalog key now exists, so the tile shows the translation rather than falling
     // back to the English description the server sent.
-    expect(screen.getByText('Reads bookings the built-in parser cannot, using an AI model you choose')).toBeInTheDocument();
+    expect(
+      screen.getByText('Reads bookings the built-in parser cannot, using an AI model you choose')
+    ).toBeInTheDocument();
     expect(screen.queryByText('Provider')).not.toBeInTheDocument();
   });
 
@@ -607,10 +706,8 @@ describe('AddonManager', () => {
       addonsRoute([llmAddon({ provider: 'local' })]),
       http.get('/api/admin/llm/local/models', () => {
         calls += 1;
-        return calls === 1
-          ? HttpResponse.json({ error: 'down' }, { status: 500 })
-          : HttpResponse.json({ models: [] });
-      }),
+        return calls === 1 ? HttpResponse.json({ error: 'down' }, { status: 500 }) : HttpResponse.json({ models: [] });
+      })
     );
     render(<AddonManager />);
 
@@ -663,11 +760,16 @@ describe('AddonManager', () => {
         await delay(150);
         return new HttpResponse(
           '{"status":"pulling manifest"}\n{"status":"downloading","total":100,"completed":40}\nnot-json\n',
-          { headers: { 'Content-Type': 'application/x-ndjson' } },
+          { headers: { 'Content-Type': 'application/x-ndjson' } }
         );
-      }),
+      })
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
 
     await screen.findByText('No models installed yet — pull one below.');
     await user.click(screen.getByRole('button', { name: 'Pull' }));
@@ -685,15 +787,22 @@ describe('AddonManager', () => {
     const user = userEvent.setup();
     const bodies: unknown[] = [];
     server.use(
-      addonsRoute([llmAddon({ provider: 'local', model: 'qwen3:8b', baseUrl: '', apiKey: '••••••••', multimodal: true })]),
+      addonsRoute([
+        llmAddon({ provider: 'local', model: 'qwen3:8b', baseUrl: '', apiKey: '••••••••', multimodal: true }),
+      ]),
       modelsRoute([]),
       http.post('/api/admin/llm/local/pull', () => HttpResponse.json({ error: 'no disk space' }, { status: 500 })),
       http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
         bodies.push(await request.json());
         return bodies.length === 1 ? HttpResponse.json({ success: true }) : HttpResponse.error();
-      }),
+      })
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
 
     await screen.findByText('No models installed yet — pull one below.');
     await user.click(screen.getByRole('button', { name: 'Pull' }));
@@ -719,9 +828,14 @@ describe('AddonManager', () => {
       http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
         bodies.push(await request.json());
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
 
     await screen.findByText('Installed on the server');
     expect(screen.getByPlaceholderText('(often not required)')).toBeInTheDocument();
@@ -745,14 +859,27 @@ describe('AddonManager', () => {
     const user = userEvent.setup();
     const bodies: unknown[] = [];
     server.use(
-      addonsRoute([llmAddon({ provider: 'local', model: '', baseUrl: 'http://ollama.lan:11434/v1', apiKey: '', multimodal: false })]),
+      addonsRoute([
+        llmAddon({
+          provider: 'local',
+          model: '',
+          baseUrl: 'http://ollama.lan:11434/v1',
+          apiKey: '',
+          multimodal: false,
+        }),
+      ]),
       modelsRoute([]),
       http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
         bodies.push(await request.json());
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
 
     await screen.findByText('Installed on the server');
 
@@ -765,7 +892,13 @@ describe('AddonManager', () => {
     await screen.findByText('Saved');
     // The stale local base URL must not ride along to Anthropic — it would hijack the endpoint.
     expect(bodies[0]).toEqual({
-      config: { provider: 'anthropic', model: 'claude-haiku-4-5-20251001', baseUrl: '', apiKey: 'sk-ant-live', vision: 'auto' },
+      config: {
+        provider: 'anthropic',
+        model: 'claude-haiku-4-5-20251001',
+        baseUrl: '',
+        apiKey: 'sk-ant-live',
+        vision: 'auto',
+      },
     });
   });
 
@@ -777,13 +910,20 @@ describe('AddonManager', () => {
       http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
         bodies.push(await request.json());
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
 
     // Stored off stays off; a cloud provider is told what Automatic means for it.
     await user.click(await screen.findByRole('button', { name: 'No' }));
-    expect(screen.getByText('Automatic means no for a cloud model. Choose Yes if this model reads images.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Automatic means no for a cloud model. Choose Yes if this model reads images.')
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Yes' }));
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -795,7 +935,9 @@ describe('AddonManager', () => {
   it('FE-ADMIN-ADDON-039: with the local provider the hint says Automatic asks the server', async () => {
     server.use(addonsRoute([llmAddon({ provider: 'local', model: 'qwen3.5:4b' })]), modelsRoute([]));
     render(<AddonManager />);
-    expect(await screen.findByText('Automatic asks the Ollama server whether this model reads images.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Automatic asks the Ollama server whether this model reads images.')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Automatic' })).toBeInTheDocument();
   });
 
@@ -804,12 +946,20 @@ describe('AddonManager', () => {
     server.use(
       addonsRoute([llmAddon({ provider: 'local' })]),
       modelsRoute([]),
-      http.post('/api/admin/llm/local/pull', () => new HttpResponse(
-        '{"status":"pulling manifest"}\n{"error":"manifest not found"}\n',
-        { headers: { 'Content-Type': 'application/x-ndjson' } },
-      )),
+      http.post(
+        '/api/admin/llm/local/pull',
+        () =>
+          new HttpResponse('{"status":"pulling manifest"}\n{"error":"manifest not found"}\n', {
+            headers: { 'Content-Type': 'application/x-ndjson' },
+          })
+      )
     );
-    render(<><ToastContainer /><AddonManager /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AddonManager />
+      </>
+    );
 
     await screen.findByText('No models installed yet — pull one below.');
     await user.click(screen.getByRole('button', { name: 'Pull' }));
