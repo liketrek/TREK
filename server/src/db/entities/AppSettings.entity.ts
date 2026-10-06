@@ -1,5 +1,5 @@
-import { AppSettingsRepository } from '../repositories/AppSettings.repository';
 import { EntityRepositoryType, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
+import { AppSettingsRepository } from '../repositories/AppSettings.repository';
 
 export class AppSettings {
   [EntityRepositoryType]?: AppSettingsRepository;

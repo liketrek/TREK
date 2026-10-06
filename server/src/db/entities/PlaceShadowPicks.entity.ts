@@ -1,5 +1,5 @@
-import { PlaceShadowPicksRepository } from '../repositories/PlaceShadowPicks.repository';
 import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
+import { PlaceShadowPicksRepository } from '../repositories/PlaceShadowPicks.repository';
 
 export class PlaceShadowPicks {
   [EntityRepositoryType]?: PlaceShadowPicksRepository;

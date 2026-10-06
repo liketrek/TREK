@@ -1,9 +1,9 @@
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { PackingBagsRepository } from '../repositories/PackingBags.repository';
 import { DbTimestampType } from '../types';
 import { PackingItems } from './PackingItems.entity';
 import { Trips } from './Trips.entity';
 import { Users } from './Users.entity';
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class PackingBags {
   [EntityRepositoryType]?: PackingBagsRepository;
@@ -35,8 +35,7 @@ export const PackingBagsSchema = defineEntity({
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     user: () => p.manyToOne(Users).ref().nullable().hidden().defaultRaw(`NULL`),
     user_id: p.integer().nullable().persist(false).defaultRaw(`NULL`),
-    packing_bag_members: () =>
-      p.manyToMany(Users).pivotTable('packing_bag_members').joinColumn('bag_id').inverseJoinColumn('user_id').hidden(),
+    packing_bag_members: () => p.manyToMany(Users).pivotTable('packing_bag_members').joinColumn('bag_id').inverseJoinColumn('user_id').hidden(),
     packing_items_collection: () => p.oneToMany(PackingItems).mappedBy('bag').hidden(),
   },
 });

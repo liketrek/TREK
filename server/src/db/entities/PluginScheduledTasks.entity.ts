@@ -1,5 +1,5 @@
-import { PluginScheduledTasksRepository } from '../repositories/PluginScheduledTasks.repository';
 import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
+import { PluginScheduledTasksRepository } from '../repositories/PluginScheduledTasks.repository';
 
 export class PluginScheduledTasks {
   [EntityRepositoryType]?: PluginScheduledTasksRepository;

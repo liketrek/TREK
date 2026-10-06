@@ -1,9 +1,9 @@
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { DawarichVisitSuggestionsRepository } from '../repositories/DawarichVisitSuggestions.repository';
 import { BucketList } from './BucketList.entity';
 import { Places } from './Places.entity';
 import { Trips } from './Trips.entity';
 import { Users } from './Users.entity';
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class DawarichVisitSuggestions {
   [EntityRepositoryType]?: DawarichVisitSuggestionsRepository;

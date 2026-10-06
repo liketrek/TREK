@@ -1,6 +1,6 @@
+import { EntityRepositoryType, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { UserNoticeDismissalsRepository } from '../repositories/UserNoticeDismissals.repository';
 import { Users } from './Users.entity';
-import { EntityRepositoryType, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class UserNoticeDismissals {
   [EntityRepositoryType]?: UserNoticeDismissalsRepository;

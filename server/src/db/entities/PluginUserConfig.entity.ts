@@ -1,5 +1,5 @@
-import { PluginUserConfigRepository } from '../repositories/PluginUserConfig.repository';
 import { EntityRepositoryType, type Opt, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
+import { PluginUserConfigRepository } from '../repositories/PluginUserConfig.repository';
 
 export class PluginUserConfig {
   [EntityRepositoryType]?: PluginUserConfigRepository;

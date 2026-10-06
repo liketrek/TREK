@@ -1,9 +1,9 @@
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { TagsRepository } from '../repositories/Tags.repository';
 import { DbTimestampType } from '../types';
 import { CollectionPlaces } from './CollectionPlaces.entity';
 import { Places } from './Places.entity';
 import { Users } from './Users.entity';
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class Tags {
   [EntityRepositoryType]?: TagsRepository;

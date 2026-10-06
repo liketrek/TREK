@@ -1,5 +1,5 @@
-import { MigrationsRepository } from '../repositories/Migrations.repository';
 import { EntityRepositoryType, defineEntity, p } from '@mikro-orm/core';
+import { MigrationsRepository } from '../repositories/Migrations.repository';
 
 export class Migrations {
   [EntityRepositoryType]?: MigrationsRepository;

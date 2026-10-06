@@ -1,8 +1,8 @@
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { ShareTokensRepository } from '../repositories/ShareTokens.repository';
 import { DbTimestampType } from '../types';
 import { Trips } from './Trips.entity';
 import { Users } from './Users.entity';
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class ShareTokens {
   [EntityRepositoryType]?: ShareTokensRepository;

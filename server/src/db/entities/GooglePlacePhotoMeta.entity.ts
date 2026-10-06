@@ -1,5 +1,5 @@
-import { GooglePlacePhotoMetaRepository } from '../repositories/GooglePlacePhotoMeta.repository';
 import { EntityRepositoryType, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
+import { GooglePlacePhotoMetaRepository } from '../repositories/GooglePlacePhotoMeta.repository';
 
 export class GooglePlacePhotoMeta {
   [EntityRepositoryType]?: GooglePlacePhotoMetaRepository;

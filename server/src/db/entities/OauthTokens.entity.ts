@@ -1,8 +1,8 @@
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { OauthTokensRepository } from '../repositories/OauthTokens.repository';
 import { DbTimestampType } from '../types';
 import { OauthClients } from './OauthClients.entity';
 import { Users } from './Users.entity';
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class OauthTokens {
   [EntityRepositoryType]?: OauthTokensRepository;
@@ -27,17 +27,13 @@ export class OauthTokens {
 export const OauthTokensSchema = defineEntity({
   class: OauthTokens,
   repository: () => OauthTokensRepository,
-  uniques: [{ properties: ['refresh_token_hash'] }, { properties: ['access_token_hash'] }],
+  uniques: [
+    { properties: ['refresh_token_hash'] },
+    { properties: ['access_token_hash'] },
+  ],
   properties: {
     id: p.integer().primary(),
-    client: () =>
-      p
-        .manyToOne(OauthClients)
-        .ref()
-        .name('client_id')
-        .deleteRule('cascade')
-        .hidden()
-        .referencedColumnNames('client_id'),
+    client: () => p.manyToOne(OauthClients).ref().name('client_id').deleteRule('cascade').hidden().referencedColumnNames('client_id'),
     client_id: p.text().persist(false),
     user: () => p.manyToOne(Users).ref().deleteRule('cascade').hidden().index('idx_oauth_tokens_user'),
     user_id: p.integer().persist(false).index('idx_oauth_tokens_user'),
@@ -48,8 +44,7 @@ export const OauthTokensSchema = defineEntity({
     refresh_token_expires_at: p.type(DbTimestampType),
     revoked_at: p.type(DbTimestampType).nullable(),
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
-    parentToken: () =>
-      p.manyToOne(OauthTokens).ref().deleteRule('no action').nullable().hidden().index('idx_oauth_tokens_parent'),
+    parentToken: () => p.manyToOne(OauthTokens).ref().deleteRule('no action').nullable().hidden().index('idx_oauth_tokens_parent'),
     parent_token_id: p.integer().nullable().persist(false).index('idx_oauth_tokens_parent'),
     audience: p.text().nullable(),
     oauth_tokens_collection: () => p.oneToMany(OauthTokens).mappedBy('parentToken').hidden(),

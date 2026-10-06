@@ -1,5 +1,5 @@
-import { PluginActionsRepository } from '../repositories/PluginActions.repository';
 import { EntityRepositoryType, type Opt, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
+import { PluginActionsRepository } from '../repositories/PluginActions.repository';
 
 export class PluginActions {
   [EntityRepositoryType]?: PluginActionsRepository;

@@ -1,7 +1,7 @@
+import { EntityRepositoryType, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { RoadtripDayTracksRepository } from '../repositories/RoadtripDayTracks.repository';
 import { Days } from './Days.entity';
 import { Places } from './Places.entity';
-import { EntityRepositoryType, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class RoadtripDayTracks {
   [EntityRepositoryType]?: RoadtripDayTracksRepository;

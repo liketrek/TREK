@@ -1,10 +1,10 @@
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { TripDocumentLinksRepository } from '../repositories/TripDocumentLinks.repository';
 import { DbTimestampType } from '../types';
 import { DocumentConnections } from './DocumentConnections.entity';
 import { DocumentSyncItems } from './DocumentSyncItems.entity';
 import { Trips } from './Trips.entity';
 import { Users } from './Users.entity';
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class TripDocumentLinks {
   [EntityRepositoryType]?: TripDocumentLinksRepository;

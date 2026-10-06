@@ -1,6 +1,6 @@
+import { EntityRepositoryType, type Opt, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { BudgetCategoryOrderRepository } from '../repositories/BudgetCategoryOrder.repository';
 import { Trips } from './Trips.entity';
-import { EntityRepositoryType, type Opt, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class BudgetCategoryOrder {
   [EntityRepositoryType]?: BudgetCategoryOrderRepository;

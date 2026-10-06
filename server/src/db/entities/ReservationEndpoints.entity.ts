@@ -1,7 +1,7 @@
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { ReservationEndpointsRepository } from '../repositories/ReservationEndpoints.repository';
 import { DbTimestampType } from '../types';
 import { Reservations } from './Reservations.entity';
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class ReservationEndpoints {
   [EntityRepositoryType]?: ReservationEndpointsRepository;
@@ -25,8 +25,7 @@ export const ReservationEndpointsSchema = defineEntity({
   repository: () => ReservationEndpointsRepository,
   properties: {
     id: p.integer().primary(),
-    reservation: () =>
-      p.manyToOne(Reservations).ref().deleteRule('cascade').hidden().index('idx_reservation_endpoints_reservation_id'),
+    reservation: () => p.manyToOne(Reservations).ref().deleteRule('cascade').hidden().index('idx_reservation_endpoints_reservation_id'),
     reservation_id: p.integer().persist(false).index('idx_reservation_endpoints_reservation_id'),
     role: p.text(),
     sequence: p.integer().default(0),

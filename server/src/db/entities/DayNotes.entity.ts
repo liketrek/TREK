@@ -1,8 +1,8 @@
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { DayNotesRepository } from '../repositories/DayNotes.repository';
 import { DbTimestampType } from '../types';
 import { Days } from './Days.entity';
 import { Trips } from './Trips.entity';
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class DayNotes {
   [EntityRepositoryType]?: DayNotesRepository;

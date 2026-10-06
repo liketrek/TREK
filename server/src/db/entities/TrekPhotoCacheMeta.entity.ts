@@ -1,5 +1,5 @@
-import { TrekPhotoCacheMetaRepository } from '../repositories/TrekPhotoCacheMeta.repository';
 import { EntityRepositoryType, type Opt, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
+import { TrekPhotoCacheMetaRepository } from '../repositories/TrekPhotoCacheMeta.repository';
 
 export class TrekPhotoCacheMeta {
   [EntityRepositoryType]?: TrekPhotoCacheMetaRepository;

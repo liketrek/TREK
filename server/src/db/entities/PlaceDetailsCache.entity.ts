@@ -1,5 +1,5 @@
-import { PlaceDetailsCacheRepository } from '../repositories/PlaceDetailsCache.repository';
 import { EntityRepositoryType, type Opt, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
+import { PlaceDetailsCacheRepository } from '../repositories/PlaceDetailsCache.repository';
 
 export class PlaceDetailsCache {
   [EntityRepositoryType]?: PlaceDetailsCacheRepository;

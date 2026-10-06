@@ -1,6 +1,6 @@
+import { EntityRepositoryType, type Opt, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { NotificationChannelPreferencesRepository } from '../repositories/NotificationChannelPreferences.repository';
 import { Users } from './Users.entity';
-import { EntityRepositoryType, type Opt, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class NotificationChannelPreferences {
   [EntityRepositoryType]?: NotificationChannelPreferencesRepository;

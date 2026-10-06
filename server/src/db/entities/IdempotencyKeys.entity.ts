@@ -1,6 +1,6 @@
+import { EntityRepositoryType, type Opt, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { IdempotencyKeysRepository } from '../repositories/IdempotencyKeys.repository';
 import { Users } from './Users.entity';
-import { EntityRepositoryType, type Opt, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class IdempotencyKeys {
   [EntityRepositoryType]?: IdempotencyKeysRepository;

@@ -1,8 +1,8 @@
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { PlaceRatingsRepository } from '../repositories/PlaceRatings.repository';
 import { DbTimestampType } from '../types';
 import { Places } from './Places.entity';
 import { Users } from './Users.entity';
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class PlaceRatings {
   [EntityRepositoryType]?: PlaceRatingsRepository;

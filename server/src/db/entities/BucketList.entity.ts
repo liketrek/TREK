@@ -1,8 +1,8 @@
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { BucketListRepository } from '../repositories/BucketList.repository';
 import { DbTimestampType } from '../types';
 import { DawarichVisitSuggestions } from './DawarichVisitSuggestions.entity';
 import { Users } from './Users.entity';
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class BucketList {
   [EntityRepositoryType]?: BucketListRepository;
@@ -40,9 +40,7 @@ export const BucketListSchema = defineEntity({
     visited_at: p.text().nullable(),
     visited_source: p.text().nullable(),
     region_code: p.text().nullable(),
-    dawarich_visit_suggestions_collection: () =>
-      p.oneToMany(DawarichVisitSuggestions).mappedBy('acceptedBucketListItem').hidden(),
-    dawarich_visit_suggestions_collection1: () =>
-      p.oneToMany(DawarichVisitSuggestions).mappedBy('matchedBucketListItem').hidden(),
+    dawarich_visit_suggestions_collection: () => p.oneToMany(DawarichVisitSuggestions).mappedBy('acceptedBucketListItem').hidden(),
+    dawarich_visit_suggestions_collection1: () => p.oneToMany(DawarichVisitSuggestions).mappedBy('matchedBucketListItem').hidden(),
   },
 });

@@ -1,8 +1,8 @@
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { OauthConsentsRepository } from '../repositories/OauthConsents.repository';
 import { DbTimestampType } from '../types';
 import { OauthClients } from './OauthClients.entity';
 import { Users } from './Users.entity';
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class OauthConsents {
   [EntityRepositoryType]?: OauthConsentsRepository;
@@ -21,14 +21,7 @@ export const OauthConsentsSchema = defineEntity({
   uniques: [{ properties: ['client', 'user'] }],
   properties: {
     id: p.integer().primary(),
-    client: () =>
-      p
-        .manyToOne(OauthClients)
-        .ref()
-        .name('client_id')
-        .deleteRule('cascade')
-        .hidden()
-        .referencedColumnNames('client_id'),
+    client: () => p.manyToOne(OauthClients).ref().name('client_id').deleteRule('cascade').hidden().referencedColumnNames('client_id'),
     client_id: p.text().persist(false),
     user: () => p.manyToOne(Users).ref().deleteRule('cascade').hidden(),
     user_id: p.integer().persist(false),

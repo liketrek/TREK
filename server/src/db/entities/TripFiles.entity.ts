@@ -1,3 +1,4 @@
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { TripFilesRepository } from '../repositories/TripFiles.repository';
 import { DbTimestampType } from '../types';
 import { CollabMessages } from './CollabMessages.entity';
@@ -8,7 +9,6 @@ import { Places } from './Places.entity';
 import { Reservations } from './Reservations.entity';
 import { Trips } from './Trips.entity';
 import { Users } from './Users.entity';
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class TripFiles {
   [EntityRepositoryType]?: TripFilesRepository;
@@ -59,8 +59,7 @@ export const TripFilesSchema = defineEntity({
     uploaded_by: p.integer().nullable().persist(false),
     starred: p.integer().nullable(),
     deleted_at: p.text().nullable(),
-    message: () =>
-      p.manyToOne(CollabMessages).ref().deleteRule('cascade').nullable().hidden().index('idx_trip_files_message_id'),
+    message: () => p.manyToOne(CollabMessages).ref().deleteRule('cascade').nullable().hidden().index('idx_trip_files_message_id'),
     message_id: p.integer().nullable().persist(false).index('idx_trip_files_message_id'),
     uploadedByRef: () => p.manyToOne(Users).ref().joinColumn('uploaded_by').nullable().hidden(),
     document_sync_items_collection: () => p.oneToMany(DocumentSyncItems).mappedBy('file').hidden(),

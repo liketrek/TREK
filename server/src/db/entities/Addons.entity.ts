@@ -1,5 +1,5 @@
-import { AddonsRepository } from '../repositories/Addons.repository';
 import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
+import { AddonsRepository } from '../repositories/Addons.repository';
 
 export interface AddonConfig {
   [key: string]: unknown;
