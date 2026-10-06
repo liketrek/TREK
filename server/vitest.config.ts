@@ -33,8 +33,13 @@ export default defineConfig({
     testTimeout: 15000,
     hookTimeout: 15000,
     pool: 'forks',
-    silent: false,
-    reporters: ['verbose'],
+    // Console output is kept for failing tests and dropped for passing ones: a
+    // green run used to print every e2e boot and every migrator line (~100k
+    // lines) and a red one buried its failure in them. `default` prints one line
+    // per file and the full detail only for failures; on CI the github-actions
+    // reporter adds inline annotations on the PR.
+    silent: 'passed-only',
+    reporters: process.env.CI ? ['default', 'github-actions'] : ['default'],
     coverage: {
       // Vite 8 + Vitest 4 made the sourcemap-based `v8` provider under-report branch
       // coverage on the SWC/decorator-transformed output (it dropped to ~68% even

@@ -1867,7 +1867,10 @@ async function migrateTempDb(dbPath: string): Promise<void> {
     // below is the second half of the fix: even if some future refactor
     // reintroduces a cwd-relative path, a zero-file run throws instead of
     // looking like a quiet success.
-    migrations: { path: path.join(SERVER_ROOT, 'dist/db/migrations'), pathTs: path.join(SERVER_ROOT, 'src/db/migrations'), snapshot: false },
+    // silent: the 260 `[migrator] Processing/Applied` lines are the migrator's own
+    // progress log, not this script's output; check:entities and the generator test
+    // report in their own words and a failure still throws.
+    migrations: { path: path.join(SERVER_ROOT, 'dist/db/migrations'), pathTs: path.join(SERVER_ROOT, 'src/db/migrations'), snapshot: false, silent: true },
   });
   try {
     const migrator = orm.config.getExtension<Migrator>('@mikro-orm/migrator');

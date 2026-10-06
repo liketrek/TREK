@@ -1,5 +1,7 @@
 import { attachOrm, runSchemaBootstrap } from './db/orm';
 import { applyGlobalMiddleware, routingCspOrigins } from './middleware/globalMiddleware';
+import { readEnv } from './app-config';
+import { nestLogLevels } from './app-config/nest-log-levels';
 import { httpConfig } from './nest/app-config';
 import { AppModule } from './nest/app.module';
 import { apiDocsEnabled } from './nest/common/api-docs.kill-switch';
@@ -74,7 +76,12 @@ export async function buildApp(): Promise<INestApplication> {
   // rawBody keeps the unparsed request bytes on req.rawBody so a plugin webhook
   // route can verify a provider's HMAC signature over the exact payload (the
   // parsed JSON alone can't be re-serialised byte-for-byte).
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(), { rawBody: true });
+  // `logger` is the only place Nest's own logger learns about LOG_LEVEL; without
+  // it every boot prints its full route map whatever the operator asked for.
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(), {
+    rawBody: true,
+    logger: nestLogLevels(readEnv().app.logLevel),
+  });
   // Schema first, before ANY consumer reads it. `database.ts` only opens the
   // connection now; migrating and seeding is MikroORM's job and it is async, so
   // this is the earliest point it can happen. It has to stay above the

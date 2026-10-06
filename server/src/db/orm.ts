@@ -96,5 +96,9 @@ export function createStandaloneOrm(): Promise<AnyOrm> {
     entities: [],
     entitiesTs: [],
     discovery: { warnWhenNoEntities: false },
+    // The migrator's per-migration progress log is production boot output; the
+    // global setup already reports the snapshot in one line of its own, and a
+    // failing migration still throws.
+    migrations: { ...mikroOrmConfig.migrations, silent: true },
   });
 }
