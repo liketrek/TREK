@@ -127,8 +127,9 @@ describe('Roadtrip e2e (real guard chain + temp SQLite)', () => {
   // gate answers "Place not found", the same shape a place that never
   // existed gets, never a leak of trip 6's row.
   it('CH1 — a place id that belongs to a DIFFERENT trip is "Place not found", not trip 6\'s row (real findChargingProbe, no service mock)', async () => {
-    await request(server).get('/api/trips/5/roadtrip/charging/11').set('Cookie', cookie())
-      .expect(404, { error: 'Place not found' });
+    const res = await request(server).get('/api/trips/5/roadtrip/charging/11').set('Cookie', cookie());
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Place not found' });
   });
   it('gates the coordinate lookup like the saved stop and validates before fetching', async () => {
     const lookup = vi.spyOn(app.get(ChargingService), 'lookup').mockResolvedValue({} as never);

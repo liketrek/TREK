@@ -196,7 +196,7 @@ function windowEndYear(end: string): number {
  */
 function parseAsUtcMillis(value: string): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(value);
-  if (!m) return NaN;
+  if (!m) return Number.NaN;
   const [, y, mo, d, h, mi, s] = m;
   return Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h ?? 0), Number(mi ?? 0), Number(s ?? 0));
 }

@@ -139,11 +139,16 @@ describe('global manual school holidays', () => {
 
   it('reports missing regions and malformed year and id parameters', () => withRequestContext(orm, async () => {
     const region = await seed();
-    await request(app.getHttpServer()).get(`${base}/regions/${region.id}`).set('Cookie', sessionCookie(2)).expect(200);
-    await request(app.getHttpServer()).get(`${base}/regions/999999`).set('Cookie', sessionCookie(2)).expect(404);
-    await request(app.getHttpServer()).get(`${base}/regions/invalid`).set('Cookie', sessionCookie(2)).expect(400);
-    await request(app.getHttpServer()).get(`${base}/regions/${region.id}/holidays/xx`).set('Cookie', sessionCookie(2)).expect(400);
-    await request(app.getHttpServer()).delete(`${base}/countries/CA`).set('Cookie', sessionCookie(1)).expect(404);
+    const get = async (path: string) =>
+      (await request(app.getHttpServer()).get(path).set('Cookie', sessionCookie(2))).status;
+    expect(await get(`${base}/regions/${region.id}`)).toBe(200);
+    expect(await get(`${base}/regions/999999`)).toBe(404);
+    expect(await get(`${base}/regions/invalid`)).toBe(400);
+    expect(await get(`${base}/regions/${region.id}/holidays/xx`)).toBe(400);
+    const missingCountry = await request(app.getHttpServer())
+      .delete(`${base}/countries/CA`)
+      .set('Cookie', sessionCookie(1));
+    expect(missingCountry.status).toBe(404);
   }));
 
   it('exposes the same manual catalog and periods through MCP', () => withRequestContext(orm, async () => {
