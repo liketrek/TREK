@@ -175,7 +175,10 @@ export default defineConfig({
         // Hand-maintained (scripts/coverage-thresholds.mjs only emits src/nest/* lines): floor(measured) - 1 after Plan 2.
         'src/db/**/*.ts': { statements: 84, branches: 42, functions: 95, lines: 87 },
         'src/db/dialect/**/*.ts': { statements: 99, branches: 99, functions: 99, lines: 99 },
-        'src/db/repositories/**/*.ts': { statements: 99, branches: 99, functions: 99, lines: 99 },
+        // Branches re-pinned at floor(measured) - 1 once Plans 3a–4 had grown the
+        // folder from the Plan 2 handful to 136 repositories (89.83% measured,
+        // identical locally and on CI); the 99 was set before any of them existed.
+        'src/db/repositories/**/*.ts': { statements: 99, branches: 88, functions: 99, lines: 99 },
         'src/db/types/**/*.ts': { statements: 93, branches: 99, functions: 99, lines: 93 },
         'src/mcp/**/*.ts': { statements: 58, branches: 43, functions: 63, lines: 60 },
         'src/middleware/**/*.ts': { statements: 91, branches: 89, functions: 87, lines: 94 },
