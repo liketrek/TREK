@@ -1,6 +1,6 @@
+import { Collection, EntityRepositoryType, type Opt, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
 import { TourTypesRepository } from '../repositories/TourTypes.repository';
 import { Tours } from './Tours.entity';
-import { Collection, EntityRepositoryType, type Opt, PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';
 
 export class TourTypes {
   [EntityRepositoryType]?: TourTypesRepository;

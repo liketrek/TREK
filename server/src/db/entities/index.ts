@@ -1,3 +1,4 @@
+import type { EntitySchema } from '@mikro-orm/core';
 import { AddonsSchema } from './Addons.entity';
 import { AppSettingsSchema } from './AppSettings.entity';
 import { AssignmentParticipantsSchema } from './AssignmentParticipants.entity';
@@ -128,7 +129,6 @@ import { VisitedCountriesSchema } from './VisitedCountries.entity';
 import { VisitedRegionsSchema } from './VisitedRegions.entity';
 import { WebauthnChallengesSchema } from './WebauthnChallenges.entity';
 import { WebauthnCredentialsSchema } from './WebauthnCredentials.entity';
-import type { EntitySchema } from '@mikro-orm/core';
 
 export const ALL_ENTITIES: readonly EntitySchema[] = [
   AddonsSchema,

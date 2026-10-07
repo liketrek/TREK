@@ -1,6 +1,6 @@
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { TourWaypointsRepository } from '../repositories/TourWaypoints.repository';
 import { Tours } from './Tours.entity';
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class TourWaypoints {
   [EntityRepositoryType]?: TourWaypointsRepository;
