@@ -28,7 +28,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 const MIGRATIONS = path.join(__dirname, '../../../src/db/migrations');
 const BASELINE = 'Migration20200101000000_baseline_schema';
 /** The migrations that carry no legacy step: the baseline, and the post-legacy ones every upgrade runs. */
-const UNNUMBERED = [BASELINE, 'Migration20200101040200_trek_photo_cache_meta_cache_key_not_null'];
+const UNNUMBERED = [
+  BASELINE,
+  'Migration20200101040200_trek_photo_cache_meta_cache_key_not_null',
+  'Migration20200101042000_tours',
+];
 // The last step the positional runner ever had; planLegacyBaseline refuses a
 // schema_version past it.
 const LEGACY_FINAL_STEP = 258;

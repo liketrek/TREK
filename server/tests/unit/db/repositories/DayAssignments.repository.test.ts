@@ -19,6 +19,7 @@ import {
 } from '../../../helpers/factories';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { createTour } from '../../../helpers/tours-repos';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -52,9 +53,11 @@ function legacyProjectionRow(id: number): unknown {
       COALESCE(da.assignment_end_time, p.end_time) as end_time,
       p.duration_minutes, p.notes as place_notes,
       p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.amap_poi_id, p.website, p.phone, p.stop_type, p.fill_percent,
+      t.place_id AS tour_place_id, CASE WHEN t.place_id IS NOT NULL THEN p.route_geometry END AS tour_route_geometry,
       c.name as category_name, c.color as category_color, c.icon as category_icon
     FROM day_assignments da
     JOIN places p ON da.place_id = p.id
+    LEFT JOIN tours t ON t.place_id = p.id
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE da.id = ?
   `,
@@ -114,6 +117,36 @@ describe('DayAssignmentsRepository — the DY1/DY3/AS1/AS3 projection', () => {
 
     expect(await assignments.findWithPlaceAndCategory(assignment.id)).toStrictEqual(legacyProjectionRow(assignment.id));
     expect(await assignments.findWithPlaceAndCategory(999999)).toBeNull();
+  });
+
+  it('ASSIGNPLACEREPO-009: the Tour facet columns are set for a Tour and null for a plain place, even one with a route', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const tourPlace = createPlace(testDb, trip.id, { name: 'Ridge walk' });
+    const trackPlace = createPlace(testDb, trip.id, { name: 'Imported track' });
+    testDb.prepare('UPDATE places SET route_geometry = ? WHERE id = ?').run('[[47,11],[47.1,11.1]]', tourPlace.id);
+    testDb.prepare('UPDATE places SET route_geometry = ? WHERE id = ?').run('[[1,2],[3,4]]', trackPlace.id);
+    createTour(testDb, tourPlace.id);
+    const tour = createDayAssignment(testDb, day.id, tourPlace.id, { order_index: 0 });
+    const track = createDayAssignment(testDb, day.id, trackPlace.id, { order_index: 1 });
+
+    const one = await assignments.findWithPlaceAndCategory(tour.id);
+    expect(one).toStrictEqual(legacyProjectionRow(tour.id));
+    expect(one).toMatchObject({ tour_place_id: tourPlace.id, tour_route_geometry: '[[47,11],[47.1,11.1]]' });
+    expect(await assignments.findWithPlaceAndCategory(track.id)).toMatchObject({
+      tour_place_id: null,
+      tour_route_geometry: null,
+    });
+
+    const facets = (rows: { tour_place_id: number | null; tour_route_geometry: string | null }[]) =>
+      rows.map((r) => [r.tour_place_id, r.tour_route_geometry]);
+    const expected = [
+      [tourPlace.id, '[[47,11],[47.1,11.1]]'],
+      [null, null],
+    ];
+    expect(facets(await assignments.listForDay(day.id))).toEqual(expected);
+    expect(facets(await assignments.listWithPlaceAndCategory([day.id]))).toEqual(expected);
   });
 
   it("ASSIGNPLACEREPO-004: place_time/end_time COALESCE — the assignment's own time wins, the place's time is the fallback", async () => {
@@ -424,6 +457,16 @@ describe('DayAssignmentsRepository — AS10/AS11/AS13/AS14/AS19 (delete / order 
     const a = createDayAssignment(testDb, day.id, place.id);
     expect(await assignments.getDayId(a.id)).toBe(day.id);
     expect(await assignments.getDayId(999999)).toBeUndefined();
+  });
+
+  it('ASSIGNREPO-042 (getPlaceId): the place_id of the assignment, undefined for a missing id', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const a = createDayAssignment(testDb, day.id, place.id);
+    expect(await assignments.getPlaceId(a.id)).toBe(place.id);
+    expect(await assignments.getPlaceId(999999)).toBeUndefined();
   });
 
   it('ASSIGNREPO-011 (AS14, moveToDay): writes day_id and order_index together', async () => {

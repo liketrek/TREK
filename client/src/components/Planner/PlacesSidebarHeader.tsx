@@ -609,6 +609,7 @@ function AddRow(S: SidebarState) {
     setFileImportOpen,
     setListImportOpen,
     hasMultipleListImportProviders,
+    toursEnabled,
   } = S;
   const dayOpen = selectedDayId != null;
   const split = dayOpen && !!onAddPlaceToSelectedDay;
@@ -619,7 +620,9 @@ function AddRow(S: SidebarState) {
   const addLabel = t(dayOpen ? 'places.addPlaceShort' : 'places.addPlace');
   const importMenu = useContextMenu();
   const importItems = [
-    { label: t('places.importFile'), icon: FileDown, onClick: () => setFileImportOpen(true) },
+    ...(!toursEnabled
+      ? [{ label: t('places.importFile'), icon: FileDown, onClick: () => setFileImportOpen(true) }]
+      : []),
     {
       label: t(hasMultipleListImportProviders ? 'places.importList' : 'places.importGoogleList'),
       icon: ListPlus,

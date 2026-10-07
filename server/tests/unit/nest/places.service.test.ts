@@ -235,6 +235,19 @@ describe('list', () => {
     expect(places).toHaveLength(2);
   });
 
+  it('PLACE-SVC-TOURS-002 — identifies Tours by their facet in the ordinary Place read model', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const tour = createPlace(testDb, trip.id, { name: 'Facet-backed tour' }) as any;
+    const place = createPlace(testDb, trip.id, { name: 'Ordinary place' }) as any;
+    testDb.prepare(`INSERT INTO tours (place_id, tour_type) VALUES (?, 'hike')`).run(tour.id);
+
+    const byId = new Map(((await svc.list(String(trip.id), {})) as any[]).map((item) => [item.id, item]));
+
+    expect(byId.get(tour.id)).toMatchObject({ tour_place_id: tour.id });
+    expect(byId.get(place.id)).toMatchObject({ tour_place_id: null });
+  });
+
   it('PLACE-SVC-003 — does not return places from other trips', async () => {
     const { user } = createUser(testDb);
     const t1 = createTrip(testDb, user.id);
@@ -711,6 +724,66 @@ describe('remove', () => {
     expect(testDb.prepare('SELECT id FROM day_assignments WHERE day_id = ?').all(day.id)).toEqual([]);
   });
 
+  it('PLACE-SVC-TOURS-001 — reports Tour deletion and cascades only its facet, waypoints, assignments, and links', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const tour = createPlace(testDb, trip.id, { name: 'Tour to delete' }) as any;
+    const keptTour = createPlace(testDb, trip.id, { name: 'Tour to keep' }) as any;
+    const keptPlace = createPlace(testDb, trip.id, { name: 'Ordinary place' }) as any;
+    for (const place of [tour, keptTour]) {
+      testDb
+        .prepare(`INSERT INTO tours (place_id, tour_type, max_hiking_difficulty) VALUES (?, 'hike', 4)`)
+        .run(place.id);
+      testDb
+        .prepare(`INSERT INTO tour_waypoints (place_id, lat, lng, role, sequence) VALUES (?, 48, 11, 'start', 0)`)
+        .run(place.id);
+      testDb
+        .prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (?, ?, 0)')
+        .run(day.id, place.id);
+    }
+    const tourFileId = Number(
+      testDb
+        .prepare(
+          `
+      INSERT INTO trip_files (trip_id, place_id, filename, original_name) VALUES (?, ?, 'tour.gpx', 'tour.gpx')
+    `,
+        )
+        .run(trip.id, tour.id).lastInsertRowid,
+    );
+    const keptFileId = Number(
+      testDb
+        .prepare(
+          `
+      INSERT INTO trip_files (trip_id, place_id, filename, original_name) VALUES (?, ?, 'kept.gpx', 'kept.gpx')
+    `,
+        )
+        .run(trip.id, keptTour.id).lastInsertRowid,
+    );
+    testDb.prepare('INSERT INTO file_links (file_id, place_id) VALUES (?, ?)').run(tourFileId, tour.id);
+
+    const result = await svc.remove(String(trip.id), String(tour.id));
+
+    expect(result).toMatchObject({ deleted: true, deletedTourPlaceIds: [tour.id] });
+    expect(testDb.prepare('SELECT id FROM places WHERE id = ?').get(tour.id)).toBeUndefined();
+    expect(testDb.prepare('SELECT place_id FROM tours WHERE place_id = ?').get(tour.id)).toBeUndefined();
+    expect(testDb.prepare('SELECT id FROM tour_waypoints WHERE place_id = ?').all(tour.id)).toEqual([]);
+    expect(testDb.prepare('SELECT id FROM day_assignments WHERE place_id = ?').all(tour.id)).toEqual([]);
+    expect(testDb.prepare('SELECT id, place_id FROM trip_files WHERE id = ?').get(tourFileId)).toMatchObject({
+      id: tourFileId,
+      place_id: null,
+    });
+    expect(testDb.prepare('SELECT id FROM file_links WHERE file_id = ?').all(tourFileId)).toEqual([]);
+    expect(testDb.prepare('SELECT place_id FROM tours WHERE place_id = ?').get(keptTour.id)).toBeTruthy();
+    expect(testDb.prepare('SELECT id FROM tour_waypoints WHERE place_id = ?').all(keptTour.id)).toHaveLength(1);
+    expect(testDb.prepare('SELECT id FROM day_assignments WHERE place_id = ?').all(keptTour.id)).toHaveLength(1);
+    expect(testDb.prepare('SELECT id FROM places WHERE id = ?').get(keptPlace.id)).toBeTruthy();
+    expect(testDb.prepare('SELECT id, place_id FROM trip_files WHERE id = ?').get(keptFileId)).toMatchObject({
+      id: keptFileId,
+      place_id: keptTour.id,
+    });
+  });
+
   it('PLACE-SVC-019e — a place with no booking is untouched by that', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -837,6 +910,24 @@ describe('remove', () => {
 // ── removeMany ────────────────────────────────────────────────────────────────
 
 describe('removeMany', () => {
+  it('PLACE-SVC-TOURS-003 — mixed bulk deletion reports only the deleted Tour facets', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const tour = createPlace(testDb, trip.id, { name: 'Tour to delete' }) as any;
+    const ordinary = createPlace(testDb, trip.id, { name: 'Ordinary place' }) as any;
+    const keptTour = createPlace(testDb, trip.id, { name: 'Tour to keep' }) as any;
+    for (const place of [tour, keptTour]) {
+      testDb.prepare(`INSERT INTO tours (place_id, tour_type) VALUES (?, 'hike')`).run(place.id);
+    }
+
+    const result = await svc.removeMany(String(trip.id), [ordinary.id, tour.id]);
+
+    expect(result.deleted).toEqual([ordinary.id, tour.id]);
+    expect(result.deletedTourPlaceIds).toEqual([tour.id]);
+    expect(testDb.prepare('SELECT place_id FROM tours WHERE place_id = ?').get(keptTour.id)).toBeTruthy();
+    expect(testDb.prepare('SELECT id FROM places WHERE id = ?').get(keptTour.id)).toBeTruthy();
+  });
+
   it('PLACE-SVC-056 — deletes the trip-scoped ids in one transaction and reports them', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

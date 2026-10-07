@@ -56,10 +56,15 @@ import { ActionCircle, Eyebrow, INNER_CLS } from './MTripSheetUi';
 export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   const { t } = useTranslation();
   const place = planner.selectedPlace ?? null;
-  const open = !!place;
+  // Match the desktop inspector gate: while the Tours facet is loading, wait
+  // before choosing a surface; once identified as a tour, its purpose-built
+  // dialog is the only detail surface that should open.
+  const open = !!place && (!planner.toursEnabled || planner.tourDataReady) && !planner.selectedTour;
 
   const canEditPlaces = planner.can('place_edit', planner.trip);
   const canEditDays = planner.can('day_edit', planner.trip);
+  const isTourPlace = place != null && planner.isTourPlace(place.id);
+  const canManagePlace = canEditPlaces && !isTourPlace;
   const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'));
   const openSavePicker = useSaveToCollectionStore((s) => s.open);
 
@@ -182,7 +187,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file || !place) return;
+    if (!file || !place || isTourPlace) return;
     setImgBusy(true);
     try {
       await planner.tripActions.uploadPlaceImage(planner.tripId, place.id, await normalizeImageFile(file));
@@ -194,7 +199,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   };
 
   const handleTrackColor = async (color: string | null) => {
-    if (!place) return;
+    if (!place || isTourPlace) return;
     try {
       await planner.tripActions.updatePlace(planner.tripId, place.id, { route_color: color });
     } catch (err: unknown) {
@@ -203,7 +208,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   };
 
   const handleImageRemove = async () => {
-    if (!place) return;
+    if (!place || isTourPlace) return;
     setImgBusy(true);
     try {
       await planner.tripActions.updatePlace(planner.tripId, place.id, { image_url: null });
@@ -216,7 +221,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
-    if (!selected.length || !place) return;
+    if (!selected.length || !place || isTourPlace) return;
     setUploading(true);
     try {
       for (const file of selected) {
@@ -283,7 +288,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                       <CatIcon size={20} strokeWidth={1.8} className="text-m-muted" />
                     </div>
                   )}
-                  {canEditPlaces && (
+                  {canManagePlace && (
                     <>
                       {/* Tap the thumbnail to set a custom image (#1136). */}
                       <button
@@ -374,7 +379,12 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
 
             {/* Collaborative rating (#1435) — tap a star to cast/clear your vote. */}
             <div className={`mt-[10px] rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
-              <PlaceRating ratings={place.ratings ?? []} ratingAvg={place.rating_avg} onRate={handleRate} size={18} />
+              <PlaceRating
+                ratings={place.ratings ?? []}
+                ratingAvg={place.rating_avg}
+                onRate={isTourPlace ? undefined : handleRate}
+                size={18}
+              />
             </div>
 
             {place.description && (
@@ -401,33 +411,46 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
               <>
                 <Eyebrow className="mb-[6px] mt-3">{t('inspector.trackColor')}</Eyebrow>
                 <div className={`rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
-                  <button
-                    type="button"
-                    onClick={() => setColorPickerOpen((v) => !v)}
-                    aria-expanded={colorPickerOpen}
-                    className="flex w-full items-center justify-between gap-3"
-                  >
-                    {/* The eyebrow above already names the section — this row says
-                        which colour is in effect, not the same word again. */}
-                    <span className="flex min-w-0 items-center gap-2">
-                      <Route size={14} className="shrink-0 text-m-muted" />
-                      <span className="truncate font-geist text-[0.75rem] font-medium">
-                        {place.route_color ?? t('inspector.trackColorAuto')}
-                      </span>
-                    </span>
+                  {isTourPlace ? (
                     <span
-                      className="h-6 w-6 shrink-0 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/15"
-                      style={{ background: resolveTrackColor(place) }}
+                      aria-label={t('inspector.trackColor')}
+                      style={{
+                        display: 'block',
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        background: resolveTrackColor(place),
+                      }}
                     />
-                  </button>
-                  {colorPickerOpen && (
-                    <div className="mt-[10px] border-t border-[color:var(--m-faint)] pt-[10px]">
-                      <TrackColorPicker
-                        value={place.route_color ?? null}
-                        inheritedColor={inheritedTrackColor(place)}
-                        onChange={handleTrackColor}
-                      />
-                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setColorPickerOpen((v) => !v)}
+                        aria-expanded={colorPickerOpen}
+                        className="flex w-full items-center justify-between gap-3"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <Route size={14} className="shrink-0 text-m-muted" />
+                          <span className="truncate font-geist text-[0.75rem] font-medium">
+                            {place.route_color ?? t('inspector.trackColorAuto')}
+                          </span>
+                        </span>
+                        <span
+                          className="h-6 w-6 shrink-0 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/15"
+                          style={{ background: resolveTrackColor(place) }}
+                        />
+                      </button>
+                      {colorPickerOpen && (
+                        <div className="mt-[10px] border-t border-[color:var(--m-faint)] pt-[10px]">
+                          <TrackColorPicker
+                            value={place.route_color ?? null}
+                            inheritedColor={inheritedTrackColor(place)}
+                            onChange={handleTrackColor}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </>
@@ -442,7 +465,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   className={`flex items-center gap-1 rounded-full py-1 pl-[10px] text-[0.75rem] font-semibold ${INNER_CLS} ${canEditDays ? 'pr-1' : 'pr-[10px]'}`}
                 >
                   {day.title || t('planner.dayN', { n: (day.day_number ?? planner.days.indexOf(day) + 1) || '?' })}
-                  {canEditDays && place.lat != null && place.lng != null && (
+                  {canEditDays && !isTourPlace && place.lat != null && place.lng != null && (
                     // In or out of that day's route (#2532); the icon says which it is.
                     <button
                       type="button"
@@ -572,7 +595,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
             )}
 
             {/* ── Participants of the selected day's assignment ── */}
-            {assignmentInDay && members.length > 1 && (
+            {!isTourPlace && assignmentInDay && members.length > 1 && (
               <>
                 <Eyebrow className="mb-[6px] mt-3">{t('inspector.participants')}</Eyebrow>
                 <div className="flex flex-wrap items-center gap-[6px]">
@@ -664,7 +687,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                     ? t('inspector.filesCount', { count: placeFiles.length })
                     : t('inspector.files')}
                 </span>
-                {planner.canUploadFiles && (
+                {planner.canUploadFiles && !isTourPlace && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -699,7 +722,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
 
             {/* ── Action row ── */}
             <div className="mt-[14px] flex items-center gap-[7px]">
-              {collectionsEnabled && (
+              {collectionsEnabled && !isTourPlace && (
                 <ActionCircle onClick={saveToCollection} label={t('inspector.saveToCollection')}>
                   <Bookmark size={15} strokeWidth={2} />
                 </ActionCircle>
@@ -738,7 +761,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   <ExternalLink size={15} strokeWidth={2} />
                 </ActionCircle>
               )}
-              {canEditPlaces && (
+              {canManagePlace && (
                 <ActionCircle
                   onClick={() => {
                     planner.openPlaceEditor(place, assignmentInDay?.id ?? null);
@@ -751,7 +774,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   <Pencil size={15} strokeWidth={2} />
                 </ActionCircle>
               )}
-              {canEditPlaces && (
+              {canManagePlace && (
                 <ActionCircle
                   onClick={() => {
                     planner.handleDeletePlace(place.id);

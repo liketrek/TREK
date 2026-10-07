@@ -358,6 +358,33 @@ describe('MPlanTimeline', () => {
     })
   })
 
+  describe('Tours read-only timeline integration', () => {
+    const tour = { ...MUSEUM, id: 91, place_id: 901,
+      place: { ...MUSEUM.place, id: 901, name: 'Assigned Tour' }, tour_place_id: 901 } as Assignment
+    const item: MergedItem = { type: 'place', sortKey: 0, data: tour }
+    const row: PlanRow = { key: 'pl-91', kind: 'place', item, assignment: tour, linkedReservations: [], invalidTour: true }
+
+    it('shows one localized invalid-endpoint warning and selects the Tour through the shared Place path', () => {
+      const { planner } = renderTimeline({ rows: [row], merged: [item], upNext: null }, { toursEnabled: true })
+
+      expect(screen.getAllByText('tours.dayRoute.endpointUnknown')).toHaveLength(1)
+      fireEvent.click(screen.getByText('Assigned Tour'))
+      expect(planner.handlePlaceClick).toHaveBeenCalledWith(901, 91)
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.queryByText('tour-planner')).not.toBeInTheDocument()
+    })
+
+    it('does not show the warning for valid status or with Tours disabled', () => {
+      const validRow: PlanRow = { ...row, invalidTour: false }
+      const first = renderTimeline({ rows: [validRow], merged: [item], upNext: null }, { toursEnabled: true })
+      expect(screen.queryByText('tours.dayRoute.endpointUnknown')).not.toBeInTheDocument()
+      first.unmount()
+
+      renderTimeline({ rows: [row], merged: [item], upNext: null }, { toursEnabled: false })
+      expect(screen.queryByText('tours.dayRoute.endpointUnknown')).not.toBeInTheDocument()
+    })
+  })
+
   describe('per-segment travel mode', () => {
     /** The timeline only offers the mode menu in edit mode, where many buttons exist. */
     const renderEditing = () => renderTimeline({}, {}, { mode: 'edit' })

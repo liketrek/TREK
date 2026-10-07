@@ -191,6 +191,7 @@ export async function valhallaRun(
   profile: 'driving' | 'walking' | 'cycling',
   avoid: readonly AvoidClass[],
   signal?: AbortSignal,
+  costingOptions: Readonly<Record<string, number>> = {},
 ): Promise<ValhallaRun | null> {
   const base = valhallaBase()
   if (!base || notValhalla.has(base) || waypoints.length < 2) return null
@@ -204,7 +205,7 @@ export async function valhallaRun(
     // rate limit on the last piece of a split day would otherwise throw away the pieces
     // that already answered and ask for all of them again — three times over, against a
     // host that allows one request a second.
-    const run = await askWithRetry(base, () => requestRun(base, chunk, profile, avoid, signal), signal)
+    const run = await askWithRetry(base, () => requestRun(base, chunk, profile, avoid, signal, costingOptions), signal)
     // A day is one answer or none. Half a day of legs would be worse than no answer:
     // the schedule chains leg times blindly and cannot tell that it is missing some, so
     // it would print a complete, plausible, wrong timetable rather than a gap.
@@ -285,13 +286,14 @@ function routeBody(
   waypoints: Waypoint[],
   profile: 'driving' | 'walking' | 'cycling',
   avoid: readonly AvoidClass[],
+  costingOptions: Readonly<Record<string, number>> = {},
 ): Record<string, unknown> {
   const costing = COSTING[profile]
   // All of them in one request: the options are independent weightings, so asking to
   // leave out tolls and ferries together is one question rather than two routes to
   // reconcile. Measured Hamburg to Copenhagen: tolls, motorways and ferries weighted
   // away together answered 656.9 km against 339.2 km for the plain route.
-  const options: Record<string, number> = {}
+  const options: Record<string, number> = { ...costingOptions }
   for (const cls of avoid) options[AVOID_OPTION[cls]] = 0
   return {
     locations: waypoints.map(w => ({ lat: w.lat, lon: w.lng, radius: SNAP_RADIUS_M })),
@@ -333,8 +335,9 @@ async function requestRun(
   profile: 'driving' | 'walking' | 'cycling',
   avoid: readonly AvoidClass[],
   signal?: AbortSignal,
+  costingOptions: Readonly<Record<string, number>> = {},
 ): Promise<Omit<ValhallaRun, 'snapped'> | null> {
-  const data = await postRoute(base, routeBody(waypoints, profile, avoid), signal)
+  const data = await postRoute(base, routeBody(waypoints, profile, avoid, costingOptions), signal)
   return data === null ? null : runFrom(data)
 }
 

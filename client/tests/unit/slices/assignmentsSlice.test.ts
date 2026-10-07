@@ -247,15 +247,19 @@ describe('assignmentsSlice', () => {
     });
 
     it('FE-ASSIGN-004b: removeAssignment success removes from store', async () => {
-      const place = buildPlace({ id: 10, trip_id: 1 });
+      const place = buildPlace({ id: 10, trip_id: 1, tour_place_id: 10, route_geometry: '[[1,2],[3,4]]' });
       const assignment = buildAssignment({ id: 100, day_id: 1, place });
+      const otherDayAssignment = buildAssignment({ id: 101, day_id: 2, place });
       seedStore(useTripStore, {
-        assignments: { '1': [assignment] },
+        places: [place],
+        assignments: { '1': [assignment], '2': [otherDayAssignment] },
       });
 
       await useTripStore.getState().removeAssignment(1, 1, 100);
 
       expect(useTripStore.getState().assignments['1']).toHaveLength(0);
+      expect(useTripStore.getState().places).toContainEqual(expect.objectContaining({ id: place.id, route_geometry: place.route_geometry }));
+      expect(useTripStore.getState().assignments['2']).toEqual([otherDayAssignment]);
     });
   });
 

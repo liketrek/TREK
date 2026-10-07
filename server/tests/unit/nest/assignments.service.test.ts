@@ -51,6 +51,8 @@ import {
   sharedTestOrm,
   createTestTripsRepo,
 } from '../../helpers/test-uow';
+import { createTestToursRepo, createTour } from '../../helpers/tours-repos';
+import { ConflictException } from '@nestjs/common';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -128,6 +130,7 @@ beforeAll(async () => {
     await createTestPlacesRepo(testDb),
     await createTestTripMembersRepo(testDb),
     await createTestRoadtripViasRepo(testDb),
+    await createTestToursRepo(testDb),
   );
 });
 
@@ -155,6 +158,12 @@ function fixture() {
   const day = createDay(testDb, trip.id);
   const place = createPlace(testDb, trip.id, { name: 'Louvre' });
   return { user, trip, day, place };
+}
+
+/** Makes `placeId` a Tour: a `tours` facet row plus the route it was planned along. */
+function addTourFacet(placeId: number, routeGeometry = '[[48.1,11.5],[48.2,11.6]]') {
+  testDb.prepare('UPDATE places SET route_geometry = ? WHERE id = ?').run(routeGeometry, placeId);
+  createTour(testDb, placeId);
 }
 
 // ── verifyTripAccess / canEdit ────────────────────────────────────────────────
@@ -307,6 +316,68 @@ describe('createAssignment', () => {
     ]);
     void trip;
   });
+
+  it('ASG-SVC-031: rejects a duplicate Tour assignment on the same day but allows another day and ordinary Place duplicates', async () => {
+    const { trip, day, place: tourPlace } = fixture();
+    const secondDay = createDay(testDb, trip.id);
+    const ordinaryPlace = createPlace(testDb, trip.id, { name: 'Ordinary place' });
+    addTourFacet(tourPlace.id);
+
+    const firstTourAssignment = await svc.createAssignment(day.id, tourPlace.id);
+    await expect(svc.createAssignment(day.id, tourPlace.id)).rejects.toThrow(ConflictException);
+    await expect(svc.createAssignment(day.id, tourPlace.id)).rejects.toThrow('Tour is already assigned to this day');
+    const otherDayTourAssignment = await svc.createAssignment(secondDay.id, tourPlace.id);
+    expect(firstTourAssignment?.day_id).toBe(day.id);
+    expect(otherDayTourAssignment?.day_id).toBe(secondDay.id);
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM day_assignments WHERE place_id = ?').get(tourPlace.id)).toEqual({
+      n: 2,
+    });
+
+    await svc.createAssignment(day.id, ordinaryPlace.id);
+    await svc.createAssignment(day.id, ordinaryPlace.id);
+    expect(
+      testDb.prepare('SELECT COUNT(*) AS n FROM day_assignments WHERE place_id = ?').get(ordinaryPlace.id),
+    ).toEqual({ n: 2 });
+  });
+
+  it('ASG-SVC-032: near-concurrent Tour assignments serialize to one row and one conflict', async () => {
+    const { day, place } = fixture();
+    addTourFacet(place.id);
+
+    const results = await Promise.allSettled([
+      svc.createAssignment(day.id, place.id),
+      svc.createAssignment(day.id, place.id),
+    ]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].reason).toBeInstanceOf(ConflictException);
+    expect(
+      testDb
+        .prepare('SELECT COUNT(*) AS n FROM day_assignments WHERE day_id = ? AND place_id = ?')
+        .get(day.id, place.id),
+    ).toEqual({ n: 1 });
+  });
+
+  it('ASG-SVC-048: a Tour stop carries its facet id and route geometry, an ordinary stop nulls both', async () => {
+    const { trip, day, place: tourPlace } = fixture();
+    const ordinaryPlace = createPlace(testDb, trip.id, { name: 'Ordinary place' });
+    // Geometry on a plain place (an imported track) must not leak into the Tour fields.
+    testDb.prepare('UPDATE places SET route_geometry = ? WHERE id = ?').run('[[1,2],[3,4]]', ordinaryPlace.id);
+    addTourFacet(tourPlace.id, '[[47,11],[47.5,11.5]]');
+
+    const tour = await svc.createAssignment(day.id, tourPlace.id);
+    const ordinary = await svc.createAssignment(day.id, ordinaryPlace.id);
+    expect(tour).toMatchObject({ tour_place_id: tourPlace.id, tour_route_geometry: '[[47,11],[47.5,11.5]]' });
+    expect(ordinary).toMatchObject({ tour_place_id: null, tour_route_geometry: null });
+
+    const list = await svc.listDayAssignments(day.id);
+    expect(list.map((a) => [a.tour_place_id, a.tour_route_geometry])).toEqual([
+      [tourPlace.id, '[[47,11],[47.5,11.5]]'],
+      [null, null],
+    ]);
+  });
 });
 
 // ── listDayAssignments ────────────────────────────────────────────────────────
@@ -415,6 +486,33 @@ describe('moveAssignment', () => {
     expect((await svc.moveAssignment(a.id, target.id, undefined)).assignment!.order_index).toBe(0);
     expect((await svc.moveAssignment(a.id, day.id, null)).assignment!.order_index).toBe(0);
     expect((await svc.moveAssignment(a.id, target.id, 0)).assignment!.order_index).toBe(0);
+  });
+
+  it('ASG-SVC-049: refuses to move a Tour onto a day that already holds it, and leaves the row where it was', async () => {
+    const { trip, day, place } = fixture();
+    const target = createDay(testDb, trip.id);
+    addTourFacet(place.id);
+    createDayAssignment(testDb, target.id, place.id);
+    const a = createDayAssignment(testDb, day.id, place.id, { order_index: 3 });
+
+    await expect(svc.moveAssignment(a.id, target.id, 0)).rejects.toThrow(ConflictException);
+    expect(testDb.prepare('SELECT day_id, order_index FROM day_assignments WHERE id = ?').get(a.id)).toEqual({
+      day_id: day.id,
+      order_index: 3,
+    });
+  });
+
+  it('ASG-SVC-050: a Tour may be reordered within its own day, and an ordinary place may join a day that already holds it', async () => {
+    const { trip, day, place } = fixture();
+    const target = createDay(testDb, trip.id);
+    addTourFacet(place.id);
+    const tour = createDayAssignment(testDb, day.id, place.id, { order_index: 0 });
+    expect((await svc.moveAssignment(tour.id, day.id, 2)).assignment).toMatchObject({ day_id: day.id, order_index: 2 });
+
+    const ordinary = createPlace(testDb, trip.id, { name: 'Ordinary place' });
+    createDayAssignment(testDb, target.id, ordinary.id);
+    const second = createDayAssignment(testDb, day.id, ordinary.id);
+    expect((await svc.moveAssignment(second.id, target.id, 1)).assignment).toMatchObject({ day_id: target.id });
   });
 });
 

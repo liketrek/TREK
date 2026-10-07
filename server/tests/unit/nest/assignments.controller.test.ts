@@ -4,7 +4,7 @@ import {
 } from '../../../src/nest/assignments/assignments.controller';
 import type { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
 import type { User } from '../../../src/types';
-import { HttpException } from '@nestjs/common';
+import { ConflictException, HttpException } from '@nestjs/common';
 
 import { describe, it, expect, vi } from 'vitest';
 
@@ -72,6 +72,22 @@ describe('DayAssignmentsController (parity with the legacy day-assignments route
       expect(createAssignment).toHaveBeenCalledWith('3', 2, 'n');
       expect(broadcast).toHaveBeenCalledWith('5', 'assignment:created', { assignment: { id: 9 } }, 'sock');
       expect(reconcile).toHaveBeenCalledWith('5', 'sock');
+    });
+
+    it('409 duplicate Tour assignment propagates without announcing a new assignment', async () => {
+      const broadcast = vi.fn();
+      const reconcile = vi.fn();
+      const createAssignment = vi.fn().mockRejectedValue(new ConflictException('Tour is already assigned to this day'));
+      const controller = new DayAssignmentsController(
+        svc({ createAssignment, broadcast, reconcile } as Partial<AssignmentsService>),
+      );
+
+      expect(await thrownAsync(() => controller.create(user, '5', '3', { place_id: 42 }))).toMatchObject({
+        status: 409,
+      });
+      expect(createAssignment).toHaveBeenCalledWith('3', 42, undefined);
+      expect(broadcast).not.toHaveBeenCalled();
+      expect(reconcile).not.toHaveBeenCalled();
     });
   });
 

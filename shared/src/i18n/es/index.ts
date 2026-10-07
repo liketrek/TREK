@@ -48,6 +48,7 @@ import stats from './stats';
 import storage from './storage';
 import system_notice from './system_notice';
 import todo from './todo';
+import tours from './tours';
 import transport from './transport';
 import trip from './trip';
 import trips from './trips';
@@ -60,6 +61,7 @@ const locale = {
   ...nav,
   ...dashboard,
   ...roadtrip,
+  ...tours,
   ...settings,
   ...admin,
   ...dayplan,

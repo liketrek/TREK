@@ -96,7 +96,7 @@ describe('deleting a place detaches its journey entry ahead of the FK cascade', 
       .delete(`/api/trips/${trip.id}/places/${place.id}`)
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ success: true });
+    expect(res.body).toEqual({ success: true, tourPlaceIds: [] });
 
     // The place is gone.
     expect(testDb.prepare('SELECT 1 FROM places WHERE id = ?').get(place.id)).toBeUndefined();

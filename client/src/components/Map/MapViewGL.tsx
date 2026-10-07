@@ -5,6 +5,9 @@ import { pluginsApi, type PluginMapLayer, type PluginMapMarker } from '../../api
 import {
   DEFAULT_MAP_CENTER,
   DEFAULT_MAP_ZOOM,
+  OPENTOPOMAP_TILE_ATTRIBUTION,
+  OPENTOPOMAP_TILE_MAXZOOM,
+  OPENTOPOMAP_TILE_URL,
   SATELLITE_TILE_ATTRIBUTION,
   SATELLITE_TILE_MAXZOOM,
   SATELLITE_TILE_URL,
@@ -20,6 +23,7 @@ import type { Day, Place, Reservation, RouteVia } from '../../types';
 import { renderIconMarkup } from '../../utils/iconMarkup';
 import { computeMapViewport, TILE_SIZE_GL, type ViewportPadding } from '../../utils/mapViewport';
 import { visibleRouteReservations } from '../../utils/reservationRoutes';
+import { parseRenderableRouteGeometry, type RouteProfileFocus } from '../../utils/routeGeometry';
 import { safeHexColor } from '../../utils/safeColor';
 import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors';
 import type { AlternativeOverlay } from '../Roadtrip/alternativeOverlays';
@@ -38,7 +42,13 @@ import {
   wantsTerrain,
 } from './mapboxSetup';
 import type { MapHoverInfo } from './mapHover';
-import { MAP_LAYER_SWITCHER_INSET, MapLayerSwitcher, type BaseLayer } from './MapLayerSwitcher';
+import {
+  MAP_LAYER_SWITCHER_INSET,
+  MapLayerSwitcher,
+  TourMapLayerSwitcher,
+  type BaseLayer,
+  type TourBaseLayer,
+} from './MapLayerSwitcher';
 import { MapLockPill } from './MapLockPill';
 import { draggedPoiId, makeMarkerDraggable, makePoiDraggable } from './markerDrag';
 import { placeMarkerLook, type PlaceMarkerFlags } from './markerLook';
@@ -220,6 +230,13 @@ interface Props {
   onChooseAlternative?: (index: number) => void;
   /** Reports which option the pointer is over, so the list and the map agree. */
   onHighlightAlternative?: (index: number | null) => void;
+  /** Generic numbered control points for list-first route editors. */
+  plannerWaypoints?: Array<{ id: string; lat: number; lng: number }>;
+  selectedPlannerWaypointId?: string | null;
+  onPlannerWaypointClick?: (id: string) => void;
+  routeProfileFocus?: RouteProfileFocus | null;
+  viewBaseLayer?: TourBaseLayer;
+  onViewBaseLayerChange?: (layer: TourBaseLayer) => void;
   /**
    * An explicit stretch of map to frame, independent of the day being shown.
    *
@@ -228,6 +245,8 @@ interface Props {
    * needs that leg on screen, which is neither the day nor the trip.
    */
   focusPoints?: [number, number][];
+  /** Changes only when the caller intentionally wants a new initial frame. */
+  focusKey?: number;
   /**
    * What the caller's own chrome covers while `focusPoints` is framed, in pixels per edge.
    *
@@ -351,23 +370,27 @@ function addPlaceClusterLayers(map: any): void {
  * yet. The catch covers that case, and `styledata` brings the pass back once it is in.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applySatellite(map: any, on: boolean): void {
+function applySatellite(map: any, on: boolean, topo = false): void {
+  const layerId = topo ? 'trip-topo-raster' : SATELLITE_LAYER_ID;
+  const sourceId = topo ? 'trip-topo' : SATELLITE_SOURCE_ID;
   try {
-    if (map.getLayer(SATELLITE_LAYER_ID)) {
-      map.setLayoutProperty(SATELLITE_LAYER_ID, 'visibility', on ? 'visible' : 'none');
+    if (map.getLayer(layerId)) {
+      map.setLayoutProperty(layerId, 'visibility', on ? 'visible' : 'none');
       return;
     }
     if (!on) return; // Nothing to build while it is switched off.
     // The layer is what is missing, not necessarily the source: a pass that got the
     // source in and then failed on the layer would otherwise leave a source that stops
     // every later pass from ever building the layer.
-    if (!map.getSource(SATELLITE_SOURCE_ID)) {
-      map.addSource(SATELLITE_SOURCE_ID, {
+    if (!map.getSource(sourceId)) {
+      map.addSource(sourceId, {
         type: 'raster',
-        tiles: [SATELLITE_TILE_URL],
+        tiles: topo
+          ? ['a', 'b', 'c'].map((subdomain) => OPENTOPOMAP_TILE_URL.replace('{s}', subdomain))
+          : [SATELLITE_TILE_URL],
         tileSize: 256,
-        maxzoom: SATELLITE_TILE_MAXZOOM,
-        attribution: SATELLITE_TILE_ATTRIBUTION,
+        maxzoom: topo ? OPENTOPOMAP_TILE_MAXZOOM : SATELLITE_TILE_MAXZOOM,
+        attribution: topo ? OPENTOPOMAP_TILE_ATTRIBUTION : SATELLITE_TILE_ATTRIBUTION,
       });
     }
     // Under the first thing TREK draws, over everything the basemap style draws.
@@ -376,9 +399,9 @@ function applySatellite(map: any, on: boolean): void {
     const firstOwn = layers.find((l: { id: string }) => OWN_LAYER_PREFIXES.some((prefix) => l.id.startsWith(prefix)));
     map.addLayer(
       {
-        id: SATELLITE_LAYER_ID,
+        id: layerId,
         type: 'raster',
-        source: SATELLITE_SOURCE_ID,
+        source: sourceId,
         paint: { 'raster-opacity': 1 },
       },
       firstOwn?.id
@@ -751,6 +774,7 @@ export function MapViewGL({
   zoom = DEFAULT_MAP_ZOOM,
   fitKey = 0,
   focusPoints,
+  focusKey,
   fitPadding,
   clusterLoosely = false,
   hazards,
@@ -778,6 +802,12 @@ export function MapViewGL({
   activeAlternative,
   onChooseAlternative,
   onHighlightAlternative,
+  plannerWaypoints = [],
+  selectedPlannerWaypointId = null,
+  onPlannerWaypointClick,
+  routeProfileFocus = null,
+  viewBaseLayer,
+  onViewBaseLayerChange,
   roadtripVias,
   onMoveVia,
   onRemoveVia,
@@ -791,7 +821,9 @@ export function MapViewGL({
   const rawMaplibreStyle = useSettingsStore((s) => s.settings.maplibre_style || '');
   const mapboxToken = useSettingsStore((s) => s.settings.mapbox_access_token || '');
   // The same stored choice the Leaflet map reads, so the two renderers agree.
-  const baseLayer = useSettingsStore((s) => s.settings.map_base_layer) || 'default';
+  const globalBaseLayer = useSettingsStore((s) => s.settings.map_base_layer) || 'default';
+  const baseLayer = viewBaseLayer ?? globalBaseLayer;
+  const hasViewBaseLayer = viewBaseLayer !== undefined && typeof onViewBaseLayerChange === 'function';
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const isSatellite = baseLayer === 'satellite';
   const toggleBaseLayer = useCallback(() => {
@@ -878,6 +910,8 @@ export function MapViewGL({
   const routeViaMarkersRef = useRef<PlacePin[]>([]);
   /** The road-trip via handles (#1797) — hand-positioned like the rest, so listed here. */
   const viaPinsRef = useRef<PlacePin[]>([]);
+  const plannerWaypointPinsRef = useRef<PlacePin[]>([]);
+  const profileFocusPinRef = useRef<PlacePin | null>(null);
   /** The drive-time pills on the offered routes; same treatment. */
   const altLabelsRef = useRef<PlacePin[]>([]);
   // Every hand-positioned pin, whichever set it belongs to. They all have to be written
@@ -888,6 +922,8 @@ export function MapViewGL({
     pluginMarkersRef.current.forEach((pin) => pin.reposition());
     routeViaMarkersRef.current.forEach((pin) => pin.reposition());
     viaPinsRef.current.forEach((pin) => pin.reposition());
+    plannerWaypointPinsRef.current.forEach((pin) => pin.reposition());
+    profileFocusPinRef.current?.reposition();
     altLabelsRef.current.forEach((pin) => pin.reposition());
   }, []);
   // Single reusable hover popup for POI markers. Planned places use the
@@ -906,6 +942,68 @@ export function MapViewGL({
    * drag is therefore hand-rolled — pointer events on the element, unproject on move.
    */
   const viaCleanupRef = useRef<(() => void)[]>([]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    plannerWaypointPinsRef.current.forEach((pin) => pin.remove());
+    plannerWaypointPinsRef.current = [];
+
+    for (const [index, point] of plannerWaypoints.entries()) {
+      const selected = point.id === selectedPlannerWaypointId;
+      const size = selected ? 30 : 26;
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.textContent = String(index + 1);
+      el.setAttribute('aria-label', `Waypoint ${index + 1}`);
+      el.style.cssText = `display:flex;width:${size}px;height:${size}px;align-items:center;justify-content:center;border-radius:9999px;background:#0a84ff;color:white;border:${selected ? 3 : 2}px solid white;box-shadow:0 2px 7px rgba(0,0,0,.4);font:700 11px system-ui;cursor:pointer;padding:0`;
+      const swallow = (event: Event) => event.stopPropagation();
+      const select = (event: Event) => {
+        event.stopPropagation();
+        onPlannerWaypointClick?.(point.id);
+      };
+      el.addEventListener('pointerdown', swallow);
+      el.addEventListener('touchstart', swallow, { passive: true });
+      el.addEventListener('click', select);
+      plannerWaypointPinsRef.current.push(attachPin(map, gl, pinLayerRef.current, el, point.lng, point.lat));
+    }
+
+    return () => {
+      plannerWaypointPinsRef.current.forEach((pin) => pin.remove());
+      plannerWaypointPinsRef.current = [];
+    };
+  }, [gl, mapReady, onPlannerWaypointClick, plannerWaypoints, selectedPlannerWaypointId]);
+
+  useEffect(
+    () => () => {
+      profileFocusPinRef.current?.remove();
+      profileFocusPinRef.current = null;
+    },
+    [gl, mapReady]
+  );
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    if (!routeProfileFocus) {
+      profileFocusPinRef.current?.remove();
+      profileFocusPinRef.current = null;
+      return;
+    }
+    let pin = profileFocusPinRef.current;
+    if (!pin) {
+      const element = document.createElement('div');
+      element.setAttribute('aria-hidden', 'true');
+      element.dataset.tourProfileFocus = 'true';
+      element.style.cssText =
+        'width:18px;height:18px;border:3px solid var(--bg-card);border-radius:50%;background:var(--text-muted);box-shadow:0 0 0 1px var(--text-secondary);pointer-events:none;box-sizing:border-box;';
+      pin = attachPin(map, gl, pinLayerRef.current, element, routeProfileFocus.lng, routeProfileFocus.lat);
+      profileFocusPinRef.current = pin;
+    } else {
+      pin.setLngLat([routeProfileFocus.lng, routeProfileFocus.lat]);
+    }
+    pin.el.style.pointerEvents = 'none';
+  }, [gl, mapReady, routeProfileFocus]);
+
   /**
    * The list only changes when a via does, and the callbacks are read through a ref.
    *
@@ -2389,24 +2487,19 @@ export function MapViewGL({
     const src = map.getSource('trip-gpx') as mapboxgl.GeoJSONSource | undefined;
     if (!src) return;
     const features = places.flatMap((place) => {
-      if (!place.route_geometry) return [];
-      try {
-        const coords = JSON.parse(place.route_geometry) as [number, number][];
-        if (!coords || coords.length < 2) return [];
-        return [
-          {
-            type: 'Feature' as const,
-            properties: {
-              color: resolveTrackColor(place),
-              cased: hasManualTrackColor(place),
-              place_id: place.id,
-            },
-            geometry: { type: 'LineString' as const, coordinates: coords.map(([lat, lng]) => [lng, lat]) },
+      const coords = parseRenderableRouteGeometry(place.route_geometry);
+      if (!coords) return [];
+      return [
+        {
+          type: 'Feature' as const,
+          properties: {
+            color: resolveTrackColor(place),
+            cased: hasManualTrackColor(place),
+            place_id: place.id,
           },
-        ];
-      } catch {
-        return [];
-      }
+          geometry: { type: 'LineString' as const, coordinates: coords.map(([lat, lng]) => [lng, lat]) },
+        },
+      ];
     });
     src.setData({ type: 'FeatureCollection', features });
   }, [places, mapReady]);
@@ -2539,12 +2632,20 @@ export function MapViewGL({
   const fitPaddingKey = fitPadding
     ? [fitPadding.top, fitPadding.right, fitPadding.bottom, fitPadding.left].join(' ')
     : '';
+  const didInitialFocusRef = useRef(false);
+  const prevFocusKeyRef = useRef(focusKey);
 
   // Frame whatever was handed over. Nothing happens when it empties, so closing the
   // picker leaves the map where the user left it rather than snapping back.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !focusPoints?.length) return;
+    if (focusKey !== undefined) {
+      const shouldFit = !didInitialFocusRef.current || focusKey !== prevFocusKeyRef.current;
+      prevFocusKeyRef.current = focusKey;
+      if (!shouldFit) return;
+      didInitialFocusRef.current = true;
+    }
     const bounds = new gl.LngLatBounds();
     focusPoints.forEach(([lat, lng]) => bounds.extend([lng, lat]));
     // A day fit still waiting on its route must not overwrite this a moment later.
@@ -2559,7 +2660,7 @@ export function MapViewGL({
     } catch {
       /* noop */
     }
-  }, [focusPoints, fitPaddingKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [focusPoints, focusKey, fitPaddingKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // flyTo selected place
   useEffect(() => {
@@ -2643,13 +2744,16 @@ export function MapViewGL({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
-    const apply = () => applySatellite(map, isSatellite);
+    const apply = () => {
+      applySatellite(map, isSatellite);
+      applySatellite(map, baseLayer === 'topo', true);
+    };
     apply();
     map.on('styledata', apply);
     return () => {
       map.off('styledata', apply);
     };
-  }, [isSatellite, mapReady, glProvider]);
+  }, [isSatellite, baseLayer, mapReady, glProvider]);
 
   if (!isMapLibre && !mapboxToken) {
     return (
@@ -2704,7 +2808,11 @@ export function MapViewGL({
         }}
       >
         {onToggleFollow && <MapLockPill locked={!followSelection} onToggle={onToggleFollow} />}
-        <MapLayerSwitcher active={baseLayer as BaseLayer} onToggle={toggleBaseLayer} />
+        {hasViewBaseLayer ? (
+          <TourMapLayerSwitcher active={baseLayer as TourBaseLayer} onChange={onViewBaseLayerChange} />
+        ) : (
+          <MapLayerSwitcher active={globalBaseLayer as BaseLayer} onToggle={toggleBaseLayer} />
+        )}
       </div>
       {/* Hover tooltip — cursor-following name/category/address card, identical to
           the Leaflet map's overlay (no anchored popup, no photo). */}

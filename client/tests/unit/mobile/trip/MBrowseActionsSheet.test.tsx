@@ -6,7 +6,7 @@ import { useSaveToCollectionStore } from '../../../../src/store/saveToCollection
 import type { Day, Place } from '../../../../src/types'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
-import { fireEvent, render, screen } from '../../../helpers/render'
+import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
 // FE-MOB-BRACT-001 to FE-MOB-BRACT-013
 // This sheet reads its labels from the real TranslationProvider, so the
@@ -107,14 +107,57 @@ describe('MBrowseActionsSheet', () => {
     expect(screen.getByRole('button', { name: /Tokyo Bay/ })).toBeInTheDocument()
   })
 
-  it('FE-MOB-BRACT-010: the quick-add payload opens with the day list already expanded and dated', () => {
+  it('FE-MOB-BRACT-010: the quick-add payload opens with the day list already expanded and dated', async () => {
     const { planner, shell } = setup({}, { sheet: { id: 'bract', payload: { placeId: 77, dayPicker: true } } })
     expect(screen.getByRole('button', { name: /Add to a day\?/ })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('Thu, Apr 2')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Tokyo Bay/ }))
-    expect(shell.closeSheet).toHaveBeenCalledTimes(1)
     expect(planner.handleAssignToDay).toHaveBeenCalledWith(77, 2)
+    await waitFor(() => expect(shell.closeSheet).toHaveBeenCalledTimes(1))
+  })
+
+  it('waits for the assignment handler before closing the mobile sheet', async () => {
+    let resolveAssignment!: () => void
+    const assignment = new Promise<void>(resolve => { resolveAssignment = resolve })
+    const { planner, shell } = setup({ handleAssignToDay: vi.fn(() => assignment.then(() => true)) }, {
+      sheet: { id: 'bract', payload: { placeId: 77, dayPicker: true } },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Tokyo Bay/ }))
+    expect(shell.closeSheet).not.toHaveBeenCalled()
+    expect(planner.handleAssignToDay).toHaveBeenCalledWith(77, 2)
+
+    await act(async () => { resolveAssignment(); await assignment })
+    await waitFor(() => expect(shell.closeSheet).toHaveBeenCalledOnce())
+  })
+
+  it('keeps the mobile sheet open when the assignment handler reports failure', async () => {
+    const { planner, shell } = setup({ handleAssignToDay: vi.fn().mockResolvedValue(false) }, {
+      sheet: { id: 'bract', payload: { placeId: 77, dayPicker: true } },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Tokyo Bay/ }))
+    await waitFor(() => expect(planner.handleAssignToDay).toHaveBeenCalledWith(77, 2))
+
+    expect(shell.closeSheet).not.toHaveBeenCalled()
+  })
+
+  it('offers only view and day attachment for a dormant Tour in the generic Places pool', () => {
+    enableCollections()
+    const tourPlace = { ...PLACE, tour_place_id: PLACE.id }
+    const { planner } = setup({
+      places: [tourPlace],
+      can: vi.fn(() => true),
+      isTourPlace: vi.fn((placeId: number) => placeId === PLACE.id),
+    })
+
+    expect(screen.getByRole('button', { name: /View details/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Edit/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Delete/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Save to Collection/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Add to a day/ })).toBeInTheDocument()
+    expect(planner.handleDeletePlace).not.toHaveBeenCalled()
   })
 
   it('FE-MOB-BRACT-011: numbers an untitled, undated day by its position when day_number is missing or zero', () => {

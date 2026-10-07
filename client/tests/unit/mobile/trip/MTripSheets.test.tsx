@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { BedDouble, MapPin } from 'lucide-react'
 import type { BookingExpenseRequest } from '../../../../src/components/Planner/BookingCostsSection.types'
 import type { ExpensePrefill } from '../../../../src/components/Budget/CostsPanel'
+import type { TourListItem } from '@trek/shared'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { BudgetItem, Reservation, Trip } from '../../../../src/types'
 import { useAuthStore } from '../../../../src/store/authStore'
@@ -187,7 +188,7 @@ const JOURNEY = {
 } as unknown as Reservation
 
 function renderHost(plannerOverrides: Partial<TripPlanner> = {}, shellOverrides: Partial<MTripShellApi> = {}) {
-  const planner = buildPlanner(plannerOverrides)
+  const planner = buildPlanner({ isTourPlace: vi.fn(() => false), ...plannerOverrides })
   const shell = buildShell(shellOverrides)
   render(<MTripSheets planner={planner} shell={shell} />)
   return { planner, shell }
@@ -430,6 +431,44 @@ describe('MTripSheets', () => {
     expect(screen.getByTestId('stub-cost')).toHaveAttribute('data-me', '-1')
   })
 
+  it.each([[false, false], [true, false], [false, true], [true, true]])(
+    'keeps the mobile Tour host View/Attach-only with place_edit=%s day_edit=%s', (placeEdit, dayEdit) => {
+      const mobilePlace = {
+        id: 42, trip_id: 1, name: 'Mobile ridge', lat: 48, lng: 11,
+        route_geometry: '[[48,11,500],[48.01,11.01,510]]', route_color: '#ff0000',
+      } as never
+      const mobileTour = {
+        place_id: 42, name: 'Mobile ridge', tour_type: 'hike', distance: 1,
+        elevation_gain: 10, elevation_loss: 0, duration: null, difficulty: null,
+        wanderer_ref: null, match_confidence: 1, tour_group_id: null,
+        max_hiking_difficulty: 2, planned: false, caution: false,
+      } as TourListItem
+      const readOnlyFile = {
+        id: 19, trip_id: 1, place_id: 42, filename: 'ridge.gpx', original_name: 'ridge.gpx',
+        file_size: 32, mime_type: 'application/gpx+xml', url: '/api/files/19', created_at: '2026-01-01',
+      }
+      const can = vi.fn((permission: string) => permission === 'place_edit' ? placeEdit : permission === 'day_edit' && dayEdit)
+      renderHost({
+        selectedPlace: mobilePlace,
+        selectedTour: mobileTour,
+        selectedDayId: 7,
+        days: [{ id: 7, trip_id: 1, day_number: 1, title: 'Day one' } as never],
+        files: [readOnlyFile as never],
+        can: can as TripPlanner['can'],
+        canUploadFiles: true,
+      })
+
+      expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1)
+      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Upload' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Edit track colour' })).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: '1 files' }))
+      expect(screen.getByText('ridge.gpx')).toBeInTheDocument()
+      expect(Boolean(screen.queryByRole('button', { name: /Add to day/i }))).toBe(dayEdit)
+    },
+  )
+
   it('FE-MOB-SHOST-025: the delete-place confirm runs the planner confirmation and disarms', () => {
     const { planner } = renderHost({ deletePlaceId: 101 })
     expect(screen.getByTestId('stub-confirm')).toHaveAttribute('data-title', 'common.delete')
@@ -438,6 +477,17 @@ describe('MTripSheets', () => {
     fireEvent.click(screen.getByText('confirm delete'))
     expect(planner.confirmDeletePlace).toHaveBeenCalledTimes(1)
     expect(planner.setDeletePlaceId).toHaveBeenCalledWith(null)
+  })
+
+  it('shows permanent Tour deletion language in the mobile confirmation', () => {
+    const { planner } = renderHost({ deletePlaceId: 101, isTourPlace: vi.fn(() => true) })
+    const confirm = screen.getByTestId('stub-confirm')
+
+    expect(confirm).toHaveAttribute('data-confirm', 'tours.delete.confirmAction')
+    expect(confirm).toHaveTextContent('tours.delete.confirmBody')
+    expect(confirm).not.toHaveTextContent('Undo')
+    fireEvent.click(screen.getByText('confirm delete'))
+    expect(planner.confirmDeletePlace).toHaveBeenCalledTimes(1)
   })
 
   it('FE-MOB-SHOST-029: a night booked at the place is said before the yes, and only then', () => {

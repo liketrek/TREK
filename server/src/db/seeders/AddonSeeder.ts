@@ -94,6 +94,15 @@ const DEFAULT_ADDONS: AddonRow[] = [
     sort_order: 7,
   },
   {
+    id: 'tours',
+    name: 'Tours',
+    description: 'Hikes and other single-day tours that follow a route',
+    type: 'trip',
+    icon: 'Mountain',
+    enabled: 0,
+    sort_order: 8,
+  },
+  {
     id: 'journey',
     name: 'Journey',
     description: 'Trip tracking & travel journal — check-ins, photos, daily stories',

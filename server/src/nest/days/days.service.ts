@@ -203,6 +203,8 @@ export class DaysService {
         // a booking wrote, and this copy is one of the paths that feed it.
         accommodation_id: a.accommodation_id ?? null,
         created_at: a.created_at,
+        tour_place_id: a.tour_place_id ?? null,
+        tour_route_geometry: a.tour_route_geometry ?? null,
         place: {
           id: a.place_id,
           name: a.place_name,

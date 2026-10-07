@@ -60,6 +60,7 @@ import {
   sharedTestOrm,
   createTestTripsRepo,
 } from '../../helpers/test-uow';
+import { createTestToursRepo } from '../../helpers/tours-repos';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
@@ -161,6 +162,7 @@ beforeAll(async () => {
     await createTestPlacesRepo(testDb),
     await createTestTripMembersRepo(testDb),
     await createTestRoadtripViasRepo(testDb),
+    await createTestToursRepo(testDb),
   );
   accommodations = new AccommodationsService(
     permissions,

@@ -221,6 +221,7 @@ import {
   sharedTestOrm,
 } from './test-uow';
 import { createTestTodoItemsRepo, createTestTodoCategoryAssigneesRepo } from './todo-repos';
+import { createTestToursRepo } from './tours-repos';
 import {
   createTestVacayPlansRepo,
   createTestVacayPlanMembersRepo,
@@ -432,6 +433,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
     await createTestPlacesRepo(db),
     await createTestTripMembersRepo(db),
     await createTestRoadtripViasRepo(db),
+    await createTestToursRepo(db),
   );
   const accommodationsService = new AccommodationsService(
     permissionsService,

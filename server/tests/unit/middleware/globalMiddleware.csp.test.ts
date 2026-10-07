@@ -46,6 +46,12 @@ describe('global CSP: the other shipped raster presets (#2180)', () => {
     expect(await connectSrcSources()).toContain('https://tiles.stadiamaps.com');
   });
 
+  it('allows the OpenTopoMap apex and tile shards used by the Tours planner', async () => {
+    const sources = await connectSrcSources();
+    expect(sources).toContain('https://tile.opentopomap.org');
+    expect(sources).toContain('https://*.tile.opentopomap.org');
+  });
+
   it('keeps the routing host, which is a different host and covers nothing here', async () => {
     // routing.openstreetmap.de was on the list all along and looks close enough
     // to hide the gap: a CSP source matches a host, not a suffix of one.
@@ -139,8 +145,8 @@ describe('forced-HTTPS redirect', () => {
 
   it('redirects to the configured APP_URL host, not the Host header the caller sent', async () => {
     process.env.FORCE_HTTPS = 'true';
-    process.env.APP_URL = 'https://trip.pakulat.org';
-    expect(await redirectLocation()).toBe('https://trip.pakulat.org/trips');
+    process.env.APP_URL = 'https://trip.example.invalid';
+    expect(await redirectLocation()).toBe('https://trip.example.invalid/trips');
   });
 
   it('falls back to the request host when APP_URL is unset', async () => {
@@ -159,7 +165,7 @@ describe('forced-HTTPS redirect', () => {
 
   it('leaves an already-secure request alone, and never redirects the health probe', async () => {
     process.env.FORCE_HTTPS = 'true';
-    process.env.APP_URL = 'https://trip.pakulat.org';
+    process.env.APP_URL = 'https://trip.example.invalid';
     const app = express();
     applyGlobalMiddleware(app);
     app.get('/trips', (_req, res) => res.json({ ok: true }));
@@ -184,7 +190,7 @@ describe('routingCspOrigins', () => {
   });
 
   it('CSP-ROUTING-002: a port belongs to the origin and is kept', () => {
-    expect(routingCspOrigins(['http://192.168.178.72:5000'])).toEqual(['http://192.168.178.72:5000']);
+    expect(routingCspOrigins(['http://192.0.2.1:5000'])).toEqual(['http://192.0.2.1:5000']);
   });
 
   it('CSP-ROUTING-003: anything that is not an http(s) URL widens nothing', () => {

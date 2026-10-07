@@ -30,16 +30,17 @@ describe('ALL_ENTITIES', () => {
   });
 
   /**
-   * Plan 2 Task 3: every one of the 127 entities the migrated schema
+   * Plan 2 Task 3: every one of the 130 entities the migrated schema
    * describes (120 rewritten + the 5 document-sync tables added this task,
-   * + push_subscriptions and google_api_usage from legacy steps 245 and 254)
+   * + push_subscriptions and google_api_usage from legacy steps 245 and 254,
+   * + tour_types, tours and tour_waypoints from the Tours migration)
    * is registered, and no two share a class name (a silent duplicate would
    * shadow one of them in `orm.getMetadata()`, exactly the kind of drift
    * `entity-schema-parity.test.ts` can't see — it iterates the metadata map,
    * which de-duplicates by class name).
    */
-  it('ENT-003: exactly 127 entities, every class name unique', () => {
-    expect(ALL_ENTITIES.length).toBe(127);
+  it('ENT-003: exactly 130 entities, every class name unique', () => {
+    expect(ALL_ENTITIES.length).toBe(130);
     const names = ALL_ENTITIES.map((s) => s.meta.className);
     expect(new Set(names).size).toBe(names.length);
   });

@@ -125,6 +125,20 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect(res.body.places[0]).toMatchObject({ id: 1, name: 'Spot', trip_id: 5, tags: [], ratings: [] });
   });
 
+  it('marks Tour-backed Places without changing ordinary Place rows', async () => {
+    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (1, 5, 'Plain'), (2, 5, 'Tour')").run();
+    db.prepare("INSERT INTO tours (place_id, tour_type) VALUES (2, 'hike')").run();
+
+    const all = await request(server).get('/api/trips/5/places').set('Cookie', sessionCookie(1));
+    expect(all.status).toBe(200);
+    expect(all.body.places).toHaveLength(2);
+    const tourPlaceIdById = new Map(
+      all.body.places.map((place: { id: number; tour_place_id: number | null }) => [place.id, place.tour_place_id]),
+    );
+    expect(tourPlaceIdById.get(1)).toBeNull();
+    expect(tourPlaceIdById.get(2)).toBe(2);
+  });
+
   it('200 list scoped to the trip', async () => {
     db.prepare("INSERT INTO places (trip_id, name) VALUES (5, 'Mine')").run();
     db.prepare("INSERT INTO places (trip_id, name) VALUES (6, 'Theirs')").run();
@@ -162,7 +176,7 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
       .set('Cookie', sessionCookie(1))
       .send({ ids: [1, 2, 3] });
     expect(ok.status).toBe(200);
-    expect(ok.body).toEqual({ deleted: [1, 2], count: 2 });
+    expect(ok.body).toEqual({ deleted: [1, 2], count: 2, tourPlaceIds: [] });
     // The foreign trip's place is untouched.
     expect(db.prepare('SELECT id FROM places ORDER BY id').all()).toEqual([{ id: 3 }]);
 
@@ -331,12 +345,31 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
 
     const ok = await request(server).delete('/api/trips/5/places/9').set('Cookie', sessionCookie(1));
     expect(ok.status).toBe(200);
-    expect(ok.body).toEqual({ success: true });
+    expect(ok.body).toEqual({ success: true, tourPlaceIds: [] });
     expect(db.prepare('SELECT id FROM places WHERE id = 9').get()).toBeUndefined();
 
     const foreign = await request(server).delete('/api/trips/5/places/10').set('Cookie', sessionCookie(1));
     expect(foreign.status).toBe(404);
     expect(foreign.body).toEqual({ error: 'Place not found' });
+  });
+
+  it('DELETE :id and bulk-delete report the Tour place ids they removed', async () => {
+    db.prepare(
+      "INSERT INTO places (id, trip_id, name) VALUES (20, 5, 'Tour A'), (21, 5, 'Tour B'), (22, 5, 'Plain')",
+    ).run();
+    db.prepare("INSERT INTO tours (place_id, tour_type) VALUES (20, 'hike'), (21, 'hike')").run();
+
+    const single = await request(server).delete('/api/trips/5/places/20').set('Cookie', sessionCookie(1));
+    expect(single.status).toBe(200);
+    expect(single.body).toEqual({ success: true, tourPlaceIds: [20] });
+    expect(db.prepare('SELECT place_id FROM tours WHERE place_id = 20').get()).toBeUndefined();
+
+    const bulk = await request(server)
+      .post('/api/trips/5/places/bulk-delete')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [21, 22] });
+    expect(bulk.status).toBe(200);
+    expect(bulk.body).toEqual({ deleted: [21, 22], count: 2, tourPlaceIds: [21] });
   });
 
   it('DELETE :id takes the expense linked to the place with it (#1298)', async () => {

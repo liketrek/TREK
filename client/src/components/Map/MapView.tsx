@@ -12,6 +12,9 @@ import {
   DEFAULT_MAP_ZOOM,
   MAP_MAX_ZOOM,
   OFM_POSITRON,
+  OPENTOPOMAP_TILE_ATTRIBUTION,
+  OPENTOPOMAP_TILE_MAXZOOM,
+  OPENTOPOMAP_TILE_URL,
   SATELLITE_TILE_MAXZOOM,
   SATELLITE_TILE_URL,
 } from '../../constants/mapDefaults';
@@ -21,6 +24,7 @@ import type { Day, Place, Reservation, RouteVia } from '../../types';
 import { renderIconMarkup } from '../../utils/iconMarkup';
 import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport';
 import { visibleRouteReservations } from '../../utils/reservationRoutes';
+import { parseRenderableRouteGeometry } from '../../utils/routeGeometry';
 import { safeHexColor } from '../../utils/safeColor';
 import { isGcj02Basemap, resolveBasemap } from '../../utils/tileUrl';
 import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors';
@@ -33,7 +37,12 @@ import type { DayBoundaryControls } from './dayBoundaryDrag';
 import { crsForBasemap } from './gcj02Crs';
 import HazardLayers from './HazardLayers';
 import type { MapHoverInfo } from './mapHover';
-import { MAP_LAYER_SWITCHER_INSET, MapLayerSwitcher } from './MapLayerSwitcher';
+import {
+  MAP_LAYER_SWITCHER_INSET,
+  MapLayerSwitcher,
+  TourMapLayerSwitcher,
+  type TourBaseLayer,
+} from './MapLayerSwitcher';
 import { MapLockPill } from './MapLockPill';
 import { PluginMapLayers } from './MapPluginLayers';
 import { PluginMapMarkers } from './MapPluginMarkers';
@@ -423,6 +432,22 @@ function ViewportController({
   return null;
 }
 
+function MapCameraSnapshot({ onChange }: { onChange: (center: [number, number], zoom: number) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    const save = () => {
+      const center = map.getCenter();
+      onChange([center.lat, center.lng], map.getZoom());
+    };
+    map.whenReady(save);
+    map.on('moveend zoomend', save);
+    return () => {
+      map.off('moveend zoomend', save);
+    };
+  }, [map, onChange]);
+  return null;
+}
+
 interface SelectionControllerProps {
   /** False while the traveller locked the map (#2010): a pick changes nothing on it. */
   follow: boolean;
@@ -507,6 +532,8 @@ interface BoundsControllerProps {
    * needs that leg on screen, which is neither the day nor the trip.
    */
   focusPoints?: [number, number][];
+  /** Changes only when the caller intentionally wants a new initial frame. */
+  focusKey?: number;
   /** False while the map is locked (#2010): an arriving route no longer re-fits it. */
   follow?: boolean;
   /**
@@ -536,6 +563,7 @@ function BoundsController({
   paddingOpts,
   framedOnMount = false,
   focusPoints,
+  focusKey,
   fitPadding,
   follow = true,
 }: BoundsControllerProps) {
@@ -543,6 +571,8 @@ function BoundsController({
   const prevFitKey = useRef(-1);
   const awaitingRoute = useRef(false);
   const fitRan = useRef(false);
+  const didInitialFocus = useRef(false);
+  const prevFocusKey = useRef(focusKey);
 
   const fitTo = useCallback(
     (coords: [number, number][], padding: L.FitBoundsOptions = paddingOpts) => {
@@ -610,10 +640,16 @@ function BoundsController({
   // picker leaves the map where the user left it rather than snapping back.
   useEffect(() => {
     if (!focusPoints?.length) return;
+    if (focusKey !== undefined) {
+      const shouldFit = !didInitialFocus.current || focusKey !== prevFocusKey.current;
+      prevFocusKey.current = focusKey;
+      if (!shouldFit) return;
+      didInitialFocus.current = true;
+    }
     // A day fit that has not run yet must not overwrite this a moment later.
     awaitingRoute.current = false;
     fitTo(focusPoints, fitPadding ? leafletPadding(fitPadding) : paddingOpts);
-  }, [focusPoints, fitPaddingKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [focusPoints, focusKey, fitPaddingKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
 }
@@ -860,6 +896,16 @@ const MemoMarker = memo(function MemoMarker({
   );
 });
 
+function plannerWaypointIcon(index: number, selected: boolean): L.DivIcon {
+  const size = selected ? 30 : 26;
+  return L.divIcon({
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    html: `<span style="display:flex;width:${size}px;height:${size}px;align-items:center;justify-content:center;border-radius:9999px;background:#0a84ff;color:white;border:${selected ? 3 : 2}px solid white;box-shadow:0 2px 7px rgba(0,0,0,.4);font:700 11px system-ui;cursor:pointer">${index + 1}</span>`,
+  });
+}
+
 export const MapView = memo(function MapView({
   places = [],
   dayPlaces = [],
@@ -887,6 +933,7 @@ export const MapView = memo(function MapView({
   // the shape a caller without one gets.
   tileUrl = OFM_POSITRON,
   fitKey = 0,
+  focusKey,
   dayOrderMap = {},
   leftWidth = 0,
   rightWidth = 0,
@@ -925,7 +972,19 @@ export const MapView = memo(function MapView({
   activeAlternative,
   onChooseAlternative,
   onHighlightAlternative,
+  plannerWaypoints = [],
+  selectedPlannerWaypointId = null,
+  onPlannerWaypointClick,
+  routeProfileFocus = null,
+  viewBaseLayer,
+  onViewBaseLayerChange,
 }: any) {
+  const globalBaseLayer = useSettingsStore((s) => s.settings.map_base_layer) || 'default';
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const baseLayer = (viewBaseLayer ?? globalBaseLayer) as TourBaseLayer;
+  const hasViewBaseLayer = viewBaseLayer !== undefined && typeof onViewBaseLayerChange === 'function';
+  const isSatellite = baseLayer === 'satellite';
+  const isTopo = baseLayer === 'topo';
   // The caller hands over whatever the user configured; what kind of basemap
   // that is decides which layer draws it. A saved raster template still wins,
   // the default is a vector style.
@@ -937,7 +996,7 @@ export const MapView = memo(function MapView({
    * decided before the map is constructed, because Leaflet cannot change a map's
    * CRS afterwards — hence the whole map, not just the tile layer.
    */
-  const isGcjBasemap = basemap.kind === 'raster' && isGcj02Basemap(basemap.url);
+  const isGcjBasemap = !isTopo && basemap.kind === 'raster' && isGcj02Basemap(basemap.url);
   const gcjCrs = useMemo(() => crsForBasemap(isGcjBasemap), [isGcjBasemap]);
   const poiMarkers = useMemo(
     () =>
@@ -1013,6 +1072,10 @@ export const MapView = memo(function MapView({
     });
     return { center: framed?.center ?? center, zoom: framed?.zoom ?? zoom, framed: framed !== null };
   });
+  const cameraSnapshotRef = useRef<{ center: [number, number]; zoom: number } | null>(null);
+  const saveCameraSnapshot = useCallback((cameraCenter: [number, number], cameraZoom: number) => {
+    cameraSnapshotRef.current = { center: cameraCenter, zoom: cameraZoom };
+  }, []);
 
   // Hover state for the single tooltip overlay (replaces per-marker <Tooltip>)
   const [hoveredPlace, setHoveredPlace] = useState<MapHoverInfo | null>(null);
@@ -1218,14 +1281,10 @@ export const MapView = memo(function MapView({
   const gpxTracks = useMemo(
     () =>
       places.flatMap((place) => {
-        if (!place.route_geometry) return [];
-        try {
-          const coords = JSON.parse(place.route_geometry) as [number, number][];
-          if (!coords || coords.length < 2) return [];
-          return [{ place, coords, cased: hasManualTrackColor(place), color: resolveTrackColor(place) }];
-        } catch {
-          return [];
-        }
+        const geometry = parseRenderableRouteGeometry(place.route_geometry);
+        if (!geometry) return [];
+        const coords: [number, number][] = geometry.map(([lat, lng]) => [lat, lng]);
+        return [{ place, coords, cased: hasManualTrackColor(place), color: resolveTrackColor(place) }];
       }),
     [places]
   );
@@ -1315,9 +1374,6 @@ export const MapView = memo(function MapView({
     ? 'calc(var(--bottom-nav-h, 84px) + 20px + var(--day-panel-h, 0px) + 12px)'
     : 'calc(var(--bottom-nav-h, 84px) + 12px)';
 
-  const baseLayer = useSettingsStore((s) => s.settings.map_base_layer) || 'default';
-  const updateSetting = useSettingsStore((s) => s.updateSetting);
-  const isSatellite = baseLayer === 'satellite';
   const toggleBaseLayer = useCallback(() => {
     // Store flips state synchronously (instant, works offline); a failed save is logged there.
     updateSetting('map_base_layer', isSatellite ? 'default' : 'satellite').catch(() => {});
@@ -1346,8 +1402,8 @@ export const MapView = memo(function MapView({
           // the cluster group away on every template or API-key edit.
           key={isGcjBasemap ? 'gcj02' : 'wgs84'}
           id="trek-map"
-          center={initialView.center}
-          zoom={initialView.zoom}
+          center={cameraSnapshotRef.current?.center ?? initialView.center}
+          zoom={cameraSnapshotRef.current?.zoom ?? initialView.zoom}
           zoomControl={false}
           // On the map itself, not left to the base layer. Leaflet reads its zoom
           // ceiling from the map options or, failing that, from a GridLayer that
@@ -1381,6 +1437,18 @@ export const MapView = memo(function MapView({
               updateWhenIdle={true}
               referrerPolicy="strict-origin-when-cross-origin"
             />
+          ) : isTopo ? (
+            <TileLayer
+              key="topo"
+              url={OPENTOPOMAP_TILE_URL}
+              attribution={OPENTOPOMAP_TILE_ATTRIBUTION}
+              maxNativeZoom={OPENTOPOMAP_TILE_MAXZOOM}
+              maxZoom={MAP_MAX_ZOOM}
+              keepBuffer={8}
+              updateWhenZooming={false}
+              updateWhenIdle={true}
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
           ) : basemap.kind === 'vector' ? (
             <VectorBasemap style={basemap.style} />
           ) : (
@@ -1397,6 +1465,7 @@ export const MapView = memo(function MapView({
           )}
 
           <MapController center={center} zoom={zoom} />
+          {hasViewBaseLayer && <MapCameraSnapshot onChange={saveCameraSnapshot} />}
           <BoundsController
             places={dayPlaces.length > 0 ? dayPlaces : places}
             routeCoords={dayPlaces.length > 0 ? routeCoords : []}
@@ -1404,6 +1473,7 @@ export const MapView = memo(function MapView({
             paddingOpts={paddingOpts}
             framedOnMount={initialView.framed}
             focusPoints={focusPoints}
+            focusKey={focusKey}
             fitPadding={fitPadding}
             follow={followSelection}
           />
@@ -1572,9 +1642,44 @@ export const MapView = memo(function MapView({
             <RoadtripViaMarkers viasByDay={roadtripVias} onMoveVia={onMoveVia} onRemoveVia={onRemoveVia} />
           ) : null}
 
+          {(plannerWaypoints as Array<{ id: string; lat: number; lng: number }>).map((point, index) => (
+            <Marker
+              key={`planner-waypoint-${point.id}`}
+              position={[point.lat, point.lng]}
+              icon={plannerWaypointIcon(index, point.id === selectedPlannerWaypointId)}
+              zIndexOffset={point.id === selectedPlannerWaypointId ? 1200 : 1100}
+              eventHandlers={{
+                click: (event: { originalEvent: MouseEvent }) => {
+                  event.originalEvent.stopPropagation();
+                  onPlannerWaypointClick?.(point.id);
+                },
+              }}
+            >
+              <Tooltip direction="top" offset={[0, -12]}>
+                {index + 1}
+              </Tooltip>
+            </Marker>
+          ))}
+
           {/* GPX imported route geometries */}
           <TrackCasingPane onReady={setHasCasingPane} />
           {gpxPolylines}
+
+          {routeProfileFocus && (
+            <CircleMarker
+              center={[routeProfileFocus.lat, routeProfileFocus.lng]}
+              radius={8}
+              pathOptions={{
+                className: 'tour-profile-focus-marker',
+                color: 'var(--bg-card)',
+                weight: 3,
+                fillColor: 'var(--text-muted)',
+                fillOpacity: 1,
+              }}
+              interactive={false}
+              bubblingMouseEvents={false}
+            />
+          )}
 
           <ReservationOverlay
             reservations={visibleReservations}
@@ -1651,10 +1756,6 @@ export const MapView = memo(function MapView({
         {/* 20px off the sidebar, not 12: the pill is round and frosted, so at the
         smaller gap its shadow ran into the sidebar edge and the two read as one
         surface. */}
-        {/* Bottom left, whatever else is on screen. Opening a place used to send it to the
-        top of the map, which read as the control moving house rather than as room being
-        made: the inspector is a centred card at most 800 wide, so the corner it would
-        have been clearing is one the card never reaches. */}
         <div
           style={{
             position: 'absolute',
@@ -1668,7 +1769,11 @@ export const MapView = memo(function MapView({
           }}
         >
           {onToggleFollow && <MapLockPill locked={!followSelection} onToggle={onToggleFollow} />}
-          <MapLayerSwitcher active={baseLayer} onToggle={toggleBaseLayer} />
+          {hasViewBaseLayer ? (
+            <TourMapLayerSwitcher active={baseLayer} onChange={onViewBaseLayerChange} />
+          ) : (
+            <MapLayerSwitcher active={globalBaseLayer} onToggle={toggleBaseLayer} />
+          )}
         </div>
       </div>
 

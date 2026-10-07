@@ -264,6 +264,49 @@ describe('valhallaRun over a whole day', () => {
   const stops = (n: number) =>
     Array.from({ length: n }, (_, i) => ({ lat: 53 - i * 0.1, lng: 10 + i * 0.1 }))
 
+  it('retains Tours costing options through the upstream spaced retry', async () => {
+    const bodies: unknown[] = []
+    const times: number[] = []
+    server.use(http.post(FOSSGIS_VALHALLA, async ({ request }) => {
+      bodies.push(await request.json())
+      times.push(Date.now())
+      return bodies.length === 1 ? new HttpResponse(null, { status: 429 }) : HttpResponse.json(chain(1))
+    }))
+    const result = await valhallaRun(stops(2), 'walking', [], undefined, { max_hiking_difficulty: 6 })
+    expect(result).not.toBeNull()
+    expect(bodies).toHaveLength(2)
+    expect(bodies[1]).toEqual(bodies[0])
+    expect(bodies[1]).toMatchObject({ costing_options: { pedestrian: { max_hiking_difficulty: 6 } } })
+    expect(times[1] - times[0]).toBeGreaterThanOrEqual(1000)
+  })
+
+  it('does not send another Tours request when aborted during the retry pause', async () => {
+    const controller = new AbortController()
+    let calls = 0
+    server.use(http.post(FOSSGIS_VALHALLA, () => {
+      calls++
+      setTimeout(() => controller.abort(), 25)
+      return new HttpResponse(null, { status: 429 })
+    }))
+    await expect(valhallaRun(stops(2), 'walking', [], controller.signal, { max_hiking_difficulty: 4 })).resolves.toBeNull()
+    expect(calls).toBe(1)
+  })
+
+  it.each([1, 2, 3, 4, 5, 6])('keeps Tours T%i options in the exact pedestrian request with avoidance', async difficulty => {
+    let body: unknown
+    server.use(http.post(FOSSGIS_VALHALLA, async ({ request }) => {
+      body = await request.json()
+      return HttpResponse.json(chain(1))
+    }))
+    await valhallaRun(stops(2), 'walking', ['ferry'], undefined, { max_hiking_difficulty: difficulty })
+    expect(body).toEqual({
+      locations: stops(2).map(point => ({ lat: point.lat, lon: point.lng, radius: 50 })),
+      costing: 'pedestrian',
+      costing_options: { pedestrian: { max_hiking_difficulty: difficulty, use_ferry: 0 } },
+      directions_options: { units: 'kilometers' },
+    })
+  })
+
   it('VALHALLA-RUN-001: a day inside the cap goes out as one request, one leg per pair', async () => {
     let calls = 0
     server.use(http.post(FOSSGIS_VALHALLA, async ({ request }) => {
@@ -277,6 +320,21 @@ describe('valhallaRun over a whole day', () => {
     expect(calls).toBe(1)
     expect(run!.legs).toHaveLength(5)
     expect(run!.total.distance).toBe(50000)
+  })
+
+  it('VALHALLA-RUN-008: forwards caller-specific costing options only when supplied', async () => {
+    let body: Record<string, unknown> | null = null
+    server.use(http.post(FOSSGIS_VALHALLA, async ({ request }) => {
+      body = await request.json() as Record<string, unknown>
+      return HttpResponse.json(chain(1))
+    }))
+
+    await valhallaRun(stops(2), 'walking', [], undefined, { max_hiking_difficulty: 2 })
+
+    expect(body).toMatchObject({
+      costing: 'pedestrian',
+      costing_options: { pedestrian: { max_hiking_difficulty: 2 } },
+    })
   })
 
   it('VALHALLA-RUN-002: a day over the cap is split on a shared point, and the legs still line up', async () => {

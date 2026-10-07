@@ -1,5 +1,6 @@
 import { calculateRouteWithLegs, RoutingRefusedError, type RouteProfileKey } from './RouteCalculator'
 import { buildDayRouteRuns, type DayRouteInputs, type DayRoutePoint } from './dayRoutePlan'
+import { projectDayItinerary } from './dayTourProjection'
 import { resolveLegMode } from '../Planner/legMode'
 import { dayColor } from '../Roadtrip/dayColors'
 import type { Day, RouteSegment } from '../../types'
@@ -15,6 +16,8 @@ export interface TripOverviewDay {
   color: { line: string; casing: string }
   /** One polyline per run of the day, `[lat, lng]`. */
   lines: [number, number][][]
+  /** Saved Tours are not routed legs and keep their own map style. */
+  tourLines?: [number, number][][]
   segments: RouteSegment[]
   /** Metres and seconds, summed over the day's legs. */
   distance: number
@@ -49,7 +52,7 @@ export interface TripRouteSummary {
 interface Chunk { points: DayRoutePoint[]; mode: string }
 
 /** A day reduced to the routing requests it needs, in the order they draw. */
-export interface TripRoutePlanDay { day: Day; runs: Chunk[][] }
+export interface TripRoutePlanDay { day: Day; runs: Chunk[][]; tourLines?: [number, number][][] }
 
 type Answer = { coordinates: [number, number][]; legs: RouteSegment[] } | null
 /** Every leg's answer so far, indexed like the plan: day, run, chunk. */
@@ -83,11 +86,20 @@ const straight = (points: DayRoutePoint[]): [number, number][] => points.map(p =
 export function planTripRoute(input: DayRouteInputs, profile: RouteProfileKey): TripRoutePlanDay[] {
   return [...input.days]
     .sort((a, b) => (a.day_number ?? 0) - (b.day_number ?? 0))
-    .map(day => ({ day, runs: buildDayRouteRuns(day.id, input) }))
-    .filter(entry => entry.runs.length > 0)
-    .map(({ day, runs }) => ({
+    .map(day => ({
+      day,
+      runs: buildDayRouteRuns(day.id, input),
+      tourLines: projectDayItinerary(
+        (input.assignments[String(day.id)] ?? []).filter(assignment => assignment.accommodation_id == null),
+        input.toursEnabled ?? false,
+        input.places,
+      ).flatMap(item => item.kind === 'tour' && item.geometry.length >= 2 ? [item.geometry] : []),
+    }))
+    .filter(entry => entry.runs.length > 0 || entry.tourLines.length > 0)
+    .map(({ day, runs, tourLines }) => ({
       day,
       runs: runs.map(run => chunkRun(run, day.default_transport_mode || profile)),
+      tourLines,
     }))
 }
 
@@ -97,7 +109,7 @@ export const emptyAnswers = (plan: TripRoutePlanDay[]): Answer[][][] =>
 
 /** Stitch the routed answers back onto the plan, in the order the days are travelled. */
 export function assembleTripRoute(plan: TripRoutePlanDay[], routed: Answer[][][]): TripOverviewDay[] {
-  return plan.map(({ day, runs }, d) => {
+  return plan.map(({ day, runs, tourLines }, d) => {
     const lines: [number, number][][] = []
     const segments: RouteSegment[] = []
     let unroutedLegs = 0
@@ -127,6 +139,7 @@ export function assembleTripRoute(plan: TripRoutePlanDay[], routed: Answer[][][]
       title: day.title ?? null,
       color: dayRouteColor(day),
       lines,
+      tourLines,
       segments,
       distance: segments.reduce((sum, s) => sum + s.distance, 0),
       duration: segments.reduce((sum, s) => sum + s.duration, 0),
@@ -143,7 +156,7 @@ export function summariseTripRoute(days: TripOverviewDay[]): TripRouteSummary {
     lines,
     lineColors: days.flatMap(d => d.lines.map(() => d.color)),
     segments: days.flatMap(d => d.segments),
-    focusPoints: lines.flat(),
+    focusPoints: [...lines.flat(), ...days.flatMap(day => (day.tourLines ?? []).flat())],
     totalDistance: days.reduce((sum, d) => sum + d.distance, 0),
     totalDuration: days.reduce((sum, d) => sum + d.duration, 0),
     unroutedLegs: days.reduce((sum, d) => sum + (d.unroutedLegs ?? 0), 0),

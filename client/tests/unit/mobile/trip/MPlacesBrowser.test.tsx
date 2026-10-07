@@ -3,7 +3,8 @@ import { act, fireEvent, render, screen, waitFor, within } from '../../../helper
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import MPlacesBrowser from '../../../../src/mobile/screens/trip/places/MPlacesBrowser'
 import { collectionsApi } from '../../../../src/api/collections'
-import type { CollectionListResponse } from '@trek/shared'
+import { toursApi } from '../../../../src/api/client'
+import type { CollectionListResponse, TourListItem } from '@trek/shared'
 import { useAddonStore } from '../../../../src/store/addonStore'
 import { useTripStore } from '../../../../src/store/tripStore'
 import { resetAllStores, seedStore } from '../../../helpers/store'
@@ -35,6 +36,7 @@ function place(over: Partial<Place>): Place {
 const LOUVRE = place({ id: 1, name: 'Louvre', address: 'Rue de Rivoli', category_id: 1 })
 const EIFFEL = place({ id: 2, name: 'Eiffel Tower', description: 'Iron lady' })
 const SEINE = place({ id: 3, name: 'Seine Track', category_id: 2, route_geometry: 'abc', route_color: '#ff0000' })
+const TOUR = place({ id: 4, name: 'Ridge walk', tour_place_id: 4 })
 
 const PLACES = [LOUVRE, EIFFEL, SEINE]
 
@@ -341,6 +343,51 @@ describe('MPlacesBrowser', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'common.delete' })) })
     expect(planner.confirmDeletePlaces).toHaveBeenCalledWith([1, 3])
     expect(screen.queryByText(/places.selectionCount/)).not.toBeInTheDocument()
+  })
+
+  it('routes a Tour row to read-only detail instead of mobile Place bulk management', () => {
+    const planner = makePlanner({
+      places: [LOUVRE, TOUR],
+      isTourPlace: vi.fn((placeId: number) => placeId === TOUR.id),
+    })
+    renderBrowser(planner)
+    fireEvent.click(screen.getByRole('button', { name: 'common.select' }))
+    fireEvent.click(row('Louvre'))
+    fireEvent.click(row('Ridge walk'))
+
+    expect(planner.handlePlaceClick).toHaveBeenCalledWith(TOUR.id)
+    expect(screen.getByText('places.selectionCount:1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'places.deleteSelected' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'places.changeCategory' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'common.deselectAll' })).toBeInTheDocument()
+  })
+
+  it('keeps Tour-backed Places out of the Places pool and Tours mode browse/attach only', async () => {
+    const ridge: TourListItem = {
+      place_id: TOUR.id, name: 'Ridge walk', tour_type: 'hike', distance: 4, elevation_gain: 100,
+      elevation_loss: 80, duration: null, difficulty: null, wanderer_ref: null, match_confidence: 1,
+      tour_group_id: null, max_hiking_difficulty: 2, planned: false, caution: false,
+    }
+    seedStore(useAddonStore, { addons: [{ id: 'collections', enabled: true }, { id: 'tours', enabled: true }] })
+    vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [ridge] })
+    const planner = makePlanner({
+      places: [...PLACES, TOUR],
+      tours: [ridge],
+      isTourPlace: vi.fn((placeId: number) => placeId === TOUR.id),
+    })
+    const { shell } = renderBrowser(planner)
+
+    await waitFor(() => expect(screen.getByText('places.count:3')).toBeInTheDocument())
+    expect(screen.queryByText('Ridge walk')).not.toBeInTheDocument()
+    expect(toursApi.list).toHaveBeenCalledWith(planner.tripId)
+
+    fireEvent.click(screen.getByRole('tab', { name: /^Tours$/i }))
+    expect(screen.getByRole('option', { name: /Ridge walk/ })).toBeInTheDocument()
+    expect(screen.queryByText('Louvre')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'mobileTrip.importPlaces' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'common.add' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'common.select' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /tours.addToDay|Add to day/i })).toBeInTheDocument()
   })
 
   it('FE-MOB-PBROW-020b: a failed bulk delete keeps the selection for a retry', async () => {

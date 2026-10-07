@@ -73,6 +73,7 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     tripActions: buildTripActions(),
     can: vi.fn(() => true),
     canUploadFiles: true,
+    isTourPlace: vi.fn(() => false),
 
     pushUndo: vi.fn(),
     undo: vi.fn(),

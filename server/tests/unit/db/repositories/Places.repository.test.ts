@@ -20,6 +20,7 @@ import {
 } from '../../../helpers/factories';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { createTour } from '../../../helpers/tours-repos';
 import { TRACK_COLORS } from '@trek/shared';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -835,9 +836,10 @@ describe('PlacesRepository.listForTrip (PL3) — toEqual(legacy) over all 32 fil
     },
   ): unknown[] {
     let query = `
-      SELECT DISTINCT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+      SELECT DISTINCT p.*, t.place_id AS tour_place_id, c.name as category_name, c.color as category_color, c.icon as category_icon,
         pr.country_code as country_code, pr.region_name as region_name
       FROM places p
+      LEFT JOIN tours t ON t.place_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN place_regions pr ON pr.place_id = p.id
       WHERE p.trip_id = ?
@@ -887,8 +889,10 @@ describe('PlacesRepository.listForTrip (PL3) — toEqual(legacy) over all 32 fil
     const p3 = createPlace(testDb, trip.id, { name: 'Louvre' });
     testDb.prepare('INSERT INTO place_tags (place_id, tag_id) VALUES (?, ?)').run(p3.id, tag.id);
     createDayAssignment(testDb, day.id, p3.id);
-    // p4: no category, no tag, unassigned, does NOT match the search term.
-    createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
+    // p4: no category, no tag, unassigned, does NOT match the search term,
+    // and a Tour, so tour_place_id is non-null on exactly one row.
+    const p4 = createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
+    createTour(testDb, p4.id);
     // Another trip's place, named to collide with the search term — must
     // never appear in either statement's output (both scope by trip_id).
     createPlace(testDb, otherTrip.id, { name: 'Central Perk' });
@@ -1858,5 +1862,79 @@ describe('PlacesRepository — share.service.ts SH12 read', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     expect(await places.listPublicForShare(trip.id)).toEqual([]);
+  });
+});
+
+describe('PlacesRepository.insertTourPlace (TO10) / updateTourRoute (TO11)', () => {
+  it('PLACEREPO-TOUR-001: insertTourPlace writes the route place as a walking place and leaves the rest at its defaults', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const id = await places.insertTourPlace({
+      trip_id: trip.id,
+      name: 'Ridge walk',
+      lat: 47,
+      lng: 11,
+      route_geometry: '[[47,11],[47.1,11.1]]',
+    });
+
+    expect(await places.findInTrip(id, trip.id)).toMatchObject({
+      trip_id: trip.id,
+      name: 'Ridge walk',
+      lat: 47,
+      lng: 11,
+      transport_mode: 'walking',
+      route_geometry: '[[47,11],[47.1,11.1]]',
+      duration_minutes: 60,
+      reservation_status: 'none',
+      category_id: null,
+    });
+  });
+
+  it('PLACEREPO-TOUR-002: updateTourRoute rewrites the route of a place of that trip, stamps updated_at, and refuses another trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Old', lat: 1, lng: 1 });
+    testDb.prepare("UPDATE places SET transport_mode = 'driving', updated_at = NULL WHERE id = ?").run(place.id);
+    const route = { name: 'New', lat: 47, lng: 11, route_geometry: '[[47,11],[47.2,11.2]]' };
+
+    expect(await places.updateTourRoute(place.id, other.id, route)).toBe(false);
+    expect(await places.findInTrip(place.id, trip.id)).toMatchObject({
+      name: 'Old',
+      transport_mode: 'driving',
+      updated_at: null,
+    });
+
+    expect(await places.updateTourRoute(place.id, trip.id, route)).toBe(true);
+    const row = await places.findInTrip(place.id, trip.id);
+    expect(row).toMatchObject({ ...route, transport_mode: 'walking' });
+    expect(row?.updated_at).not.toBeNull();
+  });
+});
+
+describe('PlacesRepository.isTour / listForTrip tour_place_id', () => {
+  it('PLACEREPO-TOUR-003: isTour is true only for a place with a tours row', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const tour = createPlace(testDb, trip.id, { name: 'Ridge walk' });
+    const plain = createPlace(testDb, trip.id, { name: 'Cafe' });
+    createTour(testDb, tour.id);
+
+    expect(await places.isTour(tour.id)).toBe(true);
+    expect(await places.isTour(plain.id)).toBe(false);
+    expect(await places.isTour(999_999)).toBe(false);
+  });
+
+  it('PLACEREPO-TOUR-004: listForTrip carries the place id as tour_place_id for Tours and null otherwise', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const tour = createPlace(testDb, trip.id, { name: 'Ridge walk' });
+    const plain = createPlace(testDb, trip.id, { name: 'Cafe' });
+    createTour(testDb, tour.id);
+
+    const rows = await places.listForTrip(String(trip.id), {});
+    const byId = new Map(rows.map((r) => [r.id, r.tour_place_id]));
+    expect(byId.get(tour.id)).toBe(tour.id);
+    expect(byId.get(plain.id)).toBeNull();
   });
 });

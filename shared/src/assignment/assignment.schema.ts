@@ -55,6 +55,8 @@ export const assignmentSchema = z.object({
   // this row and leaves it to road trip mode, which is the view that needs the
   // hotel in the driving chain. Null for every stop a traveller placed.
   accommodation_id: z.number().nullable().optional(),
+  tour_place_id: z.number().nullable().optional(),
+  tour_route_geometry: z.string().nullable().optional(),
   participants: z.array(assignmentParticipantSchema).optional(),
   created_at: z.string().optional(),
   place: assignmentPlaceSchema,

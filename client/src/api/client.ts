@@ -2,7 +2,7 @@ import { isEffectivelyOffline } from '../sync/networkMode'
 import axios, { AxiosInstance } from 'axios'
 import type { z } from 'zod'
 import type { Day, Place, Trip } from '../types'
-import type { MapsNearbyRequest, JourneyReorderEntryPhotosRequest, TransitProvider, GoogleQuotaUpdateRequest, NotificationDefaultsUpdateRequest } from '@trek/shared'
+import type { MapsNearbyRequest, JourneyReorderEntryPhotosRequest, TransitProvider, GoogleQuotaUpdateRequest, NotificationDefaultsUpdateRequest, TourListItem, TourImportGpxResponse, TourCreateRequest, TourCreateResponse, TourDetailResponse } from '@trek/shared'
 import { randomId } from '../utils/randomId'
 import { postProviderPhotosInBatches } from './providerPhotoBatches'
 import {
@@ -465,7 +465,8 @@ export const placesApi = {
     apiClient.post(`/trips/${tripId}/places`, data).then(r => r.data),
   get: (tripId: number | string, id: number | string) => apiClient.get(`/trips/${tripId}/places/${id}`).then(r => r.data),
   update: (tripId: number | string, id: number | string, data: PlaceUpdateRequest) => apiClient.put(`/trips/${tripId}/places/${id}`, data).then(r => r.data),
-  delete: (tripId: number | string, id: number | string) => apiClient.delete(`/trips/${tripId}/places/${id}`).then(r => r.data),
+  delete: (tripId: number | string, id: number | string): Promise<{ success: boolean; tourPlaceIds?: number[] }> =>
+    apiClient.delete(`/trips/${tripId}/places/${id}`).then(r => r.data),
   searchImage: (tripId: number | string, id: number | string) => apiClient.get(`/trips/${tripId}/places/${id}/image`).then(r => r.data),
   uploadImage: (tripId: number | string, id: number | string, file: File) => {
     const fd = new FormData()
@@ -511,6 +512,24 @@ export const placesApi = {
       apiClient.post(`/trips/${tripId}/places/bulk-delete`, { ids } satisfies PlaceBulkDeleteRequest).then(r => r.data),
   bulkUpdate: (tripId: number | string, ids: number[], data: Omit<PlaceBulkUpdateRequest, 'ids'>) =>
       apiClient.post(`/trips/${tripId}/places/bulk-update`, { ids, ...data } satisfies PlaceBulkUpdateRequest).then(r => r.data),
+}
+
+export const toursApi = {
+  list: (tripId: number | string): Promise<{ tours: TourListItem[] }> =>
+    apiClient.get(`/trips/${tripId}/tours`).then(r => r.data),
+  detail: (tripId: number | string, placeId: number | string, signal?: AbortSignal): Promise<TourDetailResponse> =>
+    (signal
+      ? apiClient.get(`/trips/${tripId}/tours/${placeId}`, { signal })
+      : apiClient.get(`/trips/${tripId}/tours/${placeId}`)).then(r => r.data),
+  create: (tripId: number | string, body: TourCreateRequest): Promise<TourCreateResponse> =>
+    apiClient.post(`/trips/${tripId}/tours`, body).then(r => r.data),
+  update: (tripId: number | string, placeId: number | string, body: TourCreateRequest): Promise<TourDetailResponse> =>
+    apiClient.put(`/trips/${tripId}/tours/${placeId}`, body).then(r => r.data),
+  importGpx: (tripId: number | string, file: File): Promise<TourImportGpxResponse> => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return postMultipart(`/trips/${tripId}/tours/import/gpx`, fd)
+  },
 }
 
 export const assignmentsApi = {

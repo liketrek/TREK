@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { dayColor } from '../Roadtrip/dayColors'
 import { useTripRouteOverview } from './useTripRouteOverview'
 import { buildAssignment, buildDay, buildPlace } from '../../../tests/helpers/factories'
+import { useAddonStore } from '../../store/addonStore'
 import type { AssignmentsMap, RouteSegment } from '../../types'
 
 vi.mock('./RouteCalculator', async (importActual) => {
@@ -38,6 +39,7 @@ const render = (enabled = true, assignments: AssignmentsMap = ASSIGNMENTS, days 
   )
 
 beforeEach(() => {
+  useAddonStore.setState({ addons: [] })
   vi.mocked(calculateRouteWithLegs).mockReset()
   vi.mocked(calculateRouteWithLegs).mockResolvedValue({
     coordinates: [[48.86, 2.35], [48.87, 2.355], [48.88, 2.36]],
@@ -47,6 +49,38 @@ beforeEach(() => {
 })
 
 describe('useTripRouteOverview', () => {
+  it('updates an excluded Tour-only overview from current Place geometry without routing or reframing edits', async () => {
+    useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', icon: 'Route', type: 'feature', enabled: true }] })
+    const geometry = [[48.1, 11.1], [48.2, 11.2], [48.3, 11.3]]
+    const place = buildPlace({ id: 71, lat: 48.1, lng: 11.1, route_geometry: JSON.stringify(geometry) })
+    const assignments = { '1': [buildAssignment({ day_id: 1, place, tour_place_id: 71,
+      tour_route_geometry: '[[49,12],[49.1,12.1]]', route_excluded: true })] }
+    const days = [DAYS[0]]
+    const { result, rerender } = renderHook(
+      ({ places, enabled }: { places: typeof place[]; enabled: boolean }) =>
+        useTripRouteOverview(7, days, assignments, [], [], 'walking', enabled, places),
+      { initialProps: { places: [place], enabled: true } },
+    )
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.days[0].tourLines).toEqual([geometry])
+    expect(result.current.focusPoints).toEqual(geometry)
+    expect(result.current.lines).toEqual([])
+    expect(calculateRouteWithLegs).not.toHaveBeenCalled()
+    const frame = result.current.focusPoints
+    const changed = [[48.1, 11.1], [48.25, 11.28], [48.3, 11.3]]
+    const places = [{ ...place, route_geometry: JSON.stringify(changed) }]
+    rerender({ places, enabled: true })
+    await waitFor(() => expect(result.current.days[0].tourLines).toEqual([changed]))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.focusPoints).toBe(frame)
+    expect(calculateRouteWithLegs).not.toHaveBeenCalled()
+    rerender({ places, enabled: false })
+    rerender({ places, enabled: true })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.focusPoints).toEqual(changed)
+    expect(result.current.focusPoints).not.toBe(frame)
+  })
+
   it('FE-MAP-TRO-001: does nothing at all until it is switched on', () => {
     const { result } = render(false)
 

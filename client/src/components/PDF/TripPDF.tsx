@@ -61,6 +61,7 @@ import {
 import { renderIconMarkup } from '../../utils/iconMarkup';
 import { safeHexColor } from '../../utils/safeColor';
 import { formatDistance } from '../../utils/units';
+import { projectDayItinerary } from '../Map/dayTourProjection';
 import { routeTrip, type TripRouteSummary } from '../Map/tripRouteGeometry';
 import { planCosts } from '../Planner/planCosts';
 import { isServiceStopType } from '../Roadtrip/roadtripModel';
@@ -406,6 +407,12 @@ export async function downloadTripPDF({
   const unit: DistanceUnit =
     (_distanceUnit || useSettingsStore.getState().settings.distance_unit) === 'imperial' ? 'imperial' : 'metric';
   let tripRoute: TripRouteSummary | null = null;
+  const toursEnabled = useAddonStore.getState().isEnabled('tours');
+  const hasInvalidTour =
+    toursEnabled &&
+    Object.values(assignments).some((list) =>
+      projectDayItinerary(list || [], true, places).some((item) => item.kind === 'tour' && !item.valid)
+    );
   try {
     tripRoute = await routeTrip(
       {
@@ -414,6 +421,8 @@ export async function downloadTripPDF({
         reservations,
         accommodations: accommodationList,
         optimizeFromAccommodation: useSettingsStore.getState().settings.optimize_from_accommodation,
+        toursEnabled,
+        places,
       },
       { profile: 'driving', tripId: trip.id, timeoutMs: 8000 }
     );
@@ -1152,6 +1161,7 @@ export async function downloadTripPDF({
 </div>
 
 <!-- Trip map -->
+${hasInvalidTour ? `<p role="status" style="color:#b45309">${escHtml(tr('tours.dayRoute.endpointUnknown'))}</p>` : ''}
 ${tripMapHtml}
 
 <!-- Days -->

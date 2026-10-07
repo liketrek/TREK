@@ -3,6 +3,7 @@ import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import { Days } from '../../db/entities/Days.entity';
 import { Places } from '../../db/entities/Places.entity';
 import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import { Tours } from '../../db/entities/Tours.entity';
 import { TripMembers } from '../../db/entities/TripMembers.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { JourneyDomainModule } from '../journey/journey-domain.module';
@@ -30,7 +31,8 @@ import { Module } from '@nestjs/common';
  * added by Plan 3d Task 1 for AS20–AS23) — the entity classes only, not the
  * `DaysModule`/`PlacesModule`/`RoadtripModule` modules themselves, so the
  * loop this module's docstring already avoids stays avoided (`DaysModule`'s
- * own precedent for pulling in `Trips` the same way).
+ * own precedent for pulling in `Trips` the same way). `Tours` backs the
+ * one-Tour-per-day check create and move share.
  */
 @Module({
   imports: [
@@ -38,7 +40,16 @@ import { Module } from '@nestjs/common';
     QueryHelpersModule,
     JourneyDomainModule,
     RealtimeModule,
-    MikroOrmModule.forFeature([DayAssignments, AssignmentParticipants, Days, Places, TripMembers, RoadtripVias, Trips]),
+    MikroOrmModule.forFeature([
+      DayAssignments,
+      AssignmentParticipants,
+      Days,
+      Places,
+      TripMembers,
+      RoadtripVias,
+      Trips,
+      Tours,
+    ]),
   ],
   providers: [AssignmentsService],
   exports: [AssignmentsService],

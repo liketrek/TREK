@@ -424,7 +424,7 @@ describe('TripPlannerPage', () => {
       renderPlannerPage(15);
 
       await waitFor(() => {
-        expect(mockUseTripWebSocket).toHaveBeenCalledWith(15);
+        expect(mockUseTripWebSocket).toHaveBeenCalledWith(15, expect.any(Function));
       });
     });
   });

@@ -15,7 +15,8 @@ interface DayClearOptions {
   toast: { error: (message: string) => unknown }
   roadtripVias: Pick<RoadtripVias, 'byDay' | 'reanchor'>
   updateRouteForDay: (dayId: number) => void
-  pushUndo: (label: string, undoFn: () => Promise<void> | void, dayIds?: number[]) => void
+  pushUndo: (label: string, undoFn: () => Promise<void> | void, dayIds?: number[], placeIds?: number[]) => void
+  onToursChanged?: () => void | Promise<void>
 }
 
 export interface DayClear {
@@ -37,7 +38,7 @@ const byNumber = (a: Day, b: Day): number => (a.day_number ?? 0) - (b.day_number
  * places back in their old order.
  */
 export function useDayClear(options: DayClearOptions): DayClear {
-  const { tripId, days, canEditDays, t, locale, toast, roadtripVias, updateRouteForDay, pushUndo } = options
+  const { tripId, days, canEditDays, t, locale, toast, roadtripVias, updateRouteForDay, pushUndo, onToursChanged } = options
   const [clearDayId, setClearDayId] = useState<number | null>(null)
 
   const ordered = useMemo(() => [...days].sort(byNumber), [days])
@@ -68,14 +69,16 @@ export function useDayClear(options: DayClearOptions): DayClear {
       return
     }
     updateRouteForDay(dayId)
+    await onToursChanged?.()
     const placeIds = cleared.map(a => a.place?.id).filter((id): id is number => id != null)
     pushUndo(t('undo.clearDay'), async () => {
       // One after the other: each lands at the position the one before it left free.
       for (const [position, placeId] of placeIds.entries()) {
         await useTripStore.getState().assignPlaceToDay(tripId, dayId, placeId, position)
       }
-    }, [dayId])
-  }, [clearDayId, tripId, roadtripVias, toast, t, updateRouteForDay, pushUndo])
+      await onToursChanged?.()
+    }, [dayId], placeIds)
+  }, [clearDayId, tripId, roadtripVias, toast, t, updateRouteForDay, pushUndo, onToursChanged])
 
   return { clearDayId, clearDayTitle, handleClearDay, cancelClearDay, confirmClearDay }
 }

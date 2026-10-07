@@ -28,8 +28,9 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
 
   // Derived from the same priority list the dock seats itself from, so a section
   // can never show up in both places at once.
-  const seated = dockTabIds(new Set(planner.TRIP_TABS.map((tab) => tab.id)));
-  const gridTabs = planner.TRIP_TABS.filter((tab) => !seated.has(tab.id));
+  const mobileTabs = planner.TRIP_TABS.filter((tab) => !tab.desktopOnly);
+  const seated = dockTabIds(new Set(mobileTabs.map((tab) => tab.id)));
+  const gridTabs = mobileTabs.filter((tab) => !seated.has(tab.id));
 
   const tileStat = (id: string): string | null => {
     if (id === 'dateien') {

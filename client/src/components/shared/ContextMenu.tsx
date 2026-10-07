@@ -6,6 +6,7 @@ interface MenuItem {
   label?: string;
   icon?: LucideIcon;
   onClick?: () => void;
+  disabled?: boolean;
   danger?: boolean;
   divider?: boolean;
 }
@@ -98,7 +99,9 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
           <button
             type="button"
             key={i}
+            disabled={item.disabled}
             onClick={() => {
+              if (item.disabled) return;
               item.onClick?.();
               onClose();
             }}
@@ -111,17 +114,19 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
               borderRadius: 7,
               border: 'none',
               background: 'none',
-              cursor: 'pointer',
+              cursor: item.disabled ? 'default' : 'pointer',
               fontFamily: 'inherit',
               fontSize: 'calc(12px * var(--fs-scale-body, 1))',
               fontWeight: 500,
               textAlign: 'left',
               color: item.danger ? '#ef4444' : 'var(--text-primary)',
+              opacity: item.disabled ? 0.45 : 1,
               transition: 'background 0.1s',
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.08)' : 'var(--bg-hover)')
-            }
+            onMouseEnter={(e) => {
+              if (!item.disabled)
+                e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.08)' : 'var(--bg-hover)';
+            }}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
           >
             {Icon && <Icon size={13} style={{ flexShrink: 0, color: item.danger ? '#ef4444' : 'var(--text-faint)' }} />}

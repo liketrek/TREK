@@ -1,6 +1,7 @@
 import {
   absDifference,
   caseWhenEquals,
+  caseWhenNotNull,
   castInteger,
   castIntegerKysely,
   coalesce,
@@ -702,6 +703,32 @@ describe('sql-functions (sqlite)', () => {
     expect(() => caseWhenEquals(foreign, 'u.id', 1, 'owner', 'member')).toThrow(
       /no implementation for platform FakePlatform/,
     );
+  });
+
+  // Tours (#2586): the assignment projection's `tour_route_geometry` column.
+  it('SQLF-098: caseWhenNotNull yields the THEN column only where the test column is not null', async () => {
+    const { user: a } = createUser(testDb);
+    const { user: b } = createUser(testDb);
+    testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('Shown', a.id);
+    testDb.prepare('UPDATE users SET display_name = NULL WHERE id = ?').run(b.id);
+    const platform = t.em.getPlatform();
+
+    const rows = await t.em
+      .createQueryBuilder(Users, 'u')
+      .select(['u.id', caseWhenNotNull(platform, 'u.display_name', 'u.username').as('picked')])
+      .where({ id: { $in: [a.id, b.id] } })
+      .orderBy({ id: 'asc' })
+      .execute('all', false);
+    expect(rows).toEqual([
+      { id: a.id, picked: a.username },
+      { id: b.id, picked: null },
+    ]);
+  });
+
+  it('SQLF-099: an unknown platform fails closed for caseWhenNotNull', () => {
+    class FakePlatform extends Platform {}
+    const foreign = new FakePlatform();
+    expect(() => caseWhenNotNull(foreign, 'u.a', 'u.b')).toThrow(/no implementation for platform FakePlatform/);
   });
 
   // Task 1 fix review M1 (`PlaceShadowPicksRepository.countBySource`, PS5):

@@ -39,8 +39,8 @@ export async function renderTripMapImage(
   opts: TripMapImageOptions,
 ): Promise<string | null> {
   const { width, height } = opts
-  const drawn = days.filter(d => d.lines.some(line => line.length > 1))
-  const points = drawn.flatMap(d => d.lines.flat())
+  const drawn = days.filter(d => [...d.lines, ...(d.tourLines ?? [])].some(line => line.length > 1))
+  const points = drawn.flatMap(d => [...d.lines, ...(d.tourLines ?? [])].flat())
   if (points.length < 2 || !hasWebGL()) return null
 
   let container: HTMLDivElement | null = null

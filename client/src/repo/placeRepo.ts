@@ -80,7 +80,7 @@ export const placeRepo = {
     return result
   },
 
-  async delete(tripId: number | string, id: number | string): Promise<unknown> {
+  async delete(tripId: number | string, id: number | string): Promise<{ success?: boolean; tourPlaceIds?: number[] }> {
     if (isEffectivelyOffline()) {
       await offlineDb.places.delete(Number(id))
       const mutId = generateUUID()
@@ -102,7 +102,7 @@ export const placeRepo = {
     return result
   },
 
-  async deleteMany(tripId: number | string, ids: number[]): Promise<unknown> {
+  async deleteMany(tripId: number | string, ids: number[]): Promise<{ deleted?: number[]; count?: number; tourPlaceIds?: number[] }> {
     if (isEffectivelyOffline()) {
       await offlineDb.places.bulkDelete(ids)
       for (const id of ids) {

@@ -210,6 +210,71 @@ describe('usePlacesSidebar filtering', () => {
     expect(names()).toEqual(['GPX Track']);
   });
 
+  it('Tours addon excludes Tour-backed Places from rows, counts, and localities', () => {
+    const legacyTrack = buildPlace({
+      id: 41,
+      name: 'Legacy track',
+      route_geometry: '[[1,2],[3,4]]',
+      rating_avg: 4,
+      address: 'Vienna, Austria',
+    });
+    const ordinary = buildPlace({ id: 42, name: 'Ordinary place', address: 'Linz, Austria' });
+    const tour = buildPlace({
+      id: 43,
+      name: 'Tour place',
+      tour_place_id: 43,
+      route_geometry: '[[5,6],[7,8]]',
+      address: 'Denver, United States',
+    });
+    render(
+      <Host
+        {...makeProps({
+          places: [legacyTrack, ordinary, tour],
+          toursEnabled: true,
+          excludePlaceIds: new Set([tour.id]),
+        })}
+      />
+    );
+
+    expect(S.hasTracks).toBe(false);
+    expect(names()).toEqual(expect.arrayContaining(['Legacy track', 'Ordinary place']));
+    expect(names()).not.toContain('Tour place');
+    expect(S.filterCounts).toEqual({ all: 2, unplanned: 2, planned: 0, tracks: 1 });
+    expect(S.localities).toEqual([{ country: 'Austria', count: 2, regions: [] }]);
+
+    act(() => {
+      S.setRatingFilter(4);
+    });
+    expect(names()).toEqual(['Legacy track']);
+    expect(S.filterCounts.all).toBe(2);
+  });
+
+  it('Tours addon OFF preserves legacy track Places and ignores the exclusion set', () => {
+    const legacyTrack = buildPlace({ id: 51, name: 'Legacy track', route_geometry: '[[1,2],[3,4]]' });
+    const dormantTour = buildPlace({
+      id: 52,
+      name: 'Dormant Tour',
+      tour_place_id: 52,
+      route_geometry: '[[5,6],[7,8]]',
+    });
+    render(
+      <Host
+        {...makeProps({
+          places: [legacyTrack, dormantTour],
+          toursEnabled: false,
+          excludePlaceIds: new Set([dormantTour.id]),
+        })}
+      />
+    );
+
+    expect(S.hasTracks).toBe(true);
+    expect(S.filterCounts).toEqual({ all: 2, unplanned: 2, planned: 0, tracks: 2 });
+    act(() => {
+      S.setFilter('tracks');
+    });
+    expect(names()).toEqual(expect.arrayContaining(['Legacy track', 'Dormant Tour']));
+  });
+
   // FE-PLANNER-PSHOOK-008 (a tracks filter without any track falls back to "all")
   // moved to useTripPlanner (FE-TP-HOOK-177): the fallback now lives there, so it
   // also holds while no places list is mounted.

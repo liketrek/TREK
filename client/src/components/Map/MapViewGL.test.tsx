@@ -31,6 +31,7 @@ const glMap = vi.hoisted(() => ({
   flyTo: vi.fn(),
   jumpTo: vi.fn(),
   getZoom: vi.fn().mockReturnValue(10),
+  getCenter: vi.fn(() => ({ lng: 0, lat: 0 })),
   addControl: vi.fn(),
   removeControl: vi.fn(),
   remove: vi.fn(),
@@ -912,6 +913,153 @@ describe('MapViewGL', () => {
     const calls = vi.mocked(src.setData).mock.calls;
     return calls[calls.length - 1][0] as { features: GeoFeature[] };
   }
+
+  it('moves a passive semantic profile focus pin without changing the map camera', async () => {
+    loadOnAttach();
+    const focus = { distanceMeters: 120, elevationMeters: 340, lat: 48.123, lng: 11.456, sampleIndex: 3 };
+    const focusPoints: [number, number][] = [
+      [48.1, 11.4],
+      [48.2, 11.5],
+    ];
+    const route: [number, number][][] = [
+      [
+        [48.1, 11.4],
+        [48.2, 11.5],
+      ],
+    ];
+    const { rerender } = render(
+      <MapViewGL
+        places={[]}
+        route={route}
+        fitKey={1}
+        focusPoints={focusPoints}
+        glProvider="maplibre-gl"
+        routeProfileFocus={focus}
+      />
+    );
+    await act(async () => {});
+
+    const marker = glCanvasContainer.querySelector<HTMLElement>('[data-tour-profile-focus="true"]');
+    expect(marker).not.toBeNull();
+    const projected = glMap.project([focus.lng, focus.lat]);
+    expect(marker?.style.transform).toContain(`translate(${projected.x}px, ${projected.y}px)`);
+    expect(marker?.style.pointerEvents).toBe('none');
+    expect(marker?.style.background).toBe('var(--text-muted)');
+    expect(marker?.style.border).toBe('3px solid var(--bg-card)');
+    expect(glCanvasContainer.contains(marker)).toBe(true);
+    glMap.fitBounds.mockClear();
+    glMap.flyTo.mockClear();
+    glMap.jumpTo.mockClear();
+    glMap.easeTo.mockClear();
+
+    const movedFocus = { ...focus, lat: 48.16, lng: 11.47 };
+    rerender(
+      <MapViewGL
+        places={[]}
+        route={route}
+        fitKey={1}
+        focusPoints={focusPoints}
+        glProvider="maplibre-gl"
+        routeProfileFocus={movedFocus}
+      />
+    );
+    await act(async () => {});
+    const movedMarker = glCanvasContainer.querySelector<HTMLElement>('[data-tour-profile-focus="true"]');
+    expect(movedMarker).toBe(marker);
+    expect(movedMarker?.style.transform).toContain(
+      `translate(${glMap.project([movedFocus.lng, movedFocus.lat]).x}px, ${glMap.project([movedFocus.lng, movedFocus.lat]).y}px)`
+    );
+    expect(glMap.fitBounds).not.toHaveBeenCalled();
+    expect(glMap.flyTo).not.toHaveBeenCalled();
+    expect(glMap.jumpTo).not.toHaveBeenCalled();
+    expect(glMap.easeTo).not.toHaveBeenCalled();
+
+    rerender(
+      <MapViewGL
+        places={[]}
+        route={route}
+        fitKey={1}
+        focusPoints={focusPoints}
+        glProvider="maplibre-gl"
+        routeProfileFocus={null}
+      />
+    );
+    await act(async () => {});
+    expect(glCanvasContainer.contains(marker)).toBe(false);
+    expect(glMap.fitBounds).not.toHaveBeenCalled();
+    expect(glMap.flyTo).not.toHaveBeenCalled();
+    expect(glMap.jumpTo).not.toHaveBeenCalled();
+    expect(glMap.easeTo).not.toHaveBeenCalled();
+  });
+
+  it('frames Tour focus once, ignores waypoint and route updates, then honors a new focus intent', async () => {
+    loadOnAttach();
+    const { rerender } = render(
+      <MapViewGL
+        places={[]}
+        route={null}
+        followSelection={false}
+        focusKey={1}
+        focusPoints={[
+          [48, 11],
+          [48.2, 11.3],
+        ]}
+        glProvider="maplibre-gl"
+      />
+    );
+    await act(async () => {});
+    expect(glMap.fitBounds).toHaveBeenCalledOnce();
+    glMap.fitBounds.mockClear();
+    const mapConstructions = (maplibregl.Map as any).mock.calls.length;
+    const retainedCenter = { lng: 135.8, lat: 35.2 };
+    glMap.getCenter.mockReturnValue(retainedCenter);
+    glMap.getZoom.mockReturnValue(12);
+
+    rerender(<MapViewGL places={[]} followSelection={false} focusKey={2} focusPoints={[]} glProvider="maplibre-gl" />);
+    await act(async () => {});
+    expect(glMap.fitBounds).not.toHaveBeenCalled();
+    expect(glMap.flyTo).not.toHaveBeenCalled();
+    expect(glMap.jumpTo).not.toHaveBeenCalled();
+    expect(glMap.easeTo).not.toHaveBeenCalled();
+    expect((maplibregl.Map as any).mock.calls).toHaveLength(mapConstructions);
+    expect(glMap.getCenter()).toEqual(retainedCenter);
+    expect(glMap.getZoom()).toBe(12);
+
+    rerender(
+      <MapViewGL
+        places={[]}
+        followSelection={false}
+        focusKey={2}
+        focusPoints={[[35.01, 135.76]]}
+        glProvider="maplibre-gl"
+      />
+    );
+    await act(async () => {});
+    expect(glMap.fitBounds).toHaveBeenCalledOnce();
+  });
+
+  it('keeps selection fit and the pending route-arrival refit for semantic changes', async () => {
+    loadOnAttach();
+    const selectedPlace = buildPlace({ id: 902, lat: 48, lng: 11 });
+    const route: [number, number][][] = [
+      [
+        [48, 11],
+        [48.2, 11.3],
+      ],
+    ];
+    const { rerender } = render(<MapViewGL places={[]} route={null} fitKey={0} glProvider="maplibre-gl" />);
+    await act(async () => {});
+    glMap.fitBounds.mockClear();
+
+    rerender(<MapViewGL places={[selectedPlace]} route={null} fitKey={1} glProvider="maplibre-gl" />);
+    await act(async () => {});
+    expect(glMap.fitBounds).toHaveBeenCalled();
+    glMap.fitBounds.mockClear();
+
+    rerender(<MapViewGL places={[selectedPlace]} route={route} fitKey={2} glProvider="maplibre-gl" />);
+    await act(async () => {});
+    expect(glMap.fitBounds).toHaveBeenCalled();
+  });
 
   // jsdom drives requestAnimationFrame off a timer, so the marker reconcile and
   // the batched photo updates only land after a short tick.
@@ -2089,6 +2237,53 @@ describe('MapViewGL', () => {
     expect(features[1].properties.color).toBeNull();
   });
 
+  it('uses view-local Topo tiles and controls without writing settings or moving the camera', async () => {
+    glMap.on.mockImplementation((event, handlerOrLayer) => {
+      if (event === 'load' && typeof handlerOrLayer === 'function') handlerOrLayer();
+      return glMap;
+    });
+    const onChange = vi.fn();
+    const settings = useSettingsStore.getState().settings.map_base_layer;
+    const { container, rerender } = render(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        viewBaseLayer="topo"
+        onViewBaseLayerChange={onChange}
+      />
+    );
+    await act(async () => {});
+    expect(glMap.addSource).toHaveBeenCalledWith(
+      'trip-topo',
+      expect.objectContaining({
+        type: 'raster',
+        tiles: ['a', 'b', 'c'].map((subdomain) => `https://${subdomain}.tile.opentopomap.org/{z}/{x}/{y}.png`),
+      })
+    );
+    const button = Array.from(container.querySelectorAll('button')).find((element) => element.textContent === 'Topo')!;
+    expect(button).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(button);
+    expect(onChange).toHaveBeenCalledWith('topo');
+    expect(useSettingsStore.getState().settings.map_base_layer).toBe(settings);
+    glMap.fitBounds.mockClear();
+    glMap.flyTo.mockClear();
+    glMap.jumpTo.mockClear();
+    rerender(
+      <MapViewGL
+        places={[]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+        viewBaseLayer="default"
+        onViewBaseLayerChange={onChange}
+      />
+    );
+    await act(async () => {});
+    expect(glMap.fitBounds).not.toHaveBeenCalled();
+    expect(glMap.flyTo).not.toHaveBeenCalled();
+    expect(glMap.jumpTo).not.toHaveBeenCalled();
+  });
+
   it('FE-COMP-MAPVIEWGL-049: unusable GPX geometry is skipped instead of breaking the layer', async () => {
     const gpxSource = geoSource();
     glMap.getSource.mockImplementation((id: string) => (id === 'trip-gpx' ? gpxSource : null));
@@ -2105,6 +2300,77 @@ describe('MapViewGL', () => {
     const { features } = lastData(gpxSource);
     expect(features).toHaveLength(1);
     expect(features[0].properties.place_id).toBe(74);
+  });
+
+  it.each([
+    [
+      'two-point',
+      [
+        [48, 2],
+        [49, 3],
+      ],
+    ],
+    [
+      'elevation',
+      [
+        [48, 2, 12.5],
+        [49, 3, 22.75],
+      ],
+    ],
+    ['long track', Array.from({ length: 1200 }, (_, index) => [48 + index / 100000, 2 + index / 100000])],
+    [
+      'loop',
+      [
+        [48, 2],
+        [48.1, 2.1],
+        [48, 2],
+      ],
+    ],
+    [
+      'point-to-point Tour',
+      [
+        [48, 2],
+        [48.5, 2.5],
+        [49, 3],
+      ],
+    ],
+  ])('renders valid %s geometry with MapLibre coordinate order', async (_label, geometry) => {
+    const features = gpxFeatures();
+    render(<MapViewGL places={[buildMapPlace({ route_geometry: JSON.stringify(geometry) })]} fitKey={1} />);
+    await act(async () => {});
+    expect(features()).toHaveLength(1);
+    expect(features()[0].geometry.coordinates).toEqual(geometry.map(([lat, lng]) => [lng, lat]));
+  });
+
+  it.each([
+    ['malformed JSON', 'not json'],
+    ['non-array JSON', '{"coordinates":[]}'],
+    ['one point', '[[48,2]]'],
+    ['missing coordinate dimension', '[[48],[49,3]]'],
+    ['string coordinates', '[[48,"2"],[49,3]]'],
+    ['NaN token', '[[48,2],[NaN,3]]'],
+    ['Infinity token', '[[48,2],[49,Infinity]]'],
+    ['out-of-range latitude', '[[48,2],[91,3]]'],
+    ['out-of-range longitude', '[[48,2],[49,181]]'],
+    ['all-invalid coordinates', '[[91,2],[49,181]]'],
+  ])('omits %s geometry from the MapLibre source', async (_label, geometry) => {
+    const features = gpxFeatures();
+    expect(() => render(<MapViewGL places={[buildMapPlace({ route_geometry: geometry })]} fitKey={1} />)).not.toThrow();
+    await act(async () => {});
+    expect(features()).toHaveLength(0);
+  });
+
+  it('filters invalid points and preserves valid order in the MapLibre source', async () => {
+    const features = gpxFeatures();
+    const geometry = '[[48,2],null,[91,4],[48.5,2.5],[49,3]]';
+    render(<MapViewGL places={[buildMapPlace({ route_geometry: geometry })]} fitKey={1} />);
+    await act(async () => {});
+    expect(features()).toHaveLength(1);
+    expect(features()[0].geometry.coordinates).toEqual([
+      [2, 48],
+      [2.5, 48.5],
+      [3, 49],
+    ]);
   });
 
   it('FE-COMP-MAPVIEWGL-050: without a Mapbox token it shows the settings hint and touches no camera', async () => {

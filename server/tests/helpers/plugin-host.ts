@@ -165,6 +165,7 @@ import {
   createTestRoadtripDayBoundariesRepo,
 } from './test-uow';
 import { createTestTodoItemsRepo, createTestTodoCategoryAssigneesRepo } from './todo-repos';
+import { createTestToursRepo } from './tours-repos';
 import {
   createTestVacayPlansRepo,
   createTestVacayPlanMembersRepo,
@@ -389,6 +390,7 @@ export async function createPluginRpcHostFactory(db: Database.Database): Promise
     await createTestPlacesRepo(db),
     await createTestTripMembersRepo(db),
     await createTestRoadtripViasRepo(db),
+    await createTestToursRepo(db),
   );
   const membership = new TripMembershipService(await createTestTripsRepo(db), await createTestTripMembersRepo(db));
   const notifications = await makeNotificationsService(db, realtime);

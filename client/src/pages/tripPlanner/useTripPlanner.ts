@@ -9,7 +9,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { dayColor } from '../../components/Roadtrip/dayColors'
 import { getCached, fetchPhoto } from '../../services/photoService'
 import { useToast } from '../../components/shared/Toast'
-import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Route } from 'lucide-react'
+import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Mountain, Route } from 'lucide-react'
 import { resolvePluginIcon } from '../../components/shared/PluginIcon'
 import { useTranslation, translateApiError } from '../../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, healthApi, airtrailApi, mapsApi, placesApi } from '../../api/client'
@@ -62,6 +62,8 @@ import type { StayDraft } from '../../components/Roadtrip/RoadtripStayModal'
 import { inspectorStay } from '../../components/Roadtrip/stayReading'
 import { MAX_TRIP_DAYS, normalizePlaceWebsite, type RoadtripStopType } from '@trek/shared'
 import { usePlaceSelection } from '../../hooks/usePlaceSelection'
+import { useTourPlaceIds } from '../../hooks/useTourPlaceIds'
+import { useAddonStore } from '../../store/addonStore'
 import { usePlannerHistory } from '../../hooks/usePlannerHistory'
 import { useAirtrailConnection } from '../../hooks/useAirtrailConnection'
 import { useIsTouch } from '../../hooks/useIsTouch'
@@ -130,7 +132,7 @@ export function useTripPlanner() {
   const tripActions = useRef(useTripStore.getState()).current
   const can = useCanDo()
   const canUploadFiles = can('file_upload', trip)
-  const { pushUndo, undo, forgetDay, canUndo, lastActionLabel } = usePlannerHistory()
+  const { pushUndo, undo, forgetDay, forgetPlace, canUndo, lastActionLabel } = usePlannerHistory()
 
   // A step that could not be taken back says so instead of claiming it was.
   const handleUndo = useCallback(async () => {
@@ -140,7 +142,7 @@ export function useTripPlanner() {
     else if (undone) toast.info(t('undo.done', { action: label ?? '' }))
   }, [undo, lastActionLabel, toast])
 
-  const [enabledAddons, setEnabledAddons] = useState<Record<string, boolean>>({ packing: true, budget: true, documents: true, collab: false, roadtrip: false, dawarich: false })
+  const [enabledAddons, setEnabledAddons] = useState<Record<string, boolean>>({ packing: true, budget: true, documents: true, collab: false, roadtrip: false, tours: false, dawarich: false })
   // The values above are an optimistic guess until the addon feed answers. The
   // tab guard below waits for this before evicting anything, so a tab we were
   // asked to open ('collab' in particular, guessed off) survives the gap.
@@ -226,7 +228,7 @@ export function useTripPlanner() {
     addonsApi.enabled().then(data => {
       const map: Record<string, boolean> = {}
       data.addons.forEach(a => { map[a.id] = true })
-      setEnabledAddons({ packing: !!map.packing, budget: !!map.budget, documents: !!map.documents, collab: !!map.collab, roadtrip: !!map.roadtrip, dawarich: !!map.dawarich })
+        setEnabledAddons({ packing: !!map.packing, budget: !!map.budget, documents: !!map.documents, collab: !!map.collab, roadtrip: !!map.roadtrip, tours: !!map.tours, dawarich: !!map.dawarich })
       if (data.collabFeatures) setCollabFeatures(data.collabFeatures)
     }).catch(() => {}).finally(() => setAddonsLoaded(true))
     authApi.getAppConfig().then(config => {
@@ -243,6 +245,7 @@ export function useTripPlanner() {
   const replacedTabs = new Set(tripPagePlugins.flatMap(p => p.tripPage?.replaces ?? []))
   const TRIP_TABS = [
     { id: 'plan', label: t(TRIP_TAB_LABEL_KEYS.plan), icon: Map },
+    ...(enabledAddons.tours && !isMobile ? [{ id: 'tour-planner', label: t(TRIP_TAB_LABEL_KEYS['tour-planner']), icon: Mountain, desktopOnly: true }] : []),
     { id: 'transports', label: t(TRIP_TAB_LABEL_KEYS.transports), icon: Train },
     { id: 'buchungen', label: t(TRIP_TAB_LABEL_KEYS.buchungen), shortLabel: t('trip.tabs.reservationsShort'), icon: Ticket },
     // Phone only: the desktop reaches the drive through the mode switch beside the
@@ -283,7 +286,7 @@ export function useTripPlanner() {
       setActiveTab('plan')
       sessionStorage.setItem(`trip-tab-${tripId}`, 'plan')
     }
-  }, [activeTab, enabledAddons, addonsLoaded, tripPluginIds, pluginsLoaded])
+  }, [activeTab, enabledAddons, addonsLoaded, tripPluginIds, pluginsLoaded, isMobile])
 
   const handleTabChange = (rawTabId: string): void => {
     // A core tab a plugin replaced is gone from the bar, but a programmatic jump
@@ -314,6 +317,21 @@ export function useTripPlanner() {
     startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
   } = useResizablePanels()
   const { selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment } = usePlaceSelection()
+  const toursEnabled = useAddonStore(state => state.isEnabled('tours'))
+  const [toursMode, setToursMode] = useState(false)
+  const previousToursModeRef = useRef(false)
+  const { tours, toursLoading, tourDataReady, tourPlaceIds, reloadTourPlaceIds, invalidateTourPlaceIds, upsertTour } = useTourPlaceIds(tripId, toursEnabled)
+
+  useEffect(() => {
+    if (!toursEnabled) {
+      setToursMode(false)
+      previousToursModeRef.current = false
+      return
+    }
+    const enteredToursMode = toursMode && !previousToursModeRef.current
+    previousToursModeRef.current = toursMode
+    if (enteredToursMode) setSelectedPlaceId(null)
+  }, [toursEnabled, toursMode, setSelectedPlaceId])
   const [dayDetail, setShowDayDetail] = useState<Day | null>(null)
   // A day deleted while its panel is open, here or by a fellow traveller, takes
   // the panel along instead of leaving it on a day that is gone.
@@ -576,6 +594,10 @@ export function useTripPlanner() {
   const mobilePlacesScrollTopRef = useRef<number>(0)
   const [deletePlaceId, setDeletePlaceId] = useState<number | null>(null)
   const [deletePlaceIds, setDeletePlaceIds] = useState<number[] | null>(null)
+  const isTourPlace = useCallback((placeId: number) => tourPlaceIds.has(placeId)
+    || places.some(place => place.id === placeId && place.tour_place_id === placeId), [places, tourPlaceIds])
+  const deletePlaceIsTour = deletePlaceId != null && isTourPlace(deletePlaceId)
+  const deletePlacesIncludeTours = !!deletePlaceIds?.some(isTourPlace)
   /**
    * The sentence the delete question adds when a night is booked at one of the places.
    *
@@ -706,7 +728,7 @@ export function useTripPlanner() {
     return () => window.removeEventListener('accommodations:refresh', onRefresh)
   }, [loadAccommodations])
 
-  useTripWebSocket(tripId)
+  useTripWebSocket(tripId, invalidateTourPlaceIds)
 
   // Same filter the places sidebar renders — shared via the store so tab
   // switches can't desync the marker set from the filter UI (#1541).
@@ -774,7 +796,7 @@ export function useTripPlanner() {
   // mounted while the phone map is in front, and the map would sit empty under a
   // "Tracks" filter no control offers any more.
   const setPlacesFilter = useTripStore((s) => s.setPlacesFilter)
-  const hasTracks = useMemo(() => places.some(p => p.route_geometry), [places])
+  const hasTracks = useMemo(() => !toursEnabled && places.some(p => p.route_geometry), [places, toursEnabled])
   useEffect(() => {
     if (placesFilter === 'tracks' && !hasTracks) setPlacesFilter('all')
   }, [placesFilter, hasTracks, setPlacesFilter])
@@ -783,7 +805,7 @@ export function useTripPlanner() {
   // Road trip mode already draws the whole trip its own way, so the overview stands
   // down there rather than drawing a second set of lines over it.
   const overviewActive = overviewShown && !roadtripMode
-  const tripOverview = useTripRouteOverview(tripId, days, assignments, reservations, tripAccommodations, routeProfile, overviewActive)
+  const tripOverview = useTripRouteOverview(tripId, days, assignments, reservations, tripAccommodations, routeProfile, overviewActive, places)
 
   // Road trip mode reads the whole trip, not the selected day, so it owns its own legs.
   // Passing no days while the mode is off keeps it inert — no routing requests, no state.
@@ -2350,6 +2372,10 @@ export function useTripPlanner() {
   // place's lone assignment to hydrate & persist its times; with 0 or 2+
   // assignments the time is ambiguous and the modal hides the fields (#1247).
   const openPlaceEditor = useCallback((place: Place, preferredAssignmentId: number | null = null) => {
+    if (isMobile && isTourPlace(place.id)) {
+      handlePlaceClick(place.id, preferredAssignmentId)
+      return
+    }
     if (!can('place_edit', trip)) return
     if (roadtripActive && (isServiceStopType(place.stop_type) || tripAccommodations.some(stay => stay.place_id === place.id)) && typeof place.lat === 'number' && typeof place.lng === 'number') {
       const visitId = preferredAssignmentId ?? resolvePoolAssignmentId(assignments, place.id)
@@ -2375,7 +2401,7 @@ export function useTripPlanner() {
     setPlaceFormDayId(null)
     setServiceStopForm(false)
     setShowPlaceForm(true)
-  }, [can, trip, assignments, roadtripActive, tripAccommodations, days, overnightOptions, roadtripRoutes.days])
+  }, [isMobile, isTourPlace, handlePlaceClick, can, trip, assignments, roadtripActive, tripAccommodations, days, overnightOptions, roadtripRoutes.days])
 
   /**
    * How long the drive stands here, for every stop alike.
@@ -2389,24 +2415,42 @@ export function useTripPlanner() {
     setStayDraft(draft)
   }, [])
 
-  const handleDeletePlace = useCallback((placeId) => {
-    if (!can('place_edit', trip)) return
-    setDeletePlaceId(placeId)
-  }, [can, trip])
+  const handleDeletePlace = useCallback(
+    (placeId) => {
+      if (!can('place_edit', trip)) return
+      if (toursEnabled && isTourPlace(placeId)) return
+      setDeletePlaceId(placeId)
+    },
+    [can, trip, toursEnabled, isTourPlace]
+  )
+
+  const handleDeleteTour = useCallback(
+    (placeId: number) => {
+      if (!can('place_edit', trip) || !toursEnabled || !isTourPlace(placeId)) return
+      setDeletePlaceId(placeId)
+    },
+    [can, trip, toursEnabled, isTourPlace]
+  )
 
   const confirmDeletePlace = useCallback(async () => {
-    if (!deletePlaceId) return
+    if (!deletePlaceId) return null
     const state = useTripStore.getState()
     const capturedPlace = state.places.find(p => p.id === deletePlaceId)
     const capturedAssignments = Object.entries(state.assignments).flatMap(([dayId, as]) =>
       as.filter(a => a.place?.id === deletePlaceId).map(a => ({ dayId: Number(dayId), orderIndex: a.order_index }))
     )
     try {
-      await tripActions.deletePlace(tripId, deletePlaceId)
+      const deletion = await tripActions.deletePlace(tripId, deletePlaceId)
+      const deletedTour = Array.isArray(deletion?.tourPlaceIds)
+        ? deletion.tourPlaceIds.includes(deletePlaceId)
+        : isTourPlace(deletePlaceId)
+      if (deletedTour) invalidateTourPlaceIds({ removedPlaceIds: [deletePlaceId] })
+      else void reloadTourPlaceIds()
       if (selectedPlaceId === deletePlaceId) setSelectedPlaceId(null)
       updateRouteForDay(selectedDayId)
       toast.success(t('trip.toast.placeDeleted'))
-      if (capturedPlace) {
+      if (deletedTour) forgetPlace(deletePlaceId)
+      else if (capturedPlace) {
         pushUndo(t('undo.deletePlace'), async () => {
           const newPlace = await tripActions.addPlace(tripId, {
             name: capturedPlace.name,
@@ -2426,8 +2470,12 @@ export function useTripPlanner() {
           }
         })
       }
-    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
-  }, [deletePlaceId, tripId, toast, selectedPlaceId, selectedDayId, updateRouteForDay, pushUndo])
+      return deletedTour ? deletePlaceId : null
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+      return null
+    }
+  }, [deletePlaceId, tripId, toast, selectedPlaceId, selectedDayId, updateRouteForDay, pushUndo, forgetPlace, invalidateTourPlaceIds, reloadTourPlaceIds, isTourPlace])
 
   const confirmDeletePlaces = useCallback(async (ids?: number[]) => {
     const targetIds = ids ?? deletePlaceIds
@@ -2438,12 +2486,17 @@ export function useTripPlanner() {
       as.filter(a => a.place?.id != null && targetIds.includes(a.place.id)).map(a => ({ dayId: Number(dayId), placeId: a.place!.id, orderIndex: a.order_index }))
     )
     try {
-      await tripActions.deletePlacesMany(tripId, targetIds)
+      const deletion = await tripActions.deletePlacesMany(tripId, targetIds)
+      const deletedTourIds = Array.isArray(deletion?.tourPlaceIds)
+        ? deletion.tourPlaceIds.filter(id => targetIds.includes(id))
+        : targetIds.filter(isTourPlace)
+      void reloadTourPlaceIds()
       if (selectedPlaceId != null && targetIds.includes(selectedPlaceId)) setSelectedPlaceId(null)
       if (!ids) setDeletePlaceIds(null)
       updateRouteForDay(selectedDayId)
       toast.success(t('trip.toast.placesDeleted', { count: capturedPlaces.length }))
-      if (capturedPlaces.length > 0) {
+      if (deletedTourIds.length > 0) deletedTourIds.forEach(forgetPlace)
+      else if (capturedPlaces.length > 0) {
         pushUndo(t('undo.deletePlaces'), async () => {
           const live = new Set(useTripStore.getState().days.map(d => d.id))
           for (const place of capturedPlaces) {
@@ -2460,7 +2513,7 @@ export function useTripPlanner() {
         })
       }
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
-  }, [deletePlaceIds, tripId, toast, selectedPlaceId, selectedDayId, updateRouteForDay, pushUndo])
+  }, [deletePlaceIds, tripId, toast, selectedPlaceId, selectedDayId, updateRouteForDay, pushUndo, forgetPlace, reloadTourPlaceIds, isTourPlace])
 
   const confirmChangeCategory = useCallback(async (ids: number[], categoryId: number | null) => {
     if (!ids.length) return
@@ -2490,26 +2543,37 @@ export function useTripPlanner() {
 
   const handleAssignToDay = useCallback(async (placeId: number, dayId?: number, position?: number) => {
     const target = dayId || selectedDayId
-    if (!target) { toast.error(t('trip.toast.selectDay')); return }
+    if (!target) { toast.error(t('trip.toast.selectDay')); return false }
+    if (isTourPlace(placeId) && (storedAssignments[String(target)] ?? []).some(assignment => assignment.place_id === placeId)) return false
     const place = places.find(p => p.id === placeId)
     // A place with a start of its own is drawn by it, so it is stored there too, the
     // way a stop moved over from another day is. Without one it goes where it was put.
     const slot = timedSlot(storedAssignments[String(target)] ?? [], tripAccommodations, place?.place_time, position) ?? position
     const plan = viasAfterInsert(target, slot, place)
+    let assignment: Awaited<ReturnType<typeof tripActions.assignPlaceToDay>>
     try {
-      const assignment = await tripActions.assignPlaceToDay(tripId, target, placeId, slot)
-      toast.success(t('trip.toast.assignedToDay'))
-      if (plan) await roadtripVias.reanchor(target, plan)
-      updateRouteForDay(target)
-      if (assignment?.id) {
-        const capturedAssignmentId = assignment.id
-        const capturedTarget = target
-        pushUndo(t('undo.assignPlace'), async () => {
-          await tripActions.removeAssignment(tripId, capturedTarget, capturedAssignmentId)
-        }, [capturedTarget])
-      }
-    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
-  }, [selectedDayId, tripId, toast, updateRouteForDay, pushUndo, t, places, storedAssignments, tripAccommodations, roadtripVias, viasAfterInsert])
+      assignment = await tripActions.assignPlaceToDay(tripId, target, placeId, slot)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+      return false
+    }
+    if (isTourPlace(placeId)) await reloadTourPlaceIds()
+    toast.success(t('trip.toast.assignedToDay'))
+    if (assignment?.id) {
+      const capturedAssignmentId = assignment.id
+      const capturedTarget = target
+      pushUndo(t('undo.assignPlace'), async () => {
+        await tripActions.removeAssignment(tripId, capturedTarget, capturedAssignmentId)
+        if (isTourPlace(placeId)) await reloadTourPlaceIds()
+      }, [capturedTarget], [placeId])
+    }
+    if (plan) {
+      try { await roadtripVias.reanchor(target, plan) }
+      catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
+    }
+    updateRouteForDay(target)
+    return true
+  }, [selectedDayId, tripId, toast, updateRouteForDay, pushUndo, t, places, isTourPlace, reloadTourPlaceIds, storedAssignments, tripAccommodations, roadtripVias, viasAfterInsert])
 
   /**
    * Moves a stop from the day list onto another day, at a row of that day or at its
@@ -2532,6 +2596,7 @@ export function useTripPlanner() {
     const state = useTripStore.getState()
     const capturedAssignment = (state.assignments[String(dayId)] || []).find(a => a.id === assignmentId)
     const capturedPlaceId = capturedAssignment?.place?.id
+    const removedTour = capturedPlaceId != null && isTourPlace(capturedPlaceId)
     const capturedOrderIndex = capturedAssignment?.order_index ?? 0
     // Worked out before the delete, while the day still has the stop the vias
     // were measured against. `after_order_index` is a POSITION, so taking a stop
@@ -2547,6 +2612,7 @@ export function useTripPlanner() {
       : reanchorAfterRemove(roadtripVias.byDay[dayId] ?? [], removedAt, stopsBefore.length)
     try {
       await tripActions.removeAssignment(tripId, dayId, assignmentId)
+      if (removedTour) await reloadTourPlaceIds()
       if (plan) await roadtripVias.reanchor(dayId, plan)
       updateRouteForDay(dayId)
       if (capturedPlaceId != null) {
@@ -2554,15 +2620,18 @@ export function useTripPlanner() {
         const capturedPos = capturedOrderIndex
         pushUndo(t('undo.removeAssignment'), async () => {
           await tripActions.assignPlaceToDay(tripId, capturedDayId, capturedPlaceId, capturedPos)
-        }, [capturedDayId])
+          if (removedTour) await reloadTourPlaceIds()
+        }, [capturedDayId], [capturedPlaceId])
       }
     }
     catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
-  }, [tripId, toast, updateRouteForDay, pushUndo, t, roadtripVias, roadtripStopsOf])
+  }, [tripId, toast, updateRouteForDay, pushUndo, t, roadtripVias, roadtripStopsOf, reloadTourPlaceIds, isTourPlace])
 
   const handleReorder = useCallback((dayId: number, orderedIds: number[]) => {
-    const prevIds = (useTripStore.getState().assignments[String(dayId)] || [])
+    const assignmentsBefore = useTripStore.getState().assignments[String(dayId)] || []
+    const prevIds = assignmentsBefore
       .slice().sort((a, b) => a.order_index - b.order_index).map(a => a.id)
+    const placeIdsBefore = [...new Set(assignmentsBefore.map(a => a.place?.id).filter((id): id is number => id != null))]
     // The rail counts anchors over routable stops only, so the plan is built in
     // that space. A drag here hands a whole new ordering rather than one move,
     // and any permutation is possible — so the anchors follow the stop they were
@@ -2583,7 +2652,7 @@ export function useTripPlanner() {
           const capturedPrevIds = prevIds
           pushUndo(t('undo.reorder'), async () => {
             await tripActions.reorderAssignments(tripId, capturedDayId, capturedPrevIds)
-          }, [capturedDayId])
+          }, [capturedDayId], placeIdsBefore)
         })
         .catch(err => toast.error(err instanceof Error ? err.message : t('trip.toast.reorderError')))
       updateRouteForDay(dayId)
@@ -2626,7 +2695,8 @@ export function useTripPlanner() {
     forgetDay(dayId)
     loadAccommodations()
     updateRouteForDay(useTripStore.getState().selectedDayId)
-  }, [loadAccommodations, updateRouteForDay, forgetDay])
+    void reloadTourPlaceIds()
+  }, [loadAccommodations, updateRouteForDay, forgetDay, reloadTourPlaceIds])
   const dayDelete = useDayDelete({
     tripId, trip, days, places: allPlaces, reservations, accommodations: tripAccommodations,
     canEditDays: can('day_edit', trip), t, locale, toast, onDeleted: afterDayDeleted,
@@ -2634,6 +2704,7 @@ export function useTripPlanner() {
 
   const dayClear = useDayClear({
     tripId, days, canEditDays: can('day_edit', trip), t, locale, toast, roadtripVias, updateRouteForDay, pushUndo,
+    onToursChanged: reloadTourPlaceIds,
   })
 
   const handleSaveReservation = async (data: Record<string, string | number | null> & { title: string }) => {
@@ -2897,6 +2968,9 @@ export function useTripPlanner() {
   }
 
   const selectedPlace = selectedPlaceId ? places.find(p => p.id === selectedPlaceId) : null
+  const selectedTour = toursEnabled && selectedPlaceId
+    ? tours.find(tour => tour.place_id === selectedPlaceId) ?? null
+    : null
   // The stops the inspector speaks for. A booked night at a day's edge stands on the
   // hotel's place without being a stop of the day, so it is left out: counted, the hotel's
   // own stop lost its stay and its day end to a second match.
@@ -2966,6 +3040,8 @@ export function useTripPlanner() {
     leftHidden, rightHidden, toggleLeft, toggleRight, narrowPanels,
     startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,
+    toursEnabled, toursMode, setToursMode, tours, toursLoading, tourDataReady, tourPlaceIds,
+    reloadTourPlaceIds, invalidateTourPlaceIds, upsertTour, selectedTour,
     showDayDetail, setShowDayDetail, dayDetailCollapsed, setDayDetailCollapsed,
     stayPickerDayId, setStayPickerDayId,
     showPlaceForm, setShowPlaceForm, editingPlace, setEditingPlace,
@@ -3006,12 +3082,14 @@ export function useTripPlanner() {
     routeShown, setRouteShown, autoShowRoute, transitRoutesShown, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds, deletePlaceNote, deletePlacesNote,
+    isTourPlace, deletePlaceIsTour, deletePlacesIncludeTours,
     visibleConnections, roadtripConnections, toggleConnection, allConnectionsShown, toggleAllConnections, mapTransportDetail, setMapTransportDetail,
     isMobile, isTouch,
     expandedDayIds, setExpandedDayIds, mapPlaces,
     route, routeWalking, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay,
     handleSelectDay, handlePlaceClick, handleMarkerClick, handleMapClick, handleMapContextMenu, openAddPlaceFromPoi, handlePoiClick,
     handleSavePlace, openPlaceEditor, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces, confirmChangeCategory,
+    handleDeleteTour,
     handleAssignToDay, handleMoveToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, dayAdd, handleUpdateDayTitle,
     ...dayDelete,
     ...dayClear,

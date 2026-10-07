@@ -214,6 +214,7 @@ const emptyDataTransfer = { setData: vi.fn(), effectAllowed: '', getData: vi.fn(
 beforeEach(() => {
   resetAllStores();
   vi.clearAllMocks();
+  Element.prototype.scrollTo = vi.fn();
   mockPermissions.canEdit = true;
   mockPermissions.denied.clear();
   // clearAllMocks keeps implementations, so tests that swap the router out would
@@ -1731,6 +1732,10 @@ describe('DayPlanSidebar', () => {
       render(<DayPlanSidebar {...makeDefaultProps({ days, onSelectDay })} />);
 
       await waitFor(() => expect(onSelectDay).toHaveBeenCalledWith(days[1].id, true));
+      await act(async () => {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      });
+      expect(Element.prototype.scrollTo).toHaveBeenCalled();
     });
 
     it('FE-PLANNER-DAYPLAN-196: a trip that is not running is left alone', async () => {
@@ -1868,6 +1873,70 @@ describe('DayPlanSidebar', () => {
     fireEvent.contextMenu(screen.getByText('Louvre'));
     await user.click(screen.getByText(/Delete/i));
     expect(onDeletePlace).toHaveBeenCalledWith(42);
+  });
+
+  it('hides permanent Tour Delete from the TRIP-PLAN day card while retaining edit, route, view, and remove-from-day', async () => {
+    const user = userEvent.setup();
+    useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', type: 'trip', icon: '', enabled: true }] });
+    const place = buildPlace({ id: 42, name: 'Ridge walk' });
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' });
+    const assignment = buildAssignment({ id: 99, day_id: 10, order_index: 0, place });
+    const onPlaceClick = vi.fn();
+    const onRemoveAssignment = vi.fn();
+    const onDeletePlace = vi.fn();
+    render(
+      <DayPlanSidebar
+        {...makeDefaultProps({
+          days: [day],
+          places: [place],
+          tourPlaceIds: new Set([place.id]),
+          assignments: { '10': [assignment] },
+          onPlaceClick,
+          onRemoveAssignment,
+          onDeletePlace,
+        })}
+      />
+    );
+
+    await user.click(screen.getByText('Ridge walk'));
+    expect(onPlaceClick).toHaveBeenCalled();
+    fireEvent.contextMenu(screen.getByText('Ridge walk'));
+    expect(screen.getByText(/Edit/i)).toBeInTheDocument();
+    expect(screen.getByText(/Leave out of route/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Delete/i)).not.toBeInTheDocument();
+    await user.click(screen.getByText(/Remove from day/i));
+    expect(onRemoveAssignment).toHaveBeenCalledWith(10, 99);
+    expect(onDeletePlace).not.toHaveBeenCalled();
+  });
+
+  it('TRIP-PLAN preserves legacy route-backed Place Delete when Tours is disabled', async () => {
+    const user = userEvent.setup();
+    useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', type: 'trip', icon: '', enabled: false }] });
+    const place = buildPlace({
+      id: 43,
+      name: 'Old trail',
+      route_geometry: '[[48,11],[48.01,11.02]]',
+      tour_place_id: 43,
+    });
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' });
+    const assignment = buildAssignment({ id: 100, day_id: 10, order_index: 0, place });
+    const onDeletePlace = vi.fn();
+    render(
+      <DayPlanSidebar
+        {...makeDefaultProps({
+          days: [day],
+          places: [place],
+          tourPlaceIds: new Set([place.id]),
+          assignments: { '10': [assignment] },
+          onDeletePlace,
+        })}
+      />
+    );
+
+    fireEvent.contextMenu(screen.getByText('Old trail'));
+    await user.click(screen.getByText(/Delete/i));
+
+    expect(onDeletePlace).toHaveBeenCalledWith(place.id);
   });
 
   // ── Note card editing (#2249) ─────────────────────────
@@ -3762,6 +3831,174 @@ describe('DayPlanSidebar', () => {
     expect(pairs).toContainEqual([
       { lat: 43.66, lng: 7.21 },
       { lat: 43.7, lng: 7.26 },
+    ]);
+  });
+
+  it.each([
+    {
+      enabled: true,
+      excluded: false,
+      pairs: [
+        [48.85, 48.86],
+        [48.88, 48.89],
+      ],
+    },
+    { enabled: true, excluded: true, pairs: [[48.85, 48.89]] },
+    {
+      enabled: false,
+      excluded: false,
+      pairs: [
+        [48.85, 48.86],
+        [48.86, 48.89],
+      ],
+    },
+  ])('B5 sidebar Tour connector parity enabled=$enabled excluded=$excluded', async ({ enabled, excluded, pairs }) => {
+    useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', icon: 'Route', type: 'feature', enabled }] });
+    const day = buildDay({ id: 10, date: '2025-06-01' });
+    const places = [
+      buildPlace({ id: 1, name: 'Before Tour', lat: 48.85, lng: 2.35 }),
+      buildPlace({
+        id: 2,
+        name: 'Assigned Tour',
+        lat: 48.86,
+        lng: 2.35,
+        route_geometry: '[[48.86,2.35],[48.88,2.35]]',
+      }),
+      buildPlace({ id: 3, name: 'After Tour', lat: 48.89, lng: 2.35 }),
+    ];
+    const assignments = {
+      '10': places.map((place, order) =>
+        buildAssignment({
+          id: order + 1,
+          day_id: 10,
+          order_index: order,
+          place,
+          ...(order === 1
+            ? { tour_place_id: 2, tour_route_geometry: places[1].route_geometry, route_excluded: excluded }
+            : {}),
+        })
+      ),
+    };
+    render(
+      <DayPlanSidebar
+        {...makeDefaultProps({ days: [day], places, assignments, selectedDayId: 10, routeShown: true })}
+      />
+    );
+    await waitFor(() => expect(vi.mocked(calculateRouteWithLegs)).toHaveBeenCalledTimes(pairs.length));
+    expect(vi.mocked(calculateRouteWithLegs).mock.calls.map((call) => call[0].map((point) => point.lat))).toEqual(
+      pairs
+    );
+    expect(screen.getByText('Assigned Tour')).toBeInTheDocument();
+  });
+
+  it('uses Tour boundary overrides for hotel connectors with a driving day default', async () => {
+    useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', icon: 'Route', type: 'feature', enabled: true }] });
+    const days = [
+      buildDay({ id: 1, day_number: 1 }),
+      buildDay({ id: 2, day_number: 2, default_transport_mode: 'driving' }),
+      buildDay({ id: 3, day_number: 3 }),
+    ];
+    const hotel = {
+      id: 90,
+      trip_id: 1,
+      start_day_id: 1,
+      end_day_id: 3,
+      place_lat: 61.001,
+      place_lng: 10.001,
+    } as unknown as Accommodation;
+    const place = buildPlace({
+      id: 91,
+      name: 'Mode test Tour',
+      lat: 61.01,
+      lng: 10.01,
+      route_geometry: '[[61.01,10.01],[61.02,10.02]]',
+    });
+    const assignment = buildAssignment({
+      id: 92,
+      day_id: 2,
+      order_index: 0,
+      place,
+      tour_place_id: place.id,
+      tour_route_geometry: place.route_geometry,
+      incoming_leg_transport_mode: 'walking',
+      leg_transport_mode: 'cycling',
+    });
+
+    render(
+      <DayPlanSidebar
+        {...makeDefaultProps({
+          days,
+          places: [place],
+          assignments: { '2': [assignment] },
+          accommodations: [hotel],
+          selectedDayId: 2,
+          routeShown: true,
+          routeProfile: 'driving',
+          optimizeFromAccommodation: true,
+        })}
+      />
+    );
+
+    await waitFor(() => expect(vi.mocked(calculateRouteWithLegs)).toHaveBeenCalledTimes(2));
+    const calls = vi.mocked(calculateRouteWithLegs).mock.calls;
+    expect(calls.map((call) => call[1]?.profile)).toEqual(['walking', 'cycling']);
+    expect(calls.map((call) => call[0].map((point) => [point.lat, point.lng]))).toEqual([
+      [
+        [hotel.place_lat, hotel.place_lng],
+        [61.01, 10.01],
+      ],
+      [
+        [61.02, 10.02],
+        [hotel.place_lat, hotel.place_lng],
+      ],
+    ]);
+  });
+
+  it('does not connect an invalid Tour start to the evening hotel through an unlocated transport', async () => {
+    useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', icon: 'Route', type: 'feature', enabled: true }] });
+    const days = [
+      buildDay({ id: 1, day_number: 1 }),
+      buildDay({ id: 2, day_number: 2 }),
+      buildDay({ id: 3, day_number: 3 }),
+    ];
+    const hotel = {
+      id: 93,
+      trip_id: 1,
+      start_day_id: 1,
+      end_day_id: 3,
+      place_lat: 61.101,
+      place_lng: 10.101,
+    } as unknown as Accommodation;
+    const place = buildPlace({ id: 94, name: 'Invalid Tour', lat: 61.11, lng: 10.11, route_geometry: '{bad' });
+    const assignment = buildAssignment({
+      id: 95,
+      day_id: 2,
+      order_index: 0,
+      place,
+      tour_place_id: place.id,
+      tour_route_geometry: place.route_geometry,
+    });
+    const unlocatedTrain = buildReservation({ id: 96, type: 'train', day_id: 2, day_plan_position: 1, endpoints: [] });
+
+    render(
+      <DayPlanSidebar
+        {...makeDefaultProps({
+          days,
+          places: [place],
+          assignments: { '2': [assignment] },
+          reservations: [unlocatedTrain],
+          accommodations: [hotel],
+          selectedDayId: 2,
+          routeShown: true,
+          optimizeFromAccommodation: true,
+        })}
+      />
+    );
+
+    await waitFor(() => expect(vi.mocked(calculateRouteWithLegs)).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(calculateRouteWithLegs).mock.calls[0][0].map((point) => [point.lat, point.lng])).toEqual([
+      [hotel.place_lat, hotel.place_lng],
+      [place.lat, place.lng],
     ]);
   });
 

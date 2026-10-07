@@ -156,6 +156,8 @@ export const placeSchema = z.object({
    */
   source: z.string().nullable().optional(),
   route_geometry: z.string().nullable().optional(),
+  /** Present on the trip Place list when this Place has a Tours facet. */
+  tour_place_id: z.number().nullable().optional(),
   // Manual track colour (#776). null = inherit the category colour like before.
   route_color: hexColorSchema.nullable().optional(),
   /**

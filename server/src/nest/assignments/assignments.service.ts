@@ -3,6 +3,7 @@ import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import { Days } from '../../db/entities/Days.entity';
 import { Places } from '../../db/entities/Places.entity';
 import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import { Tours } from '../../db/entities/Tours.entity';
 import { TripMembers } from '../../db/entities/TripMembers.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { AssignmentParticipantsRepository } from '../../db/repositories/AssignmentParticipants.repository';
@@ -10,6 +11,7 @@ import type { DayAssignmentsRepository, DayStopRow } from '../../db/repositories
 import type { DaysRepository } from '../../db/repositories/Days.repository';
 import type { PlacesRepository } from '../../db/repositories/Places.repository';
 import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
+import type { ToursRepository } from '../../db/repositories/Tours.repository';
 import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
@@ -22,7 +24,7 @@ import { PermissionsService } from '../permissions/permissions.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { chronoOrder, type RoadtripVia, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
 import { isEmptyReanchoring, reanchorByStopOrder } from '@trek/shared/roadtrip';
 
@@ -112,6 +114,7 @@ export class AssignmentsService {
     @InjectRepository(Places) private readonly placesRepo: PlacesRepository,
     @InjectRepository(TripMembers) private readonly tripMembersRepo: TripMembersRepository,
     @InjectRepository(RoadtripVias) private readonly roadtripViasRepo: RoadtripViasRepository,
+    @InjectRepository(Tours) private readonly toursRepo: ToursRepository,
   ) {}
 
   async verifyTripAccess(tripId: string | number, userId: number) {
@@ -270,6 +273,7 @@ export class AssignmentsService {
     const placeIdNum = toRowId(placeId)!;
 
     const insertedId = await this.uow.transactional(async () => {
+      await this.assertTourFreeOnDay(dayIdNum, placeIdNum);
       // AS6 — the explicit null check (not `||`) is load-bearing: a stored 0
       // order_index must survive, which `maxOrder || -1` would not.
       const maxOrder = await this.dayAssignmentsRepo.maxOrderIndex(dayIdNum);
@@ -367,11 +371,27 @@ export class AssignmentsService {
     // about (or race on) where the assignment was.
     const oldDayId = await this.uow.transactional(async () => {
       const dayId = await this.dayAssignmentsRepo.getDayId(idNum); // AS13
-      await this.dayAssignmentsRepo.moveToDay(idNum, toRowId(newDayId)!, orderIndex ?? 0); // AS14
+      const targetDayId = toRowId(newDayId)!;
+      const placeId = await this.dayAssignmentsRepo.getPlaceId(idNum);
+      if (placeId !== undefined) await this.assertTourFreeOnDay(targetDayId, placeId, idNum);
+      await this.dayAssignmentsRepo.moveToDay(idNum, targetDayId, orderIndex ?? 0); // AS14
       return dayId;
     });
     const updated = await this.getAssignmentWithPlace(idNum);
     return { assignment: updated, oldDayId };
+  }
+
+  /**
+   * A Tour fills its day, so a day holds it at most once. Both ways a stop
+   * lands on a day (create and move) call this inside the transaction that
+   * writes it, so two concurrent requests cannot both pass the check. Move
+   * passes the assignment it moves so a reorder within the same day does
+   * not collide with itself. Ordinary places are never refused.
+   */
+  private async assertTourFreeOnDay(dayId: number, placeId: number, exceptAssignmentId?: number): Promise<void> {
+    if (await this.toursRepo.isOnDay(dayId, placeId, exceptAssignmentId)) {
+      throw new ConflictException('Tour is already assigned to this day');
+    }
   }
 
   /** AS15 — `AssignmentParticipantsRepository.listWithDisplayName`, the same AS2/AS31 statement. */

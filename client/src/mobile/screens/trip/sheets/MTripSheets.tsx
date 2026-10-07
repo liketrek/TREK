@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel';
 import { expenseEditorFor } from '../../../../components/Budget/CostsPanel.helpers';
 import AirTrailImportModal from '../../../../components/Planner/AirTrailImportModal';
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types';
 import BookingImportModal from '../../../../components/Planner/BookingImportModal';
 import TransitJourneyModal from '../../../../components/Planner/TransitJourneyModal';
+import { focusDialog, trapTab } from '../../../../components/shared/dialogFocus';
+import TourDetailDialog from '../../../../components/Tours/TourDetailDialog';
 import TripFormModal from '../../../../components/Trips/TripFormModal';
 import TripMembersModal from '../../../../components/Trips/TripMembersModal';
 import { useAuthStore } from '../../../../store/authStore';
 import { useSettingsStore } from '../../../../store/settingsStore';
 import { useTripStore } from '../../../../store/tripStore';
 import type { BudgetItem } from '../../../../types';
+import { lockBodyScroll } from '../../../../utils/bodyScrollLock';
 import MDayImpactList from '../../../components/MDayImpactList';
 import MConfirmSheet from '../../settings/MConfirmSheet';
 import type { MTripSheetsProps } from '../MTripShell';
@@ -35,6 +39,81 @@ import MPlaceSheet from './MPlaceSheet';
 import MReservationSheet from './MReservationSheet';
 import MTransportFormSheet from './MTransportFormSheet';
 import MTransportSheet from './MTransportSheet';
+
+/** The one global mobile tour-detail owner, independent of which surface selected it. */
+export function MSelectedTourDetail({ planner }: Pick<MTripSheetsProps, 'planner'>) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const selectedTourId = planner.selectedTour?.place_id ?? null;
+  const selectedPlaceId = planner.selectedPlace?.id ?? null;
+  useEffect(() => {
+    if (selectedTourId == null || selectedPlaceId == null) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const release = lockBodyScroll();
+    const panel = panelRef.current;
+    if (panel) focusDialog(panel);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      const openPanels = document.querySelectorAll('[data-m-sheet="open"]');
+      if (openPanels.length && openPanels[openPanels.length - 1] !== panel) return;
+      event.preventDefault();
+      planner.setSelectedPlaceId(null);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      release();
+      if (previous?.isConnected) previous.focus();
+    };
+  }, [planner.setSelectedPlaceId, selectedPlaceId, selectedTourId]);
+
+  if (!planner.selectedTour || !planner.selectedPlace) return null;
+
+  return createPortal(
+    <div
+      className="bg-[rgba(0,0,0,0.3)]"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        paddingBottom: 'var(--bottom-nav-h)',
+      }}
+      role="presentation"
+      onClick={() => planner.setSelectedPlaceId(null)}
+    >
+      <div
+        ref={panelRef}
+        style={{ width: '100%', maxHeight: '85vh' }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={planner.selectedPlace.name}
+        data-m-sheet="open"
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => trapTab(event, panelRef.current!)}
+      >
+        <TourDetailDialog
+          tour={planner.selectedTour}
+          place={planner.selectedPlace}
+          days={planner.days}
+          selectedDayId={planner.selectedDayId}
+          selectedAssignmentId={planner.selectedAssignmentId}
+          assignments={planner.assignments}
+          files={planner.files}
+          readOnly
+          canEdit={false}
+          canAssign={planner.can('day_edit', planner.trip)}
+          onClose={() => planner.setSelectedPlaceId(null)}
+          onAssignToDay={planner.handleAssignToDay}
+          onRemoveAssignment={planner.handleRemoveAssignment}
+        />
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 /**
  * Sheet host of the mobile trip screen — always mounted below the shell. Two
@@ -74,6 +153,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
     <>
       {/* ── Mobile sheets (shell.sheet routing + the place selection) ── */}
       <MPlaceSheet planner={planner} shell={shell} />
+      <MSelectedTourDetail planner={planner} />
       <MDaySheet planner={planner} shell={shell} />
       <MDaysSheet planner={planner} shell={shell} />
       <MAccommodationSheet planner={planner} shell={shell} />
@@ -104,6 +184,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         onClose={shell.closeSheet}
         places={planner.places}
         categories={planner.categories}
+        toursEnabled={planner.toursEnabled}
       />
 
       {/* ── Planner-flag editors (also serve ?create= and the import review) ── */}
@@ -222,7 +303,12 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         onClose={() => planner.setDeletePlaceId(null)}
         title={t('common.delete')}
         message={
-          planner.deletePlaceNote ? (
+          planner.deletePlaceId != null && planner.isTourPlace(planner.deletePlaceId) ? (
+            <>
+              <span className="block">{t('tours.delete.confirmBody')}</span>
+              {planner.deletePlaceNote && <span className="mt-1 block">{planner.deletePlaceNote}</span>}
+            </>
+          ) : planner.deletePlaceNote ? (
             <>
               <span className="block">{t('trip.confirm.deletePlace')}</span>
               <span className="mt-1 block">{planner.deletePlaceNote}</span>
@@ -231,7 +317,11 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
             t('trip.confirm.deletePlace')
           )
         }
-        confirmLabel={t('common.delete')}
+        confirmLabel={
+          planner.deletePlaceId != null && planner.isTourPlace(planner.deletePlaceId)
+            ? t('tours.delete.confirmAction')
+            : t('common.delete')
+        }
         cancelLabel={t('common.cancel')}
         danger
         onConfirm={() => {

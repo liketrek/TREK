@@ -82,8 +82,8 @@ export function useMPlanTimeline(planner: TripPlanner) {
 
   const rows = useMemo<PlanRow[]>(() => {
     if (!day) return []
-    return buildPlanRows({ merged, reservations, routeSegments: connSegments, dayId: day.id })
-  }, [day, merged, reservations, connSegments])
+    return buildPlanRows({ merged, reservations, routeSegments: connSegments, dayId: day.id, toursEnabled: planner.toursEnabled, places: planner.places })
+  }, [day, merged, reservations, connSegments, planner.toursEnabled, planner.places])
 
   // Accommodation bookend legs (hotel → first stop, last stop → hotel). The
   // segments already sit in connSegments; hotelLegsForDay picks the two out.

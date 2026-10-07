@@ -54,6 +54,8 @@ function makeRow(overrides: Partial<AssignmentWithPlaceRow> = {}): AssignmentWit
     phone: '+33 1 2345 6789',
     stop_type: null,
     fill_percent: null,
+    tour_place_id: null,
+    tour_route_geometry: null,
     ...overrides,
   };
 }
@@ -104,6 +106,16 @@ describe('formatAssignmentWithPlace', () => {
   it('sets place.category to null when category_id is 0 (falsy)', () => {
     const result = formatAssignmentWithPlace(makeRow({ category_id: 0 }), [], []);
     expect(result.place.category).toBeNull();
+  });
+
+  it('keeps the Tour facet fields at the assignment level, null for an ordinary place', () => {
+    expect(formatAssignmentWithPlace(makeRow(), [], [])).toMatchObject({
+      tour_place_id: null,
+      tour_route_geometry: null,
+    });
+    const geometry = '[[48.1,11.5],[48.2,11.6]]';
+    const tour = formatAssignmentWithPlace(makeRow({ tour_place_id: 100, tour_route_geometry: geometry }), [], []);
+    expect(tour).toMatchObject({ tour_place_id: 100, tour_route_geometry: geometry });
   });
 
   it('passes tags and participants through untouched', () => {

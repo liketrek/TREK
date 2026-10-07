@@ -130,6 +130,61 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
     });
   });
 
+  it('200 list projects Tour facets once per assignment and leaves other tracks ordinary', async () => {
+    const legacyGeometry = JSON.stringify([
+      [48, 11, 600],
+      [48.01, 11.02, 650],
+    ]);
+    const tourGeometry = JSON.stringify([
+      [48.02, 11.03, 700],
+      [48.03, 11.04, 750],
+    ]);
+    db.prepare('INSERT INTO places (id, trip_id, name, route_geometry) VALUES (3, 5, ?, ?), (4, 5, ?, ?)').run(
+      'Legacy track',
+      legacyGeometry,
+      'Tour',
+      tourGeometry,
+    );
+    db.prepare("INSERT INTO tours (place_id, tour_type) VALUES (4, 'hike')").run();
+    const assignmentIds = [
+      seedAssignment(3, 2, 0),
+      seedAssignment(3, 3, 1),
+      seedAssignment(3, 4, 2),
+      seedAssignment(3, 4, 3),
+    ];
+
+    const res = await request(server).get('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1));
+
+    expect(res.status).toBe(200);
+    const assignments = res.body.assignments as Array<{
+      id: number;
+      place_id: number;
+      order_index: number;
+      tour_place_id: number | null;
+      tour_route_geometry: string | null;
+    }>;
+    expect(assignments).toHaveLength(4);
+    expect(assignments.map((a) => a.id)).toEqual(assignmentIds);
+    expect(assignments.map((a) => a.order_index)).toEqual([0, 1, 2, 3]);
+    expect(assignments[0]).toMatchObject({ place_id: 2, tour_place_id: null, tour_route_geometry: null });
+    expect(db.prepare('SELECT route_geometry FROM places WHERE id = 3').get()).toEqual({
+      route_geometry: legacyGeometry,
+    });
+    expect(db.prepare('SELECT place_id FROM tours WHERE place_id = 3').get()).toBeUndefined();
+    expect(db.prepare('SELECT place_id FROM tours WHERE place_id = 4').get()).toEqual({ place_id: 4 });
+    expect(assignments[1]).toMatchObject({ place_id: 3, tour_place_id: null, tour_route_geometry: null });
+    expect(
+      assignments.slice(2).map((a) => ({
+        place_id: a.place_id,
+        tour_place_id: a.tour_place_id,
+        tour_route_geometry: a.tour_route_geometry,
+      })),
+    ).toEqual([
+      { place_id: 4, tour_place_id: 4, tour_route_geometry: tourGeometry },
+      { place_id: 4, tour_place_id: 4, tour_route_geometry: tourGeometry },
+    ]);
+  });
+
   it('201 create, 404 place', async () => {
     reconcileTripSkeletons.mockClear();
     const ok = await request(server)
@@ -153,6 +208,49 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
       .send({ place_id: 99 });
     expect(miss.status).toBe(404);
     expect(miss.body).toEqual({ error: 'Place not found' });
+  });
+
+  it('prevents duplicate Tour/day assignments through concurrent REST requests', async () => {
+    const tourPlaceId = 20;
+    db.prepare('INSERT INTO places (id, trip_id, name) VALUES (?, 5, ?)').run(tourPlaceId, 'Ridge walk');
+    db.prepare("INSERT INTO tours (place_id, tour_type) VALUES (?, 'hike')").run(tourPlaceId);
+    try {
+      const createTourAssignment = () =>
+        request(server)
+          .post('/api/trips/5/days/3/assignments')
+          .set('Cookie', sessionCookie(1))
+          .send({ place_id: tourPlaceId });
+      const results = await Promise.all([createTourAssignment(), createTourAssignment()]);
+
+      expect(results.map((result) => result.status).sort()).toEqual([201, 409]);
+      expect(
+        db.prepare('SELECT COUNT(*) AS n FROM day_assignments WHERE day_id = 3 AND place_id = ?').get(tourPlaceId),
+      ).toEqual({ n: 1 });
+
+      const otherDay = await request(server)
+        .post('/api/trips/5/days/4/assignments')
+        .set('Cookie', sessionCookie(1))
+        .send({ place_id: tourPlaceId });
+      expect(otherDay.status).toBe(201);
+      expect(db.prepare('SELECT COUNT(*) AS n FROM day_assignments WHERE place_id = ?').get(tourPlaceId)).toEqual({
+        n: 2,
+      });
+
+      const firstOrdinary = await request(server)
+        .post('/api/trips/5/days/3/assignments')
+        .set('Cookie', sessionCookie(1))
+        .send({ place_id: 2 });
+      const secondOrdinary = await request(server)
+        .post('/api/trips/5/days/3/assignments')
+        .set('Cookie', sessionCookie(1))
+        .send({ place_id: 2 });
+      expect(firstOrdinary.status).toBe(201);
+      expect(secondOrdinary.status).toBe(201);
+    } finally {
+      db.prepare('DELETE FROM day_assignments WHERE place_id = ?').run(tourPlaceId);
+      db.prepare('DELETE FROM tours WHERE place_id = ?').run(tourPlaceId);
+      db.prepare('DELETE FROM places WHERE id = ?').run(tourPlaceId);
+    }
   });
 
   it('200 delete assignment reconciles journey skeletons', async () => {
@@ -222,6 +320,42 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
     expect(res.body.assignment).toMatchObject({ id, day_id: 4, order_index: 0 });
     expect(db.prepare('SELECT day_id FROM day_assignments WHERE id = ?').get(id)).toEqual({ day_id: 4 });
     expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
+  });
+
+  it('409 moving a Tour onto a day that already holds it, the row stays put; a reorder within its day still works', async () => {
+    const tourPlaceId = 21;
+    db.prepare('INSERT INTO places (id, trip_id, name) VALUES (?, 5, ?)').run(tourPlaceId, 'Lake loop');
+    db.prepare("INSERT INTO tours (place_id, tour_type) VALUES (?, 'hike')").run(tourPlaceId);
+    try {
+      seedAssignment(4, tourPlaceId, 0);
+      const moving = seedAssignment(3, tourPlaceId, 0);
+      const conflict = await request(server)
+        .put(`/api/trips/5/assignments/${moving}/move`)
+        .set('Cookie', sessionCookie(1))
+        .send({ new_day_id: 4, order_index: 1 });
+      expect(conflict.status).toBe(409);
+      expect(conflict.body).toEqual({ error: 'Tour is already assigned to this day' });
+      expect(db.prepare('SELECT day_id, order_index FROM day_assignments WHERE id = ?').get(moving)).toEqual({
+        day_id: 3,
+        order_index: 0,
+      });
+
+      const reorder = await request(server)
+        .put(`/api/trips/5/assignments/${moving}/move`)
+        .set('Cookie', sessionCookie(1))
+        .send({ new_day_id: 3, order_index: 2 });
+      expect(reorder.status).toBe(200);
+      expect(reorder.body.assignment).toMatchObject({
+        id: moving,
+        day_id: 3,
+        order_index: 2,
+        tour_place_id: tourPlaceId,
+      });
+    } finally {
+      db.prepare('DELETE FROM day_assignments WHERE place_id = ?').run(tourPlaceId);
+      db.prepare('DELETE FROM tours WHERE place_id = ?').run(tourPlaceId);
+      db.prepare('DELETE FROM places WHERE id = ?').run(tourPlaceId);
+    }
   });
 
   it('200 notes roundtrip: create with note, PUT edits it, GET list shows the new value (#2163)', async () => {

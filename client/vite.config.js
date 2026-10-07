@@ -142,6 +142,17 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
+            // Tours-only OpenTopoMap raster tiles. Same bounded cache as the
+            // other Leaflet sources; opaque tile responses are valid here.
+            urlPattern: /^https:\/\/(?:[a-c]\.)?tile\.opentopomap\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles',
+              expiration: { maxEntries: 1000, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             // Amap road and satellite presets, served from the shard hosts under
             // is.autonavi.com (src/constants/mapDefaults.ts). Without a rule here
             // they would be the #2180 hole all over again.

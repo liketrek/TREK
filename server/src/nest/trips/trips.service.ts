@@ -18,8 +18,11 @@ import { RoadtripPreferences } from '../../db/entities/RoadtripPreferences.entit
 import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
 import { Tags } from '../../db/entities/Tags.entity';
 import { TodoItems } from '../../db/entities/TodoItems.entity';
+import { TourWaypoints } from '../../db/entities/TourWaypoints.entity';
+import { Tours } from '../../db/entities/Tours.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { Users } from '../../db/entities/Users.entity';
+import type { TourWaypointRow } from '../../db/repositories/TourWaypoints.repository';
 import type { Trip, User } from '../../types';
 import { BudgetService } from '../budget/budget.service';
 import { NotFoundError, ValidationError } from '../common/domain-errors';
@@ -327,6 +330,16 @@ export class TripsService {
   // getter above.
   private get todoItemsRepo() {
     return this.em.getRepository(TodoItems);
+  }
+
+  // Tours (#2586): a Tour's facet row and its route waypoints, copied with
+  // the place they hang off. Same `this.em.getRepository(...)` pattern.
+  private get toursRepo() {
+    return this.em.getRepository(Tours);
+  }
+
+  private get tourWaypointsRepo() {
+    return this.em.getRepository(TourWaypoints);
   }
 
   async canAccessTrip(tripId: string | number, userId: number) {
@@ -686,8 +699,9 @@ export class TripsService {
   // ── Copy / duplicate ─────────────────────────────────────────────────────
 
   /**
-   * Duplicates a trip (all days, places, assignments, accommodations, reservations,
-   * budget, packing bags/items, day notes) into a new trip owned by `newOwnerId`.
+   * Duplicates a trip (all days, places with their Tour facets and waypoints,
+   * assignments, accommodations, reservations, budget, packing bags/items, day
+   * notes) into a new trip owned by `newOwnerId`.
    * Cross-links are remapped to the copied rows (reservation↔budget item,
    * reservation↔accommodation) and split data travels with the copy
    * (budget_item_members/payers incl. paid flags, assignment_participants).
@@ -802,6 +816,31 @@ export class TripsService {
       for (const t of oldTags) {
         const newPlaceId = placeMap.get(t.place_id);
         if (newPlaceId) await this.tagsRepo.insertIgnore(newPlaceId, [t.tag_id]); // TP47
+      }
+
+      // A Tour is a place plus its `tours` facet and the waypoints its route was
+      // planned through. Without them the copy holds an ordinary place with a
+      // line on it: no longer listed as a Tour, and its route can't be edited
+      // because the points it was drawn from are gone. The facet row goes first,
+      // since the waypoints reference it.
+      const oldTours = await this.toursRepo.listRowsForTrip(Number(sourceTripId));
+      const copiedTours = new Set<number>();
+      for (const { place_id, ...tour } of oldTours) {
+        const newPlaceId = placeMap.get(place_id);
+        if (!newPlaceId) continue;
+        await this.toursRepo.insertCopy(newPlaceId, tour);
+        copiedTours.add(place_id);
+      }
+
+      const waypointsByPlace = new Map<number, TourWaypointRow[]>();
+      for (const { place_id, ...waypoint } of await this.tourWaypointsRepo.listForTrip(Number(sourceTripId))) {
+        if (!copiedTours.has(place_id)) continue;
+        const list = waypointsByPlace.get(place_id) ?? [];
+        list.push(waypoint);
+        waypointsByPlace.set(place_id, list);
+      }
+      for (const [placeId, waypoints] of waypointsByPlace) {
+        await this.tourWaypointsRepo.insertForPlace(placeMap.get(placeId)!, waypoints);
       }
 
       const oldAssignments = await this.dayAssignmentsRepo.listAllForTrip(sourceTripId); // TP48

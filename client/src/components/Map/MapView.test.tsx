@@ -6,14 +6,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildPlace, buildReservation } from '../../../tests/helpers/factories';
 import { render, screen } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
-import { MAP_MAX_ZOOM } from '../../constants/mapDefaults';
+import { AMAP_ROAD, AMAP_SATELLITE, MAP_MAX_ZOOM, OPENTOPOMAP_TILE_URL } from '../../constants/mapDefaults';
 import * as photoService from '../../services/photoService';
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { renderIconMarkup } from '../../utils/iconMarkup';
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons';
 
 const mapMock = vi.hoisted(() => ({
   getContainer: vi.fn(() => document.createElement('div')),
+  getCenter: vi.fn(() => ({ lat: 0, lng: 0 })),
   panTo: vi.fn(),
   setView: vi.fn(),
   fitBounds: vi.fn(),
@@ -99,12 +101,18 @@ const clusterMock = vi.hoisted(() => {
 vi.mock('react-leaflet', () => ({
   // center/zoom are surfaced so tests can assert the camera the map is built
   // with; maxZoom because a cluster refuses to attach to a map without one.
-  MapContainer: ({ children, center, zoom, maxZoom }: any) => (
-    <div data-testid="map-container" data-center={JSON.stringify(center)} data-zoom={zoom} data-maxzoom={maxZoom}>
+  MapContainer: ({ children, center, zoom, maxZoom, crs }: any) => (
+    <div
+      data-testid="map-container"
+      data-center={JSON.stringify(center)}
+      data-zoom={zoom}
+      data-maxzoom={maxZoom}
+      data-crs={crs?.code ?? 'EPSG:3857'}
+    >
       {children}
     </div>
   ),
-  TileLayer: () => <div data-testid="tile-layer" />,
+  TileLayer: ({ url }: any) => <div data-testid="tile-layer" data-url={url} />,
   Marker: ({ children, eventHandlers, position, icon, zIndexOffset, ref }: any) => (
     <div
       ref={(node) => {
@@ -166,7 +174,14 @@ vi.mock('react-leaflet', () => ({
       onClick={() => eventHandlers?.click?.()}
     />
   ),
-  CircleMarker: () => <div data-testid="circle-marker" />,
+  CircleMarker: ({ center, interactive, pathOptions }: any) => (
+    <div
+      data-testid={pathOptions?.className === 'tour-profile-focus-marker' ? 'profile-focus-marker' : 'circle-marker'}
+      data-center={JSON.stringify(center)}
+      data-interactive={String(interactive)}
+      data-path-options={JSON.stringify(pathOptions ?? null)}
+    />
+  ),
   Circle: () => <div data-testid="circle" />,
   Tooltip: ({ children }: any) => <>{children}</>,
   useMap: () => mapMock,
@@ -220,6 +235,10 @@ vi.mock('../../services/photoService', () => ({
   getAllThumbs: vi.fn(() => ({})),
 }));
 
+vi.mock('./gcj02Crs', () => ({
+  crsForBasemap: (gcj02: boolean) => (gcj02 ? { code: 'TREK:GCJ02' } : undefined),
+}));
+
 import { MapView } from './MapView';
 
 // Helper: build a place with the extra fields MapView uses (category_name/color/icon)
@@ -254,6 +273,78 @@ describe('MapView', () => {
   it('FE-COMP-MAPVIEW-001: renders map container', () => {
     render(<MapView />);
     expect(screen.getByTestId('map-container')).toBeTruthy();
+  });
+
+  it('uses the CRS of the Tours-visible layer and preserves the viewport across datum switches', () => {
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, map_base_layer: 'default' } });
+    const beijing = buildMapPlace({ id: 201, name: 'Beijing', lat: 39.9042, lng: 116.4074 });
+    const onViewBaseLayerChange = vi.fn();
+    const route = [
+      [
+        [39.9042, 116.4074],
+        [39.9052, 116.4084],
+      ],
+    ] as [number, number][][];
+    const plannerWaypoints = [{ id: 'start', lat: 39.9042, lng: 116.4074, role: 'start' as const }];
+    const routeProfileFocus = { distanceMeters: 100, elevationMeters: 0, lat: 39.9047, lng: 116.4079, sampleIndex: 0 };
+    const props = (viewBaseLayer: 'default' | 'topo' | 'satellite') => ({
+      places: [beijing],
+      center: [39.9042, 116.4074] as [number, number],
+      zoom: 15,
+      route,
+      plannerWaypoints,
+      routeProfileFocus,
+      tileUrl: AMAP_ROAD,
+      viewBaseLayer,
+      onViewBaseLayerChange,
+    });
+    const { rerender } = render(<MapView {...props('default')} />);
+    const defaultMap = screen.getByTestId('map-container');
+    expect(defaultMap).toHaveAttribute('data-crs', 'TREK:GCJ02');
+    expect(
+      screen
+        .getAllByTestId('marker')
+        .some(
+          (marker) => marker.getAttribute('data-lat') === '39.9042' && marker.getAttribute('data-lng') === '116.4074'
+        )
+    ).toBe(true);
+    expect(screen.getByTestId('tile-layer')).toHaveAttribute('data-url', AMAP_ROAD);
+
+    const movedCenter = { lat: 39.91, lng: 116.41 };
+    mapMock.getCenter.mockReturnValue(movedCenter);
+    mapMock.getZoom.mockReturnValue(13);
+    const saveCamera = mapMock.on.mock.calls.find(([event]) => event === 'moveend zoomend')?.[1] as
+      (() => void) | undefined;
+    act(() => saveCamera?.());
+
+    rerender(<MapView {...props('topo')} />);
+    const topoMap = screen.getByTestId('map-container');
+    expect(topoMap).not.toBe(defaultMap);
+    expect(topoMap).toHaveAttribute('data-crs', 'EPSG:3857');
+    expect(topoMap).toHaveAttribute('data-center', JSON.stringify([movedCenter.lat, movedCenter.lng]));
+    expect(topoMap).toHaveAttribute('data-zoom', '13');
+    expect(screen.getByTestId('tile-layer')).toHaveAttribute('data-url', OPENTOPOMAP_TILE_URL);
+    expect(
+      screen
+        .getAllByTestId('polyline')
+        .every((polyline) => polyline.getAttribute('data-points') === JSON.stringify(route[0]))
+    ).toBe(true);
+    expect(screen.getByTestId('profile-focus-marker')).toHaveAttribute(
+      'data-center',
+      JSON.stringify([routeProfileFocus.lat, routeProfileFocus.lng])
+    );
+
+    rerender(<MapView {...props('satellite')} />);
+    const satelliteMap = screen.getByTestId('map-container');
+    expect(satelliteMap).not.toBe(topoMap);
+    expect(satelliteMap).toHaveAttribute('data-crs', 'TREK:GCJ02');
+    expect(screen.getByTestId('tile-layer')).toHaveAttribute('data-url', AMAP_SATELLITE);
+
+    rerender(<MapView {...props('default')} />);
+    expect(screen.getByTestId('map-container')).toHaveAttribute('data-crs', 'TREK:GCJ02');
+    expect(screen.getByTestId('tile-layer')).toHaveAttribute('data-url', AMAP_ROAD);
+    expect(useSettingsStore.getState().settings.map_base_layer).toBe('default');
+    expect(onViewBaseLayerChange).not.toHaveBeenCalled();
   });
 
   it('FE-COMP-MAPVIEW-002: renders one marker per place', () => {
@@ -402,6 +493,224 @@ describe('MapView', () => {
     const places = [buildMapPlace({ lat: 48.0, lng: 2.0, route_geometry: '[[48.0,2.0]]' })];
     render(<MapView places={places} />);
     expect(screen.queryByTestId('polyline')).toBeNull();
+  });
+
+  it('moves a passive semantic profile focus marker without changing the map camera', () => {
+    const focus = { distanceMeters: 120, elevationMeters: 340, lat: 48.123, lng: 11.456, sampleIndex: 3 };
+    const focusPoints: [number, number][] = [
+      [48.1, 11.4],
+      [48.2, 11.5],
+    ];
+    const route: [number, number][][] = [
+      [
+        [48.1, 11.4],
+        [48.2, 11.5],
+      ],
+    ];
+    mapMock.fitBounds.mockClear();
+    mapMock.panTo.mockClear();
+    mapMock.setView.mockClear();
+    const { rerender } = render(
+      <MapView places={[]} route={route} fitKey={7} focusPoints={focusPoints} routeProfileFocus={focus} />
+    );
+    const mapContainer = screen.getByTestId('map-container');
+    mapMock.fitBounds.mockClear();
+    expect(screen.getByTestId('profile-focus-marker')).toHaveAttribute('data-center', '[48.123,11.456]');
+    expect(screen.getByTestId('profile-focus-marker')).toHaveAttribute('data-interactive', 'false');
+    expect(JSON.parse(screen.getByTestId('profile-focus-marker').getAttribute('data-path-options')!)).toMatchObject({
+      color: 'var(--bg-card)',
+      fillColor: 'var(--text-muted)',
+    });
+
+    const movedFocus = { ...focus, lat: 48.16, lng: 11.47 };
+    rerender(<MapView places={[]} route={route} fitKey={7} focusPoints={focusPoints} routeProfileFocus={movedFocus} />);
+    expect(screen.getByTestId('profile-focus-marker')).toHaveAttribute('data-center', '[48.16,11.47]');
+    expect(screen.getByTestId('map-container')).toBe(mapContainer);
+    expect(mapMock.fitBounds).not.toHaveBeenCalled();
+    expect(mapMock.panTo).not.toHaveBeenCalled();
+    expect(mapMock.setView).not.toHaveBeenCalled();
+
+    rerender(<MapView places={[]} route={route} fitKey={7} focusPoints={focusPoints} routeProfileFocus={null} />);
+    expect(screen.queryByTestId('profile-focus-marker')).toBeNull();
+    expect(mapMock.fitBounds).not.toHaveBeenCalled();
+
+    rerender(
+      <MapView
+        places={[]}
+        fitKey={8}
+        focusPoints={[
+          [48, 11],
+          [48.3, 11.8],
+        ]}
+      />
+    );
+    expect(mapMock.fitBounds).toHaveBeenCalled();
+  });
+
+  it('frames Tour focus once, ignores waypoint and route updates, then honors a new focus intent', () => {
+    const route: [number, number][][] = [
+      [
+        [48, 11],
+        [48.2, 11.3],
+      ],
+    ];
+    const { rerender } = render(
+      <MapView places={[]} route={null} followSelection={false} focusKey={1} focusPoints={[]} />
+    );
+    expect(mapMock.fitBounds).not.toHaveBeenCalled();
+
+    rerender(
+      <MapView
+        places={[]}
+        route={route}
+        followSelection={false}
+        focusKey={1}
+        focusPoints={[
+          [48, 11],
+          [48.2, 11.3],
+        ]}
+      />
+    );
+    expect(mapMock.fitBounds).toHaveBeenCalledOnce();
+    mapMock.fitBounds.mockClear();
+
+    rerender(
+      <MapView
+        places={[]}
+        route={[
+          [
+            [48, 11],
+            [48.2, 11.3],
+            [48.4, 11.6],
+          ],
+        ]}
+        followSelection={false}
+        focusKey={1}
+        focusPoints={[
+          [48, 11],
+          [48.2, 11.3],
+          [48.4, 11.6],
+        ]}
+      />
+    );
+    expect(mapMock.fitBounds).not.toHaveBeenCalled();
+
+    const mapContainer = screen.getByTestId('map-container');
+    const retainedCenter = { lat: 35.2, lng: 135.8 };
+    mapMock.getCenter.mockReturnValue(retainedCenter);
+    mapMock.getZoom.mockReturnValue(12);
+    mapMock.setView([retainedCenter.lat, retainedCenter.lng], 12);
+    mapMock.fitBounds.mockClear();
+    mapMock.setView.mockClear();
+    mapMock.panTo.mockClear();
+
+    rerender(<MapView places={[]} followSelection={false} focusKey={2} focusPoints={[]} />);
+    expect(screen.getByTestId('map-container')).toBe(mapContainer);
+    expect(mapMock.fitBounds).not.toHaveBeenCalled();
+    expect(mapMock.setView).not.toHaveBeenCalled();
+    expect(mapMock.panTo).not.toHaveBeenCalled();
+    expect(mapMock.getCenter()).toEqual(retainedCenter);
+    expect(mapMock.getZoom()).toBe(12);
+
+    rerender(
+      <MapView
+        places={[]}
+        followSelection={false}
+        focusKey={2}
+        focusPoints={[
+          [48, 11],
+          [48.5, 11.8],
+        ]}
+      />
+    );
+    expect(mapMock.fitBounds).toHaveBeenCalledOnce();
+  });
+
+  it('keeps selection fit and the pending route-arrival refit for semantic changes', () => {
+    const selectedPlace = buildMapPlace({ id: 901, lat: 48, lng: 11 });
+    const route: [number, number][][] = [
+      [
+        [48, 11],
+        [48.2, 11.3],
+      ],
+    ];
+    const { rerender } = render(<MapView places={[]} route={null} fitKey={0} />);
+    mapMock.fitBounds.mockClear();
+
+    rerender(<MapView places={[selectedPlace]} route={null} fitKey={1} />);
+    expect(mapMock.fitBounds).toHaveBeenCalled();
+    mapMock.fitBounds.mockClear();
+
+    rerender(<MapView places={[selectedPlace]} route={route} fitKey={2} />);
+    expect(mapMock.fitBounds).toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'two-point',
+      [
+        [48, 2],
+        [49, 3],
+      ],
+    ],
+    [
+      'elevation',
+      [
+        [48, 2, 12.5],
+        [49, 3, 22.75],
+      ],
+    ],
+    ['long track', Array.from({ length: 1200 }, (_, index) => [48 + index / 100000, 2 + index / 100000])],
+    [
+      'loop',
+      [
+        [48, 2],
+        [48.1, 2.1],
+        [48, 2],
+      ],
+    ],
+    [
+      'point-to-point Tour',
+      [
+        [48, 2],
+        [48.5, 2.5],
+        [49, 3],
+      ],
+    ],
+  ])('renders valid %s geometry unchanged', (_label, geometry) => {
+    render(<MapView places={[buildMapPlace({ route_geometry: JSON.stringify(geometry) })]} />);
+    const lines = screen.getAllByTestId('polyline');
+    expect(lines).toHaveLength(3);
+    const expected = geometry.map(([lat, lng]) => [lat, lng]);
+    expect(JSON.parse(lines[1].getAttribute('data-points') || '[]')).toEqual(expected);
+  });
+
+  it.each([
+    ['malformed JSON', 'not json'],
+    ['non-array JSON', '{"coordinates":[]}'],
+    ['one point', '[[48,2]]'],
+    ['missing coordinate dimension', '[[48],[49,3]]'],
+    ['string coordinates', '[[48,"2"],[49,3]]'],
+    ['NaN token', '[[48,2],[NaN,3]]'],
+    ['Infinity token', '[[48,2],[49,Infinity]]'],
+    ['out-of-range latitude', '[[48,2],[91,3]]'],
+    ['out-of-range longitude', '[[48,2],[49,181]]'],
+    ['all-invalid coordinates', '[[91,2],[49,181]]'],
+  ])('skips %s geometry without passing invalid points to Leaflet', (_label, geometry) => {
+    expect(() => render(<MapView places={[buildMapPlace({ route_geometry: geometry })]} />)).not.toThrow();
+    expect(screen.queryByTestId('polyline')).toBeNull();
+  });
+
+  it('filters invalid points while preserving the original order of a renderable track', () => {
+    const geometry = '[[48,2],null,[91,4],[48.5,2.5],[49,3]]';
+    render(<MapView places={[buildMapPlace({ route_geometry: geometry })]} />);
+    const lines = screen.getAllByTestId('polyline');
+    expect(lines).toHaveLength(3);
+    expect(JSON.parse(lines[1].getAttribute('data-points') || '[]')).toEqual([
+      [48, 2],
+      [48.5, 2.5],
+      [49, 3],
+    ]);
   });
 
   // ── Track colours (#776) ──────────────────────────────────────────────────

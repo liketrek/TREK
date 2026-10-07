@@ -279,6 +279,16 @@ describe('MPlaceEditSheet', () => {
     expect(planner.setShowPlaceForm).toHaveBeenCalledWith(false)
   })
 
+  it('requires explicit permanent confirmation when a dormant Tour is deleted from the Place editor', async () => {
+    const tour = { ...EDITED, tour_place_id: EDITED.id } as Place
+    const { planner } = setup({ editingPlace: tour, isTourPlace: vi.fn(() => true) })
+    fireEvent.click(screen.getByRole('button', { name: 'common.delete' }))
+
+    expect(planner.toast.warning).toHaveBeenCalledWith('tours.delete.confirmBody')
+    fireEvent.click(screen.getByRole('button', { name: 'tours.delete.confirmAction' }))
+    await waitFor(() => expect(planner.confirmDeletePlace).toHaveBeenCalledTimes(1))
+  })
+
   it('FE-MOB-PLEDIT-022: cancelling an armed delete un-stages the id', () => {
     const { planner } = setup({ editingPlace: EDITED })
     fireEvent.click(screen.getByRole('button', { name: 'common.delete' }))

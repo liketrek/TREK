@@ -1,5 +1,6 @@
 // FE-TP-HOOK-001 to FE-TP-HOOK-177
 import { act, renderHook, waitFor } from '@testing-library/react';
+import type { TourListItem } from '@trek/shared';
 import React from 'react';
 import {
   buildAssignment,
@@ -19,6 +20,7 @@ import {
   authApi,
   healthApi,
   mapsApi,
+  toursApi,
   tripsApi,
 } from '../../api/client';
 import { getImportFiles, offlineDb, saveImportFiles } from '../../db/offlineDb';
@@ -26,6 +28,7 @@ import { useTranslation } from '../../i18n';
 import { TranslationProvider } from '../../i18n/TranslationContext';
 import { accommodationRepo } from '../../repo/accommodationRepo';
 import { fetchPhoto, getCached } from '../../services/photoService';
+import { useAddonStore } from '../../store/addonStore';
 import { useAuthStore } from '../../store/authStore';
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
@@ -721,6 +724,41 @@ describe('useTripPlanner — map derivations', () => {
 
     await waitFor(() => expect(useTripStore.getState().placesFilter).toBe('all'));
     expect(result.current.mapPlaces.map((p) => p.id)).toEqual([1]);
+  });
+
+  it('Tours enabled clears a stale Tracks filter even while track geometry remains', async () => {
+    const tour: TourListItem = {
+      place_id: 7,
+      name: 'Ridge walk',
+      tour_type: 'hike',
+      distance: 4,
+      elevation_gain: 100,
+      elevation_loss: 80,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      tour_group_id: null,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+    };
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true });
+    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'tours' }] });
+    vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [tour] });
+    seedTrip({
+      places: [
+        buildPlace({ id: 7, lat: 1, lng: 2, tour_place_id: 7, route_geometry: '[[1,2],[3,4]]' }),
+        buildPlace({ id: 8, lat: 3, lng: 4, route_geometry: '[[5,6],[7,8]]' }),
+      ],
+      placesFilter: 'tracks',
+    });
+
+    const { result } = await renderPlanner();
+    await waitFor(() => expect(useTripStore.getState().placesFilter).toBe('all'));
+
+    expect(result.current.enabledAddons.tours).toBe(true);
+    expect(result.current.mapPlaces.map((place) => place.id)).toEqual([7, 8]);
   });
 
   it('FE-TP-HOOK-027: the category filter honours the uncategorized bucket', async () => {
@@ -1485,6 +1523,116 @@ describe('useTripPlanner — place CRUD', () => {
     expect(actions.assignPlaceToDay).toHaveBeenCalledWith(42, 7, 900, 2);
   });
 
+  it('preserves legacy deletion behavior for a dormant Tour and forgets only its stale assignment undo', async () => {
+    const tourPlace = buildPlace({ id: 1, name: 'Ridge walk', tour_place_id: 1 });
+    const unrelatedUndo = vi.fn();
+    const tourAssignmentUndo = vi.fn();
+    seedTrip({ places: [tourPlace] });
+    actions.deletePlace.mockResolvedValue({ success: true, tourPlaceIds: [1] });
+
+    const { result } = await renderPlanner();
+    act(() => {
+      result.current.pushUndo('Unrelated place edit', unrelatedUndo);
+      result.current.pushUndo('Remove Tour from day', tourAssignmentUndo, [7], [1]);
+      result.current.handleDeletePlace(1);
+    });
+    expect(result.current.deletePlaceIsTour).toBe(true);
+
+    await act(async () => {
+      await result.current.confirmDeletePlace();
+    });
+
+    expect(actions.deletePlace).toHaveBeenCalledWith(42, 1);
+    expect(actions.addPlace).not.toHaveBeenCalled();
+    expect(result.current.lastActionLabel).toBe('Unrelated place edit');
+    expect(result.current.canUndo).toBe(true);
+    await act(async () => {
+      await result.current.undo();
+    });
+    expect(unrelatedUndo).toHaveBeenCalledTimes(1);
+    expect(tourAssignmentUndo).not.toHaveBeenCalled();
+  });
+
+  it('allows permanent Tour deletion only in TOUR-PLANNER and leaves cancellation inert', async () => {
+    const tourPlace = buildPlace({ id: 1, name: 'Ridge walk', tour_place_id: 1 });
+    seedTrip({ places: [tourPlace] });
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true });
+    vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [] });
+    actions.deletePlace.mockResolvedValue({ success: true, tourPlaceIds: [1] });
+
+    const { result } = await renderPlanner();
+    await waitFor(() => expect(result.current.toursEnabled).toBe(true));
+
+    act(() => {
+      result.current.handleDeletePlace(1);
+    });
+    expect(result.current.deletePlaceId).toBeNull();
+    expect(actions.deletePlace).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.handleDeleteTour(1);
+    });
+    expect(result.current.deletePlaceId).toBe(1);
+    act(() => {
+      result.current.setDeletePlaceId(null);
+    });
+    await act(async () => {
+      await result.current.confirmDeletePlace();
+    });
+    expect(actions.deletePlace).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.handleDeleteTour(1);
+    });
+    let deletedTourId: number | null = null;
+    await act(async () => {
+      deletedTourId = await result.current.confirmDeletePlace();
+    });
+    expect(actions.deletePlace).toHaveBeenCalledWith(42, 1);
+    expect(actions.deletePlace).toHaveBeenCalledTimes(1);
+    expect(deletedTourId).toBe(1);
+    expect(actions.addPlace).not.toHaveBeenCalled();
+    expect(result.current.canUndo).toBe(false);
+  });
+
+  it('uses the server facet result to suppress Undo for a dormant Tour when Tours is off', async () => {
+    const dormantPlace = buildPlace({ id: 1, name: 'Dormant route' });
+    seedTrip({ places: [dormantPlace] });
+    actions.deletePlace.mockResolvedValue({ success: true, tourPlaceIds: [1] });
+
+    const { result } = await renderPlanner();
+    act(() => {
+      result.current.handleDeletePlace(1);
+    });
+    await act(async () => {
+      await result.current.confirmDeletePlace();
+    });
+
+    expect(result.current.enabledAddons.tours).toBe(false);
+    expect(actions.addPlace).not.toHaveBeenCalled();
+    expect(result.current.canUndo).toBe(false);
+  });
+
+  it('does not offer a partial bulk Undo when the deleted selection includes a Tour', async () => {
+    const ordinary = buildPlace({ id: 1, name: 'Ordinary place' });
+    const tourPlace = buildPlace({ id: 2, name: 'Tour', tour_place_id: 2 });
+    seedTrip({ places: [ordinary, tourPlace] });
+    actions.deletePlacesMany.mockResolvedValue({ deleted: [1, 2], count: 2, tourPlaceIds: [2] });
+
+    const { result } = await renderPlanner();
+    act(() => {
+      result.current.setDeletePlaceIds([1, 2]);
+    });
+    expect(result.current.deletePlacesIncludeTours).toBe(true);
+    await act(async () => {
+      await result.current.confirmDeletePlaces();
+    });
+
+    expect(actions.deletePlacesMany).toHaveBeenCalledWith(42, [1, 2]);
+    expect(actions.addPlace).not.toHaveBeenCalled();
+    expect(result.current.canUndo).toBe(false);
+  });
+
   it('FE-TP-HOOK-056: confirmDeletePlace is a no-op until a place is queued', async () => {
     seedTrip();
 
@@ -1497,18 +1645,43 @@ describe('useTripPlanner — place CRUD', () => {
   });
 
   it('FE-TP-HOOK-057: a failing delete surfaces the server message', async () => {
-    seedTrip({ places: [buildPlace({ id: 1, lat: 1, lng: 2 })] });
-    actions.deletePlace.mockRejectedValue(new Error('place is locked'));
+    const place = buildPlace({ id: 1, lat: 1, lng: 2, tour_place_id: 1 });
+    const listedTour: TourListItem = {
+      place_id: 1,
+      name: 'Ridge walk',
+      tour_type: 'hike',
+      distance: 4,
+      elevation_gain: 100,
+      elevation_loss: 80,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      tour_group_id: null,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+    };
+    seedTrip({ places: [place] });
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true });
+    vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [listedTour] });
+    actions.deletePlace.mockRejectedValue(new Error('Tour is locked'));
 
     const { result } = await renderPlanner();
+    await waitFor(() => expect(result.current.tours).toEqual([listedTour]));
     act(() => {
-      result.current.handleDeletePlace(1);
+      result.current.handleDeleteTour(1);
     });
+    let failedTourId: number | null = 1;
     await act(async () => {
-      await result.current.confirmDeletePlace();
+      failedTourId = await result.current.confirmDeletePlace();
     });
 
-    expect(toasts.some((t) => t.message === 'place is locked' && t.type === 'error')).toBe(true);
+    expect(failedTourId).toBeNull();
+    expect(result.current.tours).toEqual([listedTour]);
+    expect(useTripStore.getState().places).toContain(place);
+    expect(toasts.some((t) => t.message === 'Tour is locked' && t.type === 'error')).toBe(true);
+    expect(toasts.some((t) => t.type === 'success')).toBe(false);
   });
 
   it('FE-TP-HOOK-058: a bulk delete restores every place with its assignments on undo', async () => {
@@ -1731,6 +1904,207 @@ describe('useTripPlanner — place CRUD', () => {
 });
 
 describe('useTripPlanner — day plan CRUD', () => {
+  it('does not write a Tour assignment twice to one day, but allows another day and preserves Place writes', async () => {
+    const tour: TourListItem = {
+      place_id: 1,
+      name: 'Ridge walk',
+      tour_type: 'hike',
+      distance: 4,
+      elevation_gain: 100,
+      elevation_loss: 80,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      tour_group_id: null,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+    };
+    const tourPlace = buildPlace({ id: 1, name: 'Ridge walk', tour_place_id: 1 });
+    const ordinaryPlace = buildPlace({ id: 2, name: 'Ordinary place' });
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true });
+    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'tours' }] });
+    vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [tour] });
+    seedTrip({
+      places: [tourPlace, ordinaryPlace],
+      assignments: { '7': [buildAssignment({ id: 70, day_id: 7, place: tourPlace })] },
+    });
+
+    const { result } = await renderPlanner();
+    await waitFor(() => expect(result.current.tours).toEqual([tour]));
+    actions.assignPlaceToDay.mockClear();
+
+    let repeated!: boolean;
+    await act(async () => {
+      repeated = await result.current.handleAssignToDay(tourPlace.id, 7);
+    });
+    expect(repeated).toBe(false);
+    expect(actions.assignPlaceToDay).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.handleAssignToDay(tourPlace.id, 8);
+    });
+    await act(async () => {
+      await result.current.handleAssignToDay(ordinaryPlace.id, 7);
+    });
+    expect(actions.assignPlaceToDay).toHaveBeenNthCalledWith(1, 42, 8, tourPlace.id, undefined);
+    expect(actions.assignPlaceToDay).toHaveBeenNthCalledWith(2, 42, 7, ordinaryPlace.id, undefined);
+  });
+
+  it('refreshes Tours only after a successful Tour assignment write', async () => {
+    const unplanned: TourListItem = {
+      place_id: 1,
+      name: 'Ridge walk',
+      tour_type: 'hike',
+      distance: 4,
+      elevation_gain: 100,
+      elevation_loss: 80,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      tour_group_id: null,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+    };
+    const planned = { ...unplanned, planned: true };
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true });
+    const listTours = vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [unplanned] });
+    const place = buildPlace({ id: 1, tour_place_id: 1 });
+    seedTrip({ places: [place] });
+    let resolveAssignment!: (value: { id: number }) => void;
+    const assignment = new Promise<{ id: number }>((resolve) => {
+      resolveAssignment = resolve;
+    });
+    actions.assignPlaceToDay.mockReturnValue(assignment);
+
+    const { result } = await renderPlanner();
+    await waitFor(() => expect(result.current.tours).toEqual([unplanned]));
+    listTours.mockClear().mockResolvedValue({ tours: [planned] });
+    let assignPromise!: Promise<boolean>;
+    act(() => {
+      assignPromise = result.current.handleAssignToDay(1, 7);
+    });
+    expect(listTours).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveAssignment({ id: 555 });
+      await assignPromise;
+    });
+    await waitFor(() => expect(result.current.tours).toEqual([planned]));
+    expect(actions.assignPlaceToDay.mock.invocationCallOrder[0]).toBeLessThan(listTours.mock.invocationCallOrder[0]);
+
+    listTours.mockClear().mockResolvedValue({ tours: [unplanned] });
+    let resolveUndoRemoval!: () => void;
+    const undoRemoval = new Promise<void>((resolve) => {
+      resolveUndoRemoval = resolve;
+    });
+    actions.removeAssignment.mockReturnValueOnce(undoRemoval);
+    let undoPromise!: Promise<unknown>;
+    act(() => {
+      undoPromise = result.current.undo();
+    });
+    expect(listTours).not.toHaveBeenCalled();
+    await act(async () => {
+      resolveUndoRemoval();
+      await undoPromise;
+    });
+    await waitFor(() => expect(result.current.tours).toEqual([unplanned]));
+    expect(actions.removeAssignment.mock.invocationCallOrder[0]).toBeLessThan(listTours.mock.invocationCallOrder[0]);
+  });
+
+  it('does not refresh or report a successful planned state when Tour assignment fails', async () => {
+    const unplanned: TourListItem = {
+      place_id: 1,
+      name: 'Ridge walk',
+      tour_type: 'hike',
+      distance: 4,
+      elevation_gain: 100,
+      elevation_loss: 80,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      tour_group_id: null,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+    };
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true });
+    const listTours = vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [unplanned] });
+    const place = buildPlace({ id: 1, tour_place_id: 1 });
+    seedTrip({ places: [place] });
+    const { result } = await renderPlanner();
+    await waitFor(() => expect(result.current.tours).toEqual([unplanned]));
+    listTours.mockClear();
+    actions.assignPlaceToDay.mockRejectedValueOnce(new Error('assignment failed'));
+
+    await act(async () => {
+      await result.current.handleAssignToDay(1, 7);
+    });
+
+    expect(listTours).not.toHaveBeenCalled();
+    expect(result.current.tours).toEqual([unplanned]);
+    expect(toasts.some((toast) => toast.message === 'assignment failed' && toast.type === 'error')).toBe(true);
+  });
+
+  it('refreshes after Tour removal and each successful assignment Undo direction', async () => {
+    const unplanned: TourListItem = {
+      place_id: 1,
+      name: 'Ridge walk',
+      tour_type: 'hike',
+      distance: 4,
+      elevation_gain: 100,
+      elevation_loss: 80,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      tour_group_id: null,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+    };
+    const planned: TourListItem = { ...unplanned, planned: true };
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true });
+    const listTours = vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [planned] });
+    const place = buildPlace({ id: 1, tour_place_id: 1 });
+    seedTrip({
+      places: [place],
+      assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place, order_index: 1 })] },
+    });
+    const { result } = await renderPlanner();
+    await waitFor(() => expect(result.current.tours).toEqual([planned]));
+    listTours.mockClear().mockResolvedValue({ tours: [unplanned] });
+    let resolveRemoval!: () => void;
+    const removal = new Promise<void>((resolve) => {
+      resolveRemoval = resolve;
+    });
+    actions.removeAssignment.mockReturnValueOnce(removal);
+    let removePromise!: Promise<void>;
+    act(() => {
+      removePromise = result.current.handleRemoveAssignment(7, 10);
+    });
+    expect(listTours).not.toHaveBeenCalled();
+    await act(async () => {
+      resolveRemoval();
+      await removePromise;
+    });
+    await waitFor(() => expect(result.current.tours).toEqual([unplanned]));
+    expect(actions.removeAssignment.mock.invocationCallOrder[0]).toBeLessThan(listTours.mock.invocationCallOrder[0]);
+
+    listTours.mockClear().mockResolvedValue({ tours: [planned] });
+    actions.assignPlaceToDay.mockResolvedValueOnce({ id: 777 });
+    await act(async () => {
+      await result.current.undo();
+    });
+    await waitFor(() => expect(result.current.tours).toEqual([planned]));
+    expect(actions.assignPlaceToDay).toHaveBeenCalledWith(42, 7, 1, 1);
+    expect(actions.assignPlaceToDay.mock.invocationCallOrder[0]).toBeLessThan(listTours.mock.invocationCallOrder[0]);
+  });
+
   it('FE-TP-HOOK-063: assigning to the selected day registers an undo that removes it again', async () => {
     seedTrip({ selectedDayId: 7 });
 
@@ -1800,11 +2174,14 @@ describe('useTripPlanner — day plan CRUD', () => {
     expect(actions.assignPlaceToDay).toHaveBeenNthCalledWith(2, 42, 7, 1, 1);
   });
 
-  it('FE-TP-HOOK-066: removing an assignment can be undone back to its old position', async () => {
-    const place = buildPlace({ id: 1, lat: 1, lng: 2 });
+  it('FE-TP-HOOK-066: removing a Tour assignment can be undone without deleting the Tour', async () => {
+    const place = buildPlace({ id: 1, lat: 1, lng: 2, tour_place_id: 1, route_geometry: '[[1,2],[3,4]]' });
     seedTrip({
       places: [place],
-      assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place, order_index: 4 })] },
+      assignments: {
+        '7': [buildAssignment({ id: 10, day_id: 7, place, order_index: 4 })],
+        '8': [buildAssignment({ id: 11, day_id: 8, place, order_index: 2 })],
+      },
     });
 
     const { result } = await renderPlanner();
@@ -1813,6 +2190,13 @@ describe('useTripPlanner — day plan CRUD', () => {
     });
 
     expect(actions.removeAssignment).toHaveBeenCalledWith(42, 7, 10);
+    expect(actions.deletePlace).not.toHaveBeenCalled();
+    expect(actions.addPlace).not.toHaveBeenCalled();
+    expect(useTripStore.getState().places).toContainEqual(
+      expect.objectContaining({ id: place.id, route_geometry: place.route_geometry })
+    );
+    expect(useTripStore.getState().assignments['8']).toHaveLength(1);
+    expect(useTripStore.getState().assignments['8'][0].id).toBe(11);
 
     await act(async () => {
       await result.current.undo();
@@ -3037,6 +3421,24 @@ describe('useTripPlanner — misc state', () => {
     expect(result.current.showPlaceForm).toBe(false);
     expect(result.current.editingPlace).toBeNull();
     expect(result.current.deletePlaceId).toBeNull();
+  });
+
+  it('routes mobile Place-editor entry for a dormant Tour to read-only Tour detail', async () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 390 });
+    try {
+      const tourPlace = buildPlace({ id: 1, name: 'Ridge walk', tour_place_id: 1 });
+      seedTrip({ places: [tourPlace] });
+      const { result } = await renderPlanner();
+
+      act(() => result.current.openPlaceEditor(tourPlace));
+
+      expect(result.current.isMobile).toBe(true);
+      expect(result.current.selectedPlaceId).toBe(1);
+      expect(result.current.showPlaceForm).toBe(false);
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: originalWidth });
+    }
   });
 
   it('FE-TP-HOOK-102: a member roster refresh replaces the cached list', async () => {

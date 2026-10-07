@@ -9,7 +9,7 @@ import { getDisplayTimeForDay, getMergedItems, getTransportForDay, type MergedIt
 import { buildDayRouteRuns, hotelBookendOf, type DayRoutePoint } from '../../../../src/components/Map/dayRoutePlan'
 import { buildAssignment, buildDayNote, buildPlace, buildReservation } from '../../../helpers/factories'
 import type {
-  Accommodation, Assignment, Day, DayNote, Reservation, RouteSegment, TranslationFn,
+  Accommodation, Assignment, Day, DayNote, Place, Reservation, RouteSegment, TranslationFn,
 } from '../../../../src/types'
 
 // FE-MOB-PTLM-001 to FE-MOB-PTLM-060
@@ -55,6 +55,23 @@ const segmentsOf = (runs: DayRoutePoint[][]): RouteSegment[] =>
 const placeItem = (a: Assignment): MergedItem => ({ type: 'place', sortKey: a.order_index, data: a })
 const noteItem = (n: DayNote): MergedItem => ({ type: 'note', sortKey: n.sort_order ?? 0, data: n })
 const transportItem = (r: TransportEntry): MergedItem => ({ type: 'transport', sortKey: 0, data: r })
+
+function tourAssignment(id: number, order: number, geometry: [number, number][], currentGeometry = JSON.stringify(geometry)): Assignment {
+  const [lat, lng] = geometry[0]
+  const tourPlace = buildPlace({ id: id + 100, name: `Tour ${id}`, lat, lng, route_geometry: currentGeometry })
+  return buildAssignment({ id, day_id: 2, order_index: order, place_id: tourPlace.id, place: tourPlace,
+    tour_place_id: tourPlace.id, tour_route_geometry: JSON.stringify(geometry) })
+}
+
+function tourRows(assignments: Assignment[], routeSegments: RouteSegment[], toursEnabled = true) {
+  return buildPlanRows({
+    merged: assignments.map(placeItem), reservations: [], routeSegments, dayId: 2, toursEnabled,
+    places: assignments.flatMap(assignment => assignment.place ? [assignment.place as Place] : []),
+  })
+}
+
+const connectors = (rows: ReturnType<typeof buildPlanRows>) =>
+  rows.flatMap(row => row.kind === 'conn' ? [row.seg] : [])
 
 function accommodation(overrides: Partial<Accommodation>): Accommodation {
   return {
@@ -268,6 +285,100 @@ describe('planTimelineModel — buildPlanRows', () => {
     })
     // Only the first Museum → Park hop finds the single matching leg.
     expect(rows.filter(r => r.kind === 'conn')).toHaveLength(1)
+  })
+
+  it('uses only Tour boundary connectors and leaves saved geometry unrouted', () => {
+    const before = assignment(31, 0, place(301, 'Before', 48.1, 11.1))
+    const tour = tourAssignment(32, 1, [[48.103, 11.103], [48.11, 11.11], [48.12, 11.12]])
+    const after = assignment(33, 2, place(303, 'After', 48.13, 11.13))
+    const incoming = seg([48.1, 11.1], [48.103, 11.103])
+    const outgoing = seg([48.12, 11.12], [48.13, 11.13])
+    const automaticTourRoute = seg([48.103, 11.103], [48.12, 11.12])
+    const rows = tourRows([before, tour, after], [incoming, outgoing, automaticTourRoute])
+    expect(connectors(rows)).toEqual([incoming, outgoing])
+    expect(rows.map(row => row.kind)).toEqual(['place', 'conn', 'place', 'conn', 'place'])
+    expect(rows.filter(row => row.kind === 'conn').map(row => row.assignmentId)).toEqual([before.id, tour.id])
+  })
+
+  it('uses the current Place projection when the saved assignment geometry has not refreshed', () => {
+    const before = assignment(35, 0, place(351, 'Before', 48.1, 11.1))
+    const tour = tourAssignment(36, 1, [[48.103, 11.103], [48.12, 11.12]], JSON.stringify([[48.105, 11.105], [48.125, 11.125]]))
+    const after = assignment(37, 2, place(353, 'After', 48.13, 11.13))
+    const currentIncoming = seg([48.1, 11.1], [48.105, 11.105])
+    const currentOutgoing = seg([48.125, 11.125], [48.13, 11.13])
+    const staleIncoming = seg([48.1, 11.1], [48.103, 11.103])
+    expect(connectors(tourRows([before, tour, after], [currentIncoming, currentOutgoing, staleIncoming])))
+      .toEqual([currentIncoming, currentOutgoing])
+  })
+
+  it('connects first, last and consecutive Tours only at valid boundaries', () => {
+    const before = assignment(41, 0, place(401, 'Before', 48.1, 11.1))
+    const first = tourAssignment(42, 1, [[48.11, 11.11], [48.12, 11.12]])
+    const second = tourAssignment(43, 2, [[48.13, 11.13], [48.14, 11.14]])
+    const after = assignment(44, 3, place(404, 'After', 48.15, 11.15))
+    const segments = [
+      seg([48.1, 11.1], [48.11, 11.11]),
+      seg([48.12, 11.12], [48.13, 11.13]),
+      seg([48.14, 11.14], [48.15, 11.15]),
+    ]
+    const firstToAfter = seg([48.12, 11.12], [48.15, 11.15])
+    expect(connectors(tourRows([first, after], [firstToAfter]))).toEqual([firstToAfter])
+    expect(connectors(tourRows([before, first], [segments[0]]))).toEqual([segments[0]])
+    const rows = tourRows([before, first, second, after], segments)
+    expect(connectors(rows)).toEqual(segments)
+    expect(rows.filter(row => row.kind === 'conn').map(row => row.assignmentId)).toEqual([before.id, first.id, second.id])
+  })
+
+  it('connects a loop Tour at its shared boundary without routing through its geometry', () => {
+    const before = assignment(51, 0, place(501, 'Before', 48.1, 11.1))
+    const loop = tourAssignment(52, 1, [[48.11, 11.11], [48.12, 11.12], [48.11, 11.11]])
+    const after = assignment(53, 2, place(503, 'After', 48.13, 11.13))
+    const incoming = seg([48.1, 11.1], [48.11, 11.11])
+    const outgoing = seg([48.11, 11.11], [48.13, 11.13])
+    const inside = seg([48.11, 11.11], [48.11, 11.11])
+    expect(connectors(tourRows([before, loop, after], [incoming, outgoing, inside]))).toEqual([incoming, outgoing])
+  })
+
+  it('keeps excluded Tours visible and bridges surrounding Places as the central route builder does', () => {
+    const before = assignment(61, 0, place(601, 'Before', 48.1, 11.1))
+    const tour = { ...tourAssignment(62, 1, [[48.11, 11.11], [48.12, 11.12]]), route_excluded: true }
+    const after = assignment(63, 2, place(603, 'After', 48.13, 11.13))
+    const bridge = seg([48.1, 11.1], [48.13, 11.13])
+    const rows = tourRows([before, tour, after], [bridge])
+    expect(rows.map(row => row.kind)).toEqual(['place', 'conn', 'place', 'place'])
+    expect(connectors(rows)).toEqual([bridge])
+    expect(rows.some(row => row.kind === 'place' && row.assignment.id === tour.id)).toBe(true)
+  })
+
+  it('exposes invalid-Tour warning state and never invents an outgoing endpoint', () => {
+    const before = assignment(71, 0, place(701, 'Before', 48.1, 11.1))
+    const tour = tourAssignment(72, 1, [[48.11, 11.11], [48.12, 11.12]], 'not valid geometry')
+    const after = assignment(73, 2, place(703, 'After', 48.13, 11.13))
+    const incoming = seg([48.1, 11.1], [48.11, 11.11])
+    const falseOutgoing = seg([48.11, 11.11], [48.13, 11.13])
+    const rows = tourRows([before, tour, after], [incoming, falseOutgoing])
+    expect(connectors(rows)).toEqual([incoming])
+    expect(rows.find(row => row.kind === 'place' && row.assignment.id === tour.id)).toMatchObject({ invalidTour: true })
+
+    const noPlaceAnchor = { ...tour, place: buildPlace({ id: tour.place!.id, name: 'Tour without anchor', lat: null, lng: null, route_geometry: 'not valid geometry' }) }
+    const noAnchorRows = tourRows([before, noPlaceAnchor, after], [seg([48.1, 11.1], [48.13, 11.13])])
+    expect(connectors(noAnchorRows)).toEqual([])
+    expect(noAnchorRows.find(row => row.kind === 'place' && row.assignment.id === tour.id)).toMatchObject({ invalidTour: true })
+  })
+
+  it('keeps Tours-off routing on the legacy single Place anchor', () => {
+    const before = assignment(81, 0, place(801, 'Before', 48.1, 11.1))
+    const tour = tourAssignment(82, 1, [[48.11, 11.11], [48.12, 11.12]])
+    const after = assignment(83, 2, place(803, 'After', 48.13, 11.13))
+    const rows = tourRows([before, tour, after], [
+      seg([48.1, 11.1], [48.11, 11.11]),
+      seg([48.11, 11.11], [48.13, 11.13]),
+    ], false)
+    expect(connectors(rows).map(item => [item.from, item.to])).toEqual([
+      [[48.1, 11.1], [48.11, 11.11]],
+      [[48.11, 11.11], [48.13, 11.13]],
+    ])
+    expect(rows.find(row => row.kind === 'place' && row.assignment.id === tour.id)).toMatchObject({ invalidTour: false })
   })
 })
 

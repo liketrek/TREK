@@ -98,6 +98,15 @@ type Trip = TripAccess;
 
 type ImportedPlace = { id: number; route_geometry?: string | null; route_color?: string | null };
 
+/** One place parsed out of a GPX file, not yet persisted. */
+export interface PreparedGpxPlace {
+  name: string;
+  lat: number;
+  lng: number;
+  description: string | null;
+  routeGeometry?: string;
+}
+
 /** Fields accepted when creating a place. */
 export interface PlaceCreateInput {
   name: string;
@@ -728,12 +737,15 @@ export class PlacesService {
     }
   }
 
-  async remove(tripId: string, placeId: string): Promise<{ deleted: boolean; cancelled: CancelledStays }> {
+  async remove(
+    tripId: string,
+    placeId: string,
+  ): Promise<{ deleted: boolean; deletedTourPlaceIds: number[]; cancelled: CancelledStays }> {
     const cancelled = noCancelledStays();
     // `toRowId` first (Task 3 review H1, absorbed here): the write below
     // (`deleteById`) must use the SAME id this gate's existence read used.
     const id = toRowId(placeId);
-    if (id === null) return { deleted: false, cancelled };
+    if (id === null) return { deleted: false, deletedTourPlaceIds: [], cancelled };
     // Rule 21 (H1): the trip id gets the same `toRowId` treatment, parsed
     // once here and reused for the gate AND every raw survivor below
     // (`cancelStaysAt`'s PL16, the PL18 `budget_items` DELETE) —
@@ -743,14 +755,18 @@ export class PlacesService {
     // linked expense and stay orphaned (H1, live: verified with a linked
     // expense and a stay, both survived with `place_id: null`).
     const tid = toRowId(tripId);
-    if (tid === null) return { deleted: false, cancelled };
+    if (tid === null) return { deleted: false, deletedTourPlaceIds: [], cancelled };
     // PL17 — the reclaim-candidate projection, read before the delete.
     const place = await this.placesRepo.reclaimInputs(id, tid);
-    if (!place) return { deleted: false, cancelled };
+    if (!place) return { deleted: false, deletedTourPlaceIds: [], cancelled };
+    let wasTour = false;
     // The linked expense goes with the place, the same way a booking takes its
     // expense with it (#1298). One transaction, so a place can never survive
     // half-detached from its money.
     await this.uow.transactional(async () => {
+      // A Tour's facet row and waypoints go with the place (ON DELETE
+      // CASCADE); the caller still has to tell the client which ones did.
+      wasTour = await this.placesRepo.isTour(id);
       await this.cancelStaysAt(tid, id, cancelled);
       // PL18 — Plan 3e Task 2, converted: `BudgetItemsRepository.deleteForPlace`.
       await this.budgetItemsRepo.deleteForPlace(tid, id);
@@ -759,12 +775,15 @@ export class PlacesService {
     });
     await reclaimPhotoCache(this.photoCache, place.google_place_id, place.image_url);
     await this.reclaimPlaceImage(place.image_url);
-    return { deleted: true, cancelled };
+    return { deleted: true, deletedTourPlaceIds: wasTour ? [id] : [], cancelled };
   }
 
-  async removeMany(tripId: string, ids: number[]): Promise<{ deleted: number[]; cancelled: CancelledStays }> {
+  async removeMany(
+    tripId: string,
+    ids: number[],
+  ): Promise<{ deleted: number[]; deletedTourPlaceIds: number[]; cancelled: CancelledStays }> {
     const cancelled = noCancelledStays();
-    if (ids.length === 0) return { deleted: [], cancelled };
+    if (ids.length === 0) return { deleted: [], deletedTourPlaceIds: [], cancelled };
     // Rule 21 (H1): the trip id gets the same `toRowId` treatment as
     // `remove()`'s, parsed once and reused for every id in the loop below.
     // Task 9 fix wave (A-8): the claim this comment used to make — "the
@@ -778,8 +797,9 @@ export class PlacesService {
     // any non-canonical trip id before `removeMany` is ever reached, so this
     // `tid === null` branch only fires for a caller that skipped the gate.
     const tid = toRowId(tripId);
-    if (tid === null) return { deleted: [], cancelled };
+    if (tid === null) return { deleted: [], deletedTourPlaceIds: [], cancelled };
     const deleted: number[] = [];
+    const deletedTourPlaceIds: number[] = [];
     const reclaimable: { google_place_id: string | null; image_url: string | null }[] = [];
     await this.uow.transactional(async () => {
       for (const id of ids) {
@@ -789,6 +809,7 @@ export class PlacesService {
         // gate needed, the H1 class of bug is a route-string problem.
         const row = await this.placesRepo.reclaimInputs(id, tid);
         if (!row) continue;
+        if (await this.placesRepo.isTour(id)) deletedTourPlaceIds.push(id);
         await this.cancelStaysAt(tid, id, cancelled);
         // PL22 — Plan 3e Task 2, converted: `BudgetItemsRepository.deleteForPlace`.
         await this.budgetItemsRepo.deleteForPlace(tid, id);
@@ -803,7 +824,7 @@ export class PlacesService {
       await reclaimPhotoCache(this.photoCache, row.google_place_id, row.image_url);
       await this.reclaimPlaceImage(row.image_url);
     }
-    return { deleted, cancelled };
+    return { deleted, deletedTourPlaceIds, cancelled };
   }
 
   /**
@@ -993,11 +1014,22 @@ export class PlacesService {
     fileBuffer: Buffer,
     opts: GpxImportOptions = {},
   ): Promise<GpxImportResult | null> {
+    const rows = this.prepareGpxRows(fileBuffer, opts);
+    if (!rows.length) return null;
+    return await this.uow.transactional(() => this.persistGpxRows(tripId, rows));
+  }
+
+  /**
+   * Parses a GPX file into the places an import would create, without writing
+   * anything. The Tours import reuses it to build its own selection before
+   * handing the rows to {@link importPreparedGpx}.
+   */
+  prepareGpxRows(fileBuffer: Buffer, opts: GpxImportOptions = {}): PreparedGpxPlace[] {
     const { importWaypoints = true, importRoutes = true, importTracks = true, defaultName } = opts;
 
     const parsed = gpxParser.parse(fileBuffer.toString('utf-8'));
     const gpx = parsed?.gpx;
-    if (!gpx) return null;
+    if (!gpx) return [];
 
     const str = (v: unknown) => (v != null ? String(v).trim() : null);
     const num = (v: unknown) => {
@@ -1019,8 +1051,7 @@ export class PlacesService {
       return geoSeq === 1 ? base : `${base} ${geoSeq}`;
     };
 
-    type WaypointEntry = { name: string; lat: number; lng: number; description: string | null; routeGeometry?: string };
-    const waypoints: WaypointEntry[] = [];
+    const waypoints: PreparedGpxPlace[] = [];
 
     // 1) Parse <wpt> elements (named waypoints / POIs)
     if (importWaypoints) {
@@ -1084,8 +1115,25 @@ export class PlacesService {
       }
     }
 
-    if (waypoints.length === 0) return null;
+    return waypoints;
+  }
 
+  /**
+   * Persists rows from {@link prepareGpxRows} and colours their tracks, both in
+   * one transaction. Called from inside the Tours import's own transaction,
+   * where this becomes a savepoint, so the places and their tour facets
+   * commit or roll back together.
+   */
+  async importPreparedGpx(tripId: string, rows: PreparedGpxPlace[]): Promise<GpxImportResult> {
+    return await this.uow.transactional(async () => {
+      const result = await this.persistGpxRows(tripId, rows);
+      await this.colorizeImportedTracks(tripId, result);
+      return result;
+    });
+  }
+
+  /** Inserts prepared GPX rows, skipping duplicates. The caller owns the transaction. */
+  private async persistGpxRows(tripId: string, waypoints: PreparedGpxPlace[]): Promise<GpxImportResult> {
     // Rule 21 / M1 (Task 9 fix wave): non-null asserted, not `?? -1` — the
     // controller's `requireTrip` (`verifyTripAccess`) already parsed and
     // gated this SAME `tripId` with `toRowId` before `importGpx` was ever
@@ -1103,48 +1151,46 @@ export class PlacesService {
     // column the legacy INSERT omitted takes the same value the DB column
     // default would have produced (`duration_minutes: 60`, everything else
     // `null`) — parity by stored row, not by SQL text. Re-selected via
-    // `findWithTagsAndRatings` INSIDE the same transaction the insert ran
-    // in, so the read sees the still-uncommitted row.
-    await this.uow.transactional(async () => {
-      for (const wp of waypoints) {
-        if (isPlaceDuplicate({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup)) {
-          skipped++;
-          continue;
-        }
-        const placeId = await this.placesRepo.insertPlace({
-          trip_id: tid,
-          name: wp.name,
-          description: wp.description,
-          lat: wp.lat,
-          lng: wp.lng,
-          address: null,
-          category_id: null,
-          price: null,
-          currency: null,
-          place_time: null,
-          end_time: null,
-          duration_minutes: 60,
-          notes: null,
-          image_url: null,
-          google_place_id: null,
-          google_ftid: null,
-          osm_id: null,
-          amap_poi_id: null,
-          website: null,
-          phone: null,
-          transport_mode: 'walking',
-          route_geometry: wp.routeGeometry || null,
-          route_color: null,
-          stop_type: null,
-          fill_percent: null,
-          email: null,
-          opening_hours: null,
-        });
-        const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
-        created.push(place);
-        trackInsertedInDedupSet({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup);
+    // `findWithTagsAndRatings` INSIDE the caller's transaction, so the read
+    // sees the still-uncommitted row.
+    for (const wp of waypoints) {
+      if (isPlaceDuplicate({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup)) {
+        skipped++;
+        continue;
       }
-    });
+      const placeId = await this.placesRepo.insertPlace({
+        trip_id: tid,
+        name: wp.name,
+        description: wp.description,
+        lat: wp.lat,
+        lng: wp.lng,
+        address: null,
+        category_id: null,
+        price: null,
+        currency: null,
+        place_time: null,
+        end_time: null,
+        duration_minutes: 60,
+        notes: null,
+        image_url: null,
+        google_place_id: null,
+        google_ftid: null,
+        osm_id: null,
+        amap_poi_id: null,
+        website: null,
+        phone: null,
+        transport_mode: 'walking',
+        route_geometry: wp.routeGeometry || null,
+        route_color: null,
+        stop_type: null,
+        fill_percent: null,
+        email: null,
+        opening_hours: null,
+      });
+      const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
+      created.push(place);
+      trackInsertedInDedupSet({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup);
+    }
 
     return { places: created, count: created.length, skipped };
   }

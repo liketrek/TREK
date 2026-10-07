@@ -1010,3 +1010,20 @@ export function coalesceOverrideWhileSame(
   }
   return unsupported(platform);
 }
+
+// ---------------------------------------------------------------------------
+// Tours (#2586): `DayAssignmentsRepository`'s assignment projection carries a
+// place's route geometry only when the place is a Tour, so the day list never
+// hauls an ordinary track's geometry along with every stop.
+// ---------------------------------------------------------------------------
+
+/**
+ * `CASE WHEN <testRef> IS NOT NULL THEN <thenRef> END`, for use as a
+ * `.select()` value (chain `.as(aliasName)` at the call site). The missing
+ * ELSE is deliberate: a null test column yields SQL NULL.
+ */
+export function caseWhenNotNull(platform: Platform, testRef: string, thenRef: string): RawQueryFragment {
+  if (platform instanceof SqlitePlatform)
+    return raw(`CASE WHEN ${column(testRef)} IS NOT NULL THEN ${column(thenRef)} END`);
+  return unsupported(platform);
+}

@@ -2,7 +2,8 @@ import { withHotelBookends } from './RouteCalculator'
 import { getTransportRouteEndpoints, getTransportForDay, getMergedItems, isCarrierTransport, hasCarrierEndpointOnDay } from '../../utils/dayMerge'
 import { getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg, type CarrierEdge } from '../../utils/dayOrder'
 import { withinDriveRange } from '@trek/shared/roadtrip'
-import type { Accommodation, AssignmentsMap, Day, Reservation } from '../../types'
+import type { Accommodation, AssignmentsMap, Day, Place, Reservation } from '../../types'
+import { projectDayItinerary } from './dayTourProjection'
 
 export const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other']
 
@@ -36,6 +37,8 @@ export interface DayRouteInputs {
   reservations: Reservation[]
   accommodations: Accommodation[]
   optimizeFromAccommodation: boolean | undefined
+  toursEnabled?: boolean
+  places?: Place[]
 }
 
 /**
@@ -78,16 +81,23 @@ export function buildDayRouteRuns(dayId: number, input: DayRouteInputs): DayRout
     days: allDays,
   })
   const merged = getMergedItems({ dayAssignments: da, dayNotes: [], dayTransports, dayId })
+  const projected = new Map(projectDayItinerary(da, input.toursEnabled ?? false, input.places).map(item => [item.assignment.id, item]))
 
   type Entry =
     | { kind: 'place'; lat: number; lng: number; pos: number; time: string | null; mode: string | null; incoming: string | null }
+    | { kind: 'tour'; start: { lat: number; lng: number } | null; end: { lat: number; lng: number } | null; pos: number; time: string | null; mode: string | null; incoming: string | null }
     | { kind: 'transport'; from: { lat: number; lng: number } | null; to: { lat: number; lng: number } | null; pos: number; carrier: boolean }
   const entries: Entry[] = merged.flatMap((item): Entry[] => {
     if (item.type === 'place') {
       const a = item.data
+      if (a.route_excluded) return []
+      const tour = projected.get(a.id)
+      if (tour?.kind === 'tour') return [{
+        kind: 'tour', start: tour.start, end: tour.end, pos: item.sortKey,
+        time: a.place?.place_time ?? null,
+        mode: a.leg_transport_mode ?? null, incoming: a.incoming_leg_transport_mode ?? null,
+      }]
       if (!a.place?.lat || !a.place?.lng) return []
-      // Kept on the day, shown on the map, but not driven to (#2532).
-      if ((a as { route_excluded?: boolean }).route_excluded) return []
       return [{
         kind: 'place', lat: a.place.lat, lng: a.place.lng, pos: item.sortKey, time: a.place?.place_time ?? null,
         // Per-segment travel mode (#1281): mode of the leg leaving this place.
@@ -117,7 +127,19 @@ export function buildDayRouteRuns(dayId: number, input: DayRouteInputs): DayRout
     runHasPlace = false
   }
   for (const entry of entries) {
-    if (entry.kind === 'place') {
+    if (entry.kind === 'tour') {
+      if (entry.start) {
+        const prev = currentRun[currentRun.length - 1]
+        if (prev && !prev.isPlace && !withinDriveRange(prev, entry.start)) closeRun()
+        currentRun.push({ ...entry.start, isPlace: true, incoming_leg_transport_mode: entry.incoming })
+        runHasPlace = true
+      }
+      closeRun()
+      if (entry.end) {
+        currentRun.push({ ...entry.end, isPlace: true, leg_transport_mode: entry.mode })
+        runHasPlace = true
+      }
+    } else if (entry.kind === 'place') {
       const prev = currentRun[currentRun.length - 1]
       // The open run may be nothing but a far-away arrival endpoint — break rather
       // than draw the ocean.
@@ -142,6 +164,10 @@ export function buildDayRouteRuns(dayId: number, input: DayRouteInputs): DayRout
   const flatPts: DayRoutePoint[] = []
   for (const e of entries) {
     if (e.kind === 'place') flatPts.push({ lat: e.lat, lng: e.lng, isPlace: true, leg_transport_mode: e.mode, incoming_leg_transport_mode: e.incoming })
+    else if (e.kind === 'tour') {
+      if (e.start) flatPts.push({ ...e.start, isPlace: true, incoming_leg_transport_mode: e.incoming })
+      if (e.end) flatPts.push({ ...e.end, isPlace: true, leg_transport_mode: e.mode })
+    }
     else { if (e.from) flatPts.push({ ...e.from, isPlace: false }); if (e.to) flatPts.push({ ...e.to, isPlace: false }) }
   }
   // A hotel bookend point is not a place-assignment, so isPlace: false — resolveLegMode
@@ -153,12 +179,16 @@ export function buildDayRouteRuns(dayId: number, input: DayRouteInputs): DayRout
   // Only draw a hotel bookend when the leg is a real drive: a place before check-in
   // (#1465), a later "home" stop on the checkout day (#1465), or a transport endpoint on
   // an arrival/departure day (#1321, #2133) all draw no bookend.
-  const contributes = (e: Entry) => e.kind === 'place' || !!e.from || !!e.to
+  const contributes = (e: Entry) => e.kind === 'place' || e.kind === 'tour' || !!e.from || !!e.to
   const firstStop = entries.find(contributes)
   const lastStop = [...entries].reverse().find(contributes)
   const edgeInfo = (e: Entry | undefined, side: 'first' | 'last') => {
     if (!e) return undefined
     if (e.kind === 'place') return { isPlace: true, time: e.time, lat: e.lat, lng: e.lng }
+    if (e.kind === 'tour') {
+      const point = side === 'first' ? e.start : e.end
+      return point ? { isPlace: true, time: e.time, ...point } : undefined
+    }
     const role: CarrierEdge = side === 'first'
       ? (e.from ? 'departure' : 'arrival')
       : (e.to ? 'arrival' : 'departure')
@@ -172,9 +202,9 @@ export function buildDayRouteRuns(dayId: number, input: DayRouteInputs): DayRout
   const lastWay = flatPts[flatPts.length - 1]
   const morningHotel = hotelPt(bookends?.morning, 'morning')
   const eveningHotel = hotelPt(bookends?.evening, 'evening')
-  const drawMorning = !!bookends && !!day && shouldDrawMorningLeg(bookends, day, edgeInfo(firstStop, 'first'), dayHasCarrier)
+  const drawMorning = !!bookends && !!day && !(firstStop?.kind === 'tour' && !firstStop.start) && shouldDrawMorningLeg(bookends, day, edgeInfo(firstStop, 'first'), dayHasCarrier)
     && (!morningHotel || !firstWay || firstWay.isPlace || withinDriveRange(morningHotel, firstWay))
-  const drawEvening = !!bookends && !!day && shouldDrawEveningLeg(bookends, day, edgeInfo(lastStop, 'last'), dayHasCarrier)
+  const drawEvening = !!bookends && !!day && !(lastStop?.kind === 'tour' && !lastStop.end) && shouldDrawEveningLeg(bookends, day, edgeInfo(lastStop, 'last'), dayHasCarrier)
     && (!eveningHotel || !lastWay || lastWay.isPlace || withinDriveRange(eveningHotel, lastWay))
   const runsWithHotel: DayRoutePoint[][] = withHotelBookends(
     runs,

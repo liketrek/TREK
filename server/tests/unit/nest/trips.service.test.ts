@@ -127,6 +127,7 @@ import {
 } from '../../helpers/test-uow';
 import { createTestCollectionPlacesRepo } from '../../helpers/test-uow';
 import { createTestTodoItemsRepo, createTestTodoCategoryAssigneesRepo } from '../../helpers/todo-repos';
+import { createTestTourWaypointsRepo, createTour } from '../../helpers/tours-repos';
 import {
   createTestVacayPlansRepo,
   createTestVacayPlanMembersRepo,
@@ -2606,6 +2607,97 @@ describe('copy — whole-trip parity (Task 8)', () => {
     expect(testDb.prepare("SELECT id FROM trips WHERE title = 'Never lands'").get()).toBeUndefined();
     // The source trip itself is untouched.
     expect(testDb.prepare('SELECT id FROM trips WHERE id = ?').get(trip.id)).toBeDefined();
+  });
+});
+
+describe('copy: Tours (#2586)', () => {
+  /** A Tour on `tripId`: the place, its `tours` facet and three route waypoints. */
+  function seedTour(tripId: number, name: string) {
+    const place = createPlace(testDb, tripId, { name });
+    testDb
+      .prepare("UPDATE places SET transport_mode = 'walking', route_geometry = '[[47,11],[47.2,11.2]]' WHERE id = ?")
+      .run(place.id);
+    createTour(testDb, place.id, {
+      distance: 12.5,
+      match_confidence: 0.9,
+      max_hiking_difficulty: 4,
+      created_at: '2025-01-02 03:04:05',
+    });
+    testDb
+      .prepare(
+        "UPDATE tours SET elevation_gain = 800, elevation_loss = 790, duration = 5.5, difficulty = 'T3', wanderer_ref = 'w-1', tour_group_id = 7 WHERE place_id = ?",
+      )
+      .run(place.id);
+    const insert = testDb.prepare(
+      'INSERT INTO tour_waypoints (place_id, lat, lng, role, sequence) VALUES (?, ?, ?, ?, ?)',
+    );
+    insert.run(place.id, 47, 11, 'start', 0);
+    insert.run(place.id, 47.1, 11.1, 'via', 1);
+    insert.run(place.id, 47.2, 11.2, 'end', 2);
+    return place;
+  }
+
+  const tourColumns = (placeId: number) => {
+    const { place_id: _placeId, ...rest } = testDb
+      .prepare('SELECT * FROM tours WHERE place_id = ?')
+      .get(placeId) as Record<string, unknown>;
+    return rest;
+  };
+  const waypoints = (placeId: number) =>
+    testDb
+      .prepare('SELECT lat, lng, role, sequence FROM tour_waypoints WHERE place_id = ? ORDER BY sequence')
+      .all(placeId);
+
+  it('TRIP-SVC-081: a copied Tour keeps its facet row and waypoints, remapped onto the copied place', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Alps' });
+    const tour = seedTour(trip.id, 'Ridge walk');
+    createPlace(testDb, trip.id, { name: 'Plain stop' });
+
+    const newTripId = await svc.copy(trip.id, user.id, 'Alps again');
+
+    const newTour = testDb
+      .prepare("SELECT id FROM places WHERE trip_id = ? AND name = 'Ridge walk'")
+      .get(newTripId) as { id: number };
+    const newPlain = testDb
+      .prepare("SELECT id FROM places WHERE trip_id = ? AND name = 'Plain stop'")
+      .get(newTripId) as { id: number };
+    expect(newTour.id).not.toBe(tour.id);
+    expect(tourColumns(newTour.id)).toEqual(tourColumns(tour.id));
+    expect(tourColumns(newTour.id)).toMatchObject({
+      tour_type: 'hike',
+      created_at: '2025-01-02 03:04:05',
+      max_hiking_difficulty: 4,
+      tour_group_id: 7,
+    });
+    expect(waypoints(newTour.id)).toEqual(waypoints(tour.id));
+    expect(waypoints(newTour.id)).toHaveLength(3);
+    // The plain place stays plain, and the source keeps its own rows.
+    expect(testDb.prepare('SELECT 1 FROM tours WHERE place_id = ?').get(newPlain.id)).toBeUndefined();
+    expect(
+      testDb
+        .prepare('SELECT COUNT(*) AS n FROM tours t JOIN places p ON p.id = t.place_id WHERE p.trip_id = ?')
+        .get(trip.id),
+    ).toEqual({ n: 1 });
+    expect(waypoints(tour.id)).toHaveLength(3);
+  });
+
+  it('TRIP-SVC-082: a failing waypoint insert rolls the copied Tour back with the rest of the copy', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Doomed alps' });
+    seedTour(trip.id, 'Doomed ridge');
+    const toursBefore = (testDb.prepare('SELECT COUNT(*) AS n FROM tours').get() as { n: number }).n;
+
+    const waypointsRepo = await createTestTourWaypointsRepo(testDb);
+    const spy = vi.spyOn(waypointsRepo, 'insertForPlace').mockRejectedValueOnce(new Error('boom'));
+    try {
+      await expect(svc.copy(trip.id, user.id, 'Never lands')).rejects.toThrow('boom');
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect((testDb.prepare('SELECT COUNT(*) AS n FROM tours').get() as { n: number }).n).toBe(toursBefore);
+    expect(testDb.prepare("SELECT id FROM trips WHERE title = 'Never lands'").get()).toBeUndefined();
   });
 });
 

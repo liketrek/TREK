@@ -230,7 +230,10 @@ export default function MSettingsGeneral() {
         title={t('settings.startTripTab')}
         value={startTripTab}
         onSelect={(v) => save('start_trip_tab', v)}
-        options={TRIP_TAB_IDS.map((id) => ({ value: id, label: t(TRIP_TAB_LABEL_KEYS[id]) }))}
+        options={TRIP_TAB_IDS.filter((id) => id !== 'tour-planner').map((id) => ({
+          value: id,
+          label: t(TRIP_TAB_LABEL_KEYS[id]),
+        }))}
       />
     </>
   );

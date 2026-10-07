@@ -371,6 +371,8 @@ export interface AssignmentRow extends DayAssignment {
   stop_type: string | null;
   /** How full this stop fills the tank, 1-100; null follows the traveller's own setting. */
   fill_percent: number | null;
+  tour_place_id?: number | null;
+  tour_route_geometry?: string | null;
   category_name: string | null;
   category_color: string | null;
   category_icon: string | null;

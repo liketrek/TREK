@@ -578,7 +578,7 @@ export class PlacesMcp {
   @Tool({
     name: 'delete_place',
     description:
-      "Delete a place from a trip. Removes its day assignments, its linked expenses and any nights booked at it, including each night's reservation and that reservation's expense. Warn the user before calling this on a hotel with a booking: it cannot be undone.",
+      "Permanently delete a place from a trip. Removes its day assignments, its linked expenses and any nights booked at it, including each night's reservation and that reservation's expense. If the place is a Tour, its route and editable waypoints are also permanently deleted. Warn the user before calling: this cannot be undone.",
     inputSchema: {
       tripId: z.number().int().positive(),
       placeId: z.number().int().positive(),
@@ -843,7 +843,7 @@ export class PlacesMcp {
   @Tool({
     name: 'bulk_delete_places',
     description:
-      "Delete multiple places from a trip at once. Removes all day assignments for each place as well, plus each place's linked expenses and any nights booked at it, with their reservations and expenses. Warn the user before calling this: it cannot be undone.",
+      "Permanently delete multiple places from a trip at once. Removes all day assignments for each place as well, plus each place's linked expenses and any nights booked at it, with their reservations and expenses. Any Tours in the selection also lose their routes and editable waypoints. Warn the user before calling: this cannot be undone.",
     inputSchema: {
       tripId: z.number().int().positive(),
       placeIds: z.array(z.number().int().positive()).min(1).max(200),

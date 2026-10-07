@@ -604,6 +604,46 @@
     transform: scale(0);
   }
 }
+/* tours: a walking step, the pole swinging forward and planting, the pack riding along */
+@keyframes trek-walk {
+  0%,
+  50%,
+  100% {
+    transform: translateY(0);
+  }
+  25%,
+  75% {
+    transform: translateY(-1.6px);
+  }
+}
+@keyframes trek-pole {
+  0%,
+  100% {
+    transform: rotate(-9deg);
+  }
+  45% {
+    transform: rotate(7deg);
+  }
+  55% {
+    transform: rotate(7deg);
+  }
+}
+@keyframes trek-pack {
+  0%,
+  50%,
+  100% {
+    transform: rotate(0);
+  }
+  25%,
+  75% {
+    transform: rotate(-3deg);
+  }
+}
+@keyframes trek-trail {
+  to {
+    stroke-dashoffset: 8;
+  }
+}
 
 .trek {
   animation: trek-in 480ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
@@ -653,6 +693,9 @@
 }
 .trek-bounce--transport {
   animation: trek-sk-body 3.6s ease-in-out infinite;
+}
+.trek-bounce--tours {
+  animation: trek-walk 1.6s ease-in-out infinite;
 }
 /* per-scene props */
 .trek-board {
@@ -760,6 +803,19 @@
   transform-box: fill-box;
   transform-origin: center;
 }
+.trek-pole {
+  animation: trek-pole 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+}
+.trek-pack {
+  animation: trek-pack 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 90% 10%;
+}
+.trek-trail {
+  animation: trek-trail 0.8s linear infinite;
+}
 /* staggered starts for written lines / poll bars / Zzz */
 .trek-d2,
 .trek-z2 {
@@ -821,6 +877,10 @@
   .trek-bounce--idle,
   .trek-bounce--polls,
   .trek-bounce--transport,
+  .trek-bounce--tours,
+  .trek-pole,
+  .trek-pack,
+  .trek-trail,
   .trek-board,
   .trek-wheel,
   .trek-flag,

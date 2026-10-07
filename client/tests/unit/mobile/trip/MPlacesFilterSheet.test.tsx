@@ -17,13 +17,14 @@ const TAGGED = buildPlace({ id: 1, category_id: 1 })
 const BARE = buildPlace({ id: 2, category_id: null })
 const TRACK = buildPlace({ id: 3, category_id: 2, route_geometry: '[[1,2],[3,4]]' })
 
-function renderSheet({ places = [TAGGED, BARE], categories = CATEGORIES, open = true }: {
+function renderSheet({ places = [TAGGED, BARE], categories = CATEGORIES, open = true, toursEnabled = false }: {
   places?: Place[]
   categories?: Category[]
   open?: boolean
+  toursEnabled?: boolean
 } = {}) {
   const onClose = vi.fn()
-  render(<MPlacesFilterSheet open={open} onClose={onClose} places={places} categories={categories} />)
+  render(<MPlacesFilterSheet open={open} onClose={onClose} places={places} categories={categories} toursEnabled={toursEnabled} />)
   return { onClose }
 }
 
@@ -51,6 +52,13 @@ describe('MPlacesFilterSheet', () => {
     await screen.findByRole('dialog', { name: 'Filters' })
     expect(within(group('Show')).getByRole('button', { name: 'Tracks' })).toBeInTheDocument()
     expect(screen.queryByRole('checkbox', { name: 'No Category' })).not.toBeInTheDocument()
+  })
+
+  it('hides Tracks from the map filter while Tours is enabled', async () => {
+    const tourTrack = buildPlace({ id: 4, route_geometry: '[[5,6],[7,8]]' })
+    renderSheet({ places: [TAGGED, TRACK, tourTrack], toursEnabled: true })
+    await screen.findByRole('dialog', { name: 'Filters' })
+    expect(within(group('Show')).queryByRole('button', { name: 'Tracks' })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-PFSHEET-003: picking a pool writes it to the trip store', async () => {

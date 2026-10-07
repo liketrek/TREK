@@ -16,6 +16,9 @@ import type { TrekWsEventName } from '@trek/shared'
  * the entry (the event then needs a new home or an IGNORED_WS_EVENTS slot).
  */
 export const HANDLED_OUTSIDE_TRIP_STORE = [
+  // Tours facet invalidation — hooks/useTripWebSocket forwards tours:changed to
+  // useTourPlaceIds so the active trip refreshes its Tours/Places read model.
+  'tours:changed',
   // Collab — Collab/MCollab components + useTripWebSocket's collabFileSync
   'collab:note:created',
   'collab:note:updated',

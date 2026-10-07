@@ -305,6 +305,10 @@ export default function MTripShell({
 
   const trTab = planner.activeTab;
 
+  useEffect(() => {
+    if (trTab === 'tour-planner') planner.handleTabChange('plan');
+  }, [trTab, planner.handleTabChange]);
+
   const setTrTab = (tabId: string) => {
     planner.handleTabChange(tabId);
     if (mode === 'browse') setMode('go');
@@ -443,9 +447,10 @@ export default function MTripShell({
   }
   if (!trip) return null;
 
-  const enabledTabIds = new Set(planner.TRIP_TABS.map((tab) => tab.id));
+  const mobileTabs = planner.TRIP_TABS.filter((tab) => !tab.desktopOnly);
+  const enabledTabIds = new Set(mobileTabs.map((tab) => tab.id));
   const dockTabs = pickDockTabs(enabledTabIds);
-  const tabLabel = (id: string) => planner.TRIP_TABS.find((tab) => tab.id === id)?.label ?? id;
+  const tabLabel = (id: string) => mobileTabs.find((tab) => tab.id === id)?.label ?? id;
 
   // While the trip runs, today's chip carries a ring and a button jumps back to it
   // from wherever the rail was scrolled (#2392). Null outside the trip's dates.

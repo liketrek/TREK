@@ -32,6 +32,7 @@ import {
   sharedTestOrm,
   createTestTripsRepo,
 } from './test-uow';
+import { createTestToursRepo } from './tours-repos';
 
 import type { Database } from 'better-sqlite3';
 
@@ -94,6 +95,7 @@ export async function accommodationsOver(conn: Database): Promise<Accommodations
     await createTestPlacesRepo(conn),
     await createTestTripMembersRepo(conn),
     await createTestRoadtripViasRepo(conn),
+    await createTestToursRepo(conn),
   );
   return new AccommodationsService(
     permissions,

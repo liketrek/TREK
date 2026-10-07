@@ -23,6 +23,7 @@ import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useTripStore } from '../store/tripStore';
 import type { Day, Place, Reservation, Settings } from '../types';
+import { analyzeRouteGeometry } from '../utils/routeGeometry';
 import TripPlannerPage from './TripPlannerPage';
 
 // ── Component stubs ───────────────────────────────────────────────────────────
@@ -30,6 +31,22 @@ import TripPlannerPage from './TripPlannerPage';
 // callbacks can be invoked from the test.
 type Props = Record<string, unknown>;
 const captured: Record<string, Props> = {};
+const plannerActions = vi.hoisted(() => ({
+  viewGpxTour: vi.fn(),
+  addWaypoint: vi.fn(),
+  openTour: vi.fn(),
+  startNewTour: vi.fn(),
+  forgetDeletedTour: vi.fn((_placeId: number) => undefined),
+  saveOutcome: null as unknown,
+  mapFocusKey: 0,
+  newDraftGeneration: 0,
+  mode: { type: 'neutral' } as unknown,
+  isSaving: false,
+  waypoints: [] as unknown,
+  routeProfileFocus: null as unknown,
+  readOnlyGpxTour: null as unknown,
+  readOnlyGpxAnalysis: null as unknown,
+}));
 
 function stub(name: string, testId?: string) {
   return (props: Props) => {
@@ -108,6 +125,39 @@ vi.mock('../components/Planner/ReservationsPanel', () => ({
   default: stub('reservationsPanel', 'reservations-panel'),
 }));
 vi.mock('../components/Planner/TripWarningsBanner', () => ({ default: stub('warnings', 'trip-warnings') }));
+vi.mock('../components/Tours/TourDetailDialog', () => ({ default: stub('tourDetail', 'tour-detail-dialog') }));
+vi.mock('../components/Tours/planner/useTourPlanner', () => ({
+  useTourPlanner: () => ({
+    route: null,
+    waypoints: plannerActions.waypoints,
+    routeProfileFocus: plannerActions.routeProfileFocus,
+    name: '',
+    startNewTour: plannerActions.startNewTour,
+    newTourConfirmationOpen: false,
+    cancelNewTour: vi.fn(),
+    elevationProfileExpanded: true,
+    toggleElevationProfile: vi.fn(),
+    newDraftGeneration: plannerActions.newDraftGeneration,
+    mapFocusKey: plannerActions.mapFocusKey,
+    mode: plannerActions.mode,
+    isSaving: plannerActions.isSaving,
+    selectedWaypointId: null,
+    editingPlaceId: null,
+    saveOutcome: plannerActions.saveOutcome,
+    hasUnsavedChanges: false,
+    setSelectedWaypointId: vi.fn(),
+    mapBaseLayer: 'map',
+    setMapBaseLayer: vi.fn(),
+    openTour: plannerActions.openTour,
+    viewGpxTour: plannerActions.viewGpxTour,
+    addWaypoint: plannerActions.addWaypoint,
+    closeGpxTour: vi.fn(),
+    readOnlyGpxTour: plannerActions.readOnlyGpxTour,
+    readOnlyGpxAnalysis: plannerActions.readOnlyGpxAnalysis,
+    discard: vi.fn(),
+    forgetDeletedTour: plannerActions.forgetDeletedTour,
+  }),
+}));
 
 vi.mock('../components/Trips/TripFormModal', () => ({ default: stub('tripForm') }));
 vi.mock('../components/Trips/TripMembersModal', () => ({ default: stub('membersModal') }));
@@ -388,6 +438,7 @@ function baseState(): HookState {
     handleSavePlace: vi.fn(async () => undefined),
     openPlaceEditor: vi.fn(),
     handleDeletePlace: vi.fn(),
+    handleDeleteTour: vi.fn(),
     confirmDeletePlace: vi.fn(async () => undefined),
     confirmDeletePlaces: vi.fn(async () => undefined),
     confirmChangeCategory: vi.fn(async () => undefined),
@@ -403,6 +454,16 @@ function baseState(): HookState {
     selectedPlace: null,
     dayOrderMap: {},
     dayPlaces: [],
+    toursEnabled: false,
+    toursMode: true,
+    setToursMode: vi.fn(),
+    tours: [],
+    toursLoading: false,
+    tourDataReady: true,
+    tourPlaceIds: new Set<number>(),
+    reloadTourPlaceIds: vi.fn(async () => undefined),
+    upsertTour: vi.fn(),
+    selectedTour: null,
     mapTileUrl: 'https://tiles/{z}/{x}/{y}.png',
     fontStyle: { fontFamily: 'var(--font-system)' },
     splashDone: true,
@@ -422,17 +483,549 @@ function renderPage(overrides: HookState = {}) {
   return render(<TripPlannerPage />);
 }
 
+function mockStartNewTourTransition() {
+  plannerActions.startNewTour.mockImplementation(() => {
+    plannerActions.mode = { type: 'new-draft' };
+    plannerActions.waypoints = [];
+    plannerActions.saveOutcome = null;
+    plannerActions.mapFocusKey += 1;
+    plannerActions.newDraftGeneration += 1;
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   resetAllStores();
   for (const key of Object.keys(captured)) delete captured[key];
   confirmDialogs.length = 0;
+  plannerActions.viewGpxTour.mockReset();
+  plannerActions.addWaypoint.mockReset();
+  plannerActions.openTour.mockReset();
+  plannerActions.startNewTour.mockReset();
+  plannerActions.forgetDeletedTour.mockReset();
+  plannerActions.saveOutcome = null;
+  plannerActions.mapFocusKey = 0;
+  plannerActions.newDraftGeneration = 0;
+  plannerActions.mode = { type: 'neutral' };
+  plannerActions.isSaving = false;
+  plannerActions.waypoints = [];
+  plannerActions.routeProfileFocus = null;
+  plannerActions.readOnlyGpxTour = null;
+  plannerActions.readOnlyGpxAnalysis = null;
   hookState = baseState();
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser({ id: 5 }) });
   useTripStore.setState({ loadBudgetItems: vi.fn(async () => undefined) } as never);
 });
 
 describe('TripPlannerPage — shell', () => {
+  it('UI-R2: Tours Planner rails use shared resize bounds, touch handles and keyboard nudges', () => {
+    const { container } = renderPage({
+      activeTab: 'tour-planner',
+      toursEnabled: true,
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+    });
+    const handles = container.querySelectorAll<HTMLElement>('div[role="separator"]');
+    expect(handles).toHaveLength(2);
+    expect(Array.from(handles, (handle) => handle.getAttribute('data-resize'))).toEqual(['left', 'right']);
+    for (const handle of handles) {
+      expect(handle).toHaveAttribute('aria-valuemin', '200');
+      expect(handle).toHaveAttribute('aria-valuemax', '520');
+      expect(handle.style.touchAction).toBe('none');
+      expect(handle).toHaveAttribute('aria-label');
+    }
+    fireEvent.touchStart(handles[0]);
+    expect(hookState.startResizeLeft).toHaveBeenCalled();
+    fireEvent.keyDown(handles[1], { key: 'ArrowLeft' });
+    expect(hookState.nudgeRight).toHaveBeenCalledWith(16);
+    expect(props('map').leftWidth).toBe(320);
+    expect(props('map').rightWidth).toBe(320);
+  });
+
+  it('UI-R2: collapsed Tours rails retain semantic restore controls and report zero map insets', () => {
+    renderPage({
+      activeTab: 'tour-planner',
+      toursEnabled: true,
+      leftHidden: true,
+      rightHidden: true,
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+    });
+    expect(props('map').leftWidth).toBe(0);
+    expect(props('map').rightWidth).toBe(0);
+    expect(screen.getByRole('button', { name: 'trip.mobilePlan' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'tours.planner.tripTours' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'trip.mobilePlan' })[0]).toHaveClass('focus-visible:outline');
+    expect(document.querySelectorAll('div[role="separator"]')).toHaveLength(0);
+  });
+
+  it.each([
+    { leftHidden: false, rightHidden: true, visibleSide: 'left', leftInset: 300, rightInset: 0 },
+    { leftHidden: true, rightHidden: false, visibleSide: 'right', leftInset: 0, rightInset: 300 },
+  ])(
+    'UI-R2: the 768-1023px panel state shows only its selected rail ($visibleSide)',
+    ({ leftHidden, rightHidden, visibleSide, leftInset, rightInset }) => {
+      const { container } = renderPage({
+        activeTab: 'tour-planner',
+        toursEnabled: true,
+        narrowPanels: true,
+        leftHidden,
+        rightHidden,
+        leftWidth: 300,
+        rightWidth: 300,
+        resizeMax: 300,
+        enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      });
+      const handles = container.querySelectorAll<HTMLElement>('div[role="separator"]');
+      expect(handles).toHaveLength(1);
+      expect(handles[0]).toHaveAttribute('data-resize', visibleSide);
+      expect(handles[0]).toHaveAttribute('aria-valuemax', '300');
+      expect(props('map').leftWidth).toBe(leftInset);
+      expect(props('map').rightWidth).toBe(rightInset);
+    }
+  );
+
+  it('UI-R2: rail collapse changes only map insets, not the fit target or routed draft', () => {
+    const view = renderPage({
+      activeTab: 'tour-planner',
+      toursEnabled: true,
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+    });
+    const focusPoints = props('map').focusPoints;
+    const route = props('map').route;
+    const fitKey = props('map').fitKey;
+
+    hookState = { ...hookState, leftHidden: true, rightHidden: true };
+    view.rerender(<TripPlannerPage />);
+
+    expect(props('map').leftWidth).toBe(0);
+    expect(props('map').rightWidth).toBe(0);
+    expect(props('map').focusPoints).toBe(focusPoints);
+    expect(props('map').route).toBe(route);
+    expect(props('map').fitKey).toBe(fitKey);
+    expect(plannerActions.mode).toEqual({ type: 'neutral' });
+  });
+
+  it('FE-PAGE-TPW-066: Tours entry stays neutral when saved Tours exist and does not auto-select one', async () => {
+    const savedTour = {
+      place_id: 92,
+      name: 'Editable ridge tour',
+      tour_type: 'hike',
+      distance: 6,
+      elevation_gain: 300,
+      elevation_loss: 290,
+      duration: 120,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      tour_group_id: null,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+      has_waypoints: true,
+    };
+    renderPage({
+      activeTab: 'tour-planner',
+      toursEnabled: true,
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      tours: [savedTour],
+    });
+
+    expect(await screen.findByText('Plan a tour')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Plan new tour' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Tour name')).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Editable ridge tour/i })).not.toHaveAttribute('aria-selected', 'true');
+    expect(plannerActions.openTour).not.toHaveBeenCalled();
+  });
+
+  it('preserves the visible TOUR-PLANNER camera when the Plan a Tour button starts an empty draft', async () => {
+    const place = buildPlace({ id: 81, lat: 35.01, lng: 135.76 });
+    mockStartNewTourTransition();
+    const view = renderPage({
+      activeTab: 'tour-planner',
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      toursEnabled: true,
+      places: [place],
+    });
+    const mapElement = screen.getByTestId('map-view');
+
+    expect(props('map').focusPoints).toEqual([[place.lat, place.lng]]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Plan new tour' }));
+    expect(plannerActions.startNewTour).toHaveBeenCalledOnce();
+    view.rerender(<TripPlannerPage />);
+
+    expect(screen.getByRole('heading', { name: 'New tour' })).toBeInTheDocument();
+    expect(props('map').focusPoints).toEqual([]);
+    expect(props('map').route).toBeNull();
+    expect(props('map').plannerWaypoints).toEqual([]);
+    expect(props('map').focusKey).toBe(1);
+    expect(screen.getByTestId('map-view')).toBe(mapElement);
+    expect(props('map').onMapClick).toBeTypeOf('function');
+    act(() => props('map').onMapClick({ latlng: { lat: 35.02, lng: 135.77 } }));
+    expect(plannerActions.addWaypoint).toHaveBeenCalledWith(35.02, 135.77);
+  });
+
+  it('preserves the visible TOUR-PLANNER camera when Plan another starts a new Tour', async () => {
+    const savedTour = {
+      place_id: 82,
+      name: 'Saved Kyoto tour',
+      tour_type: 'hike',
+      distance: 6,
+      elevation_gain: 300,
+      elevation_loss: 290,
+      duration: 120,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      tour_group_id: null,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+      has_waypoints: true,
+    };
+    mockStartNewTourTransition();
+    plannerActions.mode = { type: 'edit-saved', placeId: savedTour.place_id };
+    plannerActions.waypoints = [
+      { id: 'start', lat: 35.01, lng: 135.76, role: 'start' },
+      { id: 'end', lat: 35.02, lng: 135.77, role: 'end' },
+    ];
+    plannerActions.mapFocusKey = 8;
+    plannerActions.saveOutcome = savedTour;
+    const view = renderPage({
+      activeTab: 'tour-planner',
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      toursEnabled: true,
+      tours: [savedTour],
+      places: [buildPlace({ id: savedTour.place_id, lat: 35.01, lng: 135.76 })],
+    });
+    const mapElement = screen.getByTestId('map-view');
+
+    expect(props('map').focusPoints).toEqual([
+      [35.01, 135.76],
+      [35.02, 135.77],
+    ]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Plan another' }));
+    expect(plannerActions.startNewTour).toHaveBeenCalledOnce();
+    view.rerender(<TripPlannerPage />);
+
+    expect(screen.getByRole('heading', { name: 'New tour' })).toBeInTheDocument();
+    expect(props('map').focusPoints).toEqual([]);
+    expect(props('map').route).toBeNull();
+    expect(props('map').plannerWaypoints).toEqual([]);
+    expect(props('map').focusKey).toBe(9);
+    expect(screen.getByTestId('map-view')).toBe(mapElement);
+    expect(props('map').onMapClick).toBeTypeOf('function');
+  });
+
+  it('FE-PAGE-TPW-063: uses the last TRIP-PLAN viewport for neutral TOUR-PLANNER fallback', () => {
+    const first = buildPlace({ id: 81, lat: 47.1, lng: 11.2 });
+    const second = buildPlace({ id: 82, lat: 47.3, lng: 11.6 });
+    const view = renderPage({
+      activeTab: 'tour-planner',
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      toursEnabled: true,
+      places: [first, second],
+    });
+
+    expect(props('map').focusPoints).toEqual([
+      [47.1, 11.2],
+      [47.3, 11.6],
+    ]);
+    expect(props('map').route).toBeNull();
+    expect(props('map').plannerWaypoints).toEqual([]);
+    expect(props('map').onMapClick).toBeUndefined();
+    plannerActions.mode = { type: 'new-draft' };
+    view.rerender(<TripPlannerPage />);
+    plannerActions.isSaving = true;
+    view.rerender(<TripPlannerPage />);
+    expect(props('map').onMapClick).toBeUndefined();
+    expect(screen.getByTestId('map-view')).toBeInTheDocument();
+    plannerActions.isSaving = false;
+    view.rerender(<TripPlannerPage />);
+    act(() => props('map').onMapClick({ latlng: { lat: 47.11, lng: 11.21 } }));
+    expect(plannerActions.addWaypoint).toHaveBeenCalledWith(47.11, 11.21);
+    expect(props('map').plannerWaypoints).toEqual([]);
+
+    hookState = { ...hookState, activeTab: 'plan' };
+    view.rerender(<TripPlannerPage />);
+    act(() => props('map').onViewportChange({ south: 46.9, west: 10.8, north: 47.5, east: 12.1 }));
+    plannerActions.mode = { type: 'neutral' };
+    plannerActions.waypoints = [];
+    hookState = { ...hookState, activeTab: 'tour-planner' };
+    view.rerender(<TripPlannerPage />);
+
+    expect(props('map').focusPoints).toEqual([
+      [46.9, 10.8],
+      [47.5, 12.1],
+    ]);
+    expect(props('map').route).toBeNull();
+    expect(props('map').plannerWaypoints).toEqual([]);
+  });
+
+  it('keeps editable fit targets stable while transient profile focus changes', () => {
+    const waypoints = [
+      { id: 'start', lat: 47.1, lng: 11.2, role: 'start' },
+      { id: 'end', lat: 47.3, lng: 11.6, role: 'end' },
+    ];
+    plannerActions.mode = { type: 'edit-saved', placeId: 92 };
+    plannerActions.waypoints = waypoints;
+    const view = renderPage({
+      activeTab: 'tour-planner',
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      toursEnabled: true,
+    });
+    const fitTargets = props('map').focusPoints;
+    const route = props('map').route;
+    const mapWaypoints = props('map').plannerWaypoints;
+
+    plannerActions.routeProfileFocus = {
+      distanceMeters: 10,
+      elevationMeters: 100,
+      lat: 47.11,
+      lng: 11.21,
+      sampleIndex: 1,
+    };
+    view.rerender(<TripPlannerPage />);
+    expect(props('map').routeProfileFocus).toBe(plannerActions.routeProfileFocus);
+    expect(props('map').focusPoints).toBe(fitTargets);
+    expect(props('map').route).toBe(route);
+    expect(props('map').plannerWaypoints).toBe(mapWaypoints);
+
+    plannerActions.routeProfileFocus = {
+      distanceMeters: 20,
+      elevationMeters: 110,
+      lat: 47.12,
+      lng: 11.22,
+      sampleIndex: 1,
+    };
+    view.rerender(<TripPlannerPage />);
+    expect(props('map').focusPoints).toBe(fitTargets);
+    expect(props('map').route).toBe(route);
+    expect(props('map').plannerWaypoints).toBe(mapWaypoints);
+
+    plannerActions.waypoints = [...waypoints, { id: 'via', lat: 47.2, lng: 11.4, role: 'via' }];
+    view.rerender(<TripPlannerPage />);
+    expect(props('map').focusPoints).not.toBe(fitTargets);
+    expect(props('map').focusPoints).toEqual([
+      [47.1, 11.2],
+      [47.3, 11.6],
+      [47.2, 11.4],
+    ]);
+  });
+
+  it('FE-PAGE-TPW-064: falls back to the normal map default when there is no viewport or geo Place', () => {
+    renderPage({
+      activeTab: 'tour-planner',
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      toursEnabled: true,
+      places: [],
+    });
+
+    expect(props('map').focusPoints).toEqual([]);
+    expect(props('map').center).toBeUndefined();
+    expect(props('map').zoom).toBeUndefined();
+  });
+
+  it('FE-PAGE-TPW-065: Tours OFF stays on native Plan and does not create the Tours Planner hook', () => {
+    const view = renderPage({ activeTab: 'plan', toursEnabled: false });
+    expect(screen.getByTestId('map-view')).toBeInTheDocument();
+    expect(screen.queryByTestId('tour-planner-rail')).not.toBeInTheDocument();
+
+    hookState = { ...hookState, activeTab: 'plan' };
+    view.rerender(<TripPlannerPage />);
+
+    expect(screen.getByTestId('map-view')).toBeInTheDocument();
+    expect(screen.queryByTestId('tour-planner-rail')).not.toBeInTheDocument();
+  });
+
+  it('does not offer permanent Tour Delete from the desktop TRIP-PLAN detail', () => {
+    const tourPlace = buildPlace({ id: 91, name: 'Ridge walk', tour_place_id: 91 });
+    const selectedTour = {
+      place_id: 91,
+      name: tourPlace.name,
+      tour_type: 'hike',
+      distance: 8,
+      elevation_gain: 420,
+      elevation_loss: 390,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: null,
+      tour_group_id: null,
+      max_hiking_difficulty: 2,
+      planned: true,
+      caution: false,
+      has_waypoints: true,
+    };
+    renderPage({
+      toursEnabled: true,
+      selectedPlace: tourPlace,
+      selectedPlaceId: tourPlace.id,
+      selectedTour,
+    });
+    expect(props('tourDetail').onDelete).toBeUndefined();
+  });
+
+  it('routes visible TOUR-PLANNER Tours-rail deletion through the existing confirmation', async () => {
+    const savedTour = {
+      place_id: 91,
+      name: 'Ridge walk',
+      tour_type: 'hike',
+      distance: 8,
+      elevation_gain: 420,
+      elevation_loss: 390,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: null,
+      tour_group_id: null,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+      has_waypoints: true,
+    };
+    const handleDeleteTour = vi.fn((placeId: number) => {
+      hookState = { ...hookState, deletePlaceId: placeId, deletePlaceIsTour: true };
+    });
+    const setDeletePlaceId = vi.fn((placeId: number | null) => {
+      hookState = { ...hookState, deletePlaceId: placeId };
+    });
+    const confirmDeletePlace = vi.fn(async (): Promise<number | null> => savedTour.place_id);
+    plannerActions.mode = { type: 'edit-saved', placeId: savedTour.place_id };
+    plannerActions.forgetDeletedTour.mockImplementation((placeId) => {
+      const mode = plannerActions.mode as { placeId?: number };
+      if (mode.placeId === placeId) plannerActions.mode = { type: 'neutral' };
+    });
+    const view = renderPage({
+      activeTab: 'tour-planner',
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      toursEnabled: true,
+      tours: [savedTour],
+      handleDeleteTour,
+      setDeletePlaceId,
+      confirmDeletePlace,
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete Ridge walk' }));
+    expect(handleDeleteTour).toHaveBeenCalledWith(savedTour.place_id);
+    view.rerender(<TripPlannerPage />);
+    let confirmation = [...confirmDialogs].reverse().find((dialog) => dialog.isOpen);
+    expect(confirmation).toMatchObject({ title: 'common.delete', confirmLabel: 'tours.delete.confirmAction' });
+    expect(screen.getByRole('heading', { name: 'Edit tour' })).toBeInTheDocument();
+
+    const onClose = confirmation?.onClose as (() => void) | undefined;
+    onClose?.();
+    expect(setDeletePlaceId).toHaveBeenCalledWith(null);
+    expect(confirmDeletePlace).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Edit tour' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Ridge walk' }));
+    view.rerender(<TripPlannerPage />);
+    confirmation = [...confirmDialogs].reverse().find((dialog) => dialog.isOpen);
+    const onConfirm = confirmation?.onConfirm as (() => void | Promise<void>) | undefined;
+    await act(async () => {
+      await onConfirm?.();
+    });
+    expect(confirmDeletePlace).toHaveBeenCalledOnce();
+    expect(plannerActions.forgetDeletedTour).toHaveBeenCalledWith(savedTour.place_id);
+    view.rerender(<TripPlannerPage />);
+    expect(screen.getByText('Plan a tour')).toBeInTheDocument();
+
+    confirmDeletePlace.mockResolvedValue(null);
+    plannerActions.forgetDeletedTour.mockClear();
+    plannerActions.mode = { type: 'edit-saved', placeId: savedTour.place_id };
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Ridge walk' }));
+    view.rerender(<TripPlannerPage />);
+    confirmation = [...confirmDialogs].reverse().find((dialog) => dialog.isOpen);
+    const failedConfirm = confirmation?.onConfirm as (() => void | Promise<void>) | undefined;
+    await act(async () => {
+      await failedConfirm?.();
+    });
+    expect(plannerActions.forgetDeletedTour).not.toHaveBeenCalled();
+    expect(screen.getByRole('option', { name: /Ridge walk/ })).toBeInTheDocument();
+    view.rerender(<TripPlannerPage />);
+    expect(screen.getByRole('heading', { name: 'Edit tour' })).toBeInTheDocument();
+  });
+
+  it('excludes Tours from the mobile TRIP-PLAN Places pool when the addon is enabled', () => {
+    const tourPlace = buildPlace({ id: 92, name: 'Mobile ridge', tour_place_id: 92 });
+    const tourPlaceIds = new Set([tourPlace.id]);
+    renderPage({
+      isMobile: true,
+      mobileSidebarOpen: 'right',
+      toursEnabled: true,
+      tourPlaceIds,
+      places: [tourPlace],
+    });
+
+    expect(props('places').toursEnabled).toBe(true);
+    expect(props('places').excludePlaceIds).toBe(tourPlaceIds);
+  });
+
+  it('passes Tour facet identity to desktop and mobile TRIP-PLAN day cards', () => {
+    const tourPlaceIds = new Set([92]);
+    const view = renderPage({ activeTab: 'plan', toursEnabled: true, tourPlaceIds });
+
+    expect(props('dayPlan').tourPlaceIds).toBe(tourPlaceIds);
+
+    hookState = { ...hookState, isMobile: true, mobileSidebarOpen: 'left' };
+    view.rerender(<TripPlannerPage />);
+    expect(props('dayPlan').tourPlaceIds).toBe(tourPlaceIds);
+  });
+
+  it('FE-PAGE-TPW-062: opens GPX geometry in the read-only Planner path without mounting the general detail dialog', async () => {
+    const gpxPlace = buildPlace({
+      id: 91,
+      name: 'Imported ridge GPX',
+      lat: 47.1,
+      lng: 11.2,
+      route_geometry: '[[47.1,11.2,500],[47.2,11.3,550]]',
+    });
+    const gpxTour = {
+      place_id: 91,
+      name: 'Imported ridge GPX',
+      tour_type: 'hike',
+      distance: 8,
+      elevation_gain: 420,
+      elevation_loss: 420,
+      duration: 180,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      tour_group_id: null,
+      planned: false,
+      caution: false,
+      has_waypoints: false,
+    };
+    const trekTour = { ...gpxTour, place_id: 92, name: 'Editable ridge tour', has_waypoints: true };
+    const view = renderPage({
+      activeTab: 'tour-planner',
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      toursEnabled: true,
+      places: [gpxPlace],
+      tours: [gpxTour, trekTour],
+    });
+
+    fireEvent.click(await screen.findByRole('option', { name: /Imported ridge GPX/i }));
+
+    expect(plannerActions.viewGpxTour).toHaveBeenCalledWith(gpxTour, gpxPlace.route_geometry);
+    expect(screen.queryByTestId('tour-detail-dialog')).not.toBeInTheDocument();
+
+    const analysis = analyzeRouteGeometry(gpxPlace.route_geometry);
+    plannerActions.readOnlyGpxTour = { tour: gpxTour, routeGeometry: gpxPlace.route_geometry };
+    plannerActions.readOnlyGpxAnalysis = analysis;
+    plannerActions.mode = { type: 'view-gpx', placeId: gpxTour.place_id, tour: gpxTour };
+    view.rerender(<TripPlannerPage />);
+
+    expect(props('map').route).toEqual([analysis?.routeCoordinates]);
+    expect(props('map').focusPoints).toEqual(analysis?.routeCoordinates);
+    expect(props('map').onMapClick).toBeUndefined();
+    expect(props('map').plannerWaypoints).toEqual([]);
+    expect(screen.getByRole('heading', { name: 'GPX tour' })).toBeInTheDocument();
+    expect(screen.getAllByText('Imported ridge GPX')).toHaveLength(2);
+    expect(screen.queryByLabelText('Tour name')).not.toBeInTheDocument();
+
+    expect(plannerActions.viewGpxTour).toHaveBeenCalledOnce();
+  });
+
   it('FE-PAGE-TPW-002: the splash holds the page until the trip finished loading', () => {
     renderPage({ isLoading: true, splashDone: false });
 

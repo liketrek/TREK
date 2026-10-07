@@ -1,4 +1,3 @@
-import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { PlacesRepository } from '../repositories/Places.repository';
 import { DbTimestampType } from '../types';
 import { BudgetItems } from './BudgetItems.entity';
@@ -14,8 +13,10 @@ import { PlaceRegions } from './PlaceRegions.entity';
 import { Reservations } from './Reservations.entity';
 import { RoadtripDayTracks } from './RoadtripDayTracks.entity';
 import { Tags } from './Tags.entity';
+import { Tours } from './Tours.entity';
 import { TripFiles } from './TripFiles.entity';
 import { Trips } from './Trips.entity';
+import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class Places {
   [EntityRepositoryType]?: PlacesRepository;
@@ -67,6 +68,7 @@ export class Places {
   place_regions: Ref<PlaceRegions> | null = null;
   reservations_collection = new Collection<Reservations>(this);
   roadtrip_day_tracks_collection = new Collection<RoadtripDayTracks>(this);
+  tours: Ref<Tours> | null = null;
   trip_files_collection = new Collection<TripFiles>(this);
 }
 
@@ -110,9 +112,11 @@ export const PlacesSchema = defineEntity({
     source: p.text().nullable(),
     email: p.text().nullable(),
     opening_hours: p.text().nullable(),
-    place_tags: () => p.manyToMany(Tags).pivotTable('place_tags').joinColumn('place_id').inverseJoinColumn('tag_id').hidden(),
+    place_tags: () =>
+      p.manyToMany(Tags).pivotTable('place_tags').joinColumn('place_id').inverseJoinColumn('tag_id').hidden(),
     budget_items_collection: () => p.oneToMany(BudgetItems).mappedBy('place').hidden(),
-    dawarich_visit_suggestions_collection: () => p.oneToMany(DawarichVisitSuggestions).mappedBy('acceptedPlace').hidden(),
+    dawarich_visit_suggestions_collection: () =>
+      p.oneToMany(DawarichVisitSuggestions).mappedBy('acceptedPlace').hidden(),
     day_accommodations_collection: () => p.oneToMany(DayAccommodations).mappedBy('place').hidden(),
     day_assignments_collection: () => p.oneToMany(DayAssignments).mappedBy('place').hidden(),
     file_links_collection: () => p.oneToMany(FileLinks).mappedBy('place').hidden(),
@@ -122,6 +126,7 @@ export const PlacesSchema = defineEntity({
     place_regions: () => p.oneToOne(PlaceRegions).ref().mappedBy('place').hidden(),
     reservations_collection: () => p.oneToMany(Reservations).mappedBy('place').hidden(),
     roadtrip_day_tracks_collection: () => p.oneToMany(RoadtripDayTracks).mappedBy('place').hidden(),
+    tours: () => p.oneToOne(Tours).ref().mappedBy('place').hidden(),
     trip_files_collection: () => p.oneToMany(TripFiles).mappedBy('place').hidden(),
   },
 });

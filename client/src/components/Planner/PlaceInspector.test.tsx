@@ -730,26 +730,25 @@ describe('PlaceInspector', () => {
   });
 
   it('FE-PLANNER-INSPECTOR-2472: the own e-mail and hours show, the hours ahead of looked-up ones', async () => {
-    // The collapsed row shows today's hours, so on a Sunday it reads "Closed"
-    // and the button below is not found. Pin a Monday; only Date is faked so
-    // userEvent's timers keep running.
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-09-28T10:00:00'));
-    onTestFinished(() => {
+    try {
+      vi.setSystemTime(new Date('2026-06-02T12:00:00Z'));
+      const user = userEvent.setup();
+      const week = JSON.stringify(
+        Array.from({ length: 7 }, (_, i) =>
+          i === 6 ? { closed: true } : { closed: false, open: '08:00', close: '12:00' }
+        )
+      );
+      const placeWithHours = { id: 302, email: 'hi@bakery.test', opening_hours: week };
+      const p = buildPlace(placeWithHours);
+      render(<PlaceInspector {...defaultProps} place={p} />);
+      expect(screen.getByRole('link', { name: /hi@bakery\.test/ })).toHaveAttribute('href', 'mailto:hi@bakery.test');
+      expect(screen.getByText('Opening Hours')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { expanded: false, name: /08:00|Show/ }));
+      expect(screen.getByText(/Sunday: Closed/)).toBeInTheDocument();
+    } finally {
       vi.useRealTimers();
-    });
-    const user = userEvent.setup();
-    const week = JSON.stringify(
-      Array.from({ length: 7 }, (_, i) =>
-        i === 6 ? { closed: true } : { closed: false, open: '08:00', close: '12:00' }
-      )
-    );
-    const p = buildPlace({ id: 302, email: 'hi@bakery.test', opening_hours: week } as any);
-    render(<PlaceInspector {...defaultProps} place={p} />);
-    expect(screen.getByRole('link', { name: /hi@bakery\.test/ })).toHaveAttribute('href', 'mailto:hi@bakery.test');
-    expect(screen.getByText('Opening Hours')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { expanded: false, name: /08:00|Show/ }));
-    expect(screen.getByText(/Sunday: Closed/)).toBeInTheDocument();
+    }
   });
 
   // ── File size display ──────────────────────────────────────────────────────

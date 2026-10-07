@@ -48,6 +48,8 @@ export function formatAssignmentWithPlace(
     accommodation_id: a.accommodation_id ?? null,
     participants: participants || [],
     created_at: a.created_at,
+    tour_place_id: a.tour_place_id ?? null,
+    tour_route_geometry: a.tour_route_geometry ?? null,
     place: {
       id: a.place_id,
       name: a.place_name,

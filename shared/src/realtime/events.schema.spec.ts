@@ -19,6 +19,7 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'place:created': { place: { id: 3, name: 'Louvre' } },
   'place:updated': { place: { id: 3, name: 'Louvre' } },
   'place:deleted': { placeId: 3 },
+  'tours:changed': { placeIds: [3] },
   'assignment:created': { assignment: { id: 9, day_id: 2 } },
   'assignment:updated': { assignment: { id: 9, day_id: 2 } },
   'assignment:deleted': { assignmentId: 9, dayId: 2 },
@@ -153,9 +154,9 @@ describe('@trek/shared realtime event registry', () => {
     // panel without every member polling for it.
     // 33rd user event: journey:photos:updated, so the gallery re-sorts once the
     // capture times of an import have landed (#1587).
-    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(74);
+    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(75);
     expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(33);
-    expect(TREK_WS_EVENT_NAMES).toHaveLength(107);
+    expect(TREK_WS_EVENT_NAMES).toHaveLength(108);
   });
 
   it('WSEVT-REG-002: every name is domain:action shaped and outside the reserved plugin: namespace', () => {

@@ -13,6 +13,7 @@ interface MPlacesFilterSheetProps {
   onClose: () => void;
   places: Place[];
   categories: Category[];
+  toursEnabled: boolean;
 }
 
 /** Uppercase eyebrow over each group of the sheet. */
@@ -28,7 +29,13 @@ function SectionTitle({ children }: { children: string }) {
  * choice lands in the trip store at once, so the markers behind the sheet and the
  * places list change with it (#1541). Routed as shell sheet 'placesFilter'.
  */
-export default function MPlacesFilterSheet({ open, onClose, places, categories }: MPlacesFilterSheetProps) {
+export default function MPlacesFilterSheet({
+  open,
+  onClose,
+  places,
+  categories,
+  toursEnabled,
+}: MPlacesFilterSheetProps) {
   const { t } = useTranslation();
   const filter = useTripStore((s) => s.placesFilter);
   const categoryFilters = useTripStore((s) => s.placesCategoryFilter);
@@ -42,7 +49,8 @@ export default function MPlacesFilterSheet({ open, onClose, places, categories }
     { id: 'unplanned', label: t('places.unplanned') },
     { id: 'planned', label: t('places.planned') },
   ];
-  if (places.some((p) => p.route_geometry)) pools.push({ id: 'tracks', label: t('places.filterTracks') });
+  if (!toursEnabled && places.some((p) => p.route_geometry))
+    pools.push({ id: 'tracks', label: t('places.filterTracks') });
   const hasCategoryChoice = categories.length > 0 || places.some((p) => p.category_id == null);
 
   return (

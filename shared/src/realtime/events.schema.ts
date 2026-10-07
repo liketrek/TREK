@@ -63,6 +63,8 @@ export const TREK_WS_EVENTS = {
   'place:created': { scope: 'trip', payload: z.object({ place: entity }) },
   'place:updated': { scope: 'trip', payload: z.object({ place: entity }) },
   'place:deleted': { scope: 'trip', payload: z.object({ placeId: id }) },
+  // Invalidate the trip's Tours list; affected ids let peers exclude new Tours immediately.
+  'tours:changed': { scope: 'trip', payload: z.object({ placeIds: idList.optional() }) },
 
   // ── Assignments ──────────────────────────────────────────────────────────
   'assignment:created': { scope: 'trip', payload: z.object({ assignment: entity }) },

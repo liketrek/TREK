@@ -1,4 +1,3 @@
-import type { EntitySchema } from '@mikro-orm/core';
 import { AddonsSchema } from './Addons.entity';
 import { AppSettingsSchema } from './AppSettings.entity';
 import { AssignmentParticipantsSchema } from './AssignmentParticipants.entity';
@@ -101,6 +100,9 @@ import { ShareTokensSchema } from './ShareTokens.entity';
 import { TagsSchema } from './Tags.entity';
 import { TodoCategoryAssigneesSchema } from './TodoCategoryAssignees.entity';
 import { TodoItemsSchema } from './TodoItems.entity';
+import { TourTypesSchema } from './TourTypes.entity';
+import { TourWaypointsSchema } from './TourWaypoints.entity';
+import { ToursSchema } from './Tours.entity';
 import { TrekPhotoCacheMetaSchema } from './TrekPhotoCacheMeta.entity';
 import { TrekPhotosSchema } from './TrekPhotos.entity';
 import { TripAlbumLinksSchema } from './TripAlbumLinks.entity';
@@ -126,6 +128,7 @@ import { VisitedCountriesSchema } from './VisitedCountries.entity';
 import { VisitedRegionsSchema } from './VisitedRegions.entity';
 import { WebauthnChallengesSchema } from './WebauthnChallenges.entity';
 import { WebauthnCredentialsSchema } from './WebauthnCredentials.entity';
+import type { EntitySchema } from '@mikro-orm/core';
 
 export const ALL_ENTITIES: readonly EntitySchema[] = [
   AddonsSchema,
@@ -230,6 +233,9 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   TagsSchema,
   TodoCategoryAssigneesSchema,
   TodoItemsSchema,
+  TourTypesSchema,
+  TourWaypointsSchema,
+  ToursSchema,
   TrekPhotoCacheMetaSchema,
   TrekPhotosSchema,
   TripAlbumLinksSchema,

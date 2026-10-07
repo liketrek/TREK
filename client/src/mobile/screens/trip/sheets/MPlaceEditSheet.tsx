@@ -357,7 +357,9 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
       // Two-tap confirm: arming also stages the id the planner's confirm reads.
       setDeletePlaceId(sheetPlace.id);
       setDeleteArmed(true);
-      toast.warning(t('mobileTrip.tapAgainToDelete'));
+      toast.warning(
+        planner.isTourPlace(sheetPlace.id) ? t('tours.delete.confirmBody') : t('mobileTrip.tapAgainToDelete')
+      );
       return;
     }
     await confirmDeletePlace();
@@ -533,7 +535,11 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
 
       <FormSheetFooter
         onDelete={sheetPlace ? handleDelete : undefined}
-        deleteLabel={t('common.delete')}
+        deleteLabel={
+          deleteArmed && sheetPlace && planner.isTourPlace(sheetPlace.id)
+            ? t('tours.delete.confirmAction')
+            : t('common.delete')
+        }
         deleteArmed={deleteArmed}
         onCancel={handleClose}
         cancelLabel={t('common.cancel')}

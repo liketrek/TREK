@@ -71,11 +71,22 @@ describe('useTripWebSocket', () => {
     expect(registeredFunctions).toContain(handler);
   });
 
-  it('FE-HOOK-WS-006b: collab file sync listener is also registered (second addListener call)', () => {
-    const { unmount } = renderHook(() => useTripWebSocket(42));
-    // Two listeners registered: handleRemoteEvent + collabFileSync
-    expect((wsMock.addListener as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2);
+  it('FE-HOOK-WS-006b: collab file sync and Tours invalidation listeners are registered', () => {
+    const onToursChanged = vi.fn();
+    const { unmount } = renderHook(() => useTripWebSocket(42, onToursChanged));
+    const addListenerCalls = (wsMock.addListener as ReturnType<typeof vi.fn>).mock.calls;
+    // Listener order: handleRemoteEvent, collabFileSync, Tours invalidation.
+    expect(addListenerCalls).toHaveLength(3);
+    const toursInvalidation = addListenerCalls[2]?.[0];
+    expect(toursInvalidation).toBeTypeOf('function');
+
+    act(() => {
+      toursInvalidation({ type: 'tours:changed', tripId: 42, placeIds: [101, 102] });
+      toursInvalidation({ type: 'tours:changed', tripId: 43, placeIds: [201] });
+    });
+    expect(onToursChanged).toHaveBeenCalledExactlyOnceWith({ placeIds: [101, 102] });
     unmount();
+    expect(wsMock.removeListener).toHaveBeenCalledWith(toursInvalidation);
   });
 
   it('FE-HOOK-WS-006c: collab file sync listener reacts to collab:note:deleted events', () => {

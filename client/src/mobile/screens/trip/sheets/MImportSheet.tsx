@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { ChevronLeft, ChevronRight, Download, FileDown, MapPin } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
+import { useAddonStore } from '../../../../store/addonStore';
 import MIconBtn from '../../../components/MIconBtn';
 import MSheet from '../../../components/MSheet';
 import type { TripPlanner } from '../MTripShell';
@@ -24,6 +25,9 @@ type ImportStep = 'menu' | 'file' | 'list';
 export default function MImportSheet({ planner, open, onClose }: MImportSheetProps) {
   const { t } = planner;
   const [step, setStep] = useState<ImportStep>('menu');
+  // File import (GPX/KML/KMZ) belongs to Tours mode while the addon is on;
+  // list import stays here in both states.
+  const toursEnabled = useAddonStore((s) => s.isEnabled('tours'));
 
   useEffect(() => {
     if (open) setStep('menu');
@@ -50,12 +54,14 @@ export default function MImportSheet({ planner, open, onClose }: MImportSheetPro
 
       {step === 'menu' && (
         <div className="px-[14px] pb-[14px] pt-1">
-          <ImpMenuRow
-            icon={FileDown}
-            title={t('places.importFile')}
-            sub="GPX · KML · KMZ"
-            onClick={() => setStep('file')}
-          />
+          {!toursEnabled && (
+            <ImpMenuRow
+              icon={FileDown}
+              title={t('places.importFile')}
+              sub="GPX · KML · KMZ"
+              onClick={() => setStep('file')}
+            />
+          )}
           <ImpMenuRow
             icon={MapPin}
             title={t('places.importList')}

@@ -51,6 +51,9 @@ const KEEP_TABLES = new Set([
   'photo_provider_fields',
   'document_providers',
   'document_provider_fields',
+  // Reference data the migration that creates it writes (`tours.tour_type`
+  // has an FK on it); nothing re-seeds it, so a reset must keep it.
+  'tour_types',
   // Migration bookkeeping: clearing these would make the next boot replay the
   // whole history over a schema that already has it.
   'schema_version',

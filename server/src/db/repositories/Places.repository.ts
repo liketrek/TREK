@@ -59,6 +59,8 @@ export interface PlaceWithCategoryRow extends PlaceRow {
 export interface PlaceListRow extends PlaceWithCategoryRow {
   country_code: string | null;
   region_name: string | null;
+  /** The place's own id when it is a Tour (it has a `tours` facet row), else null. */
+  tour_place_id: number | null;
 }
 
 /** {@link PlacesRepository.findActiveTripFile}'s narrow `trip_files` shape. */
@@ -342,6 +344,22 @@ export class PlacesRepository extends TrekRepository<Places> {
       .select(['p.google_place_id', 'p.image_url'])
       .where({ 'p.id': id, 'p.trip_id': trip_id })
       .execute<{ google_place_id: string | null; image_url: string | null } | undefined>('get', false);
+  }
+
+  /**
+   * `SELECT 1 FROM tours WHERE place_id = ?`, read through the place's
+   * `tours` facet so the Places domain answers it without the Tours
+   * repository. `remove`/`removeMany` call it inside their delete
+   * transaction to report which deleted places were Tours; the facet row and
+   * its waypoints go with the place through `ON DELETE CASCADE`.
+   */
+  async isTour(id: number): Promise<boolean> {
+    const row = await this.qb('p')
+      .join('p.tours', 't')
+      .select(['p.id'])
+      .where({ 'p.id': id })
+      .execute<{ id: number } | undefined>('get', false);
+    return !!row;
   }
 
   /** PL19/PL21 — `DELETE FROM places WHERE id = ?`, unscoped: every caller proved trip access first. */
@@ -741,13 +759,19 @@ export class PlacesRepository extends TrekRepository<Places> {
       assignment?: 'all' | 'unassigned' | 'assigned';
     },
   ): Promise<PlaceListRow[]> {
+    const platform = this.getEntityManager().getPlatform();
     const qb = this.qb('p')
       .leftJoin('p.category', 'c')
       // #2537: the atlas' cached region rides along (`LEFT JOIN place_regions pr ON pr.place_id = p.id`).
       .leftJoin('p.place_regions', 'pr')
+      // Tours: `LEFT JOIN tours t ON t.place_id = p.id` marks the Tour-backed
+      // places. `columnRef`, because the bare `t.place_id` twin is
+      // persist(false) and selects nothing.
+      .leftJoin('p.tours', 't')
       .select(
         [
           'p.*',
+          columnRef(platform, 't.place_id').as('tour_place_id'),
           'c.name as category_name',
           'c.color as category_color',
           'c.icon as category_icon',
@@ -1454,6 +1478,56 @@ export class PlacesRepository extends TrekRepository<Places> {
       .orderBy('da.order_index', 'asc')
       .execute();
     return rows as PublicApiAssignedPlaceRow[];
+  }
+
+  /**
+   * TO10 (`ToursService.createTour`) — `INSERT INTO places (trip_id, name,
+   * lat, lng, transport_mode, route_geometry) VALUES (?, ?, ?, ?, 'walking',
+   * ?)`. The place a drawn tour lives on starts at the route's first point;
+   * every other column keeps its default. Returns the generated id.
+   */
+  async insertTourPlace(input: {
+    trip_id: number;
+    name: string;
+    lat: number;
+    lng: number;
+    route_geometry: string;
+  }): Promise<number> {
+    return await this.insert({
+      trip: input.trip_id,
+      name: input.name,
+      lat: input.lat,
+      lng: input.lng,
+      transport_mode: 'walking',
+      route_geometry: input.route_geometry,
+    });
+  }
+
+  /**
+   * TO11 (`ToursService.updateTour`) — `UPDATE places SET name = ?, lat = ?,
+   * lng = ?, transport_mode = 'walking', route_geometry = ?, updated_at =
+   * CURRENT_TIMESTAMP WHERE id = ? AND trip_id = ?`. Returns whether a place
+   * of that trip was updated, so a tour deleted or moved between the check
+   * and the write answers 404 instead of writing nothing.
+   */
+  async updateTourRoute(
+    id: number,
+    trip_id: number,
+    input: { name: string; lat: number; lng: number; route_geometry: string },
+  ): Promise<boolean> {
+    const platform = this.getEntityManager().getPlatform();
+    const updated = await this.nativeUpdate(
+      { id, trip: trip_id },
+      {
+        name: input.name,
+        lat: input.lat,
+        lng: input.lng,
+        transport_mode: 'walking',
+        route_geometry: input.route_geometry,
+        updated_at: currentTimestamp(platform),
+      },
+    );
+    return updated > 0;
   }
 }
 

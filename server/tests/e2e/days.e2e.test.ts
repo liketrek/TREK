@@ -86,6 +86,7 @@ describe('Days + day-notes e2e (real auth guard + temp SQLite, real day SQL)', (
 
   beforeEach(() => {
     db.prepare('DELETE FROM day_notes').run();
+    db.prepare('DELETE FROM day_assignments').run();
     checkPermission.mockReturnValue(true);
   });
 
@@ -102,6 +103,59 @@ describe('Days + day-notes e2e (real auth guard + temp SQLite, real day SQL)', (
     expect(res.status).toBe(200);
     expect(res.body.days).toHaveLength(1);
     expect(res.body.days[0]).toMatchObject({ id: 3, trip_id: 5, day_number: 1, assignments: [], notes_items: [] });
+  });
+
+  it('200 list projects Tour facets once per assignment and leaves other tracks ordinary', async () => {
+    const legacyGeometry = JSON.stringify([
+      [48, 11, 600],
+      [48.01, 11.02, 650],
+    ]);
+    const tourGeometry = JSON.stringify([
+      [48.02, 11.03, 700],
+      [48.03, 11.04, 750],
+    ]);
+    db.prepare(
+      'INSERT INTO places (id, trip_id, name, route_geometry) VALUES (2, 5, ?, ?), (3, 5, ?, ?), (4, 5, ?, ?)',
+    ).run('Ordinary', null, 'Legacy track', legacyGeometry, 'Tour', tourGeometry);
+    db.prepare("INSERT INTO tours (place_id, tour_type) VALUES (4, 'hike')").run();
+    const assignmentIds = [2, 3, 4, 4].map((placeId, orderIndex) =>
+      Number(
+        db
+          .prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (3, ?, ?)')
+          .run(placeId, orderIndex).lastInsertRowid,
+      ),
+    );
+
+    const res = await request(server).get('/api/trips/5/days').set('Cookie', sessionCookie(1));
+
+    expect(res.status).toBe(200);
+    const assignments = res.body.days[0].assignments as Array<{
+      id: number;
+      order_index: number;
+      tour_place_id: number | null;
+      tour_route_geometry: string | null;
+      place: { id: number };
+    }>;
+    expect(assignments).toHaveLength(4);
+    expect(assignments.map((a) => a.id)).toEqual(assignmentIds);
+    expect(assignments.map((a) => a.order_index)).toEqual([0, 1, 2, 3]);
+    expect(assignments[0]).toMatchObject({ place: { id: 2 }, tour_place_id: null, tour_route_geometry: null });
+    expect(db.prepare('SELECT route_geometry FROM places WHERE id = 3').get()).toEqual({
+      route_geometry: legacyGeometry,
+    });
+    expect(db.prepare('SELECT place_id FROM tours WHERE place_id = 3').get()).toBeUndefined();
+    expect(db.prepare('SELECT place_id FROM tours WHERE place_id = 4').get()).toEqual({ place_id: 4 });
+    expect(assignments[1]).toMatchObject({ place: { id: 3 }, tour_place_id: null, tour_route_geometry: null });
+    expect(
+      assignments.slice(2).map((a) => ({
+        place_id: a.place.id,
+        tour_place_id: a.tour_place_id,
+        tour_route_geometry: a.tour_route_geometry,
+      })),
+    ).toEqual([
+      { place_id: 4, tour_place_id: 4, tour_route_geometry: tourGeometry },
+      { place_id: 4, tour_place_id: 4, tour_route_geometry: tourGeometry },
+    ]);
   });
 
   it('201 create day (real insert, auto day_number), 404 trip when not accessible', async () => {

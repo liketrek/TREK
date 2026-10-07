@@ -5,7 +5,8 @@ import {
   type TripRouteAnswers, type TripRouteSummary,
 } from './tripRouteGeometry'
 import { useSettingsStore } from '../../store/settingsStore'
-import type { Accommodation, AssignmentsMap, Day, Reservation } from '../../types'
+import { useAddonStore } from '../../store/addonStore'
+import type { Accommodation, AssignmentsMap, Day, Place, Reservation } from '../../types'
 
 export type { TripOverviewDay, TripRouteSummary } from './tripRouteGeometry'
 
@@ -15,6 +16,7 @@ export interface TripRouteOverview extends TripRouteSummary {
 }
 
 const EMPTY: TripRouteOverview = { ...summariseTripRoute([]), loading: false }
+const EMPTY_PLACES: Place[] = []
 
 /**
  * Every travel day's route at once, each day in its own colour, with the trip's total
@@ -34,8 +36,10 @@ export function useTripRouteOverview(
   accommodations: Accommodation[],
   profile: RouteProfileKey,
   enabled: boolean,
+  places: Place[] = EMPTY_PLACES,
 ): TripRouteOverview {
   const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
+  const toursEnabled = useAddonStore(s => s.isEnabled('tours'))
   // Leg text is formatted at compute time, so a km↔mi switch has to re-run (#1300).
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const [result, setResult] = useState<TripRouteOverview>(EMPTY)
@@ -51,17 +55,17 @@ export function useTripRouteOverview(
 
   const plan = useMemo(
     () => (enabled
-      ? planTripRoute({ days, assignments, reservations, accommodations, optimizeFromAccommodation }, profile)
+      ? planTripRoute({ days, assignments, reservations, accommodations, optimizeFromAccommodation, toursEnabled, places }, profile)
       : []),
-    [enabled, days, assignments, reservations, accommodations, optimizeFromAccommodation, profile],
+    [enabled, days, assignments, reservations, accommodations, optimizeFromAccommodation, profile, toursEnabled, places],
   )
 
   // Only geometry and mode decide whether legs have to be fetched again: renaming a
   // place or editing its notes must not fire a routing round.
   const planKey = useMemo(
-    () => plan.map(({ day, runs }) => `${day.id}@${day.default_transport_mode ?? ''}:${runs
+    () => plan.map(({ day, runs, tourLines }) => `${day.id}@${day.default_transport_mode ?? ''}:${runs
       .map(chunks => chunks.map(c => `${c.mode}>${c.points.map(p => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join('|')}`).join('+'))
-      .join('/')}`).join(';'),
+      .join('/')}:tours=${JSON.stringify(tourLines ?? [])}`).join(';'),
     [plan],
   )
 

@@ -1,4 +1,4 @@
-import { coalesce, columnIncrementedBy, columnRef } from '../dialect/sql-functions';
+import { caseWhenNotNull, coalesce, columnIncrementedBy, columnRef } from '../dialect/sql-functions';
 import type { DayAssignments } from '../entities/DayAssignments.entity';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
@@ -16,9 +16,12 @@ import type { Platform } from '@mikro-orm/core';
  *   p.duration_minutes, p.notes as place_notes,
  *   p.image_url, p.transport_mode, p.google_place_id, p.google_ftid, p.osm_id, p.amap_poi_id,
  *   p.website, p.phone, p.stop_type, p.fill_percent,
+ *   t.place_id AS tour_place_id,
+ *   CASE WHEN t.place_id IS NOT NULL THEN p.route_geometry END AS tour_route_geometry,
  *   c.name as category_name, c.color as category_color, c.icon as category_icon
  * FROM day_assignments da
  * JOIN places p ON da.place_id = p.id
+ * LEFT JOIN tours t ON t.place_id = p.id
  * LEFT JOIN categories c ON p.category_id = c.id
  * WHERE <da.id = ? | da.day_id = ? | da.day_id IN (...)>
  * [ORDER BY da.order_index ASC, da.created_at ASC]
@@ -58,6 +61,10 @@ export interface AssignmentWithPlaceRow extends DayAssignmentRow {
   phone: string | null;
   stop_type: string | null;
   fill_percent: number | null;
+  /** The place's id when it is a Tour (its `tours` facet row), else null. */
+  tour_place_id: number | null;
+  /** The place's `route_geometry`, but only for a Tour; null for every other place. */
+  tour_route_geometry: string | null;
   category_name: string | null;
   category_color: string | null;
   category_icon: string | null;
@@ -66,11 +73,19 @@ export interface AssignmentWithPlaceRow extends DayAssignmentRow {
 /**
  * {@link DayAssignmentsRepository.listPublicForShare}'s projection (SH9) —
  * {@link AssignmentWithPlaceRow} minus the six columns a public share link
- * must not leak.
+ * must not leak, and minus the two Tour facet columns the share projection
+ * never selected.
  */
 export type SharePublicAssignmentRow = Omit<
   AssignmentWithPlaceRow,
-  'google_place_id' | 'google_ftid' | 'osm_id' | 'amap_poi_id' | 'stop_type' | 'fill_percent'
+  | 'google_place_id'
+  | 'google_ftid'
+  | 'osm_id'
+  | 'amap_poi_id'
+  | 'stop_type'
+  | 'fill_percent'
+  | 'tour_place_id'
+  | 'tour_route_geometry'
 >;
 
 /**
@@ -266,6 +281,10 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
       'p.phone',
       'p.stop_type',
       'p.fill_percent',
+      // `place_id` on `Tours` is the `persist(false)` twin of its primary-key
+      // relation, the same trap as `category_id` above, so `columnRef` again.
+      columnRef(platform, 't.place_id').as('tour_place_id'),
+      caseWhenNotNull(platform, 't.place_id', 'p.route_geometry').as('tour_route_geometry'),
       'c.name as category_name',
       'c.color as category_color',
       'c.icon as category_icon',
@@ -280,6 +299,7 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
     const platform = this.getEntityManager().getPlatform();
     const row = await this.qb('da')
       .join('da.place', 'p')
+      .leftJoin('p.tours', 't')
       .leftJoin('p.category', 'c')
       .select(this.assignmentWithPlaceSelect(platform))
       .where({ 'da.id': id })
@@ -296,6 +316,7 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
     const platform = this.getEntityManager().getPlatform();
     return await this.qb('da')
       .join('da.place', 'p')
+      .leftJoin('p.tours', 't')
       .leftJoin('p.category', 'c')
       .select(this.assignmentWithPlaceSelect(platform))
       .where({ 'da.day': day_id })
@@ -313,6 +334,7 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
     const platform = this.getEntityManager().getPlatform();
     return await this.qb('da')
       .join('da.place', 'p')
+      .leftJoin('p.tours', 't')
       .leftJoin('p.category', 'c')
       .select(this.assignmentWithPlaceSelect(platform))
       .where({ 'da.day': { $in: day_ids } })
@@ -514,6 +536,20 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
       .where({ id })
       .execute<{ day_id: number } | undefined>('get', false);
     return row?.day_id;
+  }
+
+  /**
+   * `moveAssignment`'s Tour check: `SELECT place_id FROM day_assignments
+   * WHERE id = ?`, `columnRef` for the same `persist(false)` reason as
+   * {@link getDayId} above.
+   */
+  async getPlaceId(id: number): Promise<number | undefined> {
+    const platform = this.getEntityManager().getPlatform();
+    const row = await this.qb('da')
+      .select([columnRef(platform, 'da.place_id').as('place_id')])
+      .where({ id })
+      .execute<{ place_id: number } | undefined>('get', false);
+    return row?.place_id;
   }
 
   /** AS14 — `UPDATE day_assignments SET day_id = ?, order_index = ? WHERE id = ?`. */
